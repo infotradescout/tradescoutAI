@@ -9,28 +9,28 @@ export default function ContractorDashboard() {
   const [, setLocation] = useLocation();
 
   return (
-	<div className="text-tsTextMain">
+    <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-orange-400">Contractor workspace</p>
-          <h1 className="text-3xl font-bold text-white">
+          <p className="text-xs uppercase tracking-wide text-primary">Contractor workspace</p>
+          <h1 className="text-3xl font-bold text-foreground">
             Welcome{user?.firstName ? `, ${user.firstName}` : ""}
           </h1>
-          <p className="text-sm text-gray-300 max-w-2xl">
+          <p className="text-sm text-muted-foreground max-w-2xl">
             Scout keeps your jobs, documents, and finances in one place. As you start responding to
             Direct Connect requests, sending quotes, and working jobs, this dashboard will reflect your real pipeline.
           </p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-slate-900/70 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="space-y-1">
-              <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold uppercase tracking-wide">
+              <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wide">
                 <FileText className="h-4 w-4" />
                 <span>Finances</span>
               </div>
-              <CardTitle className="text-sm text-white">Create your first invoice</CardTitle>
-              <CardDescription className="text-xs text-gray-300">
+              <CardTitle className="text-sm text-foreground">Create your first invoice</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
                 Record work you&apos;ve already done or bill a new job. Your invoices will show up in
                 the Finances workspace.
               </CardDescription>
@@ -42,14 +42,14 @@ export default function ContractorDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/70 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="space-y-1">
-              <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold uppercase tracking-wide">
+              <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wide">
                 <Briefcase className="h-4 w-4" />
                 <span>Jobs</span>
               </div>
-              <CardTitle className="text-sm text-white">Open contractor board</CardTitle>
-              <CardDescription className="text-xs text-gray-300">
+              <CardTitle className="text-sm text-foreground">Open contractor board</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
                 Track active jobs, bids, and field execution from one board.
               </CardDescription>
             </CardHeader>
@@ -60,14 +60,14 @@ export default function ContractorDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/70 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="space-y-1">
-              <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold uppercase tracking-wide">
+              <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wide">
                 <Users className="h-4 w-4" />
                 <span>Crew & helpers</span>
               </div>
-              <CardTitle className="text-sm text-white">Coordinate crew and helpers</CardTitle>
-              <CardDescription className="text-xs text-gray-300">
+              <CardTitle className="text-sm text-foreground">Coordinate crew and helpers</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
                 Use Helpers to post crew and helper opportunities for your business. Homeowners still
                 start coordination in Direct Connect – this space is for responders.
               </CardDescription>

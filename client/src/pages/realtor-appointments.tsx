@@ -84,9 +84,9 @@ export default function RealtorAppointments() {
     switch (status) {
       case "Confirmed": return "bg-green-600";
       case "Pending": return "bg-yellow-600";
-      case "Completed": return "bg-blue-600";
-      case "Cancelled": return "bg-red-600";
-      default: return "bg-gray-600";
+      case "Completed": return "bg-primary";
+      case "Cancelled": return "bg-destructive";
+      default: return "bg-muted";
     }
   };
 
@@ -102,109 +102,109 @@ export default function RealtorAppointments() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <div className="container mx-auto px-6 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-500/20 rounded-xl">
-                <Calendar className="h-8 w-8 text-blue-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Appointments</h1>
-                <p className="text-gray-400">Manage showings, consultations, and meetings</p>
-              </div>
+    <div className="container mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <Calendar className="h-8 w-8 text-primary" />
             </div>
-            
-            <Button className="bg-blue-600 hover:bg-blue-700" data-testid="button-new-appointment">
-              <Plus className="h-4 w-4 mr-2" />
-              Schedule Appointment
-            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Appointments</h1>
+              <p className="text-muted-foreground">Manage showings, consultations, and meetings</p>
+            </div>
           </div>
+          
+          <Button className="bg-primary hover:bg-primary/90" data-testid="button-new-appointment">
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Appointment
+          </Button>
+        </div>
 
-          <Tabs defaultValue="today" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
-              <TabsTrigger value="today">Today's Schedule</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-              <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="today" className="space-y-6">
+          <TabsList className="bg-muted border border-border">
+            <TabsTrigger value="today">Today's Schedule</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="today" className="space-y-4">
-              {todayAppointments.map((appointment) => (
-                <Card key={appointment.id} className="bg-navy-800/50 border-navy-600">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+          <TabsContent value="today" className="space-y-4">
+            {todayAppointments.map((appointment) => (
+              <Card key={appointment.id} className="bg-card border-border">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <div className="text-primary">
                           {getTypeIcon(appointment.type)}
                         </div>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg text-foreground">{appointment.client}</h3>
+                          <Badge className={getStatusColor(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
+                        </div>
                         
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-lg">{appointment.client}</h3>
-                            <Badge className={getStatusColor(appointment.status)}>
-                              {appointment.status}
-                            </Badge>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              {appointment.time} ({appointment.duration})
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              {appointment.type}
+                            </div>
                           </div>
                           
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-6">
-                              <div className="flex items-center gap-2 text-gray-400">
-                                <Clock className="h-4 w-4" />
-                                {appointment.time} ({appointment.duration})
-                              </div>
-                              <div className="flex items-center gap-2 text-gray-400">
-                                <Calendar className="h-4 w-4" />
-                                {appointment.type}
-                              </div>
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Mail className="h-4 w-4" />
+                              {appointment.email}
                             </div>
-                            
-                            <div className="flex items-center gap-6">
-                              <div className="flex items-center gap-2 text-gray-400">
-                                <Mail className="h-4 w-4" />
-                                {appointment.email}
-                              </div>
-                              <div className="flex items-center gap-2 text-gray-400">
-                                <Phone className="h-4 w-4" />
-                                {appointment.phone}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-blue-400">
-                              <Home className="h-4 w-4" />
-                              {appointment.property}
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Phone className="h-4 w-4" />
+                              {appointment.phone}
                             </div>
                           </div>
 
-                          {appointment.notes && (
-                            <div className="mt-3 p-3 bg-navy-700/30 rounded-lg">
-                              <p className="text-sm text-gray-300">{appointment.notes}</p>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2 text-primary">
+                            <Home className="h-4 w-4" />
+                            {appointment.property}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" data-testid="button-edit-appointment">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-start-appointment">
-                          Start Meeting
-                        </Button>
+                        {appointment.notes && (
+                          <div className="mt-3 p-3 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground">{appointment.notes}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {todayAppointments.length === 0 && (
-                <Card className="bg-navy-800/50 border-navy-600">
+
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" data-testid="button-edit-appointment">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" className="bg-primary hover:bg-primary/90" data-testid="button-start-appointment">
+                        Start Meeting
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {todayAppointments.length === 0 && (
+                <Card className="bg-card border-border">
                   <CardContent className="p-8 text-center">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Appointments Today</h3>
-                    <p className="text-gray-400 mb-4">Your schedule is clear for today</p>
-                    <Button className="bg-blue-600 hover:bg-blue-700" data-testid="button-schedule-appointment">
-                      <Plus className="h-4 w-4 mr-2" />
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2 text-foreground">No Appointments Today</h3>
+                    <p className="text-muted-foreground mb-4">Your schedule is clear for today</p>
+                    <Button className="bg-primary hover:bg-primary/90" data-testid="button-schedule-appointment">
                       Schedule New Appointment
                     </Button>
                   </CardContent>
@@ -214,23 +214,25 @@ export default function RealtorAppointments() {
 
             <TabsContent value="upcoming" className="space-y-4">
               {upcomingAppointments.map((appointment) => (
-                <Card key={appointment.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={appointment.id} className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                          {getTypeIcon(appointment.type)}
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                          <div className="text-primary">
+                            {getTypeIcon(appointment.type)}
+                          </div>
                         </div>
                         
                         <div>
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-lg">{appointment.client}</h3>
+                            <h3 className="font-semibold text-lg text-foreground">{appointment.client}</h3>
                             <Badge className={getStatusColor(appointment.status)}>
                               {appointment.status}
                             </Badge>
                           </div>
                           
-                          <div className="flex items-center gap-6 text-sm text-gray-400 mb-2">
+                          <div className="flex items-center gap-6 text-sm text-muted-foreground mb-2">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4" />
                               {appointment.date}
@@ -245,7 +247,7 @@ export default function RealtorAppointments() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 text-blue-400">
+                          <div className="flex items-center gap-2 text-primary">
                             <Home className="h-4 w-4" />
                             {appointment.property}
                           </div>
@@ -257,7 +259,7 @@ export default function RealtorAppointments() {
                           <Calendar className="h-4 w-4 mr-2" />
                           Reschedule
                         </Button>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-view-details">
+                        <Button size="sm" className="bg-primary hover:bg-primary/90" data-testid="button-view-details">
                           View Details
                         </Button>
                       </div>
@@ -268,17 +270,17 @@ export default function RealtorAppointments() {
             </TabsContent>
 
             <TabsContent value="calendar">
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-blue-400" />
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <Calendar className="h-5 w-5 text-primary" />
                     Calendar Integration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-8 text-center">
-                  <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Calendar View</h3>
-                  <p className="text-gray-400 mb-6">
+                  <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-foreground">Calendar View</h3>
+                  <p className="text-muted-foreground mb-6">
                     Full calendar view with Google Calendar and Outlook sync coming soon
                   </p>
                   <Button variant="outline" data-testid="button-setup-calendar">

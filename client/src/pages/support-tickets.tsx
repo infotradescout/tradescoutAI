@@ -91,15 +91,15 @@ const SupportTickets = memo(function SupportTickets() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'open':
-        return <AlertTriangle className="h-4 w-4 text-red-400" />;
+        return <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />;
       case 'in_progress':
-        return <Clock className="h-4 w-4 text-yellow-400" />;
+        return <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />;
       case 'resolved':
-        return <CheckCircle2 className="h-4 w-4 text-green-400" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />;
       case 'closed':
-        return <XCircle className="h-4 w-4 text-gray-400" />;
+        return <XCircle className="h-4 w-4 text-muted-foreground" />;
       default:
-        return <MessageSquare className="h-4 w-4 text-blue-400" />;
+        return <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
     }
   };
 
@@ -112,19 +112,18 @@ const SupportTickets = memo(function SupportTickets() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Headphones className="h-8 w-8 text-orange-400" />
+              <Headphones className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-4xl font-bold text-white">Support Tickets</h1>
-                <p className="text-gray-300 text-lg">Manage customer support requests and issues</p>
+                <h1 className="text-4xl font-bold text-foreground">Support Tickets</h1>
+                <p className="text-muted-foreground text-lg">Manage customer support requests and issues</p>
               </div>
             </div>
-            <Button className="bg-orange-600 hover:bg-orange-700">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
               New Ticket
             </Button>
@@ -133,50 +132,50 @@ const SupportTickets = memo(function SupportTickets() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Open Tickets</p>
-                  <p className="text-2xl font-bold text-white">{openTickets.length}</p>
+                  <p className="text-muted-foreground text-sm">Open Tickets</p>
+                  <p className="text-2xl font-bold text-foreground">{openTickets.length}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-red-400" />
+                <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">In Progress</p>
-                  <p className="text-2xl font-bold text-white">8</p>
+                  <p className="text-muted-foreground text-sm">In Progress</p>
+                  <p className="text-2xl font-bold text-foreground">8</p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-400" />
+                <Clock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Resolved Today</p>
-                  <p className="text-2xl font-bold text-white">15</p>
+                  <p className="text-muted-foreground text-sm">Resolved Today</p>
+                  <p className="text-2xl font-bold text-foreground">15</p>
                 </div>
-                <CheckCircle2 className="h-8 w-8 text-green-400" />
+                <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Avg Response Time</p>
-                  <p className="text-2xl font-bold text-white">2.1h</p>
+                  <p className="text-muted-foreground text-sm">Avg Response Time</p>
+                  <p className="text-2xl font-bold text-foreground">2.1h</p>
                 </div>
-                <Users2 className="h-8 w-8 text-blue-400" />
+                <Users2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
             </CardContent>
           </Card>
@@ -187,19 +186,19 @@ const SupportTickets = memo(function SupportTickets() {
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <div className="flex items-center justify-between">
-                <TabsList className="bg-navy-800 border-navy-600">
-                  <TabsTrigger value="open" className="data-[state=active]:bg-orange-600">
+                <TabsList className="bg-muted border border-border">
+                  <TabsTrigger value="open" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     Open ({openTickets.length})
                   </TabsTrigger>
-                  <TabsTrigger value="resolved" className="data-[state=active]:bg-orange-600">
+                  <TabsTrigger value="resolved" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     Resolved ({resolvedTickets.length})
                   </TabsTrigger>
-                  <TabsTrigger value="all" className="data-[state=active]:bg-orange-600">
+                  <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     All Tickets
                   </TabsTrigger>
                 </TabsList>
 
-                <Button variant="outline" size="sm" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
                 </Button>
@@ -209,7 +208,7 @@ const SupportTickets = memo(function SupportTickets() {
                 {openTickets.map((ticket) => (
                   <Card 
                     key={ticket.id} 
-                    className={`bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer transition-colors hover:bg-navy-700/50 ${selectedTicket?.id === ticket.id ? 'ring-2 ring-orange-600' : ''}`}
+                    className={`bg-card border-border cursor-pointer transition-colors hover:bg-muted/50 ${selectedTicket?.id === ticket.id ? 'ring-2 ring-primary' : ''}`}
                     onClick={() => setSelectedTicket(ticket)}
                   >
                     <CardContent className="p-6">
@@ -217,8 +216,8 @@ const SupportTickets = memo(function SupportTickets() {
                         <div className="flex items-center gap-3">
                           {getStatusIcon(ticket.status)}
                           <div>
-                            <h3 className="text-white font-medium">{ticket.subject}</h3>
-                            <p className="text-gray-400 text-sm">#{ticket.id} • {ticket.user.name}</p>
+                            <h3 className="text-foreground font-medium">{ticket.subject}</h3>
+                            <p className="text-muted-foreground text-sm">#{ticket.id} • {ticket.user.name}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -231,9 +230,9 @@ const SupportTickets = memo(function SupportTickets() {
                         </div>
                       </div>
 
-                      <p className="text-gray-300 text-sm mb-4 line-clamp-2">{ticket.description}</p>
+                      <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{ticket.description}</p>
 
-                      <div className="flex items-center justify-between text-sm text-gray-400">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <div className="flex items-center gap-4">
                           <span>Assigned to: {ticket.assignedTo}</span>
                           <span>{ticket.messages} messages</span>
@@ -249,7 +248,7 @@ const SupportTickets = memo(function SupportTickets() {
                 {resolvedTickets.map((ticket) => (
                   <Card 
                     key={ticket.id} 
-                    className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer transition-colors hover:bg-navy-700/50"
+                    className="bg-card border-border cursor-pointer transition-colors hover:bg-muted/50"
                     onClick={() => setSelectedTicket(ticket)}
                   >
                     <CardContent className="p-6">
@@ -257,16 +256,16 @@ const SupportTickets = memo(function SupportTickets() {
                         <div className="flex items-center gap-3">
                           {getStatusIcon(ticket.status)}
                           <div>
-                            <h3 className="text-white font-medium">{ticket.subject}</h3>
-                            <p className="text-gray-400 text-sm">#{ticket.id} • {ticket.user.name}</p>
+                            <h3 className="text-foreground font-medium">{ticket.subject}</h3>
+                            <p className="text-muted-foreground text-sm">#{ticket.id} • {ticket.user.name}</p>
                           </div>
                         </div>
                         <Badge className="bg-green-600 text-white">RESOLVED</Badge>
                       </div>
 
-                      <p className="text-gray-300 text-sm mb-4 line-clamp-2">{ticket.description}</p>
+                      <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{ticket.description}</p>
 
-                      <div className="flex items-center justify-between text-sm text-gray-400">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span>Resolved by: {ticket.assignedTo}</span>
                         <span>{new Date(ticket.resolvedAt).toLocaleDateString()}</span>
                       </div>
@@ -281,9 +280,9 @@ const SupportTickets = memo(function SupportTickets() {
           <div className="space-y-6">
             {selectedTicket ? (
               <>
-                <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <Card className="bg-card border-border">
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
+                    <CardTitle className="text-foreground flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
                       Ticket #{selectedTicket.id}
                     </CardTitle>
@@ -295,26 +294,26 @@ const SupportTickets = memo(function SupportTickets() {
                         <AvatarFallback>{selectedTicket.user.name[0]}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-white font-medium">{selectedTicket.user.name}</p>
-                        <p className="text-gray-400 text-sm">{selectedTicket.user.email}</p>
+                        <p className="text-foreground font-medium">{selectedTicket.user.name}</p>
+                        <p className="text-muted-foreground text-sm">{selectedTicket.user.email}</p>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-white font-medium mb-2">Subject</h4>
-                      <p className="text-gray-300">{selectedTicket.subject}</p>
+                      <h4 className="text-foreground font-medium mb-2">Subject</h4>
+                      <p className="text-muted-foreground">{selectedTicket.subject}</p>
                     </div>
 
                     <div>
-                      <h4 className="text-white font-medium mb-2">Description</h4>
-                      <p className="text-gray-300">{selectedTicket.description}</p>
+                      <h4 className="text-foreground font-medium mb-2">Description</h4>
+                      <p className="text-muted-foreground">{selectedTicket.description}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-white">Priority</Label>
+                        <Label className="text-foreground">Priority</Label>
                         <Select defaultValue={selectedTicket.priority}>
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                          <SelectTrigger className="bg-background border-input text-foreground">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -326,9 +325,9 @@ const SupportTickets = memo(function SupportTickets() {
                       </div>
 
                       <div>
-                        <Label className="text-white">Status</Label>
+                        <Label className="text-foreground">Status</Label>
                         <Select defaultValue={selectedTicket.status}>
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                          <SelectTrigger className="bg-background border-input text-foreground">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -342,9 +341,9 @@ const SupportTickets = memo(function SupportTickets() {
                     </div>
 
                     <div>
-                      <Label className="text-white">Assign To</Label>
+                      <Label className="text-foreground">Assign To</Label>
                       <Select defaultValue={selectedTicket.assignedTo}>
-                        <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                        <SelectTrigger className="bg-background border-input text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -357,7 +356,7 @@ const SupportTickets = memo(function SupportTickets() {
 
                     <div className="space-y-2">
                       <Button 
-                        className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => handleUpdateStatus(selectedTicket.id, 'resolved')}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -365,7 +364,7 @@ const SupportTickets = memo(function SupportTickets() {
                       </Button>
                       <Button 
                         variant="outline" 
-                        className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                        className="w-full border-primary text-primary hover:bg-primary/10"
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Add Response
@@ -374,35 +373,34 @@ const SupportTickets = memo(function SupportTickets() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <Card className="bg-card border-border">
                   <CardHeader>
-                    <CardTitle className="text-white">Quick Response</CardTitle>
+                    <CardTitle className="text-foreground">Quick Response</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <Textarea 
                       placeholder="Type your response to the customer..."
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-background border-input text-foreground"
                       rows={4}
                     />
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    <Button className="w-full bg-primary hover:bg-primary/90">
                       Send Response
                     </Button>
                   </CardContent>
                 </Card>
               </>
             ) : (
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-card border-border">
                 <CardContent className="p-12 text-center">
-                  <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-white text-xl mb-2">Select a Ticket</h3>
-                  <p className="text-gray-400">Choose a ticket from the list to view details and respond</p>
+                  <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-foreground text-xl mb-2">Select a Ticket</h3>
+                  <p className="text-muted-foreground">Choose a ticket from the list to view details and respond</p>
                 </CardContent>
               </Card>
             )}
           </div>
         </div>
       </div>
-    </div>
   );
 });
 

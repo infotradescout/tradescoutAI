@@ -169,20 +169,20 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   );
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <BarChart3 className="h-8 w-8 text-orange-400" />
+              <BarChart3 className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-4xl font-bold text-white">Platform Analytics</h1>
-                <p className="text-gray-300 text-lg">Comprehensive insights into platform performance and growth</p>
+                <h1 className="text-4xl font-bold text-foreground">Platform Analytics</h1>
+                <p className="text-muted-foreground text-lg">Comprehensive insights into platform performance and growth</p>
               </div>
             </div>
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-32 bg-navy-700 border-navy-600 text-white">
+              <SelectTrigger className="w-32 bg-input border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -197,13 +197,13 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
         {/* Analytics Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-navy-800 border-navy-600">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-orange-600">Overview</TabsTrigger>
-            <TabsTrigger value="money" className="data-[state=active]:bg-orange-600">Money Movements</TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-orange-600">Users</TabsTrigger>
-            <TabsTrigger value="revenue" className="data-[state=active]:bg-orange-600">Revenue</TabsTrigger>
-            <TabsTrigger value="geography" className="data-[state=active]:bg-orange-600">Geography</TabsTrigger>
-            <TabsTrigger value="performance" className="data-[state=active]:bg-orange-600">Performance</TabsTrigger>
+          <TabsList className="bg-muted border-border">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
+            <TabsTrigger value="money" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Money Movements</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Users</TabsTrigger>
+            <TabsTrigger value="revenue" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Revenue</TabsTrigger>
+            <TabsTrigger value="geography" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Geography</TabsTrigger>
+            <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Performance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">

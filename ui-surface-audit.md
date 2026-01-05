@@ -1,48 +1,48 @@
 # UI Surface Audit
 
-Scanned files: **506**
-Root violations (min-h-screen + bg-*): **120**
-Files with min-h-screen: **123**
-Files with bg-* classes: **369**
+Scanned files: **564**
+Root violations (min-h-screen + bg-*): **89**
+Files with min-h-screen: **93**
+Files with bg-* classes: **402**
 
 ## Top offenders
-- 🚫 `client/src/pages/landing.tsx` — min-h-screen (2) @ lines 70,82 | h-screen (2) @ lines 70,82 | bg-* (1001) @ lines 91,113,122,123,123 | gradient (6) @ lines 717,717,717,745,745
-- 🚫 `client/src/pages/SimpleLanding.tsx` — min-h-screen (2) @ lines 53,55 | h-screen (2) @ lines 53,55 | bg-* (69) @ lines 58,59,60,88,88 | gradient (114) @ lines 58,58,58,58,97
-- 🚫 `client/src/pages/contractor-signup.tsx` — min-h-screen (2) @ lines 178,214 | h-screen (2) @ lines 178,214 | bg-* (52) @ lines 178,184,191,202,202
-- 🚫 `client/src/pages/help.tsx` — min-h-screen (1) @ lines 1254 | h-screen (1) @ lines 1254 | bg-* (53) @ lines 156,272,388,504,588 | gradient (1) @ lines 1268
-- 🚫 `client/src/pages/system-settings.tsx` — min-h-screen (1) @ lines 55 | h-screen (1) @ lines 55 | bg-* (51) @ lines 55,70,71,75,79
-- 🚫 `client/src/pages/training-center.tsx` — min-h-screen (1) @ lines 171 | h-screen (1) @ lines 171 | bg-* (51) @ lines 160,160,162,162,164
-- 🚫 `client/src/pages/api-integrations.tsx` — min-h-screen (1) @ lines 164 | h-screen (1) @ lines 164 | bg-* (49) @ lines 145,145,147,147,149
-- 🚫 `client/src/pages/dealer-dashboard.tsx` — min-h-screen (1) @ lines 39 | h-screen (1) @ lines 39 | bg-* (44) @ lines 39,44,56,67,80 | gradient (3) @ lines 39,39,39
-- 🚫 `client/src/pages/referral-dashboard.tsx` — min-h-screen (1) @ lines 150 | h-screen (1) @ lines 150 | bg-* (46) @ lines 165,178,191,204,219
-- 🚫 `client/src/pages/SimpleHome.tsx` — min-h-screen (1) @ lines 74 | h-screen (1) @ lines 74 | bg-* (46) @ lines 74,91,103,117,132
-- 🚫 `client/src/pages/social-integration.tsx` — min-h-screen (1) @ lines 109 | h-screen (1) @ lines 109 | bg-* (46) @ lines 23,32,41,50,59
-- 🚫 `client/src/pages/compliance.tsx` — min-h-screen (1) @ lines 76 | h-screen (1) @ lines 76 | bg-* (41) @ lines 46,47,48,49,76 | gradient (3) @ lines 54,68,250
-- 🚫 `client/src/pages/Dashboard.tsx` — min-h-screen (4) @ lines 210,231,238,245 | h-screen (4) @ lines 210,231,238,245 | bg-* (38) @ lines 210,238,238,245,245
-- 🚫 `client/src/pages/payment-processing.tsx` — min-h-screen (1) @ lines 142 | h-screen (1) @ lines 142 | bg-* (41) @ lines 142,155,156,157,158
-- 🚫 `client/src/pages/platform-analytics.tsx` — min-h-screen (1) @ lines 172 | h-screen (1) @ lines 172 | bg-* (39) @ lines 172,185,200,201,202 | gradient (2) @ lines 287,386
-- 🚫 `client/src/pages/event-management.tsx` — min-h-screen (1) @ lines 194 | h-screen (1) @ lines 194 | bg-* (38) @ lines 105,105,107,107,109
-- 🚫 `client/src/pages/apply-accelerator.tsx` — min-h-screen (1) @ lines 454 | h-screen (1) @ lines 454 | bg-* (37) @ lines 101,110,120,130,139
-- 🚫 `client/src/pages/nationwide-expansion.tsx` — min-h-screen (2) @ lines 84,96 | h-screen (2) @ lines 84,96 | bg-* (29) @ lines 101,119,135,151,167 | gradient (6) @ lines 101,101,101,485,485
-- 🚫 `client/src/pages/request-quote.tsx` — min-h-screen (2) @ lines 134,182 | h-screen (2) @ lines 134,182 | bg-* (32) @ lines 134,137,140,152,152 | gradient (3) @ lines 188,188,188
-- 🚫 `client/src/pages/car-sales-follow-up.tsx` — min-h-screen (1) @ lines 99 | h-screen (1) @ lines 99 | bg-* (32) @ lines 81,82,83,84,90 | gradient (4) @ lines 99,99,99,99
-- 🚫 `client/src/components/auth/MasterAdminSetup.tsx` — min-h-screen (1) @ lines 79 | h-screen (1) @ lines 79 | bg-* (19) @ lines 79,81,81,83,86 | gradient (16) @ lines 79,79,79,79,79
-- 🚫 `client/src/pages/membership-portal.tsx` — min-h-screen (1) @ lines 104 | h-screen (1) @ lines 104 | bg-* (35) @ lines 118,119,120,121,127
-- 🚫 `client/src/pages/resource-center.tsx` — min-h-screen (1) @ lines 147 | h-screen (1) @ lines 147 | bg-* (35) @ lines 136,136,138,138,140
-- 🚫 `client/src/pages/ad-creator.tsx` — min-h-screen (1) @ lines 65 | h-screen (1) @ lines 65 | bg-* (17) @ lines 21,27,33,39,83 | gradient (16) @ lines 21,21,21,27,27
-- 🚫 `client/src/pages/coffee-company.tsx` — min-h-screen (1) @ lines 10 | h-screen (1) @ lines 10 | bg-* (27) @ lines 14,24,24,27,27 | gradient (6) @ lines 14,14,14,270,270
-- 🚫 `client/src/pages/admin-users.tsx` — min-h-screen (2) @ lines 227,238 | h-screen (2) @ lines 227,238 | bg-* (29) @ lines 49,50,51,52,53
-- 🚫 `client/src/pages/profile.tsx` — min-h-screen (1) @ lines 100 | h-screen (1) @ lines 100 | bg-* (25) @ lines 100,104,116,120,137 | gradient (6) @ lines 104,104,104,120,120
-- 🚫 `client/src/pages/realtor-contacts.tsx` — min-h-screen (1) @ lines 115 | h-screen (1) @ lines 115 | bg-* (27) @ lines 83,84,85,86,87 | gradient (4) @ lines 115,115,115,115
-- 🚫 `client/src/pages/admin-error-reports.tsx` — min-h-screen (2) @ lines 153,166 | h-screen (2) @ lines 153,166 | bg-* (28) @ lines 67,68,69,70,71
-- 🚫 `client/src/pages/wallet.tsx` — min-h-screen (2) @ lines 151,204 | h-screen (2) @ lines 151,204 | bg-* (19) @ lines 153,219,234,261,282 | gradient (9) @ lines 153,153,153,153,219
-- 🚫 `client/src/pages/contractors.tsx` — min-h-screen (1) @ lines 42 | h-screen (1) @ lines 42 | bg-* (23) @ lines 42,53,69,76,107 | gradient (6) @ lines 116,116,116,230,230
-- 🚫 `client/src/pages/daily-deals-enhanced.tsx` — min-h-screen (2) @ lines 102,115 | h-screen (2) @ lines 102,115 | bg-* (16) @ lines 106,154,158,199,199 | gradient (11) @ lines 154,154,154,298,298
-- 🚫 `client/src/pages/realtor-connections.tsx` — min-h-screen (1) @ lines 129 | h-screen (1) @ lines 129 | bg-* (25) @ lines 110,112,113,114,115 | gradient (4) @ lines 129,129,129,129
-- 🚫 `client/src/pages/support-tickets.tsx` — min-h-screen (1) @ lines 115 | h-screen (1) @ lines 115 | bg-* (29) @ lines 115,127,127,136,148
-- 🚫 `client/src/pages/file-management.tsx` — min-h-screen (1) @ lines 162 | h-screen (1) @ lines 162 | bg-* (28) @ lines 112,114,116,118,162
-- 🚫 `client/src/components/auth/RoleSelection.tsx` — min-h-screen (3) @ lines 77,169,240 | h-screen (3) @ lines 77,169,240 | bg-* (23) @ lines 77,90,90,99,128
-- 🚫 `client/src/pages/realtor-appointments.tsx` — min-h-screen (1) @ lines 105 | h-screen (1) @ lines 105 | bg-* (23) @ lines 85,86,87,88,89 | gradient (4) @ lines 105,105,105,105
-- 🚫 `client/src/pages/car-sales-appointments.tsx` — min-h-screen (1) @ lines 102 | h-screen (1) @ lines 102 | bg-* (22) @ lines 85,86,87,88,102 | gradient (4) @ lines 102,102,102,102
-- 🚫 `client/src/pages/profile-setup.tsx` — min-h-screen (2) @ lines 119,126 | h-screen (2) @ lines 119,126 | bg-* (24) @ lines 119,126,136,140,159
-- 🚫 `client/src/components/auth/OnboardingFlow.tsx` — min-h-screen (1) @ lines 58 | h-screen (1) @ lines 58 | bg-* (25) @ lines 58,81,99,109,121
+- 🚫 `client/src/pages/contact.tsx` — min-h-screen (1) @ lines 74 | h-screen (1) @ lines 74 | bg-* (20) @ lines 74,97,107,107,152 | gradient (4) @ lines 74,74,74,74
+- 🚫 `client/src/pages/license-verification.tsx` — min-h-screen (1) @ lines 64 | h-screen (1) @ lines 64 | bg-* (20) @ lines 64,94,97,110,113 | gradient (4) @ lines 64,64,64,64
+- 🚫 `client/src/pages/manage-users.tsx` — min-h-screen (1) @ lines 151 | h-screen (1) @ lines 151 | bg-* (24) @ lines 111,113,115,117,119
+- 🚫 `client/src/pages/realtor-clients.tsx` — min-h-screen (1) @ lines 78 | h-screen (1) @ lines 78 | bg-* (20) @ lines 65,66,67,68,69 | gradient (4) @ lines 78,78,78,78
+- 🚫 `client/src/pages/car-sales-financing.tsx` — min-h-screen (1) @ lines 71 | h-screen (1) @ lines 71 | bg-* (19) @ lines 71,75,85,94,110 | gradient (4) @ lines 71,71,71,71
+- 🚫 `client/src/pages/community-builder/dashboard.tsx` — min-h-screen (2) @ lines 94,138 | h-screen (2) @ lines 94,138 | bg-* (15) @ lines 35,36,37,38,39 | gradient (6) @ lines 94,94,94,138,138
+- 🚫 `client/src/pages/contractor-leads.tsx` — min-h-screen (1) @ lines 90 | h-screen (1) @ lines 90 | bg-* (20) @ lines 49,53,55,57,90 | gradient (3) @ lines 97,97,97
+- 🚫 `client/src/pages/group-detail.tsx` — min-h-screen (3) @ lines 85,98,113 | h-screen (3) @ lines 85,98,113 | bg-* (7) @ lines 139,173,185,206,231 | gradient (12) @ lines 173,173,173,206,206
+- 🚫 `client/src/pages/boosts.tsx` — min-h-screen (2) @ lines 102,114 | h-screen (2) @ lines 102,114 | bg-* (12) @ lines 119,142,146,201,212 | gradient (8) @ lines 119,119,119,243,243
+- 🚫 `client/src/pages/car-sales-new-listing.tsx` — min-h-screen (1) @ lines 44 | h-screen (1) @ lines 44 | bg-* (18) @ lines 44,48,59,75,85 | gradient (4) @ lines 44,44,44,44
+- 🚫 `client/src/pages/community-vaults.tsx` — min-h-screen (1) @ lines 83 | h-screen (1) @ lines 83 | bg-* (13) @ lines 83,85,97,143,158 | gradient (9) @ lines 83,83,83,85,85
+- 🚫 `client/src/pages/contractor-verification.tsx` — min-h-screen (1) @ lines 108 | h-screen (1) @ lines 108 | bg-* (22) @ lines 97,99,101,103,108
+- 🚫 `client/src/pages/conversations.tsx` — min-h-screen (2) @ lines 129,150 | h-screen (2) @ lines 129,150 | bg-* (20) @ lines 183,183,185,185,186
+- 🚫 `client/src/pages/car-sales-customers.tsx` — min-h-screen (1) @ lines 85 | h-screen (1) @ lines 85 | bg-* (17) @ lines 85,90,99,99,113 | gradient (4) @ lines 85,85,85,85
+- 🚫 `client/src/pages/marketplace-listing.tsx` — min-h-screen (2) @ lines 187,203 | h-screen (2) @ lines 187,203 | bg-* (14) @ lines 187,193,193,203,226 | gradient (5) @ lines 523,523,523,523,523
+- 🚫 `client/src/pages/contractor-dashboard-simple.tsx` — min-h-screen (1) @ lines 51 | h-screen (1) @ lines 51 | bg-* (20) @ lines 51,61,73,85,97
+- 🚫 `client/src/pages/insurance-verification.tsx` — min-h-screen (1) @ lines 45 | h-screen (1) @ lines 45 | bg-* (16) @ lines 45,78,80,81,107 | gradient (4) @ lines 45,45,45,45
+- 🚫 `client/src/pages/register.tsx` — min-h-screen (1) @ lines 122 | h-screen (1) @ lines 122 | bg-* (13) @ lines 122,128,136,162,174 | gradient (7) @ lines 122,122,122,122,176
+- 🚫 `client/src/pages/car-salesman-application.tsx` — min-h-screen (2) @ lines 180,196 | h-screen (2) @ lines 180,196 | bg-* (9) @ lines 180,186,186,196,219 | gradient (8) @ lines 219,219,219,453,453
+- 🚫 `client/src/pages/direct-connect-info.tsx` — min-h-screen (1) @ lines 58 | h-screen (1) @ lines 58 | bg-* (19) @ lines 58,77,79,95,97
+- 🚫 `client/src/pages/realtor-application.tsx` — min-h-screen (2) @ lines 158,174 | h-screen (2) @ lines 158,174 | bg-* (9) @ lines 158,164,164,174,197 | gradient (8) @ lines 197,197,197,407,407
+- 🚫 `client/src/pages/StoryGeneratorPage.tsx` — min-h-screen (2) @ lines 131,142 | h-screen (2) @ lines 131,142 | bg-* (11) @ lines 131,142,148,166,181 | gradient (6) @ lines 131,131,131,142,142
+- 🚫 `client/src/pages/admin-professional-verification.tsx` — min-h-screen (2) @ lines 165,179 | h-screen (2) @ lines 165,179 | bg-* (16) @ lines 165,179,196,196,210
+- 🚫 `client/src/pages/admin-testing-controls.tsx` — min-h-screen (2) @ lines 76,89 | h-screen (2) @ lines 76,89 | bg-* (16) @ lines 76,80,89,100,120
+- 🚫 `client/src/pages/background-check.tsx` — min-h-screen (1) @ lines 84 | h-screen (1) @ lines 84 | bg-* (18) @ lines 116,146,147,152,152
+- 🚫 `client/src/pages/compare-angi.tsx` — min-h-screen (1) @ lines 56 | h-screen (1) @ lines 56 | bg-* (18) @ lines 56,67,97,106,120
+- 🚫 `client/src/pages/compare-homeadvisor.tsx` — min-h-screen (1) @ lines 56 | h-screen (1) @ lines 56 | bg-* (18) @ lines 56,67,97,106,120
+- 🚫 `client/src/pages/help.tsx` — min-h-screen (1) @ lines 28 | h-screen (1) @ lines 28 | bg-* (17) @ lines 72,86,86,95,107 | gradient (1) @ lines 43
+- 🚫 `client/src/pages/how-it-works.tsx` — min-h-screen (1) @ lines 53 | h-screen (1) @ lines 53 | bg-* (14) @ lines 53,72,94,115,136 | gradient (4) @ lines 11,48,104,162
+- 🚫 `client/src/pages/community-builder/contribution-detail.tsx` — min-h-screen (3) @ lines 126,130,134 | h-screen (3) @ lines 126,130,134 | bg-* (10) @ lines 57,58,59,60,61 | gradient (3) @ lines 134,134,134
+- 🚫 `client/src/pages/nationwide-expansion.tsx` — min-h-screen (2) @ lines 86,98 | h-screen (2) @ lines 86,98 | bg-* (12) @ lines 103,121,138,155,170 | gradient (3) @ lines 103,103,103
+- 🚫 `client/src/pages/ProfilePage.tsx` — min-h-screen (1) @ lines 131 | h-screen (1) @ lines 131 | bg-* (14) @ lines 278,288,319,356,385 | gradient (3) @ lines 474,474,474
+- 🚫 `client/src/pages/RoleDirectory.tsx` — min-h-screen (1) @ lines 24 | h-screen (1) @ lines 24 | bg-* (13) @ lines 24,81,86,202,204 | gradient (4) @ lines 24,24,24,24
+- 🚫 `client/src/pages/schedule-consultation.tsx` — min-h-screen (1) @ lines 59 | h-screen (1) @ lines 59 | bg-* (17) @ lines 59,74,91,99,110
+- 🚫 `client/src/pages/staff-dashboard.tsx` — min-h-screen (1) @ lines 54 | h-screen (1) @ lines 54 | bg-* (17) @ lines 54,67,79,91,103
+- 🚫 `client/src/components/social/SocialFeed.tsx` — min-h-screen (2) @ lines 104,133 | h-screen (2) @ lines 104,133 | bg-* (9) @ lines 104,107,133,133,180 | gradient (5) @ lines 104,104,104,104,104
+- 🚫 `client/src/pages/login.tsx` — min-h-screen (1) @ lines 21 | h-screen (1) @ lines 21 | bg-* (9) @ lines 21,22,24,31,36 | gradient (7) @ lines 21,21,21,21,24
+- 🚫 `client/src/pages/onboarding-intent.tsx` — min-h-screen (1) @ lines 67 | h-screen (1) @ lines 67 | bg-* (12) @ lines 67,73,79,91,109 | gradient (4) @ lines 67,67,67,67
+- 🚫 `client/src/components/admin/AdminLogin.tsx` — min-h-screen (1) @ lines 49 | h-screen (1) @ lines 49 | bg-* (4) @ lines 49,52,61,87 | gradient (11) @ lines 49,49,49,52,52
+- 🚫 `client/src/pages/my-tradescout.tsx` — min-h-screen (2) @ lines 172,201 | h-screen (2) @ lines 172,201 | bg-* (13) @ lines 172,201,218,254,254

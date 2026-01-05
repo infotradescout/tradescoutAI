@@ -461,7 +461,7 @@ function DealCard({ deal, onScratch, onClaim, onRate, onSelect }: DealCardProps)
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span style={{ color: 'var(--text-secondary)' }}>{deal.claimed} / {deal.totalAvailable} claimed</span>
-                  <span style={{ color: remainingPercentage < 20 ? '#ef4444' : 'var(--text-secondary)' }}>
+                  <span style={{ color: remainingPercentage < 20 ? 'var(--status-error)' : 'var(--text-secondary)' }}>
                     {remainingPercentage.toFixed(0)}% left
                   </span>
                 </div>

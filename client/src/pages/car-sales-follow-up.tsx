@@ -96,21 +96,21 @@ export default function CarSalesFollowUp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="h-full bg-background">
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-pink-500/20 rounded-xl">
-              <Users className="h-8 w-8 text-pink-400" />
+            <div className="p-3 bg-primary/20 rounded-xl">
+              <Users className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Customer Follow-Up</h1>
-              <p className="text-gray-400">Manage customer relationships and follow-up tasks</p>
+              <h1 className="text-3xl font-bold text-foreground">Customer Follow-Up</h1>
+              <p className="text-muted-foreground">Manage customer relationships and follow-up tasks</p>
             </div>
           </div>
 
           <Tabs defaultValue="tasks" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
+            <TabsList className="bg-muted border border-border">
               <TabsTrigger value="tasks">Follow-Up Tasks</TabsTrigger>
               <TabsTrigger value="contacts">Recent Contacts</TabsTrigger>
               <TabsTrigger value="analytics">Performance</TabsTrigger>
@@ -118,17 +118,17 @@ export default function CarSalesFollowUp() {
 
             <TabsContent value="tasks" className="space-y-4">
               {followUpTasks.map((task) => (
-                <Card key={task.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={task.id} className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-pink-500/20 rounded-full flex items-center justify-center">
-                          <Users className="h-6 w-6 text-pink-400" />
+                        <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                          <Users className="h-6 w-6 text-primary" />
                         </div>
                         
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-lg">{task.customer}</h3>
+                            <h3 className="font-semibold text-lg text-foreground">{task.customer}</h3>
                             <Badge className={getPriorityColor(task.priority)}>
                               {task.priority} Priority
                             </Badge>
@@ -139,27 +139,27 @@ export default function CarSalesFollowUp() {
                           
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center gap-6">
-                              <div className="flex items-center gap-2 text-gray-400">
+                              <div className="flex items-center gap-2 text-muted-foreground">
                                 <MessageSquare className="h-4 w-4" />
                                 {task.type}
                               </div>
-                              <div className="flex items-center gap-2 text-gray-400">
+                              <div className="flex items-center gap-2 text-muted-foreground">
                                 <Calendar className="h-4 w-4" />
                                 Due: {task.dueDate}
                               </div>
-                              <div className="flex items-center gap-2 text-gray-400">
+                              <div className="flex items-center gap-2 text-muted-foreground">
                                 <Clock className="h-4 w-4" />
                                 Last contact: {task.lastContact}
                               </div>
                             </div>
                             
-                            <div className="text-pink-400 font-medium">
+                            <div className="text-primary font-medium">
                               Vehicle: {task.vehicle}
                             </div>
                           </div>
 
-                          <div className="mt-3 p-3 bg-navy-700/30 rounded-lg">
-                            <p className="text-sm text-gray-300">{task.notes}</p>
+                          <div className="mt-3 p-3 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground">{task.notes}</p>
                           </div>
                         </div>
                       </div>
@@ -173,7 +173,7 @@ export default function CarSalesFollowUp() {
                           <Mail className="h-4 w-4 mr-2" />
                           Email
                         </Button>
-                        <Button size="sm" className="bg-pink-600 hover:bg-pink-700" data-testid="button-complete-task">
+                        <Button size="sm" className="bg-primary hover:bg-primary/90" data-testid="button-complete-task">
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Complete
                         </Button>
@@ -185,7 +185,7 @@ export default function CarSalesFollowUp() {
             </TabsContent>
 
             <TabsContent value="contacts" className="space-y-4">
-              <Card className="bg-navy-800/50 border-navy-600 mb-6">
+              <Card className="bg-card border-border mb-6">
                 <CardHeader>
                   <CardTitle>Log New Contact</CardTitle>
                 </CardHeader>
@@ -209,20 +209,20 @@ export default function CarSalesFollowUp() {
 
               <div className="space-y-4">
                 {recentContacts.map((contact) => (
-                  <Card key={contact.id} className="bg-navy-800/50 border-navy-600">
+                  <Card key={contact.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 bg-pink-500/20 rounded-full flex items-center justify-center">
+                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
                             {contact.method === "Phone Call" ? 
-                              <Phone className="h-6 w-6 text-pink-400" /> :
-                              <Mail className="h-6 w-6 text-pink-400" />
+                              <Phone className="h-6 w-6 text-primary" /> :
+                              <Mail className="h-6 w-6 text-primary" />
                             }
                           </div>
                           
                           <div>
                             <h3 className="font-semibold text-lg mb-1">{contact.customer}</h3>
-                            <div className="flex items-center gap-4 text-sm text-gray-400 mb-2">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                               <span>{contact.method}</span>
                               {contact.duration && <span>• {contact.duration}</span>}
                               <span>• {contact.date}</span>
@@ -232,7 +232,7 @@ export default function CarSalesFollowUp() {
                               {contact.outcome}
                             </Badge>
                             
-                            <p className="text-sm text-gray-300">{contact.notes}</p>
+                            <p className="text-sm text-muted-foreground">{contact.notes}</p>
                           </div>
                         </div>
 
@@ -248,40 +248,40 @@ export default function CarSalesFollowUp() {
 
             <TabsContent value="analytics">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="bg-navy-800/50 border-navy-600">
+                <Card className="bg-card border-border">
                   <CardContent className="p-6 text-center">
                     <TrendingUp className="h-8 w-8 text-green-400 mx-auto mb-3" />
                     <p className="text-2xl font-bold text-green-400">73%</p>
-                    <p className="text-sm text-gray-400">Follow-up Response Rate</p>
+                    <p className="text-sm text-muted-foreground">Follow-up Response Rate</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-navy-800/50 border-navy-600">
+                <Card className="bg-card border-border">
                   <CardContent className="p-6 text-center">
                     <Star className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
                     <p className="text-2xl font-bold text-yellow-400">4.8</p>
-                    <p className="text-sm text-gray-400">Customer Satisfaction</p>
+                    <p className="text-sm text-muted-foreground">Customer Satisfaction</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-navy-800/50 border-navy-600">
+                <Card className="bg-card border-border">
                   <CardContent className="p-6 text-center">
                     <CheckCircle className="h-8 w-8 text-blue-400 mx-auto mb-3" />
                     <p className="text-2xl font-bold text-blue-400">28</p>
-                    <p className="text-sm text-gray-400">Tasks Completed This Week</p>
+                    <p className="text-sm text-muted-foreground">Tasks Completed This Week</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-navy-800/50 border-navy-600">
+                <Card className="bg-card border-border">
                   <CardContent className="p-6 text-center">
-                    <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-3" />
-                    <p className="text-2xl font-bold text-red-400">5</p>
-                    <p className="text-sm text-gray-400">Overdue Follow-ups</p>
+                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
+                    <p className="text-2xl font-bold text-destructive">5</p>
+                    <p className="text-sm text-muted-foreground">Overdue Follow-ups</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle>Follow-up Performance Insights</CardTitle>
                 </CardHeader>

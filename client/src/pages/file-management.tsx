@@ -159,288 +159,286 @@ const FileManagement = memo(function FileManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Upload className="h-8 w-8 text-orange-400" />
-              <div>
-                <h1 className="text-4xl font-bold text-white">File Management</h1>
-                <p className="text-gray-300 text-lg">Upload, organize, and manage your files</p>
-              </div>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Upload className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">File Management</h1>
+              <p className="text-muted-foreground text-lg">Upload, organize, and manage your files</p>
             </div>
-            <Button 
-              className="bg-orange-600 hover:bg-orange-700"
-              onClick={handleFileUpload}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Files
-            </Button>
           </div>
+          <Button 
+            className="bg-primary hover:bg-primary/90"
+            onClick={handleFileUpload}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Files
+          </Button>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <Card className="bg-card border-border backdrop-blur-sm">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-foreground">{fileStats.total}</div>
+            <div className="text-muted-foreground text-sm">Total Files</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-card border-border backdrop-blur-sm">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-400">{fileStats.images}</div>
+            <div className="text-muted-foreground text-sm">Images</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border backdrop-blur-sm">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{fileStats.total}</div>
-              <div className="text-gray-400 text-sm">Total Files</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-400">{fileStats.images}</div>
-              <div className="text-gray-400 text-sm">Images</div>
-            </CardContent>
-          </Card>
+            <div className="text-2xl font-bold text-green-400">{fileStats.documents}</div>
+            <div className="text-muted-foreground text-sm">Documents</div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-400">{fileStats.documents}</div>
-              <div className="text-gray-400 text-sm">Documents</div>
-            </CardContent>
-          </Card>
+        <Card className="bg-card border-border backdrop-blur-sm">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-400">{fileStats.videos}</div>
+            <div className="text-muted-foreground text-sm">Videos</div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-400">{fileStats.videos}</div>
-              <div className="text-gray-400 text-sm">Videos</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-400">{fileStats.totalSize.toFixed(1)}</div>
-              <div className="text-gray-400 text-sm">MB Used</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* File Management Interface */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white">File Library</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className={`border-navy-600 ${viewMode === 'grid' ? 'bg-orange-600 text-white' : 'text-gray-400'}`}
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={`border-navy-600 ${viewMode === 'list' ? 'bg-orange-600 text-white' : 'text-gray-400'}`}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Controls */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search files..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-navy-700 border-navy-600 text-white"
-                  />
-                </div>
-              </div>
-              
-              <Select>
-                <SelectTrigger className="w-48 bg-navy-700 border-navy-600 text-white">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label} ({category.count})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="outline"
-                className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
-                onClick={handleFileUpload}
-              >
-                <FolderPlus className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
-            </div>
-
-            {/* Bulk Actions */}
-            {selectedFiles.length > 0 && (
-              <div className="flex items-center gap-2 mb-4 p-3 bg-navy-700 rounded-lg">
-                <span className="text-white">{selectedFiles.length} files selected</span>
-                <div className="flex gap-2 ml-auto">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
-                    onClick={() => handleBulkAction('Downloaded')}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="border-red-600 text-red-400 hover:bg-red-600/20"
-                    onClick={() => handleBulkAction('Deleted')}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* File Grid/List */}
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {files.map((file) => (
-                  <Card 
-                    key={file.id} 
-                    className={`bg-navy-700 border-navy-600 cursor-pointer transition-all hover:border-orange-600 ${
-                      selectedFiles.includes(file.id) ? 'ring-2 ring-orange-600 border-orange-600' : ''
-                    }`}
-                    onClick={() => toggleFileSelection(file.id)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="aspect-square bg-navy-600 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                        {file.thumbnail ? (
-                          <img 
-                            src={file.thumbnail} 
-                            alt={file.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          getFileIcon(file.type)
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-white font-medium text-sm truncate">{file.name}</h3>
-                        <div className="flex items-center justify-between">
-                          <Badge className={getCategoryColor(file.category)}>
-                            {file.category}
-                          </Badge>
-                          <span className="text-gray-400 text-xs">{formatFileSize(file.size)}</span>
-                        </div>
-                        <p className="text-gray-400 text-xs">{formatDate(file.uploadDate)}</p>
-                      </div>
-
-                      <div className="flex justify-end mt-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Viewed')}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Downloaded')}>
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleFileAction(file.id, 'Deleted')}
-                              className="text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {files.map((file) => (
-                  <div 
-                    key={file.id}
-                    className={`flex items-center justify-between p-4 bg-navy-700 rounded-lg cursor-pointer transition-all hover:bg-navy-600 ${
-                      selectedFiles.includes(file.id) ? 'ring-2 ring-orange-600' : ''
-                    }`}
-                    onClick={() => toggleFileSelection(file.id)}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-navy-600 rounded-lg flex items-center justify-center">
-                        {file.thumbnail ? (
-                          <img 
-                            src={file.thumbnail} 
-                            alt={file.name}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          getFileIcon(file.type)
-                        )}
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-white font-medium">{file.name}</h3>
-                        <div className="flex items-center gap-2">
-                          <Badge className={getCategoryColor(file.category)}>
-                            {file.category}
-                          </Badge>
-                          <span className="text-gray-400 text-sm">{formatFileSize(file.size)}</span>
-                          <span className="text-gray-400 text-sm">•</span>
-                          <span className="text-gray-400 text-sm">{formatDate(file.uploadDate)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Viewed')}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Downloaded')}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleFileAction(file.id, 'Deleted')}
-                          className="text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
-              </div>
-            )}
+        <Card className="bg-card border-border backdrop-blur-sm">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{fileStats.totalSize.toFixed(1)}</div>
+            <div className="text-muted-foreground text-sm">MB Used</div>
           </CardContent>
         </Card>
       </div>
+
+      {/* File Management Interface */}
+      <Card className="bg-card border-border backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground">File Library</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className={`border-border ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className={`border-border ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Controls */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search files..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-background border-border text-foreground"
+                />
+              </div>
+            </div>
+            
+            <Select>
+              <SelectTrigger className="w-48 bg-background border-border text-foreground">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label} ({category.count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary/20"
+              onClick={handleFileUpload}
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              New Folder
+            </Button>
+          </div>
+
+          {/* Bulk Actions */}
+          {selectedFiles.length > 0 && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
+              <span className="text-foreground">{selectedFiles.length} files selected</span>
+              <div className="flex gap-2 ml-auto">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/20"
+                  onClick={() => handleBulkAction('Downloaded')}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/20"
+                  onClick={() => handleBulkAction('Deleted')}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* File Grid/List */}
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {files.map((file) => (
+                <Card 
+                  key={file.id} 
+                  className={`bg-background border-border cursor-pointer transition-all hover:border-primary ${
+                    selectedFiles.includes(file.id) ? 'ring-2 ring-primary border-primary' : ''
+                  }`}
+                  onClick={() => toggleFileSelection(file.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                      {file.thumbnail ? (
+                        <img 
+                          src={file.thumbnail} 
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        getFileIcon(file.type)
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-foreground font-medium text-sm truncate">{file.name}</h3>
+                      <div className="flex items-center justify-between">
+                        <Badge className={getCategoryColor(file.category)}>
+                          {file.category}
+                        </Badge>
+                        <span className="text-muted-foreground text-xs">{formatFileSize(file.size)}</span>
+                      </div>
+                      <p className="text-muted-foreground text-xs">{formatDate(file.uploadDate)}</p>
+                    </div>
+
+                    <div className="flex justify-end mt-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/20">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Viewed')}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Downloaded')}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleFileAction(file.id, 'Deleted')}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {files.map((file) => (
+                <div 
+                  key={file.id}
+                  className={`flex items-center justify-between p-4 bg-background rounded-lg cursor-pointer transition-all hover:bg-muted ${
+                    selectedFiles.includes(file.id) ? 'ring-2 ring-primary' : ''
+                  }`}
+                  onClick={() => toggleFileSelection(file.id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                      {file.thumbnail ? (
+                        <img 
+                          src={file.thumbnail} 
+                          alt={file.name}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        getFileIcon(file.type)
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-foreground font-medium">{file.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getCategoryColor(file.category)}>
+                          {file.category}
+                        </Badge>
+                        <span className="text-muted-foreground text-sm">{formatFileSize(file.size)}</span>
+                        <span className="text-muted-foreground text-sm">•</span>
+                        <span className="text-muted-foreground text-sm">{formatDate(file.uploadDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/20">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Viewed')}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFileAction(file.id, 'Downloaded')}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleFileAction(file.id, 'Deleted')}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 });

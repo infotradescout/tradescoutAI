@@ -71,11 +71,11 @@ const SimpleHome = memo(function SimpleHome() {
   const isProfessional = isContractor || isRealtor || isCarSalesman || isInsuranceAgent || isMortgageBroker || isPropertyManager;
 
   return (
-    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
+    <div className="h-full bg-background pb-20 lg:pb-0">
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Welcome Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">
+          <h1 className="text-3xl font-bold text-primary mb-2">
             Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}
           </h1>
           <p className="text-slate-300 text-base">

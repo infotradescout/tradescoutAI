@@ -92,6 +92,32 @@ html {
 
     /* ACCENT (Scout only) */
     --theme-accent-primary: #5d8adb;
+
+    /* STATUS COLORS */
+    --status-error: #ef4444;
+    --status-warning: #f59e0b;
+    --status-success: #10b981;
+    --status-info: #3b82f6;
+
+    /* HEATMAP COLORS */
+    --heatmap-bg: #020617;
+    --heatmap-0: #f1f5f9;
+    --heatmap-1: #bae6fd;
+    --heatmap-2: #7dd3fc;
+    --heatmap-3: #38bdf8;
+    --heatmap-4: #0284c7;
+    --heatmap-5: #0c4a6e;
+    
+    /* HEATMAP COVERAGE */
+    --coverage-neutral: #1e293b;
+    --coverage-unassigned: #b91c1c;
+    --coverage-partial: #b45309;
+    --coverage-full: #15803d;
+    
+    /* HEATMAP UI */
+    --heatmap-stroke-selected: #f97316;
+    --heatmap-stroke-default: #020617;
+
     /* ===== END THEME LOCK ===== */
   }
 

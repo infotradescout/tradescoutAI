@@ -187,13 +187,13 @@ export default function CreateAccountPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="h-full bg-background flex items-center justify-center px-4 py-10 text-foreground">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/community-feed")}
-            className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted pl-0"
           >
             <span className="text-sm">Skip and browse as guest</span>
           </Button>

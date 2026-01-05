@@ -52,48 +52,48 @@ const SystemSettings = memo(function SystemSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Settings2 className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">System Settings</h1>
+            <Settings2 className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">System Settings</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Configure platform settings and system preferences
           </p>
         </div>
 
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-navy-800 border-navy-600">
-            <TabsTrigger value="general" className="data-[state=active]:bg-orange-600">
+          <TabsList className="bg-muted border-border">
+            <TabsTrigger value="general" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Globe className="h-4 w-4 mr-2" />
               General
             </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="security" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Shield className="h-4 w-4 mr-2" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Bell className="h-4 w-4 mr-2" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="database" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="database" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Database className="h-4 w-4 mr-2" />
               Database
             </TabsTrigger>
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="integrations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Server className="h-4 w-4 mr-2" />
               Integrations
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-card border-border backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <Globe className="h-5 w-5" />
                   General Platform Settings
                 </CardTitle>

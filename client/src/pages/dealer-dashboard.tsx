@@ -36,17 +36,17 @@ export default function DealerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-navy-900 to-navy-800">
+    <div className="h-full bg-background">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Car className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Car className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Dealer Dashboard</h1>
-              <p className="text-gray-300">Welcome back, {user?.firstName || 'Dealer'}!</p>
+              <h1 className="text-3xl font-bold text-foreground">Dealer Dashboard</h1>
+              <p className="text-muted-foreground">Welcome back, {user?.firstName || 'Dealer'}!</p>
             </div>
           </div>
         </div>

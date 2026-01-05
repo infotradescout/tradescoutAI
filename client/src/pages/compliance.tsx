@@ -73,11 +73,11 @@ const Compliance = memo(function Compliance() {
   ];
 
   return (
-    <div className="min-h-screen bg-tsBg p-6">
+    <div className="h-full bg-background p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Compliance Dashboard</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">Compliance Dashboard</h1>
           <p className="text-xl text-gray-300">
             Comprehensive compliance monitoring and regulatory adherence
           </p>
