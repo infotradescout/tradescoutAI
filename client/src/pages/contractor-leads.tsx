@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Calendar, MessageSquare, Filter } from "lucide-react";
+import { EmptyState } from "@/components/ui/states";
 
 interface DashboardProject {
   id: string;
@@ -163,15 +164,11 @@ const ContractorLeads = memo(function ContractorLeads() {
           {/* Leads List */}
           <div className="space-y-4">
             {!isLoading && leads.length === 0 && (
-              <Card className="bg-tsCard border-tsBorder shadow-xl">
-                <CardContent className="pt-12 pb-12 text-center">
-                  <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-foreground mb-2">No Projects Available</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Check back soon for new project opportunities in your area
-                  </p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={TrendingUp}
+                title="No Projects Available"
+                description="Check back soon for new project opportunities in your area"
+              />
             )}
 
             {leads.map((lead) => (
