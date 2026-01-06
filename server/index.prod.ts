@@ -22,6 +22,15 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Override process.exit to trap explicit exits
+const originalExit = process.exit;
+// @ts-expect-error - overriding process.exit for diagnostics
+process.exit = (code?: number) => {
+  console.log(`[Diagnostic] process.exit(${code}) was called explicitly.`);
+  console.trace("Call stack for process.exit:");
+  return originalExit(code);
+};
+
 function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -119,11 +128,7 @@ if (rawAllowlist && rawAllowlist !== "*") {
 }
 
 if (process.env.NODE_ENV !== "production") {
-  const devOrigins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    `http://localhost:${PORT}`,
-  ];
+  const devOrigins = ["http://localhost:3000", "http://localhost:5173", `http://localhost:${PORT}`];
   for (const devOrigin of devOrigins) {
     if (!ALLOWED_ORIGINS.includes(devOrigin)) {
       ALLOWED_ORIGINS.push(devOrigin);
@@ -204,8 +209,11 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    console.log("[Startup] Beginning server initialization sequence...");
     try {
+      console.log("[Startup] Verifying database connection...");
       await ensureProfilesTable();
+      console.log("[Startup] Database connection verified.");
     } catch (err) {
       console.error("FATAL: ensureProfilesTable failed in production:", err);
       throw err;
@@ -216,7 +224,7 @@ app.use((req, res, next) => {
       const password = process.env.MASTER_ADMIN_PASSWORD;
       if (!email || !password) {
         console.warn(
-          "[Bootstrap] MASTER_ADMIN_EMAIL/PASSWORD not set; skipping master admin bootstrap",
+          "[Bootstrap] MASTER_ADMIN_EMAIL/PASSWORD not set; skipping master admin bootstrap"
         );
         return;
       }
@@ -233,23 +241,25 @@ app.use((req, res, next) => {
         await storage.createMasterAdmin(email, password, firstName, lastName);
         console.log(`[Bootstrap] Created head_admin account for ${email}`);
       } catch (err) {
-        console.error(
-          "FATAL: Failed to create master admin in production:",
-          err,
-        );
+        console.error("FATAL: Failed to create master admin in production:", err);
         throw err;
       }
     };
 
     await ensureMasterAdmin();
+    console.log("[Startup] Master admin verification complete.");
 
     try {
+      console.log("[Startup] Running schema preflight checks...");
       await runSchemaPreflight();
+      console.log("[Startup] Schema preflight complete.");
     } catch (err) {
       console.error("[SchemaPreflight] Failed during startup (non-fatal):", err);
     }
 
+    console.log("[Startup] Registering application routes...");
     const server = await registerRoutes(app);
+    console.log("[Startup] Routes registered successfully.");
 
     app.use(createInvoicingDocumentsRouter(pool));
 
@@ -284,9 +294,7 @@ app.use((req, res, next) => {
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err?.message || "Internal Server Error";
-      const errorId = `err_${Date.now().toString(36)}_${Math.random()
-        .toString(36)
-        .slice(2, 8)}`;
+      const errorId = `err_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
       try {
         const reqAny = _req as any;
@@ -301,7 +309,9 @@ app.use((req, res, next) => {
           xForwardedProto: reqAny?.headers?.["x-forwarded-proto"],
           stack: err?.stack,
         });
-      } catch {}
+      } catch (err) {
+        // ignore logging errors
+      }
 
       if (res.headersSent) {
         return;
@@ -316,6 +326,7 @@ app.use((req, res, next) => {
     let currentPort = PORT;
 
     const startHttpServer = (portToUse: number) => {
+      console.log(`[Startup] Attempting to bind HTTP server to port ${portToUse}...`);
       currentPort = portToUse;
       server.listen(
         {
@@ -324,15 +335,13 @@ app.use((req, res, next) => {
         },
         () => {
           log(`serving on port ${portToUse}`);
+          console.log(`[Startup] Server is successfully listening on port ${portToUse}`);
 
           const workspaceRoot = process.cwd();
           const publicDistPath = path.join(workspaceRoot, "dist/public");
 
           if (fs.existsSync(publicDistPath)) {
-            console.log(
-              "Production mode - serving static files from:",
-              publicDistPath,
-            );
+            console.log("Production mode - serving static files from:", publicDistPath);
 
             // Serve uploaded files
             const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
@@ -345,7 +354,7 @@ app.use((req, res, next) => {
                 express.static(assetsPath, {
                   immutable: true,
                   maxAge: "1y",
-                }),
+                })
               );
             }
 
@@ -379,7 +388,7 @@ app.use((req, res, next) => {
           } else {
             console.log("Production mode - API only (no dist/public found)");
           }
-        },
+        }
       );
     };
 
@@ -387,7 +396,7 @@ app.use((req, res, next) => {
       if (err && (err as any).code === "EADDRINUSE") {
         const fallbackPort = currentPort + 1;
         console.warn(
-          `Port ${currentPort} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`,
+          `Port ${currentPort} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`
         );
         startHttpServer(fallbackPort);
       } else {
