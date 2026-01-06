@@ -1,13 +1,28 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { AlertCircle } from "lucide-react";
+import { ErrorState, SkeletonTable } from "@/components/ui/states";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
@@ -66,7 +81,9 @@ export default function AdminGeoCoverageConsole() {
   const [assignCounty, setAssignCounty] = useState<CountyCoverageRow | null>(null);
   const [tmSearch, setTmSearch] = useState("");
   const [selectedTmId, setSelectedTmId] = useState<string>("");
-  const [assignAffiliateCounty, setAssignAffiliateCounty] = useState<CountyCoverageRow | null>(null);
+  const [assignAffiliateCounty, setAssignAffiliateCounty] = useState<CountyCoverageRow | null>(
+    null
+  );
   const [affiliateSearch, setAffiliateSearch] = useState("");
   const [selectedAffiliateUserId, setSelectedAffiliateUserId] = useState<string>("");
   const [affiliateEntityType, setAffiliateEntityType] = useState<AffiliateEntityType>("affiliate");
@@ -128,15 +145,15 @@ export default function AdminGeoCoverageConsole() {
     const lowerSearch = tmSearch.toLowerCase();
     return usersArray
       .filter((user) => {
-        const roles = user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
+        const roles =
+          user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
         const hasTmRole = roles.some((r) => r === "territory_manager");
         if (!hasTmRole) return false;
 
         if (!lowerSearch) return true;
         const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
         return (
-          user.email.toLowerCase().includes(lowerSearch) ||
-          name.toLowerCase().includes(lowerSearch)
+          user.email.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch)
         );
       })
       .sort((a, b) => {
@@ -178,15 +195,15 @@ export default function AdminGeoCoverageConsole() {
     const lowerSearch = affiliateSearch.toLowerCase();
     return usersArray
       .filter((user) => {
-        const roles = user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
+        const roles =
+          user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
         const hasAffiliateRole = roles.some((r) => r === "affiliate");
         if (!hasAffiliateRole) return false;
 
         if (!lowerSearch) return true;
         const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
         return (
-          user.email.toLowerCase().includes(lowerSearch) ||
-          name.toLowerCase().includes(lowerSearch)
+          user.email.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch)
         );
       })
       .sort((a, b) => {
@@ -197,7 +214,15 @@ export default function AdminGeoCoverageConsole() {
   }, [allUsers, affiliateSearch]);
 
   const assignAffiliateOrPartner = useMutation({
-    mutationFn: async ({ countyFips, userId, entityType }: { countyFips: string; userId: string; entityType: AffiliateEntityType }) => {
+    mutationFn: async ({
+      countyFips,
+      userId,
+      entityType,
+    }: {
+      countyFips: string;
+      userId: string;
+      entityType: AffiliateEntityType;
+    }) => {
       return apiRequest("POST", `/api/admin/geo/counties/${countyFips}/entities`, {
         entityType,
         entityId: userId,
@@ -230,16 +255,25 @@ export default function AdminGeoCoverageConsole() {
         <div className="space-y-1">
           <h1 className="text-lg font-semibold text-slate-100">County Coverage Console</h1>
           <p className="text-xs text-slate-400 max-w-xl">
-            Operational view of TradeScout coverage across U.S. counties. "Verified Coverage Rate" reflects counties with both an active territory manager and an active affiliate or partner mapped in the geographic storage layer.
+            Operational view of TradeScout coverage across U.S. counties. "Verified Coverage Rate"
+            reflects counties with both an active territory manager and an active affiliate or
+            partner mapped in the geographic storage layer.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <span>View:</span>
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "map")}
-            className="h-8">
+          <Tabs
+            value={viewMode}
+            onValueChange={(v) => setViewMode(v as "list" | "map")}
+            className="h-8"
+          >
             <TabsList className="h-8">
-              <TabsTrigger value="list" className="px-3 h-8 text-xs">List</TabsTrigger>
-              <TabsTrigger value="map" className="px-3 h-8 text-xs">Map</TabsTrigger>
+              <TabsTrigger value="list" className="px-3 h-8 text-xs">
+                List
+              </TabsTrigger>
+              <TabsTrigger value="map" className="px-3 h-8 text-xs">
+                Map
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -262,31 +296,43 @@ export default function AdminGeoCoverageConsole() {
         <Card className="bg-slate-950/60 border-slate-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-slate-300">Unassigned counties</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">No TM, no affiliate</CardDescription>
+            <CardDescription className="text-[11px] text-slate-500">
+              No TM, no affiliate
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-slate-50">{data?.unassignedCounties ?? "-"}</div>
+            <div className="text-2xl font-semibold text-slate-50">
+              {data?.unassignedCounties ?? "-"}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-slate-950/60 border-slate-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-slate-300">Partially covered</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">Only TM or affiliate</CardDescription>
+            <CardDescription className="text-[11px] text-slate-500">
+              Only TM or affiliate
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-slate-50">{data?.partiallyCoveredCounties ?? "-"}</div>
+            <div className="text-2xl font-semibold text-slate-50">
+              {data?.partiallyCoveredCounties ?? "-"}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-slate-950/60 border-slate-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-slate-300">Fully covered</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">TM + affiliate present</CardDescription>
+            <CardDescription className="text-[11px] text-slate-500">
+              TM + affiliate present
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-semibold text-slate-50">{data?.fullyCoveredCounties ?? "-"}</div>
+              <div className="text-2xl font-semibold text-slate-50">
+                {data?.fullyCoveredCounties ?? "-"}
+              </div>
               <div className="text-[11px] text-emerald-400">
                 +{data?.fullCoverageNewLast30 ?? 0} in last 30 days
               </div>
@@ -323,7 +369,10 @@ export default function AdminGeoCoverageConsole() {
 
             <div className="flex items-center gap-1">
               <span className="text-slate-400">Coverage</span>
-              <Select value={coverageFilter} onValueChange={(v) => setCoverageFilter(v as CoverageFilter)}>
+              <Select
+                value={coverageFilter}
+                onValueChange={(v) => setCoverageFilter(v as CoverageFilter)}
+              >
                 <SelectTrigger className="h-7 w-[130px] text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -353,7 +402,10 @@ export default function AdminGeoCoverageConsole() {
 
             <div className="flex items-center gap-1">
               <span className="text-slate-400">TM assigned</span>
-              <Select value={territoryFilter} onValueChange={(v) => setTerritoryFilter(v as TerritoryFilter)}>
+              <Select
+                value={territoryFilter}
+                onValueChange={(v) => setTerritoryFilter(v as TerritoryFilter)}
+              >
                 <SelectTrigger className="h-7 w-[120px] text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -367,13 +419,13 @@ export default function AdminGeoCoverageConsole() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          {isLoading && (
-            <div className="py-10 text-center text-sm text-slate-400">Loading county coverage…</div>
-          )}
+          {isLoading && <SkeletonTable rows={8} />}
           {error && !isLoading && (
-            <div className="py-10 text-center text-sm text-red-400">
-              Failed to load coverage data. Please try again.
-            </div>
+            <ErrorState
+              icon={AlertCircle}
+              title="Failed to Load Coverage"
+              description="Unable to fetch county data. Please refresh the page."
+            />
           )}
 
           {!isLoading && !error && viewMode === "list" && (
@@ -392,7 +444,10 @@ export default function AdminGeoCoverageConsole() {
                 </thead>
                 <tbody>
                   {filteredRows.map((row) => (
-                    <tr key={row.countyFips} className="border-t border-slate-900/80 hover:bg-slate-900/60">
+                    <tr
+                      key={row.countyFips}
+                      className="border-t border-slate-900/80 hover:bg-slate-900/60"
+                    >
                       <td className="px-3 py-2 align-top">
                         <div className="font-medium text-slate-100">
                           {row.countyName}
@@ -411,24 +466,37 @@ export default function AdminGeoCoverageConsole() {
                       </td>
                       <td className="px-3 py-2 align-top space-y-1">
                         {row.hasOpsNote && (
-                          <Badge variant="outline" className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]">
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]"
+                          >
                             Ops
                           </Badge>
                         )}
                         {row.hasRiskNote && (
-                          <Badge variant="outline" className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]">
+                          <Badge
+                            variant="outline"
+                            className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]"
+                          >
                             Risk
                           </Badge>
                         )}
                         {row.hasPartnerNote && (
-                          <Badge variant="outline" className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]">
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]"
+                          >
                             Partner
                           </Badge>
                         )}
-                        {!row.hasNotes && <span className="text-[11px] text-slate-500">No notes</span>}
+                        {!row.hasNotes && (
+                          <span className="text-[11px] text-slate-500">No notes</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 align-top text-[11px] text-slate-400">
-                        {row.lastEntityChangeAt ? new Date(row.lastEntityChangeAt).toLocaleDateString() : "—"}
+                        {row.lastEntityChangeAt
+                          ? new Date(row.lastEntityChangeAt).toLocaleDateString()
+                          : "—"}
                       </td>
                       <td className="px-3 py-2 align-top">
                         <div className="flex flex-col gap-1">
@@ -484,8 +552,8 @@ export default function AdminGeoCoverageConsole() {
 
           {!isLoading && !error && viewMode === "map" && (
             <div className="py-10 text-center text-xs text-slate-500">
-              Map view will reuse the existing county map surface with a coverage lens.
-              For now, use the list view to drive assignments.
+              Map view will reuse the existing county map surface with a coverage lens. For now, use
+              the list view to drive assignments.
             </div>
           )}
         </CardContent>
@@ -503,19 +571,18 @@ export default function AdminGeoCoverageConsole() {
       >
         <DialogContent className="bg-slate-950 border-slate-800 max-w-md text-slate-100">
           <DialogHeader>
-            <DialogTitle className="text-sm text-slate-50">
-              Assign Territory Manager
-            </DialogTitle>
+            <DialogTitle className="text-sm text-slate-50">Assign Territory Manager</DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
-              Select a user with the Territory Manager role to map into the geographic storage layer for
-              this county.
+              Select a user with the Territory Manager role to map into the geographic storage layer
+              for this county.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {assignCounty && (
               <div className="text-xs text-slate-300">
                 <div className="font-medium">
-                  {assignCounty.countyName} <span className="text-slate-500">({assignCounty.stateCode})</span>
+                  {assignCounty.countyName}{" "}
+                  <span className="text-slate-500">({assignCounty.stateCode})</span>
                 </div>
                 <div className="text-slate-500">FIPS {assignCounty.countyFips}</div>
               </div>
@@ -539,11 +606,14 @@ export default function AdminGeoCoverageConsole() {
                 disabled={usersLoading || territoryManagers.length === 0}
               >
                 <SelectTrigger className="h-8 text-xs bg-slate-900/80 border-slate-700/80">
-                  <SelectValue placeholder={usersLoading ? "Loading users…" : "Choose a territory manager"} />
+                  <SelectValue
+                    placeholder={usersLoading ? "Loading users…" : "Choose a territory manager"}
+                  />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   {territoryManagers.map((user) => {
-                    const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+                    const name =
+                      `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
                     return (
                       <SelectItem key={user.id} value={user.id} className="text-xs">
                         <div className="flex flex-col">
@@ -605,19 +675,18 @@ export default function AdminGeoCoverageConsole() {
       >
         <DialogContent className="bg-slate-950 border-slate-800 max-w-md text-slate-100">
           <DialogHeader>
-            <DialogTitle className="text-sm text-slate-50">
-              Assign Affiliate / Partner
-            </DialogTitle>
+            <DialogTitle className="text-sm text-slate-50">Assign Affiliate / Partner</DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
-              Select a user with the Affiliate role to map into the geographic storage layer for this county, as
-              either an affiliate or a partner.
+              Select a user with the Affiliate role to map into the geographic storage layer for
+              this county, as either an affiliate or a partner.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {assignAffiliateCounty && (
               <div className="text-xs text-slate-300">
                 <div className="font-medium">
-                  {assignAffiliateCounty.countyName} <span className="text-slate-500">({assignAffiliateCounty.stateCode})</span>
+                  {assignAffiliateCounty.countyName}{" "}
+                  <span className="text-slate-500">({assignAffiliateCounty.stateCode})</span>
                 </div>
                 <div className="text-slate-500">FIPS {assignAffiliateCounty.countyFips}</div>
               </div>
@@ -657,11 +726,14 @@ export default function AdminGeoCoverageConsole() {
                 disabled={usersLoading || affiliateUsers.length === 0}
               >
                 <SelectTrigger className="h-8 text-xs bg-slate-900/80 border-slate-700/80">
-                  <SelectValue placeholder={usersLoading ? "Loading users…" : "Choose an affiliate user"} />
+                  <SelectValue
+                    placeholder={usersLoading ? "Loading users…" : "Choose an affiliate user"}
+                  />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   {affiliateUsers.map((user) => {
-                    const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+                    const name =
+                      `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
                     return (
                       <SelectItem key={user.id} value={user.id} className="text-xs">
                         <div className="flex flex-col">
@@ -697,7 +769,11 @@ export default function AdminGeoCoverageConsole() {
             <Button
               size="sm"
               className="text-xs"
-              disabled={!assignAffiliateCounty || !selectedAffiliateUserId || assignAffiliateOrPartner.isPending}
+              disabled={
+                !assignAffiliateCounty ||
+                !selectedAffiliateUserId ||
+                assignAffiliateOrPartner.isPending
+              }
               onClick={() => {
                 if (!assignAffiliateCounty || !selectedAffiliateUserId) return;
                 assignAffiliateOrPartner.mutate({
@@ -726,7 +802,10 @@ function CoverageBadge({ status }: { status: CountyCoverageStatus }) {
   }
   if (status === "partial") {
     return (
-      <Badge variant="outline" className="border-amber-500/80 text-amber-300 px-2 py-0.5 text-[11px]">
+      <Badge
+        variant="outline"
+        className="border-amber-500/80 text-amber-300 px-2 py-0.5 text-[11px]"
+      >
         Partial
       </Badge>
     );
