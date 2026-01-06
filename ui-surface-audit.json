@@ -1,9 +1,9 @@
 {
   "summary": {
-    "scannedFiles": 564,
-    "rootViolations": 89,
-    "filesWithMinH": 93,
-    "filesWithBg": 402
+    "scannedFiles": 565,
+    "rootViolations": 88,
+    "filesWithMinH": 92,
+    "filesWithBg": 403
   },
   "results": [
     {
@@ -241,46 +241,6 @@
             94,
             138,
             138
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/contractor-leads.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-screen",
-          "count": 1,
-          "lines": [
-            90
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            90
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 20,
-          "lines": [
-            49,
-            53,
-            55,
-            57,
-            90
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 3,
-          "lines": [
-            97,
-            97,
-            97
           ]
         }
       ]
@@ -4725,23 +4685,6 @@
       ]
     },
     {
-      "file": "client/src/pages/profile.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 25,
-          "lines": [
-            100,
-            104,
-            116,
-            120,
-            137
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/components/community/CommunityCTA.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4797,6 +4740,23 @@
             358,
             358,
             358
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/profile.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 24,
+          "lines": [
+            104,
+            116,
+            120,
+            137,
+            137
           ]
         }
       ]
@@ -5427,6 +5387,23 @@
             528,
             528,
             528
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/contractor-leads.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 19,
+          "lines": [
+            49,
+            53,
+            55,
+            57,
+            97
           ]
         }
       ]
@@ -7767,6 +7744,22 @@
             17,
             26,
             35
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/theme-allowlist.ts",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 4,
+          "lines": [
+            2,
+            3,
+            4,
+            5
           ]
         }
       ]

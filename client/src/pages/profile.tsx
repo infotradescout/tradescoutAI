@@ -64,9 +64,7 @@ function Profile() {
     fileInputRef.current?.click();
   };
 
-  const handlePhotoSelected = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -97,7 +95,7 @@ function Profile() {
   };
 
   return (
-    <div className="h-full bg-background text-foreground pb-20 lg:pb-0">
+    <div className="pb-20 lg:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
         <div>
           <div className="flex items-center gap-4 mb-3">
@@ -113,7 +111,7 @@ function Profile() {
           </div>
         </div>
 
-  <Card className="bg-card border border-border shadow-sm rounded-xl">
+        <Card className="bg-card border border-border shadow-sm rounded-xl">
           <CardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <div className="relative">
@@ -177,9 +175,7 @@ function Profile() {
                 <CardTitle className="text-base font-medium text-foreground">
                   Profile Information
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Update your personal details
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">Update your personal details</p>
               </div>
             </div>
           </CardHeader>
@@ -190,7 +186,7 @@ function Profile() {
                   <Label htmlFor="firstName" className="text-foreground font-medium">
                     First Name
                   </Label>
-                    <Input
+                  <Input
                     id="firstName"
                     type="text"
                     value={formData.firstName}
@@ -204,7 +200,7 @@ function Profile() {
                   <Label htmlFor="lastName" className="text-foreground font-medium">
                     Last Name
                   </Label>
-                    <Input
+                  <Input
                     id="lastName"
                     type="text"
                     value={formData.lastName}
@@ -369,18 +365,14 @@ function Profile() {
                 <CardTitle className="text-base font-medium text-foreground">
                   Notification Preferences
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Manage how you receive updates
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">Manage how you receive updates</p>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-4 pb-6">
             <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
               <div>
-                <p className="text-foreground font-medium">
-                  Email notifications for new deals
-                </p>
+                <p className="text-foreground font-medium">Email notifications for new deals</p>
                 <p className="text-muted-foreground text-sm">
                   Get notified about exclusive TradeDeals from trusted partners
                 </p>
@@ -394,9 +386,7 @@ function Profile() {
             </div>
             <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
               <div>
-                <p className="text-foreground font-medium">
-                  SMS notifications for project updates
-                </p>
+                <p className="text-foreground font-medium">SMS notifications for project updates</p>
                 <p className="text-muted-foreground text-sm">
                   Receive text messages about your projects
                 </p>
@@ -410,9 +400,7 @@ function Profile() {
             </div>
             <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
               <div>
-                <p className="text-foreground font-medium">
-                  Weekly contractor recommendations
-                </p>
+                <p className="text-foreground font-medium">Weekly contractor recommendations</p>
                 <p className="text-muted-foreground text-sm">
                   Get personalized contractor suggestions
                 </p>

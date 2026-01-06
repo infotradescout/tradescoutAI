@@ -1,9 +1,9 @@
 # UI Surface Audit
 
-Scanned files: **564**
-Root violations (min-h-screen + bg-*): **89**
-Files with min-h-screen: **93**
-Files with bg-* classes: **402**
+Scanned files: **565**
+Root violations (min-h-screen + bg-*): **88**
+Files with min-h-screen: **92**
+Files with bg-* classes: **403**
 
 ## Top offenders
 - 🚫 `client/src/pages/contact.tsx` — min-h-screen (1) @ lines 74 | h-screen (1) @ lines 74 | bg-* (20) @ lines 74,97,107,107,152 | gradient (4) @ lines 74,74,74,74
@@ -12,7 +12,6 @@ Files with bg-* classes: **402**
 - 🚫 `client/src/pages/realtor-clients.tsx` — min-h-screen (1) @ lines 78 | h-screen (1) @ lines 78 | bg-* (20) @ lines 65,66,67,68,69 | gradient (4) @ lines 78,78,78,78
 - 🚫 `client/src/pages/car-sales-financing.tsx` — min-h-screen (1) @ lines 71 | h-screen (1) @ lines 71 | bg-* (19) @ lines 71,75,85,94,110 | gradient (4) @ lines 71,71,71,71
 - 🚫 `client/src/pages/community-builder/dashboard.tsx` — min-h-screen (2) @ lines 94,138 | h-screen (2) @ lines 94,138 | bg-* (15) @ lines 35,36,37,38,39 | gradient (6) @ lines 94,94,94,138,138
-- 🚫 `client/src/pages/contractor-leads.tsx` — min-h-screen (1) @ lines 90 | h-screen (1) @ lines 90 | bg-* (20) @ lines 49,53,55,57,90 | gradient (3) @ lines 97,97,97
 - 🚫 `client/src/pages/group-detail.tsx` — min-h-screen (3) @ lines 85,98,113 | h-screen (3) @ lines 85,98,113 | bg-* (7) @ lines 139,173,185,206,231 | gradient (12) @ lines 173,173,173,206,206
 - 🚫 `client/src/pages/boosts.tsx` — min-h-screen (2) @ lines 102,114 | h-screen (2) @ lines 102,114 | bg-* (12) @ lines 119,142,146,201,212 | gradient (8) @ lines 119,119,119,243,243
 - 🚫 `client/src/pages/car-sales-new-listing.tsx` — min-h-screen (1) @ lines 44 | h-screen (1) @ lines 44 | bg-* (18) @ lines 44,48,59,75,85 | gradient (4) @ lines 44,44,44,44
@@ -46,3 +45,4 @@ Files with bg-* classes: **402**
 - 🚫 `client/src/pages/onboarding-intent.tsx` — min-h-screen (1) @ lines 67 | h-screen (1) @ lines 67 | bg-* (12) @ lines 67,73,79,91,109 | gradient (4) @ lines 67,67,67,67
 - 🚫 `client/src/components/admin/AdminLogin.tsx` — min-h-screen (1) @ lines 49 | h-screen (1) @ lines 49 | bg-* (4) @ lines 49,52,61,87 | gradient (11) @ lines 49,49,49,52,52
 - 🚫 `client/src/pages/my-tradescout.tsx` — min-h-screen (2) @ lines 172,201 | h-screen (2) @ lines 172,201 | bg-* (13) @ lines 172,201,218,254,254
+- 🚫 `client/src/pages/role-hub.tsx` — min-h-screen (2) @ lines 13,34 | h-screen (2) @ lines 13,34 | bg-* (13) @ lines 13,34,38,61,74
