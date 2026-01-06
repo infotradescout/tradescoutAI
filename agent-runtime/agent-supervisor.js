@@ -23,6 +23,7 @@ const agentFactories = {
 };
 
 async function main() {
+  const backlogFile = path.join(__dirname, "tasks", "backlog.json");
   const config = loadConfig();
 
   if (!config.agentsEnabled) {
@@ -44,8 +45,17 @@ async function main() {
 
   const intentHistory = await readJson(intentsFile, []);
   const outcomes = await readJson(outcomesFile, []);
+    const intentHistory = await readJson(intentsFile, []);
+    const outcomes = await readJson(outcomesFile, []);
+    const backlog = await readJson(backlogFile, []);
 
-  const intentLog = new Map();
+    const backlogByOwner = backlog.reduce((acc, item) => {
+      const owner = item.owner || item.agent || "";
+      if (!owner) return acc;
+      acc[owner] = acc[owner] || [];
+      acc[owner].push(item);
+      return acc;
+    }, {});
   agents.forEach(({ id }) => intentLog.set(id, []));
 
   const state = new Map();
@@ -188,6 +198,13 @@ async function main() {
 
     const delay = jitteredDelay();
     timers.push(setTimeout(() => runAgent(agent, queue), delay));
+      const seeded = [...(config.tasks[agent.id] || [])];
+      const fromBacklog = backlogByOwner[agent.id] ? [...backlogByOwner[agent.id]] : [];
+      const queue = [...seeded, ...fromBacklog];
+      if (queue.length === 0) {
+        await supervisorLogger.info("No pending work", { agent: agent.id });
+        return;
+      }
   }
 
   function startHeartbeat() {
@@ -224,9 +241,15 @@ async function main() {
   startHeartbeat();
 
   for (const agent of agents) {
-    const queue = [...(config.tasks[agent.id] || [])];
-    const delay = jitteredDelay(500, 500);
-    timers.push(setTimeout(() => runAgent(agent, queue), delay));
+     const seeded = [...(config.tasks[agent.id] || [])];
+     const fromBacklog = backlogByOwner[agent.id] ? [...backlogByOwner[agent.id]] : [];
+     const queue = [...seeded, ...fromBacklog];
+     if (queue.length === 0) {
+      await supervisorLogger.info("No pending work", { agent: agent.id });
+      continue;
+     }
+     const delay = jitteredDelay(500, 500);
+     timers.push(setTimeout(() => runAgent(agent, queue), delay));
   }
 }
 
