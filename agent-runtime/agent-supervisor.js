@@ -45,17 +45,18 @@ async function main() {
 
   const intentHistory = await readJson(intentsFile, []);
   const outcomes = await readJson(outcomesFile, []);
-    const intentHistory = await readJson(intentsFile, []);
-    const outcomes = await readJson(outcomesFile, []);
-    const backlog = await readJson(backlogFile, []);
+  await ensureDir(path.join(__dirname, "tasks"));
+  const backlog = await readJson(backlogFile, []);
 
-    const backlogByOwner = backlog.reduce((acc, item) => {
-      const owner = item.owner || item.agent || "";
-      if (!owner) return acc;
-      acc[owner] = acc[owner] || [];
-      acc[owner].push(item);
-      return acc;
-    }, {});
+  const backlogByOwner = backlog.reduce((acc, item) => {
+    const owner = item.owner || item.agent || "";
+    if (!owner) return acc;
+    acc[owner] = acc[owner] || [];
+    acc[owner].push(item);
+    return acc;
+  }, {});
+
+  const intentLog = new Map();
   agents.forEach(({ id }) => intentLog.set(id, []));
 
   const state = new Map();
@@ -198,13 +199,6 @@ async function main() {
 
     const delay = jitteredDelay();
     timers.push(setTimeout(() => runAgent(agent, queue), delay));
-      const seeded = [...(config.tasks[agent.id] || [])];
-      const fromBacklog = backlogByOwner[agent.id] ? [...backlogByOwner[agent.id]] : [];
-      const queue = [...seeded, ...fromBacklog];
-      if (queue.length === 0) {
-        await supervisorLogger.info("No pending work", { agent: agent.id });
-        return;
-      }
   }
 
   function startHeartbeat() {

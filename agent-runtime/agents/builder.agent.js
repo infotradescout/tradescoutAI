@@ -64,7 +64,7 @@ export function createBuilderAgent() {
   return {
     id: "builder",
     async execute(task, logger) {
-      const intent = task || "build-feature";
+      const intent = typeof task === "string" ? task : (task && task.intent) ? task.intent : "build-feature";
       const baseSlug = slugify(`builder-${intent}`);
       const repoRoot = path.resolve(path.join(process.cwd()));
       await logger.info("Executing builder task", { intent, branch: baseSlug });
