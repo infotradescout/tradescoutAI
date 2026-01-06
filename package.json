@@ -40,7 +40,8 @@
     "audit:blur": "node scripts/audit-blur-ancestors.mjs",
     "validate:scout-deals": "node scripts/validate-deal-guardrail.mjs",
     "prepare": "husky",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "agents:builder": "cross-env AGENTS_ENABLED=true AGENT_ROLE=builder AGENT_WRITE_SCOPE=branches_only AGENT_DB_SCOPE=seed_only AGENT_INTENT_BUDGET=10 AGENT_MAX_PARALLEL=1 AGENT_HEARTBEAT_SEC=30 SCHEDULER_ENABLED=false DISABLE_CRAWLER=true node agent-runtime/agent-supervisor.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

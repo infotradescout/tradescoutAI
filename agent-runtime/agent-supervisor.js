@@ -38,9 +38,9 @@ async function main() {
     path.join(config.logsDir, "supervisor.log")
   );
 
-  const agents = Object.entries(agentFactories).map(([id, factory]) => {
-    return { id, instance: factory() };
-  });
+  const agents = Object.entries(agentFactories)
+    .filter(([id]) => config.agentRole === "all" || id === config.agentRole)
+    .map(([id, factory]) => ({ id, instance: factory() }));
 
   const intentHistory = await readJson(intentsFile, []);
   const outcomes = await readJson(outcomesFile, []);
