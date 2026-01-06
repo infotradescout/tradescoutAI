@@ -4,6 +4,7 @@
     "client/src/**/*",
     "shared/**/*",
     "server/**/*",
+    "tests/**/*",
     ".*.js",
     "*.config.js",
     "*.config.ts"
