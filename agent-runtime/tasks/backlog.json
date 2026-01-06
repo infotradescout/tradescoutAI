@@ -1,0 +1,15 @@
+[
+  {
+    "id": "TS-BUILDER-001",
+    "type": "feature",
+    "owner": "builder",
+    "priority": "P2",
+    "intent": "Refactor admin empty states to canonical EmptyState component",
+    "scope": { "write": "branches_only", "db": "seed_only" },
+    "acceptance": [
+      "Branch created",
+      "Commit produced",
+      "Artifact emitted with commit + files_changed"
+    ]
+  }
+]
