@@ -1,8 +1,8 @@
-import React, { useMemo, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import { CURRENT_PROFILE_VERSION } from '@shared/profile';
-import { PageLoadingSpinner } from '@/components/LoadingSpinner';
+import React, { useMemo, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { SkeletonBlock } from "@/components/ui/states";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,16 +14,16 @@ interface ProtectedRouteProps {
 
 /**
  * ProtectedRoute wraps components that require authentication and specific roles.
- * 
+ *
  * Requires at least one role match (OR logic)
- * 
+ *
  * @example
  * <ProtectedRoute requiredRoles={['super_admin', 'head_admin']}>
  *   <PromptAdminPage />
  * </ProtectedRoute>
  */
-export function ProtectedRoute({ 
-  children, 
+export function ProtectedRoute({
+  children,
   requiredRoles = [],
   fallback,
   adminOnly = false,
@@ -55,30 +55,31 @@ export function ProtectedRoute({
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      setLocation('/create-account');
+      setLocation("/create-account");
       return;
     }
 
     // Check profile normalization needs
     const isAdmin = user?.isAdmin === true;
     const role = (user as any)?.role as string | undefined;
-    const isSuperAdminLike = role === 'super_admin' || role === 'head_admin';
-    const profileVersion = typeof (user as any)?.profileVersion === 'number' ? (user as any).profileVersion : 0;
-    
+    const isSuperAdminLike = role === "super_admin" || role === "head_admin";
+    const profileVersion =
+      typeof (user as any)?.profileVersion === "number" ? (user as any).profileVersion : 0;
+
     if (!isAdmin && !isSuperAdminLike && user && profileVersion < CURRENT_PROFILE_VERSION) {
-      setLocation('/onboarding/profile');
+      setLocation("/onboarding/profile");
       return;
     }
 
     // Check access permissions
     if (!hasAccess) {
-      setLocation('/unauthorized');
+      setLocation("/unauthorized");
     }
   }, [isLoading, isAuthenticated, user, hasAccess, setLocation]);
 
   // Loading state
   if (isLoading) {
-    return fallback || <PageLoadingSpinner message="Verifying permissions..." />;
+    return fallback || <SkeletonBlock rows={3} />;
   }
 
   // Not authenticated or no access - show nothing while redirecting

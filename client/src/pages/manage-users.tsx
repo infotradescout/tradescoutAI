@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/states";
 import {
   Select,
   SelectContent,
@@ -381,17 +382,15 @@ const ManageUsers = memo(function ManageUsers() {
             ))}
 
             {filteredUsers.length === 0 && (
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-                <CardContent className="p-12 text-center">
-                  <Users2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-white text-xl mb-2">No Users Found</h3>
-                  <p className="text-gray-400">
-                    {searchQuery || selectedRole !== "all"
-                      ? "No users match your current filters"
-                      : "No users found in this category"}
-                  </p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={Users2}
+                title="No Users Found"
+                description={
+                  searchQuery || selectedRole !== "all"
+                    ? "No users match your current filters"
+                    : "No users found in this category"
+                }
+              />
             )}
           </TabsContent>
         </Tabs>
