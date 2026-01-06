@@ -1,14 +1,11 @@
 # UI Surface Audit
 
 Scanned files: **565**
-Root violations (min-h-screen + bg-*): **88**
-Files with min-h-screen: **92**
+Root violations (min-h-screen + bg-*): **85**
+Files with min-h-screen: **89**
 Files with bg-* classes: **403**
 
 ## Top offenders
-- 🚫 `client/src/pages/contact.tsx` — min-h-screen (1) @ lines 74 | h-screen (1) @ lines 74 | bg-* (20) @ lines 74,97,107,107,152 | gradient (4) @ lines 74,74,74,74
-- 🚫 `client/src/pages/license-verification.tsx` — min-h-screen (1) @ lines 64 | h-screen (1) @ lines 64 | bg-* (20) @ lines 64,94,97,110,113 | gradient (4) @ lines 64,64,64,64
-- 🚫 `client/src/pages/manage-users.tsx` — min-h-screen (1) @ lines 151 | h-screen (1) @ lines 151 | bg-* (24) @ lines 111,113,115,117,119
 - 🚫 `client/src/pages/realtor-clients.tsx` — min-h-screen (1) @ lines 78 | h-screen (1) @ lines 78 | bg-* (20) @ lines 65,66,67,68,69 | gradient (4) @ lines 78,78,78,78
 - 🚫 `client/src/pages/car-sales-financing.tsx` — min-h-screen (1) @ lines 71 | h-screen (1) @ lines 71 | bg-* (19) @ lines 71,75,85,94,110 | gradient (4) @ lines 71,71,71,71
 - 🚫 `client/src/pages/community-builder/dashboard.tsx` — min-h-screen (2) @ lines 94,138 | h-screen (2) @ lines 94,138 | bg-* (15) @ lines 35,36,37,38,39 | gradient (6) @ lines 94,94,94,138,138
@@ -46,3 +43,6 @@ Files with bg-* classes: **403**
 - 🚫 `client/src/components/admin/AdminLogin.tsx` — min-h-screen (1) @ lines 49 | h-screen (1) @ lines 49 | bg-* (4) @ lines 49,52,61,87 | gradient (11) @ lines 49,49,49,52,52
 - 🚫 `client/src/pages/my-tradescout.tsx` — min-h-screen (2) @ lines 172,201 | h-screen (2) @ lines 172,201 | bg-* (13) @ lines 172,201,218,254,254
 - 🚫 `client/src/pages/role-hub.tsx` — min-h-screen (2) @ lines 13,34 | h-screen (2) @ lines 13,34 | bg-* (13) @ lines 13,34,38,61,74
+- 🚫 `client/src/pages/safe-landing.tsx` — min-h-screen (1) @ lines 3 | h-screen (1) @ lines 3 | bg-* (9) @ lines 3,6,6,15,21 | gradient (6) @ lines 3,3,3,6,6
+- 🚫 `client/src/pages/contractors.tsx` — min-h-screen (1) @ lines 37 | h-screen (1) @ lines 37 | bg-* (11) @ lines 37,48,64,71,110 | gradient (3) @ lines 162,162,162
+- 🚫 `client/src/pages/DashboardSettings.tsx` — min-h-screen (1) @ lines 113 | h-screen (1) @ lines 113 | bg-* (14) @ lines 113,113,118,118,133
