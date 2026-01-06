@@ -148,6 +148,8 @@ async function main() {
         artifact: {
           type: result.artifact.type,
           uri: result.artifact.uri,
+          commit: result.artifact.commit || undefined,
+          files_changed: typeof result.artifact.files_changed === 'number' ? result.artifact.files_changed : undefined,
         },
         result: "success",
         started_at: new Date(started).toISOString(),
