@@ -1,1 +1,70 @@
-[]
+[
+  {
+    "agent_id": "synthesizer",
+    "intent": "Seed 5 counties with 10 users each",
+    "scope": {
+      "write": "branches_only",
+      "db": "seed_only"
+    },
+    "artifact": {
+      "type": "seed-preview",
+      "uri": "local://seed/synth-seed-5-counties-with-10-users-each.json"
+    },
+    "result": "success",
+    "started_at": "2026-01-06T16:29:31.723Z",
+    "ended_at": "2026-01-06T16:29:32.270Z",
+    "duration_ms": 547,
+    "error": null
+  },
+  {
+    "agent_id": "fixer",
+    "intent": "Run npm run build and fix first failure",
+    "scope": {
+      "write": "branches_only",
+      "db": "seed_only"
+    },
+    "artifact": {
+      "type": "git-branch",
+      "uri": "local://branch/fixer-run-npm-run-build-and-fix-first-failure"
+    },
+    "result": "success",
+    "started_at": "2026-01-06T16:29:31.707Z",
+    "ended_at": "2026-01-06T16:29:32.394Z",
+    "duration_ms": 687,
+    "error": null
+  },
+  {
+    "agent_id": "verifier",
+    "intent": "Test protected routes + 404 behavior",
+    "scope": {
+      "write": "branches_only",
+      "db": "seed_only"
+    },
+    "artifact": {
+      "type": "report",
+      "uri": "local://report/verifier-test-protected-routes-404-behavior.json"
+    },
+    "result": "success",
+    "started_at": "2026-01-06T16:29:31.662Z",
+    "ended_at": "2026-01-06T16:29:32.394Z",
+    "duration_ms": 732,
+    "error": null
+  },
+  {
+    "agent_id": "builder",
+    "intent": "Refactor EmptyState usage in admin views",
+    "scope": {
+      "write": "branches_only",
+      "db": "seed_only"
+    },
+    "artifact": {
+      "type": "git-branch",
+      "uri": "local://branch/builder-refactor-emptystate-usage-in-admin-views"
+    },
+    "result": "success",
+    "started_at": "2026-01-06T16:29:32.098Z",
+    "ended_at": "2026-01-06T16:29:32.938Z",
+    "duration_ms": 840,
+    "error": null
+  }
+]

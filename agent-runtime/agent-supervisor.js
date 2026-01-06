@@ -107,11 +107,34 @@ async function main() {
       const logger = await createLogger(agent.id, path.join(config.logsDir, `${agent.id}.log`));
       await logger.info("Starting task", { task, actionNumber });
 
-      const result = await agent.instance.execute(task, logger);
+      // Enforce max task duration via timeout
+      const timeoutMs = config.taskTimeoutMs > 0 ? config.taskTimeoutMs : config.heartbeatSec * 2000;
+      const result = await Promise.race([
+        agent.instance.execute(task, logger),
+        (async () => {
+          await sleep(timeoutMs);
+          throw new Error(`Task timeout after ${timeoutMs}ms`);
+        })(),
+      ]);
       if (!result || !result.artifact) {
         await logger.error("Missing artifact", { task });
         await shutdown("Missing artifact from agent action");
         return;
+      }
+
+      // Detect scope override attempts from agents and reject
+      if (result.overrideScope) {
+        const { write, db } = result.overrideScope;
+        const writeViolation = Boolean(write && write !== config.writeScope);
+        const dbViolation = Boolean(db && db !== config.dbScope);
+        if (writeViolation || dbViolation) {
+          await logger.error("Scope violation detected", {
+            override: result.overrideScope,
+            allowed: { write: config.writeScope, db: config.dbScope },
+          });
+          await shutdown("Scope violation attempt by agent");
+          return;
+        }
       }
 
       const entry = {
@@ -130,6 +153,7 @@ async function main() {
         ended_at: nowIso(),
         duration_ms: Date.now() - started,
         error: null,
+        flags: Array.isArray(result.flags) ? result.flags : [],
       };
 
       if (!entry.artifact.type || !entry.artifact.uri) {
@@ -189,6 +213,9 @@ async function main() {
     intentBudget: config.intentBudget,
     schedulerEnabled: config.schedulerEnabled,
     crawlerDisabled: config.crawlerDisabled,
+    verifierChaosMode: config.verifierChaosMode,
+    verifierChaosProb: config.verifierChaosProb,
+    taskTimeoutMs: config.taskTimeoutMs || config.heartbeatSec * 2000,
   });
 
   startHeartbeat();
