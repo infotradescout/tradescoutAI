@@ -1,3 +1,4 @@
+/* global console, process, setTimeout, clearTimeout */
 import { fileURLToPath } from "url";
 import path from "path";
 import { loadConfig } from "./agent-config.js";

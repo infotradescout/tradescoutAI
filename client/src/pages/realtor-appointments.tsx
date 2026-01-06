@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 
 export default function RealtorAppointments() {
-  const [selectedDate] = useState(new Date().toISOString().split("T")[0]);
-
   const todayAppointments = [
     {
       id: 1,

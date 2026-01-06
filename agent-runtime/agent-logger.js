@@ -1,3 +1,4 @@
+/* global console */
 import fs from "fs/promises";
 import path from "path";
 import { ensureDir, nowIso } from "./agent-utils.js";
