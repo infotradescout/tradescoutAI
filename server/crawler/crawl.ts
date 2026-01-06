@@ -122,10 +122,3 @@ export async function runCrawler() {
     };
   }
 }
-
-// If run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runCrawler().then((result) => {
-    process.exit(result.success ? 0 : 1);
-  });
-}
