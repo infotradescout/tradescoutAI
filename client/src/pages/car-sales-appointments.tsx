@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +16,6 @@ import {
 } from "lucide-react";
 
 export default function CarSalesAppointments() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-
   const todayAppointments = [
     {
       id: 1,
