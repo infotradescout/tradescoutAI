@@ -309,6 +309,226 @@ npm run test:e2e -- tests/bot-army/discovery-bot.spec.ts
 
 ---
 
+## 🔧 ADDENDUM — BOT ARMY REALITY & EXECUTION MODEL
+
+### Why This Addendum Exists
+
+The term "Bot Army" previously referred to GitHub Actions workflows and scheduled scripts.  
+This created a false expectation of autonomous behavior.
+
+**Clarification:**  
+GitHub Actions are **triggers**, not **agents**. They cannot act as persistent teammates.
+
+This addendum defines the correct execution model so Phase 3 produces real output.
+
+---
+
+### Core Correction: Bots vs Agents
+
+#### ❌ What Bot Army is NOT
+
+- Not cron jobs
+- Not GitHub Actions alone
+- Not YAML-defined scripts
+- Not stateless workflows
+
+These can **run tasks**, but cannot:
+- reason
+- remember
+- retry intelligently
+- coordinate work
+- simulate humans
+
+#### ✅ What Bot Army IS (Phase 3 Definition)
+
+**Bot Army = Persistent AI Agents with Roles**
+
+Each agent:
+- has a **role**
+- has **memory**
+- has **scope-limited authority**
+- **executes tasks**, not scripts
+- **produces artifacts** (code, data, reports)
+
+GitHub Actions are only used to **trigger or supervise** these agents.
+
+---
+
+### Phase 3 (24h+): Bot Army — REFINED
+
+#### Phase 3 Goal (Updated)
+
+Replace missing early users and contributors with **AI labor** that:
+- **builds**
+- **fixes**
+- **validates**
+- **populates**
+
+the system continuously.
+
+#### Agent Roster (Minimum Viable Virtual Team)
+
+##### 1. Builder Agent (AI Engineer)
+
+**Purpose:** Generate product surface area
+
+**Capabilities:**
+- Reads repo
+- Implements components/pages/features
+- Follows ESLint + theme guardrails
+- Opens PRs or commits to feature branches
+
+**Outputs:**
+- New UI components
+- Feature scaffolding
+- Refactors per ticket
+
+##### 2. Fixer Agent (AI Maintenance Engineer)
+
+**Purpose:** Keep the system green
+
+**Capabilities:**
+- Watches CI / build failures
+- Fixes lint, type, build, and test errors
+- Refactors legacy code safely
+
+**Outputs:**
+- Build fixes
+- Cleanup commits
+- Reduced tech debt
+
+##### 3. Verifier Agent (AI QA / User Simulator)
+
+**Purpose:** Replace real user testing
+
+**Capabilities:**
+- Executes Playwright / API flows
+- Simulates user journeys
+- Identifies broken assumptions
+
+**Outputs:**
+- Test reports
+- Repro steps
+- Suggested fixes
+
+##### 4. Synthesizer Agent (AI Growth Simulator)
+
+**Purpose:** Replace missing users & activity
+
+**Capabilities:**
+- Generates fake but realistic users
+- Seeds profiles, leads, events, interactions
+- Drives aggregation & dashboard features
+
+**Outputs:**
+- Seeded data
+- Activity logs
+- Aggregation validation
+
+---
+
+### Execution Architecture (Phase 3)
+
+#### Runtime Model
+
+- Agents run as **long-lived Node processes**
+- Hosted locally or on a cheap worker (Render/Fly/etc.)
+- **NOT serverless**
+- **NOT cron-only**
+
+Each agent loop:
+```
+Fetch task → Think → Act → Verify → Persist memory → Report
+```
+
+#### Control Plane
+
+| Component | Role |
+|-----------|------|
+| GitHub Actions | Trigger, schedule, supervise |
+| Agent Runtime | Thinking + execution |
+| Repo | Source of truth |
+| Database | Memory + seeded data |
+| Observability | Output validation |
+
+---
+
+### Phase 3 Safety & Kill Switches
+
+**All Phase-5 guardrails remain in force.**
+
+#### Hard Stops
+
+- Any CRITICAL alert → agents stop
+- Scheduler kill switch remains active
+- No agents can deploy directly to production
+
+#### Allowed Actions
+
+- Branch commits
+- PRs
+- Seed data
+- Non-prod simulations
+
+---
+
+### Phase 3 Success Criteria (Updated)
+
+Phase 3 is **PASS** if:
+
+- [ ] Agents produce commits/PRs **daily**
+- [ ] Fake data exercises dashboards **meaningfully**
+- [ ] Aggregations show **non-zero, consistent output**
+- [ ] No CRITICAL alerts triggered
+- [ ] System remains deployable
+
+---
+
+### Why This Matters (Explicit)
+
+**Without this correction:**
+- "Bot Army" produces no visible results
+- You mistake silence for failure
+- Momentum stalls
+
+**With this correction:**
+- You gain **labor**
+- Progress continues **without users**
+- Features become **testable before launch**
+
+---
+
+### Status Relative to Hold
+
+- ✅ Phase 5 observability integrity **preserved**
+- ✅ No runtime changes required yet
+- ✅ Documentation-only until execution authorized
+- ✅ Fully compatible with PHASE_5_HOLD_LIFT_PLAN.md
+
+---
+
+### Next Explicit Decision (When Hold Lifts)
+
+**Choose one to execute first:**
+
+A. Spin up Agent Runtime **locally** (fastest)  
+B. Deploy a single Builder Agent worker  
+C. Retrofit existing `bot-army.yml` to trigger agents
+
+**If you want, next I can:**
+- write the Agent Runtime skeleton
+- define task schemas
+- or convert `bot-army.yml` into a real supervisor
+
+Just tell me which one you want first.
+
+---
+
+**You're not stuck.**  
+**You just needed workers, not hope.**
+
+---
+
 ## Monitoring Dashboard
 
 ### Key Metrics to Watch
