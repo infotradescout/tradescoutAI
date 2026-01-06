@@ -79,7 +79,7 @@ export function ProtectedRoute({
 
   // Loading state
   if (isLoading) {
-    return fallback || <SkeletonBlock rows={3} />;
+    return fallback || <SkeletonBlock />;
   }
 
   // Not authenticated or no access - show nothing while redirecting

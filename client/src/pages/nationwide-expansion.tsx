@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { MapPin, TrendingUp, Users, DollarSign, Heart, Award, Globe, Building } from "lucide-react";
-import { EmptyState, SkeletonBlock } from "@/components/ui/states";
+import { EmptyState, SkeletonBlock, SkeletonTable } from "@/components/ui/states";
 
 interface NationwideMetrics {
   totalUsers: number;
@@ -274,7 +274,7 @@ export default function NationwideExpansion() {
                 <Award className="w-5 h-5 text-yellow-400" />
                 <span>County Contractor Activity</span>
               </h3>
-              {countiesLoading && <SkeletonBlock rows={3} />}
+              {countiesLoading && <SkeletonTable rows={3} />}
               {!countiesLoading && (countiesError || !topCounties.length) && (
                 <EmptyState
                   title="No County Data"

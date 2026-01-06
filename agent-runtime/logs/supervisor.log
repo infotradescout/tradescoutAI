@@ -141,3 +141,488 @@
 {"ts":"2026-01-06T17:03:31.627Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
 {"ts":"2026-01-06T17:03:46.033Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":null,"crashes":1,"budgetUsed":1}]}
 {"ts":"2026-01-06T17:03:53.197Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:10:17.808Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T17:10:47.822Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:10:57.467Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:11:17.829Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:11:27.056Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:11:47.848Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:11:54.612Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:12:17.864Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:12:23.786Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:12:39.749Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:12:47.869Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:12:58.391Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:13:17.872Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:13:20.088Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:13:43.025Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:13:47.888Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:14:00.959Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:14:17.893Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:14:23.193Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:14:47.902Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:14:50.135Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:15:17.917Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:15:18.383Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:15:38.424Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:15:47.927Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:16:05.671Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:16:17.935Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:16:23.368Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:16:47.942Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:16:49.126Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:17:12.629Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:17:17.952Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:17:29.225Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:17:46.488Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:17:47.954Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:18:02.346Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:18:17.959Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:18:24.514Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:18:47.964Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:18:48.959Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:19:13.567Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:19:17.967Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:19:39.110Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:19:47.980Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:19:57.556Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:20:17.993Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:20:22.467Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:20:46.905Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:20:48.009Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767719436560,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:21:11.239Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:21:37.518Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T17:22:07.533Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:22:15.386Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:22:37.539Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:22:40.455Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:22:59.771Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:23:07.548Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:23:19.193Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:23:37.555Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:23:40.284Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:23:59.132Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:24:07.560Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:24:21.755Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:24:37.563Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:24:40.944Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:25:07.576Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:25:08.167Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:25:33.280Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:25:37.585Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:25:56.580Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:26:07.587Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:26:25.355Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:26:37.593Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:26:51.644Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:27:07.600Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:27:21.296Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:27:37.603Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:27:43.797Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:28:07.606Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:28:13.391Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:28:35.443Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:28:37.617Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:28:59.112Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:29:07.620Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:29:26.490Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:29:37.627Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:29:42.972Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:30:07.630Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:30:09.832Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:30:37.643Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:30:39.598Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:31:05.754Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:31:07.653Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:31:35.097Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:31:37.663Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:31:59.478Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:32:07.667Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:32:15.164Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:32:33.669Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:32:37.669Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:33:03.465Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:33:07.678Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:33:25.046Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:33:37.695Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:33:41.723Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:34:05.194Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:34:07.707Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:34:30.899Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:34:37.720Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:34:59.144Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T17:35:07.731Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767720118293,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T17:35:17.132Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:09:31.662Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T18:47:27.007Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T18:47:57.020Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725266300,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T18:48:27.034Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725299002,"crashes":0,"budgetUsed":2}]}
+{"ts":"2026-01-06T18:48:57.039Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725332642,"crashes":0,"budgetUsed":3}]}
+{"ts":"2026-01-06T18:49:27.053Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725332642,"crashes":0,"budgetUsed":4}]}
+{"ts":"2026-01-06T18:49:57.068Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725367335,"crashes":0,"budgetUsed":5}]}
+{"ts":"2026-01-06T18:50:27.085Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725414552,"crashes":0,"budgetUsed":5}]}
+{"ts":"2026-01-06T18:50:57.097Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725414552,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:51:24.043Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:51:27.118Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:51:40.170Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:51:57.132Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:51:58.490Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:52:25.852Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:52:27.145Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:52:48.985Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:52:57.151Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:53:06.181Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:53:27.159Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:53:29.170Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:53:45.228Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:53:57.171Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:54:13.002Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:54:27.174Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:54:34.535Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:54:57.189Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:55:00.052Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:55:25.999Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:55:27.203Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:55:48.677Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:55:57.218Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:56:09.364Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:56:27.221Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:56:38.484Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T18:56:57.223Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767725460297,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T18:57:00.377Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:10:15.816Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T19:10:45.834Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726636542,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T19:11:15.838Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726670087,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T19:11:45.842Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726703342,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T19:12:15.844Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726734466,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T19:12:45.849Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726734466,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:13:15.863Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T19:13:45.870Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:14:15.884Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:14:18.099Z","label":"supervisor","level":"error","msg":"Agent error","agent":"builder","error":"Task timeout after 60000ms"}
+{"ts":"2026-01-06T19:14:36.223Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:14:45.900Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:15:02.250Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:15:15.901Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:15:30.756Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:15:45.909Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:15:53.678Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:16:15.926Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:16:18.203Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:16:42.779Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:16:45.932Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:17:10.874Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:17:15.937Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:17:28.509Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:17:44.391Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:17:45.947Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:18:07.807Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:18:15.963Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:18:36.240Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:18:45.975Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:18:53.082Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:19:14.314Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:19:15.983Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:19:33.301Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:19:45.996Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:19:56.153Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:20:15.999Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:20:17.014Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:20:36.505Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:20:46.005Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:21:02.325Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:21:16.020Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:21:18.220Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:21:46.029Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:21:46.855Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:22:15.474Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:22:16.033Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:22:30.942Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:22:46.049Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:22:58.523Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:23:14.903Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:23:16.055Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:23:30.563Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:23:46.065Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:23:56.395Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:24:16.068Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:24:24.219Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:24:46.079Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:24:46.296Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:25:13.205Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:25:16.082Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:25:31.267Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:25:46.096Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:25:51.997Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:26:15.278Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:26:16.106Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:26:35.090Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:26:46.120Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:26:53.606Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:27:16.130Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:27:21.789Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:27:46.146Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:27:47.050Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:28:10.504Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:28:16.154Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:28:25.849Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:28:46.165Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:28:50.879Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:29:14.267Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:29:16.166Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:29:32.437Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:29:46.183Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:29:59.744Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:30:16.193Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:30:29.234Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:30:44.853Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:30:46.196Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:31:03.569Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:31:16.207Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:31:26.944Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:31:46.222Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:31:48.187Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:32:04.917Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:32:16.230Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:32:29.373Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:32:46.238Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:32:46.755Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:33:15.973Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:33:16.251Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:33:33.514Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:33:46.260Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:33:48.537Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:34:11.147Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:34:16.269Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:34:29.393Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:34:46.270Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:34:57.753Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:35:16.278Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:35:27.282Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:35:46.281Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:35:51.256Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:36:08.913Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:36:16.288Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:36:27.615Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:36:46.301Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:36:55.377Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:37:15.544Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:37:16.308Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:37:41.549Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:37:46.320Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:38:10.893Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:38:16.331Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:38:28.763Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:38:46.344Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:38:54.115Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:39:16.345Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:39:17.781Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:39:41.209Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:39:46.352Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:40:08.576Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:40:16.356Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:40:32.070Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:40:46.365Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:40:56.135Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:41:14.528Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:41:16.370Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:41:31.713Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:41:46.371Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:41:47.961Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:42:06.609Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:42:16.390Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:42:31.907Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:42:46.395Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:42:50.780Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:43:16.405Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:43:18.106Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:43:44.668Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:43:46.420Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:44:07.171Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:44:16.434Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:44:28.363Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:44:45.251Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:44:46.448Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:45:01.776Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:45:16.454Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:45:25.650Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:45:45.243Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:45:46.457Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:46:03.296Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:46:16.464Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:46:24.636Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:46:46.473Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:46:49.963Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:47:13.653Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:47:16.474Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:47:43.131Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:47:46.487Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:48:13.101Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:48:16.489Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:48:42.421Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:48:46.503Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:49:06.562Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:49:16.515Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:49:26.739Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:49:46.518Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:49:55.050Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:50:16.524Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:50:20.570Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:50:46.536Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:50:47.631Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:51:12.007Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:51:16.548Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:51:35.031Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:51:46.556Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:52:03.157Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:52:16.566Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:52:23.641Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:52:46.575Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:52:51.565Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:53:06.632Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:53:16.581Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:53:35.576Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:53:46.592Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:54:01.954Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:54:16.604Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:54:26.388Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:54:45.388Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:54:46.605Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:55:14.767Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:55:16.606Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:55:30.936Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:55:46.618Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:55:52.445Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:56:16.623Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:56:18.790Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:56:40.104Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:56:46.625Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:57:08.514Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:57:16.639Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:57:36.781Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:57:46.648Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:57:54.398Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:58:10.079Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:58:16.655Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:58:25.774Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:58:46.668Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:58:54.108Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:59:13.440Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:59:16.683Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:59:31.447Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T19:59:46.690Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T19:59:48.978Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:00:16.695Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:00:18.647Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:00:40.324Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:00:46.708Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:01:04.898Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:01:16.719Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:01:34.802Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:01:46.732Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:01:55.474Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:02:16.739Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:02:23.914Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:02:46.744Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:02:48.302Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:03:14.409Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:03:16.749Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:03:38.060Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:03:46.765Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:03:58.101Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:04:14.862Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:04:16.777Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:04:38.575Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:04:46.783Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:04:54.968Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:05:16.794Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:05:21.988Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:05:46.807Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:05:48.166Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:06:16.815Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:06:17.781Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:06:42.501Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:06:46.830Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:07:06.088Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:07:16.845Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:07:21.830Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:07:37.168Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:07:46.852Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:08:06.408Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:08:16.855Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:08:33.187Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:08:46.870Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:09:00.104Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:09:16.882Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:09:22.035Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:09:46.885Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:09:48.411Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:10:06.248Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:10:16.888Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:10:24.772Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:10:46.891Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:10:53.459Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:11:10.193Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:11:16.900Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:11:28.682Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:11:46.906Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:11:49.361Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:12:16.910Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:12:17.674Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:12:46.107Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:12:46.917Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:13:05.610Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:13:16.928Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":1}]}
+{"ts":"2026-01-06T20:13:33.925Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T20:13:46.940Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767726771158,"crashes":1,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:14:19.541Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T21:14:49.550Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767734080496,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:15:19.559Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767734118169,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:15:40.199Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T21:41:08.348Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T21:41:38.362Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735691363,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:42:08.362Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735691363,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:42:38.375Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735730462,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:43:08.382Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735775732,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:43:38.385Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735775732,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:44:08.392Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735820992,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:44:38.399Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735860380,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:45:08.412Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735895603,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:45:38.413Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735930335,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:46:08.418Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735930335,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:46:38.430Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735979605,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:47:08.441Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767735979605,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:47:38.446Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767736029874,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:48:08.455Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767736080082,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T21:48:38.461Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767736080082,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T21:49:00.821Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T22:04:22.587Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T22:04:52.600Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737082081,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T22:05:22.612Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737120273,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T22:05:52.624Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737120273,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T22:05:55.284Z","label":"supervisor","level":"error","msg":"BUILDER_HALTED_GUARDRAIL_LOOP","agent":"builder","consecutiveNoops":3,"flag":"stub_artifact_rejected","requiredPaths":["client/src/pages/admin-geo-coverage.tsx"]}
+{"ts":"2026-01-06T22:05:55.285Z","label":"supervisor","level":"error","msg":"Shutting down","reason":"Builder guardrail noop loop"}
+{"ts":"2026-01-06T22:16:03.654Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T22:16:33.667Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737787843,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T22:17:03.668Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737803602,"crashes":0,"budgetUsed":1}]}
+{"ts":"2026-01-06T22:17:33.679Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737845725,"crashes":0,"budgetUsed":3}]}
+{"ts":"2026-01-06T22:18:03.691Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737880625,"crashes":0,"budgetUsed":5}]}
+{"ts":"2026-01-06T22:18:33.706Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737900731,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T22:19:03.716Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737929106,"crashes":0,"budgetUsed":7}]}
+{"ts":"2026-01-06T22:19:33.728Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767737973480,"crashes":0,"budgetUsed":9}]}
+{"ts":"2026-01-06T22:31:00.905Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T22:31:30.916Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738679328,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T22:32:00.928Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738713723,"crashes":0,"budgetUsed":2}]}
+{"ts":"2026-01-06T22:32:30.936Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738731605,"crashes":0,"budgetUsed":3}]}
+{"ts":"2026-01-06T22:33:00.943Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738757068,"crashes":0,"budgetUsed":4}]}
+{"ts":"2026-01-06T22:33:30.953Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738801419,"crashes":0,"budgetUsed":6}]}
+{"ts":"2026-01-06T22:34:00.958Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738821531,"crashes":0,"budgetUsed":7}]}
+{"ts":"2026-01-06T22:34:30.977Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738851674,"crashes":0,"budgetUsed":8}]}
+{"ts":"2026-01-06T22:35:00.983Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767738876892,"crashes":0,"budgetUsed":9}]}
+{"ts":"2026-01-06T22:35:06.339Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}
+{"ts":"2026-01-06T23:02:57.135Z","label":"supervisor","level":"info","msg":"Supervisor starting","writeScope":"branches_only","dbScope":"seed_only","intentBudget":10,"schedulerEnabled":false,"crawlerDisabled":true,"verifierChaosMode":false,"verifierChaosProb":0.2,"taskTimeoutMs":60000}
+{"ts":"2026-01-06T23:03:27.156Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767740594915,"crashes":0,"budgetUsed":0}]}
+{"ts":"2026-01-06T23:03:57.163Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767740636628,"crashes":0,"budgetUsed":2}]}
+{"ts":"2026-01-06T23:04:27.168Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767740652142,"crashes":0,"budgetUsed":3}]}
+{"ts":"2026-01-06T23:04:57.173Z","label":"supervisor","level":"info","msg":"Heartbeat","snapshot":[{"agent":"builder","lastArtifactAt":1767740673146,"crashes":0,"budgetUsed":4}]}
+{"ts":"2026-01-06T23:04:58.406Z","label":"supervisor","level":"info","msg":"Agent idle","agent":"builder"}

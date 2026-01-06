@@ -680,7 +680,8 @@ export async function registerRoutes(app: any) {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      sendAutoClassifiedError(res, error, 'Registration failed', { userId: req.user?.id });
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      sendAutoClassifiedError(res, error, 'Registration failed', { userId });
     }
   };
 

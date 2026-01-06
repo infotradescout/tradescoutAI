@@ -165,10 +165,10 @@ const ContractorLeads = memo(function ContractorLeads() {
           <div className="space-y-4">
             {!isLoading && leads.length === 0 && (
               <EmptyState
-                icon={TrendingUp}
-                title="No Projects Available"
-                description="Check back soon for new project opportunities in your area"
-              />
+              icon={<TrendingUp />}
+              title="No Projects Available"
+              description="Check back soon for new project opportunities in your area"
+            />
             )}
 
             {leads.map((lead) => (

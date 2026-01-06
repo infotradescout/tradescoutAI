@@ -1,15 +1,67 @@
 [
   {
     "id": "TS-BUILDER-001",
-    "type": "feature",
+    "type": "ui-polish",
     "owner": "builder",
     "priority": "P2",
-    "intent": "Refactor admin empty states to canonical EmptyState component",
+    "intent": "Normalize empty states across admin moderation views",
     "scope": { "write": "branches_only", "db": "seed_only" },
     "acceptance": [
-      "Branch created",
-      "Commit produced",
-      "Artifact emitted with commit + files_changed"
+      "Uses <EmptyState /> component",
+      "No hardcoded colors",
+      "No new lint warnings"
+    ]
+  },
+  {
+    "id": "TS-BUILDER-002",
+    "type": "design-tokens",
+    "owner": "builder",
+    "priority": "P2",
+    "intent": "Replace legacy cards with new design tokens in admin UI",
+    "scope": { "write": "branches_only", "db": "seed_only" },
+    "acceptance": [
+      "All colors via tokens",
+      "No inline style colors",
+      "No new lint warnings"
+    ]
+  },
+  {
+    "id": "TS-BUILDER-003",
+    "type": "ux-skeletons",
+    "owner": "builder",
+    "priority": "P3",
+    "intent": "Add skeleton loading states to admin list and detail views",
+    "scope": { "write": "branches_only", "db": "seed_only" },
+    "acceptance": [
+      "Skeletons render within 200ms",
+      "No blocking spinners",
+      "No new lint warnings"
+    ]
+  },
+  {
+    "id": "TS-BUILDER-004",
+    "type": "lint-reduction",
+    "owner": "builder",
+    "priority": "P2",
+    "intent": "Reduce ESLint warnings in client pages (target -10)",
+    "scope": { "write": "branches_only", "db": "seed_only" },
+    "acceptance": [
+      "No new warnings introduced",
+      "Net warnings reduced by >= 10",
+      "Typed lint passes"
+    ]
+  },
+  {
+    "id": "TS-BUILDER-005",
+    "type": "stability",
+    "owner": "builder",
+    "priority": "P1",
+    "intent": "Stabilize remaining appointment pages and remove unused imports/state",
+    "scope": { "write": "branches_only", "db": "seed_only" },
+    "acceptance": [
+      "Pages build without errors",
+      "No unused imports/state",
+      "No new lint warnings"
     ]
   }
 ]

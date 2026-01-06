@@ -383,14 +383,14 @@ const ManageUsers = memo(function ManageUsers() {
 
             {filteredUsers.length === 0 && (
               <EmptyState
-                icon={Users2}
-                title="No Users Found"
-                description={
-                  searchQuery || selectedRole !== "all"
-                    ? "No users match your current filters"
-                    : "No users found in this category"
-                }
-              />
+              icon={<Users2 />}
+              title="No Users Found"
+              description={
+                searchQuery || selectedRole !== "all"
+                  ? "No users match your current filters"
+                  : "No users found in this category"
+              }
+            />
             )}
           </TabsContent>
         </Tabs>
