@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,16 +45,16 @@ const formatCurrency = (value?: string | number | null) => {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'new':
-      return 'bg-green-500/20 text-green-400 border-green-500/30';
-    case 'contacted':
-    case 'qualified':
-    case 'matched':
-      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-    case 'closed':
-      return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+    case "new":
+      return "bg-green-500/20 text-green-400 border-green-500/30";
+    case "contacted":
+    case "qualified":
+    case "matched":
+      return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+    case "closed":
+      return "bg-slate-500/20 text-slate-300 border-slate-500/30";
     default:
-      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      return "bg-blue-500/20 text-blue-400 border-blue-500/30";
   }
 };
 
@@ -69,7 +69,7 @@ const ContractorLeads = memo(function ContractorLeads() {
   const leads = (data?.myProjects ?? []).map((project) => ({
     id: project.id,
     title: project.title,
-    status: project.status || 'new',
+    status: project.status || "new",
     value: project.value,
     createdAt: project.createdAt,
   }));
@@ -84,27 +84,32 @@ const ContractorLeads = memo(function ContractorLeads() {
   }).length;
 
   const responseCount = (data?.quotes ?? []).length;
-  const pendingReplies = (data?.conversations ?? []).filter((c) => c.status !== 'closed').length;
+  const pendingReplies = (data?.conversations ?? []).filter((c) => c.status !== "closed").length;
 
   return (
-    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
+    <div className="pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8 lg:mb-12">
             <div className="flex items-center justify-between gap-4 mb-3">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <TrendingUp className="h-6 w-6 text-white" />
+                <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+                  <TrendingUp className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">Project Opportunities</h1>
-                  <p className="text-lg text-slate-400">
+                  <h1 className="text-3xl lg:text-5xl font-bold text-foreground mb-1">
+                    Project Opportunities
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
                     Connect with homeowners looking for your services
                   </p>
                 </div>
               </div>
-              <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
+              <Button
+                variant="outline"
+                className="border-border text-muted-foreground hover:bg-muted"
+              >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
@@ -117,9 +122,9 @@ const ContractorLeads = memo(function ContractorLeads() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-orange-500 mb-1">
-                    {isLoading ? '—' : leads.length}
+                    {isLoading ? "—" : leads.length}
                   </p>
-                  <p className="text-sm text-slate-400">Available Projects</p>
+                  <p className="text-sm text-muted-foreground">Available Projects</p>
                 </div>
               </CardContent>
             </Card>
@@ -127,9 +132,9 @@ const ContractorLeads = memo(function ContractorLeads() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-green-500 mb-1">
-                    {isLoading ? '—' : newTodayCount}
+                    {isLoading ? "—" : newTodayCount}
                   </p>
-                  <p className="text-sm text-slate-400">New Today</p>
+                  <p className="text-sm text-muted-foreground">New Today</p>
                 </div>
               </CardContent>
             </Card>
@@ -137,9 +142,9 @@ const ContractorLeads = memo(function ContractorLeads() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-blue-500 mb-1">
-                    {isLoading ? '—' : responseCount}
+                    {isLoading ? "—" : responseCount}
                   </p>
-                  <p className="text-sm text-slate-400">Your Responses</p>
+                  <p className="text-sm text-muted-foreground">Your Responses</p>
                 </div>
               </CardContent>
             </Card>
@@ -147,9 +152,9 @@ const ContractorLeads = memo(function ContractorLeads() {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-yellow-500 mb-1">
-                    {isLoading ? '—' : pendingReplies}
+                    {isLoading ? "—" : pendingReplies}
                   </p>
-                  <p className="text-sm text-slate-400">Open Conversations</p>
+                  <p className="text-sm text-muted-foreground">Open Conversations</p>
                 </div>
               </CardContent>
             </Card>
@@ -160,9 +165,9 @@ const ContractorLeads = memo(function ContractorLeads() {
             {!isLoading && leads.length === 0 && (
               <Card className="bg-tsCard border-tsBorder shadow-xl">
                 <CardContent className="pt-12 pb-12 text-center">
-                  <TrendingUp className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-white mb-2">No Projects Available</h2>
-                  <p className="text-slate-400 mb-6">
+                  <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h2 className="text-2xl font-bold text-foreground mb-2">No Projects Available</h2>
+                  <p className="text-muted-foreground mb-6">
                     Check back soon for new project opportunities in your area
                   </p>
                 </CardContent>
@@ -170,30 +175,36 @@ const ContractorLeads = memo(function ContractorLeads() {
             )}
 
             {leads.map((lead) => (
-              <Card key={lead.id} className="bg-tsCard border-tsBorder shadow-xl hover:border-orange-500/30 transition-all">
+              <Card
+                key={lead.id}
+                className="bg-tsCard border-tsBorder shadow-xl hover:border-orange-500/30 transition-all"
+              >
                 <CardHeader className="border-b border-tsBorder pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl text-white">{lead.title}</CardTitle>
+                        <CardTitle className="text-xl text-foreground">{lead.title}</CardTitle>
                         <Badge className={`${getStatusColor(lead.status)} border`}>
                           {lead.status.toUpperCase()}
                         </Badge>
                       </div>
                       {lead.createdAt && (
-                        <p className="text-sm text-slate-400">
-                          Created {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
+                        <p className="text-sm text-muted-foreground">
+                          Created{" "}
+                          {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-slate-400 mb-1">Est. Value</p>
-                      <p className="text-2xl font-bold text-orange-500">{formatCurrency(lead.value)}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Est. Value</p>
+                      <p className="text-2xl font-bold text-orange-500">
+                        {formatCurrency(lead.value)}
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <p className="text-slate-200 mb-6 leading-relaxed">
+                  <p className="text-foreground mb-6 leading-relaxed">
                     Project request from your dashboard
                   </p>
 
@@ -203,8 +214,8 @@ const ContractorLeads = memo(function ContractorLeads() {
                         <DollarSign className="h-4 w-4 text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-slate-400 text-xs">Budget</p>
-                        <p className="text-white font-medium">{formatCurrency(lead.value)}</p>
+                        <p className="text-muted-foreground text-xs">Budget</p>
+                        <p className="text-foreground font-medium">{formatCurrency(lead.value)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -212,8 +223,8 @@ const ContractorLeads = memo(function ContractorLeads() {
                         <Calendar className="h-4 w-4 text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-slate-400 text-xs">Status</p>
-                        <p className="text-white font-medium">{lead.status}</p>
+                        <p className="text-muted-foreground text-xs">Status</p>
+                        <p className="text-foreground font-medium">{lead.status}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -221,25 +232,34 @@ const ContractorLeads = memo(function ContractorLeads() {
                         <Calendar className="h-4 w-4 text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-slate-400 text-xs">Created</p>
-                        <p className="text-white font-medium">
+                        <p className="text-muted-foreground text-xs">Created</p>
+                        <p className="text-foreground font-medium">
                           {lead.createdAt
                             ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })
-                            : 'Not available'}
+                            : "Not available"}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    <Button className="bg-orange-500 hover:bg-orange-600 text-white" data-testid={`button-respond-${lead.id}`}>
+                    <Button
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      data-testid={`button-respond-${lead.id}`}
+                    >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Respond to Project
                     </Button>
-                    <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
+                    <Button
+                      variant="outline"
+                      className="border-border text-muted-foreground hover:bg-muted"
+                    >
                       View Details
                     </Button>
-                    <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
+                    <Button
+                      variant="outline"
+                      className="border-border text-muted-foreground hover:bg-muted"
+                    >
                       Save for Later
                     </Button>
                   </div>
