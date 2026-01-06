@@ -10,6 +10,7 @@ export function loadConfig() {
 
   return {
     agentsEnabled,
+    agentRole: env.AGENT_ROLE || "all", // builder | fixer | verifier | synthesizer | all
     writeScope: env.AGENT_WRITE_SCOPE || "branches_only",
     dbScope: env.AGENT_DB_SCOPE || "seed_only",
     intentBudget: Number(env.AGENT_INTENT_BUDGET || 10),
