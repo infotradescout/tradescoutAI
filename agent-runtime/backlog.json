@@ -1,0 +1,147 @@
+{
+  "generated_at": "2026-01-06T23:02:56.511Z",
+  "source": "npm run verify",
+  "tasks": [
+    {
+      "id": "TS-VERIFY-20260106-170256-01",
+      "type": "type-fix",
+      "owner": "builder",
+      "priority": "P1",
+      "intent": "Fix TypeScript errors in client/src/pages/administrative-dashboard.tsx\nEvidence log: C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+      "scope": {
+        "write": "branches_only",
+        "db": "seed_only"
+      },
+      "acceptance": [
+        "npm run verify passes",
+        "No stub-only artifacts (tests/agent/* only) accepted",
+        "Evidence is in C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+        "TS2322 errors in client/src/pages/administrative-dashboard.tsx no longer appear in npm run check"
+      ],
+      "evidence": [
+        "client/src/pages/administrative-dashboard.tsx(149,30): TS2322: Type '\"default\" | \"destructive\" | \"secondary\"' is not assignable to type '\"default\" | \"error\" | \"outline\" | \"secondary\" | \"success\" | \"warning\" | null | undefined'.",
+        "client/src/pages/administrative-dashboard.tsx(237,30): TS2322: Type '\"default\" | \"destructive\" | \"secondary\"' is not assignable to type '\"default\" | \"error\" | \"outline\" | \"secondary\" | \"success\" | \"warning\" | null | undefined'."
+      ],
+      "guardrails": {
+        "forbidden_paths": [
+          "tests/agent/**",
+          "agent-runtime/**/tests/agent/**"
+        ],
+        "encourage_paths": [
+          "client/**",
+          "server/**",
+          "shared/**",
+          "src/**"
+        ],
+        "must_touch_paths": [
+          "client/src/pages/administrative-dashboard.tsx"
+        ]
+      }
+    },
+    {
+      "id": "TS-VERIFY-20260106-170256-02",
+      "type": "type-fix",
+      "owner": "builder",
+      "priority": "P1",
+      "intent": "Fix TypeScript errors in client/src/pages/not-found.tsx\nEvidence log: C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+      "scope": {
+        "write": "branches_only",
+        "db": "seed_only"
+      },
+      "acceptance": [
+        "npm run verify passes",
+        "No stub-only artifacts (tests/agent/* only) accepted",
+        "Evidence is in C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+        "TS2322 errors in client/src/pages/not-found.tsx no longer appear in npm run check"
+      ],
+      "evidence": [
+        "client/src/pages/not-found.tsx(20,9): TS2322: Type '{ icon: Element; title: string; description: string; actions: Element; }' is not assignable to type 'IntrinsicAttributes & ErrorStateProps'."
+      ],
+      "guardrails": {
+        "forbidden_paths": [
+          "tests/agent/**",
+          "agent-runtime/**/tests/agent/**"
+        ],
+        "encourage_paths": [
+          "client/**",
+          "server/**",
+          "shared/**",
+          "src/**"
+        ],
+        "must_touch_paths": [
+          "client/src/pages/not-found.tsx"
+        ]
+      }
+    },
+    {
+      "id": "TS-VERIFY-20260106-170256-03",
+      "type": "type-fix",
+      "owner": "builder",
+      "priority": "P1",
+      "intent": "Fix TypeScript errors in server/index.prod.ts\nEvidence log: C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+      "scope": {
+        "write": "branches_only",
+        "db": "seed_only"
+      },
+      "acceptance": [
+        "npm run verify passes",
+        "No stub-only artifacts (tests/agent/* only) accepted",
+        "Evidence is in C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+        "TS2578 errors in server/index.prod.ts no longer appear in npm run check"
+      ],
+      "evidence": [
+        "server/index.prod.ts(27,1): TS2578: Unused '@ts-expect-error' directive."
+      ],
+      "guardrails": {
+        "forbidden_paths": [
+          "tests/agent/**",
+          "agent-runtime/**/tests/agent/**"
+        ],
+        "encourage_paths": [
+          "client/**",
+          "server/**",
+          "shared/**",
+          "src/**"
+        ],
+        "must_touch_paths": [
+          "server/index.prod.ts"
+        ]
+      }
+    },
+    {
+      "id": "TS-VERIFY-20260106-170256-04",
+      "type": "type-fix",
+      "owner": "builder",
+      "priority": "P1",
+      "intent": "Fix TypeScript errors in server/routes.ts\nEvidence log: C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+      "scope": {
+        "write": "branches_only",
+        "db": "seed_only"
+      },
+      "acceptance": [
+        "npm run verify passes",
+        "No stub-only artifacts (tests/agent/* only) accepted",
+        "Evidence is in C:\\Users\\FlavorGood\\Documents\\AAATraderCorner\\TradeScout\\TradeScoutPro\\logs\\verify-20260106-170247.log",
+        "TS2339 errors in server/routes.ts no longer appear in npm run check"
+      ],
+      "evidence": [
+        "server/routes.ts(683,86): TS2339: Property 'id' does not exist on type 'User'."
+      ],
+      "guardrails": {
+        "forbidden_paths": [
+          "tests/agent/**",
+          "agent-runtime/**/tests/agent/**"
+        ],
+        "encourage_paths": [
+          "client/**",
+          "server/**",
+          "shared/**",
+          "src/**"
+        ],
+        "must_touch_paths": [
+          "server/routes.ts"
+        ]
+      }
+    }
+  ]
+}

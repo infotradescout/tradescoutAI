@@ -1,0 +1,28 @@
+
+> rest-express@1.0.0 verify
+> npm run check && npm run test:run && npm run audit:theme && npm run audit:blur && npm run verify:legacy-guard && npm run verify:scout-purity && npm run verify:shells && npm run verify:city-branding && npm run verify:no-vite
+
+
+> rest-express@1.0.0 check
+> tsc
+
+client/src/components/ProtectedRoute.tsx(82,39): error TS2322: Type '{ rows: number; }' is not assignable to type 'IntrinsicAttributes & SkeletonBlockProps'.
+  Property 'rows' does not exist on type 'IntrinsicAttributes & SkeletonBlockProps'.
+client/src/pages/admin-geo-coverage.tsx(425,20): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+client/src/pages/administrative-dashboard.tsx(149,30): error TS2322: Type '"default" | "destructive" | "secondary"' is not assignable to type '"default" | "error" | "outline" | "secondary" | "success" | "warning" | null | undefined'.
+  Type '"destructive"' is not assignable to type '"default" | "error" | "outline" | "secondary" | "success" | "warning" | null | undefined'.
+client/src/pages/administrative-dashboard.tsx(237,30): error TS2322: Type '"default" | "destructive" | "secondary"' is not assignable to type '"default" | "error" | "outline" | "secondary" | "success" | "warning" | null | undefined'.
+  Type '"destructive"' is not assignable to type '"default" | "error" | "outline" | "secondary" | "success" | "warning" | null | undefined'.
+client/src/pages/contractor-leads.tsx(168,22): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+client/src/pages/exchange.tsx(723,26): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+client/src/pages/manage-users.tsx(386,22): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+client/src/pages/nationwide-expansion.tsx(277,50): error TS2322: Type '{ rows: number; }' is not assignable to type 'IntrinsicAttributes & SkeletonBlockProps'.
+  Property 'rows' does not exist on type 'IntrinsicAttributes & SkeletonBlockProps'.
+client/src/pages/not-found.tsx(17,16): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+server/index.prod.ts(27,1): error TS2578: Unused '@ts-expect-error' directive.
+server/routes.ts(683,86): error TS2339: Property 'id' does not exist on type 'User'.

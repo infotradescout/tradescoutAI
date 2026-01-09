@@ -422,10 +422,10 @@ export default function AdminGeoCoverageConsole() {
           {isLoading && <SkeletonTable rows={8} />}
           {error && !isLoading && (
             <ErrorState
-              icon={AlertCircle}
-              title="Failed to Load Coverage"
-              description="Unable to fetch county data. Please refresh the page."
-            />
+	          icon={<AlertCircle />}
+	          title="Failed to Load Coverage"
+	          description="Unable to fetch county data. Please refresh the page."
+	        />
           )}
 
           {!isLoading && !error && viewMode === "list" && (

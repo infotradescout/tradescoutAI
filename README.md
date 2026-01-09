@@ -32,3 +32,18 @@ Database-backed and E2E suites expect a dedicated test database.
 - Set `TEST_DATABASE_URL` in CI (and locally in a `.env.test` or shell env) to point at a disposable Postgres database/schema.
 - When `TEST_DATABASE_URL` is not set, Playwright webServer and global auth setup are disabled and E2E specs such as
 	[tests/direct-connect.e2e.spec.ts](tests/direct-connect.e2e.spec.ts) will be marked as skipped instead of failing.
+
+## Test Prerequisites
+
+Some test suites require a database connection.
+
+Required environment variables:
+
+- TEST_DATABASE_URL
+
+If TEST_DATABASE_URL is not set:
+- `npm run check` will still pass
+- `npm run verify` will fail intentionally
+
+This is by design. Database-backed tests do not run without an explicit
+infrastructure configuration.

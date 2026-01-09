@@ -12,13 +12,7 @@ import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
-import {
-  apiBase,
-  sendToScout,
-  logScoutInsight,
-  type ScoutLocality,
-  type ScoutMode,
-} from "./api";
+import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
 import { executeScoutActions } from "./ScoutActionRouter";
 import { getUserAudienceLabel } from "@/lib/copyHelpers";
 import { ROUTES } from "@/lib/routes";
@@ -35,7 +29,15 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, MessageCircle, Sparkles, Activity, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
+import {
+  ArrowRight,
+  MessageCircle,
+  Sparkles,
+  Activity,
+  ThumbsUp,
+  ThumbsDown,
+  Ban,
+} from "lucide-react";
 import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
@@ -123,7 +125,10 @@ function censorProfanity(text: string) {
   return cleaned;
 }
 
-function tryRecordCountyExplanationFollowup(kind: "navigate" | "scout_message" | "gated_query_success", path: string) {
+function tryRecordCountyExplanationFollowup(
+  kind: "navigate" | "scout_message" | "gated_query_success",
+  path: string
+) {
   try {
     if (typeof window === "undefined") return;
 
@@ -183,12 +188,7 @@ function sanitizeScoutMessage(raw: unknown): string {
   try {
     if (trimmed.startsWith("{")) {
       const parsed = JSON.parse(trimmed);
-      if (
-        parsed.intent ||
-        parsed.thought_flow ||
-        parsed.reasoning ||
-        parsed.decision
-      ) {
+      if (parsed.intent || parsed.thought_flow || parsed.reasoning || parsed.decision) {
         console.warn("[Scout] Blocked JSON response with reasoning fields", {
           parsed,
         });
@@ -251,9 +251,7 @@ function enforceShortIntentDiscipline(
   if (sentences.length <= 3) return trimmed;
 
   const kept = sentences.slice(0, 3).join(" ");
-  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?")
-    ? kept
-    : `${kept}…`;
+  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}…`;
 }
 
 export default function ScoutOS() {
@@ -318,15 +316,10 @@ export default function ScoutOS() {
   // with auto-typing demo. Scout should not speak until the user (or
   // auto demo) sends the first message.
 
-  const unreadMessages =
-    (user as any)?.unreadMessages ??
-    (user as any)?.unreadMessageCount ??
-    0;
+  const unreadMessages = (user as any)?.unreadMessages ?? (user as any)?.unreadMessageCount ?? 0;
 
   const unreadNotifications =
-    (user as any)?.unreadNotifications ??
-    (user as any)?.unreadNotificationCount ??
-    0;
+    (user as any)?.unreadNotifications ?? (user as any)?.unreadNotificationCount ?? 0;
 
   const locationCtx = useLocationContext();
   const countyCommitted = hasCountyContext(locationCtx as any);
@@ -368,15 +361,18 @@ export default function ScoutOS() {
   }, [hasMessages, location]);
 
   // Ephemeral, derived context roles per message/page for tone + defaults
-  const getContextRoles = useCallback((message: string): string[] => {
-    const roles = inferContextRoles({
-      message,
-      pagePath: location,
-      recentActions: state.lastActions.map((a) => a.type),
-      inferredCapabilities: (user as any)?.capabilities ?? [],
-    });
-    return roles;
-  }, [location, state.lastActions, user]);
+  const getContextRoles = useCallback(
+    (message: string): string[] => {
+      const roles = inferContextRoles({
+        message,
+        pagePath: location,
+        recentActions: state.lastActions.map((a) => a.type),
+        inferredCapabilities: (user as any)?.capabilities ?? [],
+      });
+      return roles;
+    },
+    [location, state.lastActions, user]
+  );
 
   const userRoles = (user as any)?.roles as string[] | undefined;
   const hasRoles = Array.isArray(userRoles) && userRoles.length > 0;
@@ -396,7 +392,7 @@ export default function ScoutOS() {
     if (!isBusy) return;
 
     const timeout = setTimeout(() => {
-      console.warn('[ScoutOS] Watchdog triggered - forcing idle state after 12s');
+      console.warn("[ScoutOS] Watchdog triggered - forcing idle state after 12s");
       setStatus("idle");
     }, 12000); // 12s max
 
@@ -437,8 +433,13 @@ export default function ScoutOS() {
     userId: (user as any)?.id,
     profileDraftComplete: !!(profileDraft?.countyFips && profileDraft?.presenceType),
     profileDraftPublished: !!(profileDraft?.countyFips && profileDraft?.presenceType), // Will expand as business profile is saved
-    claimsConfirmed: !!(user as any)?.confirmedClaims && Array.isArray((user as any)?.confirmedClaims) && (user as any).confirmedClaims.length > 0,
-    confirmedClaims: Array.isArray((user as any)?.confirmedClaims) ? (user as any).confirmedClaims : [],
+    claimsConfirmed:
+      !!(user as any)?.confirmedClaims &&
+      Array.isArray((user as any)?.confirmedClaims) &&
+      (user as any).confirmedClaims.length > 0,
+    confirmedClaims: Array.isArray((user as any)?.confirmedClaims)
+      ? (user as any).confirmedClaims
+      : [],
     publishedProfileSlug: (user as any)?.businessSlug || undefined,
   });
 
@@ -465,13 +466,13 @@ export default function ScoutOS() {
     const userId = (user as any)?.id;
     const provisional = (user as any)?.preferences?.provisional;
     const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
-    
+
     if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
       return;
     }
 
     // Extract intent data
-    const userIntentText = provisional?.userIntent || '';
+    const userIntentText = provisional?.userIntent || "";
     const provisionalUserTypes = provisional?.userTypes || [];
     const countyName = profileDraft?.countyName || locality.county || null;
 
@@ -488,8 +489,7 @@ export default function ScoutOS() {
     if (!import.meta.env.DEV) return;
     try {
       const sessionPlayed =
-        typeof window !== "undefined" &&
-        window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY);
+        typeof window !== "undefined" && window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY);
       // One-line truth for debugging
       console.log("[INTRO DEMO CHECK]", {
         isAuthenticated,
@@ -551,31 +551,17 @@ export default function ScoutOS() {
     // Super-admins and operators get an admin-focused Scout persona.
     if (
       normalized.some((r) =>
-        [
-          "admin",
-          "ops_admin",
-          "super_admin",
-          "head_admin",
-          "owner",
-        ].includes(r)
+        ["admin", "ops_admin", "super_admin", "head_admin", "owner"].includes(r)
       )
     ) {
       return "admin";
     }
 
-    if (
-      normalized.some((r) =>
-        ["restaurant_owner", "food_truck_owner", "bar_owner"].includes(r)
-      )
-    ) {
+    if (normalized.some((r) => ["restaurant_owner", "food_truck_owner", "bar_owner"].includes(r))) {
       return "mealscout";
     }
 
-    if (
-      normalized.some(
-        (r) => r.startsWith("contractor:") || r === "contractor" || r === "pro"
-      )
-    ) {
+    if (normalized.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
       return "contractors";
     }
     if (normalized.some((r) => r.startsWith("realtor:") || r === "realtor")) {
@@ -653,7 +639,9 @@ export default function ScoutOS() {
     // If the inferred context includes HOA board signals, tailor a few options.
     const roles = (opts?.contextRoles || []).map((r) => r.toLowerCase());
     if (roles.includes("hoa_board")) {
-      base.splice(0, base.length,
+      base.splice(
+        0,
+        base.length,
         "Open HOA dashboard",
         "Post HOA notice",
         "Review dues and payments"
@@ -661,11 +649,7 @@ export default function ScoutOS() {
     }
 
     if (roles.includes("marketplace_vendor") || roles.includes("vendor")) {
-      base.splice(0, base.length,
-        "Manage my listings",
-        "Post a listing",
-        "View offers"
-      );
+      base.splice(0, base.length, "Manage my listings", "Post a listing", "View offers");
     }
 
     const server = (serverSuggestions ?? [])
@@ -693,11 +677,7 @@ export default function ScoutOS() {
   };
 
   const handleSend = useCallback(
-    async (
-      value: string,
-      explicitMode?: ScoutMode,
-      opts?: { isScriptedIntro?: boolean }
-    ) => {
+    async (value: string, explicitMode?: ScoutMode, opts?: { isScriptedIntro?: boolean }) => {
       if (containsProfanity(value)) {
         const blocked: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -708,10 +688,7 @@ export default function ScoutOS() {
 
         // Keep a censored draft in the input so the user can quickly edit.
         try {
-          window.localStorage.setItem(
-            "scout:prefill:scout-main",
-            censorProfanity(value)
-          );
+          window.localStorage.setItem("scout:prefill:scout-main", censorProfanity(value));
         } catch {
           // ignore
         }
@@ -725,10 +702,10 @@ export default function ScoutOS() {
         (userRoles && userRoles.length > 0
           ? userRoles
           : sessionRole
-          ? [sessionRole]
-          : isGuest
-          ? ["just-browsing"]
-          : undefined) ?? undefined;
+            ? [sessionRole]
+            : isGuest
+              ? ["just-browsing"]
+              : undefined) ?? undefined;
 
       // Context-aware roles: derive ephemeral roles based on message/page/signals
       const contextRoles = getContextRoles(value);
@@ -827,7 +804,8 @@ export default function ScoutOS() {
           const msg: ScoutMessage = {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
-            content: "Direct Connect routes jobs when they’re ready and scoped, so providers only see high-intent requests.",
+            content:
+              "Direct Connect routes jobs when they’re ready and scoped, so providers only see high-intent requests.",
             timestamp: new Date().toISOString(),
             clusters: routingClusters,
             navTarget: helpLink,
@@ -863,9 +841,7 @@ export default function ScoutOS() {
         const asksWhy = /\bwhy\b/.test(normalized);
 
         const looksMessagingLockedQuestion =
-          mentionsMessage &&
-          (asksWhy || mentionsLocked || hasCant) &&
-          (hasCant || mentionsLocked);
+          mentionsMessage && (asksWhy || mentionsLocked || hasCant) && (hasCant || mentionsLocked);
 
         if (looksMessagingLockedQuestion) {
           setStatus("ready");
@@ -924,7 +900,18 @@ export default function ScoutOS() {
           return;
         }
 
-        const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
+        const contractorKeywords = [
+          "contractor",
+          "plumber",
+          "electrician",
+          "roofer",
+          "hvac",
+          "painter",
+          "landscaper",
+          "carpenter",
+          "mason",
+          "find a pro",
+        ];
         const providerOfferKeywords = [
           "offer services",
           "offer my services",
@@ -970,8 +957,28 @@ export default function ScoutOS() {
           "post to the feed",
           "post on the feed",
         ];
-        const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
-        const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
+        const marketplaceKeywords = [
+          "marketplace",
+          "for sale",
+          "buying",
+          "selling",
+          "used",
+          "buy",
+          "sell",
+          "list",
+          "post",
+        ];
+        const contactKeywords = [
+          "contact",
+          "support",
+          "help desk",
+          "reach out",
+          "call",
+          "phone",
+          "text",
+          "email",
+          "mail",
+        ];
         const onboardingKeywords = [
           "get started",
           "start onboarding",
@@ -990,8 +997,12 @@ export default function ScoutOS() {
         const wantsContact = contactKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
-        const wantsProviderPromotion = providerPromotionKeywords.some((kw) => lowerMsg.includes(kw));
-        const wantsCommunityAnnouncement = communityAnnouncementKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsProviderPromotion = providerPromotionKeywords.some((kw) =>
+          lowerMsg.includes(kw)
+        );
+        const wantsCommunityAnnouncement = communityAnnouncementKeywords.some((kw) =>
+          lowerMsg.includes(kw)
+        );
 
         // ------------------------------------------------------------------
         // SCOUT ONBOARDING INTENT (fast win)
@@ -1075,7 +1086,11 @@ export default function ScoutOS() {
           try {
             const tradesRes = await fetch("/api/trades", { credentials: "include" });
             if (tradesRes.ok) {
-              const trades = (await tradesRes.json()) as { id: string; name: string; slug?: string }[];
+              const trades = (await tradesRes.json()) as {
+                id: string;
+                name: string;
+                slug?: string;
+              }[];
               const msg = lowerMsg;
               const matchOrder = [
                 { key: "plumb", test: (t: any) => /plumb/i.test(t.name || t.slug || "") },
@@ -1569,16 +1584,18 @@ export default function ScoutOS() {
         // ------------------------------------------------------------------
         if (wantsContractor && locality?.county && locality?.state) {
           setStatus("executing_action");
-          
+
           // Extract trade from message (basic pattern matching)
           let trade = "general";
           if (lowerMsg.includes("plumber")) trade = "plumbing";
           else if (lowerMsg.includes("electrician")) trade = "electrical";
           else if (lowerMsg.includes("roofer") || lowerMsg.includes("roofing")) trade = "roofing";
           else if (lowerMsg.includes("hvac")) trade = "hvac";
-          else if (lowerMsg.includes("painter") || lowerMsg.includes("painting")) trade = "painting";
+          else if (lowerMsg.includes("painter") || lowerMsg.includes("painting"))
+            trade = "painting";
           else if (lowerMsg.includes("landscap")) trade = "landscaping";
-          else if (lowerMsg.includes("carpenter") || lowerMsg.includes("carpentry")) trade = "carpentry";
+          else if (lowerMsg.includes("carpenter") || lowerMsg.includes("carpentry"))
+            trade = "carpentry";
           else if (lowerMsg.includes("mason")) trade = "masonry";
 
           const contractorResult = await searchContractors({
@@ -1587,9 +1604,12 @@ export default function ScoutOS() {
             state: locality.state,
             limit: 5,
           });
-          
 
-          if (contractorResult.success && Array.isArray(contractorResult.data) && contractorResult.data.length > 0) {
+          if (
+            contractorResult.success &&
+            Array.isArray(contractorResult.data) &&
+            contractorResult.data.length > 0
+          ) {
             const contractors: ContractorResult[] = contractorResult.data;
             const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
               id: `contractor-${c.id}`,
@@ -1607,18 +1627,22 @@ export default function ScoutOS() {
 
             // If server has returned CTA hints (e.g., related trade_deals or community_posts),
             // attach them to these contractor result clusters as well.
-            if (Array.isArray((contractorResult as any).ctaHints) && (contractorResult as any).ctaHints.length > 0) {
-              contractorClustersWithCtas = applyCtasToClusters(contractorClusters, {
-                hints: ((contractorResult as any).ctaHints as any[]).map((h) => ({
-                  type: h.type,
-                  id: h.id,
-                  ownerUserId: h.ownerUserId ?? undefined,
-                  authorId: h.authorId ?? undefined,
-                  canDirectConnect: h.canDirectConnect,
-                  canMessage: h.canMessage,
-                  label: h.label,
-                })) as ScoutCtaHint[],
-              }) || contractorClusters;
+            if (
+              Array.isArray((contractorResult as any).ctaHints) &&
+              (contractorResult as any).ctaHints.length > 0
+            ) {
+              contractorClustersWithCtas =
+                applyCtasToClusters(contractorClusters, {
+                  hints: ((contractorResult as any).ctaHints as any[]).map((h) => ({
+                    type: h.type,
+                    id: h.id,
+                    ownerUserId: h.ownerUserId ?? undefined,
+                    authorId: h.authorId ?? undefined,
+                    canDirectConnect: h.canDirectConnect,
+                    canMessage: h.canMessage,
+                    label: h.label,
+                  })) as ScoutCtaHint[],
+                }) || contractorClusters;
             }
 
             const msgBase: ScoutMessage = {
@@ -1694,7 +1718,10 @@ export default function ScoutOS() {
             const price = priceMatch ? Number(priceMatch[1] || priceMatch[2]) : 0;
             // Title heuristic: remove common verbs, take a short slice
             const cleaned = value
-              .replace(/\b(post|list|sell|for sale|please|help|i want to|i'd like to|i would like to)\b/gi, "")
+              .replace(
+                /\b(post|list|sell|for sale|please|help|i want to|i'd like to|i would like to)\b/gi,
+                ""
+              )
               .trim();
             const title = cleaned.split(/\s+/).slice(0, 10).join(" ") || "My item";
             // Build a pure listing proposal; no writes, no API calls.
@@ -1723,8 +1750,7 @@ export default function ScoutOS() {
             const msg: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
-              content:
-                `I drafted a listing for "${title}" based on what you described. Review it in Exchange and confirm before it goes live.`,
+              content: `I drafted a listing for "${title}" based on what you described. Review it in Exchange and confirm before it goes live.`,
               timestamp: new Date().toISOString(),
               clusters: [
                 {
@@ -1775,7 +1801,11 @@ export default function ScoutOS() {
             location: locality.state,
             limit: 5,
           });
-          if (marketplaceResult.success && Array.isArray(marketplaceResult.data) && marketplaceResult.data.length > 0) {
+          if (
+            marketplaceResult.success &&
+            Array.isArray(marketplaceResult.data) &&
+            marketplaceResult.data.length > 0
+          ) {
             const listings: MarketplaceResult[] = marketplaceResult.data;
             const listingClusters: ScoutCluster[] = listings.slice(0, 3).map((l) => ({
               id: `listing-${l.id}`,
@@ -1923,18 +1953,13 @@ export default function ScoutOS() {
           !!opts?.isScriptedIntro &&
           firstIntroAppendix.trim().length > 0;
 
-        const smartSuggestions = buildSmartSuggestions(
-          mode,
-          value,
-          res.suggestedActions,
-          {
-            isFirstAnswer,
-            isGuest,
-            intent: res.metadata?.intent,
-            resolvedContext: res.metadata?.resolvedContext ?? null,
-            contextRoles,
-          }
-        );
+        const smartSuggestions = buildSmartSuggestions(mode, value, res.suggestedActions, {
+          isFirstAnswer,
+          isGuest,
+          intent: res.metadata?.intent,
+          resolvedContext: res.metadata?.resolvedContext ?? null,
+          contextRoles,
+        });
 
         let clusters: ScoutCluster[] = [];
 
@@ -1988,9 +2013,12 @@ export default function ScoutOS() {
         // template frame, attach a concrete, pre-filled draft so the user leaves
         // with something actionable immediately.
         const looksLikeGenericTemplate =
-          typeof res.message === "string" && /template\s+for\s+a\s+quote\s+request/i.test(res.message);
-        const hasTemplateFrame = typeof res.frame?.templateId === "string" && res.frame.templateId.trim().length > 0;
-        const prefilledDraft = looksLikeGenericTemplate || hasTemplateFrame ? buildAutoFilledDraft(value) : null;
+          typeof res.message === "string" &&
+          /template\s+for\s+a\s+quote\s+request/i.test(res.message);
+        const hasTemplateFrame =
+          typeof res.frame?.templateId === "string" && res.frame.templateId.trim().length > 0;
+        const prefilledDraft =
+          looksLikeGenericTemplate || hasTemplateFrame ? buildAutoFilledDraft(value) : null;
 
         if (prefilledDraft) {
           clusters.push({
@@ -2013,7 +2041,7 @@ export default function ScoutOS() {
           });
         }
 
-          if (isFirstAnswer) {
+        if (isFirstAnswer) {
           clusters.push({
             id: "first-nav-contractors",
             title: "Browse local professionals",
@@ -2063,7 +2091,7 @@ export default function ScoutOS() {
         // current layout. Onboarding answers should feel like a lead-in
         // to action tiles, not an essay.
         const MAX_FIRST_MESSAGE_CHARS = 280;
-        
+
         // CRITICAL: Sanitize the message to remove any internal reasoning leakage
         const sanitized = sanitizeScoutMessage(res.message);
 
@@ -2078,23 +2106,26 @@ export default function ScoutOS() {
             : disciplined;
 
         const finalContent =
-          isFirstAnswer && typeof enrichedContent === "string" && enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
+          isFirstAnswer &&
+          typeof enrichedContent === "string" &&
+          enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
             ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
             : enrichedContent;
 
         // Attach CTA hints from server (community posts, trade deals, etc.)
         if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
-          clusters = applyCtasToClusters(clusters, {
-            hints: res.ctaHints.map((h) => ({
-              type: h.type,
-              id: h.id,
-              ownerUserId: h.ownerUserId ?? undefined,
-              authorId: h.authorId ?? undefined,
-              canDirectConnect: h.canDirectConnect,
-              canMessage: h.canMessage,
-              label: h.label,
-            })) as ScoutCtaHint[],
-          }) || clusters;
+          clusters =
+            applyCtasToClusters(clusters, {
+              hints: res.ctaHints.map((h) => ({
+                type: h.type,
+                id: h.id,
+                ownerUserId: h.ownerUserId ?? undefined,
+                authorId: h.authorId ?? undefined,
+                canDirectConnect: h.canDirectConnect,
+                canMessage: h.canMessage,
+                label: h.label,
+              })) as ScoutCtaHint[],
+            }) || clusters;
         }
 
         const msg: ScoutMessage = {
@@ -2201,16 +2232,23 @@ export default function ScoutOS() {
    * Server controls everything; client just sends payload
    */
   const handleOnboardingMessage = useCallback(
-    async (payload: { onboardingAnswer: { sessionId: string; questionKey: string; value?: string; skipped?: boolean } }) => {
+    async (payload: {
+      onboardingAnswer: {
+        sessionId: string;
+        questionKey: string;
+        value?: string;
+        skipped?: boolean;
+      };
+    }) => {
       try {
         const rolesForRequest =
           (userRoles && userRoles.length > 0
             ? userRoles
             : sessionRole
-            ? [sessionRole]
-            : isGuest
-            ? ["just-browsing"]
-            : undefined) ?? undefined;
+              ? [sessionRole]
+              : isGuest
+                ? ["just-browsing"]
+                : undefined) ?? undefined;
 
         setStatus("checking_documents");
         const recentActivity = getRecentActivity();
@@ -2220,7 +2258,7 @@ export default function ScoutOS() {
 
         const res = await sendToScout({
           history: state.messages.map((m) => ({ role: m.role, content: m.content })),
-          message: skipped ? "skip" : (value || ""),
+          message: skipped ? "skip" : value || "",
           locality,
           mode: "general" as any,
           roles: rolesForRequest,
@@ -2228,7 +2266,7 @@ export default function ScoutOS() {
           shownAdIds,
           sessionId,
           onboardingAnswer: skipped ? "skip" : value,
-          onboardingQuestionKey: questionKey as 'Q1' | 'Q2' | 'Q3' | 'Q4',
+          onboardingQuestionKey: questionKey as "Q1" | "Q2" | "Q3" | "Q4",
         });
 
         setStatus("ready");
@@ -2265,7 +2303,19 @@ export default function ScoutOS() {
         setStatus("idle");
       }
     },
-    [userRoles, sessionRole, isGuest, state.messages, locality, location, applyServerResponse, recordUserMessage, setStatus, setError, recordActivity]
+    [
+      userRoles,
+      sessionRole,
+      isGuest,
+      state.messages,
+      locality,
+      location,
+      applyServerResponse,
+      recordUserMessage,
+      setStatus,
+      setError,
+      recordActivity,
+    ]
   );
 
   // Auto-consume one-time onboarding marker set by post-signup/dashboard flows.
@@ -2308,7 +2358,9 @@ export default function ScoutOS() {
           to: action.to ?? action.path,
           label: action.label,
           meta: {
-            ...(typeof action.payload?.jobId === "string" ? { jobId: action.payload.jobId as string } : {}),
+            ...(typeof action.payload?.jobId === "string"
+              ? { jobId: action.payload.jobId as string }
+              : {}),
             ttaMs,
             source: "cluster_action",
           },
@@ -2343,11 +2395,7 @@ export default function ScoutOS() {
       });
       setStatus("idle");
     },
-    [
-      location,
-      navigate,
-      handleSend,
-    ]
+    [location, navigate, handleSend]
   );
 
   const handleOverride = useCallback(
@@ -2492,7 +2540,12 @@ export default function ScoutOS() {
 
   // Fetch dashboard data to derive active projects (deterministic personalization)
   const { data: dashboardData } = useQuery<{
-    myProjects?: Array<{ id: string; title: string; contractorName?: string | null; updatedAt?: string | Date | null }>
+    myProjects?: Array<{
+      id: string;
+      title: string;
+      contractorName?: string | null;
+      updatedAt?: string | Date | null;
+    }>;
   }>({
     queryKey: ["/api/dashboard", user?.id],
     queryFn: () => apiRequest("GET", "/api/dashboard"),
@@ -2502,7 +2555,13 @@ export default function ScoutOS() {
 
   // Fetch invoices for tile context (deterministic personalization)
   const { data: invoicesData } = useQuery<
-    Array<{ id: string; jobName?: string | null; status: string; updatedAt?: string | Date | null; amount?: number | null }>
+    Array<{
+      id: string;
+      jobName?: string | null;
+      status: string;
+      updatedAt?: string | Date | null;
+      amount?: number | null;
+    }>
   >({
     queryKey: ["/api/invoices", user?.id],
     queryFn: () => apiRequest("GET", "/api/invoices"),
@@ -2555,7 +2614,7 @@ export default function ScoutOS() {
   // Feature kill switch: Set VITE_DISABLE_CONTEXTUAL_TILES=true to disable variants
   const resolvedTiles = useMemo(() => {
     const disableFeature = import.meta.env.VITE_DISABLE_CONTEXTUAL_TILES === "true";
-    
+
     if (disableFeature) {
       console.warn("[Scout] Contextual tiles disabled via feature flag");
       return scoutActionTiles; // Return defaults only
@@ -2577,8 +2636,9 @@ export default function ScoutOS() {
     if (import.meta.env.DEV) {
       resolved.forEach((tile, i) => {
         const original = scoutActionTiles[i];
-        const usedVariant = tile.label !== original.label || tile.description !== original.description;
-        
+        const usedVariant =
+          tile.label !== original.label || tile.description !== original.description;
+
         if (usedVariant) {
           console.info(`[Scout Tiles] ${tile.id}:`, {
             variant: "custom",
@@ -2601,11 +2661,14 @@ export default function ScoutOS() {
   }, [tileContext]);
 
   const handleActionTile = useCallback(
-    (tile: typeof scoutActionTiles[0]) => {
+    (tile: (typeof scoutActionTiles)[0]) => {
       // Derive lightweight variant metadata for KPI logging
       const isFresh = (updatedAt: string | Date | null | undefined, days = 14) => {
         if (!updatedAt) return false;
-        const t = typeof updatedAt === "string" ? new Date(updatedAt).getTime() : new Date(updatedAt).getTime();
+        const t =
+          typeof updatedAt === "string"
+            ? new Date(updatedAt).getTime()
+            : new Date(updatedAt).getTime();
         const windowMs = days * 24 * 60 * 60 * 1000;
         return Date.now() - t <= windowMs;
       };
@@ -2658,10 +2721,7 @@ export default function ScoutOS() {
       const parts: string[] = [];
 
       const name =
-        (user as any)?.name ||
-        (user as any)?.fullName ||
-        (user as any)?.displayName ||
-        undefined;
+        (user as any)?.name || (user as any)?.fullName || (user as any)?.displayName || undefined;
 
       const county = locality?.county ? String(locality.county) : undefined;
       const state = locality?.state ? String(locality.state) : undefined;
@@ -2700,18 +2760,15 @@ export default function ScoutOS() {
         lower.includes("urgent") || lower.includes("asap")
           ? "This is time-sensitive."
           : lower.includes("week")
-          ? "Ideally within the next couple of weeks."
-          : lower.includes("month")
-          ? "Ideally within the next month."
-          : undefined;
+            ? "Ideally within the next couple of weeks."
+            : lower.includes("month")
+              ? "Ideally within the next month."
+              : undefined;
       if (urgency) parts.push(urgency);
 
       if (email || phone) {
         parts.push(
-          [
-            email ? `Email: ${email}` : undefined,
-            phone ? `Phone: ${phone}` : undefined,
-          ]
+          [email ? `Email: ${email}` : undefined, phone ? `Phone: ${phone}` : undefined]
             .filter(Boolean)
             .join(" \n")
         );
@@ -2719,7 +2776,8 @@ export default function ScoutOS() {
 
       parts.push("Thank you!");
       return parts.filter((p) => typeof p === "string" && p.trim().length > 0).join("\n\n");
-    }, [user, locality]
+    },
+    [user, locality]
   );
 
   return (
@@ -2729,547 +2787,584 @@ export default function ScoutOS() {
           className={`w-full ${
             isMobile ? "px-3 pt-3 pb-24" : "max-w-5xl px-4 pt-4 pb-12"
           } flex flex-col flex-1 min-h-0`}
-          style={{ paddingBottom: isMobile ? 'calc(6rem + env(safe-area-inset-bottom))' : undefined }}
+          style={{
+            paddingBottom: isMobile ? "calc(6rem + env(safe-area-inset-bottom))" : undefined,
+          }}
         >
-        {/* Main conversation layout: used for all users, including first-time guests. */}
-        <div
-          className={
-            isMobile
-              ? "max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0"
-              : "mx-auto w-full flex flex-1 min-h-0 max-w-5xl gap-4"
-          }
-        >
-          <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl">
-            <ScoutHeader
-              isAuthenticated={isAuthenticated}
-              isFirstGuestVisit={isFirstGuestVisit}
-                        locationLabel={heroLocationLabel}
-            />
+          {/* Main conversation layout: used for all users, including first-time guests. */}
+          <div
+            className={
+              isMobile
+                ? "max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0"
+                : "mx-auto w-full flex flex-1 min-h-0 max-w-5xl gap-4"
+            }
+          >
+            <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl">
+              <ScoutHeader
+                isAuthenticated={isAuthenticated}
+                isFirstGuestVisit={isFirstGuestVisit}
+                locationLabel={heroLocationLabel}
+              />
 
-            {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
-            {onboarding.flowState.phase === 'confirming' && onboarding.flowState.confirmationCard && (
-              <div className="mt-4 mb-6 flex justify-center">
-                <ClaimConfirmationCardComponent
-                  data={onboarding.flowState.confirmationCard}
-                  onConfirm={(selectedClaims: ClaimType[]) => {
-                    const card = onboarding.flowState.confirmationCard;
-                    if (!card) return;
+              {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
+              {onboarding.flowState.phase === "confirming" &&
+                onboarding.flowState.confirmationCard && (
+                  <div className="mt-4 mb-6 flex justify-center">
+                    <ClaimConfirmationCardComponent
+                      data={onboarding.flowState.confirmationCard}
+                      onConfirm={(selectedClaims: ClaimType[]) => {
+                        const card = onboarding.flowState.confirmationCard;
+                        if (!card) return;
 
-                    // Build metadata from original inference
-                    const confidenceByClaim: Record<string, number> = {};
-                    const evidenceByClaim: Record<string, string> = {};
-                    card.options.forEach(opt => {
-                      if (selectedClaims.includes(opt.claimType)) {
-                        confidenceByClaim[opt.claimType] = opt.confidence;
-                        evidenceByClaim[opt.claimType] = opt.description || '';
-                      }
-                    });
+                        // Build metadata from original inference
+                        const confidenceByClaim: Record<string, number> = {};
+                        const evidenceByClaim: Record<string, string> = {};
+                        card.options.forEach((opt) => {
+                          if (selectedClaims.includes(opt.claimType)) {
+                            confidenceByClaim[opt.claimType] = opt.confidence;
+                            evidenceByClaim[opt.claimType] = opt.description || "";
+                          }
+                        });
 
-                    const provisional = (user as any)?.preferences?.provisional;
-                    const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
-                    const countyFips = profileDraft?.countyFips || (user as any)?.countyFips || null;
-                    onboarding.confirmClaims(
-                      selectedClaims,
+                        const provisional = (user as any)?.preferences?.provisional;
+                        const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+                        const countyFips =
+                          profileDraft?.countyFips || (user as any)?.countyFips || null;
+                        onboarding.confirmClaims(
+                          selectedClaims,
+                          {
+                            confidenceByClaim,
+                            evidenceByClaim,
+                            rawUserIntentText: provisional?.userIntent || "",
+                          },
+                          countyFips
+                        );
+
+                        // PHASE 3d-B: Trigger ScoutMode state machine transition
+                        scoutModeHook.completeOnboarding(selectedClaims);
+                      }}
+                      onSkip={() => {
+                        onboarding.skipOnboarding();
+                        scoutModeHook.skipOnboarding();
+                      }}
+                      onEdit={() => {
+                        // TODO: Implement edit flow (navigate back to profile/signup)
+                        onboarding.resetFlow();
+                        navigate("/settings/profile");
+                      }}
+                    />
+                  </div>
+                )}
+
+              {/* Show loading state during inference */}
+              {onboarding.flowState.phase === "inferring" && (
+                <div className="mt-4 mb-6 flex justify-center">
+                  <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                      <span className="text-sm text-muted-foreground">
+                        Understanding your intent...
+                      </span>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Show writing state */}
+              {onboarding.flowState.phase === "writing" && (
+                <div className="mt-4 mb-6 flex justify-center">
+                  <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                      <span className="text-sm text-muted-foreground">
+                        Setting up your experience...
+                      </span>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Show error if any */}
+              {onboarding.flowState.error && (
+                <div className="mt-4 mb-6 flex justify-center">
+                  <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
+                    <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
+                  </Card>
+                </div>
+              )}
+
+              {/* PHASE 3d-B: Post-Onboarding Action Card (deterministic action selection) */}
+              {scoutModeHook.scoutMode === "post_onboarding" && scoutModeHook.confirmedClaims && (
+                <div className="mt-4 mb-6 flex justify-center">
+                  <PostOnboardingActionCard
+                    claims={scoutModeHook.confirmedClaims as ClaimType[]}
+                    actions={resolvePostOnboardingActions(
+                      scoutModeHook.confirmedClaims as ClaimType[],
                       {
-                        confidenceByClaim,
-                        evidenceByClaim,
-                        rawUserIntentText: provisional?.userIntent || '',
-                      },
-                      countyFips
-                    );
-
-                    // PHASE 3d-B: Trigger ScoutMode state machine transition
-                    scoutModeHook.completeOnboarding(selectedClaims);
-                  }}
-                  onSkip={() => {
-                    onboarding.skipOnboarding();
-                    scoutModeHook.skipOnboarding();
-                  }}
-                  onEdit={() => {
-                    // TODO: Implement edit flow (navigate back to profile/signup)
-                    onboarding.resetFlow();
-                    navigate('/settings/profile');
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Show loading state during inference */}
-            {onboarding.flowState.phase === 'inferring' && (
-              <div className="mt-4 mb-6 flex justify-center">
-                <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
-                    <span className="text-sm text-muted-foreground">Understanding your intent...</span>
-                  </div>
-                </Card>
-              </div>
-            )}
-
-            {/* Show writing state */}
-            {onboarding.flowState.phase === 'writing' && (
-              <div className="mt-4 mb-6 flex justify-center">
-                <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
-                    <span className="text-sm text-muted-foreground">Setting up your experience...</span>
-                  </div>
-                </Card>
-              </div>
-            )}
-
-            {/* Show error if any */}
-            {onboarding.flowState.error && (
-              <div className="mt-4 mb-6 flex justify-center">
-                <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
-                  <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
-                </Card>
-              </div>
-            )}
-
-            {/* PHASE 3d-B: Post-Onboarding Action Card (deterministic action selection) */}
-            {scoutModeHook.scoutMode === 'post_onboarding' && scoutModeHook.confirmedClaims && (
-              <div className="mt-4 mb-6 flex justify-center">
-                <PostOnboardingActionCard
-                  claims={scoutModeHook.confirmedClaims as ClaimType[]}
-                  actions={resolvePostOnboardingActions(
-                    scoutModeHook.confirmedClaims as ClaimType[],
-                    {
-                      slug: scoutModeHook.publishedProfileSlug || 'my-business',
-                      businessName: profileDraft?.businessName,
-                    }
-                  )}
-                  onActionSelected={(actionId: string, destination: string) => {
-                    scoutModeHook.selectPostOnboardingAction(actionId);
-                    navigate(destination);
-                  }}
-                />
-              </div>
-            )}
+                        slug: scoutModeHook.publishedProfileSlug || "my-business",
+                        businessName: profileDraft?.businessName,
+                      }
+                    )}
+                    onActionSelected={(actionId: string, destination: string) => {
+                      scoutModeHook.selectPostOnboardingAction(actionId);
+                      navigate(destination);
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Thread + input in a single chat container that stretches toward
                   the bottom of the viewport, with the input pinned just above
                   the global bottom nav. */}
-            <div
-              className={`mt-2 flex flex-col flex-1 min-h-0 ${
-                isMobile ? "space-y-2" : "space-y-2"
-              }`}
-              style={{ paddingBottom: isMobile ? '2rem' : '1.5rem' }}
-            >
-            {!hasUserMessages && (
-              <div className="flex flex-col gap-3 py-3 px-1">
-                <div className="space-y-1">
-                  <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    I help you get things done in your local community.
-                  </p>
-                  <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    Tell me what you want to do, and I&apos;ll take you there.
-                  </p>
-                </div>
-
-                {/* Primary action grid: navigation with intent, not chat suggestions */}
-                {countyCommitted ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    {resolvedTiles.map((tile) => (
-                      <button
-                        key={tile.id}
-                        onClick={() => {
-                          setHasGuestInteracted(true);
-                          handleActionTile(tile);
-                        }}
-                        className="flex flex-col items-start justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3 text-left hover:border-orange-400/80 transition-colors"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        <span className="font-medium text-sm mb-0.5">{tile.label}</span>
-                        {tile.description && (
-                          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                            {tile.description}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-2 space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3">
-                    <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      You&apos;re viewing nearby activity. Set your home county to unlock fully local pros, posts, and jobs.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-7 px-3 text-[11px] bg-orange-500 hover:bg-orange-600 text-black font-semibold"
-                        onClick={() => navigate(ROUTES.SETTINGS)}
-                      >
-                        Set my county
-                      </Button>
+              <div
+                className={`mt-2 flex flex-col flex-1 min-h-0 ${
+                  isMobile ? "space-y-2" : "space-y-2"
+                }`}
+                style={{ paddingBottom: isMobile ? "2rem" : "1.5rem" }}
+              >
+                {!hasUserMessages && (
+                  <div className="flex flex-col gap-3 py-3 px-1">
+                    <div className="space-y-1">
+                      <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
+                        I help you get things done in your local community.
+                      </p>
+                      <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
+                        Tell me what you want to do, and I&apos;ll take you there.
+                      </p>
                     </div>
+
+                    {/* Primary action grid: navigation with intent, not chat suggestions */}
+                    {countyCommitted ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                        {resolvedTiles.map((tile) => (
+                          <button
+                            key={tile.id}
+                            onClick={() => {
+                              setHasGuestInteracted(true);
+                              handleActionTile(tile);
+                            }}
+                            className="flex flex-col items-start justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3 text-left hover:border-orange-400/80 transition-colors"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            <span className="font-medium text-sm mb-0.5">{tile.label}</span>
+                            {tile.description && (
+                              <span
+                                className="text-[11px]"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {tile.description}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3">
+                        <p
+                          className="text-xs md:text-sm"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          You&apos;re viewing nearby activity. Set your home county to unlock fully
+                          local pros, posts, and jobs.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-7 px-3 text-[11px] bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                            onClick={() => navigate(ROUTES.SETTINGS)}
+                          >
+                            Set my county
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Optional, collapsed explanation about TradeScout (secondary) */}
+                    <details className="mt-2 text-left">
+                      <summary
+                        className="text-[11px] md:text-xs font-semibold cursor-pointer"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        What is TradeScout?
+                      </summary>
+                      <p
+                        className="mt-1 text-[11px] md:text-xs"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        TradeScout helps people connect, work, and trade locally — without spam,
+                        paywalls, or fake leads.
+                      </p>
+                    </details>
                   </div>
                 )}
 
-                {/* Optional, collapsed explanation about TradeScout (secondary) */}
-                <details className="mt-2 text-left">
-                  <summary className="text-[11px] md:text-xs font-semibold cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-                    What is TradeScout?
-                  </summary>
-                  <p className="mt-1 text-[11px] md:text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    TradeScout helps people connect, work, and trade locally — without spam, paywalls, or fake leads.
-                  </p>
-                </details>
+                {/* Scout welcome banner (copy-only, no actions) */}
+                {hasUserMessages && (
+                  <div className="mb-3 px-3 py-2 rounded-lg border border-slate-800/50 bg-slate-900/40">
+                    <p
+                      className="text-xs font-semibold mb-1"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Decisions before contact.
+                    </p>
+                    <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      Scout turns intent into a Decision Card before anyone is contacted.
+                    </p>
+                  </div>
+                )}
+
+                <ScoutThread
+                  messages={state.messages}
+                  status={state.status}
+                  mode={activeMode}
+                  onAction={handleClusterAction}
+                  onOverride={handleOverride}
+                  overridePendingScope={overridePendingScope}
+                  onSendMessage={handleOnboardingMessage}
+                  onQuickAction={(text) => {
+                    const trimmed = text.trim();
+
+                    // Mark that the user has interacted so we don't keep showing
+                    // first-visit-only affordances.
+                    setHasGuestInteracted(true);
+
+                    // Certain smart suggestions should behave as direct actions
+                    // instead of just re-asking Scout with the same text.
+                    if (trimmed === "Start a Direct Connect request for this") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/direct-connect",
+                        label: trimmed,
+                      });
+                      navigate("/direct-connect");
+                      return;
+                    }
+
+                    if (trimmed === "Open my community feed in TradeScout") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: ROUTES.COMMUNITY,
+                        label: trimmed,
+                      });
+                      navigate(ROUTES.COMMUNITY);
+                      return;
+                    }
+
+                    if (trimmed === "Show Exchange listings that match this need near me") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/exchange",
+                        label: trimmed,
+                      });
+                      navigate("/exchange");
+                      return;
+                    }
+
+                    if (trimmed === "Post a listing") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/exchange?new=1",
+                        label: trimmed,
+                      });
+                      navigate("/exchange?new=1");
+                      return;
+                    }
+
+                    if (trimmed === "Manage my listings") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/exchange?tab=my-listings",
+                        label: trimmed,
+                      });
+                      navigate("/exchange?tab=my-listings");
+                      return;
+                    }
+
+                    if (trimmed === "View offers") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/exchange?tab=offers",
+                        label: trimmed,
+                      });
+                      navigate("/exchange?tab=offers");
+                      return;
+                    }
+
+                    if (trimmed === "Find a Contractor") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: ROUTES.CONTRACTORS,
+                        label: trimmed,
+                      });
+                      navigate(ROUTES.CONTRACTORS);
+                      return;
+                    }
+
+                    if (trimmed === "Open my Notes" || trimmed === "Open Notes") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: ROUTES.NOTES,
+                        label: trimmed,
+                      });
+                      navigate(ROUTES.NOTES);
+                      return;
+                    }
+
+                    if (trimmed === "Create Account") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: ROUTES.REGISTER,
+                        label: trimmed,
+                      });
+                      navigate(ROUTES.REGISTER);
+                      return;
+                    }
+
+                    if (trimmed === "Leaderboard") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/leaderboard",
+                        label: trimmed,
+                      });
+                      navigate("/leaderboard");
+                      return;
+                    }
+
+                    if (
+                      trimmed === "Open MealScout" ||
+                      trimmed === "Open MealScout to browse local food and drink deals" ||
+                      trimmed === "Open MealScout so I can manage or post deals for this" ||
+                      trimmed === "Open MealScout to see my current deals and subscriptions"
+                    ) {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/mealscout",
+                        label: trimmed,
+                      });
+                      navigate("/mealscout");
+                      return;
+                    }
+
+                    if (trimmed === "Show local groups, HOAs, and boards I can join or follow") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/hoa-management",
+                        label: trimmed,
+                      });
+                      navigate("/hoa-management");
+                      return;
+                    }
+
+                    if (trimmed === "Open my Admin Panel and monitoring tools") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/admin/panel",
+                        label: trimmed,
+                      });
+                      navigate("/admin/panel");
+                      return;
+                    }
+
+                    if (trimmed === "Show recent Finance / Invoicing ledger activity") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/admin/panel?tab=finance",
+                        label: trimmed,
+                      });
+                      navigate("/admin/panel?tab=finance");
+                      return;
+                    }
+
+                    if (trimmed === "Open my deal room") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/lead-management",
+                        label: trimmed,
+                      });
+                      navigate("/lead-management");
+                      return;
+                    }
+
+                    if (trimmed === "View invoices and payments") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/finances",
+                        label: trimmed,
+                      });
+                      navigate("/finances");
+                      return;
+                    }
+
+                    if (trimmed === "Post a new job") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/lead-management?new=1",
+                        label: trimmed,
+                      });
+                      navigate("/lead-management?new=1");
+                      return;
+                    }
+
+                    if (
+                      trimmed === "Open a floating note" ||
+                      trimmed === "Open floating note" ||
+                      trimmed === "Open a quick note" ||
+                      trimmed === "Open quick note"
+                    ) {
+                      recordActivity({
+                        type: "open_note",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        label: trimmed,
+                      });
+                      void openFloatingNote("quick");
+                      return;
+                    }
+
+                    if (
+                      trimmed ===
+                      "Help me send a targeted broadcast announcement from Notification Ops"
+                    ) {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/admin/panel?tab=notification-ops",
+                        label: trimmed,
+                      });
+                      navigate("/admin/panel?tab=notification-ops");
+                      return;
+                    }
+
+                    // HOA-focused quick actions
+                    if (trimmed === "Open HOA dashboard") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/hoa-dashboard",
+                        label: trimmed,
+                      });
+                      navigate("/hoa-dashboard");
+                      return;
+                    }
+
+                    if (trimmed === "Post HOA notice") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/hoa-management?tab=notices",
+                        label: trimmed,
+                      });
+                      navigate("/hoa-management?tab=notices");
+                      return;
+                    }
+
+                    if (trimmed === "Review dues and payments") {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: "/hoa-dashboard?tab=dues",
+                        label: trimmed,
+                      });
+                      navigate("/hoa-dashboard?tab=dues");
+                      return;
+                    }
+
+                    // Fallback: treat as a normal prompt to Scout so it can
+                    // reason about next steps.
+                    handleSend(trimmed);
+                  }}
+                />
+
+                <ScoutInputRow
+                  isBusy={isBusy}
+                  prefillKey={prefillKey}
+                  heroLocationLabel={heroLocationLabel}
+                  isUpdatingGeo={isUpdatingGeo}
+                  onOpenLocationSettings={() => navigate("/settings")}
+                  onUseDeviceLocation={handleUseDeviceLocation}
+                  onSend={(value) => handleSend(value)}
+                  onTyping={() => {
+                    setHasGuestInteracted(true);
+                    recordActivity({
+                      type: "ask_scout",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      label: "typing",
+                    });
+                  }}
+                  autoDemoText={undefined}
+                  enableAutoDemo={false}
+                />
+
+                {!isAuthenticated && (
+                  <div className="text-xs text-slate-300/90">
+                    You can explore freely.{" "}
+                    <button
+                      type="button"
+                      className="text-tsAccent hover:text-orange-400 font-medium"
+                      onClick={() => navigate("/login")}
+                    >
+                      Sign in
+                    </button>{" "}
+                    to save, post, or message.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            <ScoutThread
-                messages={state.messages}
-                status={state.status}
-                mode={activeMode}
-                onAction={handleClusterAction}
-                onOverride={handleOverride}
-                overridePendingScope={overridePendingScope}
-                onSendMessage={handleOnboardingMessage}
-                onQuickAction={(text) => {
-                  const trimmed = text.trim();
-
-                  // Mark that the user has interacted so we don't keep showing
-                  // first-visit-only affordances.
-                  setHasGuestInteracted(true);
-
-                  // Certain smart suggestions should behave as direct actions
-                  // instead of just re-asking Scout with the same text.
-                  if (trimmed === "Start a Direct Connect request for this") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/direct-connect",
-                      label: trimmed,
-                    });
-                    navigate("/direct-connect");
-                    return;
-                  }
-
-                  if (trimmed === "Open my community feed in TradeScout") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: ROUTES.COMMUNITY,
-                      label: trimmed,
-                    });
-                    navigate(ROUTES.COMMUNITY);
-                    return;
-                  }
-
-                  if (trimmed === "Show Exchange listings that match this need near me") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/exchange",
-                      label: trimmed,
-                    });
-                    navigate("/exchange");
-                    return;
-                  }
-
-                  if (trimmed === "Post a listing") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/exchange?new=1",
-                      label: trimmed,
-                    });
-                    navigate("/exchange?new=1");
-                    return;
-                  }
-
-                  if (trimmed === "Manage my listings") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/exchange?tab=my-listings",
-                      label: trimmed,
-                    });
-                    navigate("/exchange?tab=my-listings");
-                    return;
-                  }
-
-                  if (trimmed === "View offers") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/exchange?tab=offers",
-                      label: trimmed,
-                    });
-                    navigate("/exchange?tab=offers");
-                    return;
-                  }
-
-                  if (trimmed === "Find a Contractor") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: ROUTES.CONTRACTORS,
-                      label: trimmed,
-                    });
-                    navigate(ROUTES.CONTRACTORS);
-                    return;
-                  }
-
-                  if (trimmed === "Open my Notes" || trimmed === "Open Notes") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: ROUTES.NOTES,
-                      label: trimmed,
-                    });
-                    navigate(ROUTES.NOTES);
-                    return;
-                  }
-
-                  if (trimmed === "Create Account") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: ROUTES.REGISTER,
-                      label: trimmed,
-                    });
-                    navigate(ROUTES.REGISTER);
-                    return;
-                  }
-
-                  if (trimmed === "Leaderboard") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/leaderboard",
-                      label: trimmed,
-                    });
-                    navigate("/leaderboard");
-                    return;
-                  }
-
-                  if (
-                    trimmed === "Open MealScout" ||
-                    trimmed ===
-                      "Open MealScout to browse local food and drink deals" ||
-                    trimmed ===
-                      "Open MealScout so I can manage or post deals for this" ||
-                    trimmed ===
-                      "Open MealScout to see my current deals and subscriptions"
-                  ) {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/mealscout",
-                      label: trimmed,
-                    });
-                    navigate("/mealscout");
-                    return;
-                  }
-
-                  if (trimmed === "Show local groups, HOAs, and boards I can join or follow") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/hoa-management",
-                      label: trimmed,
-                    });
-                    navigate("/hoa-management");
-                    return;
-                  }
-
-                  if (trimmed === "Open my Admin Panel and monitoring tools") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/admin/panel",
-                      label: trimmed,
-                    });
-                    navigate("/admin/panel");
-                    return;
-                  }
-
-                  if (trimmed === "Show recent Finance / Invoicing ledger activity") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/admin/panel?tab=finance",
-                      label: trimmed,
-                    });
-                    navigate("/admin/panel?tab=finance");
-                    return;
-                  }
-
-                  if (trimmed === "Open my deal room") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/lead-management",
-                      label: trimmed,
-                    });
-                    navigate("/lead-management");
-                    return;
-                  }
-
-                  if (trimmed === "View invoices and payments") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/finances",
-                      label: trimmed,
-                    });
-                    navigate("/finances");
-                    return;
-                  }
-
-                  if (trimmed === "Post a new job") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/lead-management?new=1",
-                      label: trimmed,
-                    });
-                    navigate("/lead-management?new=1");
-                    return;
-                  }
-
-                  if (
-                    trimmed === "Open a floating note" ||
-                    trimmed === "Open floating note" ||
-                    trimmed === "Open a quick note" ||
-                    trimmed === "Open quick note"
-                  ) {
-                    recordActivity({
-                      type: "open_note",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      label: trimmed,
-                    });
-                    void openFloatingNote("quick");
-                    return;
-                  }
-
-                  if (trimmed === "Help me send a targeted broadcast announcement from Notification Ops") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/admin/panel?tab=notification-ops",
-                      label: trimmed,
-                    });
-                    navigate("/admin/panel?tab=notification-ops");
-                    return;
-                  }
-
-                  // HOA-focused quick actions
-                  if (trimmed === "Open HOA dashboard") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/hoa-dashboard",
-                      label: trimmed,
-                    });
-                    navigate("/hoa-dashboard");
-                    return;
-                  }
-
-                  if (trimmed === "Post HOA notice") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/hoa-management?tab=notices",
-                      label: trimmed,
-                    });
-                    navigate("/hoa-management?tab=notices");
-                    return;
-                  }
-
-                  if (trimmed === "Review dues and payments") {
-                    recordActivity({
-                      type: "navigate",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      to: "/hoa-dashboard?tab=dues",
-                      label: trimmed,
-                    });
-                    navigate("/hoa-dashboard?tab=dues");
-                    return;
-                  }
-
-                  // Fallback: treat as a normal prompt to Scout so it can
-                  // reason about next steps.
-                  handleSend(trimmed);
-                }}
-              />
-
-            <ScoutInputRow
-              isBusy={isBusy}
-              prefillKey={prefillKey}
-              heroLocationLabel={heroLocationLabel}
-              isUpdatingGeo={isUpdatingGeo}
-              onOpenLocationSettings={() => navigate("/settings")}
-              onUseDeviceLocation={handleUseDeviceLocation}
-              onSend={(value) => handleSend(value)}
-              onTyping={() => {
-                setHasGuestInteracted(true);
-                recordActivity({
-                  type: "ask_scout",
-                  ts: new Date().toISOString(),
-                  path: location,
-                  label: "typing",
-                });
-              }}
-              autoDemoText={undefined}
-              enableAutoDemo={false}
-            />
-
-            {!isAuthenticated && (
-              <div className="text-xs text-slate-300/90">
-                You can explore freely.{' '}
-                <button
-                  type="button"
-                  className="text-tsAccent hover:text-orange-400 font-medium"
-                  onClick={() => navigate("/login")}
-                >
-                  Sign in
-                </button>{' '}
-                to save, post, or message.
+            {/* Right-side coordination panel on larger screens; stacks below chat on mobile. */}
+            {isMobile ? (
+              <div className="mt-4 space-y-3">
+                <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+                <ScoutHasDonePanel />
+              </div>
+            ) : (
+              <div className="hidden md:flex w-80 flex-shrink-0 flex-col gap-3">
+                <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+                <ScoutHasDonePanel />
               </div>
             )}
           </div>
-          </div>
-
-          {/* Right-side coordination panel on larger screens; stacks below chat on mobile. */}
-          {isMobile ? (
-            <div className="mt-4 space-y-3">
-              <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
-              <ScoutHasDonePanel />
-            </div>
-          ) : (
-            <div className="hidden md:flex w-80 flex-shrink-0 flex-col gap-3">
-              <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
-              <ScoutHasDonePanel />
-            </div>
-          )}
         </div>
-      </div>
       </div>
 
       {/* Tools & App drawer */}

@@ -8,6 +8,7 @@ import { createBuilderAgent } from "./agents/builder.agent.js";
 import { createFixerAgent } from "./agents/fixer.agent.js";
 import { createVerifierAgent } from "./agents/verifier.agent.js";
 import { createSynthesizerAgent } from "./agents/synthesizer.agent.js";
+import { execSync } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +24,7 @@ const agentFactories = {
 };
 
 async function main() {
-  const backlogFile = path.join(__dirname, "tasks", "backlog.json");
+  const backlogFile = path.join(__dirname, "backlog.json");
   const config = loadConfig();
 
   if (!config.agentsEnabled) {
@@ -45,10 +46,15 @@ async function main() {
 
   const intentHistory = await readJson(intentsFile, []);
   const outcomes = await readJson(outcomesFile, []);
-  await ensureDir(path.join(__dirname, "tasks"));
-  const backlog = await readJson(backlogFile, []);
 
-  const backlogByOwner = backlog.reduce((acc, item) => {
+  const backlogRaw = await readJson(backlogFile, []);
+  const backlogArray = Array.isArray(backlogRaw)
+    ? backlogRaw
+    : Array.isArray(backlogRaw.tasks)
+      ? backlogRaw.tasks
+      : [];
+
+  const backlogByOwner = backlogArray.reduce((acc, item) => {
     const owner = item.owner || item.agent || "";
     if (!owner) return acc;
     acc[owner] = acc[owner] || [];
@@ -176,13 +182,89 @@ async function main() {
         return;
       }
 
+      // Builder-specific audit: reject stub-only artifacts (tests/agent/*)
+      try {
+        if (agent.id === "builder" && entry.artifact.commit) {
+          const raw = execSync(`git show --name-only --pretty="" ${entry.artifact.commit}`, { encoding: "utf8" }).trim();
+          const files = raw.split("\n").map((s) => s.trim()).filter(Boolean).map((f) => f.replace(/\\/g, "/"));
+          const isAgentStub = (f) => f.startsWith("tests/agent/") || (f.endsWith(".spec.ts") && f.includes("agent"));
+          const touchesRuntime = files.some((f) => f.startsWith("client/") || f.startsWith("server/") || f.startsWith("shared/") || f.startsWith("src/") || f.includes("/client/") || f.includes("/server/") || f.includes("/shared/") || f.includes("/src/"));
+          const stubOnly = files.length > 0 && files.every(isAgentStub);
+          const requiredPaths = Array.isArray(task?.guardrails?.must_touch_paths)
+            ? task.guardrails.must_touch_paths.map((p) => p.replace(/\\/g, "/"))
+            : [];
+
+          let mustTouchViolation = false;
+          if (requiredPaths.length > 0) {
+            const touchedRequired = files.some((fRaw) => {
+              const f = fRaw.toLowerCase();
+              return requiredPaths.some((reqRaw) => {
+                const reqTrimmed = reqRaw.replace(/\s+$/g, "");
+                if (!reqTrimmed) return false;
+                const req = reqTrimmed.toLowerCase();
+                if (f === req) return true;
+                const base = req.endsWith("/") ? req : `${req}/`;
+                return f.startsWith(base);
+              });
+            });
+            mustTouchViolation = !touchedRequired;
+          }
+
+          if ((stubOnly && !touchesRuntime) || mustTouchViolation) {
+            const flag = stubOnly && !touchesRuntime
+              ? "stub_artifact_rejected"
+              : "must_touch_violation";
+            entry.result = "noop";
+            entry.flags = [...entry.flags, flag];
+            // Do not consume budget for rejected artifacts
+            const stamps = intentLog.get(agent.id) || [];
+            if (stamps.length > 0) {
+              stamps.pop();
+              intentLog.set(agent.id, stamps);
+            }
+            const label = flag === "stub_artifact_rejected" ? "STUB_ARTIFACT_REJECTED" : "MUST_TOUCH_VIOLATION";
+            await logger.warn(label, { commit: entry.artifact.commit, files, requiredPaths });
+
+            // Guardrail loop detection: halt after 3 consecutive builder noops
+            const meta = state.get(agent.id) || {};
+            const prevNoops = typeof meta.noopGuardrailCount === "number" ? meta.noopGuardrailCount : 0;
+            const consecutiveNoops = prevNoops + 1;
+            state.set(agent.id, { ...meta, noopGuardrailCount: consecutiveNoops });
+
+            if (consecutiveNoops >= 3) {
+              await supervisorLogger.error("BUILDER_HALTED_GUARDRAIL_LOOP", {
+                agent: agent.id,
+                consecutiveNoops,
+                flag,
+                requiredPaths,
+              });
+              await logger.error(
+                "BUILDER_HALTED_GUARDRAIL_LOOP — tickets require must_touch_paths; builder not complying",
+                { consecutiveNoops, flag, requiredPaths }
+              );
+              await shutdown("Builder guardrail noop loop");
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        await logger.warn("Artifact audit skipped (git show failed)", { error: e.message });
+      }
+
       outcomes.push(entry);
       intentHistory.push({ agent_id: agent.id, intent: entry.intent, at: entry.started_at });
       await persistMemory();
 
+      const prevMeta = state.get(agent.id) || {};
+      const resetNoops = agent.id === "builder" && entry.result !== "noop";
+      const noopGuardrailCount = resetNoops
+        ? 0
+        : (typeof prevMeta.noopGuardrailCount === "number" ? prevMeta.noopGuardrailCount : 0);
       state.set(agent.id, {
+        ...prevMeta,
         lastArtifactAt: Date.now(),
         crashes: 0,
+        noopGuardrailCount,
       });
 
       await logger.info("Task complete", { entry });

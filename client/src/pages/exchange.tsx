@@ -720,10 +720,10 @@ export default function Exchange() {
               ) : (
                 <div className="col-span-full">
                   <EmptyState
-                    icon={Search}
-                    title="No Items Found"
-                    description="Try adjusting your filters or check back later for new listings."
-                  />
+                  icon={<Search />}
+                  title="No Items Found"
+                  description="Try adjusting your filters or check back later for new listings."
+                />
                 </div>
               )}
             </div>

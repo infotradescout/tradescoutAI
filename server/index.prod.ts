@@ -24,7 +24,6 @@ const __dirname = path.dirname(__filename);
 
 // Override process.exit to trap explicit exits
 const originalExit = process.exit;
-// @ts-expect-error - overriding process.exit for diagnostics
 process.exit = (code?: number) => {
   console.log(`[Diagnostic] process.exit(${code}) was called explicitly.`);
   console.trace("Call stack for process.exit:");
