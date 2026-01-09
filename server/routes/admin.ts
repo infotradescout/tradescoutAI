@@ -668,6 +668,68 @@ export function mountAdminRoutes(app: any) {
     }
   });
 
+  // Admin stats endpoint
+  app.get("/api/admin/stats", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { count } = await import("drizzle-orm");
+      const { communityPosts } = await import("../../shared/schema");
+
+      // Get total user count
+      const [totalUsersResult] = await db.select({ count: count() }).from(users);
+      const totalUsers = totalUsersResult.count;
+
+      // Get all role breakdowns (no filtering)
+      const usersByRole = await db
+        .select({
+          role: users.role,
+          count: count(),
+        })
+        .from(users)
+        .groupBy(users.role);
+
+      const roleMap: Record<string, number> = {};
+      let knownRolesTotal = 0;
+      const knownRoles = ['homeowner', 'contractor', 'handyman', 'realtor'];
+      const unknownRoleBreakdown: Record<string, number> = {};
+
+      usersByRole.forEach((r: any) => {
+        const role = r.role || "homeowner";
+        roleMap[role] = r.count;
+        
+        if (knownRoles.includes(role)) {
+          knownRolesTotal += r.count;
+        } else {
+          unknownRoleBreakdown[role] = r.count;
+        }
+      });
+
+      const unknownRoleCount = totalUsers - knownRolesTotal;
+
+      // Get community posts count
+      const [totalPostsResult] = await db.select({ count: count() }).from(communityPosts);
+      const totalPosts = totalPostsResult?.count || 0;
+
+      // Log admin stats access for audit
+      console.log(`[ADMIN AUDIT] Stats accessed by userId=${req.user?.id} at ${new Date().toISOString()}`);
+
+      res.json({
+        totalUsers,
+        roleBreakdown: {
+          homeowner: roleMap.homeowner || 0,
+          contractor: roleMap.contractor || 0,
+          handyman: roleMap.handyman || 0,
+          realtor: roleMap.realtor || 0,
+        },
+        unknownRoleCount,
+        unknownRoles: unknownRoleBreakdown,
+        totalCommunityPosts: totalPosts,
+      });
+    } catch (error: any) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
   app.patch(
     "/api/admin/users/:userId/roles",
     isAuthenticated,
@@ -803,7 +865,7 @@ export function mountAdminRoutes(app: any) {
         available: String(row.available ?? "0"),
         pending: String(row.pending ?? "0"),
         referralCode: row.referralCode ?? undefined,
-        commissionRate: row.commissionRate != null ? String(row.commissionRate) : undefined,
+        commissionRate: row.commissionRate !== null ? String(row.commissionRate) : undefined,
         createdAt: (row.createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
       }));
 
@@ -882,21 +944,7 @@ export function mountAdminRoutes(app: any) {
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        const affiliateId = req.params.id;
-        const { amount, method, note } = (req.body || {}) as any;
-        if (!amount) return res.status(400).json({ message: "amount is required" });
-
-        const payout: AffiliatePayout = {
-          id: "stub-payout-id",
-          affiliateId,
-          payoutAmount: amount,
-          status: "pending",
-          method: (method as any) || "manual",
-          note: (note as any) || null,
-          createdAt: new Date(),
-        } as AffiliatePayout;
-
-        res.json(payout);
+        return res.status(501).json({ message: 'Admin affiliate payouts not implemented' });
       } catch (error: any) {
         console.error("Error creating admin payout:", error);
         res.status(500).json({ message: "Failed to create payout" });

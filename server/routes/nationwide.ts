@@ -79,19 +79,8 @@ export async function requestCountyActivation(req: Request, res: Response) {
       });
       if (!request) throw new Error('Method not implemented');
     } catch (dbError) {
-      console.log('Database offline, simulating county activation request');
-      request = {
-        id: 'activation-' + Date.now(),
-        userId,
-        countyFips,
-        contactInfo,
-        marketData,
-        businessCase,
-        status: 'submitted',
-        priority: 'medium',
-        estimatedActivation: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        submittedAt: new Date().toISOString()
-      };
+      console.error('County activation unavailable:', dbError);
+      return res.status(503).json({ message: 'County activation temporarily unavailable' });
     }
 
     res.status(201).json(request);

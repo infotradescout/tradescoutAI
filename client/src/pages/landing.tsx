@@ -13,6 +13,7 @@ import { Shield, Calculator, Users, ArrowRight } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { AuthButtons } from "@/components/auth-buttons";
 import { AuthModal } from "@/components/auth-modal";
+import { ProofMetricsSnapshot } from "@/components/ProofMetricsSnapshot";
 import { TestingErrorReportButton } from "@/components/TestingErrorReportButton";
 import { BugReportButton } from "@/components/BugReportButton";
 import {
@@ -140,6 +141,8 @@ export default function Landing() {
                   <li>• Routing favors proof, not ads.</li>
                 </ul>
               </div>
+
+              <ProofMetricsSnapshot />
 
               {/* County Search */}
               <div className="max-w-2xl mx-auto">

@@ -131,24 +131,8 @@ export async function createGroup(req: Request, res: Response) {
       });
       if (!group) throw new Error('Method not implemented');
     } catch (dbError) {
-      console.log('Database offline, simulating group creation');
-      group = {
-        id: 'group-' + Date.now(),
-        name,
-        description,
-        type,
-        countyFips,
-        memberCount: 1,
-        isPublic: isPublic !== false,
-        tags: tags || [],
-        createdBy: userId,
-        admins: [userId],
-        rules: rules || [],
-        coverImageUrl: null,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      console.error('Group creation unavailable:', dbError);
+      return res.status(503).json({ message: 'Groups temporarily unavailable' });
     }
 
     res.status(201).json(group);

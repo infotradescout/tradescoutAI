@@ -39,6 +39,7 @@
     "audit:theme": "powershell -ExecutionPolicy Bypass -File scripts/audit-theme-lock.ps1",
     "audit:blur": "node scripts/audit-blur-ancestors.mjs",
     "audit:latest-builder": "node tools/audit-latest-builder-branch.mjs",
+    "guard:forbidden": "node scripts/forbidden-patterns.mjs",
     "verifier:write-backlog": "node tools/verifier-write-backlog.mjs",
     "loop:empirical": "node tools/loop-empirical.mjs",
     "validate:scout-deals": "node scripts/validate-deal-guardrail.mjs",

@@ -4,8 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useQuery } from '@tanstack/react-query';
+
+interface AdminStats {
+  totalUsers: number;
+  roleBreakdown: {
+    homeowner: number;
+    contractor: number;
+    handyman: number;
+    realtor: number;
+  };
+  unknownRoleCount: number;
+  unknownRoles: Record<string, number>;
+  totalCommunityPosts: number;
+}
 
 const AdministrativeDashboard = memo(function AdministrativeDashboard() {
+  const { data: stats, isLoading } = useQuery<AdminStats>({
+    queryKey: ['/api/admin/stats'],
+  });
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
@@ -38,8 +56,10 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-muted-foreground text-sm">Active Users</p>
-                  <p className="text-2xl font-bold text-foreground">87,420</p>
+                  <p className="text-muted-foreground text-sm">Total Users</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {isLoading ? '...' : (stats?.totalUsers || 0).toLocaleString()}
+                  </p>
                 </div>
                 <Users className="h-8 w-8 text-blue-500" />
               </div>
@@ -50,10 +70,12 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-muted-foreground text-sm">Pending Approvals</p>
-                  <p className="text-2xl font-bold text-yellow-500">234</p>
+                  <p className="text-muted-foreground text-sm">Community Posts</p>
+                  <p className="text-2xl font-bold text-yellow-500">
+                    {isLoading ? '...' : (stats?.totalCommunityPosts || 0).toLocaleString()}
+                  </p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-500" />
+                <FileText className="h-8 w-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
@@ -63,7 +85,7 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-muted-foreground text-sm">System Alerts</p>
-                  <p className="text-2xl font-bold text-red-500">3</p>
+                  <p className="text-2xl font-bold text-red-500">0</p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-red-500" />
               </div>
@@ -89,17 +111,19 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                     <p className="text-muted-foreground text-sm">All time platform users</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-foreground">125,847</p>
-                    <p className="text-green-500 text-xs">↑ 12% this month</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {isLoading ? '...' : (stats?.totalUsers || 0).toLocaleString()}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {[
-                    { role: "Homeowners", count: 78420, percentage: 62 },
-                    { role: "Contractors", count: 28500, percentage: 23 },
-                    { role: "Helpers", count: 15200, percentage: 12 },
-                    { role: "Realtors", count: 3727, percentage: 3 }
+                    { role: "Homeowners", count: stats?.roleBreakdown.homeowner || 0, percentage: stats ? Math.round((stats.roleBreakdown.homeowner / stats.totalUsers) * 100) : 0 },
+                    { role: "Contractors", count: stats?.roleBreakdown.contractor || 0, percentage: stats ? Math.round((stats.roleBreakdown.contractor / stats.totalUsers) * 100) : 0 },
+                    { role: "Handymen", count: stats?.roleBreakdown.handyman || 0, percentage: stats ? Math.round((stats.roleBreakdown.handyman / stats.totalUsers) * 100) : 0 },
+                    { role: "Realtors", count: stats?.roleBreakdown.realtor || 0, percentage: stats ? Math.round((stats.roleBreakdown.realtor / stats.totalUsers) * 100) : 0 },
+                    { role: "Other Roles", count: stats?.unknownRoleCount || 0, percentage: stats ? Math.round((stats.unknownRoleCount / stats.totalUsers) * 100) : 0 }
                   ].map((role, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">

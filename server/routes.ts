@@ -80,6 +80,7 @@ import {
   insertModerationVoteSchema,
   insertModerationAppealSchema,
   counties,
+  missionControlDecisions,
   userFollows,
   walletTransactions,
   marketplaceTransactions,
@@ -358,6 +359,82 @@ export async function registerRoutes(app: any) {
         process.env.TS_FIRST_INTRO_APPENDIX || DEFAULT_FIRST_INTRO_APPENDIX,
       vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Public proof metrics (counts only, no PII, cached)
+  // NOTE: intentionally conservative to avoid over-claiming
+  // - countiesIndexed: count of counties rows
+  // - decisionsLast7Days: mission control decisions past 7 days
+  // - verifiedClaimsLast30Days: approved address verifications past 30 days
+  // ---------------------------------------------------------------------------
+  type ProofMetricsResponse = {
+    generatedAt: string;
+    cacheSeconds: number;
+    countiesIndexed: number;
+    decisionsLast7Days: number;
+    verifiedClaimsLast30Days: number;
+  };
+
+  const proofCache: { value: ProofMetricsResponse | null; expiresAt: number } = {
+    value: null,
+    expiresAt: 0,
+  };
+
+  app.get("/api/public/proof-metrics", async (_req: any, res: any) => {
+    try {
+      const now = Date.now();
+      const cacheSeconds = 60;
+
+      if (proofCache.value && proofCache.expiresAt > now) {
+        res.setHeader(
+          "Cache-Control",
+          `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+        );
+        return res.status(200).json(proofCache.value);
+      }
+
+      const [countiesRow, decisionsRow, verifiedRow] = await Promise.all([
+        db.select({ n: sql<number>`count(*)` }).from(counties),
+        db
+          .select({ n: sql<number>`count(*)` })
+          .from(missionControlDecisions)
+          .where(sql`${missionControlDecisions.decisionDate} >= (current_date - interval '7 days')`),
+        db
+          .select({ n: sql<number>`count(*)` })
+          .from(addressVerifications)
+          .where(
+            and(
+              eq(addressVerifications.status, "approved"),
+              sql`${addressVerifications.approvedAt} >= (now() - interval '30 days')`,
+            ),
+          ),
+      ]);
+
+      const countiesIndexed = Number((countiesRow?.[0] as any)?.n ?? 0);
+      const decisionsLast7Days = Number((decisionsRow?.[0] as any)?.n ?? 0);
+      const verifiedClaimsLast30Days = Number((verifiedRow?.[0] as any)?.n ?? 0);
+
+      const payload: ProofMetricsResponse = {
+        generatedAt: new Date().toISOString(),
+        cacheSeconds,
+        countiesIndexed: Number.isFinite(countiesIndexed) ? countiesIndexed : 0,
+        decisionsLast7Days: Number.isFinite(decisionsLast7Days) ? decisionsLast7Days : 0,
+        verifiedClaimsLast30Days: Number.isFinite(verifiedClaimsLast30Days) ? verifiedClaimsLast30Days : 0,
+      };
+
+      proofCache.value = payload;
+      proofCache.expiresAt = now + cacheSeconds * 1000;
+
+      res.setHeader(
+        "Cache-Control",
+        `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+      );
+      return res.status(200).json(payload);
+    } catch (error: any) {
+      console.error("Error in /api/public/proof-metrics:", error);
+      return res.status(503).json({ message: "Proof metrics temporarily unavailable" });
+    }
   });
 
   const isProductionEnv = process.env.NODE_ENV === "production";
@@ -741,34 +818,7 @@ export async function registerRoutes(app: any) {
 
   app.put("/api/affiliate/settings", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const user = req.user as any;
-      const userId = (user as any)?.claims?.sub || (user as any)?.id || "";
-      const { payoutMethod, payoutDetails } = req.body || {};
-
-      const affiliateAccountsData = [] as AffiliateAccount[];
-      let account = affiliateAccountsData.find((a) => a.affiliateId === userId);
-      if (!account) {
-        account = {
-          id: "stub-id",
-          affiliateId: userId,
-          status: "active",
-          lifetimeEarned: "0",
-          available: "0",
-          pending: "0",
-          lastPayoutAmount: "0",
-          lastPayoutAt: null,
-          referralCode: "stub-code",
-          customDomain: null,
-          couponCode: null,
-          createdAt: new Date(),
-        } as AffiliateAccount;
-      }
-
-      // Simulate update
-      account.customDomain = payoutMethod ? String(payoutMethod) : account.customDomain;
-      account.couponCode = payoutDetails ? String(payoutDetails) : account.couponCode;
-
-      res.json({ success: true });
+      return res.status(501).json({ message: 'Affiliate settings not implemented' });
     } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
       res.status(500).json({ message: "Failed to update affiliate settings" });
@@ -8862,7 +8912,7 @@ export async function registerRoutes(app: any) {
     const text = `${title || ""} ${content}`.toLowerCase();
 
     // Hashtag-style tags: #hoa, #roofing, etc.
-    const hashMatches = text.match(/#([a-z0-9_\-]{2,32})/gi);
+    const hashMatches = text.match(/#([a-z0-9_-]{2,32})/gi);
     if (hashMatches) {
       for (const raw of hashMatches) {
         const cleaned = raw.replace(/^#/, "").trim();
@@ -10395,36 +10445,7 @@ export async function registerRoutes(app: any) {
   // Get user's partnerships  
   app.get("/api/partnerships/my", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
-      const user = await storage.getUser(userId);
-      
-      // Mock partnerships for different roles
-      const mockPartnerships = user?.role === 'car_dealer' ? [
-        {
-          id: 'partnership_1',
-          initiatorId: userId,
-          partnerId: 'contractor_123',
-          partnerName: 'Thompson Construction',
-          partnershipType: 'dealer_contractor',
-          status: 'active',
-          totalReferrals: 5,
-          successfulReferrals: 3,
-          totalCommissionEarned: '1250.00'
-        },
-        {
-          id: 'partnership_2',  
-          initiatorId: 'contractor_456',
-          partnerId: userId,
-          partnerName: 'Elite Roofing Co',
-          partnershipType: 'dealer_contractor',
-          status: 'pending',
-          totalReferrals: 0,
-          successfulReferrals: 0,
-          totalCommissionEarned: '0.00'
-        }
-      ] : [];
-
-      res.json(mockPartnerships);
+      return res.status(501).json({ message: 'Partnerships not implemented' });
     } catch (error: any) {
       console.error("Error fetching partnerships:", error);
       res.status(500).json({ message: "Failed to fetch partnerships" });
@@ -12255,7 +12276,7 @@ export async function registerRoutes(app: any) {
         ? payload.activity.auto_dealers.last_7_days
         : payload.activity.auto_dealers.last_30_days;
 
-      const hasData = seriesForWindow != null;
+      const hasData = seriesForWindow !== null;
 
       try {
         await storage.logEvent('aggregates.context.requested', {

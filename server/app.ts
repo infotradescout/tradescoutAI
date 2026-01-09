@@ -1,0 +1,191 @@
+/**
+ * Testable Express application factory
+ * Exports app without starting a listener (for Supertest)
+ * Runtime behavior via server/index.ts unchanged
+ */
+
+// Load test env early so module-level env reads are correct
+if (process.env.NODE_ENV === "test") {
+  // @ts-expect-error - dynamic require for early env loading
+  await import("dotenv/config");
+}
+
+import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
+import * as Sentry from "@sentry/node";
+import "@sentry/tracing";
+import { registerRoutes } from "./routes";
+import { emitHttpStatus } from "./observability/metrics";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+export async function createApp() {
+  const app = express();
+  app.set("trust proxy", 1);
+
+  const PORT = parseInt(process.env.PORT || "5000", 10);
+
+  // Sentry (only in non-test envs)
+  if (process.env.SENTRY_DSN && process.env.NODE_ENV !== "test") {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      tracesSampleRate: 1.0,
+    });
+    app.use(Sentry.Handlers.requestHandler());
+    app.use(Sentry.Handlers.tracingHandler());
+  }
+
+  // Force canonical host redirect (skip in test)
+  if (process.env.NODE_ENV !== "test") {
+    app.use((req, res, next) => {
+      const host = req.headers.host?.toLowerCase() || "";
+      if (host.includes("tradescoutai.onrender.com")) {
+        const targetHost = "www.thetradescout.com";
+        const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+        const redirectUrl = `${protocol}://${targetHost}${req.originalUrl || ""}`;
+        return res.redirect(301, redirectUrl);
+      }
+      next();
+    });
+  }
+
+  // CORS setup
+  const ALLOWED_ORIGINS: string[] = [
+    "https://www.thetradescout.com",
+    "https://thetradescout.com",
+    "https://tradescoutai.onrender.com",
+    "https://mealscout.us",
+    "https://www.mealscout.us",
+  ].map((o) => o.toLowerCase());
+
+  const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
+  const allowAllCors = rawAllowlist === "*";
+
+  if (rawAllowlist && rawAllowlist !== "*") {
+    for (const origin of rawAllowlist.split(",")) {
+      const normalized = origin.trim().toLowerCase();
+      if (normalized && !ALLOWED_ORIGINS.includes(normalized)) {
+        ALLOWED_ORIGINS.push(normalized);
+      }
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    const devOrigins = [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      `http://localhost:${PORT}`,
+    ];
+    for (const devOrigin of devOrigins) {
+      if (!ALLOWED_ORIGINS.includes(devOrigin)) {
+        ALLOWED_ORIGINS.push(devOrigin);
+      }
+    }
+  }
+
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const normalized = origin.toLowerCase();
+      if (allowAllCors) return callback(null, true);
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+        return callback(null, true);
+      }
+      const sameHostOrigins = [
+        `http://localhost:${PORT}`.toLowerCase(),
+        `https://localhost:${PORT}`.toLowerCase(),
+      ];
+      if (sameHostOrigins.includes(normalized)) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(normalized)) return callback(null, true);
+      return callback(new Error(`CORS: Origin not allowed: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Origin", "Accept"],
+    exposedHeaders: ["Content-Length", "ETag"],
+  };
+
+  app.use((_, res, next) => {
+    res.header("Vary", "Origin");
+    next();
+  });
+
+  app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions));
+
+  // Body parsing
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Request logging (skip in test)
+  if (process.env.NODE_ENV !== "test") {
+    app.use((req, res, next) => {
+      const start = Date.now();
+      const path = req.path;
+      let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+      const originalResJson = res.json;
+      res.json = function (bodyJson, ...args) {
+        capturedJsonResponse = bodyJson;
+        return originalResJson.apply(res, [bodyJson, ...args]);
+      };
+
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        emitHttpStatus(res.statusCode);
+
+        if (path.startsWith("/api")) {
+          let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+          if (capturedJsonResponse) {
+            logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+          }
+          if (logLine.length > 80) {
+            logLine = logLine.slice(0, 79) + "…";
+          }
+          log(logLine);
+        }
+      });
+
+      next();
+    });
+  }
+
+  // Register API routes (await to ensure routes are mounted before returning app)
+  const server = await registerRoutes(app);
+
+  // Sentry error handler (only in non-test envs)
+  if (process.env.SENTRY_DSN && process.env.NODE_ENV !== "test") {
+    app.use(Sentry.Handlers.errorHandler());
+  }
+
+  // Global error handler
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.statusCode || err.status || 500;
+    const message = err.message || "Something went wrong";
+    const errorId = `err_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    if (process.env.NODE_ENV !== "test") {
+      console.error(`[ERROR ${errorId}]`, err);
+    }
+
+    res.status(status).json({
+      message: status >= 500 ? "Internal Server Error" : message,
+      errorId,
+    });
+  });
+
+  return { app, server };
+}

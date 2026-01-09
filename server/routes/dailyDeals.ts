@@ -3,104 +3,7 @@ import { storage } from '../storage';
 import { eq, desc, and, gte, lte, sql, type SQL } from 'drizzle-orm';
 import { dailyDeals, dealEngagements, userAffiliates, promotions } from '@shared/schema';
 
-// Mock data for when database is offline
-const mockDeals = [
-  {
-    id: '1',
-    title: 'Professional Deck Staining - 50% Off',
-    description: 'Transform your outdoor space with our professional deck staining service. Includes power washing, sanding, and premium stain application.',
-    dealType: 'service_discount',
-    originalPrice: '800.00',
-    discountPrice: '400.00',
-    discountPercentage: 50,
-    countyFips: '06037', // Los Angeles County
-    serviceArea: ['Los Angeles', 'Beverly Hills', 'Santa Monica'],
-    startDate: new Date().toISOString(),
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    isActive: true,
-    maxRedemptions: 10,
-    currentRedemptions: 3,
-    views: 245,
-    clicks: 32,
-    saves: 8,
-    featured: true,
-    tags: ['deck', 'staining', 'outdoor'],
-    providerId: 'contractor-1',
-    providerType: 'contractor_user',
-    priority: 5,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    title: 'Kitchen Cabinet Refinishing Deal',
-    description: 'Give your kitchen a fresh new look with our cabinet refinishing service. Includes removal, refinishing, and reinstallation.',
-    dealType: 'service_discount',
-    originalPrice: '1200.00',
-    discountPrice: '850.00',
-    discountPercentage: 30,
-    countyFips: '06037',
-    serviceArea: ['Los Angeles', 'Pasadena', 'Glendale'],
-    startDate: new Date().toISOString(),
-    endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    isActive: true,
-    maxRedemptions: 5,
-    currentRedemptions: 1,
-    views: 189,
-    clicks: 24,
-    saves: 12,
-    featured: false,
-    tags: ['kitchen', 'cabinets', 'refinishing'],
-    providerId: 'contractor-2',
-    providerType: 'contractor_user',
-    priority: 3,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    title: 'Premium Paint & Supplies Bundle',
-    description: 'Professional-grade paint bundle perfect for interior projects. Includes primer, paint, brushes, and drop cloths.',
-    dealType: 'product_sale',
-    originalPrice: '200.00',
-    discountPrice: '150.00',
-    discountPercentage: 25,
-    countyFips: '06037',
-    serviceArea: ['Los Angeles County'],
-    startDate: new Date().toISOString(),
-    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-    isActive: true,
-    maxRedemptions: 20,
-    currentRedemptions: 7,
-    views: 412,
-    clicks: 67,
-    saves: 23,
-    featured: true,
-    tags: ['paint', 'supplies', 'interior'],
-    providerId: 'supplier-1',
-    providerType: 'service_provider',
-    priority: 4,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
-const mockUserAffiliate = {
-  id: 'affiliate-1',
-  userId: 'user-1',
-  affiliateCode: 'USR123ABC',
-  totalEarnings: '125.50',
-  pendingEarnings: '45.25',
-  paidEarnings: '80.25',
-  totalReferrals: 12,
-  successfulReferrals: 8,
-  clicksGenerated: 156,
-  tierLevel: 'standard',
-  commissionRate: '10.00',
-  isActive: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
-};
+// No mock data - all endpoints return 503 when database unavailable
 
 // Get daily deals for a county/area - now backed by promotions as canonical source
 export async function getDailyDeals(req: Request, res: Response) {
@@ -255,16 +158,8 @@ export async function trackDealEngagement(req: Request, res: Response) {
         });
       }
     } catch (dbError) {
-      console.log('Database offline, simulating engagement tracking');
-      engagement = {
-        id: 'engagement-' + Date.now(),
-        dealId,
-        userId,
-        engagementType,
-        affiliateCode,
-        sessionId: req.sessionID,
-        createdAt: new Date().toISOString()
-      };
+      console.error('Engagement tracking unavailable:', dbError);
+      return res.status(503).json({ message: 'Daily deals temporarily unavailable' });
     }
 
     res.status(201).json(engagement);
@@ -294,8 +189,8 @@ export async function getUserAffiliate(req: Request, res: Response) {
         });
       }
     } catch (dbError) {
-      console.log('Database offline, using mock affiliate data');
-      affiliate = { ...mockUserAffiliate, userId };
+      console.error('Affiliate data unavailable:', dbError);
+      return res.status(503).json({ message: 'Daily deals temporarily unavailable' });
     }
 
     res.json(affiliate);
@@ -387,9 +282,8 @@ export async function getFeaturedDeals(req: Request, res: Response) {
         limit: parseInt(limit as string)
       });
     } catch (dbError) {
-      console.log('Database offline, using mock featured deals');
-      deals = mockDeals.filter(deal => deal.featured && deal.isActive)
-        .slice(0, parseInt(limit as string));
+      console.error('Featured deals unavailable:', dbError);
+      return res.status(503).json({ message: 'Daily deals temporarily unavailable' });
     }
 
     res.json(deals);
