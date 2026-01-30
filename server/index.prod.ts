@@ -362,6 +362,7 @@ app.use((req, res, next) => {
               "/favicon.ico",
               "/favicon-16x16.png",
               "/favicon-32x32.png",
+              "/favicon-48x48.png",
               "/apple-touch-icon.png",
               "/apple-touch-icon-precomposed.png",
               "/manifest.json",
