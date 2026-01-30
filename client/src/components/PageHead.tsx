@@ -24,10 +24,10 @@ export function PageHead({
     updateMetaTag('keywords', keywords);
     updateMetaTag('og:title', title, 'property');
     updateMetaTag('og:description', description, 'property');
-    updateMetaTag('og:image', ogImage, 'property');
+    updateMetaTag('og:image', `${window.location.origin}${ogImage}`, 'property');
     updateMetaTag('twitter:title', title);
     updateMetaTag('twitter:description', description);
-    updateMetaTag('twitter:image', ogImage);
+    updateMetaTag('twitter:image', `${window.location.origin}${ogImage}`);
     
     // Update canonical URL if provided
     if (canonicalUrl) {

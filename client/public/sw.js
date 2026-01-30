@@ -1,8 +1,8 @@
-const CACHE_NAME = 'tradescout-v1.0.0';
+const CACHE_NAME = 'tradescout-v20260130';
 const STATIC_ASSETS = [
   '/',
-  '/manifest.json',
-  '/offline.html'
+  '/manifest.json?v=20260130',
+  '/offline.html?v=20260130'
 ];
 
 // Install event - cache static assets
@@ -24,8 +24,8 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data.text(),
-    icon: '/icon-192x192.png',
-    badge: '/badge-72x72.png'
+    icon: '/icon-192.png',
+    badge: '/icon-192.png'
   };
 
   event.waitUntil(

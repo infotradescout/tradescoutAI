@@ -72,13 +72,41 @@ export function useAppLikeEffects() {
   }, [isMobile]);
 
   useEffect(() => {
-    // Register service worker for PWA functionality only in production
-    if (import.meta.env.PROD && 'serviceWorker' in navigator && isMobile) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
+    if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+
+    // Cleanup any legacy service workers/caches that could interfere with icons/identity assets.
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        const scriptUrl =
+          registration.active?.scriptURL ||
+          registration.waiting?.scriptURL ||
+          registration.installing?.scriptURL ||
+          '';
+
+        if (scriptUrl.includes('/service-worker.js')) {
+          registration.unregister();
+        }
+      });
+    });
+
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((key) => {
+          if (key === 'tradescout-static-v1' || key.startsWith('tradescout-v')) {
+            caches.delete(key);
+          }
+        });
+      });
+    }
+
+    // Register service worker for PWA functionality only in production (mobile only).
+    if (isMobile) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
           console.log('SW registered: ', registration);
         })
-        .catch(registrationError => {
+        .catch((registrationError) => {
           console.log('SW registration failed: ', registrationError);
         });
     }

@@ -440,6 +440,29 @@ app.use((req, res, next) => {
               );
             }
 
+            // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
+            const identityAssets = new Set([
+              "/favicon.ico",
+              "/favicon-16x16.png",
+              "/favicon-32x32.png",
+              "/apple-touch-icon.png",
+              "/apple-touch-icon-precomposed.png",
+              "/manifest.json",
+              "/site.webmanifest",
+              "/icon-192.png",
+              "/icon-512.png",
+              "/icon-192-maskable.png",
+              "/icon-512-maskable.png",
+              "/logo.png",
+            ]);
+
+            app.get(Array.from(identityAssets), (req, res, next) => {
+              const filePath = path.join(publicDistPath, req.path);
+              if (!fs.existsSync(filePath)) return next();
+              res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+              res.sendFile(filePath);
+            });
+
             // 2) Serve other static files (index.html, icons, etc.)
             app.use(express.static(publicDistPath));
 
@@ -454,6 +477,12 @@ app.use((req, res, next) => {
               // If an asset was requested but not found by express.static, do NOT
               // return index.html – this would surface as a MIME-type error in the browser.
               if (reqPath.startsWith("/assets")) {
+                return res.status(404).end();
+              }
+
+              // If it looks like a file request (e.g. /favicon.ico), never fall back to index.html.
+              const base = path.posix.basename(reqPath);
+              if (base.includes(".")) {
                 return res.status(404).end();
               }
 
