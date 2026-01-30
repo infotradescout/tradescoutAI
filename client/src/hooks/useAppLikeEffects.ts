@@ -8,6 +8,8 @@ export function useAppLikeEffects() {
   useEffect(() => {
     if (!isMobile) return;
 
+    document.body.classList.add("ts-scroll-lock");
+
     // Prevent default browser behaviors for app-like experience
     const preventDefault = (e: TouchEvent) => {
       if (e.touches.length > 1) {
@@ -64,6 +66,7 @@ export function useAppLikeEffects() {
     window.addEventListener('orientationchange', setVH);
 
     return () => {
+      document.body.classList.remove("ts-scroll-lock");
       document.removeEventListener('touchmove', preventDefault);
       document.removeEventListener('touchmove', preventBounce);
       window.removeEventListener('resize', setVH);

@@ -31,12 +31,12 @@ export interface ColorScheme {
 
 export const COLOR_PRESETS: Record<string, ColorScheme> = {
   default: {
-    primary: '#f97316', // Orange
-    secondary: '#fb923c', // Light Orange
-    background: '#0a0f1ee7', // Dark Navy
-    text: '#f1f5f9', // Light Gray
-    accent: '#ea580c', // Deep Orange
-    border: '#1e293b', // Navy Border
+    primary: '#FF6A00', // Orange accent
+    secondary: '#FF8A3D', // Accent secondary
+    background: '#0B0F14', // Charcoal background
+    text: '#F6F7FB', // Near-white
+    accent: '#FF6A00',
+    border: 'rgba(255,255,255,0.12)',
   },
   warm: {
     primary: '#dc2626', // Red

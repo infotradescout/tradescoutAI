@@ -27,7 +27,7 @@ export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {
     <img
       src={BRAND_LOGO_URL}
       alt="TradeScout logo"
-      className={`${sizeClass} rounded-full ${className} object-cover`}
+      className={`${sizeClass} ${className} object-contain`}
       loading="lazy"
     />
   );

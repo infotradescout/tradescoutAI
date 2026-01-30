@@ -63,6 +63,29 @@ export default function ProfileSettings() {
     }
   );
 
+  // 6-color palette (background + UI surface + white/orange accents) that drives BOTH
+  // in-app theme and public profile defaults.
+  const [palette, setPalette] = useState<{
+    background: string;
+    surface: string;
+    text: string;
+    textMuted: string;
+    accent: string;
+    accentStrong: string;
+  }>(() => ({
+    background: COLOR_PRESETS.default.background,
+    surface: "#121A24",
+    text: COLOR_PRESETS.default.text,
+    textMuted: "#B8C0CC",
+    accent: COLOR_PRESETS.default.primary,
+    accentStrong: COLOR_PRESETS.default.secondary,
+  }));
+
+  type PaletteKey = keyof typeof palette;
+  const setPaletteField = (key: PaletteKey, value: string) => {
+    setPalette((prev) => ({ ...prev, [key]: value }));
+  };
+
   const HEX6_BODY = "[0-9A-Fa-f]{6}";
   const HEX8_BODY = "[0-9A-Fa-f]{8}";
   const HEX6_REGEX = new RegExp("^#" + HEX6_BODY + "$");
@@ -97,6 +120,31 @@ export default function ProfileSettings() {
           background: scheme.background || COLOR_PRESETS.default.background,
           text: scheme.text || COLOR_PRESETS.default.text,
         });
+      }
+
+      // Prefer the richer site theme payload when available; otherwise derive from profile scheme.
+      try {
+        const rawTheme = (user as any)?.customThemeColors ? JSON.parse((user as any).customThemeColors) : null;
+        if (rawTheme?.bgPrimary && rawTheme?.bgSecondary && rawTheme?.textPrimary && rawTheme?.accentPrimary && rawTheme?.accentSecondary) {
+          setPalette({
+            background: sanitizeColorForInput(rawTheme.bgPrimary),
+            surface: sanitizeColorForInput(rawTheme.bgSecondary),
+            text: sanitizeColorForInput(rawTheme.textPrimary),
+            textMuted: sanitizeColorForInput(rawTheme.textSecondary),
+            accent: sanitizeColorForInput(rawTheme.accentPrimary),
+            accentStrong: sanitizeColorForInput(rawTheme.accentSecondary),
+          });
+        } else if (scheme) {
+          setPalette((prev) => ({
+            ...prev,
+            background: sanitizeColorForInput(scheme.background || prev.background),
+            text: sanitizeColorForInput(scheme.text || prev.text),
+            accent: sanitizeColorForInput(scheme.primary || prev.accent),
+            accentStrong: sanitizeColorForInput(scheme.secondary || prev.accentStrong),
+          }));
+        }
+      } catch {
+        // ignore malformed theme payloads
       }
     }
   }, [user]);
@@ -180,6 +228,58 @@ export default function ProfileSettings() {
       toast({
         title: "Error",
         description: "Failed to update color scheme",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const savePalette = async () => {
+    setLoading(true);
+
+    try {
+      // 1) Save as the site's authoritative theme (rich token set)
+      updateCustomColors({
+        bgPrimary: palette.background,
+        bgSecondary: palette.surface,
+        // Only 2 layers requested (background + UI), but we still need a chrome value.
+        // Derive a slightly deeper surface for nav/chrome.
+        bgTertiary: `color-mix(in oklab, ${palette.background} 85%, #000 15%)`,
+        textPrimary: palette.text,
+        textSecondary: palette.textMuted,
+        accentPrimary: palette.accent,
+        accentSecondary: palette.accentStrong,
+        borderPrimary: `color-mix(in oklab, ${palette.text} 12%, transparent)`,
+        borderSecondary: `color-mix(in oklab, ${palette.text} 8%, transparent)`,
+      });
+
+      // 2) Keep public profile color scheme aligned (back-compat path used by profile renderer)
+      const response = await fetch('/api/users/color-scheme', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          preset: 'custom',
+          primary: palette.accent,
+          secondary: palette.accentStrong,
+          background: palette.background,
+          text: palette.text,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update color scheme');
+
+      await refetch();
+
+      toast({
+        title: "Palette updated",
+        description: "Your site theme and public profile colors are now synced.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update palette",
         variant: "destructive",
       });
     } finally {
@@ -461,6 +561,54 @@ export default function ProfileSettings() {
           </p>
         )}
       </div>
+
+      {/* Color Scheme */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-tsAccent" />
+            Site + Profile Palette
+          </CardTitle>
+          <CardDescription>
+            These 6 colors power your full site experience (background + UI layer) and keep your public profile in sync.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: "background", label: "Background (Charcoal)", value: palette.background },
+              { key: "surface", label: "UI Surface", value: palette.surface },
+              { key: "text", label: "Text (White)", value: palette.text },
+              { key: "textMuted", label: "Muted Text", value: palette.textMuted },
+              { key: "accent", label: "Accent (Orange)", value: palette.accent },
+              { key: "accentStrong", label: "Accent Secondary", value: palette.accentStrong },
+            ].map((item) => (
+              <div key={item.key} className="space-y-1">
+                <Label className="text-xs">{item.label}</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={sanitizeColorForInput(item.value)}
+                    onChange={(e) => setPaletteField(item.key as PaletteKey, e.target.value)}
+                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                  />
+                  <Input
+                    value={item.value}
+                    onChange={(e) => setPaletteField(item.key as PaletteKey, e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-tsBorder">
+            <Button onClick={savePalette} disabled={loading}>
+              {loading ? "Saving…" : "Save Palette"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Color Scheme */}
       <Card>

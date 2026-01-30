@@ -8,6 +8,7 @@ import { runTool, ToolDefinition, ToolContext } from "./toolRunner";
 /* ======================== Contractor Search Tool ======================== */
 
 export interface ContractorSearchInput {
+  query?: string;
   trade?: string;
   tradeTags?: string[];
   county?: string;
@@ -39,6 +40,7 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
   async execute(input, context) {
     const params = new URLSearchParams();
 
+    if (input.query) params.set("query", input.query);
     if (input.trade) params.set("trade", input.trade);
     if (input.county) params.set("county", input.county);
     if (input.state) params.set("state", input.state);
@@ -63,7 +65,7 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
 
     return results.map((c: any) => ({
       id: String(c.id || c.userId || ""),
-      name: String(c.name || c.businessName || "Unknown"),
+      name: String(c.companyName || c.name || c.businessName || "Unknown"),
       trade: String(c.trade || c.primaryTrade || ""),
       rating: typeof c.rating === "number" ? c.rating : 0,
       reviewCount: typeof c.reviewCount === "number" ? c.reviewCount : 0,

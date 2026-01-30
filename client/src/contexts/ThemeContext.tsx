@@ -37,20 +37,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const preferenceScheme = user?.preferences?.colorScheme;
       if (preferenceScheme) {
         const scheme = getUserColorScheme({ colorScheme: preferenceScheme });
+        const derivedSurface = `color-mix(in oklab, ${scheme.background} 90%, #ffffff 10%)`;
+        const derivedChrome = `color-mix(in oklab, ${scheme.background} 85%, #000000 15%)`;
+        const derivedBorder = scheme.border || `color-mix(in oklab, ${scheme.text} 12%, transparent)`;
         const themeFromProfile: Theme = {
           id: preferenceScheme.preset || 'profile-theme',
           name: 'Profile Color Scheme',
           description: 'Colors synced from profile preferences',
           colors: {
             bgPrimary: scheme.background,
-            bgSecondary: scheme.background,
-            bgTertiary: scheme.secondary || scheme.background,
+            bgSecondary: derivedSurface,
+            bgTertiary: derivedChrome,
             textPrimary: scheme.text,
-            textSecondary: scheme.text,
+            textSecondary: `color-mix(in oklab, ${scheme.text} 70%, transparent)`,
             accentPrimary: scheme.primary,
             accentSecondary: scheme.secondary || scheme.primary,
-            borderPrimary: scheme.border || scheme.background,
-            borderSecondary: scheme.secondary || scheme.background,
+            borderPrimary: derivedBorder,
+            borderSecondary: `color-mix(in oklab, ${scheme.text} 8%, transparent)`,
           },
         };
         return { theme: themeFromProfile, custom: preferenceScheme.preset === 'custom' ? preferenceScheme : null, themeId: preferenceScheme.preset || 'profile-theme' };

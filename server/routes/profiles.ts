@@ -214,6 +214,19 @@ router.put("/api/users/active-profile", isAuthenticated, async (req, res) => {
   }
 });
 
+// Public search for published profiles (used by Scout auto-route).
+router.get("/api/profiles/public-search", async (req, res) => {
+  try {
+    const query = typeof req.query.query === "string" ? req.query.query : "";
+    const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
+    const results = await storage.searchProfilesPublic({ query, limit });
+    res.json(results);
+  } catch (error: any) {
+    console.error("Error searching public profiles:", error);
+    res.status(500).json({ message: "Failed to search profiles" });
+  }
+});
+
 // Public website read: returns public Profile + public Business subset if linked.
 router.get("/api/p/:slug", async (req, res) => {
   try {

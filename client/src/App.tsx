@@ -9,7 +9,6 @@ import { queryClient } from './lib/queryClient';
 import { trackShellEvent } from './lib/analytics';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { ThemeApplier } from './components/theme/ThemeApplier';
 import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
@@ -21,6 +20,7 @@ import { FEATURE_HOLD_TO_EXPLAIN, FEATURE_HOLD_INTRO_TUTORIAL, FEATURE_EDUCATION
 import { HoldToExplainProvider } from './components/hold/HoldToExplainProvider';
 import { HoldIntroTutorial } from './components/onboarding/HoldIntroTutorial';
 import { registerStarterActionDescriptors } from './lib/actionDescriptorSeeds';
+import TradeScoutBackground from "./components/TradeScoutBackground";
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
@@ -1070,11 +1070,11 @@ const App = memo(function App() {
 
   return (
     <div className={`app-root ${enableThumbUX ? 'thumb-ux' : ''} ${enableDarkDepth ? 'dark-depth' : ''}`}>
+      <TradeScoutBackground>
       <ErrorBoundary fallback={<PageLoader />}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <SessionProvider>
-              <ThemeApplier />
               <Router>
                 <AppLayout />
               </Router>
@@ -1082,6 +1082,7 @@ const App = memo(function App() {
           </ThemeProvider>
         </QueryClientProvider>
       </ErrorBoundary>
+      </TradeScoutBackground>
     </div>
   );
 });

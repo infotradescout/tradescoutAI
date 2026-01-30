@@ -229,18 +229,19 @@ export const PRESET_THEMES: Theme[] = [
     name: 'Charcoal (Default)',
     description: 'Default: charcoal system with orange accents. Fully customizable.',
     colors: {
-      bgPrimary: '#121722',      // charcoal-800
-      bgSecondary: '#1a2030',    // charcoal-700
-      bgTertiary: '#0b0e13',     // charcoal-900
-      textPrimary: '#f1f5f9',    // Light text
-      textSecondary: '#cbd5e1',  // Muted text
-      accentPrimary: 'hsl(25, 85%, 54%)',    // Orange
-      accentSecondary: 'hsl(19, 80%, 47%)',  // Dark orange
-      accentTertiary: 'hsl(27, 85%, 60%)',   // Light orange
-      borderPrimary: '#2d3645',
-      borderSecondary: '#1a2030',
+      // Palette: charcoal background + white text + orange accents
+      bgPrimary: '#0B0F14',      // Background (Charcoal)
+      bgSecondary: '#121A24',    // UI surface
+      bgTertiary: '#0F1620',     // Chrome/frame surface
+      textPrimary: '#F6F7FB',    // Near-white
+      textSecondary: 'rgba(246,247,251,0.70)', // Muted
+      accentPrimary: '#FF6A00',  // Orange accent
+      accentSecondary: '#FF8A3D', // Accent hover/secondary
+      accentTertiary: 'rgba(255,106,0,0.16)',
+      borderPrimary: 'rgba(255,255,255,0.12)',
+      borderSecondary: 'rgba(255,255,255,0.08)',
     },
-    backgroundGradient: 'linear-gradient(135deg, #121722, #1a2030)',
+    backgroundGradient: 'radial-gradient(1200px 800px at 20% 10%, rgba(255,106,0,0.16), transparent 60%), linear-gradient(180deg, #0B0F14, #0B0F14)',
   },
 
   // ======== ALTERNATIVE THEMES (users can customize all colors) ========
@@ -339,12 +340,45 @@ export const PRESET_THEMES: Theme[] = [
  */
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  // Drive new semantic tokens based on the closest matching ThemeId.
-  const themeId: ThemeId = isThemeId(theme.id) ? theme.id : "charcoal";
-  const tokens = THEMES[themeId];
-  Object.entries(tokens).forEach(([key, value]) => {
-    root.style.setProperty(key, value);
-  });
+
+  // Drive semantic tokens from the actual active colors (including custom/user themes).
+  // This ensures the new UI token layer stays in sync with user customization.
+  const bg = theme.colors.bgPrimary;
+  const surface = theme.colors.bgSecondary;
+  const surfaceStrong = theme.colors.bgTertiary;
+  const text = theme.colors.textPrimary;
+  const textMuted = theme.colors.textSecondary;
+  const accent = theme.colors.accentPrimary;
+  const accentStrong = theme.colors.accentSecondary;
+
+  const derivedTokens: Partial<ThemeTokens> = {
+    "--ts-bg": bg,
+    "--ts-surface": surface,
+    "--ts-surface-strong": surfaceStrong,
+    "--ts-surface-hover": `color-mix(in oklab, ${surface} 88%, ${text} 12%)`,
+    "--ts-border-subtle": `color-mix(in oklab, ${text} 12%, transparent)`,
+    "--ts-border-strong": `color-mix(in oklab, ${text} 20%, transparent)`,
+    "--ts-text": text,
+    "--ts-text-muted": textMuted,
+    "--ts-accent": accent,
+    "--ts-accent-strong": accentStrong,
+    "--ts-accent-soft": `color-mix(in oklab, ${accent} 18%, transparent)`,
+    "--ts-text-on-accent": "#0B0F14",
+    "--ts-input-bg": surfaceStrong,
+    "--ts-input-border": `color-mix(in oklab, ${text} 14%, transparent)`,
+    "--ts-focus-ring": `color-mix(in oklab, ${accent} 55%, transparent)`,
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.45)",
+  };
+
+  // Fill any missing tokens from a built-in theme when available.
+  const fallbackThemeId: ThemeId = isThemeId(theme.id) ? theme.id : "charcoal";
+  const fallback = THEMES[fallbackThemeId];
+  const tokens: ThemeTokens = { ...fallback, ...derivedTokens } as ThemeTokens;
+
+  Object.entries(tokens).forEach(([key, value]) => root.style.setProperty(key, value));
 
   // Maintain legacy --theme-* variables for existing CSS that still
   // references them (e.g. scout-suggestion styles).

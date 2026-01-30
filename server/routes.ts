@@ -3097,7 +3097,7 @@ export async function registerRoutes(app: any) {
   // Contractor search endpoint (alias for contractor listing with search params)
   app.get("/api/contractors/search", async (req: any, res: any) => {
     try {
-      const { county, trade, sort, limit = 20, offset = 0 } = req.query;
+      const { county, trade, query, sort, limit = 20, offset = 0 } = req.query;
 
       // Track contractor search with locality context
       // LocalityTracker call removed
@@ -3106,6 +3106,10 @@ export async function registerRoutes(app: any) {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
+
+      if (query && typeof query === "string" && query.trim()) {
+        filters.query = query.trim();
+      }
 
       if (county) {
         // Try to find county by name (not FIPS)

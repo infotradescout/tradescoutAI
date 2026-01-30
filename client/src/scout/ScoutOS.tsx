@@ -87,6 +87,11 @@ const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
 const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded";
 
+const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
+const AUTO_ROUTE_DEFAULT_ENABLED = true;
+const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
+const AUTO_ROUTE_DELAY_MS = 1600;
+
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
@@ -123,6 +128,67 @@ function censorProfanity(text: string) {
     cleaned = cleaned.replace(re, `${term[0]}***`);
   }
   return cleaned;
+}
+
+function confidenceLabelToScore(label?: string | null): number {
+  const l = (label || "").toLowerCase();
+  if (l === "high") return 0.9;
+  if (l === "medium") return 0.7;
+  if (l === "low") return 0.4;
+  return 0;
+}
+
+function normalizeForMatch(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenOverlapScore(query: string, candidate: string): number {
+  const q = normalizeForMatch(query);
+  const c = normalizeForMatch(candidate);
+  if (!q || !c) return 0;
+  if (c.includes(q)) return 0.98;
+
+  const qTokens = new Set(q.split(" ").filter(Boolean));
+  const cTokens = new Set(c.split(" ").filter(Boolean));
+  if (qTokens.size === 0 || cTokens.size === 0) return 0;
+
+  let intersect = 0;
+  qTokens.forEach((t) => {
+    if (cTokens.has(t)) intersect += 1;
+  });
+  const union = qTokens.size + cTokens.size - intersect;
+  const jaccard = union > 0 ? intersect / union : 0;
+
+  // Penalize very short / generic queries
+  const lengthBoost = Math.min(1, q.length / 12);
+  return Math.max(0, Math.min(0.95, jaccard * 0.9 + lengthBoost * 0.1));
+}
+
+function extractExplicitNavIntent(message: string): { to: string; label: string; confidence: number } | null {
+  const lower = normalizeForMatch(message);
+  const isExplicit =
+    /^(go to|take me to|open|show me|navigate to)\b/.test(lower) ||
+    /\b(take me|send me|route me)\b/.test(lower);
+  if (!isExplicit) return null;
+
+  if (lower.includes("direct connect")) return { to: "/direct-connect", label: "Direct Connect", confidence: 0.95 };
+  if (lower.includes("community")) return { to: ROUTES.COMMUNITY ?? "/community", label: "Community", confidence: 0.95 };
+  if (lower.includes("exchange") || lower.includes("marketplace")) return { to: ROUTES.EXCHANGE ?? "/exchange", label: "Exchange", confidence: 0.95 };
+  if (lower.includes("message") || lower.includes("inbox") || lower.includes("conversations")) return { to: "/conversations", label: "Messages", confidence: 0.95 };
+  if (lower.includes("settings")) return { to: ROUTES.SETTINGS ?? "/settings", label: "Settings", confidence: 0.95 };
+  if (lower.includes("profile settings") || lower.includes("profile colors") || lower.includes("palette")) return { to: "/profile-settings", label: "Profile Settings", confidence: 0.92 };
+  if (lower.includes("contractor") || lower.includes("contractors") || lower.includes("contractor board")) {
+    return { to: ROUTES.CONTRACTORS ?? "/contractors/board", label: "Contractors", confidence: 0.9 };
+  }
+  if (lower.includes("notes")) return { to: ROUTES.NOTES ?? "/notes", label: "Notes", confidence: 0.9 };
+  if (lower.includes("leaderboard")) return { to: "/leaderboard", label: "Leaderboard", confidence: 0.9 };
+  if (lower.includes("sign up") || lower.includes("create account") || lower.includes("register")) return { to: ROUTES.REGISTER ?? "/create-account", label: "Create Account", confidence: 0.95 };
+
+  return null;
 }
 
 function tryRecordCountyExplanationFollowup(
@@ -271,6 +337,27 @@ export default function ScoutOS() {
     "idle" | "typing" | "armingSend" | "sending" | "done"
   >("idle");
   const [isUpdatingGeo, setIsUpdatingGeo] = useState(false);
+  const [autoRouteEnabled, setAutoRouteEnabled] = useState<boolean>(() => {
+    try {
+      if (typeof window === "undefined") return AUTO_ROUTE_DEFAULT_ENABLED;
+      const raw = window.localStorage.getItem(AUTO_ROUTE_ENABLED_KEY);
+      if (raw === "0") return false;
+      if (raw === "1") return true;
+      return AUTO_ROUTE_DEFAULT_ENABLED;
+    } catch {
+      return AUTO_ROUTE_DEFAULT_ENABLED;
+    }
+  });
+  const [autoRoutePending, setAutoRoutePending] = useState<
+    | null
+    | {
+        to: string;
+        label: string;
+        confidence: number;
+        why?: string;
+      }
+  >(null);
+  const autoRouteTimerRef = useRef<number | null>(null);
   const introTimersRef = useRef<{
     typeTimer: number | null;
     startTimer: number | null;
@@ -310,6 +397,32 @@ export default function ScoutOS() {
   const renderStartRef = useRef<number | null>(null);
   const hasLoggedIntroRef = useRef<boolean>(false);
   const hasLoggedConfusionRef = useRef<boolean>(false);
+
+  const cancelAutoRoute = useCallback(() => {
+    if (autoRouteTimerRef.current) {
+      window.clearTimeout(autoRouteTimerRef.current);
+      autoRouteTimerRef.current = null;
+    }
+    setAutoRoutePending(null);
+  }, []);
+
+  const queueAutoRoute = useCallback(
+    (candidate: { to: string; label: string; confidence: number; why?: string } | null) => {
+      if (!candidate) return;
+      cancelAutoRoute();
+      setAutoRoutePending(candidate);
+
+      if (!autoRouteEnabled) return;
+      if (candidate.confidence < AUTO_ROUTE_MIN_CONFIDENCE) return;
+
+      autoRouteTimerRef.current = window.setTimeout(() => {
+        autoRouteTimerRef.current = null;
+        setAutoRoutePending(null);
+        navigate(candidate.to);
+      }, AUTO_ROUTE_DELAY_MS);
+    },
+    [autoRouteEnabled, cancelAutoRoute, navigate]
+  );
 
   // One-time init guard (keeps animations / welcome seed from re-running).
   // Removed client-side injected welcome message to avoid collision
@@ -359,6 +472,36 @@ export default function ScoutOS() {
       hasLoggedIntroRef.current = true;
     }
   }, [hasMessages, location]);
+
+  useEffect(() => {
+    return () => {
+      cancelAutoRoute();
+    };
+  }, [cancelAutoRoute]);
+
+  const handleToggleAutoRoute = useCallback(
+    (enabled: boolean) => {
+      setAutoRouteEnabled(enabled);
+      cancelAutoRoute();
+
+      try {
+        window.localStorage.setItem(AUTO_ROUTE_ENABLED_KEY, enabled ? "1" : "0");
+      } catch {
+        // ignore
+      }
+
+      // Best-effort persist for authed users (safe to ignore failures).
+      if (user) {
+        void fetch("/api/users/preferences", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scout: { autoRouteEnabled: enabled } }),
+        }).catch(() => undefined);
+      }
+    },
+    [cancelAutoRoute, user]
+  );
 
   // Ephemeral, derived context roles per message/page for tone + defaults
   const getContextRoles = useCallback(
@@ -740,6 +883,132 @@ export default function ScoutOS() {
         // ==================================================================
         const lowerMsg = value.toLowerCase();
         const normalized = lowerMsg.replace(/[^a-z0-9\s]/gi, " ");
+
+        // ------------------------------------------------------------------
+        // EXPLICIT NAV INTENT (high confidence; user asked to be routed)
+        // ------------------------------------------------------------------
+        const explicitNav = extractExplicitNavIntent(value);
+        if (explicitNav) {
+          setStatus("ready");
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: `Got it — opening ${explicitNav.label}.`,
+            timestamp: new Date().toISOString(),
+            clusters: [
+              {
+                id: "auto-route-explicit",
+                title: `Open ${explicitNav.label}`,
+                kind: "generic",
+                primaryAction: {
+                  type: "NAVIGATE",
+                  label: "Open",
+                  to: explicitNav.to,
+                },
+              },
+            ],
+            navTarget: explicitNav.to,
+            memoryDelta: { lastIntent: "explicit_navigation" },
+            contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          queueAutoRoute({
+            to: explicitNav.to,
+            label: explicitNav.label,
+            confidence: explicitNav.confidence,
+            why: "Explicit request",
+          });
+          setStatus("idle");
+          return;
+        }
+
+        // ------------------------------------------------------------------
+        // EXPLICIT PROFILE LOOKUP (route to the exact public profile when possible)
+        // ------------------------------------------------------------------
+        const normalizedExplicit = normalizeForMatch(value);
+        const wantsProfileLookup =
+          /^(go to|take me to|open|show me|navigate to)\b/.test(normalizedExplicit) &&
+          /\bprofile\b/.test(normalizedExplicit) &&
+          !/\bprofile settings\b/.test(normalizedExplicit);
+
+        if (wantsProfileLookup) {
+          const afterProfile = normalizedExplicit.split("profile")[1]?.trim() || "";
+          const query = afterProfile.replace(/^(for|of)\s+/i, "").trim();
+
+          if (query.length >= 3) {
+            try {
+              setStatus("executing_action");
+              const res = await fetch(
+                `/api/profiles/public-search?query=${encodeURIComponent(query)}&limit=6`,
+                { credentials: "include" }
+              );
+              const list = res.ok ? ((await res.json()) as any[]) : [];
+              const results = Array.isArray(list) ? list : [];
+
+              const scored = results
+                .map((p) => ({
+                  id: String(p.id || ""),
+                  slug: String(p.slug || ""),
+                  displayName: String(p.displayName || ""),
+                  score: tokenOverlapScore(query, String(p.displayName || p.slug || "")),
+                }))
+                .filter((r) => r.slug && r.displayName)
+                .sort((a, b) => b.score - a.score);
+
+              const best = scored[0];
+              const second = scored[1];
+              const confident = best && best.score >= 0.9 && (!second || best.score - second.score >= 0.08);
+
+              const fallbackToSearch = "/community";
+
+              const targetTo = best?.slug ? `/p/${encodeURIComponent(best.slug)}` : fallbackToSearch;
+
+              const msg: ScoutMessage = {
+                id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                role: "assistant",
+                content: best?.displayName
+                  ? `I found ${best.displayName}.`
+                  : "I couldn't find a public profile match for that yet.",
+                timestamp: new Date().toISOString(),
+                clusters: [
+                  {
+                    id: "profile-lookup",
+                    title: best?.displayName ? best.displayName : "Browse community",
+                    kind: "generic",
+                    body: best?.displayName ? "Open their public profile." : "Try browsing community activity first.",
+                    primaryAction: {
+                      type: "NAVIGATE",
+                      label: "Open",
+                      to: targetTo,
+                    },
+                  },
+                ],
+                navTarget: targetTo,
+                memoryDelta: { lastIntent: "profile_lookup" },
+                contextRoles,
+              };
+
+              applyServerResponse(msg, []);
+
+              if (best?.slug) {
+                queueAutoRoute({
+                  to: targetTo,
+                  label: best.displayName,
+                  confidence: confident ? best.score : Math.min(0.84, best.score),
+                  why: "Profile match",
+                });
+              }
+
+              setStatus("idle");
+              return;
+            } catch {
+              setStatus("idle");
+              // fall through to normal flow
+            }
+          }
+        }
 
         if (!hasLoggedConfusionRef.current) {
           const looksConfused =
@@ -1598,11 +1867,34 @@ export default function ScoutOS() {
             trade = "carpentry";
           else if (lowerMsg.includes("mason")) trade = "masonry";
 
+          const extractContractorNameQuery = () => {
+            const quoted = value.match(/"([^"]{3,80})"/);
+            if (quoted && quoted[1]) return quoted[1].trim();
+
+            const called = value.match(/\b(named|called)\s+([^,.#\n]{3,80})/i);
+            if (called && called[2]) return called[2].trim();
+
+            const k = /(contractor|contractors|roofer|roofing|plumber|plumbing|electrician|electrical|hvac|painter|painting|landscaper|landscaping)\b/i;
+            const m = value.match(k);
+            if (!m) return null;
+
+            const after = value.slice(m.index! + m[0].length).trim();
+            if (!after) return null;
+            // Stop at common location delimiters
+            const stop = after.split(/\b(in|near|around)\b/i)[0].trim();
+            // Remove leading filler words
+            const cleaned = stop.replace(/^(a|an|the|some|any|my)\s+/i, "").trim();
+            return cleaned.length >= 3 ? cleaned : null;
+          };
+
+          const nameQuery = extractContractorNameQuery();
+
           const contractorResult = await searchContractors({
+            query: nameQuery || undefined,
             trade,
             county: locality.county,
             state: locality.state,
-            limit: 5,
+            limit: nameQuery ? 10 : 5,
           });
 
           if (
@@ -1611,6 +1903,28 @@ export default function ScoutOS() {
             contractorResult.data.length > 0
           ) {
             const contractors: ContractorResult[] = contractorResult.data;
+
+            let bestMatch: { contractor: ContractorResult; score: number } | null = null;
+            if (nameQuery) {
+              const scored = contractors
+                .map((c) => ({ contractor: c, score: tokenOverlapScore(nameQuery, c.name) }))
+                .sort((a, b) => b.score - a.score);
+              if (scored.length > 0) bestMatch = scored[0];
+            }
+
+            const secondBestScore =
+              nameQuery && contractors.length > 1
+                ? contractors
+                    .map((c) => tokenOverlapScore(nameQuery, c.name))
+                    .sort((a, b) => b - a)[1] ?? 0
+                : 0;
+
+            const shouldAutoToProfile =
+              Boolean(nameQuery) &&
+              Boolean(bestMatch) &&
+              bestMatch!.score >= 0.9 &&
+              (contractors.length === 1 || bestMatch!.score - secondBestScore >= 0.08);
+
             const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
               id: `contractor-${c.id}`,
               title: `${c.name} • ${c.trade}`,
@@ -1648,10 +1962,14 @@ export default function ScoutOS() {
             const msgBase: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
-              content: `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
+              content: nameQuery
+                ? `I searched ${trade} contractors near ${locality.county}, ${locality.state} for “${nameQuery}”. Here are the closest matches:`
+                : `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
               timestamp: new Date().toISOString(),
               clusters: contractorClustersWithCtas,
-              navTarget: "/direct-connect",
+              navTarget: shouldAutoToProfile
+                ? bestMatch!.contractor.profileUrl || `/contractors/${bestMatch!.contractor.id}`
+                : "/direct-connect",
               memoryDelta: {
                 lastViewedTrade: trade,
                 lastIntent: "find_contractors",
@@ -1667,6 +1985,15 @@ export default function ScoutOS() {
 
             const msg = msgBase;
             applyServerResponse(msg, []);
+
+            if (shouldAutoToProfile) {
+              queueAutoRoute({
+                to: msg.navTarget || "/direct-connect",
+                label: bestMatch!.contractor.name,
+                confidence: bestMatch!.score,
+                why: "Name match",
+              });
+            }
             setStatus("idle");
 
             const latencyMs = performance.now() - start;
@@ -2138,9 +2465,35 @@ export default function ScoutOS() {
           clusters: clusters.length ? clusters : undefined,
           frame: res.frame,
           contextRoles: getContextRoles(value),
+          navTarget: Array.isArray(res.actions)
+            ? (() => {
+                const nav = res.actions.find(
+                  (a) => a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
+                );
+                return (nav?.to as string) || (nav?.path as string) || undefined;
+              })()
+            : undefined,
         };
 
         applyServerResponse(msg, res.actions);
+
+        // Auto-route: only when Scout provides a NAVIGATE action with high confidence.
+        if (Array.isArray(res.actions)) {
+          const nav = res.actions.find(
+            (a) => a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
+          );
+          const navTo = (nav?.to as string) || (nav?.path as string) || null;
+          const confidence = confidenceLabelToScore(res.metadata?.resolvedContext?.confidence) || 0;
+
+          if (navTo && confidence >= AUTO_ROUTE_MIN_CONFIDENCE) {
+            queueAutoRoute({
+              to: navTo,
+              label: nav?.label || "Next step",
+              confidence,
+              why: "Scout provided a high-confidence route",
+            });
+          }
+        }
 
         if (!hasSeenFirstAnswer()) {
           markFirstAnswerSeen();
@@ -2223,6 +2576,7 @@ export default function ScoutOS() {
       setPrefillKey,
       setError,
       state.messages,
+      queueAutoRoute,
       userRoles,
     ]
   );
@@ -3314,6 +3668,49 @@ export default function ScoutOS() {
                   }}
                 />
 
+                {autoRoutePending && (
+                  <Card className="bg-tsCard border-tsBorder shadow-sm">
+                    <div className="flex items-start justify-between gap-3 p-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-tsTextMain">
+                          Auto-route {autoRouteEnabled ? "armed" : "off"} •{" "}
+                          {Math.round(autoRoutePending.confidence * 100)}%
+                        </div>
+                        <div className="text-xs text-tsTextMuted mt-0.5">
+                          {autoRouteEnabled && autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
+                            ? `Taking you to ${autoRoutePending.label}…`
+                            : `Suggested: ${autoRoutePending.label}`}
+                          {autoRoutePending.why ? ` — ${autoRoutePending.why}` : ""}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {(!autoRouteEnabled || autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
+                          <Button
+                            size="sm"
+                            className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                            onClick={() => {
+                              cancelAutoRoute();
+                              navigate(autoRoutePending.to);
+                            }}
+                          >
+                            Go
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-tsBorder text-tsText hover:bg-tsCardMuted"
+                          onClick={cancelAutoRoute}
+                        >
+                          {autoRouteEnabled && autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
+                            ? "Cancel"
+                            : "Dismiss"}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
@@ -3333,6 +3730,8 @@ export default function ScoutOS() {
                   }}
                   autoDemoText={undefined}
                   enableAutoDemo={false}
+                  autoRouteEnabled={autoRouteEnabled}
+                  onToggleAutoRoute={handleToggleAutoRoute}
                 />
 
                 {!isAuthenticated && (

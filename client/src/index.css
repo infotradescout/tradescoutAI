@@ -1,6 +1,13 @@
-/* Layout lock: Only one scroll container (AppShell main) */
+/* Default: allow desktop scrolling; mobile/PWA can opt into scroll lock via body.ts-scroll-lock */
 html, body, #root {
   height: 100%;
+}
+
+body.ts-scroll-lock {
+  overflow: hidden;
+}
+
+body.ts-scroll-lock #root {
   overflow: hidden;
 }
 /* stylelint-disable */
@@ -71,27 +78,27 @@ html {
 
     /* ===== THEME LOCK: 4-SURFACE SYSTEM ===== */
     /* FRAME SURFACES (Darkest – Navigation) */
-    --surface-frame: #0b0f14;
-    --surface-frame-border: rgba(255,255,255,0.06);
+    --surface-frame: var(--ts-surface-strong, #0b0f14);
+    --surface-frame-border: var(--ts-border-subtle, rgba(255,255,255,0.06));
 
     /* APPLICATION SURFACES */
-    --surface-app-bg: #11161f;           /* Main canvas */
-    --surface-card: #161e2b;             /* Elevated: cards, suggestions, prompts */
-    --surface-intermediate: #1a2230;     /* In-card surfaces (like preview boxes) */
-    --surface-input: #1b2332;            /* Lightest: input boxes, text areas */
+    --surface-app-bg: var(--ts-bg, #11161f);           /* Main canvas */
+    --surface-card: var(--ts-surface, #161e2b);        /* Elevated: cards, suggestions, prompts */
+    --surface-intermediate: var(--ts-surface-hover, #1a2230); /* In-card surfaces */
+    --surface-input: var(--ts-input-bg, #1b2332);      /* Inputs */
 
     /* INTERACTION STATES */
-    --border-subtle: rgba(255,255,255,0.06);
-    --border-active: rgba(255,255,255,0.12);
-    --border-focus: rgba(255,255,255,0.18);
+    --border-subtle: var(--ts-border-subtle, rgba(255,255,255,0.06));
+    --border-active: var(--ts-border-strong, rgba(255,255,255,0.12));
+    --border-focus: var(--ts-border-strong, rgba(255,255,255,0.18));
 
     /* TEXT HIERARCHY */
-    --text-primary: rgba(255,255,255,0.95);
-    --text-secondary: rgba(255,255,255,0.7);
-    --text-tertiary: rgba(255,255,255,0.5);
+    --text-primary: var(--ts-text, rgba(255,255,255,0.95));
+    --text-secondary: var(--ts-text-muted, rgba(255,255,255,0.7));
+    --text-tertiary: color-mix(in oklab, var(--ts-text, rgba(255,255,255,0.95)) 55%, transparent);
 
     /* ACCENT (Scout only) */
-    --theme-accent-primary: #5d8adb;
+    --theme-accent-primary: var(--ts-accent, #5d8adb);
 
     /* STATUS COLORS */
     --status-error: #ef4444;
@@ -133,10 +140,10 @@ html {
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--surface-app-bg);
+    background-color: var(--ts-bg, var(--surface-app-bg));
     overscroll-behavior: none;
-    /* Lock page-level scrolling; AppShell handles scroll internally */
-    overflow: hidden;
+    /* Desktop: allow scrolling by default; mobile can opt into body.ts-scroll-lock */
+    overflow: auto;
   }
 
   /* Prevent iOS Safari auto-zoom when focusing small inputs */
@@ -159,8 +166,8 @@ html {
     height: 100%;
     min-height: var(--app-height);
     width: 100%;
-    background-color: var(--surface-app-bg);
-    overflow: hidden;
+    background-color: var(--ts-bg, var(--surface-app-bg));
+    overflow: visible;
   }
 
   .app-root {
@@ -171,8 +178,8 @@ html {
   body {
     @apply font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    color: #e2e8f0;
-    background-color: var(--surface-app-bg);
+    color: var(--ts-text, #e2e8f0);
+    background-color: var(--ts-bg, var(--surface-app-bg));
   }
 }
 
@@ -220,6 +227,8 @@ html {
   border: 1px solid var(--ts-border-subtle);
   box-shadow: var(--ts-shadow-soft);
 }
+
+/* Background is provided by TradeScoutBackground component. */
 
 .ts-menu {
   background-color: var(--ts-surface-strong);

@@ -478,6 +478,7 @@ export interface IStorage {
   getContractors(filters?: {
     countyId?: string;
     tradeIds?: string[];
+    query?: string;
     sortBy?: 'recommended' | 'rating' | 'years' | 'verified';
     limit?: number;
     offset?: number;
@@ -510,6 +511,7 @@ export interface IStorage {
   /** Return the owner user id for a given profile id, or null if missing. */
   getProfileOwnerUserId(profileId: string): Promise<string | null>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
+  searchProfilesPublic(args: { query: string; limit?: number }): Promise<Array<{ id: string; slug: string; displayName: string; headline: string | null; roleContext: any }>>;
   createProfileForOwner(ownerUserId: string, data: Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>): Promise<Profile>;
   updateProfileForOwner(ownerUserId: string, profileId: string, updates: Partial<Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>>): Promise<Profile>;
   setUserActiveProfile(userId: string, profileId: string | null): Promise<User>;
@@ -1418,6 +1420,39 @@ export class DatabaseStorage implements IStorage {
     return rows[0];
   }
 
+  async searchProfilesPublic(args: {
+    query: string;
+    limit?: number;
+  }): Promise<Array<{ id: string; slug: string; displayName: string; headline: string | null; roleContext: any }>> {
+    const raw = (args.query || "").trim();
+    if (!raw) return [];
+
+    const limit = Math.max(1, Math.min(20, Number(args.limit ?? 8) || 8));
+    const needle = `%${raw.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
+
+    const rows = await db
+      .select({
+        id: profiles.id,
+        slug: profiles.slug,
+        displayName: profiles.displayName,
+        headline: profiles.headline,
+        roleContext: profiles.roleContext,
+      })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .where(
+        and(
+          eq(profiles.status, "published" as any),
+          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+          sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`
+        )
+      )
+      .orderBy(desc(profiles.updatedAt))
+      .limit(limit);
+
+    return rows;
+  }
+
   async createProfileForOwner(
     ownerUserId: string,
     data: Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>
@@ -1731,6 +1766,7 @@ export class DatabaseStorage implements IStorage {
   async getContractors(filters?: {
     countyId?: string;
     tradeIds?: string[];
+    query?: string;
     sortBy?: 'recommended' | 'rating' | 'years' | 'verified';
     limit?: number;
     offset?: number;
@@ -1738,12 +1774,19 @@ export class DatabaseStorage implements IStorage {
     // Start with basic contractor query without ordering for now
     let query = db.select().from(contractors).where(eq(contractors.isActive, true));
 
-    if (filters?.limit) {
-      query = query.limit(filters.limit) as any;
-    }
+    const hasNameQuery = Boolean(filters?.query && String(filters.query).trim());
+    // If a name query is present, avoid applying limit/offset at the DB layer so we don't miss matches.
+    // Cap the scan to keep this safe in production.
+    if (hasNameQuery) {
+      query = query.limit(500) as any;
+    } else {
+      if (filters?.limit) {
+        query = query.limit(filters.limit) as any;
+      }
 
-    if (filters?.offset) {
-      query = query.offset(filters.offset) as any;
+      if (filters?.offset) {
+        query = query.offset(filters.offset) as any;
+      }
     }
 
     let result = await query;
@@ -1766,6 +1809,20 @@ export class DatabaseStorage implements IStorage {
       
       const validIds = contractorIds.map((row: { contractorId: string }) => row.contractorId);
       result = result.filter((contractor: any) => validIds.includes(contractor.id));
+    }
+
+    // Filter by name/slug query (in-memory for now)
+    if (hasNameQuery) {
+      const q = String(filters?.query || "").toLowerCase().trim();
+      result = result.filter((contractor: any) => {
+        const name = String(contractor.companyName || "").toLowerCase();
+        const slug = String(contractor.slug || "").toLowerCase();
+        return name.includes(q) || slug.includes(q);
+      });
+
+      const offset = Math.max(0, Number(filters?.offset ?? 0) || 0);
+      const limit = Math.max(0, Number(filters?.limit ?? 20) || 20);
+      result = result.slice(offset, offset + limit);
     }
 
     // Apply sorting in memory for now
