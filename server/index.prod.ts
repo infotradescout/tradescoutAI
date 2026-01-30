@@ -371,6 +371,8 @@ app.use((req, res, next) => {
               "/icon-192-maskable.png",
               "/icon-512-maskable.png",
               "/logo.png",
+              "/tradescout-logo.png",
+              "/tradescout-logo.jpg",
             ]);
 
             app.get(Array.from(identityAssets), (req, res, next) => {
