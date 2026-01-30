@@ -1,8 +1,8 @@
 const CACHE_NAME = 'tradescout-v20260130';
 const STATIC_ASSETS = [
   '/',
-  '/manifest.json?v=20260130',
-  '/offline.html?v=20260130'
+  '/manifest.json',
+  '/offline.html'
 ];
 
 // Install event - cache static assets
