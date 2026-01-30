@@ -43,10 +43,10 @@ TradeScout is a full-stack TypeScript application that reimagines how communitie
 
 **Contact & Messaging**
 - Initiate contact with contractors through decision-based intents:
-  - **Hire**: "I want to hire this contractor for a job"
-  - **Collaborate**: "I want to work with this professional"
-  - **Advise**: "I need consultation/advice"
-  - **Reconnect**: "Follow up on previous conversation"
+ - **Hire**: "I want to hire this contractor for a job"
+ - **Collaborate**: "I want to work with this professional"
+ - **Advise**: "I need consultation/advice"
+ - **Reconnect**: "Follow up on previous conversation"
 - All contact requires address verification (both parties)
 - Rate-limited to prevent spam (3/day, 10/week)
 - Scout recommends best matches with confidence scores
@@ -81,17 +81,17 @@ TradeScout is a full-stack TypeScript application that reimagines how communitie
 
 **Verification & Trust Building**
 - Complete multi-level verification:
-  - Identity verification (government ID)
-  - Business registration (LLC, sole proprietor, etc.)
-  - License verification (state/local requirements)
-  - Insurance verification (liability, workers' comp)
-  - Address verification (physical business location)
+ - Identity verification (government ID)
+ - Business registration (LLC, sole proprietor, etc.)
+ - License verification (state/local requirements)
+ - Insurance verification (liability, workers' comp)
+ - Address verification (physical business location)
 - Build Community Verification Score (CVS) 0-100:
-  - Verified identity (20 pts)
-  - License & insurance (25 pts)
-  - Work history & outcomes (25 pts)
-  - Community recommendations (20 pts)
-  - Responsiveness (10 pts)
+ - Verified identity (20 pts)
+ - License & insurance (25 pts)
+ - Work history & outcomes (25 pts)
+ - Community recommendations (20 pts)
+ - Responsiveness (10 pts)
 
 **Marketplace & Visibility**
 - List services in marketplace by category
@@ -252,12 +252,12 @@ TradeScout is a full-stack TypeScript application that reimagines how communitie
 
 ### Notifications
 - Real-time alerts for:
-  - New messages
-  - Project updates
-  - Estimate submissions
-  - Verification status changes
-  - Scout recommendations
-  - Community activity
+ - New messages
+ - Project updates
+ - Estimate submissions
+ - Verification status changes
+ - Scout recommendations
+ - Community activity
 - Email and in-app delivery
 - Configurable notification preferences
 
@@ -298,11 +298,11 @@ TradeScout is a full-stack TypeScript application that reimagines how communitie
 
 1. **Discovery**: Ask Scout "I need a new roof" or browse marketplace
 2. **Recommendations**: Scout provides confidence-scored matches based on:
-   - Expertise match (30%)
-   - Location match (25%)
-   - Trust signals (25%)
-   - Past success (15%)
-   - Availability (5%)
+ - Expertise match (30%)
+ - Location match (25%)
+ - Trust signals (25%)
+ - Past success (15%)
+ - Availability (5%)
 3. **Review**: View contractor profiles, CVS scores, past work, reviews
 4. **Decision**: Scout presents decision card with recommendation
 5. **Contact**: Click "Hire" (intent is pre-selected as "hire")
@@ -415,34 +415,34 @@ TradeScout operates on a **governed multi-model AI workflow**:
 
 ```
 ┌─────────────────────────────────────────────┐
-│         Scout (AI Decision Engine)          │
-│  - Primary system controller                │
-│  - Routes decisions through authority gates │
-│  - Never allows bypass paths                │
+│ Scout (AI Decision Engine) │
+│ - Primary system controller │
+│ - Routes decisions through authority gates │
+│ - Never allows bypass paths │
 └────────────────┬────────────────────────────┘
-                 │
-        ┌────────┼────────┐
-        │        │        │
-    ┌───▼──┐ ┌──▼───┐ ┌─▼────┐
-    │ Web  │ │ Chat │ │ Admin│
-    │  UI  │ │  UI  │ │  OS  │
-    └──────┘ └──────┘ └──────┘
-       │        │        │
-       └────────┼────────┘
-                │
-    ┌───────────▼─────────────┐
-    │   Trust / CVS Engine    │
-    │  - Verification gates   │
-    │  - Authority validation │
-    │  - Rate limiting        │
-    └───────────┬─────────────┘
-                │
-    ┌───────────▼─────────────┐
-    │  Geographic Intelligence│
-    │  - County-centric data  │
-    │  - Pre-routed facts     │
-    │  - No live inference    │
-    └─────────────────────────┘
+ │
+ ┌────────┼────────┐
+ │ │ │
+ ┌───▼──┐ ┌──▼───┐ ┌─▼────┐
+ │ Web │ │ Chat │ │ Admin│
+ │ UI │ │ UI │ │ OS │
+ └──────┘ └──────┘ └──────┘
+ │ │ │
+ └────────┼────────┘
+ │
+ ┌───────────▼─────────────┐
+ │ Trust / CVS Engine │
+ │ - Verification gates │
+ │ - Authority validation │
+ │ - Rate limiting │
+ └───────────┬─────────────┘
+ │
+ ┌───────────▼─────────────┐
+ │ Geographic Intelligence│
+ │ - County-centric data │
+ │ - Pre-routed facts │
+ │ - No live inference │
+ └─────────────────────────┘
 ```
 
 ### 2. **Core Subsystems**
@@ -454,10 +454,10 @@ TradeScout operates on a **governed multi-model AI workflow**:
 - **Recommendation Engine**: Confidence-scored contractor matching
 - **Models**: Claude (primary), Gemini (analysis), OpenAI (fallback)
 - **Knowledge Hierarchy**:
-  1. Admin manual cache (highest priority)
-  2. Website data (auto-cache + DB)
-  3. Internet search (attribution required)
-  4. Honest "I don't know" (final fallback)
+ 1. Admin manual cache (highest priority)
+ 2. Website data (auto-cache + DB)
+ 3. Internet search (attribution required)
+ 4. Honest "I don't know" (final fallback)
 
 #### **Admin OS (Authority Plane)**
 - **Location**: `/client/src/admin/`
@@ -468,18 +468,18 @@ TradeScout operates on a **governed multi-model AI workflow**:
 #### **Geographic Intelligence**
 - **Counties as operational containers** (not compute units)
 - Pre-routed into:
-  - `county_metrics` — facts only
-  - `county_entities` — assignments
-  - `county_notes` — human interpretation
+ - `county_metrics` — facts only
+ - `county_entities` — assignments
+ - `county_notes` — human interpretation
 - **No UI joins, no live inference**
 
 #### **Trust / CVS (Community Verification Score)**
 - **Calculation**: 0-100 composite score from:
-  - Verified identity (20 pts)
-  - License & insurance (25 pts)
-  - Work history (25 pts)
-  - Community recommendations (20 pts)
-  - Responsiveness (10 pts)
+ - Verified identity (20 pts)
+ - License & insurance (25 pts)
+ - Work history (25 pts)
+ - Community recommendations (20 pts)
+ - Responsiveness (10 pts)
 - **Exposure governed by behavior** (not payment)
 - **Revenue never overrides trust constraints**
 
@@ -555,20 +555,20 @@ TradeScout operates on a **governed multi-model AI workflow**:
 
 ```
 /api/
-├─ auth/                  # Authentication (local, OAuth)
-├─ users/                 # User management
-├─ profiles/              # Profile CRUD
-├─ conversations/         # Messaging (authority-gated)
-├─ marketplace/           # Contractor listings
-├─ projects/              # Job postings
-├─ estimates/             # Quote system
-├─ scout/                 # AI assistant endpoints
-├─ admin/                 # Admin OS operations
-├─ counties/              # Geographic data
-├─ trust/                 # CVS & verification
-├─ notifications/         # Alert system
-├─ payments/              # Stripe integration
-└─ storage/               # File upload/download
+├─ auth/ # Authentication (local, OAuth)
+├─ users/ # User management
+├─ profiles/ # Profile CRUD
+├─ conversations/ # Messaging (authority-gated)
+├─ marketplace/ # Contractor listings
+├─ projects/ # Job postings
+├─ estimates/ # Quote system
+├─ scout/ # AI assistant endpoints
+├─ admin/ # Admin OS operations
+├─ counties/ # Geographic data
+├─ trust/ # CVS & verification
+├─ notifications/ # Alert system
+├─ payments/ # Stripe integration
+└─ storage/ # File upload/download
 ```
 
 ### Key Endpoints
@@ -615,14 +615,14 @@ Server runs on port 5000 (configurable via `PORT` env var).
 
 ```json
 {
-  "dev": "Run dev server with hot reload",
-  "build": "Vite build + server compilation",
-  "start": "Production server",
-  "check": "TypeScript type checking",
-  "test": "Vitest unit tests",
-  "test:e2e": "Playwright E2E suite",
-  "db:push": "Apply schema changes",
-  "verify": "Full verification suite (types, tests, audits)"
+ "dev": "Run dev server with hot reload",
+ "build": "Vite build + server compilation",
+ "start": "Production server",
+ "check": "TypeScript type checking",
+ "test": "Vitest unit tests",
+ "test:e2e": "Playwright E2E suite",
+ "db:push": "Apply schema changes",
+ "verify": "Full verification suite (types, tests, audits)"
 }
 ```
 
@@ -676,29 +676,29 @@ Before deployment, all code must pass:
 ### Production Checklist
 
 1. **Environment Variables**:
-   - `DATABASE_URL` (Neon PostgreSQL)
-   - `SESSION_SECRET` (secure random string)
-   - `GOOGLE_CLOUD_KEY_BASE64` (GCS credentials)
-   - `AWS_*` (S3 credentials)
-   - `SENDGRID_API_KEY` (email)
-   - `STRIPE_SECRET_KEY` (payments)
-   - `ANTHROPIC_API_KEY` (Scout AI)
-   - `SENTRY_DSN` (error tracking)
+ - `DATABASE_URL` (Neon PostgreSQL)
+ - `SESSION_SECRET` (secure random string)
+ - `GOOGLE_CLOUD_KEY_BASE64` (GCS credentials)
+ - `AWS_*` (S3 credentials)
+ - `SENDGRID_API_KEY` (email)
+ - `STRIPE_SECRET_KEY` (payments)
+ - `ANTHROPIC_API_KEY` (Scout AI)
+ - `SENTRY_DSN` (error tracking)
 
 2. **Database**:
-   - Run migrations: `npm run db:push`
-   - Seed initial data (states, counties)
+ - Run migrations: `npm run db:push`
+ - Seed initial data (states, counties)
 
 3. **Build**:
-   - `npm run build` (generates `/dist/` with client + server)
+ - `npm run build` (generates `/dist/` with client + server)
 
 4. **Start**:
-   - `npm start` (runs production Express server)
+ - `npm start` (runs production Express server)
 
 5. **Health Checks**:
-   - `GET /health` endpoint
-   - Database connection validation
-   - Session store connectivity
+ - `GET /health` endpoint
+ - Database connection validation
+ - Session store connectivity
 
 ### Docker Deployment
 
@@ -756,22 +756,22 @@ Community feed is visible globally, but awareness never grants contact. Scout re
 ### E2E (Playwright)
 - **Location**: `/tests/`
 - **Suites**:
-  - Authentication buttons (7 tests)
-  - Contact loop enforcement (7 tests)
-  - Copy assist injection (6 tests)
-  - Anonymous business profiles (5 tests)
-  - Model-based flow runner (3 tests)
+ - Authentication buttons (7 tests)
+ - Contact loop enforcement (7 tests)
+ - Copy assist injection (6 tests)
+ - Anonymous business profiles (5 tests)
+ - Model-based flow runner (3 tests)
 - **Total**: 28 tests ("Bot Army")
 - **Run**: `npm run test:e2e`
 
 ### Authority Enforcement Tests
 - **50+ test cases** validating:
-  - No bypass paths
-  - Intent immutability
-  - Verification requirements
-  - Rate limiting
-  - Role validation
-  - Audit trail completeness
+ - No bypass paths
+ - Intent immutability
+ - Verification requirements
+ - Rate limiting
+ - Role validation
+ - Audit trail completeness
 
 ### Verification Scripts
 - **Theme lock** (`audit:theme`)
