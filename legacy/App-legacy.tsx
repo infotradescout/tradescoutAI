@@ -12,7 +12,6 @@ import SortControl from './components/SortControl';
 import ProjectAssistant from './components/ProjectAssistant';
 import ViewToggle from './components/ViewToggle';
 import MapView from './components/MapView';
-import { GoogleGenAI } from '@google/genai';
 import QuoteRequestModal from './components/QuoteRequestModal';
 import SavedProsDashboard from './components/SavedProsDashboard';
 import Chatbot from './components/Chatbot';
@@ -27,6 +26,19 @@ import LocationModal from './components/LocationModal';
 import { CloudArrowDownIcon, Cog6ToothIcon, ShieldCheckIcon } from './components/Icons';
 import { lookupCountyFromLatLng } from './services/locationService';
 import { authService } from './services/auth';
+
+async function callGemini(prompt: string): Promise<string> {
+  const res = await fetch("/api/ai/gemini", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!res.ok) throw new Error(`Gemini request failed: ${res.status}`);
+  const data = (await res.json()) as { text?: string };
+  return typeof data.text === "string" ? data.text : "";
+}
 
 type SortOption = 'monthlyScore' | 'lifetimeScore' | 'nearest';
 type ViewMode = 'list' | 'map';
@@ -124,74 +136,9 @@ const App: React.FC = () => {
         // Only run randomly (e.g. 30% chance on load) to simulate "finding" things over time
         if (Math.random() > 0.3) return;
 
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-            
-            // Pick a random category to explore
-            const categories = Object.values(Category);
-            const randomCat = categories[Math.floor(Math.random() * categories.length)];
-
-            // Step 1: Use Google Maps and Search tools to find businesses
-            const searchResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Find 5 real, highly-rated ${randomCat} businesses near coordinates ${userLocation.lat}, ${userLocation.lng}. Search Google Maps and the web. Provide their names, description, location, phone, and website.`,
-                config: { tools: [{ googleMaps: {} }, { googleSearch: {} }] }
-            });
-            
-            // Extract potential source URLs from grounding
-            const chunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-            
-            // Simplified heuristics for mapping chunks to results: just collect all valid URIs
-            const mapUris = chunks.map((c: any) => c.maps?.googleMapsUri || c.maps?.uri || c.web?.uri).filter((u: any) => u);
-
-            // Step 2: Parse the text response into JSON
-            const parseResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Extract a JSON array from the following text. The JSON should match this schema: [{"name": "string", "description": "string", "location": "string", "phone": "string", "website": "string"}].
-                
-                Text to parse:
-                ${searchResponse.text}`,
-                config: { responseMimeType: 'application/json' }
-            });
-            
-            const discovered = JSON.parse(parseResponse.text);
-            
-            if (Array.isArray(discovered) && discovered.length > 0) {
-                let count = 0;
-                discovered.forEach((biz: any, index: number) => {
-                    if (!db.contractorExists(biz.name)) {
-                         db.addContractor({
-                            id: `auto-${Date.now()}-${Math.random()}`,
-                            name: biz.name,
-                            category: randomCat,
-                            location: biz.location || "Nearby",
-                            monthlyScore: Math.floor(Math.random() * 20) + 70, // Random score 70-90
-                            lifetimeScore: 0,
-                            avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(biz.name)}&background=random`,
-                            description: biz.description || `Professional ${randomCat} services found in your area.`,
-                            specialties: [randomCat, 'Local Pro'],
-                            reviews: [],
-                            verified: false, // Auto-discovered are not verified yet
-                            lat: userLocation.lat + (Math.random() - 0.5) * 0.05, 
-                            lng: userLocation.lng + (Math.random() - 0.5) * 0.05,
-                            claimed: false,
-                            phone: biz.phone || null,
-                            website: biz.website || null,
-                            sourceUrl: mapUris[index] || undefined // Attempt to assign a source URL
-                         });
-                         count++;
-                    }
-                });
-                
-                if (count > 0) {
-                    setContractors(db.getContractors());
-                    setNewlyDiscovered(`${count} new ${randomCat} pros found near you!`);
-                    setTimeout(() => setNewlyDiscovered(null), 6000);
-                }
-            }
-        } catch (e) {
-            console.log("Auto-discovery silent fail", e);
-        }
+        // Disabled: legacy auto-discovery used client-side LLM web tools.
+        // If reintroducing, route any LLM calls through server endpoints.
+        return;
       };
       
       runAutoDiscovery();
@@ -273,58 +220,9 @@ const App: React.FC = () => {
       if (isDeepSearching || !term.trim()) return;
       setIsDeepSearching(true);
       try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-          
-          // Use selected location context if available
-          const locationContext = selectedCountyCode && selectedStateCode 
-            ? `${selectedCountyCode}, ${selectedStateCode}` 
-            : userLocation ? `${userLocation.lat}, ${userLocation.lng}` : "US";
-
-          // Search Google Maps and Web
-          const searchResponse = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: `Find 3 real, highly-rated contractors for "${term}" in ${locationContext}. 
-              Search Google Maps and the web. Return their Name, Description, Location, Phone, and Website.`,
-              config: { tools: [{ googleMaps: {} }, { googleSearch: {} }] }
-          });
-          
-          const chunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-          const mapUris = chunks.map((c: any) => c.maps?.googleMapsUri || c.maps?.uri || c.web?.uri).filter((u: any) => u);
-
-          const parseResponse = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: `Extract a JSON array from this text matching: [{"name": "string", "category": "string", "description": "string", "location": "string", "phone": "string", "website": "string"}].
-              Text: ${searchResponse.text}`,
-              config: { responseMimeType: 'application/json' }
-          });
-          
-          const discovered = JSON.parse(parseResponse.text);
-          if (Array.isArray(discovered)) {
-             discovered.forEach((biz: any, index: number) => {
-                if (!db.contractorExists(biz.name)) {
-                     db.addContractor({
-                        id: `deep-${Date.now()}-${index}`,
-                        name: biz.name,
-                        category: biz.category as Category || Category.GENERAL,
-                        location: biz.location || locationContext,
-                        monthlyScore: 60,
-                        lifetimeScore: 0,
-                        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(biz.name)}&background=random`,
-                        description: biz.description || `Specialist for ${term}`,
-                        specialties: [term],
-                        reviews: [],
-                        verified: false,
-                        lat: (userLocation?.lat || 37.0902) + (Math.random() - 0.5) * 0.05,
-                        lng: (userLocation?.lng || -95.7129) + (Math.random() - 0.5) * 0.05,
-                        claimed: false,
-                        phone: biz.phone,
-                        website: biz.website,
-                        sourceUrl: mapUris[index]
-                     });
-                }
-             });
-             setContractors(db.getContractors());
-          }
+          // Disabled: legacy deep search used client-side LLM web tools.
+          // If reintroducing, route any LLM calls through server endpoints.
+          return;
       } catch(e) {
           console.error("Deep search failed", e);
       } finally {
@@ -336,7 +234,35 @@ const App: React.FC = () => {
   const handleProjectQuery = async (query: string) => {
     setIsAssistantLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const activeState = selectedStateCode;
+      const activeCounty = selectedCountyCode;
+
+      const localContext = db.getLocalDataContext(activeState || undefined, activeCounty || undefined);
+
+      const knowledgeEntries = db.getKnowledgeBase().filter((e: any) => e.isActive);
+      const adminKnowledge = knowledgeEntries.length > 0
+        ? `\n\nADMIN KNOWLEDGE BASE:\n${knowledgeEntries.map((e: any) => `[${e.title}]: ${e.content}`).join('\n')}`
+        : '';
+
+      const partnerships = db.getPartnerships().filter((p: any) => p.isActive);
+      const partnershipData = partnerships.length > 0
+        ? `\n\nAVAILABLE PARTNERSHIPS / ADS:\n${JSON.stringify(partnerships.map((p: any) => ({ title: p.title, type: p.type, keywords: p.triggerKeywords, link: p.link, desc: p.description })))}`
+        : '';
+
+      const prompt = `${SYSTEM_PROMPT}
+
+User query: "${query}"
+
+LOCAL DATA CONTEXT:
+${JSON.stringify(localContext, null, 2)}
+${adminKnowledge}
+${partnershipData}
+
+Return JSON only matching the ProjectAnalysis schema used by this legacy UI.`;
+
+      const analysis = JSON.parse(await callGemini(prompt));
+      setProjectAnalysis(analysis);
+      return;
 
       // Step 1: Intent Classification & Location Extraction
       const classificationPrompt = `

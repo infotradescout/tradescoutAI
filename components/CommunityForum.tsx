@@ -3,7 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { User, ForumPost, ForumComment, Category } from '../types';
 import * as db from '../services/db';
 import { ChatBubbleLeftRightIcon, HandThumbUpIcon, UserCircleIcon, PlusCircleIcon, SparklesIcon, CheckBadgeIcon, TrashIcon, Heart, MapPin } from './Icons';
-import { GoogleGenAI } from '@google/genai';
+
+async function callGemini(prompt: string): Promise<string> {
+    const res = await fetch("/api/ai/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt }),
+    });
+
+    if (!res.ok) throw new Error(`Gemini request failed: ${res.status}`);
+    const data = (await res.json()) as { text?: string };
+    return typeof data.text === "string" ? data.text : "";
+}
 
 interface CommunityForumProps {
     currentUser: User | null;
@@ -75,8 +87,6 @@ const CommunityForum: React.FC<CommunityForumProps> = ({ currentUser, onLoginCli
 
         // TRIGGER AI AUTO-RESPONSE
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-            
             // Fetch local context (simplified for demo, assuming generic location or extraction)
             const localContext = db.getLocalTradeData('national'); 
             
@@ -95,15 +105,13 @@ const CommunityForum: React.FC<CommunityForumProps> = ({ currentUser, onLoginCli
                 Keep it under 200 characters.
             `;
 
-            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-            
             const aiComment: ForumComment = {
                 id: `c-ai-${Date.now()}`,
                 postId: newPost.id,
                 userId: 'ai',
                 username: 'Scout Guide',
                 userRole: 'ai',
-                content: response.text.trim(),
+                content: (await callGemini(prompt)).trim(),
                 date: new Date().toISOString().split('T')[0],
                 upvotes: 0
             };

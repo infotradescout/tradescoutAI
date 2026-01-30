@@ -2,7 +2,19 @@
 import React, { useState, useMemo } from 'react';
 import { Contractor } from '../types';
 import { XIcon, StarIcon, CheckBadgeIcon, SparklesIcon } from './Icons';
-import { GoogleGenAI } from '@google/genai';
+
+async function callGemini(prompt: string): Promise<string> {
+    const res = await fetch("/api/ai/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt }),
+    });
+
+    if (!res.ok) throw new Error(`Gemini request failed: ${res.status}`);
+    const data = (await res.json()) as { text?: string };
+    return typeof data.text === "string" ? data.text : "";
+}
 
 interface ComparisonModalProps {
     isOpen: boolean;
@@ -46,13 +58,11 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({ isOpen, onClose, cont
         setSummaries(prev => ({...prev, [id]: {isLoading: true, summary: '', error: ''}}));
         
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             const reviewText = reviews.map(r => `- Rating: ${r.rating}/5\n- Comment: ${r.comment}`).join('\n---\n');
             const prompt = `Summarize these customer reviews for ${name}, focusing on common praises and critiques. Use bullet points. \n\nReviews:\n---\n${reviewText}`;
             
-            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-
-            setSummaries(prev => ({...prev, [id]: {isLoading: false, summary: response.text, error: ''}}));
+            const text = await callGemini(prompt);
+            setSummaries(prev => ({...prev, [id]: {isLoading: false, summary: text, error: ''}}));
         } catch (error) {
             console.error("Error generating review summary:", error);
             setSummaries(prev => ({...prev, [id]: {isLoading: false, summary: '', error: 'Could not generate summary.'}}));

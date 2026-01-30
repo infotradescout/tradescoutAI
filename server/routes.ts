@@ -463,6 +463,16 @@ export async function registerRoutes(app: any) {
       })
     : noopRateLimiter;
 
+  const aiLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 60,
+        message: "Too many AI requests, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    : noopRateLimiter;
+
   const parseOptionalIsoDate = (value?: string): Date | undefined => {
     if (!value) return undefined;
     const d = new Date(value);
@@ -6822,16 +6832,91 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Handle actual file upload from pre-signed URL
-  app.put("/api/objects/upload/:fileId", async (req: any, res: any) => {
+  // Legacy/utility AI endpoint: server-side Gemini call (never expose API keys to clients).
+  app.post("/api/ai/gemini", isAuthenticated, aiLimiter, async (req: any, res: any) => {
+    try {
+      const prompt = typeof req.body?.prompt === "string" ? req.body.prompt : "";
+      if (!prompt.trim()) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      if (prompt.length > 8000) {
+        return res.status(400).json({ error: "prompt too long" });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: "GEMINI_API_KEY not configured" });
+      }
+
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+      const model = genAI.getGenerativeModel({ model: modelName });
+
+      const result = await model.generateContent(prompt);
+      const text = result?.response?.text?.() || "";
+
+      return res.json({ text });
+    } catch (error: any) {
+      console.error("Error in /api/ai/gemini:", error);
+      return res.status(500).json({ error: "AI request failed" });
+    }
+  });
+
+  const isSafeUploadId = (value: unknown): value is string => {
+    if (typeof value !== "string") return false;
+    // We generate IDs as UUIDs; enforce that here to prevent traversal/overwrite.
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  };
+
+  const isPathUnder = (parent: string, candidate: string): boolean => {
+    const parentPath = path.resolve(parent);
+    const candidatePath = path.resolve(candidate);
+    const withSep = parentPath.endsWith(path.sep) ? parentPath : parentPath + path.sep;
+    return candidatePath === parentPath || candidatePath.startsWith(withSep);
+  };
+
+  // Handle actual file upload (LocalStorageService fallback only).
+  app.put("/api/objects/upload/:fileId", isAuthenticated, async (req: any, res: any) => {
     try {
       const { fileId } = req.params;
+      if (!isSafeUploadId(fileId)) {
+        return res.status(400).json({ error: "Invalid fileId" });
+      }
+
+      // If R2 is configured, uploads should go directly to the signed URL returned by POST /api/objects/upload.
+      const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
+      if (useR2) {
+        return res.status(400).json({ error: "Direct uploads are enabled; use the signed uploadURL" });
+      }
+
       const contentType = req.headers["content-type"] || "application/octet-stream";
-      
-      // Collect buffer from request
+
+      const maxBytes = Number.parseInt(process.env.MAX_UPLOAD_BYTES || "", 10);
+      const limitBytes = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : 20 * 1024 * 1024; // 20MB default
+
+      const contentLengthHeader = req.headers["content-length"];
+      const contentLength =
+        typeof contentLengthHeader === "string" ? Number.parseInt(contentLengthHeader, 10) : undefined;
+      if (typeof contentLength === "number" && Number.isFinite(contentLength) && contentLength > limitBytes) {
+        return res.status(413).json({ error: "Upload too large" });
+      }
+
+      // Collect buffer from request with a hard size cap.
       const chunks: Buffer[] = [];
+      let received = 0;
       for await (const chunk of req) {
-        chunks.push(chunk);
+        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        received += buf.length;
+        if (received > limitBytes) {
+          try {
+            req.destroy();
+          } catch {
+            // ignore
+          }
+          return res.status(413).json({ error: "Upload too large" });
+        }
+        chunks.push(buf);
       }
       const buffer = Buffer.concat(chunks);
 
@@ -6854,6 +6939,17 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ error: "folderPath is required" });
       }
 
+      // Prevent ingesting arbitrary server directories.
+      const allowedRoots = [
+        path.join(__dirname, "uploads"),
+        path.join(__dirname, "cache", "manual", "bulk_uploads"),
+      ];
+      const resolvedFolder = path.resolve(folderPath);
+      const allowed = allowedRoots.some((root) => isPathUnder(root, resolvedFolder));
+      if (!allowed) {
+        return res.status(403).json({ error: "folderPath must be under an approved ingest root" });
+      }
+
       const summary = ingestKnowledgeFolder(folderPath);
       res.json({ message: "Knowledge folder ingested", summary });
     } catch (error: any) {
@@ -6869,7 +6965,16 @@ export async function registerRoutes(app: any) {
       const uploadDir = path.join(__dirname, "uploads", `batch_${Date.now()}`);
       if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-      const upload = multer({ dest: uploadDir }).array("files", 50);
+      const maxBytes = Number.parseInt(process.env.MAX_KNOWLEDGE_UPLOAD_BYTES || "", 10);
+      const limitBytes = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : 25 * 1024 * 1024; // 25MB per file
+
+      const upload = multer({
+        dest: uploadDir,
+        limits: {
+          files: 50,
+          fileSize: limitBytes,
+        },
+      }).array("files", 50);
 
       upload(req, res, (err: any) => {
         if (err) {

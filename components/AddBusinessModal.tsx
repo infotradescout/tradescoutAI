@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Contractor, Category } from '../types';
 import { XIcon, BuildingStorefrontIcon, PlusCircleIcon } from './Icons';
-import { GoogleGenAI } from '@google/genai';
 
 interface AddBusinessModalProps {
     isOpen: boolean;
@@ -25,73 +24,7 @@ const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ isOpen, onClose, on
         setFoundBusiness(null);
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
-            // Step 1: Find the business using Google Maps and Google Search tools
-            const searchResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Find detailed information for the business: "${searchQuery}". Search Google Maps and the web to find the business name, full address, phone number, website, and a brief description of their services.`,
-                config: { tools: [{ googleMaps: {} }, { googleSearch: {} }] }
-            });
-
-            const searchText = searchResponse.text;
-            
-            // Extract grounding metadata for the source link
-            const groundingChunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
-            let sourceUrl = '';
-            
-            if (groundingChunks) {
-                 // Prioritize Maps URI, then Web URI
-                 for (const chunk of groundingChunks) {
-                     const mapChunk = chunk as any;
-                     if (mapChunk.maps?.googleMapsUri) {
-                        sourceUrl = mapChunk.maps.googleMapsUri;
-                        break;
-                     }
-                     if (mapChunk.maps?.uri) { 
-                         sourceUrl = mapChunk.maps.uri;
-                         break;
-                     }
-                     if (chunk.web?.uri) {
-                         if (!sourceUrl) sourceUrl = chunk.web.uri;
-                     }
-                 }
-            }
-
-
-            // Step 2: Parse the text into a structured object using Gemini
-            const parseResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Extract the following business details from the text below into a JSON object.
-                
-                Schema:
-                {
-                    "name": "string",
-                    "category": "string (One of: Plumbing, Electrical, Painting, Roofing, Landscaping, General Contractor. Infer the best match.)",
-                    "location": "string (The full address)",
-                    "description": "string (A professional summary of their services, max 200 chars)",
-                    "phone": "string or null",
-                    "website": "string or null",
-                    "lat": "number (Estimated latitude based on city/address, or 43.6532 for Toronto if unknown)",
-                    "lng": "number (Estimated longitude based on city/address, or -79.3832 for Toronto if unknown)",
-                    "specialties": ["string", "string", "string"]
-                }
-
-                Text to extract from:
-                ${searchText}`,
-                config: { responseMimeType: 'application/json' }
-            });
-
-            const data = JSON.parse(parseResponse.text);
-
-            if (!data.name) {
-                setError('Could not find a valid business with that name.');
-            } else {
-                setFoundBusiness({
-                    ...data,
-                    sourceUrl
-                });
-            }
+            setError('Auto-discovery via web search is disabled in this archived component. Add businesses via the live admin tools instead.');
 
         } catch (err) {
             console.error("Error searching business:", err);

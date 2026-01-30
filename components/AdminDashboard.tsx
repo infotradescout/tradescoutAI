@@ -3,8 +3,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as db from '../services/db';
 import { KnowledgeEntry, LocalTradeData, Partnership, User, Contractor, ForumPost, CountyConfig, Category } from '../types';
 import { TrashIcon, PlusCircleIcon, ArrowLeftIcon, LightBulbIcon, MapPinIcon, CurrencyDollarIcon, CloudArrowUpIcon, SparklesIcon, ChartBarIcon, UserIcon, TableCellsIcon, BuildingStorefrontIcon, ChatBubbleLeftRightIcon } from './Icons';
-import { GoogleGenAI } from '@google/genai';
 import { US_STATES } from '../services/locationService';
+
+async function callGemini(prompt: string): Promise<string> {
+    const res = await fetch("/api/ai/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt }),
+    });
+
+    if (!res.ok) throw new Error(`Gemini request failed: ${res.status}`);
+    const data = (await res.json()) as { text?: string };
+    return typeof data.text === "string" ? data.text : "";
+}
 
 interface AdminDashboardProps {
     onBack: () => void;
@@ -224,26 +236,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             let contextText = aiInput;
             if (aiFile) contextText += `\n\n[FILE CONTENT]:\n${await aiFile.text()}`;
 
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
             if (mode === 'knowledge') {
-                const prompt = `You are a Knowledge Base Administrator. Create a structured entry from this input:\n${contextText}\nReturn JSON: { "title": "string", "content": "string" }`;
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: { responseMimeType: 'application/json' }
-                });
-                const result = JSON.parse(response.text);
+                const prompt = `You are a Knowledge Base Administrator. Create a structured entry from this input:\n${contextText}\nReturn JSON only: { "title": "string", "content": "string" }`;
+                const result = JSON.parse(await callGemini(prompt));
                 db.addKnowledgeEntry(result.title, result.content);
                 setAiStatus('Knowledge Added');
             } else {
-                const prompt = `You are an Ad Manager. Add/Update partnerships based on:\n${contextText}\nCurrent: ${JSON.stringify(partnerships)}\nReturn FULL JSON array of Partnership objects.`;
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: { responseMimeType: 'application/json' }
-                });
-                const result = JSON.parse(response.text);
+                const prompt = `You are an Ad Manager. Add/Update partnerships based on:\n${contextText}\nCurrent: ${JSON.stringify(partnerships)}\nReturn FULL JSON array of Partnership objects only.`;
+                const result = JSON.parse(await callGemini(prompt));
                 db.updatePartnerships(result);
                 setAiStatus('Partnerships Updated');
             }

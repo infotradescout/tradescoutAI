@@ -9,6 +9,10 @@ vite.config.ts.*
 .env
 .env.*
 secrets
+ssl
+*.pem
+*.key
+*.crt
 
 # Playwright
 .playwright/

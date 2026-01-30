@@ -3,7 +3,22 @@ import React, { useState, useMemo } from 'react';
 import { Contractor, User, Review } from '../types';
 import { StarIcon, MapPinIcon, BriefcaseIcon, CheckBadgeIcon, SparklesIcon, DocumentTextIcon, ClipboardDocumentListIcon, BookmarkIcon, PencilIcon, GlobeAltIcon, PhoneIcon, ChevronDownIcon, ShieldCheckIcon, MapIcon, AwardIcon, TrashIcon } from './Icons';
 import ReviewForm from './ReviewForm';
-import { GoogleGenAI } from '@google/genai';
+
+async function callGemini(prompt: string): Promise<string> {
+  const res = await fetch("/api/ai/gemini", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Gemini request failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as { text?: string };
+  return typeof data.text === "string" ? data.text : "";
+}
 
 interface ContractorCardProps {
   contractor: Contractor;
@@ -103,8 +118,6 @@ const ContractorCard: React.FC<ContractorCardProps> = ({
     setThoughtProcess('');
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-      
       let prompt = '';
       if (reviews.length > 0) {
           const reviewText = reviews.map(r => `- Rating: ${r.rating}/5\n- Comment: ${r.comment}`).join('\n---\n');
@@ -133,12 +146,7 @@ const ContractorCard: React.FC<ContractorCardProps> = ({
           Location: ${location}`;
       }
       
-      const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt
-      });
-      
-      const rawText = response.text;
+      const rawText = await callGemini(prompt);
       
       // Parse thought process
       const thoughtMatch = rawText.match(/<thought>([\s\S]*?)<\/thought>/);
