@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tradescout-v20260131a';
+const CACHE_NAME = 'tradescout-v20260130';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -11,23 +11,6 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_ASSETS))
   );
-});
-
-// Activate event - clean up legacy caches so deploys take effect immediately
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(
-      keys.map((key) => {
-        if (key === CACHE_NAME) return Promise.resolve(false);
-        if (key === 'tradescout-static-v1' || key.startsWith('tradescout-')) {
-          return caches.delete(key);
-        }
-        return Promise.resolve(false);
-      })
-    );
-    await self.clients.claim();
-  })());
 });
 
 // Background sync for offline actions
