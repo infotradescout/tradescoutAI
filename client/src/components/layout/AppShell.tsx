@@ -388,7 +388,8 @@ export function AppShell({ children, footer }: AppShellProps) {
           top: 'var(--top-nav-h)',
           bottom: 'var(--bottom-nav-h)',
           paddingRight: !isMobile ? 'var(--right-nav-w)' : undefined,
-          background: 'var(--surface-app-bg)',
+          // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
+          background: 'transparent',
           color: 'var(--text-primary)'
         }}
       >

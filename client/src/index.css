@@ -82,7 +82,8 @@ html {
     --surface-frame-border: var(--ts-border-subtle, rgba(255,255,255,0.06));
 
     /* APPLICATION SURFACES */
-    --surface-app-bg: var(--ts-bg, #11161f);           /* Main canvas */
+    /* Canvas is provided by TradeScoutBackground; keep app shell transparent */
+    --surface-app-bg: transparent;
     --surface-card: var(--ts-surface, #161e2b);        /* Elevated: cards, suggestions, prompts */
     --surface-intermediate: var(--ts-surface-hover, #1a2230); /* In-card surfaces */
     --surface-input: var(--ts-input-bg, #1b2332);      /* Inputs */
@@ -140,7 +141,7 @@ html {
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--ts-bg, var(--surface-app-bg));
+    background-color: transparent;
     overscroll-behavior: none;
     /* Desktop: allow scrolling by default; mobile can opt into body.ts-scroll-lock */
     overflow: auto;
@@ -166,7 +167,7 @@ html {
     height: 100%;
     min-height: var(--app-height);
     width: 100%;
-    background-color: var(--ts-bg, var(--surface-app-bg));
+    background-color: transparent;
     overflow: visible;
   }
 
@@ -179,7 +180,7 @@ html {
     @apply font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     color: var(--ts-text, #e2e8f0);
-    background-color: var(--ts-bg, var(--surface-app-bg));
+    background-color: transparent;
   }
 }
 
@@ -512,7 +513,8 @@ html {
   .bg-slate-950\/95,
   .bg-slate-950\/60,
   .dark\:bg-slate-900 {
-    background-color: var(--charcoal-950) !important;
+    /* Remove legacy full-page canvas fills so only TradeScoutBackground paints the backdrop. */
+    background-color: transparent !important;
   }
 
   /* bg-slate-900 → charcoal-900 (standard canvas) */
@@ -1516,14 +1518,14 @@ html, body {
 }
 
 /* Navy color scheme fallback for legacy pages - ALL navy to charcoal */
-.bg-navy-900,
-.bg-navy-900\/70,
-.bg-navy-900\/60,
-.bg-navy-900\/50,
-.bg-navy-900\/40,
-.hover\:bg-navy-900 {
-  background-color: var(--charcoal-900) !important;
-}
+  .bg-navy-900,
+  .bg-navy-900\/70,
+  .bg-navy-900\/60,
+  .bg-navy-900\/50,
+  .bg-navy-900\/40,
+  .hover\:bg-navy-900 {
+    background-color: var(--charcoal-900) !important;
+  }
 
 .bg-navy-800,
 .bg-navy-800\/70,
