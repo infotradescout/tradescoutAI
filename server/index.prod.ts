@@ -367,6 +367,8 @@ app.use((req, res, next) => {
               "/apple-touch-icon-precomposed.png",
               "/manifest.json",
               "/site.webmanifest",
+              "/sw.js",
+              "/service-worker.js",
               "/icon-192.png",
               "/icon-512.png",
               "/icon-192-maskable.png",
