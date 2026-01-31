@@ -1283,14 +1283,15 @@ html, body {
 
 /* Theme-aware page wrapper - Pure charcoal (no gradient bleed) */
 .page-wrapper {
-  background: var(--surface-app);
+  /* Background is owned by TradeScoutBackground; page wrappers must be transparent. */
+  background: transparent;
   min-height: 100vh;
   color: var(--text-primary);
 }
 
-/* Scout shell - optional contained surface treatment */
+/* Scout shell: keep transparent so the global background shows through */
 .scout-shell {
-  background: var(--surface-scout-shell);
+  background: transparent;
 }
 
 /* Theme-aware cards */
@@ -1383,13 +1384,7 @@ html, body {
 
 /* Scout shell - single, controlled gradient on the canvas */
 .scout-shell {
-  background-color: #11161f;
-  background-image: linear-gradient(
-    180deg,
-    rgba(40, 60, 110, 0.12) 0%,
-    rgba(17, 22, 31, 0.95) 45%,
-    #11161f 100%
-  );
+  background: transparent;
   position: relative;
   min-height: 100vh;
 }
