@@ -18,7 +18,7 @@ const sizeClasses = {
 // Central logo asset path – stored under client/public so it is served
 // as a public static asset by Vite and the production server.
 // Canonical logo file: client/public/tradescout-logo.png
-const BRAND_LOGO_URL = '/tradescout-logo.png';
+const BRAND_LOGO_URL = '/logo.png';
 
 export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {
   const sizeClass = sizeClasses[size];
@@ -27,7 +27,7 @@ export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {
     <img
       src={BRAND_LOGO_URL}
       alt="TradeScout logo"
-      className={`${sizeClass} ${className} object-contain`}
+      className={`${sizeClass} ${className} rounded-full object-cover`}
       loading="lazy"
     />
   );
