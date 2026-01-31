@@ -1289,6 +1289,18 @@ html, body {
   color: var(--text-primary);
 }
 
+/* --------------------------------------------------------------------------
+   Canvas killer: remove legacy full-page backgrounds.
+   Only affects the *top-level* element rendered inside AppShell's scroll root,
+   so cards/panels deeper in the tree keep their intended surfaces.
+   -------------------------------------------------------------------------- */
+#app-scroll-root > [class*="bg-slate-950"],
+#app-scroll-root > [class*="bg-slate-900"],
+#app-scroll-root > [class*="bg-navy-900"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 /* Scout shell: keep transparent so the global background shows through */
 .scout-shell {
   background: transparent;
