@@ -127,7 +127,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
-    <section className="pt-[52px] px-4 py-6 md:hidden">
+    <section className="px-4 py-6 md:hidden">
       <h1 className="text-xl font-semibold">
         Empowering <span className="text-accent">Your Community</span>
       </h1>
@@ -371,8 +371,6 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* Mobile hero/context strip (scrolls with content) */}
-      {isMobile && renderMobileHero()}
-
       {/* Main content: ONLY scroll container */}
       <main
         id="app-scroll-root"
@@ -393,6 +391,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           color: 'var(--text-primary)'
         }}
       >
+        {isMobile && isScoutSurface && renderMobileHero()}
         {children}
       </main>
 
