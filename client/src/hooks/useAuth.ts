@@ -57,12 +57,12 @@ export function useAuth() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch('/api/auth/user', {
-        credentials: 'include',
+      const response = await fetch("/api/auth/user", {
+        credentials: "include",
         signal: controller.signal,
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
       });
 
@@ -82,7 +82,7 @@ export function useAuth() {
       const payload: any = await response.json().catch(() => null);
 
       // Fail-soft shape (preferred): { authenticated: boolean, user?: User }
-      if (payload && typeof payload === 'object' && 'authenticated' in payload) {
+      if (payload && typeof payload === "object" && "authenticated" in payload) {
         if (payload.authenticated === true && payload.user) {
           return payload.user as User;
         }
@@ -94,26 +94,31 @@ export function useAuth() {
       return payload as User;
     } catch (error) {
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          console.warn('Auth request timed out');
+        if (error.name === "AbortError") {
+          console.warn("Auth request timed out");
           return null;
         }
-        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-          console.warn('Network error during auth request:', error.message);
+        if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
+          console.warn("Network error during auth request:", error.message);
           return null;
         }
       }
-      console.warn('Auth request error; treating as guest');
+      console.warn("Auth request error; treating as guest");
       return null;
     }
   }, []);
 
-  const { data: user, isLoading, error, refetch } = useQuery({
+  const {
+    data: user,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["/api/auth/user"],
     queryFn: authQuery,
     retry: (failureCount, error) => {
       // Only retry on network errors, not auth failures
-      if (failureCount < 2 && error?.message?.includes('fetch')) {
+      if (failureCount < 2 && error?.message?.includes("fetch")) {
         return true;
       }
       return false;
@@ -122,7 +127,9 @@ export function useAuth() {
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    // Auth state can change outside React Query awareness (login/logout, OAuth redirects).
+    // Always re-check on mount so ProtectedRoute and RootLanding don't get stuck in "guest".
+    refetchOnMount: "always",
     refetchInterval: false,
   });
 

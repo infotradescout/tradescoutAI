@@ -45,7 +45,7 @@ function toIsoOrNull(value: unknown): string | null {
 
 export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary> {
   // Base set of counties
-  const countyRows = await db
+  let countyRows = await db
     .select({
       countyFips: counties.fips,
       countyName: counties.name,
@@ -53,20 +53,40 @@ export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary>
     })
     .from(counties);
 
-  const totalCounties = countyRows.length;
-
-  if (totalCounties === 0) {
-    return {
-      ok: true,
-      totalCounties: 0,
-      unassignedCounties: 0,
-      partiallyCoveredCounties: 0,
-      fullyCoveredCounties: 0,
-      verifiedCoverageRatePercent: 0,
-      fullCoverageNewLast30: 0,
-      rows: [],
-    };
+  if (countyRows.length === 0) {
+    // Fail-soft when DB isn't seeded yet: serve the complete in-repo dataset
+    // so the coverage console still shows a stable "unassigned everywhere" view.
+    try {
+      const { US_STATES_COUNTIES } = await import("@shared/states-counties");
+      const rows: Array<{ countyFips: string; countyName: string; stateCode: string }> = [];
+      for (const state of US_STATES_COUNTIES as any[]) {
+        const stateCode = String(state.code || "").toUpperCase();
+        const counties = Array.isArray(state.counties) ? state.counties : [];
+        for (const county of counties) {
+          const fips = String((county as any).fipsCode || "").trim();
+          const name = String((county as any).name || "").trim();
+          if (!/^\d{5}$/.test(fips)) continue;
+          if (!name) continue;
+          rows.push({ countyFips: fips, countyName: name, stateCode });
+        }
+      }
+      countyRows = rows as any;
+    } catch {
+      // If even the static dataset isn't available, return an empty summary.
+      return {
+        ok: true,
+        totalCounties: 0,
+        unassignedCounties: 0,
+        partiallyCoveredCounties: 0,
+        fullyCoveredCounties: 0,
+        verifiedCoverageRatePercent: 0,
+        fullCoverageNewLast30: 0,
+        rows: [],
+      };
+    }
   }
+
+  const totalCounties = countyRows.length;
 
   // Aggregate entities per county
   const entityRows = await db
@@ -165,5 +185,84 @@ export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary>
     verifiedCoverageRatePercent,
     fullCoverageNewLast30,
     rows,
+  };
+}
+
+export async function getCoverageForCounty(countyFips: string): Promise<CountyCoverageRow | null> {
+  const fips = String(countyFips || "").trim();
+  if (!/^\d{5}$/.test(fips)) return null;
+
+  let [county] = await db
+    .select({
+      countyFips: counties.fips,
+      countyName: counties.name,
+      stateCode: counties.stateCode,
+    })
+    .from(counties)
+    .where(eq(counties.fips, fips))
+    .limit(1);
+
+  if (!county) {
+    // Fail-soft: if the DB hasn't been fully seeded yet, still serve a
+    // stable response for county pages using the static in-repo dataset.
+    try {
+      const { getCountyByFips } = await import("@shared/states-counties");
+      const staticCounty = getCountyByFips(fips) as any;
+      if (!staticCounty) return null;
+      county = {
+        countyFips: fips,
+        countyName: String(staticCounty.name || ""),
+        stateCode: String(staticCounty.state || "").toUpperCase(),
+      } as any;
+    } catch {
+      return null;
+    }
+  }
+
+  const [entity] = await db
+    .select({
+      countyFips: countyEntities.countyFips,
+      territoryManagerCount: sql<number>`SUM(CASE WHEN ${countyEntities.entityType} = 'territory_manager' AND ${countyEntities.status} = 'active' THEN 1 ELSE 0 END)::int`,
+      affiliateCount: sql<number>`SUM(CASE WHEN ${countyEntities.entityType} IN ('affiliate','partner') AND ${countyEntities.status} = 'active' THEN 1 ELSE 0 END)::int`,
+      hasTerritoryManager: sql<boolean>`BOOL_OR(${countyEntities.entityType} = 'territory_manager' AND ${countyEntities.status} = 'active')`,
+      hasAffiliateOrPartner: sql<boolean>`BOOL_OR(${countyEntities.entityType} IN ('affiliate','partner') AND ${countyEntities.status} = 'active')`,
+      lastEntityChangeAt: sql<Date | null>`MAX(${countyEntities.updatedAt})`,
+    })
+    .from(countyEntities)
+    .where(eq(countyEntities.countyFips, fips))
+    .groupBy(countyEntities.countyFips)
+    .limit(1);
+
+  const [notes] = await db
+    .select({
+      countyFips: countyNotes.countyFips,
+      hasNotes: sql<boolean>`COUNT(*) > 0`,
+      hasOpsNote: sql<boolean>`COUNT(*) FILTER (WHERE ${countyNotes.category} = 'operations') > 0`,
+      hasRiskNote: sql<boolean>`COUNT(*) FILTER (WHERE ${countyNotes.category} = 'risk') > 0`,
+      hasPartnerNote: sql<boolean>`COUNT(*) FILTER (WHERE ${countyNotes.category} IN ('affiliate','partner')) > 0`,
+      lastNoteAt: sql<Date | null>`MAX(${countyNotes.updatedAt})`,
+    })
+    .from(countyNotes)
+    .where(eq(countyNotes.countyFips, fips))
+    .groupBy(countyNotes.countyFips)
+    .limit(1);
+
+  const hasTerritoryManager = Boolean((entity as any)?.hasTerritoryManager);
+  const hasAffiliateOrPartner = Boolean((entity as any)?.hasAffiliateOrPartner);
+  const coverageStatus = computeCoverageStatus(hasTerritoryManager, hasAffiliateOrPartner);
+
+  return {
+    countyFips: county.countyFips as string,
+    countyName: county.countyName as string,
+    stateCode: county.stateCode as string,
+    coverageStatus,
+    territoryManagerCount: Number((entity as any)?.territoryManagerCount || 0),
+    affiliateCount: Number((entity as any)?.affiliateCount || 0),
+    lastEntityChangeAt: toIsoOrNull((entity as any)?.lastEntityChangeAt),
+    hasNotes: Boolean((notes as any)?.hasNotes),
+    hasOpsNote: Boolean((notes as any)?.hasOpsNote),
+    hasRiskNote: Boolean((notes as any)?.hasRiskNote),
+    hasPartnerNote: Boolean((notes as any)?.hasPartnerNote),
+    lastNoteAt: toIsoOrNull((notes as any)?.lastNoteAt),
   };
 }

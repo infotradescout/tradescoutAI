@@ -4,12 +4,14 @@ import { storage } from "../storage";
 import { db } from "../db";
 import {
   affiliateAccounts,
+  counties as countiesTable,
+  states as statesTable,
   users,
   type AffiliateAccount,
   type AffiliateReferral,
   type AffiliatePayout,
 } from "../../shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import adminToolDiscoveryRouter from "./admin-tool-discovery";
 import { refreshCountyMetrics } from "../services/geographicMetrics";
 import { getCountyCoverageSummary } from "../services/geographicCoverage";
@@ -57,86 +59,166 @@ export function mountAdminRoutes(app: any) {
   // ---------------------------------------------------------------------------
   // Admin locality heatmap (same behavior as legacy, with role checks)
   // ---------------------------------------------------------------------------
-  app.get("/api/admin/heatmap", isAuthenticated, async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const userId = (req.user as any)?.id;
-      const user = await storage.getUser(userId);
+  app.get(
+    "/api/admin/heatmap",
+    isAuthenticated,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id;
+        const user = await storage.getUser(userId);
 
-      if (!user || !["head_admin", "moderator", "ops_admin", "super_admin"].includes(user.role || "")) {
-        return res.status(403).json({ message: "Admin access required" });
+        if (
+          !user ||
+          !["head_admin", "moderator", "ops_admin", "super_admin"].includes(user.role || "")
+        ) {
+          return res.status(403).json({ message: "Admin access required" });
+        }
+
+        const timeframe = (req.query.timeframe as string) || "30d";
+        const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
+
+        const heatmapData = await storage.getLocalityHeatmapData(days);
+
+        res.json(heatmapData);
+      } catch (error: any) {
+        console.error("Error fetching heatmap data:", error);
+        res.status(500).json({ message: "Failed to fetch heatmap data" });
       }
-
-      const timeframe = (req.query.timeframe as string) || "30d";
-      const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
-
-      const heatmapData = await storage.getLocalityHeatmapData(days);
-
-      res.json(heatmapData);
-    } catch (error: any) {
-      console.error("Error fetching heatmap data:", error);
-      res.status(500).json({ message: "Failed to fetch heatmap data" });
     }
-  });
+  );
 
   // ---------------------------------------------------------------------------
   // Admin county heatmap: metrics by county FIPS (super/head admin only)
   // ---------------------------------------------------------------------------
-  app.get("/api/admin/heatmap/users-by-county", isAuthenticated, async (req: Request & { user?: any }, res: Response) => {
-    try {
-      if (!process.env.ADMIN_COUNTY_HEATMAP_ENABLED) {
-        return res.status(404).end();
-      }
-
-      const userId = (req.user as any)?.id;
-      const user = await storage.getUser(userId);
-      const role = user?.role || "";
-
-      if (role !== "super_admin" && role !== "head_admin") {
-        return res.status(403).json({
-          reasonCode: "INSUFFICIENT_ROLE",
-          message: "Admin-only analytics",
-          metric: null,
-        });
-      }
-
-      const timeframe = (req.query.timeframe as string) || "30d";
-      const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
-      const requestedMetric = (req.query.metric as string) || "users";
-
-      // 1) Serve strictly from county_metrics for the requested key
-      const metricRows = await storage.getCountyMetricsByKey(requestedMetric);
-      let metric = requestedMetric;
-      const byCounty: Record<string, number> = {};
-
-      if (metricRows.length > 0) {
-        for (const row of metricRows) {
-          if (!row.countyFips) continue;
-          const value = Number(row.metricValue || 0);
-          if (!Number.isFinite(value)) continue;
-          byCounty[row.countyFips] = value;
+  app.get(
+    "/api/admin/heatmap/users-by-county",
+    isAuthenticated,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        if (!process.env.ADMIN_COUNTY_HEATMAP_ENABLED) {
+          return res.status(404).end();
         }
-      } else {
-        // No stored values for this metric key. The client treats this as
-        // "metric not populated yet" and renders a neutral map.
-        metric = requestedMetric;
+
+        const userId = (req.user as any)?.id;
+        const user = await storage.getUser(userId);
+        const role = user?.role || "";
+
+        if (role !== "super_admin" && role !== "head_admin") {
+          return res.status(403).json({
+            reasonCode: "INSUFFICIENT_ROLE",
+            message: "Admin-only analytics",
+            metric: null,
+          });
+        }
+
+        const timeframe = (req.query.timeframe as string) || "30d";
+        const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
+        const requestedMetric = (req.query.metric as string) || "users";
+
+        // 1) Serve strictly from county_metrics for the requested key
+        const metricRows = await storage.getCountyMetricsByKey(requestedMetric);
+        let metric = requestedMetric;
+        const byCounty: Record<string, number> = {};
+
+        if (metricRows.length > 0) {
+          for (const row of metricRows) {
+            if (!row.countyFips) continue;
+            const value = Number(row.metricValue || 0);
+            if (!Number.isFinite(value)) continue;
+            byCounty[row.countyFips] = value;
+          }
+        } else {
+          // No stored values for this metric key. The client treats this as
+          // "metric not populated yet" and renders a neutral map.
+          metric = requestedMetric;
+        }
+
+        console.log(
+          `[ADMIN_MAP] ${userId} viewed county metric=${metric} heatmap at ${new Date().toISOString()}`
+        );
+
+        res.json({
+          updatedAt: new Date().toISOString(),
+          metric,
+          timeframe,
+          days,
+          byCounty,
+        });
+      } catch (error: any) {
+        console.error("Error fetching county heatmap data:", error);
+        res.status(500).json({ message: "Failed to fetch county heatmap data" });
       }
-
-      console.log(
-        `[ADMIN_MAP] ${userId} viewed county metric=${metric} heatmap at ${new Date().toISOString()}`
-      );
-
-      res.json({
-        updatedAt: new Date().toISOString(),
-        metric,
-        timeframe,
-        days,
-        byCounty,
-      });
-    } catch (error: any) {
-      console.error("Error fetching county heatmap data:", error);
-      res.status(500).json({ message: "Failed to fetch county heatmap data" });
     }
-  });
+  );
+
+  // ---------------------------------------------------------------------------
+  // Seed states + counties from built-in dataset (super/head admin only)
+  // Non-destructive: inserts missing rows, never deletes.
+  // ---------------------------------------------------------------------------
+  app.post(
+    "/api/admin/geo/seed-counties",
+    isAuthenticated,
+    isSuperAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const { US_STATES_COUNTIES } = await import("@shared/states-counties");
+
+        const existingStates = await db.select({ code: statesTable.code }).from(statesTable);
+        const existingStateCodes = new Set(existingStates.map((s) => s.code));
+
+        const missingStates = (US_STATES_COUNTIES as any[])
+          .map((s) => ({
+            code: String(s.code || "").toUpperCase(),
+            name: String(s.name || "").trim(),
+          }))
+          .filter((s) => s.code && s.name && !existingStateCodes.has(s.code))
+          .map((s) => ({ id: s.code, code: s.code, name: s.name }));
+
+        if (missingStates.length > 0) {
+          await db.insert(statesTable).values(missingStates).onConflictDoNothing();
+        }
+
+        const existingCounties = await db.select({ fips: countiesTable.fips }).from(countiesTable);
+        const existingFips = new Set(existingCounties.map((c) => c.fips));
+
+        const missingCounties: Array<{ fips: string; name: string; stateCode: string }> = [];
+        for (const state of US_STATES_COUNTIES as any[]) {
+          const stateCode = String(state.code || "").toUpperCase();
+          const counties = Array.isArray(state.counties) ? state.counties : [];
+          for (const county of counties) {
+            const fips = String((county as any).fipsCode || (county as any).fips || "").trim();
+            const name = String((county as any).name || "").trim();
+            if (!/^\d{5}$/.test(fips)) continue;
+            if (!name) continue;
+            if (existingFips.has(fips)) continue;
+            missingCounties.push({ fips, name, stateCode });
+          }
+        }
+
+        let insertedCounties = 0;
+        const batchSize = 500;
+        for (let i = 0; i < missingCounties.length; i += batchSize) {
+          const batch = missingCounties.slice(i, i + batchSize);
+          await db.insert(countiesTable).values(batch).onConflictDoNothing();
+          insertedCounties += batch.length;
+        }
+
+        // Return a quick sanity count.
+        const [countRow] = await db.select({ n: sql<number>`count(*)` }).from(countiesTable);
+        const total = Number((countRow as any)?.n ?? 0);
+
+        return res.json({
+          ok: true,
+          insertedStates: missingStates.length,
+          insertedCounties,
+          totalCounties: total,
+        });
+      } catch (error: any) {
+        console.error("Error seeding counties:", error);
+        return res.status(500).json({ message: "Failed to seed counties" });
+      }
+    }
+  );
 
   // ---------------------------------------------------------------------------
   // Admin county metrics refresh (super/head admin only)
@@ -175,7 +257,7 @@ export function mountAdminRoutes(app: any) {
         const durationMs = Date.now() - startedAt;
 
         console.log(
-          `[ADMIN_GEO_METRICS_REFRESH] user=${userId} activeCounties=${result.activeCountyCount} metricsWritten=${result.metricsWritten} durationMs=${durationMs} at=${new Date().toISOString()}`,
+          `[ADMIN_GEO_METRICS_REFRESH] user=${userId} activeCounties=${result.activeCountyCount} metricsWritten=${result.metricsWritten} durationMs=${durationMs} at=${new Date().toISOString()}`
         );
 
         res.json({
@@ -188,7 +270,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error refreshing county metrics:", error);
         res.status(500).json({ message: "Failed to refresh county metrics" });
       }
-    },
+    }
   );
 
   // ---------------------------------------------------------------------------
@@ -208,7 +290,7 @@ export function mountAdminRoutes(app: any) {
         const durationMs = Date.now() - startedAt;
 
         console.log(
-          `[ADMIN_GEO_COVERAGE] user=${userId || "unknown"} role=${role} durationMs=${durationMs} total=${summary.totalCounties} full=${summary.fullyCoveredCounties} partial=${summary.partiallyCoveredCounties} unassigned=${summary.unassignedCounties} at=${new Date().toISOString()}`,
+          `[ADMIN_GEO_COVERAGE] user=${userId || "unknown"} role=${role} durationMs=${durationMs} total=${summary.totalCounties} full=${summary.fullyCoveredCounties} partial=${summary.partiallyCoveredCounties} unassigned=${summary.unassignedCounties} at=${new Date().toISOString()}`
         );
 
         res.json({ ...summary, durationMs });
@@ -223,18 +305,32 @@ export function mountAdminRoutes(app: any) {
         res.status(503).json({
           ok: false,
           reasonCode: "GEO_COVERAGE_UNAVAILABLE",
-          message: "Geographic coverage data is temporarily unavailable. Please verify schema and try again.",
+          message:
+            "Geographic coverage data is temporarily unavailable. Please verify schema and try again.",
           errorCode: code,
         });
       }
-    },
+    }
   );
 
   // ---------------------------------------------------------------------------
   // Admin county notes (super/head admin only)
   // ---------------------------------------------------------------------------
-  const COUNTY_NOTE_CATEGORIES = ["affiliate", "employee", "partner", "operations", "risk", "general"] as const;
-  const COUNTY_ENTITY_TYPES = ["affiliate", "employee", "partner", "territory_manager", "vendor"] as const;
+  const COUNTY_NOTE_CATEGORIES = [
+    "affiliate",
+    "employee",
+    "partner",
+    "operations",
+    "risk",
+    "general",
+  ] as const;
+  const COUNTY_ENTITY_TYPES = [
+    "affiliate",
+    "employee",
+    "partner",
+    "territory_manager",
+    "vendor",
+  ] as const;
   const COUNTY_ENTITY_STATUSES = ["active", "inactive", "pending"] as const;
 
   function isValidFips(fips: string): boolean {
@@ -259,7 +355,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error fetching county notes:", error);
         res.status(500).json({ message: "Failed to fetch county notes" });
       }
-    },
+    }
   );
 
   app.post(
@@ -299,7 +395,7 @@ export function mountAdminRoutes(app: any) {
         });
 
         console.log(
-          `[ADMIN_COUNTY_NOTE] user=${userId} county=${fips} action=add role=${role} timestamp=${new Date().toISOString()} noteId=${note.id}`,
+          `[ADMIN_COUNTY_NOTE] user=${userId} county=${fips} action=add role=${role} timestamp=${new Date().toISOString()} noteId=${note.id}`
         );
 
         res.status(201).json(note);
@@ -307,7 +403,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error creating county note:", error);
         res.status(500).json({ message: "Failed to create county note" });
       }
-    },
+    }
   );
 
   app.patch(
@@ -330,7 +426,9 @@ export function mountAdminRoutes(app: any) {
         }
 
         if (existing.authorUserId !== userId && role !== "head_admin") {
-          return res.status(403).json({ message: "Only the author or head admin can edit this note" });
+          return res
+            .status(403)
+            .json({ message: "Only the author or head admin can edit this note" });
         }
 
         const { category, content } = (req.body || {}) as { category?: string; content?: string };
@@ -355,7 +453,7 @@ export function mountAdminRoutes(app: any) {
         const updated = await storage.updateCountyNote(noteId, update);
 
         console.log(
-          `[ADMIN_COUNTY_NOTE] user=${userId} county=${existing.countyFips} action=edit role=${role} timestamp=${new Date().toISOString()} noteId=${noteId}`,
+          `[ADMIN_COUNTY_NOTE] user=${userId} county=${existing.countyFips} action=edit role=${role} timestamp=${new Date().toISOString()} noteId=${noteId}`
         );
 
         res.json(updated);
@@ -363,7 +461,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error updating county note:", error);
         res.status(500).json({ message: "Failed to update county note" });
       }
-    },
+    }
   );
 
   app.delete(
@@ -386,13 +484,15 @@ export function mountAdminRoutes(app: any) {
         }
 
         if (existing.authorUserId !== userId && role !== "head_admin") {
-          return res.status(403).json({ message: "Only the author or head admin can delete this note" });
+          return res
+            .status(403)
+            .json({ message: "Only the author or head admin can delete this note" });
         }
 
         await storage.deleteCountyNote(noteId);
 
         console.log(
-          `[ADMIN_COUNTY_NOTE] user=${userId} county=${existing.countyFips} action=delete role=${role} timestamp=${new Date().toISOString()} noteId=${noteId}`,
+          `[ADMIN_COUNTY_NOTE] user=${userId} county=${existing.countyFips} action=delete role=${role} timestamp=${new Date().toISOString()} noteId=${noteId}`
         );
 
         res.status(204).end();
@@ -400,7 +500,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error deleting county note:", error);
         res.status(500).json({ message: "Failed to delete county note" });
       }
-    },
+    }
   );
 
   // ---------------------------------------------------------------------------
@@ -424,7 +524,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error fetching county entities:", error);
         res.status(500).json({ message: "Failed to fetch county entities" });
       }
-    },
+    }
   );
 
   app.post(
@@ -484,7 +584,7 @@ export function mountAdminRoutes(app: any) {
         });
 
         console.log(
-          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${fips} action=add type=${normalizedType} status=${normalizedStatus} role=${role} timestamp=${new Date().toISOString()} entityId=${entity.id}`,
+          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${fips} action=add type=${normalizedType} status=${normalizedStatus} role=${role} timestamp=${new Date().toISOString()} entityId=${entity.id}`
         );
 
         res.status(201).json(entity);
@@ -492,7 +592,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error creating county entity:", error);
         res.status(500).json({ message: "Failed to create county entity" });
       }
-    },
+    }
   );
 
   app.patch(
@@ -514,7 +614,13 @@ export function mountAdminRoutes(app: any) {
           return res.status(404).json({ message: "Entity not found" });
         }
 
-        const { entityType, entityId: bodyEntityId, label, status, metadata } = (req.body || {}) as {
+        const {
+          entityType,
+          entityId: bodyEntityId,
+          label,
+          status,
+          metadata,
+        } = (req.body || {}) as {
           entityType?: string;
           entityId?: string | null;
           label?: string | null;
@@ -555,7 +661,7 @@ export function mountAdminRoutes(app: any) {
         const updated = await storage.updateCountyEntity(entityId, update);
 
         console.log(
-          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${existing.countyFips} action=edit role=${role} timestamp=${new Date().toISOString()} entityId=${entityId}`,
+          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${existing.countyFips} action=edit role=${role} timestamp=${new Date().toISOString()} entityId=${entityId}`
         );
 
         res.json(updated);
@@ -563,7 +669,7 @@ export function mountAdminRoutes(app: any) {
         console.error("Error updating county entity:", error);
         res.status(500).json({ message: "Failed to update county entity" });
       }
-    },
+    }
   );
 
   app.delete(
@@ -588,7 +694,7 @@ export function mountAdminRoutes(app: any) {
         await storage.deleteCountyEntity(entityId);
 
         console.log(
-          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${existing.countyFips} action=delete role=${role} timestamp=${new Date().toISOString()} entityId=${entityId}`,
+          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${existing.countyFips} action=delete role=${role} timestamp=${new Date().toISOString()} entityId=${entityId}`
         );
 
         res.status(204).end();
@@ -596,31 +702,41 @@ export function mountAdminRoutes(app: any) {
         console.error("Error deleting county entity:", error);
         res.status(500).json({ message: "Failed to delete county entity" });
       }
-    },
+    }
   );
 
   // ---------------------------------------------------------------------------
   // Feature Flags & Admin User Management
   // ---------------------------------------------------------------------------
-  app.get("/api/admin/feature-flags", isAuthenticated, requireAdmin, async (_req: Request, res: Response) => {
-    try {
-      const features = await storage.getFeatureFlags();
-      res.json(features);
-    } catch (error: any) {
-      console.error("Error fetching feature flags:", error);
-      res.status(500).json({ message: "Failed to fetch feature flags" });
+  app.get(
+    "/api/admin/feature-flags",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const features = await storage.getFeatureFlags();
+        res.json(features);
+      } catch (error: any) {
+        console.error("Error fetching feature flags:", error);
+        res.status(500).json({ message: "Failed to fetch feature flags" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/feature-flags", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const feature = await storage.createFeatureFlag(req.body);
-      res.json(feature);
-    } catch (error: any) {
-      console.error("Error creating feature flag:", error);
-      res.status(500).json({ message: "Failed to create feature flag" });
+  app.post(
+    "/api/admin/feature-flags",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const feature = await storage.createFeatureFlag(req.body);
+        res.json(feature);
+      } catch (error: any) {
+        console.error("Error creating feature flag:", error);
+        res.status(500).json({ message: "Failed to create feature flag" });
+      }
     }
-  });
+  );
 
   app.patch(
     "/api/admin/feature-flags/:id",
@@ -639,96 +755,108 @@ export function mountAdminRoutes(app: any) {
   );
 
   // User Management API Routes
-  app.get("/api/admin/users", isAuthenticated, requireAdmin, async (_req: Request, res: Response) => {
-    try {
-      const allUsers = await db
-        .select({
-          id: users.id,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          role: users.role,
-          roles: users.roles,
-          activeRole: users.activeRole,
-          badges: users.badges,
-          profileImageUrl: users.profileImageUrl,
-          emailVerified: users.emailVerified,
-          addressVerified: users.addressVerified,
-          createdAt: users.createdAt,
-          facebookId: users.facebookId,
-          provider: users.provider,
-        })
-        .from(users)
-        .orderBy(desc(users.createdAt));
+  app.get(
+    "/api/admin/users",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const allUsers = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            role: users.role,
+            roles: users.roles,
+            activeRole: users.activeRole,
+            badges: users.badges,
+            profileImageUrl: users.profileImageUrl,
+            emailVerified: users.emailVerified,
+            addressVerified: users.addressVerified,
+            createdAt: users.createdAt,
+            facebookId: users.facebookId,
+            provider: users.provider,
+          })
+          .from(users)
+          .orderBy(desc(users.createdAt));
 
-      res.json(allUsers);
-    } catch (error: any) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
+        res.json(allUsers);
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ message: "Failed to fetch users" });
+      }
     }
-  });
+  );
 
   // Admin stats endpoint
-  app.get("/api/admin/stats", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { count } = await import("drizzle-orm");
-      const { communityPosts } = await import("../../shared/schema");
+  app.get(
+    "/api/admin/stats",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { count } = await import("drizzle-orm");
+        const { communityPosts } = await import("../../shared/schema");
 
-      // Get total user count
-      const [totalUsersResult] = await db.select({ count: count() }).from(users);
-      const totalUsers = totalUsersResult.count;
+        // Get total user count
+        const [totalUsersResult] = await db.select({ count: count() }).from(users);
+        const totalUsers = totalUsersResult.count;
 
-      // Get all role breakdowns (no filtering)
-      const usersByRole = await db
-        .select({
-          role: users.role,
-          count: count(),
-        })
-        .from(users)
-        .groupBy(users.role);
+        // Get all role breakdowns (no filtering)
+        const usersByRole = await db
+          .select({
+            role: users.role,
+            count: count(),
+          })
+          .from(users)
+          .groupBy(users.role);
 
-      const roleMap: Record<string, number> = {};
-      let knownRolesTotal = 0;
-      const knownRoles = ['homeowner', 'contractor', 'handyman', 'realtor'];
-      const unknownRoleBreakdown: Record<string, number> = {};
+        const roleMap: Record<string, number> = {};
+        let knownRolesTotal = 0;
+        const knownRoles = ["homeowner", "contractor", "handyman", "realtor"];
+        const unknownRoleBreakdown: Record<string, number> = {};
 
-      usersByRole.forEach((r: any) => {
-        const role = r.role || "homeowner";
-        roleMap[role] = r.count;
-        
-        if (knownRoles.includes(role)) {
-          knownRolesTotal += r.count;
-        } else {
-          unknownRoleBreakdown[role] = r.count;
-        }
-      });
+        usersByRole.forEach((r: any) => {
+          const role = r.role || "homeowner";
+          roleMap[role] = r.count;
 
-      const unknownRoleCount = totalUsers - knownRolesTotal;
+          if (knownRoles.includes(role)) {
+            knownRolesTotal += r.count;
+          } else {
+            unknownRoleBreakdown[role] = r.count;
+          }
+        });
 
-      // Get community posts count
-      const [totalPostsResult] = await db.select({ count: count() }).from(communityPosts);
-      const totalPosts = totalPostsResult?.count || 0;
+        const unknownRoleCount = totalUsers - knownRolesTotal;
 
-      // Log admin stats access for audit
-      console.log(`[ADMIN AUDIT] Stats accessed by userId=${req.user?.id} at ${new Date().toISOString()}`);
+        // Get community posts count
+        const [totalPostsResult] = await db.select({ count: count() }).from(communityPosts);
+        const totalPosts = totalPostsResult?.count || 0;
 
-      res.json({
-        totalUsers,
-        roleBreakdown: {
-          homeowner: roleMap.homeowner || 0,
-          contractor: roleMap.contractor || 0,
-          handyman: roleMap.handyman || 0,
-          realtor: roleMap.realtor || 0,
-        },
-        unknownRoleCount,
-        unknownRoles: unknownRoleBreakdown,
-        totalCommunityPosts: totalPosts,
-      });
-    } catch (error: any) {
-      console.error("Error fetching admin stats:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
+        // Log admin stats access for audit
+        console.log(
+          `[ADMIN AUDIT] Stats accessed by userId=${(req.user as any)?.id} at ${new Date().toISOString()}`
+        );
+
+        res.json({
+          totalUsers,
+          roleBreakdown: {
+            homeowner: roleMap.homeowner || 0,
+            contractor: roleMap.contractor || 0,
+            handyman: roleMap.handyman || 0,
+            realtor: roleMap.realtor || 0,
+          },
+          unknownRoleCount,
+          unknownRoles: unknownRoleBreakdown,
+          totalCommunityPosts: totalPosts,
+        });
+      } catch (error: any) {
+        console.error("Error fetching admin stats:", error);
+        res.status(500).json({ message: "Failed to fetch stats" });
+      }
     }
-  });
+  );
 
   app.patch(
     "/api/admin/users/:userId/roles",
@@ -778,10 +906,7 @@ export function mountAdminRoutes(app: any) {
           return res.status(400).json({ message: "Badges must be an array" });
         }
 
-        await db
-          .update(users)
-          .set({ badges, updatedAt: new Date() })
-          .where(eq(users.id, userId));
+        await db.update(users).set({ badges, updatedAt: new Date() }).where(eq(users.id, userId));
 
         res.json({ message: "Badges updated successfully", badges });
       } catch (error: any) {
@@ -834,47 +959,52 @@ export function mountAdminRoutes(app: any) {
   // ---------------------------------------------------------------------------
   // Admin Affiliate Management (super_admin / admin only)
   // ---------------------------------------------------------------------------
-  app.get("/api/admin/affiliates", isAuthenticated, isAdmin, async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const rows = await db
-        .select({
-          id: affiliateAccounts.id,
-          affiliateId: affiliateAccounts.affiliateId,
-          status: affiliateAccounts.status,
-          lifetimeEarned: affiliateAccounts.lifetimeEarned,
-          available: affiliateAccounts.available,
-          pending: affiliateAccounts.pending,
-          referralCode: affiliateAccounts.referralCode,
-          commissionRate: affiliateAccounts.commissionRate,
-          createdAt: affiliateAccounts.createdAt,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-        })
-        .from(affiliateAccounts)
-        .leftJoin(users, eq(affiliateAccounts.affiliateId, users.id))
-        .orderBy(desc(affiliateAccounts.createdAt));
+  app.get(
+    "/api/admin/affiliates",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const rows = await db
+          .select({
+            id: affiliateAccounts.id,
+            affiliateId: affiliateAccounts.affiliateId,
+            status: affiliateAccounts.status,
+            lifetimeEarned: affiliateAccounts.lifetimeEarned,
+            available: affiliateAccounts.available,
+            pending: affiliateAccounts.pending,
+            referralCode: affiliateAccounts.referralCode,
+            commissionRate: affiliateAccounts.commissionRate,
+            createdAt: affiliateAccounts.createdAt,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          })
+          .from(affiliateAccounts)
+          .leftJoin(users, eq(affiliateAccounts.affiliateId, users.id))
+          .orderBy(desc(affiliateAccounts.createdAt));
 
-      const payload = rows.map((row) => ({
-        id: row.id,
-        affiliateId: row.affiliateId,
-        email: row.email ?? undefined,
-        name: `${row.firstName || ""} ${row.lastName || ""}`.trim() || undefined,
-        status: row.status ?? undefined,
-        lifetimeEarned: String(row.lifetimeEarned ?? "0"),
-        available: String(row.available ?? "0"),
-        pending: String(row.pending ?? "0"),
-        referralCode: row.referralCode ?? undefined,
-        commissionRate: row.commissionRate !== null ? String(row.commissionRate) : undefined,
-        createdAt: (row.createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
-      }));
+        const payload = rows.map((row) => ({
+          id: row.id,
+          affiliateId: row.affiliateId,
+          email: row.email ?? undefined,
+          name: `${row.firstName || ""} ${row.lastName || ""}`.trim() || undefined,
+          status: row.status ?? undefined,
+          lifetimeEarned: String(row.lifetimeEarned ?? "0"),
+          available: String(row.available ?? "0"),
+          pending: String(row.pending ?? "0"),
+          referralCode: row.referralCode ?? undefined,
+          commissionRate: row.commissionRate !== null ? String(row.commissionRate) : undefined,
+          createdAt: (row.createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
+        }));
 
-      res.json(payload);
-    } catch (error: any) {
-      console.error("Error listing affiliates:", error);
-      res.status(500).json({ message: "Failed to load affiliates" });
+        res.json(payload);
+      } catch (error: any) {
+        console.error("Error listing affiliates:", error);
+        res.status(500).json({ message: "Failed to load affiliates" });
+      }
     }
-  });
+  );
 
   app.put(
     "/api/admin/affiliates/:id/commission-rate",
@@ -944,7 +1074,7 @@ export function mountAdminRoutes(app: any) {
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        return res.status(501).json({ message: 'Admin affiliate payouts not implemented' });
+        return res.status(501).json({ message: "Admin affiliate payouts not implemented" });
       } catch (error: any) {
         console.error("Error creating admin payout:", error);
         res.status(500).json({ message: "Failed to create payout" });
@@ -955,125 +1085,185 @@ export function mountAdminRoutes(app: any) {
   // ---------------------------------------------------------------------------
   // Site Settings, Prize Configurations, and Advertisements
   // ---------------------------------------------------------------------------
-  app.get("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { category } = req.query as any;
-      const settings = await storage.getSiteSettings(category as string);
-      res.json(settings);
-    } catch (error: any) {
-      console.error("Error fetching site settings:", error);
-      res.status(500).json({ message: "Failed to fetch site settings" });
+  app.get(
+    "/api/admin/site-settings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { category } = req.query as any;
+        const settings = await storage.getSiteSettings(category as string);
+        res.json(settings);
+      } catch (error: any) {
+        console.error("Error fetching site settings:", error);
+        res.status(500).json({ message: "Failed to fetch site settings" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const setting = await storage.createSiteSetting(req.body);
-      res.json(setting);
-    } catch (error: any) {
-      console.error("Error creating site setting:", error);
-      res.status(500).json({ message: "Failed to create site setting" });
+  app.post(
+    "/api/admin/site-settings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const setting = await storage.createSiteSetting(req.body);
+        res.json(setting);
+      } catch (error: any) {
+        console.error("Error creating site setting:", error);
+        res.status(500).json({ message: "Failed to create site setting" });
+      }
     }
-  });
+  );
 
-  app.put("/api/admin/site-settings/:id", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const setting = await storage.updateSiteSetting(req.params.id, req.body);
-      res.json(setting);
-    } catch (error: any) {
-      console.error("Error updating site setting:", error);
-      res.status(500).json({ message: "Failed to update site setting" });
+  app.put(
+    "/api/admin/site-settings/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const setting = await storage.updateSiteSetting(req.params.id, req.body);
+        res.json(setting);
+      } catch (error: any) {
+        console.error("Error updating site setting:", error);
+        res.status(500).json({ message: "Failed to update site setting" });
+      }
     }
-  });
+  );
 
-  app.delete("/api/admin/site-settings/:id", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      await storage.deleteSiteSetting(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting site setting:", error);
-      res.status(500).json({ message: "Failed to delete site setting" });
+  app.delete(
+    "/api/admin/site-settings/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await storage.deleteSiteSetting(req.params.id);
+        res.status(204).send();
+      } catch (error: any) {
+        console.error("Error deleting site setting:", error);
+        res.status(500).json({ message: "Failed to delete site setting" });
+      }
     }
-  });
+  );
 
-  app.get("/api/admin/prizes", isAuthenticated, requireAdmin, async (_req: Request, res: Response) => {
-    try {
-      const prizes = await storage.getPrizeConfigurations();
-      res.json(prizes);
-    } catch (error: any) {
-      console.error("Error fetching prizes:", error);
-      res.status(500).json({ message: "Failed to fetch prizes" });
+  app.get(
+    "/api/admin/prizes",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const prizes = await storage.getPrizeConfigurations();
+        res.json(prizes);
+      } catch (error: any) {
+        console.error("Error fetching prizes:", error);
+        res.status(500).json({ message: "Failed to fetch prizes" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/prizes", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const prize = await storage.createPrizeConfiguration(req.body);
-      res.json(prize);
-    } catch (error: any) {
-      console.error("Error creating prize:", error);
-      res.status(500).json({ message: "Failed to create prize" });
+  app.post(
+    "/api/admin/prizes",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const prize = await storage.createPrizeConfiguration(req.body);
+        res.json(prize);
+      } catch (error: any) {
+        console.error("Error creating prize:", error);
+        res.status(500).json({ message: "Failed to create prize" });
+      }
     }
-  });
+  );
 
-  app.put("/api/admin/prizes/:id", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const prize = await storage.updatePrizeConfiguration(req.params.id, req.body);
-      res.json(prize);
-    } catch (error: any) {
-      console.error("Error updating prize:", error);
-      res.status(500).json({ message: "Failed to update prize" });
+  app.put(
+    "/api/admin/prizes/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const prize = await storage.updatePrizeConfiguration(req.params.id, req.body);
+        res.json(prize);
+      } catch (error: any) {
+        console.error("Error updating prize:", error);
+        res.status(500).json({ message: "Failed to update prize" });
+      }
     }
-  });
+  );
 
-  app.delete("/api/admin/prizes/:id", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      await storage.deletePrizeConfiguration(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting prize:", error);
-      res.status(500).json({ message: "Failed to delete prize" });
+  app.delete(
+    "/api/admin/prizes/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await storage.deletePrizeConfiguration(req.params.id);
+        res.status(204).send();
+      } catch (error: any) {
+        console.error("Error deleting prize:", error);
+        res.status(500).json({ message: "Failed to delete prize" });
+      }
     }
-  });
+  );
 
-  app.get("/api/admin/advertisements", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const { placement } = req.query as any;
-      const ads = await storage.getAdvertisements(placement as string);
-      res.json(ads);
-    } catch (error: any) {
-      console.error("Error fetching advertisements:", error);
-      res.status(500).json({ message: "Failed to fetch advertisements" });
+  app.get(
+    "/api/admin/advertisements",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { placement } = req.query as any;
+        const ads = await storage.getAdvertisements(placement as string);
+        res.json(ads);
+      } catch (error: any) {
+        console.error("Error fetching advertisements:", error);
+        res.status(500).json({ message: "Failed to fetch advertisements" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/advertisements", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const ad = await storage.createAdvertisement(req.body);
-      res.json(ad);
-    } catch (error: any) {
-      console.error("Error creating advertisement:", error);
-      res.status(500).json({ message: "Failed to create advertisement" });
+  app.post(
+    "/api/admin/advertisements",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const ad = await storage.createAdvertisement(req.body);
+        res.json(ad);
+      } catch (error: any) {
+        console.error("Error creating advertisement:", error);
+        res.status(500).json({ message: "Failed to create advertisement" });
+      }
     }
-  });
+  );
 
-  app.put("/api/admin/advertisements/:id", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const ad = await storage.updateAdvertisement(req.params.id, req.body);
-      res.json(ad);
-    } catch (error: any) {
-      console.error("Error updating advertisement:", error);
-      res.status(500).json({ message: "Failed to update advertisement" });
+  app.put(
+    "/api/admin/advertisements/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const ad = await storage.updateAdvertisement(req.params.id, req.body);
+        res.json(ad);
+      } catch (error: any) {
+        console.error("Error updating advertisement:", error);
+        res.status(500).json({ message: "Failed to update advertisement" });
+      }
     }
-  });
+  );
 
-  app.delete("/api/admin/advertisements/:id", isAuthenticated, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      await storage.deleteAdvertisement(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting advertisement:", error);
-      res.status(500).json({ message: "Failed to delete advertisement" });
+  app.delete(
+    "/api/admin/advertisements/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await storage.deleteAdvertisement(req.params.id);
+        res.status(204).send();
+      } catch (error: any) {
+        console.error("Error deleting advertisement:", error);
+        res.status(500).json({ message: "Failed to delete advertisement" });
+      }
     }
-  });
+  );
 }

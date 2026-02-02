@@ -1,6 +1,6 @@
 import scoutRoute from "./routes/scout";
-import { ClaimSource } from './services/claimEventSchema';
-import { resolveCountyFips } from './services/regionResolver';
+import { ClaimSource } from "./services/claimEventSchema";
+import { resolveCountyFips } from "./services/regionResolver";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import fs from "fs";
@@ -14,6 +14,8 @@ import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
+import { registerHardrockRoutes } from "./routes/hardrock";
+import { geographicCoverageRouter } from "./routes/geographic-coverage";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
@@ -88,7 +90,18 @@ import {
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin, isSuperAdmin, hashPassword, requireRole, isContractor, isCommunityModerator, requireOnboardingComplete } from "./auth";
+import {
+  setupAuth,
+  isAuthenticated,
+  isAdmin,
+  isSuperAdmin,
+  hashPassword,
+  validatePassword,
+  requireRole,
+  isContractor,
+  isCommunityModerator,
+  requireOnboardingComplete,
+} from "./auth";
 import { writeClaimEvent } from "./services/claimEventService.js";
 import type { WriteClaimEventRequest } from "./services/claimEventSchema.js";
 import { callAIInference } from "./services/aiInference.js";
@@ -122,7 +135,11 @@ type AuthedRequest = Request & {
 };
 
 type ExpressHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
-type AuthedHandler = (req: AuthedRequest, res: Response, next: NextFunction) => void | Promise<void>;
+type AuthedHandler = (
+  req: AuthedRequest,
+  res: Response,
+  next: NextFunction
+) => void | Promise<void>;
 import { eq, desc, and, or, sql, gt, gte, lte, asc, inArray } from "drizzle-orm";
 // Removed duplicate User import
 // Stubs for undeclared globals
@@ -163,16 +180,18 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
     const contractors: Contractor[] = await storage.getContractors({
       countyId,
       tradeIds: tradeId ? [tradeId] : undefined,
-      sortBy: 'verified',
+      sortBy: "verified",
       limit: 50,
     });
     // ...rest of the function remains unchanged...
 
     // Extract simple keywords from the lead description to improve matching
     const leadDescription: string =
-      typeof (leadData as any)?.description === 'string'
+      typeof (leadData as any)?.description === "string"
         ? (leadData as any).description
-        : (typeof (lead as any)?.description === 'string' ? (lead as any).description : '');
+        : typeof (lead as any)?.description === "string"
+          ? (lead as any).description
+          : "";
 
     const leadKeywords = new Set<string>(
       leadDescription
@@ -184,7 +203,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
     // Load profile preferences (including servicesDescription) for all contractor owners
     const contractorUserIds = contractors
       .map((c: any) => c.userId)
-      .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+      .filter((id: any): id is string => typeof id === "string" && id.length > 0);
 
     const contractorUsers = await storage.getUsersByIds(contractorUserIds);
     const userById = new Map<string, any>();
@@ -193,9 +212,8 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
     }
 
     // Enhanced matching logic: Score contractors based on available fields
-    const maxRecipients = typeof maxAssignees === 'number' && maxAssignees > 0
-      ? Math.min(maxAssignees, 25)
-      : 3;
+    const maxRecipients =
+      typeof maxAssignees === "number" && maxAssignees > 0 ? Math.min(maxAssignees, 25) : 3;
 
     const scoredContractors = contractors
       .filter((contractor: Contractor) => !!contractor.isActive) // Only active contractors
@@ -209,18 +227,18 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
         let completeness = 0;
         if (contractor.licenseNumber) completeness += 10;
         if (contractor.website) completeness += 10;
-        if (contractor.phone) completeness += 10; 
+        if (contractor.phone) completeness += 10;
         const owner = contractor.userId ? userById.get(contractor.userId) : undefined;
         const profileServices: string =
-          typeof owner?.preferences?.servicesDescription === 'string'
+          typeof owner?.preferences?.servicesDescription === "string"
             ? owner.preferences.servicesDescription
-            : '';
+            : "";
 
         const aboutText =
           (contractor as any).about ||
           (contractor as any).description ||
-          (typeof profileServices === 'string' ? profileServices : '') ||
-          '';
+          (typeof profileServices === "string" ? profileServices : "") ||
+          "";
         if (aboutText) completeness += 10;
 
         // Content match score: boost contractors whose "about" text
@@ -268,7 +286,9 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
       .slice(0, maxRecipients); // Take top N (default 3)
 
     if (!scoredContractors || scoredContractors.length === 0) {
-      console.warn(`No qualified contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`);
+      console.warn(
+        `No qualified contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`
+      );
       return;
     }
 
@@ -276,8 +296,13 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
     await storage.assignLeadToContractors(lead.id, contractorIds);
 
     // Log enhanced matching details
-    console.log(`Enhanced matching for lead ${lead.id}: Selected ${scoredContractors.length} contractors with scores:`, 
-      scoredContractors.map((c: ScoredContractor) => ({ name: c.companyName, score: c.matchScore?.toFixed(1) })));
+    console.log(
+      `Enhanced matching for lead ${lead.id}: Selected ${scoredContractors.length} contractors with scores:`,
+      scoredContractors.map((c: ScoredContractor) => ({
+        name: c.companyName,
+        score: c.matchScore?.toFixed(1),
+      }))
+    );
 
     // Notify contractors about the new lead
     const leadDetails = {
@@ -293,43 +318,49 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
       contactPhone: lead.contactPhone,
     };
 
-    await Promise.all(scoredContractors.map(async (contractor: ScoredContractor) => {
-      try {
-        console.log(`Notifying contractor ${contractor.companyName} (ID: ${contractor.id}) about new lead ${lead.id}`);
+    await Promise.all(
+      scoredContractors.map(async (contractor: ScoredContractor) => {
+        try {
+          console.log(
+            `Notifying contractor ${contractor.companyName} (ID: ${contractor.id}) about new lead ${lead.id}`
+          );
 
-        const recipientUserId = contractor.userId;
-        if (recipientUserId) {
-          await notificationService.createNotification({
-            userId: recipientUserId,
-            type: 'new_project_request',
-            title: 'New Direct Connect request',
-            message: `You have a new Direct Connect request: ${lead.title} in ${city}, ${state}.`,
-            actionUrl: `/pro-dashboard/leads/${lead.id}`,
-            actionText: 'View lead',
-            iconName: 'briefcase',
-            iconColor: 'orange',
-            deliveryMethods: ['in_app', 'push'],
+          const recipientUserId = contractor.userId;
+          if (recipientUserId) {
+            await notificationService.createNotification({
+              userId: recipientUserId,
+              type: "new_project_request",
+              title: "New Direct Connect request",
+              message: `You have a new Direct Connect request: ${lead.title} in ${city}, ${state}.`,
+              actionUrl: `/pro-dashboard/leads/${lead.id}`,
+              actionText: "View lead",
+              iconName: "briefcase",
+              iconColor: "orange",
+              deliveryMethods: ["in_app", "push"],
+            });
+          }
+          // Log the assignment event with match score
+          await storage.logEvent("lead_assigned", {
+            leadId: lead.id,
+            contractorId: contractor.id,
+            assignmentType: "enhanced_matching",
+            matchScore: contractor.matchScore,
           });
+        } catch (notificationError) {
+          console.error(
+            `Failed to notify contractor ${contractor.id} for lead ${lead.id}:`,
+            notificationError
+          );
         }
-        // Log the assignment event with match score
-        await storage.logEvent('lead_assigned', {
-          leadId: lead.id,
-          contractorId: contractor.id,
-          assignmentType: 'enhanced_matching',
-          matchScore: contractor.matchScore,
-        });
-      } catch (notificationError) {
-        console.error(`Failed to notify contractor ${contractor.id} for lead ${lead.id}:`, notificationError);
-      }
-    }));
+      })
+    );
   } catch (error: any) {
     console.error(`Error routing lead ${lead.id} to top contractors:`, error);
   }
 }
 
-
 const DEFAULT_FIRST_INTRO_APPENDIX =
-  "TradeScout is a community operating system that keeps projects and dollars local. Homeowners and contractors can connect, message, and run the full job flow—quotes, scheduling, invoices, and payments (including off-site work). Beyond jobs, TradeScout includes a local marketplace, community feed and groups, and real neighborhood tools so communities can manage vendors, requests, budgets, and decisions with total transparency. Community Builders and the foundation layer add public accountability and local reinvestment—so TradeScout isn’t just \"find a pro,\" it’s how a town organizes and improves itself.";
+  'TradeScout is a community operating system that keeps projects and dollars local. Homeowners and contractors can connect, message, and run the full job flow—quotes, scheduling, invoices, and payments (including off-site work). Beyond jobs, TradeScout includes a local marketplace, community feed and groups, and real neighborhood tools so communities can manage vendors, requests, budgets, and decisions with total transparency. Community Builders and the foundation layer add public accountability and local reinvestment—so TradeScout isn’t just "find a pro," it’s how a town organizes and improves itself.';
 
 export async function registerRoutes(app: any) {
   // Setup authentication
@@ -343,11 +374,11 @@ export async function registerRoutes(app: any) {
   mountAdminRoutes(app);
   app.use("/api/admin/mission-control", missionControlRouter);
   app.use("/api/preferred-source", preferredSourceRouter);
-  
+
   // Observability metrics API (Phase 2: Dashboards)
   const { observabilityRouter } = await import("./routes/observability");
   app.use("/api/admin/observability", observabilityRouter);
-  
+
   // Authority Operations admin panel (observation mode, decision card metrics, unlock ledger)
   registerAuthorityOperationsRoutes(app);
 
@@ -355,8 +386,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/public/config", (req: any, res: any) => {
     res.setHeader("Cache-Control", "no-store");
     res.status(200).json({
-      firstIntroAppendix:
-        process.env.TS_FIRST_INTRO_APPENDIX || DEFAULT_FIRST_INTRO_APPENDIX,
+      firstIntroAppendix: process.env.TS_FIRST_INTRO_APPENDIX || DEFAULT_FIRST_INTRO_APPENDIX,
       vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
     });
   });
@@ -389,7 +419,7 @@ export async function registerRoutes(app: any) {
       if (proofCache.value && proofCache.expiresAt > now) {
         res.setHeader(
           "Cache-Control",
-          `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+          `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`
         );
         return res.status(200).json(proofCache.value);
       }
@@ -399,15 +429,17 @@ export async function registerRoutes(app: any) {
         db
           .select({ n: sql<number>`count(*)` })
           .from(missionControlDecisions)
-          .where(sql`${missionControlDecisions.decisionDate} >= (current_date - interval '7 days')`),
+          .where(
+            sql`${missionControlDecisions.decisionDate} >= (current_date - interval '7 days')`
+          ),
         db
           .select({ n: sql<number>`count(*)` })
           .from(addressVerifications)
           .where(
             and(
               eq(addressVerifications.status, "approved"),
-              sql`${addressVerifications.approvedAt} >= (now() - interval '30 days')`,
-            ),
+              sql`${addressVerifications.approvedAt} >= (now() - interval '30 days')`
+            )
           ),
       ]);
 
@@ -420,7 +452,9 @@ export async function registerRoutes(app: any) {
         cacheSeconds,
         countiesIndexed: Number.isFinite(countiesIndexed) ? countiesIndexed : 0,
         decisionsLast7Days: Number.isFinite(decisionsLast7Days) ? decisionsLast7Days : 0,
-        verifiedClaimsLast30Days: Number.isFinite(verifiedClaimsLast30Days) ? verifiedClaimsLast30Days : 0,
+        verifiedClaimsLast30Days: Number.isFinite(verifiedClaimsLast30Days)
+          ? verifiedClaimsLast30Days
+          : 0,
       };
 
       proofCache.value = payload;
@@ -428,7 +462,7 @@ export async function registerRoutes(app: any) {
 
       res.setHeader(
         "Cache-Control",
-        `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+        `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`
       );
       return res.status(200).json(payload);
     } catch (error: any) {
@@ -510,16 +544,24 @@ export async function registerRoutes(app: any) {
     role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   const computeBadgesForUser = (user: any): string[] => {
-    const list = Array.isArray(user?.badges) ? (user.badges.filter((b: any) => typeof b === 'string') as string[]) : [];
+    const list = Array.isArray(user?.badges)
+      ? (user.badges.filter((b: any) => typeof b === "string") as string[])
+      : [];
     const created = user?.createdAt ? new Date(user.createdAt as any) : undefined;
-    const inBeta = created && !Number.isNaN(created.getTime()) ? isWithinBetaPeriod(created) : false;
+    const inBeta =
+      created && !Number.isNaN(created.getTime()) ? isWithinBetaPeriod(created) : false;
 
     if (!inBeta) {
       return list.filter((b) => !isFounderBadgeLabel(b));
     }
 
-    const rolesRaw = Array.isArray(user?.roles) && user.roles.length > 0 ? user.roles : user?.role ? [user.role] : [];
-    const roles = rolesRaw.filter((r: any) => typeof r === 'string') as string[];
+    const rolesRaw =
+      Array.isArray(user?.roles) && user.roles.length > 0
+        ? user.roles
+        : user?.role
+          ? [user.role]
+          : [];
+    const roles = rolesRaw.filter((r: any) => typeof r === "string") as string[];
     const merged = new Set(list);
     for (const role of roles) {
       merged.add(`Founder (${formatFounderRoleLabel(role)})`);
@@ -530,7 +572,12 @@ export async function registerRoutes(app: any) {
   const sanitizeUserForResponse = (user: any) => {
     if (!user) return user;
 
-    const rolesRaw = Array.isArray(user?.roles) && user.roles.length > 0 ? user.roles : user?.role ? [user.role] : [];
+    const rolesRaw =
+      Array.isArray(user?.roles) && user.roles.length > 0
+        ? user.roles
+        : user?.role
+          ? [user.role]
+          : [];
     const roles = rolesRaw.filter((r: any) => typeof r === "string") as SharedUserRole[];
     const primaryRole: SharedUserRole | undefined = roles[0];
 
@@ -542,7 +589,8 @@ export async function registerRoutes(app: any) {
       Boolean(
         basePermissions?.canAccessAdminPanel ||
         basePermissions?.canAccessSuperAdmin ||
-        (primaryRole && ["moderator", "ops_admin", "super_admin", "head_admin"].includes(primaryRole))
+        (primaryRole &&
+          ["moderator", "ops_admin", "super_admin", "head_admin"].includes(primaryRole))
       );
 
     const computedIsSuperAdmin =
@@ -565,19 +613,20 @@ export async function registerRoutes(app: any) {
       // county-level location. All UX prompts should key off this,
       // not off ad-hoc context checks.
       locationCommitted: hasCanonicalLocation,
-      profileVersion: typeof (user as any).profileVersion === "number" ? (user as any).profileVersion : 0,
+      profileVersion:
+        typeof (user as any).profileVersion === "number" ? (user as any).profileVersion : 0,
       password: undefined,
     };
   };
 
   // Authentication routes
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate('local', (err: any, user: any, info: any) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
         return next(err);
       }
       if (!user) {
-        return res.status(401).json({ message: info?.message || 'Login failed' });
+        return res.status(401).json({ message: info?.message || "Login failed" });
       }
       req.logIn(user, (loginErr: any) => {
         if (loginErr) {
@@ -595,14 +644,14 @@ export async function registerRoutes(app: any) {
   const handleRegister = async (req: Request, res: Response) => {
     try {
       const body = (req.body || {}) as any;
-      const email = typeof body.email === 'string' ? body.email.trim() : '';
-      const password = typeof body.password === 'string' ? body.password : '';
-      const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
-      const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : '';
-      const address = typeof body.address === 'string' ? body.address.trim() : undefined;
-      const state = typeof body.state === 'string' ? body.state.trim() : undefined;
-      const county = typeof body.county === 'string' ? body.county.trim() : undefined;
-      const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+      const email = typeof body.email === "string" ? body.email.trim() : "";
+      const password = typeof body.password === "string" ? body.password : "";
+      const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+      const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
+      const address = typeof body.address === "string" ? body.address.trim() : undefined;
+      const state = typeof body.state === "string" ? body.state.trim() : undefined;
+      const county = typeof body.county === "string" ? body.county.trim() : undefined;
+      const phone = typeof body.phone === "string" ? body.phone.trim() : "";
       const verificationStatus = body.verificationStatus;
       const allowPhoneCalls =
         body.allowPhoneCalls === true ||
@@ -617,20 +666,20 @@ export async function registerRoutes(app: any) {
 
       const normalizeRole = (value: string) => {
         const role = value.trim();
-        if (role === 'contractor_user') return 'contractor';
-        if (role === 'vehicle_dealer') return 'car_dealer';
-        if (role === 'car_salesman') return 'car_dealer';
-        if (role === 'homeowner') return 'homeowner';
-        if (role === 'contractor') return 'contractor';
-        if (role === 'other') return 'homeowner'; // Map 'other' to homeowner
+        if (role === "contractor_user") return "contractor";
+        if (role === "vehicle_dealer") return "car_dealer";
+        if (role === "car_salesman") return "car_dealer";
+        if (role === "homeowner") return "homeowner";
+        if (role === "contractor") return "contractor";
+        if (role === "other") return "homeowner"; // Map 'other' to homeowner
         return role;
       };
 
       const userTypesRaw = Array.isArray(body.userTypes) ? body.userTypes : undefined;
-      const roleRaw = typeof body.role === 'string' ? body.role : undefined;
-      const roleIntentRaw = typeof body.roleIntent === 'string' ? body.roleIntent : undefined;
-      const userIntent = typeof body.userIntent === 'string' ? body.userIntent.trim() : undefined;
-      
+      const roleRaw = typeof body.role === "string" ? body.role : undefined;
+      const roleIntentRaw = typeof body.roleIntent === "string" ? body.roleIntent : undefined;
+      const userIntent = typeof body.userIntent === "string" ? body.userIntent.trim() : undefined;
+
       const userTypesInput =
         userTypesRaw && userTypesRaw.length > 0
           ? userTypesRaw
@@ -641,29 +690,30 @@ export async function registerRoutes(app: any) {
               : [];
 
       const userTypes = userTypesInput
-        .filter((t: any) => typeof t === 'string')
+        .filter((t: any) => typeof t === "string")
         .map((t: string) => normalizeRole(t));
 
-      if (!email) return res.status(400).json({ message: 'Email is required' });
-      if (!password) return res.status(400).json({ message: 'Password is required' });
-      if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
-      if (!firstName) return res.status(400).json({ message: 'First name is required' });
-      if (!lastName) return res.status(400).json({ message: 'Last name is required' });
-      if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+      if (!email) return res.status(400).json({ message: "Email is required" });
+      if (!password) return res.status(400).json({ message: "Password is required" });
+      if (password.length < 8)
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      if (!firstName) return res.status(400).json({ message: "First name is required" });
+      if (!lastName) return res.status(400).json({ message: "Last name is required" });
+      if (!phone) return res.status(400).json({ message: "Phone number is required" });
 
-      const phoneDigits = phone.replace(/\D/g, '');
+      const phoneDigits = phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) {
-        return res.status(400).json({ message: 'Please enter a valid phone number' });
+        return res.status(400).json({ message: "Please enter a valid phone number" });
       }
 
       if (!acceptTerms) {
-        return res.status(400).json({ message: 'You must accept the Terms of Service' });
+        return res.status(400).json({ message: "You must accept the Terms of Service" });
       }
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: 'User already exists' });
+        return res.status(400).json({ message: "User already exists" });
       }
 
       // CLAIM-FIRST: userTypes are now optional provisional preferences, not required identity
@@ -673,7 +723,8 @@ export async function registerRoutes(app: any) {
       const hashedPassword = await hashPassword(password);
 
       // Badge helpers
-      const formatRoleLabel = (role: string) => role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      const formatRoleLabel = (role: string) =>
+        role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       const badges = new Set<string>();
 
       // Role badges for each selected user type (only if userTypes provided)
@@ -694,15 +745,22 @@ export async function registerRoutes(app: any) {
       }
 
       // Verified badge: if verificationStatus is approved
-      const allowedStatuses = ['pending', 'under_review', 'approved', 'rejected', 'expired', 'suspended'];
-      const status = allowedStatuses.includes(verificationStatus) ? verificationStatus : 'pending';
-      if (status === 'approved' && userTypes && userTypes.length > 0) {
+      const allowedStatuses = [
+        "pending",
+        "under_review",
+        "approved",
+        "rejected",
+        "expired",
+        "suspended",
+      ];
+      const status = allowedStatuses.includes(verificationStatus) ? verificationStatus : "pending";
+      if (status === "approved" && userTypes && userTypes.length > 0) {
         userTypes.forEach((role: string) => badges.add(`Verified ${formatRoleLabel(role)}`));
       }
 
       // Determine primary role from user types
       // CLAIM-FIRST: Default to 'homeowner' if no types selected (neutral starting point)
-      const primaryRole = (userTypes && userTypes.length > 0) ? userTypes[0] : 'homeowner';
+      const primaryRole = userTypes && userTypes.length > 0 ? userTypes[0] : "homeowner";
 
       const preferences = {
         ...(body.preferences || {}),
@@ -749,86 +807,95 @@ export async function registerRoutes(app: any) {
           termsOfServiceAccepted: new Date(),
         });
       } catch (e) {
-        console.error('Failed to persist ToS acceptance:', e);
+        console.error("Failed to persist ToS acceptance:", e);
       }
 
       // Automatic community welcome + (optionally) Scout-authored intro post
       await createAutomaticCommunityWelcomeForUser(user, {
-        createdViaScout:
-          typeof body.source === "string" && body.source.toLowerCase() === "scout",
+        createdViaScout: typeof body.source === "string" && body.source.toLowerCase() === "scout",
       });
 
       // Auto-login after registration
       req.login(user, (err) => {
         if (err) {
-          return res.status(500).json({ message: 'Registration successful but login failed' });
+          return res.status(500).json({ message: "Registration successful but login failed" });
         }
-        res.json({ user: sanitizeUserForResponse(user), message: 'Registration successful' });
+        res.json({ user: sanitizeUserForResponse(user), message: "Registration successful" });
       });
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      sendAutoClassifiedError(res, error, 'Registration failed', { userId });
+      sendAutoClassifiedError(res, error, "Registration failed", { userId });
     }
   };
 
   // ---------------------------------------------------------------------------
   // Affiliate API
   // ---------------------------------------------------------------------------
-  app.get("/api/affiliate/dashboard", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const user = req.user as any;
-      const userId = (user as any)?.claims?.sub || (user as any)?.id || "";
+  app.get(
+    "/api/affiliate/dashboard",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const user = req.user as any;
+        const userId = (user as any)?.claims?.sub || (user as any)?.id || "";
 
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
+        if (!userId) {
+          return res.status(401).json({ message: "User not authenticated" });
+        }
+
+        // Ensure an affiliate program exists for this user
+        let program = await storage.getAffiliateProgram(userId);
+        if (!program) {
+          program = await storage.createAffiliateProgram({ userId });
+        }
+
+        const [stats, referrals, commissions, payouts] = await Promise.all([
+          storage.getAffiliateStats(program.id),
+          storage.getReferralsByAffiliate(program.id),
+          storage.getCommissionsForAffiliate(program.id),
+          storage.getPayoutsForAffiliate(program.id),
+        ]);
+
+        const baseUrl =
+          process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com";
+        const referralCode = (program as any).referralCode || "YOUR_CODE";
+
+        const programPayload = {
+          id: program.id,
+          affiliateCode: referralCode,
+          referralLink: `${baseUrl}/?ref=${encodeURIComponent(referralCode)}`,
+          commissionRate:
+            (program as any).commissionRate != null
+              ? String((program as any).commissionRate)
+              : "0.05",
+          status: (program as any).status ?? "active",
+          totalCommissionEarned: stats.totalCommissionEarned,
+          totalCommissionPaid: stats.totalCommissionPaid,
+          createdAt:
+            ((program as any).createdAt as Date | null)?.toISOString?.() ||
+            new Date().toISOString(),
+          payoutMethod: undefined,
+          payoutDetails: undefined,
+        };
+
+        res.json({
+          program: programPayload,
+          stats,
+          referrals: referrals.slice(0, 10),
+          commissions: commissions.slice(0, 10),
+          payouts: payouts.slice(0, 5),
+        });
+      } catch (error: any) {
+        console.error("Error loading affiliate dashboard:", error);
+        res.status(500).json({ message: "Failed to load affiliate dashboard" });
       }
-
-      // Ensure an affiliate program exists for this user
-      let program = await storage.getAffiliateProgram(userId);
-      if (!program) {
-        program = await storage.createAffiliateProgram({ userId });
-      }
-
-      const [stats, referrals, commissions, payouts] = await Promise.all([
-        storage.getAffiliateStats(program.id),
-        storage.getReferralsByAffiliate(program.id),
-        storage.getCommissionsForAffiliate(program.id),
-        storage.getPayoutsForAffiliate(program.id),
-      ]);
-
-      const baseUrl = process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com";
-      const referralCode = (program as any).referralCode || "YOUR_CODE";
-
-      const programPayload = {
-        id: program.id,
-        affiliateCode: referralCode,
-        referralLink: `${baseUrl}/?ref=${encodeURIComponent(referralCode)}`,
-        commissionRate: (program as any).commissionRate != null ? String((program as any).commissionRate) : "0.05",
-        status: (program as any).status ?? "active",
-        totalCommissionEarned: stats.totalCommissionEarned,
-        totalCommissionPaid: stats.totalCommissionPaid,
-        createdAt: ((program as any).createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
-        payoutMethod: undefined,
-        payoutDetails: undefined,
-      };
-
-      res.json({
-        program: programPayload,
-        stats,
-        referrals: referrals.slice(0, 10),
-        commissions: commissions.slice(0, 10),
-        payouts: payouts.slice(0, 5),
-      });
-    } catch (error: any) {
-      console.error("Error loading affiliate dashboard:", error);
-      res.status(500).json({ message: "Failed to load affiliate dashboard" });
     }
-  });
+  );
 
   app.put("/api/affiliate/settings", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      return res.status(501).json({ message: 'Affiliate settings not implemented' });
+      return res.status(501).json({ message: "Affiliate settings not implemented" });
     } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
       res.status(500).json({ message: "Failed to update affiliate settings" });
@@ -845,6 +912,7 @@ export async function registerRoutes(app: any) {
         return res.status(500).json({ message: "Logout failed", details: String(err) });
       }
       // Clear common session cookies; safe no-ops if they don't exist.
+      res.clearCookie("tradescout.sid", { path: "/" });
       res.clearCookie("connect.sid");
       res.clearCookie("sid");
       res.status(200).json({ message: "Logout successful" });
@@ -868,17 +936,17 @@ export async function registerRoutes(app: any) {
       const { role } = (req.body ?? {}) as any;
       const user = req.user as any;
       const userId: string = (user as any)?.claims?.sub || (user as any)?.id || "";
-      
-      if (!['homeowner', 'contractor'].includes(role)) {
+
+      if (!["homeowner", "contractor"].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
-      
+
       // Map role to database enum value
-      const dbRole = role === 'contractor' ? 'contractor' : 'homeowner';
-      
+      const dbRole = role === "contractor" ? "contractor" : "homeowner";
+
       if (!userId) return res.status(400).json({ message: "User ID missing" });
       await storage.updateUser(userId, { role: dbRole });
-      
+
       res.json({ message: "Role updated successfully", role: dbRole });
     } catch (error: any) {
       console.error("Role update error:", error);
@@ -886,160 +954,164 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const {
-        firstName,
-        lastName,
-        phone,
-        address,
-        city,
-        state,
-        zipCode,
-        county,
-        businessName,
-        licenseNumber,
-        specialties,
-        yearsExperience,
-        role,
-        capabilityBundles,
-        participationModes,
-      } = (req.body ?? {}) as any;
+  app.post(
+    "/api/auth/complete-onboarding",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          zipCode,
+          county,
+          businessName,
+          licenseNumber,
+          specialties,
+          yearsExperience,
+          role,
+          capabilityBundles,
+          participationModes,
+        } = (req.body ?? {}) as any;
 
-      const sessionUser = req.user as any;
-      const userId: string = sessionUser?.id || sessionUser?.claims?.sub || "";
+        const sessionUser = req.user as any;
+        const userId: string = sessionUser?.id || sessionUser?.claims?.sub || "";
 
-      if (!userId) return res.status(400).json({ message: "User ID missing" });
+        if (!userId) return res.status(400).json({ message: "User ID missing" });
 
-      const normalizeStringArray = (value: unknown): string[] => {
-        if (!Array.isArray(value)) return [];
-        return Array.from(
-          new Set(
-            value
-              .map((v) => (typeof v === "string" ? v : String(v ?? "")))
-              .map((v) => v.trim())
-              .filter((v) => v.length > 0),
-          ),
-        );
-      };
-
-      const bundles = normalizeStringArray(capabilityBundles);
-      const modes = normalizeStringArray(participationModes);
-
-      // Start with basic profile + geo data
-      const updateData: any = {
-        firstName,
-        lastName,
-        phone,
-        address,
-        city,
-        state,
-        zipCode,
-        county,
-        onboardingCompleted: true,
-        profileVersion: CURRENT_PROFILE_VERSION,
-      };
-
-      // If capability bundles are provided, persist them and derive compatible roles
-      if (bundles.length > 0) {
-        updateData.capabilityBundles = bundles;
-        if (modes.length > 0) {
-          updateData.participationModes = modes;
-        }
-
-        // Derive legacy roles/user types from capability bundles for compatibility
-        const hasServiceProvider = bundles.includes("service_provider");
-        const hasPropertyOperator = bundles.includes("property_operator");
-        const hasLocalSeller = bundles.includes("local_seller");
-        const hasBusinessOrOrgSignal =
-          hasServiceProvider ||
-          hasPropertyOperator ||
-          hasLocalSeller ||
-          bundles.includes("organization_admin") ||
-          bundles.includes("team_manager") ||
-          bundles.includes("finance_tools_user");
-
-        const inferredRoles = new Set<string>();
-
-        if (hasServiceProvider) {
-          inferredRoles.add("contractor");
-        }
-
-        if (hasPropertyOperator) {
-          inferredRoles.add("property_manager");
-        }
-
-        if (hasLocalSeller) {
-          // Local seller is its own tag, but we also map to business_owner
-          inferredRoles.add("local_seller");
-          inferredRoles.add("business_owner");
-        }
-
-        if (bundles.includes("community_participant") && !hasBusinessOrOrgSignal) {
-          inferredRoles.add("community_member");
-        }
-
-        // Default homeowner context when there is no explicit business/org signal
-        if (!hasBusinessOrOrgSignal) {
-          inferredRoles.add("homeowner");
-        }
-
-        // Merge with any existing roles so we don't drop admin/affiliate/etc.
-        const currentUser = await storage.getUser(userId);
-        const existingRolesRaw: unknown = (currentUser as any)?.roles;
-        const existingRoles: string[] = Array.isArray(existingRolesRaw)
-          ? (existingRolesRaw as unknown[])
-              .filter((v) => typeof v === "string")
-              .map((v) => v as string)
-          : [];
-
-        const mergedRoles = Array.from(
-          new Set<string>([...existingRoles, ...Array.from(inferredRoles)]),
-        );
-
-        // Choose a primary legacy role compatible with the enum for users.role
-        const pickPrimaryRole = (): string => {
-          if (inferredRoles.has("contractor")) return "contractor";
-          if (inferredRoles.has("property_manager")) return "property_manager";
-          if (inferredRoles.has("business_owner")) return "business_owner";
-          if (inferredRoles.has("homeowner")) return "homeowner";
-          // Fallback: keep current primary if present, else homeowner
-          const currentPrimary: string | undefined =
-            (currentUser as any)?.activeRole || (currentUser as any)?.role;
-          if (typeof currentPrimary === "string" && currentPrimary.length > 0) {
-            return currentPrimary;
-          }
-          return "homeowner";
+        const normalizeStringArray = (value: unknown): string[] => {
+          if (!Array.isArray(value)) return [];
+          return Array.from(
+            new Set(
+              value
+                .map((v) => (typeof v === "string" ? v : String(v ?? "")))
+                .map((v) => v.trim())
+                .filter((v) => v.length > 0)
+            )
+          );
         };
 
-        const primaryRole = pickPrimaryRole();
+        const bundles = normalizeStringArray(capabilityBundles);
+        const modes = normalizeStringArray(participationModes);
 
-        updateData.roles = mergedRoles;
-        updateData.activeRole = primaryRole;
-        updateData.role = primaryRole as any;
+        // Start with basic profile + geo data
+        const updateData: any = {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          zipCode,
+          county,
+          onboardingCompleted: true,
+          profileVersion: CURRENT_PROFILE_VERSION,
+        };
+
+        // If capability bundles are provided, persist them and derive compatible roles
+        if (bundles.length > 0) {
+          updateData.capabilityBundles = bundles;
+          if (modes.length > 0) {
+            updateData.participationModes = modes;
+          }
+
+          // Derive legacy roles/user types from capability bundles for compatibility
+          const hasServiceProvider = bundles.includes("service_provider");
+          const hasPropertyOperator = bundles.includes("property_operator");
+          const hasLocalSeller = bundles.includes("local_seller");
+          const hasBusinessOrOrgSignal =
+            hasServiceProvider ||
+            hasPropertyOperator ||
+            hasLocalSeller ||
+            bundles.includes("organization_admin") ||
+            bundles.includes("team_manager") ||
+            bundles.includes("finance_tools_user");
+
+          const inferredRoles = new Set<string>();
+
+          if (hasServiceProvider) {
+            inferredRoles.add("contractor");
+          }
+
+          if (hasPropertyOperator) {
+            inferredRoles.add("property_manager");
+          }
+
+          if (hasLocalSeller) {
+            // Local seller is its own tag, but we also map to business_owner
+            inferredRoles.add("local_seller");
+            inferredRoles.add("business_owner");
+          }
+
+          if (bundles.includes("community_participant") && !hasBusinessOrOrgSignal) {
+            inferredRoles.add("community_member");
+          }
+
+          // Default homeowner context when there is no explicit business/org signal
+          if (!hasBusinessOrOrgSignal) {
+            inferredRoles.add("homeowner");
+          }
+
+          // Merge with any existing roles so we don't drop admin/affiliate/etc.
+          const currentUser = await storage.getUser(userId);
+          const existingRolesRaw: unknown = (currentUser as any)?.roles;
+          const existingRoles: string[] = Array.isArray(existingRolesRaw)
+            ? (existingRolesRaw as unknown[])
+                .filter((v) => typeof v === "string")
+                .map((v) => v as string)
+            : [];
+
+          const mergedRoles = Array.from(
+            new Set<string>([...existingRoles, ...Array.from(inferredRoles)])
+          );
+
+          // Choose a primary legacy role compatible with the enum for users.role
+          const pickPrimaryRole = (): string => {
+            if (inferredRoles.has("contractor")) return "contractor";
+            if (inferredRoles.has("property_manager")) return "property_manager";
+            if (inferredRoles.has("business_owner")) return "business_owner";
+            if (inferredRoles.has("homeowner")) return "homeowner";
+            // Fallback: keep current primary if present, else homeowner
+            const currentPrimary: string | undefined =
+              (currentUser as any)?.activeRole || (currentUser as any)?.role;
+            if (typeof currentPrimary === "string" && currentPrimary.length > 0) {
+              return currentPrimary;
+            }
+            return "homeowner";
+          };
+
+          const primaryRole = pickPrimaryRole();
+
+          updateData.roles = mergedRoles;
+          updateData.activeRole = primaryRole;
+          updateData.role = primaryRole as any;
+        }
+
+        // Add contractor/business-specific fields
+        const isBusinessOrServiceProfile =
+          bundles.length > 0
+            ? bundles.includes("service_provider") || bundles.includes("property_operator")
+            : role === "contractor";
+
+        if (isBusinessOrServiceProfile) {
+          updateData.businessName = businessName;
+          updateData.licenseNumber = licenseNumber;
+          updateData.specialties = specialties;
+          updateData.yearsExperience = parseInt(yearsExperience) || 0;
+        }
+
+        await storage.updateUser(userId, updateData);
+
+        res.json({ message: "Onboarding completed successfully" });
+      } catch (error: any) {
+        console.error("Onboarding completion error:", error);
+        res.status(500).json({ message: "Failed to complete onboarding" });
       }
-
-      // Add contractor/business-specific fields
-      const isBusinessOrServiceProfile =
-        bundles.length > 0
-          ? bundles.includes("service_provider") || bundles.includes("property_operator")
-          : role === "contractor";
-
-      if (isBusinessOrServiceProfile) {
-        updateData.businessName = businessName;
-        updateData.licenseNumber = licenseNumber;
-        updateData.specialties = specialties;
-        updateData.yearsExperience = parseInt(yearsExperience) || 0;
-      }
-
-      await storage.updateUser(userId, updateData);
-
-      res.json({ message: "Onboarding completed successfully" });
-    } catch (error: any) {
-      console.error("Onboarding completion error:", error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
     }
-  });
+  );
 
   app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -1052,14 +1124,14 @@ export async function registerRoutes(app: any) {
       const { role } = (req.body ?? {}) as any;
       const user = req.user as any;
       const userId: string = user.id || user.claims?.sub || "";
-      
+
       // Mark onboarding as completed but keep minimal profile
       if (!userId) return res.status(400).json({ message: "User ID missing" });
-      await storage.updateUser(userId, { 
+      await storage.updateUser(userId, {
         onboardingCompleted: true,
-        role: role === 'contractor' ? 'contractor' : 'homeowner'
+        role: role === "contractor" ? "contractor" : "homeowner",
       });
-      
+
       res.json({ message: "Account created successfully" });
     } catch (error: any) {
       console.error("Skip onboarding error:", error);
@@ -1119,7 +1191,10 @@ export async function registerRoutes(app: any) {
         const profiles = await storage.listProfilesByOwner(userId);
         if (profiles.length === 1) {
           const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
-          res.json({ authenticated: true, user: sanitizeUserForResponse(applyImpersonation(updated)) });
+          res.json({
+            authenticated: true,
+            user: sanitizeUserForResponse(applyImpersonation(updated)),
+          });
           return;
         }
       }
@@ -1131,7 +1206,10 @@ export async function registerRoutes(app: any) {
         const businesses = await storage.listBusinessesByOwner(userId);
         if (businesses.length === 1) {
           const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
-          res.json({ authenticated: true, user: sanitizeUserForResponse(applyImpersonation(updated)) });
+          res.json({
+            authenticated: true,
+            user: sanitizeUserForResponse(applyImpersonation(updated)),
+          });
           return;
         }
       }
@@ -1200,10 +1278,15 @@ export async function registerRoutes(app: any) {
       };
 
       if (!affiliateCode || !merchantUserId) {
-        return res.status(400).json({ ok: false, error: "affiliateCode and merchantUserId are required" });
+        return res
+          .status(400)
+          .json({ ok: false, error: "affiliateCode and merchantUserId are required" });
       }
 
-      const priorPayments = await storage.getMealscoutSubscriptionPaymentCount(affiliateCode, merchantUserId);
+      const priorPayments = await storage.getMealscoutSubscriptionPaymentCount(
+        affiliateCode,
+        merchantUserId
+      );
       const isFirstMonth = priorPayments === 0;
       const commissionAmount = isFirstMonth ? 20 : 5;
 
@@ -1218,14 +1301,16 @@ export async function registerRoutes(app: any) {
       return res.json({ ok: true, commissionAmount, isFirstMonth });
     } catch (error: any) {
       console.error("[MealScoutAffiliate] Failed to record subscription payment", error);
-      return res.status(500).json({ ok: false, error: "Failed to record MealScout affiliate payment" });
+      return res
+        .status(500)
+        .json({ ok: false, error: "Failed to record MealScout affiliate payment" });
     }
   });
 
   // Check if platform setup is needed
   app.get("/api/auth/setup-status", async (req: AuthedRequest, res: Response) => {
     try {
-      const existingHeadAdmin = await storage.getUserByRole('head_admin');
+      const existingHeadAdmin = await storage.getUserByRole("head_admin");
       res.json({ needsSetup: !existingHeadAdmin });
     } catch (error: any) {
       console.error("Setup status check error:", error);
@@ -1239,7 +1324,7 @@ export async function registerRoutes(app: any) {
       const { email, password, firstName, lastName } = (req.body ?? {}) as any;
 
       // Check if any head_admin already exists
-      const existingHeadAdmin = await storage.getUserByRole('head_admin');
+      const existingHeadAdmin = await storage.getUserByRole("head_admin");
       if (existingHeadAdmin) {
         return res.status(403).json({ message: "Master admin already exists" });
       }
@@ -1250,11 +1335,11 @@ export async function registerRoutes(app: any) {
       const sessionToken = await DeviceAuthService.registerTrustedDevice(); // stubbed: no args
 
       // Set secure cookie for trusted session
-      res.cookie('trusted_session', sessionToken, {
+      res.cookie("trusted_session", sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
       });
 
       // Auto-login the master admin
@@ -1262,10 +1347,10 @@ export async function registerRoutes(app: any) {
         if (err) {
           return res.status(500).json({ message: "Master admin created but login failed" });
         }
-        res.json({ 
-          user: sanitizeUserForResponse(masterAdmin), 
+        res.json({
+          user: sanitizeUserForResponse(masterAdmin),
           message: "Master admin setup complete - device registered for secure access",
-          deviceRegistered: true
+          deviceRegistered: true,
         });
       });
     } catch (error: any) {
@@ -1275,193 +1360,228 @@ export async function registerRoutes(app: any) {
   });
 
   // Connect current Facebook login to existing master admin account with device security
-  app.post("/api/auth/connect-master-admin", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const currentUser = req.user as any;
-      
-      // Check if user is logged in via Facebook
-      if (!currentUser.claims?.sub) {
-        return res.status(400).json({ message: "Must be logged in via Facebook to connect to master admin" });
-      }
+  app.post(
+    "/api/auth/connect-master-admin",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const currentUser = req.user as any;
 
-      // Find the master admin account that needs Facebook connection
-      const masterAdmin = await storage.getUserByEmail('mrplatypus4777@gmail.com');
-      if (!masterAdmin || masterAdmin.role !== 'head_admin') {
-        return res.status(404).json({ message: "Master admin account not found" });
-      }
+        // Check if user is logged in via Facebook
+        if (!currentUser.claims?.sub) {
+          return res
+            .status(400)
+            .json({ message: "Must be logged in via Facebook to connect to master admin" });
+        }
 
-      // Check if master admin already has Facebook connected
-      if (masterAdmin.facebookId) {
-        return res.status(400).json({ message: "Master admin account already connected to Facebook" });
-      }
+        // Find the master admin account that needs Facebook connection
+        const masterAdmin = await storage.getUserByEmail("mrplatypus4777@gmail.com");
+        if (!masterAdmin || masterAdmin.role !== "head_admin") {
+          return res.status(404).json({ message: "Master admin account not found" });
+        }
 
-      // Register this device as trusted for the master admin (auto-approve first device)
-      // const { DeviceAuthService } = await import('./device-auth');
-      // const { deviceId, needsApproval } = await DeviceAuthService.registerDevice(
-      //   masterAdmin.id, 
-      //   req, 
-      //   req.body.deviceFingerprint, // Client can send additional device data
-      //   true // Auto-approve this first device since you're doing the initial setup
-      // );
+        // Check if master admin already has Facebook connected
+        if (masterAdmin.facebookId) {
+          return res
+            .status(400)
+            .json({ message: "Master admin account already connected to Facebook" });
+        }
 
-      // Connect Facebook ID to master admin account and update profile
-      await storage.updateUser(masterAdmin.id, {
-        facebookId: currentUser.claims.sub,
-        profileImageUrl: currentUser.claims.profile_image_url,
-        // Update name if Facebook has more recent data
-        firstName: currentUser.claims.first_name || masterAdmin.firstName,
-        lastName: currentUser.claims.last_name || masterAdmin.lastName
-      });
+        // Register this device as trusted for the master admin (auto-approve first device)
+        // const { DeviceAuthService } = await import('./device-auth');
+        // const { deviceId, needsApproval } = await DeviceAuthService.registerDevice(
+        //   masterAdmin.id,
+        //   req,
+        //   req.body.deviceFingerprint, // Client can send additional device data
+        //   true // Auto-approve this first device since you're doing the initial setup
+        // );
 
-      // Update session to reflect master admin privileges
-      req.user = {
-        ...currentUser,
-        id: masterAdmin.id,
-        email: masterAdmin.email,
-        role: 'head_admin',
-        firstName: currentUser.claims.first_name || masterAdmin.firstName,
-        lastName: currentUser.claims.last_name || masterAdmin.lastName,
-        facebookId: currentUser.claims.sub
-      };
+        // Connect Facebook ID to master admin account and update profile
+        await storage.updateUser(masterAdmin.id, {
+          facebookId: currentUser.claims.sub,
+          profileImageUrl: currentUser.claims.profile_image_url,
+          // Update name if Facebook has more recent data
+          firstName: currentUser.claims.first_name || masterAdmin.firstName,
+          lastName: currentUser.claims.last_name || masterAdmin.lastName,
+        });
 
-      res.json({ 
-        message: "Facebook account connected to master admin with device security enabled",
-        user: {
+        // Update session to reflect master admin privileges
+        req.user = {
+          ...currentUser,
           id: masterAdmin.id,
           email: masterAdmin.email,
-          role: 'head_admin',
-          firstName: (req.user as any)?.firstName,
-          lastName: (req.user as any)?.lastName,
-          profileImageUrl: currentUser.claims.profile_image_url,
-          facebookId: currentUser.claims.sub
-        },
-        deviceSecurity: {
-          deviceId: req.headers['user-agent'] ? 
-            Buffer.from(req.headers['user-agent'] + (req.ip || '')).toString('base64').substring(0, 32) : 
-            'unknown-device',
-          message: "This device has been registered and approved for admin access"
-        }
-      });
-    } catch (error: any) {
-      console.error("Connect master admin error:", error);
-      res.status(500).json({ message: "Failed to connect Facebook to master admin account" });
+          role: "head_admin",
+          firstName: currentUser.claims.first_name || masterAdmin.firstName,
+          lastName: currentUser.claims.last_name || masterAdmin.lastName,
+          facebookId: currentUser.claims.sub,
+        };
+
+        res.json({
+          message: "Facebook account connected to master admin with device security enabled",
+          user: {
+            id: masterAdmin.id,
+            email: masterAdmin.email,
+            role: "head_admin",
+            firstName: (req.user as any)?.firstName,
+            lastName: (req.user as any)?.lastName,
+            profileImageUrl: currentUser.claims.profile_image_url,
+            facebookId: currentUser.claims.sub,
+          },
+          deviceSecurity: {
+            deviceId: req.headers["user-agent"]
+              ? Buffer.from(req.headers["user-agent"] + (req.ip || ""))
+                  .toString("base64")
+                  .substring(0, 32)
+              : "unknown-device",
+            message: "This device has been registered and approved for admin access",
+          },
+        });
+      } catch (error: any) {
+        console.error("Connect master admin error:", error);
+        res.status(500).json({ message: "Failed to connect Facebook to master admin account" });
+      }
     }
-  });
+  );
 
   // Device management routes for admin security
-  app.get('/api/admin/devices', isAuthenticated, requireRole(['head_admin']), async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      const userId: string = user.id || user.claims?.sub || "";
-      const { DeviceAuthService } = await import('./deviceAuth');
-      if (!userId) return res.status(400).json({ message: "User ID missing" });
-      const devices = await DeviceAuthService.getUserDevices(userId);
-      res.json({ devices });
-    } catch (error: any) {
-      console.error("Get devices error:", error);
-      res.status(500).json({ message: "Failed to fetch devices" });
-    }
-  });
-
-  app.get('/api/admin/pending-devices', isAuthenticated, requireRole(['head_admin']), async (req: Request, res: Response) => {
-    try {
-      const { DeviceAuthService } = await import('./deviceAuth');
-      const pendingDevices = await DeviceAuthService.getPendingDevices();
-      res.json({ pendingDevices });
-    } catch (error: any) {
-      console.error("Get pending devices error:", error);
-      res.status(500).json({ message: "Failed to fetch pending devices" });
-    }
-  });
-
-  app.post('/api/admin/approve-device', isAuthenticated, requireRole(['head_admin']), async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      const userId: string = user.id || user.claims?.sub || "";
-      const { deviceId } = (req.body ?? {}) as any;
-      const { DeviceAuthService } = await import('./deviceAuth');
-      if (!userId) return res.status(400).json({ message: "User ID missing" });
-      if (!deviceId) return res.status(400).json({ message: "Device ID missing" });
-      const success = await DeviceAuthService.approveDevice(deviceId, userId);
-      
-      if (success) {
-        res.json({ message: "Device approved successfully" });
-      } else {
-        res.status(400).json({ message: "Failed to approve device" });
+  app.get(
+    "/api/admin/devices",
+    isAuthenticated,
+    requireRole(["head_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user as any;
+        const userId: string = user.id || user.claims?.sub || "";
+        const { DeviceAuthService } = await import("./deviceAuth");
+        if (!userId) return res.status(400).json({ message: "User ID missing" });
+        const devices = await DeviceAuthService.getUserDevices(userId);
+        res.json({ devices });
+      } catch (error: any) {
+        console.error("Get devices error:", error);
+        res.status(500).json({ message: "Failed to fetch devices" });
       }
-    } catch (error: any) {
-      console.error("Approve device error:", error);
-      res.status(500).json({ message: "Failed to approve device" });
     }
-  });
+  );
 
-  app.post('/api/admin/revoke-device', isAuthenticated, requireRole(['head_admin']), async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      const userId: string = user.id || user.claims?.sub || "";
-      const { deviceId } = (req.body ?? {}) as any;
-      const { DeviceAuthService } = await import('./deviceAuth');
-      if (!userId) return res.status(400).json({ message: "User ID missing" });
-      if (!deviceId) return res.status(400).json({ message: "Device ID missing" });
-      const success = await DeviceAuthService.revokeDevice(deviceId, userId);
-      
-      if (success) {
-        res.json({ message: "Device revoked successfully" });
-      } else {
-        res.status(400).json({ message: "Failed to revoke device" });
+  app.get(
+    "/api/admin/pending-devices",
+    isAuthenticated,
+    requireRole(["head_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const { DeviceAuthService } = await import("./deviceAuth");
+        const pendingDevices = await DeviceAuthService.getPendingDevices();
+        res.json({ pendingDevices });
+      } catch (error: any) {
+        console.error("Get pending devices error:", error);
+        res.status(500).json({ message: "Failed to fetch pending devices" });
       }
-    } catch (error: any) {
-      console.error("Revoke device error:", error);
-      res.status(500).json({ message: "Failed to revoke device" });
     }
-  });
+  );
+
+  app.post(
+    "/api/admin/approve-device",
+    isAuthenticated,
+    requireRole(["head_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user as any;
+        const userId: string = user.id || user.claims?.sub || "";
+        const { deviceId } = (req.body ?? {}) as any;
+        const { DeviceAuthService } = await import("./deviceAuth");
+        if (!userId) return res.status(400).json({ message: "User ID missing" });
+        if (!deviceId) return res.status(400).json({ message: "Device ID missing" });
+        const success = await DeviceAuthService.approveDevice(deviceId, userId);
+
+        if (success) {
+          res.json({ message: "Device approved successfully" });
+        } else {
+          res.status(400).json({ message: "Failed to approve device" });
+        }
+      } catch (error: any) {
+        console.error("Approve device error:", error);
+        res.status(500).json({ message: "Failed to approve device" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/revoke-device",
+    isAuthenticated,
+    requireRole(["head_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user as any;
+        const userId: string = user.id || user.claims?.sub || "";
+        const { deviceId } = (req.body ?? {}) as any;
+        const { DeviceAuthService } = await import("./deviceAuth");
+        if (!userId) return res.status(400).json({ message: "User ID missing" });
+        if (!deviceId) return res.status(400).json({ message: "Device ID missing" });
+        const success = await DeviceAuthService.revokeDevice(deviceId, userId);
+
+        if (success) {
+          res.json({ message: "Device revoked successfully" });
+        } else {
+          res.status(400).json({ message: "Failed to revoke device" });
+        }
+      } catch (error: any) {
+        console.error("Revoke device error:", error);
+        res.status(500).json({ message: "Failed to revoke device" });
+      }
+    }
+  );
 
   // Admin-only route to create new admin accounts
-  app.post("/api/admin/create-account", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
-    try {
-      const { email, password, firstName, lastName, role, address } = (req.body ?? {}) as any;
+  app.post(
+    "/api/admin/create-account",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const { email, password, firstName, lastName, role, address } = (req.body ?? {}) as any;
 
-      // Validate role assignment permissions
-      const currentUser = req.user as any;
-      if (role === 'head_admin' && currentUser.role !== 'head_admin') {
-        return res.status(403).json({ message: "Only head admins can create other head admins" });
+        // Validate role assignment permissions
+        const currentUser = req.user as any;
+        if (role === "head_admin" && currentUser.role !== "head_admin") {
+          return res.status(403).json({ message: "Only head admins can create other head admins" });
+        }
+
+        // Check if user already exists
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({ message: "User with this email already exists" });
+        }
+
+        // Username check not needed as we removed username field
+
+        // Hash password
+        const hashedPassword = await hashPassword(password);
+
+        // Create admin user
+        const newAdmin = await storage.createUser({
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          address,
+          role: role as any,
+          emailVerified: true, // Admins are pre-verified
+          addressVerified: true, // Admins are pre-verified
+        });
+
+        // Remove password hash from response
+        const { password: _, ...userResponse } = newAdmin;
+
+        res.json({
+          user: userResponse,
+          message: `${role} account created successfully`,
+        });
+      } catch (error: any) {
+        console.error("Admin account creation error:", error);
+        res.status(500).json({ message: "Account creation failed" });
       }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User with this email already exists" });
-      }
-
-      // Username check not needed as we removed username field
-
-      // Hash password
-      const hashedPassword = await hashPassword(password);
-
-      // Create admin user
-      const newAdmin = await storage.createUser({
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        address,
-        role: role as any,
-        emailVerified: true, // Admins are pre-verified
-        addressVerified: true, // Admins are pre-verified
-      });
-
-      // Remove password hash from response
-      const { password: _, ...userResponse } = newAdmin;
-
-      res.json({ 
-        user: userResponse, 
-        message: `${role} account created successfully` 
-      });
-    } catch (error: any) {
-      console.error("Admin account creation error:", error);
-      res.status(500).json({ message: "Account creation failed" });
     }
-  });
+  );
 
   // OAuth strategies are configured in auth.ts
 
@@ -1573,18 +1693,18 @@ export async function registerRoutes(app: any) {
 
   // OAuth routes (canonical): only register when the strategy is configured.
   // This prevents runtime crashes like: "Unknown authentication strategy 'google'".
-  app.get('/api/auth/providers', (req: Request, res: Response) => {
-    res.setHeader('Cache-Control', 'no-store');
+  app.get("/api/auth/providers", (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store");
 
     const facebookIdSource = process.env.FACEBOOK_APP_ID
-      ? 'FACEBOOK_APP_ID'
+      ? "FACEBOOK_APP_ID"
       : process.env.FACEBOOK_CLIENT_ID
-        ? 'FACEBOOK_CLIENT_ID'
+        ? "FACEBOOK_CLIENT_ID"
         : null;
     const facebookSecretSource = process.env.FACEBOOK_APP_SECRET
-      ? 'FACEBOOK_APP_SECRET'
+      ? "FACEBOOK_APP_SECRET"
       : process.env.FACEBOOK_CLIENT_SECRET
-        ? 'FACEBOOK_CLIENT_SECRET'
+        ? "FACEBOOK_CLIENT_SECRET"
         : null;
 
     res.json({
@@ -1608,17 +1728,22 @@ export async function registerRoutes(app: any) {
   });
 
   if (hasFacebookOAuth) {
-    app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+    app.get("/api/auth/facebook", passport.authenticate("facebook", { scope: ["email"] }));
     app.get(
-      '/api/auth/facebook/callback',
+      "/api/auth/facebook/callback",
       (req: Request, res: Response, next: any) => {
         try {
-          if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
+          if (
+            typeof (req as any).isAuthenticated === "function" &&
+            (req as any).isAuthenticated() &&
+            (req as any).user
+          ) {
             const user = req.user as any;
             const anyUser: any = user || {};
-            const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+            const profileVersion: number =
+              typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
             const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-            const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
+            const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
             return res.redirect(redirectTo);
           }
         } catch {
@@ -1626,13 +1751,14 @@ export async function registerRoutes(app: any) {
         }
         return next();
       },
-      passport.authenticate('facebook', { failureRedirect: '/login' }),
+      passport.authenticate("facebook", { failureRedirect: "/login" }),
       (req: Request, res: Response) => {
         const user = req.user as any;
         const anyUser: any = user || {};
-        const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+        const profileVersion: number =
+          typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
         const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-        const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
+        const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
         res.redirect(redirectTo);
       }
     );
@@ -1641,22 +1767,27 @@ export async function registerRoutes(app: any) {
   if (hasGoogleOAuth) {
     // Google OAuth entrypoint: request standard OpenID scopes
     app.get(
-      '/api/auth/google',
-      passport.authenticate('google', {
-        scope: ['openid', 'email', 'profile'],
-        prompt: 'select_account',
+      "/api/auth/google",
+      passport.authenticate("google", {
+        scope: ["openid", "email", "profile"],
+        prompt: "select_account",
       })
     );
     app.get(
-      '/api/auth/google/callback',
+      "/api/auth/google/callback",
       (req: Request, res: Response, next: any) => {
         try {
-          if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
+          if (
+            typeof (req as any).isAuthenticated === "function" &&
+            (req as any).isAuthenticated() &&
+            (req as any).user
+          ) {
             const user = req.user as any;
             const anyUser: any = user || {};
-            const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+            const profileVersion: number =
+              typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
             const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-            const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
+            const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
             return res.redirect(redirectTo);
           }
         } catch {
@@ -1664,94 +1795,104 @@ export async function registerRoutes(app: any) {
         }
         return next();
       },
-      passport.authenticate('google', {
-        failureRedirect: '/login',
+      passport.authenticate("google", {
+        failureRedirect: "/login",
         session: true,
       }),
       (req: Request, res: Response) => {
         const user = req.user as any;
         const anyUser: any = user || {};
-        const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+        const profileVersion: number =
+          typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
         const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-        const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
+        const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
         res.redirect(redirectTo);
       }
     );
   }
 
   // Admin role impersonation routes
-  app.post('/api/admin/impersonate', isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
-    try {
-      const { role } = (req.body ?? {}) as any;
+  app.post(
+    "/api/admin/impersonate",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const { role } = (req.body ?? {}) as any;
 
-      // Validate the target role
-      const validRoles = ['homeowner', 'contractor', 'startup_founder', 'moderator', 'ops_admin'];
-      if (!validRoles.includes(role)) {
-        return res.status(400).json({ message: "Invalid role for impersonation" });
+        // Validate the target role
+        const validRoles = ["homeowner", "contractor", "startup_founder", "moderator", "ops_admin"];
+        if (!validRoles.includes(role)) {
+          return res.status(400).json({ message: "Invalid role for impersonation" });
+        }
+
+        // Store original user info in session for restoration
+        (req.session as any).originalUser = {
+          id: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          role: (req.user as any)?.role,
+          email: (req.user as any)?.email,
+        };
+
+        // Create a temporary impersonation session
+        (req.session as any).impersonatingRole = role;
+        (req.session as any).isImpersonating = true;
+
+        // Find a user with the target role for realistic testing
+        const targetUser = await storage.getUserByRole(role);
+        let userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || ""; // Default to admin's ID
+
+        if (targetUser) {
+          userId = targetUser.id;
+        }
+
+        res.json({
+          message: `Impersonation started for role: ${role}`,
+          role,
+          userId,
+          isImpersonating: true,
+        });
+      } catch (error: any) {
+        console.error("Role impersonation error:", error);
+        res.status(500).json({ message: "Failed to start impersonation" });
       }
-
-      // Store original user info in session for restoration
-      (req.session as any).originalUser = {
-        id: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        role: (req.user as any)?.role,
-        email: (req.user as any)?.email
-      };
-
-      // Create a temporary impersonation session
-      (req.session as any).impersonatingRole = role;
-      (req.session as any).isImpersonating = true;
-
-      // Find a user with the target role for realistic testing
-      const targetUser = await storage.getUserByRole(role);
-      let userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || ""; // Default to admin's ID
-
-      if (targetUser) {
-        userId = targetUser.id;
-      }
-
-      res.json({ 
-        message: `Impersonation started for role: ${role}`,
-        role,
-        userId,
-        isImpersonating: true
-      });
-    } catch (error: any) {
-      console.error("Role impersonation error:", error);
-      res.status(500).json({ message: "Failed to start impersonation" });
     }
-  });
+  );
 
-  app.post('/api/admin/stop-impersonation', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      if (!(req.session as any).isImpersonating || !(req.session as any).originalUser) {
-        return res.status(400).json({ message: "No active impersonation session" });
+  app.post(
+    "/api/admin/stop-impersonation",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        if (!(req.session as any).isImpersonating || !(req.session as any).originalUser) {
+          return res.status(400).json({ message: "No active impersonation session" });
+        }
+
+        // Clear impersonation from session
+        delete (req.session as any).impersonatingRole;
+        delete (req.session as any).isImpersonating;
+        delete (req.session as any).originalUser;
+
+        res.json({
+          message: "Impersonation stopped",
+          isImpersonating: false,
+        });
+      } catch (error: any) {
+        console.error("Stop impersonation error:", error);
+        res.status(500).json({ message: "Failed to stop impersonation" });
       }
-
-      // Clear impersonation from session
-      delete (req.session as any).impersonatingRole;
-      delete (req.session as any).isImpersonating;
-      delete (req.session as any).originalUser;
-
-      res.json({ 
-        message: "Impersonation stopped",
-        isImpersonating: false
-      });
-    } catch (error: any) {
-      console.error("Stop impersonation error:", error);
-      res.status(500).json({ message: "Failed to stop impersonation" });
     }
-  });
+  );
 
   // NOTE: Facebook OAuth routes are registered above (canonical /api/auth/*).
 
   // Platform statistics endpoint - real-time data
-  app.get('/api/stats/platform', async (req: Request, res: Response) => {
+  app.get("/api/stats/platform", async (req: Request, res: Response) => {
     try {
       const stats = await storage.getPlatformStatistics();
       res.json(stats);
     } catch (error: any) {
-      console.error('Platform statistics error:', error);
-      res.status(500).json({ message: 'Failed to fetch statistics' });
+      console.error("Platform statistics error:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
     }
   });
 
@@ -1759,7 +1900,7 @@ export async function registerRoutes(app: any) {
   // NOTE: /api/auth/user is defined earlier (canonical) with req.isAuthenticated() checks.
 
   // User profile routes
-  app.get('/api/user/profile', isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/user/profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
       res.json(sanitizeUserForResponse(user));
@@ -1769,7 +1910,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.put('/api/user/profile', isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/user/profile", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
     try {
@@ -1802,10 +1943,13 @@ export async function registerRoutes(app: any) {
       let normalizedProfileImageUrl = profileImageUrl;
       if (profileImageUrl) {
         try {
-          normalizedProfileImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(profileImageUrl, {
-            owner: userId,
-            visibility: "public",
-          });
+          normalizedProfileImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(
+            profileImageUrl,
+            {
+              owner: userId,
+              visibility: "public",
+            }
+          );
         } catch (e) {
           console.warn("Failed to set ACL for profile image", e);
         }
@@ -1847,29 +1991,36 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post('/api/user/complete-onboarding', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
-        onboardingCompleted: true,
-        // Any explicit onboarding completion should also advance
-        // the profile version so that profile gates remain consistent.
-        profileVersion: CURRENT_PROFILE_VERSION,
-        updatedAt: new Date(),
-      });
-      res.json(sanitizeUserForResponse(user));
-    } catch (error: any) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
+  app.post(
+    "/api/user/complete-onboarding",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const user = await storage.updateUser(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          {
+            onboardingCompleted: true,
+            // Any explicit onboarding completion should also advance
+            // the profile version so that profile gates remain consistent.
+            profileVersion: CURRENT_PROFILE_VERSION,
+            updatedAt: new Date(),
+          }
+        );
+        res.json(sanitizeUserForResponse(user));
+      } catch (error: any) {
+        console.error("Error completing onboarding:", error);
+        res.status(500).json({ message: "Failed to complete onboarding" });
+      }
     }
-  });
+  );
 
   // PHASE 3d-A: AI inference for Scout claim suggestion
-  app.post('/api/ai/inference', isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/ai/inference", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { systemPrompt, userPrompt, temperature, maxTokens, model } = req.body;
-      
+
       if (!systemPrompt || !userPrompt) {
-        return res.status(400).json({ error: 'systemPrompt and userPrompt are required' });
+        return res.status(400).json({ error: "systemPrompt and userPrompt are required" });
       }
 
       const result = await callAIInference({
@@ -1882,19 +2033,19 @@ export async function registerRoutes(app: any) {
 
       res.json(result);
     } catch (error: any) {
-      logger.error('[API] AI inference error', { error: error.message });
-      res.status(500).json({ error: 'AI inference failed' });
+      logger.error("[API] AI inference error", { error: error.message });
+      res.status(500).json({ error: "AI inference failed" });
     }
   });
 
   // PHASE 3d-A: Write confirmed claims from Scout onboarding
-  app.post('/api/claims/write', isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/claims/write", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { confirmedClaimTypes, countyFips, metadata } = req.body;
 
       if (!Array.isArray(confirmedClaimTypes) || confirmedClaimTypes.length === 0) {
-        return res.status(400).json({ error: 'confirmedClaimTypes must be a non-empty array' });
+        return res.status(400).json({ error: "confirmedClaimTypes must be a non-empty array" });
       }
 
       // Write each claim individually
@@ -1904,14 +2055,15 @@ export async function registerRoutes(app: any) {
             userId,
             claimType: claimType as any,
             countyFips: countyFips || null,
-            countyName: '',
+            countyName: "",
             source: ClaimSource.SCOUT_INFERRED,
             claimTimestamp: new Date(),
             metadata: {
-              confidence: metadata?.confidenceByClaim?.[claimType] || 0.70,
-              evidence: metadata?.evidenceByClaim?.[claimType] || 'User confirmed via Scout onboarding',
-              textSource: metadata?.textSource || 'provisional_userIntent',
-              rawUserIntentText: metadata?.rawUserIntentText || '',
+              confidence: metadata?.confidenceByClaim?.[claimType] || 0.7,
+              evidence:
+                metadata?.evidenceByClaim?.[claimType] || "User confirmed via Scout onboarding",
+              textSource: metadata?.textSource || "provisional_userIntent",
+              rawUserIntentText: metadata?.rawUserIntentText || "",
             },
           };
 
@@ -1920,29 +2072,29 @@ export async function registerRoutes(app: any) {
       );
 
       // Check if any writes failed
-      const failures = results.filter(r => !r.success);
+      const failures = results.filter((r) => !r.success);
       if (failures.length > 0) {
-        logger.warn('[API] Some claim writes failed', { 
-          userId, 
-          total: results.length, 
-          failed: failures.length 
+        logger.warn("[API] Some claim writes failed", {
+          userId,
+          total: results.length,
+          failed: failures.length,
         });
       }
 
-      res.json({ 
-        success: failures.length === 0, 
+      res.json({
+        success: failures.length === 0,
         results,
-        written: results.filter(r => r.success).length,
+        written: results.filter((r) => r.success).length,
         failed: failures.length,
       });
     } catch (error: any) {
-      logger.error('[API] Claim write error', { error: error.message });
-      res.status(500).json({ error: 'Failed to write claims' });
+      logger.error("[API] Claim write error", { error: error.message });
+      res.status(500).json({ error: "Failed to write claims" });
     }
   });
 
   // User role update (self-serve) - blocks admin roles
-  app.patch('/api/user/roles', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/user/roles", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { roles } = (req.body ?? {}) as any;
@@ -1952,7 +2104,7 @@ export async function registerRoutes(app: any) {
       }
 
       const normalizedRoles = roles
-        .map((r: any) => String(r || '').trim())
+        .map((r: any) => String(r || "").trim())
         .filter((r: string) => r.length > 0);
 
       if (normalizedRoles.length === 0) {
@@ -1961,12 +2113,12 @@ export async function registerRoutes(app: any) {
 
       // Prevent privilege escalation: no admin/back-office roles here.
       const blocked = new Set([
-        'head_admin',
-        'ops_admin',
-        'moderator',
-        'startup_founder',
-        'admin',
-        'tradescout_admin',
+        "head_admin",
+        "ops_admin",
+        "moderator",
+        "startup_founder",
+        "admin",
+        "tradescout_admin",
       ]);
       if (normalizedRoles.some((r: string) => blocked.has(r))) {
         return res.status(400).json({ message: "Invalid role selection" });
@@ -1974,20 +2126,20 @@ export async function registerRoutes(app: any) {
 
       // Basic allowlist: only roles that exist in the product UI.
       const allowed = new Set([
-        'homeowner',
-        'contractor_user',
-        'realtor',
-        'car_salesman',
-        'insurance_agent',
-        'mortgage_broker',
-        'property_manager',
-        'business_owner',
-        'restaurant_owner',
-        'food_truck_owner',
-        'bar_owner',
-        'helper',
-        'vehicle_dealer',
-        'hoa_admin',
+        "homeowner",
+        "contractor_user",
+        "realtor",
+        "car_salesman",
+        "insurance_agent",
+        "mortgage_broker",
+        "property_manager",
+        "business_owner",
+        "restaurant_owner",
+        "food_truck_owner",
+        "bar_owner",
+        "helper",
+        "vehicle_dealer",
+        "hoa_admin",
       ]);
 
       const filteredRoles = normalizedRoles.filter((r: string) => allowed.has(r));
@@ -2014,7 +2166,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Update user types (business/account personas) with full multi-select support
-  app.patch('/api/user/user-types', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/user/user-types", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { userTypes } = (req.body ?? {}) as any;
@@ -2039,20 +2191,15 @@ export async function registerRoutes(app: any) {
       }
 
       // Prevent privilege escalation: no admin/back-office types here.
-      const blocked = new Set([
-        "admin",
-      ]);
+      const blocked = new Set(["admin"]);
 
-      const normalized = Array.from(
-        new Set(
-          rawTypes
-            .map((t: string) => normalizeRole(t))
-        )
-      ).filter((typeId: string) => {
-        if (blocked.has(typeId)) return false;
-        // Only allow known user types with metadata
-        return Boolean(getUserTypeMetadata(typeId));
-      });
+      const normalized = Array.from(new Set(rawTypes.map((t: string) => normalizeRole(t)))).filter(
+        (typeId: string) => {
+          if (blocked.has(typeId)) return false;
+          // Only allow known user types with metadata
+          return Boolean(getUserTypeMetadata(typeId));
+        }
+      );
 
       if (normalized.length === 0) {
         return res.status(400).json({ message: "Invalid userTypes selection" });
@@ -2077,7 +2224,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Back-compat aliases used by onboarding UI
-  app.patch('/api/auth/user/preferences', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/auth/user/preferences", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const currentUser = await storage.getUser(userId);
@@ -2098,7 +2245,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Helper endpoint for Scout/tools: update just preferences.geo based on device location
-  app.post('/api/agent/preferences/geo', isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/agent/preferences/geo", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const currentUser = await storage.getUser(userId);
@@ -2110,8 +2257,12 @@ export async function registerRoutes(app: any) {
       const enableNearbyDeals = body.enableNearbyDeals;
       const includeTypes = body.includeTypes;
 
-      if (typeof homeLocation.lat !== 'number' || typeof homeLocation.lng !== 'number') {
-        return res.status(400).json({ message: "homeLocation.lat and homeLocation.lng are required and must be numbers" });
+      if (typeof homeLocation.lat !== "number" || typeof homeLocation.lng !== "number") {
+        return res
+          .status(400)
+          .json({
+            message: "homeLocation.lat and homeLocation.lng are required and must be numbers",
+          });
       }
 
       const currentPrefs: any = (currentUser as any).preferences || {};
@@ -2128,17 +2279,17 @@ export async function registerRoutes(app: any) {
         },
       };
 
-      if (typeof radius === 'number' && Number.isFinite(radius) && radius > 0) {
+      if (typeof radius === "number" && Number.isFinite(radius) && radius > 0) {
         nextGeo.notifyNearbyRadiusMeters = radius;
       }
 
-      if (typeof enableNearbyDeals === 'boolean') {
+      if (typeof enableNearbyDeals === "boolean") {
         nextGeo.enableNearbyDeals = enableNearbyDeals;
       }
 
       if (Array.isArray(includeTypes)) {
-        nextGeo.includeTypes = includeTypes.filter((t: any) =>
-          t === 'marketplace' || t === 'trade' || t === 'mealscout'
+        nextGeo.includeTypes = includeTypes.filter(
+          (t: any) => t === "marketplace" || t === "trade" || t === "mealscout"
         );
       }
 
@@ -2160,7 +2311,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Back-compat: mark onboarding completed (do NOT allow arbitrary updates)
-  app.patch('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/auth/user", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { onboardingCompleted } = (req.body ?? {}) as any;
@@ -2182,7 +2333,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Back-compat: legacy path used by subtle hints
-  app.patch('/api/user/preferences', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/user/preferences", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const currentUser = await storage.getUser(userId);
@@ -2203,7 +2354,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Get public profile (respects privacy settings)
-  app.get('/api/users/:userId/public', async (req: Request, res: Response) => {
+  app.get("/api/users/:userId/public", async (req: Request, res: Response) => {
     try {
       const { userId } = req.params;
       const user = await storage.getUser(userId);
@@ -2213,7 +2364,7 @@ export async function registerRoutes(app: any) {
       }
 
       // Check if profile is public
-      const isPublic = user.preferences?.profileVisibility === 'public';
+      const isPublic = user.preferences?.profileVisibility === "public";
       if (!isPublic) {
         return res.status(404).json({ message: "Profile not found" });
       }
@@ -2225,7 +2376,8 @@ export async function registerRoutes(app: any) {
         | undefined;
 
       try {
-        const viewerId = (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
+        const viewerId =
+          (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
         if (viewerId && typeof viewerId === "string") {
           // Get follower/following sets for this public profile
           const followersRows = await db
@@ -2277,7 +2429,7 @@ export async function registerRoutes(app: any) {
         | undefined;
       try {
         const { jobsCompleted, peopleHelped, activeWeeks } = await storage.getUserCredibilityStats(
-          user.id,
+          user.id
         );
         credibilityStats = {
           jobsCompleted: jobsCompleted || undefined,
@@ -2311,7 +2463,8 @@ export async function registerRoutes(app: any) {
         viewerConnection,
       };
       try {
-        const viewerId = (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
+        const viewerId =
+          (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
         if (viewerId && typeof viewerId === "string" && viewerId !== user.id) {
           await storage.logEvent("user.profile_viewed", {
             userId: viewerId,
@@ -2330,19 +2483,19 @@ export async function registerRoutes(app: any) {
   });
 
   // Update user theme preferences endpoint
-  app.patch('/api/user/theme', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/user/theme", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { themePreference, customThemeColors } = (req.body ?? {}) as any;
-      
+
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      
+
       // Update theme preferences
       const user = await storage.updateUser(userId, {
-        themePreference: themePreference || 'default',
+        themePreference: themePreference || "default",
         customThemeColors: customThemeColors || null,
         updatedAt: new Date(),
       });
-      
+
       res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error updating theme:", error);
@@ -2351,60 +2504,74 @@ export async function registerRoutes(app: any) {
   });
 
   // Navigation preferences endpoints
-  app.put('/api/user/navigation-preferences', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const { customOrder, hiddenFromSwipe, enableSwipeNavigation } = (req.body ?? {}) as any;
+  app.put(
+    "/api/user/navigation-preferences",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const { customOrder, hiddenFromSwipe, enableSwipeNavigation } = (req.body ?? {}) as any;
 
-      // Get current user to preserve other preferences
-      const currentUser = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
-      const currentPrefs = currentUser?.preferences || {};
+        // Get current user to preserve other preferences
+        const currentUser = await storage.getUser(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub
+        );
+        const currentPrefs = currentUser?.preferences || {};
 
-      // Update navigation preferences
-      const updatedPreferences = {
-        ...currentPrefs,
-        navigation: {
-          customOrder,
-          hiddenFromSwipe,
-          enableSwipeNavigation: enableSwipeNavigation !== undefined ? enableSwipeNavigation : true
-        }
-      };
+        // Update navigation preferences
+        const updatedPreferences = {
+          ...currentPrefs,
+          navigation: {
+            customOrder,
+            hiddenFromSwipe,
+            enableSwipeNavigation:
+              enableSwipeNavigation !== undefined ? enableSwipeNavigation : true,
+          },
+        };
 
-      const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
-        preferences: updatedPreferences,
-        updatedAt: new Date(),
-      });
+        const user = await storage.updateUser(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          {
+            preferences: updatedPreferences,
+            updatedAt: new Date(),
+          }
+        );
 
-      res.json({ 
-        navigation: user.preferences?.navigation,
-        message: "Navigation preferences updated successfully"
-      });
-    } catch (error: any) {
-      console.error("Error updating navigation preferences:", error);
-      res.status(500).json({ message: "Failed to update navigation preferences" });
-    }
-  });
-
-  app.get('/api/user/navigation-preferences', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        res.json({
+          navigation: user.preferences?.navigation,
+          message: "Navigation preferences updated successfully",
+        });
+      } catch (error: any) {
+        console.error("Error updating navigation preferences:", error);
+        res.status(500).json({ message: "Failed to update navigation preferences" });
       }
-      const navigationPrefs = user.preferences?.navigation || {
-        customOrder: [],
-        hiddenFromSwipe: [],
-        enableSwipeNavigation: true
-      };
-
-      res.json(navigationPrefs);
-    } catch (error: any) {
-      console.error("Error fetching navigation preferences:", error);
-      res.status(500).json({ message: "Failed to fetch navigation preferences" });
     }
-  });
+  );
+
+  app.get(
+    "/api/user/navigation-preferences",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const navigationPrefs = user.preferences?.navigation || {
+          customOrder: [],
+          hiddenFromSwipe: [],
+          enableSwipeNavigation: true,
+        };
+
+        res.json(navigationPrefs);
+      } catch (error: any) {
+        console.error("Error fetching navigation preferences:", error);
+        res.status(500).json({ message: "Failed to fetch navigation preferences" });
+      }
+    }
+  );
 
   // User preferences endpoints (dashboard, notifications, etc.)
-  app.get('/api/users/preferences', isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/users/preferences", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
       if (!user) {
@@ -2417,7 +2584,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.patch('/api/users/preferences', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/users/preferences", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const currentUser = await storage.getUser(userId);
@@ -2428,7 +2595,7 @@ export async function registerRoutes(app: any) {
       const currentPrefs = currentUser.preferences || {};
       const updatedPreferences = {
         ...currentPrefs,
-        ...req.body
+        ...req.body,
       };
 
       const user = await storage.updateUser(userId, {
@@ -2444,7 +2611,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Update user color scheme
-  app.patch('/api/users/color-scheme', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/users/color-scheme", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { preset, primary, secondary, background, text } = (req.body ?? {}) as any;
@@ -2462,12 +2629,12 @@ export async function registerRoutes(app: any) {
       const updatedPreferences = {
         ...currentPrefs,
         colorScheme: {
-          preset: preset || 'custom',
+          preset: preset || "custom",
           ...(primary && { primary }),
           ...(secondary && { secondary }),
           ...(background && { background }),
           ...(text && { text }),
-        }
+        },
       };
 
       const user = await storage.updateUser(userId, {
@@ -2483,12 +2650,19 @@ export async function registerRoutes(app: any) {
   });
 
   // Update default home page
-  app.patch('/api/users/default-home', isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/users/default-home", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { defaultHomePage } = (req.body ?? {}) as any;
 
-      const validPages = ['llm', 'marketplace', 'contractor-board', 'dashboard', 'profile', 'community'];
+      const validPages = [
+        "llm",
+        "marketplace",
+        "contractor-board",
+        "dashboard",
+        "profile",
+        "community",
+      ];
       if (!validPages.includes(defaultHomePage)) {
         return res.status(400).json({ message: "Invalid home page option" });
       }
@@ -2517,120 +2691,74 @@ export async function registerRoutes(app: any) {
   });
 
   // Update profile visibility
-  app.patch('/api/users/profile-visibility', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { profileVisibility } = (req.body ?? {}) as any;
-
-      if (!['public', 'private'].includes(profileVisibility)) {
-        return res.status(400).json({ message: "Invalid visibility option" });
-      }
-
-      const currentUser = await storage.getUser(userId);
-      if (!currentUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // C2-3: Soft gate - offer verification for better visibility (PUBLISH_PUBLIC_PROFILE action)
-      // Not blocking; contractor can publish unverified but gets visibility boost if verified
-      if (profileVisibility === 'public') {
-        const isContractor = currentUser.role === 'contractor';
-        const isVerified = (currentUser as any)?.verificationStatus === 'approved' || (currentUser as any)?.licenseVerified;
-        
-        if (isContractor && !isVerified) {
-          // Offer verification as optional boost, don't block
-          try {
-            const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
-            
-            const gateResponse = buildVerificationGateResponse({
-              action: 'PUBLISH_PUBLIC_PROFILE',
-              missingRequirements: ['license'],  // Light requirement for visibility boost
-              userRole: 'contractor',
-              targetUserId: undefined,
-              targetRole: undefined,
-              context: { visibility: 'public', intent: 'publish_profile' },
-            });
-
-            // Return soft gate offer but don't block if they choose to proceed
-            // Client can either verify or confirm to continue unverified
-            res.status(200).json({
-              ...gateResponse,
-              message: gateResponse.message + " (Your profile will still be visible, but verified profiles rank higher.)",
-              verificationOptional: true,
-              verificationSuggested: {
-                action: 'PUBLISH_PUBLIC_PROFILE',
-                retryPath: `/api/users/profile-visibility`,
-                context: { profileVisibility },
-              },
-              // Allow client to confirm without verification
-              allowProceedUnverified: true,
-            });
-            return;
-          } catch (e) {
-            console.warn("[profile-visibility] Failed to build soft verification gate", e);
-            // Continue on error; don't block
-          }
-        }
-      }
-
-      const currentPrefs = currentUser.preferences || {};
-      const updatedPreferences = {
-        ...currentPrefs,
-        profileVisibility,
-      };
-
-      const user = await storage.updateUser(userId, {
-        preferences: updatedPreferences,
-        updatedAt: new Date(),
-      });
-
-      res.json({ profileVisibility: user.preferences?.profileVisibility });
-    } catch (error: any) {
-      console.error("Error updating profile visibility:", error);
-      res.status(500).json({ message: "Failed to update profile visibility" });
-    }
-  });
-
-  // Update profile site sections (which blocks show on public profile)
   app.patch(
-    "/api/users/profile-sections",
+    "/api/users/profile-visibility",
     isAuthenticated,
     async (req: Request, res: Response) => {
       try {
-        const userId =
-          (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const {
-          about,
-          rolesAndBadges,
-          stats,
-          services,
-          marketplaceListings,
-          reviews,
-          communityActivity,
-          contactCard,
-        } = req.body ?? {};
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const { profileVisibility } = (req.body ?? {}) as any;
+
+        if (!["public", "private"].includes(profileVisibility)) {
+          return res.status(400).json({ message: "Invalid visibility option" });
+        }
 
         const currentUser = await storage.getUser(userId);
         if (!currentUser) {
           return res.status(404).json({ message: "User not found" });
         }
 
-        const currentPrefs = currentUser.preferences || {};
-        const currentProfileSections = currentPrefs.profileSections || {};
+        // C2-3: Soft gate - offer verification for better visibility (PUBLISH_PUBLIC_PROFILE action)
+        // Not blocking; contractor can publish unverified but gets visibility boost if verified
+        if (profileVisibility === "public") {
+          const isContractor = currentUser.role === "contractor";
+          const isVerified =
+            (currentUser as any)?.verificationStatus === "approved" ||
+            (currentUser as any)?.licenseVerified;
 
+          if (isContractor && !isVerified) {
+            // Offer verification as optional boost, don't block
+            try {
+              const { buildVerificationGateResponse } =
+                await import("./utils/explainAndOfferVerification");
+
+              const gateResponse = buildVerificationGateResponse({
+                action: "PUBLISH_PUBLIC_PROFILE",
+                missingRequirements: ["license"], // Light requirement for visibility boost
+                userRole: "contractor",
+                targetUserId: undefined,
+                targetRole: undefined,
+                context: { visibility: "public", intent: "publish_profile" },
+              });
+
+              // Return soft gate offer but don't block if they choose to proceed
+              // Client can either verify or confirm to continue unverified
+              res.status(200).json({
+                ...gateResponse,
+                message:
+                  gateResponse.message +
+                  " (Your profile will still be visible, but verified profiles rank higher.)",
+                verificationOptional: true,
+                verificationSuggested: {
+                  action: "PUBLISH_PUBLIC_PROFILE",
+                  retryPath: `/api/users/profile-visibility`,
+                  context: { profileVisibility },
+                },
+                // Allow client to confirm without verification
+                allowProceedUnverified: true,
+              });
+              return;
+            } catch (e) {
+              console.warn("[profile-visibility] Failed to build soft verification gate", e);
+              // Continue on error; don't block
+            }
+          }
+        }
+
+        const currentPrefs = currentUser.preferences || {};
         const updatedPreferences = {
           ...currentPrefs,
-          profileSections: {
-            ...currentProfileSections,
-            ...(about !== undefined && { about }),
-            ...(rolesAndBadges !== undefined && { rolesAndBadges }),
-            ...(stats !== undefined && { stats }),
-            ...(services !== undefined && { services }),
-            ...(marketplaceListings !== undefined && { marketplaceListings }),
-            ...(reviews !== undefined && { reviews }),
-            ...(communityActivity !== undefined && { communityActivity }),
-            ...(contactCard !== undefined && { contactCard }),
-          },
+          profileVisibility,
         };
 
         const user = await storage.updateUser(userId, {
@@ -2638,18 +2766,68 @@ export async function registerRoutes(app: any) {
           updatedAt: new Date(),
         });
 
-        res.json({
-          message: "Profile sections updated",
-          preferences: user.preferences,
-        });
+        res.json({ profileVisibility: user.preferences?.profileVisibility });
       } catch (error: any) {
-        console.error("Error updating profile sections:", error);
-        res.status(500).json({
-          message: "Failed to update profile sections",
-        });
+        console.error("Error updating profile visibility:", error);
+        res.status(500).json({ message: "Failed to update profile visibility" });
       }
     }
   );
+
+  // Update profile site sections (which blocks show on public profile)
+  app.patch("/api/users/profile-sections", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const {
+        about,
+        rolesAndBadges,
+        stats,
+        services,
+        marketplaceListings,
+        reviews,
+        communityActivity,
+        contactCard,
+      } = req.body ?? {};
+
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const currentPrefs = currentUser.preferences || {};
+      const currentProfileSections = currentPrefs.profileSections || {};
+
+      const updatedPreferences = {
+        ...currentPrefs,
+        profileSections: {
+          ...currentProfileSections,
+          ...(about !== undefined && { about }),
+          ...(rolesAndBadges !== undefined && { rolesAndBadges }),
+          ...(stats !== undefined && { stats }),
+          ...(services !== undefined && { services }),
+          ...(marketplaceListings !== undefined && { marketplaceListings }),
+          ...(reviews !== undefined && { reviews }),
+          ...(communityActivity !== undefined && { communityActivity }),
+          ...(contactCard !== undefined && { contactCard }),
+        },
+      };
+
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({
+        message: "Profile sections updated",
+        preferences: user.preferences,
+      });
+    } catch (error: any) {
+      console.error("Error updating profile sections:", error);
+      res.status(500).json({
+        message: "Failed to update profile sections",
+      });
+    }
+  });
 
   // Account security and management endpoints
   app.get("/api/user/trusted-devices", isAuthenticated, async (req: Request, res: Response) => {
@@ -2663,17 +2841,21 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.delete("/api/user/trusted-devices/:deviceId", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { deviceId } = req.params;
-      await storage.removeTrustedDevice(userId, deviceId);
-      res.json({ message: "Device removed successfully" });
-    } catch (error: any) {
-      console.error("Error removing trusted device:", error);
-      res.status(500).json({ message: "Failed to remove trusted device" });
+  app.delete(
+    "/api/user/trusted-devices/:deviceId",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const { deviceId } = req.params;
+        await storage.removeTrustedDevice(userId, deviceId);
+        res.json({ message: "Device removed successfully" });
+      } catch (error: any) {
+        console.error("Error removing trusted device:", error);
+        res.status(500).json({ message: "Failed to remove trusted device" });
+      }
     }
-  });
+  );
 
   app.get("/api/user/login-history", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -2694,8 +2876,8 @@ export async function registerRoutes(app: any) {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const exportData = await storage.exportUserData(userId);
 
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-${userId}.json"`);
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Content-Disposition", `attachment; filename="tradescout-data-${userId}.json"`);
       res.json(exportData);
     } catch (error: any) {
       console.error("Error exporting user data:", error);
@@ -2743,7 +2925,7 @@ export async function registerRoutes(app: any) {
           ...currentPrefs.privacy,
           profileVisibility: profileVisibility !== undefined ? profileVisibility : true,
           searchEngineIndexing: searchEngineIndexing !== undefined ? searchEngineIndexing : false,
-        }
+        },
       };
 
       const user = await storage.updateUser(userId, {
@@ -2751,9 +2933,9 @@ export async function registerRoutes(app: any) {
         updatedAt: new Date(),
       });
 
-      res.json({ 
+      res.json({
         privacy: user.preferences?.privacy,
-        message: "Privacy settings updated successfully"
+        message: "Privacy settings updated successfully",
       });
     } catch (error: any) {
       console.error("Error updating privacy settings:", error);
@@ -2780,7 +2962,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Profile management endpoints
-  app.get('/api/auth/profile', isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/auth/profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
 
@@ -2791,7 +2973,7 @@ export async function registerRoutes(app: any) {
       // Include contractor-specific data if user is a contractor
       let profileData: Record<string, any> = sanitizeUserForResponse(user);
 
-      if (user && user.role === 'contractor') {
+      if (user && user.role === "contractor") {
         const contractor = await storage.getContractorByUserId(user.id);
         if (contractor) {
           profileData = {
@@ -2814,28 +2996,9 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.put('/api/auth/profile', isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/auth/profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { 
-        firstName, 
-        lastName, 
-        email,
-        phone, 
-        address, 
-        city, 
-        state, 
-        zipCode,
-        // Contractor-specific fields
-        companyName,
-        businessDescription,
-        licenseNumber,
-        yearsInBusiness,
-        isGeneralContractor,
-        isResidentialContractor,
-        acceptsSubcontractWork
-      } = req.body;
-
-      const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
+      const {
         firstName,
         lastName,
         email,
@@ -2844,21 +3007,56 @@ export async function registerRoutes(app: any) {
         city,
         state,
         zipCode,
-        updatedAt: new Date(),
-      });
+        // Contractor-specific fields
+        companyName,
+        businessDescription,
+        licenseNumber,
+        yearsInBusiness,
+        isGeneralContractor,
+        isResidentialContractor,
+        acceptsSubcontractWork,
+      } = req.body;
+
+      const user = await storage.updateUser(
+        (req.user as any)?.id || (req.user as any)?.claims?.sub,
+        {
+          firstName,
+          lastName,
+          email,
+          phone,
+          address,
+          city,
+          state,
+          zipCode,
+          updatedAt: new Date(),
+        }
+      );
 
       // Update contractor-specific data if user is a contractor
-      if (user.role === 'contractor' && (companyName || businessDescription || licenseNumber || yearsInBusiness !== undefined)) {
+      if (
+        user.role === "contractor" &&
+        (companyName || businessDescription || licenseNumber || yearsInBusiness !== undefined)
+      ) {
         const contractor = await storage.getContractorByUserId(user?.id);
         if (contractor) {
           await storage.updateContractor(contractor.id, {
             companyName: companyName || contractor.companyName,
             // description: businessDescription || contractor.description, // removed: not in type
             licenseNumber: licenseNumber || contractor.licenseNumber,
-            yearsInBusiness: yearsInBusiness !== undefined ? yearsInBusiness : contractor.yearsInBusiness,
-            isGeneralContractor: isGeneralContractor !== undefined ? isGeneralContractor : contractor.isGeneralContractor,
-            isResidentialContractor: isResidentialContractor !== undefined ? isResidentialContractor : contractor.isResidentialContractor,
-            acceptsSubcontractWork: acceptsSubcontractWork !== undefined ? acceptsSubcontractWork : contractor.acceptsSubcontractWork,
+            yearsInBusiness:
+              yearsInBusiness !== undefined ? yearsInBusiness : contractor.yearsInBusiness,
+            isGeneralContractor:
+              isGeneralContractor !== undefined
+                ? isGeneralContractor
+                : contractor.isGeneralContractor,
+            isResidentialContractor:
+              isResidentialContractor !== undefined
+                ? isResidentialContractor
+                : contractor.isResidentialContractor,
+            acceptsSubcontractWork:
+              acceptsSubcontractWork !== undefined
+                ? acceptsSubcontractWork
+                : contractor.acceptsSubcontractWork,
             updatedAt: new Date(),
           });
         }
@@ -2872,110 +3070,131 @@ export async function registerRoutes(app: any) {
   });
 
   // Request password reset token
-  app.post('/api/auth/request-password-reset', passwordResetLimiter, async (req: Request, res: Response) => {
-    try {
-      console.log('[REQUEST-PASSWORD-RESET] Request received:', { body: req.body });
-      const { email } = req.body || {};
+  app.post(
+    "/api/auth/request-password-reset",
+    passwordResetLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        console.log("[REQUEST-PASSWORD-RESET] Request received:", { body: req.body });
+        const { email } = req.body || {};
 
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
 
-      const user = await storage.getUserByEmail(String(email).toLowerCase());
-      console.log('[REQUEST-PASSWORD-RESET] Lookup:', { email: String(email).toLowerCase(), found: !!user });
-      let debugToken: string | undefined;
+        const user = await storage.getUserByEmail(String(email).toLowerCase());
+        console.log("[REQUEST-PASSWORD-RESET] Lookup:", {
+          email: String(email).toLowerCase(),
+          found: !!user,
+        });
+        let debugToken: string | undefined;
 
-      if (user) {
-        console.log('[REQUEST-PASSWORD-RESET] User found:', { id: user.id, email: user.email });
-        const { token, expiresAt } = passwordResetService.createToken(user.id);
-        const resetBase = process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || 'http://localhost:5173';
-        const resetLink = `${resetBase.replace(/\/$/, '')}/reset-password?token=${token}`;
+        if (user) {
+          console.log("[REQUEST-PASSWORD-RESET] User found:", { id: user.id, email: user.email });
+          const { token, expiresAt } = passwordResetService.createToken(user.id);
+          const resetBase =
+            process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
+          const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
-        if (emailService.isConfigured()) {
-          console.log('[REQUEST-PASSWORD-RESET] Sending email...');
-          await emailService.sendEmail({
-            to: user.email,
-            subject: 'Reset your TradeScout password',
-            html: `<p>We received a request to reset your TradeScout password.</p>
+          if (emailService.isConfigured()) {
+            console.log("[REQUEST-PASSWORD-RESET] Sending email...");
+            await emailService.sendEmail({
+              to: user.email,
+              subject: "Reset your TradeScout password",
+              html: `<p>We received a request to reset your TradeScout password.</p>
                  <p><a href="${resetLink}">Click here to reset your password</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
                  <p>If you did not request this, you can ignore this email.</p>`,
-            text: `Reset your password: ${resetLink}`,
-          });
-          console.log('[REQUEST-PASSWORD-RESET] Email send attempted');
-        } else {
-          console.warn(`[password-reset] SendGrid not configured; token generated for ${user.email}`);
-          // Expose token only in non-production for manual smoke testing
-          const isProductionEnv = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
-          if (!isProductionEnv) {
-            debugToken = token;
+              text: `Reset your password: ${resetLink}`,
+            });
+            console.log("[REQUEST-PASSWORD-RESET] Email send attempted");
+          } else {
+            console.warn(
+              `[password-reset] SendGrid not configured; token generated for ${user.email}`
+            );
+            // Expose token only in non-production for manual smoke testing
+            const isProductionEnv =
+              process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+            if (!isProductionEnv) {
+              debugToken = token;
+            }
           }
         }
-      }
 
-      console.log('[REQUEST-PASSWORD-RESET] Responding with message and debugToken:', { debugToken });
-      res.json({ message: "If an account exists for that email, a reset link has been sent.", debugToken });
-    } catch (error: any) {
-      console.error('[REQUEST-PASSWORD-RESET] CRITICAL ERROR:', error);
-      console.error('[REQUEST-PASSWORD-RESET] Stack:', error?.stack);
-      sendAutoClassifiedError(res, error, 'Failed to request password reset');
+        console.log("[REQUEST-PASSWORD-RESET] Responding with message and debugToken:", {
+          debugToken,
+        });
+        res.json({
+          message: "If an account exists for that email, a reset link has been sent.",
+          debugToken,
+        });
+      } catch (error: any) {
+        console.error("[REQUEST-PASSWORD-RESET] CRITICAL ERROR:", error);
+        console.error("[REQUEST-PASSWORD-RESET] Stack:", error?.stack);
+        sendAutoClassifiedError(res, error, "Failed to request password reset");
+      }
     }
-  });
+  );
 
   // Complete password reset (temporarily guarded to avoid crash during CORS verification)
-  app.post('/api/auth/reset-password', async (req: Request, res: Response) => {
-    if (process.env.NODE_ENV !== 'production' && process.env.SKIP_RESET_COMPLETION === 'true') {
-      return res.status(503).json({ message: 'Reset completion temporarily disabled during verification. Set SKIP_RESET_COMPLETION=false to enable.' });
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    if (process.env.NODE_ENV !== "production" && process.env.SKIP_RESET_COMPLETION === "true") {
+      return res
+        .status(503)
+        .json({
+          message:
+            "Reset completion temporarily disabled during verification. Set SKIP_RESET_COMPLETION=false to enable.",
+        });
     }
     try {
-      console.log('[RESET-PASSWORD] Request received:', { body: req.body });
-      
+      console.log("[RESET-PASSWORD] Request received:", { body: req.body });
+
       const { token, newPassword } = req.body || {};
 
       if (!token || !newPassword) {
-        console.log('[RESET-PASSWORD] Missing token or newPassword');
-        return res.status(400).json({ message: 'Token and new password are required' });
+        console.log("[RESET-PASSWORD] Missing token or newPassword");
+        return res.status(400).json({ message: "Token and new password are required" });
       }
 
-      if (typeof newPassword !== 'string' || newPassword.length < 8) {
-        console.log('[RESET-PASSWORD] Invalid password length');
-        return res.status(400).json({ message: 'Password must be at least 8 characters' });
+      if (typeof newPassword !== "string" || newPassword.length < 8) {
+        console.log("[RESET-PASSWORD] Invalid password length");
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
 
-      console.log('[RESET-PASSWORD] Consuming token...');
+      console.log("[RESET-PASSWORD] Consuming token...");
       const userId = passwordResetService.consumeToken(token);
 
       if (!userId) {
-        console.log('[RESET-PASSWORD] Invalid or expired token');
-        return res.status(400).json({ message: 'Invalid or expired token' });
+        console.log("[RESET-PASSWORD] Invalid or expired token");
+        return res.status(400).json({ message: "Invalid or expired token" });
       }
 
-      console.log('[RESET-PASSWORD] Token valid, userId:', userId);
-      console.log('[RESET-PASSWORD] Hashing password...');
+      console.log("[RESET-PASSWORD] Token valid, userId:", userId);
+      console.log("[RESET-PASSWORD] Hashing password...");
       const passwordHash = await hashPassword(newPassword);
-      
-      console.log('[RESET-PASSWORD] Updating user in database...');
+
+      console.log("[RESET-PASSWORD] Updating user in database...");
       const updated = await storage.updateUser(userId, {
         password: passwordHash,
         updatedAt: new Date(),
       });
-      
-      console.log('[RESET-PASSWORD] User updated successfully:', { userId, updated });
-      return res.json({ message: 'Password has been reset successfully' });
+
+      console.log("[RESET-PASSWORD] User updated successfully:", { userId, updated });
+      return res.json({ message: "Password has been reset successfully" });
     } catch (error: any) {
-      console.error('[RESET-PASSWORD] CRITICAL ERROR:', error);
-      console.error('[RESET-PASSWORD] Stack:', error?.stack);
-      return sendAutoClassifiedError(res, error, 'Failed to reset password');
+      console.error("[RESET-PASSWORD] CRITICAL ERROR:", error);
+      console.error("[RESET-PASSWORD] Stack:", error?.stack);
+      return sendAutoClassifiedError(res, error, "Failed to reset password");
     }
   });
 
   // Dev-only Sentry debug endpoint
-  if (process.env.NODE_ENV !== 'production') {
-    app.get('/api/debug/error', (_req: Request, _res: Response) => {
-      throw new Error('SentryDebugTest');
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/debug/error", (_req: Request, _res: Response) => {
+      throw new Error("SentryDebugTest");
     });
   }
 
-  app.put('/api/auth/change-password', isAuthenticated, async (req: any, res: any) => {
+  app.put("/api/auth/change-password", isAuthenticated, async (req: any, res: any) => {
     try {
       const body = (req.body ?? {}) as any;
       const { currentPassword, newPassword } = body;
@@ -2987,10 +3206,12 @@ export async function registerRoutes(app: any) {
 
       // Check if user has a password (social login users might not)
       if (!user.password) {
-        return res.status(400).json({ message: "Account uses social login. Cannot change password." });
+        return res
+          .status(400)
+          .json({ message: "Account uses social login. Cannot change password." });
       }
 
-      if (typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
+      if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
         return res.status(400).json({ message: "Current and new password are required" });
       }
 
@@ -2998,9 +3219,8 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "New password must be at least 8 characters" });
       }
 
-      // Verify current password using bcrypt
-      const bcrypt = require('bcrypt');
-      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      // Verify current password
+      const isValidPassword = await validatePassword(currentPassword, user.password);
 
       if (!isValidPassword) {
         return res.status(400).json({ message: "Current password is incorrect" });
@@ -3022,15 +3242,15 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.put('/api/auth/notifications', isAuthenticated, async (req: any, res: any) => {
+  app.put("/api/auth/notifications", isAuthenticated, async (req: any, res: any) => {
     try {
-      const { 
+      const {
         emailNotifications,
         pushNotifications,
         marketingEmails,
         weeklyDigest,
         instantMessages,
-        leadNotifications
+        leadNotifications,
       } = req.body;
 
       // Store notification preferences in user preferences
@@ -3114,9 +3334,9 @@ export async function registerRoutes(app: any) {
       if (county) {
         // Try to find county by name (not FIPS)
         const counties = await storage.getCounties();
-        const countyRecord = counties.find(c => 
-          c.name.toLowerCase().includes((county as string).toLowerCase()) ||
-          c.fips === county
+        const countyRecord = counties.find(
+          (c) =>
+            c.name.toLowerCase().includes((county as string).toLowerCase()) || c.fips === county
         );
         if (countyRecord) {
           filters.countyId = countyRecord.id;
@@ -3130,7 +3350,7 @@ export async function registerRoutes(app: any) {
         if (tradeRecord) {
           filters.tradeIds = [tradeRecord.id];
         } else {
-          return res.json([]); // No trade found, return empty results  
+          return res.json([]); // No trade found, return empty results
         }
       }
 
@@ -3186,7 +3406,7 @@ export async function registerRoutes(app: any) {
       // Compliance gate: only apply if this trade has explicit requirements
       let gatedContractors = contractors;
       if (tradeRecord) {
-          const requirements = await storage.getTradeRequirementsByTradeId(tradeRecord.id);
+        const requirements = await storage.getTradeRequirementsByTradeId(tradeRecord.id);
         if (requirements && userIds.length > 0) {
           const compliance = await storage.getUserVerificationSummary(userIds);
 
@@ -3194,15 +3414,17 @@ export async function registerRoutes(app: any) {
           const requiresInsurance = requirements.requiresInsurance ?? false;
           const requiresEin = requirements.requiresEin ?? false;
 
-          const compliantIds = contractors.filter((c: any) => {
-            if (!c.userId) return false;
-            const summary = compliance[c.userId];
-            if (!summary) return false;
-            if (requiresLicense && !summary.hasLicense) return false;
-            if (requiresInsurance && !summary.hasInsurance) return false;
-            if (requiresEin && !summary.hasEin) return false;
-            return true;
-          }).map((c: any) => c.id as string);
+          const compliantIds = contractors
+            .filter((c: any) => {
+              if (!c.userId) return false;
+              const summary = compliance[c.userId];
+              if (!summary) return false;
+              if (requiresLicense && !summary.hasLicense) return false;
+              if (requiresInsurance && !summary.hasInsurance) return false;
+              if (requiresEin && !summary.hasEin) return false;
+              return true;
+            })
+            .map((c: any) => c.id as string);
 
           // Only enforce the gate if at least one compliant provider exists;
           // otherwise, fall back to the full set so we never return zero
@@ -3218,14 +3440,14 @@ export async function registerRoutes(app: any) {
 
       // Reach tier classification based on service area size
       const serviceAreaCounts = await storage.getContractorServiceAreaCounts(
-        gatedContractors.map((c: any) => c.id),
+        gatedContractors.map((c: any) => c.id)
       );
 
-      const tierForCount = (count: number | undefined): 'local' | 'regional' | 'wide' => {
+      const tierForCount = (count: number | undefined): "local" | "regional" | "wide" => {
         const n = count ?? 0;
-        if (n <= 1) return 'local';
-        if (n <= 5) return 'regional';
-        return 'wide';
+        if (n <= 1) return "local";
+        if (n <= 5) return "regional";
+        return "wide";
       };
 
       // Local credibility stats derived from the XP/events system
@@ -3244,12 +3466,12 @@ export async function registerRoutes(app: any) {
             (stats.activeWeeks ?? 0);
 
           let presenceLabel: string;
-          if (reachTier === 'local') {
-            presenceLabel = 'Local provider';
-          } else if (reachTier === 'regional') {
-            presenceLabel = 'Regional provider';
+          if (reachTier === "local") {
+            presenceLabel = "Local provider";
+          } else if (reachTier === "regional") {
+            presenceLabel = "Regional provider";
           } else {
-            presenceLabel = 'Serves this area · building local presence';
+            presenceLabel = "Serves this area · building local presence";
           }
 
           return {
@@ -3268,11 +3490,11 @@ export async function registerRoutes(app: any) {
             localStats: stats,
             presenceLabel,
           };
-        }),
+        })
       );
 
       // Rank: prioritize local over regional over wide, then by credibility
-      const tierRank: Record<'local' | 'regional' | 'wide', number> = {
+      const tierRank: Record<"local" | "regional" | "wide", number> = {
         local: 0,
         regional: 1,
         wide: 2,
@@ -3298,7 +3520,7 @@ export async function registerRoutes(app: any) {
   // Seed database endpoint (development only)
   app.post("/api/seed-database", async (req: any, res: any) => {
     try {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         return res.status(403).json({ message: "Not allowed in production" });
       }
 
@@ -3382,7 +3604,11 @@ export async function registerRoutes(app: any) {
             updatedAt: null,
           }));
         } catch (fallbackError) {
-          console.error("Error loading static fallback counties for state", stateCode, fallbackError);
+          console.error(
+            "Error loading static fallback counties for state",
+            stateCode,
+            fallbackError
+          );
           counties = [];
         }
       }
@@ -3470,9 +3696,13 @@ export async function registerRoutes(app: any) {
       });
 
       // Expand response with trade and county labels for convenience
-      const tradeRecords = await Promise.all(tradeIds.map((id) => storage.getTradeBySlug(id).catch(() => null)));
+      const tradeRecords = await Promise.all(
+        tradeIds.map((id) => storage.getTradeBySlug(id).catch(() => null))
+      );
       const uniqueCountyFips = Array.from(new Set(normalizedServiceAreas.map((a) => a.countyFips)));
-      const countyRecords = await Promise.all(uniqueCountyFips.map((fips) => storage.getCountyByFips(fips)));
+      const countyRecords = await Promise.all(
+        uniqueCountyFips.map((fips) => storage.getCountyByFips(fips))
+      );
 
       const tradesOut = tradeRecords
         .filter((t): t is any => !!t)
@@ -3504,8 +3734,8 @@ export async function registerRoutes(app: any) {
       const slugs: string[] = Array.isArray(tradeSlugsParam)
         ? (tradeSlugsParam as string[])
         : tradeSlugsParam
-        ? [String(tradeSlugsParam)]
-        : [];
+          ? [String(tradeSlugsParam)]
+          : [];
 
       if (!slugs.length) {
         return res.status(400).json({ message: "At least one tradeSlug is required" });
@@ -3531,9 +3761,7 @@ export async function registerRoutes(app: any) {
           // If no explicit requirements, still return a row indicating nothing is required
           requirementsOut.push({
             trade: { tradeId: trade.id, name: trade.name, slug: trade.slug },
-            jurisdiction: countyFips || stateCode
-              ? { stateCode, countyFips }
-              : undefined,
+            jurisdiction: countyFips || stateCode ? { stateCode, countyFips } : undefined,
             requires: {
               ein: false,
               license: false,
@@ -3546,9 +3774,7 @@ export async function registerRoutes(app: any) {
 
         requirementsOut.push({
           trade: { tradeId: trade.id, name: trade.name, slug: trade.slug },
-          jurisdiction: countyFips || stateCode
-            ? { stateCode, countyFips }
-            : undefined,
+          jurisdiction: countyFips || stateCode ? { stateCode, countyFips } : undefined,
           requires: {
             ein: reqRow.requiresEin ?? false,
             license: reqRow.requiresLicense ?? false,
@@ -3590,7 +3816,9 @@ export async function registerRoutes(app: any) {
       const servesThisCounty = declaredServiceAreas.some((a: any) => a.countyFips === countyFips);
 
       // Local stats (behavior in this county) with a fallback to global credibility stats
-      const localStats = await storage.getProviderLocalStatsForUserInCounty(userId, countyFips).catch(() => undefined);
+      const localStats = await storage
+        .getProviderLocalStatsForUserInCounty(userId, countyFips)
+        .catch(() => undefined);
       const globalCred = await storage.getUserCredibilityStats(userId);
 
       const jobsCompleted = localStats?.jobsCompleted ?? globalCred.jobsCompleted;
@@ -3626,9 +3854,12 @@ export async function registerRoutes(app: any) {
 
       const promotionBlocked = einBlocked || licenseBlocked || insuranceBlocked;
       const promotionReasons: string[] = [];
-      if (einBlocked) promotionReasons.push("Some trades here expect a business tax ID (EIN) on file.");
-      if (licenseBlocked) promotionReasons.push("At least one trade here requires an active license on file.");
-      if (insuranceBlocked) promotionReasons.push("Some trades here expect proof of insurance before promotion.");
+      if (einBlocked)
+        promotionReasons.push("Some trades here expect a business tax ID (EIN) on file.");
+      if (licenseBlocked)
+        promotionReasons.push("At least one trade here requires an active license on file.");
+      if (insuranceBlocked)
+        promotionReasons.push("Some trades here expect proof of insurance before promotion.");
 
       // Reach label is intentionally simple and explainable
       let reachLabel = "not_set_up";
@@ -3694,7 +3925,7 @@ export async function registerRoutes(app: any) {
     try {
       const { userType, state, county } = req.query;
       const ad = await storage.getTargetedAd({
-        audience: userType as string || 'all',
+        audience: (userType as string) || "all",
         state: state as string,
         county: county as string,
         minCommunityScore: 40,
@@ -3876,11 +4107,14 @@ export async function registerRoutes(app: any) {
       const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !['head_admin', 'super_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+      if (
+        !user ||
+        !["head_admin", "super_admin", "moderator", "ops_admin"].includes(user.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { notificationService } = await import('./notification-service');
+      const { notificationService } = await import("./notification-service");
       // await notificationService.triggerReminders();
 
       res.json({ message: "Reminder processing triggered successfully" });
@@ -3899,7 +4133,7 @@ export async function registerRoutes(app: any) {
       }
 
       const user = await storage.getUser(userId);
-      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3907,14 +4141,14 @@ export async function registerRoutes(app: any) {
 
       const notification = await notificationService.createNotification({
         userId,
-        type: 'system_update',
-        title: 'Test push notification',
+        type: "system_update",
+        title: "Test push notification",
         message: `Test notification · ${nowIso}`,
-        actionUrl: '/notifications',
-        actionText: 'View notifications',
-        iconName: 'bell',
-        iconColor: 'blue',
-        deliveryMethods: ['in_app', 'push'],
+        actionUrl: "/notifications",
+        actionText: "View notifications",
+        iconName: "bell",
+        iconColor: "blue",
+        deliveryMethods: ["in_app", "push"],
       });
 
       res.json({ success: true, notification });
@@ -3925,197 +4159,225 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin endpoint to broadcast an announcement to a user segment
-  app.post("/api/admin/notifications/broadcast", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const actorId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { segment, title, message, deliveryMethods, campaignType, tags, targetFilters } = req.body || {};
+  app.post(
+    "/api/admin/notifications/broadcast",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const actorId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const { segment, title, message, deliveryMethods, campaignType, tags, targetFilters } =
+          req.body || {};
 
-      if (!title || typeof title !== "string" || !title.trim()) {
-        return res.status(400).json({ message: "title is required" });
-      }
-      if (!message || typeof message !== "string" || !message.trim()) {
-        return res.status(400).json({ message: "message is required" });
-      }
+        if (!title || typeof title !== "string" || !title.trim()) {
+          return res.status(400).json({ message: "title is required" });
+        }
+        if (!message || typeof message !== "string" || !message.trim()) {
+          return res.status(400).json({ message: "message is required" });
+        }
 
-      const allowedSegments = ["all", "homeowners", "contractors", "pros", "admins"] as const;
-      type BroadcastSegment = (typeof allowedSegments)[number];
+        const allowedSegments = ["all", "homeowners", "contractors", "pros", "admins"] as const;
+        type BroadcastSegment = (typeof allowedSegments)[number];
 
-      let effectiveSegment: BroadcastSegment = "all";
-      if (typeof segment === "string" && (allowedSegments as readonly string[]).includes(segment)) {
-        effectiveSegment = segment as BroadcastSegment;
-      }
+        let effectiveSegment: BroadcastSegment = "all";
+        if (
+          typeof segment === "string" &&
+          (allowedSegments as readonly string[]).includes(segment)
+        ) {
+          effectiveSegment = segment as BroadcastSegment;
+        }
 
-      const allowedMethods = ["in_app", "email", "push", "sms"];
-      const requestedMethods = Array.isArray(deliveryMethods)
-        ? (deliveryMethods as string[]).filter((m) => allowedMethods.includes(m))
-        : [];
-      const finalMethods = requestedMethods.length > 0 ? requestedMethods : ["in_app"];
+        const allowedMethods = ["in_app", "email", "push", "sms"];
+        const requestedMethods = Array.isArray(deliveryMethods)
+          ? (deliveryMethods as string[]).filter((m) => allowedMethods.includes(m))
+          : [];
+        const finalMethods = requestedMethods.length > 0 ? requestedMethods : ["in_app"];
 
-      const effectiveCampaignType = typeof campaignType === "string" && campaignType.trim()
-        ? campaignType.trim()
-        : undefined;
+        const effectiveCampaignType =
+          typeof campaignType === "string" && campaignType.trim() ? campaignType.trim() : undefined;
 
-      const effectiveTags = Array.isArray(tags)
-        ? (tags as any[])
-            .map((t) => (typeof t === "string" ? t.trim() : ""))
-            .filter((t) => t.length > 0)
-            .slice(0, 25)
-        : [];
+        const effectiveTags = Array.isArray(tags)
+          ? (tags as any[])
+              .map((t) => (typeof t === "string" ? t.trim() : ""))
+              .filter((t) => t.length > 0)
+              .slice(0, 25)
+          : [];
 
-      const rawFilters: any = targetFilters && typeof targetFilters === "object" ? targetFilters : {};
+        const rawFilters: any =
+          targetFilters && typeof targetFilters === "object" ? targetFilters : {};
 
-      const stateCodes: string[] = Array.isArray(rawFilters.stateCodes) && rawFilters.stateCodes.length > 0
-        ? (rawFilters.stateCodes as any[])
-            .map((v) => (typeof v === "string" ? v.trim().toUpperCase() : ""))
-            .filter((v) => v.length > 0)
-            .slice(0, 16)
-        : [];
+        const stateCodes: string[] =
+          Array.isArray(rawFilters.stateCodes) && rawFilters.stateCodes.length > 0
+            ? (rawFilters.stateCodes as any[])
+                .map((v) => (typeof v === "string" ? v.trim().toUpperCase() : ""))
+                .filter((v) => v.length > 0)
+                .slice(0, 16)
+            : [];
 
-      const countyNames: string[] = Array.isArray(rawFilters.countyNames) && rawFilters.countyNames.length > 0
-        ? (rawFilters.countyNames as any[])
-            .map((v) => (typeof v === "string" ? v.trim() : ""))
-            .filter((v) => v.length > 0)
-            .slice(0, 32)
-        : [];
+        const countyNames: string[] =
+          Array.isArray(rawFilters.countyNames) && rawFilters.countyNames.length > 0
+            ? (rawFilters.countyNames as any[])
+                .map((v) => (typeof v === "string" ? v.trim() : ""))
+                .filter((v) => v.length > 0)
+                .slice(0, 32)
+            : [];
 
-      const onlyWithMarketingEmails: boolean = rawFilters.onlyWithMarketingEmails === true;
+        const onlyWithMarketingEmails: boolean = rawFilters.onlyWithMarketingEmails === true;
 
-      // Determine target roles for the selected segment
-      let roleFilter: string[] | null = null;
-      if (effectiveSegment === "homeowners") {
-        roleFilter = [
-          'homeowner',
-          'renter',
-          'landlord',
-          'property_manager',
-          'hoa_member',
-        ];
-      } else if (effectiveSegment === "contractors") {
-        roleFilter = [
-          'contractor',
-          'handyman',
-          'service_provider',
-          'specialty_tradesperson',
-          'designer',
-          'inspector',
-        ];
-      } else if (effectiveSegment === "pros") {
-        roleFilter = [
-          'contractor',
-          'handyman',
-          'service_provider',
-          'specialty_tradesperson',
-          'designer',
-          'inspector',
-          'realtor',
-          'mortgage_broker',
-          'insurance_agent',
-          'title_company',
-          'car_dealer',
-          'auto_service',
-        ];
-      } else if (effectiveSegment === "admins") {
-        roleFilter = [
-          'admin',
-          'moderator',
-          'ops_admin',
-          'super_admin',
-          'head_admin',
-        ];
-      }
+        // Determine target roles for the selected segment
+        let roleFilter: string[] | null = null;
+        if (effectiveSegment === "homeowners") {
+          roleFilter = ["homeowner", "renter", "landlord", "property_manager", "hoa_member"];
+        } else if (effectiveSegment === "contractors") {
+          roleFilter = [
+            "contractor",
+            "handyman",
+            "service_provider",
+            "specialty_tradesperson",
+            "designer",
+            "inspector",
+          ];
+        } else if (effectiveSegment === "pros") {
+          roleFilter = [
+            "contractor",
+            "handyman",
+            "service_provider",
+            "specialty_tradesperson",
+            "designer",
+            "inspector",
+            "realtor",
+            "mortgage_broker",
+            "insurance_agent",
+            "title_company",
+            "car_dealer",
+            "auto_service",
+          ];
+        } else if (effectiveSegment === "admins") {
+          roleFilter = ["admin", "moderator", "ops_admin", "super_admin", "head_admin"];
+        }
 
-      // Fetch target users
-      const baseTargetsQuery = db
-        .select({ id: users.id })
-        .from(users);
+        // Fetch target users
+        const baseTargetsQuery = db.select({ id: users.id }).from(users);
 
-      const conditions: any[] = [];
-      if (roleFilter && roleFilter.length > 0) {
-        conditions.push(sql`${users.role} = ANY(${roleFilter})`);
-      }
-      if (stateCodes.length > 0) {
-        conditions.push(sql`${users.state} = ANY(${stateCodes})`);
-      }
-      if (countyNames.length > 0) {
-        conditions.push(sql`${users.county} = ANY(${countyNames})`);
-      }
-      if (onlyWithMarketingEmails) {
-        conditions.push(sql`${users.preferences}->>'marketingEmails' = 'true'`);
-      }
+        const conditions: any[] = [];
+        if (roleFilter && roleFilter.length > 0) {
+          conditions.push(sql`${users.role} = ANY(${roleFilter})`);
+        }
+        if (stateCodes.length > 0) {
+          conditions.push(sql`${users.state} = ANY(${stateCodes})`);
+        }
+        if (countyNames.length > 0) {
+          conditions.push(sql`${users.county} = ANY(${countyNames})`);
+        }
+        if (onlyWithMarketingEmails) {
+          conditions.push(sql`${users.preferences}->>'marketingEmails' = 'true'`);
+        }
 
-      const targets = conditions.length > 0
-        ? await baseTargetsQuery.where(and(...conditions))
-        : await baseTargetsQuery;
+        const targets =
+          conditions.length > 0
+            ? await baseTargetsQuery.where(and(...conditions))
+            : await baseTargetsQuery;
 
-      if (!targets || targets.length === 0) {
-        return res.json({ success: true, segment: effectiveSegment, targetCount: 0, notifications: [] });
-      }
-
-      const notifications: any[] = [];
-      for (const target of targets) {
-        const created = await notificationService.createNotification({
-          userId: target.id,
-          type: 'system_update',
-          title: title.trim(),
-          message: message.trim(),
-          deliveryMethods: finalMethods,
-          iconName: 'megaphone',
-          iconColor: 'orange',
-          metadata: {
+        if (!targets || targets.length === 0) {
+          return res.json({
+            success: true,
             segment: effectiveSegment,
-            createdBy: actorId,
-            kind: 'admin_broadcast',
-            campaignType: effectiveCampaignType,
-            tags: effectiveTags,
-            targetFilters: {
-              stateCodes,
-              countyNames,
-              onlyWithMarketingEmails,
-            },
-          } as any,
-        });
-        notifications.push({ id: created.id, userId: target.id });
-      }
+            targetCount: 0,
+            notifications: [],
+          });
+        }
 
-      res.json({
-        success: true,
-        segment: effectiveSegment,
-        targetCount: targets.length,
-        notifications,
-      });
-    } catch (error: any) {
-      console.error("Error sending broadcast notification:", error);
-      res.status(500).json({ message: "Failed to send broadcast notification" });
+        const notifications: any[] = [];
+        for (const target of targets) {
+          const created = await notificationService.createNotification({
+            userId: target.id,
+            type: "system_update",
+            title: title.trim(),
+            message: message.trim(),
+            deliveryMethods: finalMethods,
+            iconName: "megaphone",
+            iconColor: "orange",
+            metadata: {
+              segment: effectiveSegment,
+              createdBy: actorId,
+              kind: "admin_broadcast",
+              campaignType: effectiveCampaignType,
+              tags: effectiveTags,
+              targetFilters: {
+                stateCodes,
+                countyNames,
+                onlyWithMarketingEmails,
+              },
+            } as any,
+          });
+          notifications.push({ id: created.id, userId: target.id });
+        }
+
+        res.json({
+          success: true,
+          segment: effectiveSegment,
+          targetCount: targets.length,
+          notifications,
+        });
+      } catch (error: any) {
+        console.error("Error sending broadcast notification:", error);
+        res.status(500).json({ message: "Failed to send broadcast notification" });
+      }
     }
-  });
+  );
 
   // Profile setup endpoint
-  app.post('/api/auth/setup-profile', isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/auth/setup-profile", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas, isGeneralContractor, isResidentialContractor, acceptsSubcontractWork } = (req.body ?? {}) as any;
+      const {
+        role,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        companyName,
+        businessDescription,
+        licenseNumber,
+        yearsInBusiness,
+        serviceAreas,
+        isGeneralContractor,
+        isResidentialContractor,
+        acceptsSubcontractWork,
+      } = (req.body ?? {}) as any;
 
       const existingUser = await storage.getUser(userId);
 
-      const normalizedRole = role === 'contractor_user'
-        ? 'contractor'
-        : role === 'vehicle_dealer'
-          ? 'car_dealer'
-          : role === 'helper'
-            ? 'handyman'
-            : role;
+      const normalizedRole =
+        role === "contractor_user"
+          ? "contractor"
+          : role === "vehicle_dealer"
+            ? "car_dealer"
+            : role === "helper"
+              ? "handyman"
+              : role;
 
       // Prevent privilege escalation: admin roles are backend-only.
       // Only allow the small set of roles that this onboarding flow is intended to set.
-      const allowedOnboardingRoles = new Set(['homeowner', 'contractor', 'realtor', 'car_dealer', 'handyman']);
-      if (!allowedOnboardingRoles.has(String(normalizedRole || '').trim())) {
-        return res.status(400).json({ message: 'Invalid role selection' });
+      const allowedOnboardingRoles = new Set([
+        "homeowner",
+        "contractor",
+        "realtor",
+        "car_dealer",
+        "handyman",
+      ]);
+      if (!allowedOnboardingRoles.has(String(normalizedRole || "").trim())) {
+        return res.status(400).json({ message: "Invalid role selection" });
       }
 
       const normalizedServiceAreas: string[] = Array.isArray(serviceAreas)
         ? serviceAreas.filter(Boolean).map((area: any) => String(area).trim())
-        : typeof serviceAreas === 'string'
-          ? serviceAreas.split(',').map((area: string) => area.trim()).filter(Boolean)
+        : typeof serviceAreas === "string"
+          ? serviceAreas
+              .split(",")
+              .map((area: string) => area.trim())
+              .filter(Boolean)
           : [];
 
       // Update user profile
@@ -4129,19 +4391,28 @@ export async function registerRoutes(app: any) {
         onboardingCompleted: true,
         preferences: {
           ...(existingUser as any)?.preferences,
-          profileVisibility: (existingUser as any)?.preferences?.profileVisibility || 'public',
+          profileVisibility: (existingUser as any)?.preferences?.profileVisibility || "public",
         },
       });
 
-      const fullName = [updatedUser.firstName, updatedUser.lastName].filter(Boolean).join(' ').trim();
-      const defaultDisplayName = fullName || String(companyName || '').trim() || 'TradeScout Profile';
+      const fullName = [updatedUser.firstName, updatedUser.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      const defaultDisplayName =
+        fullName || String(companyName || "").trim() || "TradeScout Profile";
 
-      const businessCapableRoles = new Set(['contractor', 'realtor', 'car_dealer', 'handyman']);
+      const businessCapableRoles = new Set(["contractor", "realtor", "car_dealer", "handyman"]);
       let createdBusiness: any = null;
 
       if (businessCapableRoles.has(normalizedRole)) {
-        if (normalizedRole === 'contractor' && (!companyName || String(companyName).trim().length < 2)) {
-          return res.status(400).json({ message: "Business name is required for contractor profiles" });
+        if (
+          normalizedRole === "contractor" &&
+          (!companyName || String(companyName).trim().length < 2)
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Business name is required for contractor profiles" });
         }
 
         const businessName = String(companyName || defaultDisplayName).trim();
@@ -4149,25 +4420,29 @@ export async function registerRoutes(app: any) {
         createdBusiness = await storage.createBusinessForOwner(userId, {
           name: businessName,
           slug: businessName,
-          type: (normalizedRole === 'contractor' ? 'contractor' : 'other') as any,
+          type: (normalizedRole === "contractor" ? "contractor" : "other") as any,
           roleContext: normalizedRole as any,
           profileData: {
             description: businessDescription,
             phone,
             email: updatedUser.email,
           } as any,
-          status: 'active' as any,
+          status: "active" as any,
           countyIds: [],
         });
 
         await storage.setUserActiveBusiness(userId, createdBusiness.id);
 
-        if (normalizedRole === 'contractor') {
+        if (normalizedRole === "contractor") {
           await storage.createContractor({
             userId,
             businessId: createdBusiness.id,
             companyName: String(companyName).trim(),
-            slug: String(companyName).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+            slug: String(companyName)
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, ""),
             about: businessDescription,
             licenseNumber,
             yearsInBusiness: yearsInBusiness || 0,
@@ -4189,7 +4464,7 @@ export async function registerRoutes(app: any) {
         contentBlocks: [],
         ctaConfig: {},
         seoMeta: {},
-        status: ('published' as any),
+        status: "published" as any,
       } as any);
 
       const updatedWithActive = await storage.setUserActiveProfile(userId, createdProfile.id);
@@ -4212,8 +4487,8 @@ export async function registerRoutes(app: any) {
   // Public heatmap data endpoint (promotional feature)
   app.get("/api/heatmap", async (req: any, res: any) => {
     try {
-      const timeframe = (req.query.timeframe as string) || '30d';
-      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+      const timeframe = (req.query.timeframe as string) || "30d";
+      const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
 
       // Get heatmap data from locality interactions
       const heatmapData = await storage.getLocalityHeatmapData(days);
@@ -4248,7 +4523,7 @@ export async function registerRoutes(app: any) {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -4267,17 +4542,20 @@ export async function registerRoutes(app: any) {
       const { userId } = req.params;
       const { role } = (req.body ?? {}) as any;
 
-      if (!adminUser || !['head_admin', 'super_admin', 'moderator', 'ops_admin'].includes(adminUser.role || '')) {
+      if (
+        !adminUser ||
+        !["head_admin", "super_admin", "moderator", "ops_admin"].includes(adminUser.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       // Only head_admin can promote to head_admin or modify other head_admins
-      if (role === 'head_admin' && adminUser.role !== 'head_admin') {
+      if (role === "head_admin" && adminUser.role !== "head_admin") {
         return res.status(403).json({ message: "Only head admin can promote to head admin" });
       }
 
       const targetUser = await storage.getUser(userId);
-      if (targetUser?.role === 'head_admin' && adminUser.role !== 'head_admin') {
+      if (targetUser?.role === "head_admin" && adminUser.role !== "head_admin") {
         return res.status(403).json({ message: "Only head admin can modify other head admins" });
       }
 
@@ -4295,12 +4573,15 @@ export async function registerRoutes(app: any) {
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
 
-      if (!adminUser || !['head_admin', 'super_admin', 'moderator'].includes(adminUser.role || '')) {
+      if (
+        !adminUser ||
+        !["head_admin", "super_admin", "moderator"].includes(adminUser.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const targetUser = await storage.getUser(userId);
-      if (targetUser?.role === 'head_admin' && adminUser.role !== 'head_admin') {
+      if (targetUser?.role === "head_admin" && adminUser.role !== "head_admin") {
         return res.status(403).json({ message: "Only head admin can delete other head admins" });
       }
 
@@ -4318,143 +4599,159 @@ export async function registerRoutes(app: any) {
   });
 
   // Super admin user controls (minimal, but real)
-  app.post("/api/admin/user-controls/suspend/:userId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const adminUser = await storage.getUser(adminUserId);
+  app.post(
+    "/api/admin/user-controls/suspend/:userId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminUser = await storage.getUser(adminUserId);
 
-      if (!adminUser || adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || adminUser.role !== "head_admin") {
+          return res.status(403).json({ message: "Head admin access required" });
+        }
+
+        const { userId } = req.params;
+        if (userId === adminUserId) {
+          return res.status(400).json({ message: "Cannot suspend your own account" });
+        }
+
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        if (targetUser.role === "head_admin") {
+          return res.status(403).json({ message: "Cannot suspend another head admin" });
+        }
+
+        const updated = await storage.updateUser(userId, {
+          verificationStatus: "suspended" as any,
+        });
+
+        return res.json({
+          id: updated.id,
+          role: updated.role,
+          verificationStatus: (updated as any).verificationStatus,
+        });
+      } catch (error: any) {
+        console.error("Error suspending user:", error);
+        return res.status(500).json({ message: "Failed to suspend user" });
       }
-
-      const { userId } = req.params;
-      if (userId === adminUserId) {
-        return res.status(400).json({ message: "Cannot suspend your own account" });
-      }
-
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (targetUser.role === "head_admin") {
-        return res.status(403).json({ message: "Cannot suspend another head admin" });
-      }
-
-      const updated = await storage.updateUser(userId, {
-        verificationStatus: "suspended" as any,
-      });
-
-      return res.json({
-        id: updated.id,
-        role: updated.role,
-        verificationStatus: (updated as any).verificationStatus,
-      });
-    } catch (error: any) {
-      console.error("Error suspending user:", error);
-      return res.status(500).json({ message: "Failed to suspend user" });
     }
-  });
+  );
 
-  app.post("/api/admin/user-controls/unsuspend/:userId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const adminUser = await storage.getUser(adminUserId);
+  app.post(
+    "/api/admin/user-controls/unsuspend/:userId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminUser = await storage.getUser(adminUserId);
 
-      if (!adminUser || adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || adminUser.role !== "head_admin") {
+          return res.status(403).json({ message: "Head admin access required" });
+        }
+
+        const { userId } = req.params;
+
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        if (targetUser.role === "head_admin" && adminUser.id !== targetUser.id) {
+          // Only the same head admin account owner should manage their status
+          return res.status(403).json({ message: "Cannot modify another head admin" });
+        }
+
+        const updated = await storage.updateUser(userId, {
+          verificationStatus: "pending" as any,
+        });
+
+        return res.json({
+          id: updated.id,
+          role: updated.role,
+          verificationStatus: (updated as any).verificationStatus,
+        });
+      } catch (error: any) {
+        console.error("Error unsuspending user:", error);
+        return res.status(500).json({ message: "Failed to unsuspend user" });
       }
-
-      const { userId } = req.params;
-
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (targetUser.role === "head_admin" && adminUser.id !== targetUser.id) {
-        // Only the same head admin account owner should manage their status
-        return res.status(403).json({ message: "Cannot modify another head admin" });
-      }
-
-      const updated = await storage.updateUser(userId, {
-        verificationStatus: "pending" as any,
-      });
-
-      return res.json({
-        id: updated.id,
-        role: updated.role,
-        verificationStatus: (updated as any).verificationStatus,
-      });
-    } catch (error: any) {
-      console.error("Error unsuspending user:", error);
-      return res.status(500).json({ message: "Failed to unsuspend user" });
     }
-  });
+  );
 
-  app.post("/api/admin/user-controls/verify/:userId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const adminUser = await storage.getUser(adminUserId);
+  app.post(
+    "/api/admin/user-controls/verify/:userId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminUser = await storage.getUser(adminUserId);
 
-      if (!adminUser || adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || adminUser.role !== "head_admin") {
+          return res.status(403).json({ message: "Head admin access required" });
+        }
+
+        const { userId } = req.params;
+
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const updated = await storage.updateUser(userId, {
+          verificationStatus: "approved" as any,
+          addressVerified: true,
+        });
+
+        return res.json({
+          id: updated.id,
+          role: updated.role,
+          verificationStatus: (updated as any).verificationStatus,
+          addressVerified: (updated as any).addressVerified,
+        });
+      } catch (error: any) {
+        console.error("Error verifying user:", error);
+        return res.status(500).json({ message: "Failed to verify user" });
       }
-
-      const { userId } = req.params;
-
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const updated = await storage.updateUser(userId, {
-        verificationStatus: "approved" as any,
-        addressVerified: true,
-      });
-
-      return res.json({
-        id: updated.id,
-        role: updated.role,
-        verificationStatus: (updated as any).verificationStatus,
-        addressVerified: (updated as any).addressVerified,
-      });
-    } catch (error: any) {
-      console.error("Error verifying user:", error);
-      return res.status(500).json({ message: "Failed to verify user" });
     }
-  });
+  );
 
-  app.post("/api/admin/user-controls/revoke-verify/:userId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const adminUser = await storage.getUser(adminUserId);
+  app.post(
+    "/api/admin/user-controls/revoke-verify/:userId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminUser = await storage.getUser(adminUserId);
 
-      if (!adminUser || adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || adminUser.role !== "head_admin") {
+          return res.status(403).json({ message: "Head admin access required" });
+        }
+
+        const { userId } = req.params;
+
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const updated = await storage.updateUser(userId, {
+          verificationStatus: "pending" as any,
+        });
+
+        return res.json({
+          id: updated.id,
+          role: updated.role,
+          verificationStatus: (updated as any).verificationStatus,
+        });
+      } catch (error: any) {
+        console.error("Error revoking verification:", error);
+        return res.status(500).json({ message: "Failed to revoke verification" });
       }
-
-      const { userId } = req.params;
-
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const updated = await storage.updateUser(userId, {
-        verificationStatus: "pending" as any,
-      });
-
-      return res.json({
-        id: updated.id,
-        role: updated.role,
-        verificationStatus: (updated as any).verificationStatus,
-      });
-    } catch (error: any) {
-      console.error("Error revoking verification:", error);
-      return res.status(500).json({ message: "Failed to revoke verification" });
     }
-  });
+  );
 
   app.post("/api/admin/user-controls/role/:userId", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -4562,7 +4859,8 @@ export async function registerRoutes(app: any) {
   // Quote calculator endpoint (public access)
   app.post("/api/calculator", async (req: any, res: any) => {
     try {
-      const { projectType, squareFootage, stateCode, countyFips, urgency } = (req.body ?? {}) as any;
+      const { projectType, squareFootage, stateCode, countyFips, urgency } = (req.body ??
+        {}) as any;
 
       // Track calculator usage with locality context
       // LocalityTracker call removed
@@ -4573,16 +4871,16 @@ export async function registerRoutes(app: any) {
       if (!pricingData || pricingData.length === 0) {
         // Fallback pricing calculations
         const baseRates: Record<string, number> = {
-          'roofing': 15,
-          'roof-replacement': 15,
-          'roof-repair': 8,
-          'plumbing': 12,
-          'electrical': 10,
-          'hvac': 25,
-          'flooring': 12,
-          'kitchen-remodel': 100,
-          'bathroom-remodel': 85,
-          'painting': 6
+          roofing: 15,
+          "roof-replacement": 15,
+          "roof-repair": 8,
+          plumbing: 12,
+          electrical: 10,
+          hvac: 25,
+          flooring: 12,
+          "kitchen-remodel": 100,
+          "bathroom-remodel": 85,
+          painting: 6,
         };
 
         const baseRate = baseRates[projectType] || 20;
@@ -4592,15 +4890,15 @@ export async function registerRoutes(app: any) {
         const baseHigh = baseRate * sqft * 1.2;
 
         // Apply urgency multiplier
-        const urgencyMultiplier = urgency === 'urgent' ? 1.2 : urgency === 'soon' ? 1.1 : 1.0;
+        const urgencyMultiplier = urgency === "urgent" ? 1.2 : urgency === "soon" ? 1.1 : 1.0;
 
         const estimate = {
           low: Math.round(baseLow * urgencyMultiplier),
           high: Math.round(baseHigh * urgencyMultiplier),
           projectType,
           // squareFootage: sqft,
-          urgency: urgency || 'planning',
-          calculatedAt: new Date()
+          urgency: urgency || "planning",
+          calculatedAt: new Date(),
         };
 
         return res.json(estimate);
@@ -4617,15 +4915,15 @@ export async function registerRoutes(app: any) {
       const high = Math.round((baseHigh / 1000) * sqft);
 
       // Apply urgency multiplier
-      const urgencyMultiplier = urgency === 'urgent' ? 1.2 : urgency === 'soon' ? 1.1 : 1.0;
+      const urgencyMultiplier = urgency === "urgent" ? 1.2 : urgency === "soon" ? 1.1 : 1.0;
 
       const estimate = {
         low: Math.round(low * urgencyMultiplier),
         high: Math.round(high * urgencyMultiplier),
         projectType,
         // squareFootage: sqft,
-        urgency: urgency || 'planning',
-        calculatedAt: new Date()
+        urgency: urgency || "planning",
+        calculatedAt: new Date(),
       };
 
       res.json(estimate);
@@ -4659,50 +4957,55 @@ export async function registerRoutes(app: any) {
       const lead = await storage.createLead(validatedLead);
 
       // If this is a "top3" routing request, find and notify top contractors
-      if (validatedLead.routingType === 'top3' && validatedLead.countyId && validatedLead.tradeId) {
+      if (validatedLead.routingType === "top3" && validatedLead.countyId && validatedLead.tradeId) {
         await routeLeadToTopContractors(lead, validatedLead);
       }
 
       // If this is a manual routing request with explicit contractor IDs, assign directly
-      if (validatedLead.routingType === 'manual') {
+      if (validatedLead.routingType === "manual") {
         const manualIds: string[] = Array.isArray((leadData as any).manualContractorIds)
-          ? (leadData as any).manualContractorIds.filter((id: any) => typeof id === 'string')
+          ? (leadData as any).manualContractorIds.filter((id: any) => typeof id === "string")
           : [];
 
         if (manualIds.length > 0) {
           await storage.assignLeadToContractors(lead.id, manualIds);
 
-          await Promise.all(manualIds.map(async (contractorId: string) => {
-            try {
-              const contractor = await storage.getContractorById(contractorId);
-              if (!contractor?.userId) return;
+          await Promise.all(
+            manualIds.map(async (contractorId: string) => {
+              try {
+                const contractor = await storage.getContractorById(contractorId);
+                if (!contractor?.userId) return;
 
-              await notificationService.createNotification({
-                userId: contractor.userId,
-                type: 'new_project_request',
-                title: 'New Direct Connect request',
-                message: 'A homeowner selected you to respond to a Direct Connect request.',
-                actionUrl: `/pro-dashboard/leads/${lead.id}`,
-                actionText: 'View lead',
-                iconName: 'briefcase',
-                iconColor: 'orange',
-                deliveryMethods: ['in_app', 'push'],
-              });
+                await notificationService.createNotification({
+                  userId: contractor.userId,
+                  type: "new_project_request",
+                  title: "New Direct Connect request",
+                  message: "A homeowner selected you to respond to a Direct Connect request.",
+                  actionUrl: `/pro-dashboard/leads/${lead.id}`,
+                  actionText: "View lead",
+                  iconName: "briefcase",
+                  iconColor: "orange",
+                  deliveryMethods: ["in_app", "push"],
+                });
 
-              await storage.logEvent('lead_assigned', {
-                leadId: lead.id,
-                contractorId,
-                assignmentType: 'manual_selection',
-              });
-            } catch (manualErr) {
-              console.error(`Failed to notify contractor ${contractorId} for manual lead ${lead.id}:`, manualErr);
-            }
-          }));
+                await storage.logEvent("lead_assigned", {
+                  leadId: lead.id,
+                  contractorId,
+                  assignmentType: "manual_selection",
+                });
+              } catch (manualErr) {
+                console.error(
+                  `Failed to notify contractor ${contractorId} for manual lead ${lead.id}:`,
+                  manualErr
+                );
+              }
+            })
+          );
         }
       }
 
       // Log event
-      await storage.logEvent('lead_submitted', {
+      await storage.logEvent("lead_submitted", {
         leadId: lead.id,
         userId,
         routingType: lead.routingType,
@@ -4727,13 +5030,16 @@ export async function registerRoutes(app: any) {
       const recommendation = await storage.createRecommendation({
         ...recommendationData,
         ipAddress: req.ip || null,
-        userAgent: req.get('user-agent') || null
+        userAgent: req.get("user-agent") || null,
       });
 
       // Update leaderboard stats when recommendation is created
-      await storage.updateContractorLeaderboardStats(recommendationData.contractorId, recommendationData.rating);
+      await storage.updateContractorLeaderboardStats(
+        recommendationData.contractorId,
+        recommendationData.rating
+      );
 
-      await storage.logEvent('recommendation_submitted', {
+      await storage.logEvent("recommendation_submitted", {
         recommendationId: recommendation.id,
         contractorId: recommendation.contractorId,
         userId,
@@ -4789,27 +5095,8 @@ export async function registerRoutes(app: any) {
   });
 
   // States API for geographic filtering
-  app.get("/api/states", async (req: any, res: any) => {
-    try {
-      const states = await storage.getAllStates();
-      res.json(states);
-    } catch (error: any) {
-      console.error("Error fetching states:", error);
-      res.status(500).json({ message: "Failed to fetch states" });
-    }
-  });
-
-  // Counties API for geographic filtering
-  app.get("/api/counties", async (req: any, res: any) => {
-    try {
-      const state = req.query.state as string;
-      const counties = await storage.getCountiesByState(state);
-      res.json(counties);
-    } catch (error: any) {
-      console.error("Error fetching counties:", error);
-      res.status(500).json({ message: "Failed to fetch counties" });
-    }
-  });
+  // NOTE: /api/states and /api/counties are defined earlier with
+  // robust static fallbacks. Do not re-register those routes here.
 
   // Growth Pack endpoints retired
   app.post("/api/growth-pack", isAuthenticated, async (_req: any, res: any) => {
@@ -4821,101 +5108,125 @@ export async function registerRoutes(app: any) {
   });
 
   // Pricing Analytics Routes (Admin Only)
-  app.get("/api/admin/pricing-analytics", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
-    try {
-      const { timeframe = '30d' } = req.query;
-      const { pricingAnalyticsService } = await import('./pricing-analytics');
+  app.get(
+    "/api/admin/pricing-analytics",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const { timeframe = "30d" } = req.query;
+        const { pricingAnalyticsService } = await import("./pricing-analytics");
 
-      const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
-      res.json(analytics);
-    } catch (error: any) {
-      console.error("Error fetching pricing analytics:", error);
-      res.status(500).json({ message: "Failed to fetch pricing analytics" });
-    }
-  });
-
-  app.post("/api/admin/pricing-analytics/update-calculator", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
-    try {
-      const { threshold = 10 } = (req.body ?? {}) as any;
-      const { pricingAnalyticsService } = await import('./pricing-analytics');
-
-      const result = await pricingAnalyticsService.updateCalculatorPricing(threshold);
-
-      // Log the pricing update
-      await storage.logEvent('pricing_calculator_updated', {
-        adminId: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        updatedCount: result.updatedCount,
-        updates: result.updates
-      });
-
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error updating calculator pricing:", error);
-      res.status(500).json({ message: "Failed to update calculator pricing" });
-    }
-  });
-
-  app.get("/api/admin/pricing-analytics/export", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
-    try {
-      const { timeframe = '30d' } = req.query;
-      const { pricingAnalyticsService } = await import('./pricing-analytics');
-
-      const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
-
-      // Convert analytics to CSV format
-      const csvData = [];
-
-      // Add trade data
-      for (const [tradeId, data] of Object.entries(analytics.averageQuotes.byTrade)) {
-        csvData.push({
-          type: 'trade',
-          id: tradeId,
-          average: data.average,
-          count: data.count,
-          trend: data.trend
-        });
+        const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
+        res.json(analytics);
+      } catch (error: any) {
+        console.error("Error fetching pricing analytics:", error);
+        res.status(500).json({ message: "Failed to fetch pricing analytics" });
       }
+    }
+  );
 
-      // Add region data  
-      for (const [regionKey, data] of Object.entries(analytics.averageQuotes.byRegion)) {
-        csvData.push({
-          type: 'region',
-          id: regionKey,
-          average: data.average,
-          count: data.count,
-          trend: data.trend
+  app.post(
+    "/api/admin/pricing-analytics/update-calculator",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const { threshold = 10 } = (req.body ?? {}) as any;
+        const { pricingAnalyticsService } = await import("./pricing-analytics");
+
+        const result = await pricingAnalyticsService.updateCalculatorPricing(threshold);
+
+        // Log the pricing update
+        await storage.logEvent("pricing_calculator_updated", {
+          adminId: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          updatedCount: result.updatedCount,
+          updates: result.updates,
         });
+
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error updating calculator pricing:", error);
+        res.status(500).json({ message: "Failed to update calculator pricing" });
       }
-
-      // Convert to CSV string
-      const csvHeader = 'Type,ID,Average,Count,Trend\n';
-      const csvRows = csvData.map(row => 
-        `${row.type},${row.id},${row.average},${row.count},${row.trend}`
-      ).join('\n');
-
-      const csvContent = csvHeader + csvRows;
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="pricing-analytics-${timeframe}.csv"`);
-      res.send(csvContent);
-    } catch (error: any) {
-      console.error("Error exporting pricing analytics:", error);
-      res.status(500).json({ message: "Failed to export pricing analytics" });
     }
-  });
+  );
 
-  app.get("/api/admin/pricing-analytics/recommendations", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
-    try {
-      const { stateCode } = req.query;
-      const { pricingAnalyticsService } = await import('./pricing-analytics');
+  app.get(
+    "/api/admin/pricing-analytics/export",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const { timeframe = "30d" } = req.query;
+        const { pricingAnalyticsService } = await import("./pricing-analytics");
 
-      const recommendations = await pricingAnalyticsService.getRegionalPricingRecommendations(stateCode);
-      res.json(recommendations);
-    } catch (error: any) {
-      console.error("Error fetching pricing recommendations:", error);
-      res.status(500).json({ message: "Failed to fetch pricing recommendations" });
+        const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
+
+        // Convert analytics to CSV format
+        const csvData = [];
+
+        // Add trade data
+        for (const [tradeId, data] of Object.entries(analytics.averageQuotes.byTrade)) {
+          csvData.push({
+            type: "trade",
+            id: tradeId,
+            average: data.average,
+            count: data.count,
+            trend: data.trend,
+          });
+        }
+
+        // Add region data
+        for (const [regionKey, data] of Object.entries(analytics.averageQuotes.byRegion)) {
+          csvData.push({
+            type: "region",
+            id: regionKey,
+            average: data.average,
+            count: data.count,
+            trend: data.trend,
+          });
+        }
+
+        // Convert to CSV string
+        const csvHeader = "Type,ID,Average,Count,Trend\n";
+        const csvRows = csvData
+          .map((row) => `${row.type},${row.id},${row.average},${row.count},${row.trend}`)
+          .join("\n");
+
+        const csvContent = csvHeader + csvRows;
+
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="pricing-analytics-${timeframe}.csv"`
+        );
+        res.send(csvContent);
+      } catch (error: any) {
+        console.error("Error exporting pricing analytics:", error);
+        res.status(500).json({ message: "Failed to export pricing analytics" });
+      }
     }
-  });
+  );
+
+  app.get(
+    "/api/admin/pricing-analytics/recommendations",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const { stateCode } = req.query;
+        const { pricingAnalyticsService } = await import("./pricing-analytics");
+
+        const recommendations =
+          await pricingAnalyticsService.getRegionalPricingRecommendations(stateCode);
+        res.json(recommendations);
+      } catch (error: any) {
+        console.error("Error fetching pricing recommendations:", error);
+        res.status(500).json({ message: "Failed to fetch pricing recommendations" });
+      }
+    }
+  );
 
   // Contractor dashboard (requires contractor auth)
   app.get("/api/contractor/dashboard", isAuthenticated, async (req: any, res: any) => {
@@ -4924,7 +5235,7 @@ export async function registerRoutes(app: any) {
 
       // Get contractor profile for this user
       const contractors = await storage.getContractors({ limit: 1 });
-      const contractor = contractors.find(c => c.userId === userId);
+      const contractor = contractors.find((c) => c.userId === userId);
 
       if (!contractor) {
         return res.status(404).json({ message: "Contractor profile not found" });
@@ -4941,9 +5252,9 @@ export async function registerRoutes(app: any) {
         recommendations: recommendations.slice(0, 3), // Recent recommendations
         stats: {
           totalLeads: leads.length,
-          newLeads: leads.filter(l => l.status === 'new').length,
+          newLeads: leads.filter((l) => l.status === "new").length,
           ratingSummary: ratings,
-        }
+        },
       });
     } catch (error: any) {
       console.error("Error fetching contractor dashboard:", error);
@@ -4969,28 +5280,35 @@ export async function registerRoutes(app: any) {
       // Authorization: lead owner (homeowner) or assigned contractor or admin
       const rolesRaw = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
       const primaryRole = (req.user as any)?.role;
-      const roles: string[] = [primaryRole, ...(rolesRaw || [])].filter((r): r is string => typeof r === 'string');
-      const isAdminLike = roles.some((r) => ["admin", "moderator", "ops_admin", "super_admin", "head_admin"].includes(r));
+      const roles: string[] = [primaryRole, ...(rolesRaw || [])].filter(
+        (r): r is string => typeof r === "string"
+      );
+      const isAdminLike = roles.some((r) =>
+        ["admin", "moderator", "ops_admin", "super_admin", "head_admin"].includes(r)
+      );
 
-      const isHomeownerOwner = typeof lead.userId === 'string' && lead.userId === userId;
-      const isAssignedContractor = typeof lead.contractorId === 'string' && !!lead.contractorId && (await (async () => {
-        try {
-          const contractor = await storage.getContractorByUserId(userId);
-          return !!contractor && contractor.id === lead.contractorId;
-        } catch {
-          return false;
-        }
-      })());
+      const isHomeownerOwner = typeof lead.userId === "string" && lead.userId === userId;
+      const isAssignedContractor =
+        typeof lead.contractorId === "string" &&
+        !!lead.contractorId &&
+        (await (async () => {
+          try {
+            const contractor = await storage.getContractorByUserId(userId);
+            return !!contractor && contractor.id === lead.contractorId;
+          } catch {
+            return false;
+          }
+        })());
 
       if (!isHomeownerOwner && !isAssignedContractor && !isAdminLike) {
         return res.status(403).json({ message: "Not authorized to complete this job" });
       }
 
-      if (lead.status === 'completed') {
+      if (lead.status === "completed") {
         return res.status(200).json({ message: "Job already marked completed" });
       }
 
-      const updated = await storage.updateLeadStatus(leadId, 'completed');
+      const updated = await storage.updateLeadStatus(leadId, "completed");
 
       try {
         await storage.logEvent("job.completed", {
@@ -5016,7 +5334,7 @@ export async function registerRoutes(app: any) {
       await storage.logEvent(eventType, {
         ...data,
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
+        userAgent: req.get("User-Agent"),
       });
 
       res.json({ message: "Event logged successfully" });
@@ -5030,7 +5348,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/admin/stats", isAuthenticated, async (req: any, res: any) => {
     try {
       const userRole = req.user.claims.role;
-      if (!['owner', 'ops_admin', 'analytics_read'].includes(userRole)) {
+      if (!["owner", "ops_admin", "analytics_read"].includes(userRole)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -5038,10 +5356,9 @@ export async function registerRoutes(app: any) {
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
       const stats = {
-        totalContractors: await storage.getContractors({ limit: 10000 }).then(c => c.length),
-        newLeads: await storage.getEventStats('lead_submitted', { from: weekAgo, to: today }),
-        growthPackDownloads: await storage.getEventStats('growth_pack_requested', { from: weekAgo, to: today }),
-        totalRecommendations: await storage.getEventStats('recommendation_submitted'),
+        totalContractors: await storage.getContractors({ limit: 10000 }).then((c) => c.length),
+        newLeads: await storage.getEventStats("lead_submitted", { from: weekAgo, to: today }),
+        totalRecommendations: await storage.getEventStats("recommendation_submitted"),
       };
 
       res.json(stats);
@@ -5052,118 +5369,145 @@ export async function registerRoutes(app: any) {
   });
 
   // Pro / Business analytics (contractor-facing)
-  app.get("/api/pro/analytics/summary", isAuthenticated, isContractor, async (req: any, res: any) => {
-    try {
-      const now = new Date();
-      const from = new Date(now);
-      from.setMonth(from.getMonth() - 1);
+  app.get(
+    "/api/pro/analytics/summary",
+    isAuthenticated,
+    isContractor,
+    async (req: any, res: any) => {
+      try {
+        const now = new Date();
+        const from = new Date(now);
+        from.setMonth(from.getMonth() - 1);
 
-      const rows = await storage.getPlatformAnalytics(from, now);
+        const rows = await storage.getPlatformAnalytics(from, now);
 
-      let totalRequests = 0;
-      let totalRevenue = 0;
-      let totalConversions = 0;
+        let totalRequests = 0;
+        let totalRevenue = 0;
+        let totalConversions = 0;
 
-      for (const row of rows as any[]) {
-        totalRequests += Number((row as any).listingsCreated || 0);
-        totalRevenue += Number((row as any).revenue || 0);
-        totalConversions += Number((row as any).transactionsCompleted || 0);
+        for (const row of rows as any[]) {
+          totalRequests += Number((row as any).listingsCreated || 0);
+          totalRevenue += Number((row as any).revenue || 0);
+          totalConversions += Number((row as any).transactionsCompleted || 0);
+        }
+
+        const conversionRate = totalRequests > 0 ? (totalConversions / totalRequests) * 100 : 0;
+
+        res.json({
+          totalRequests,
+          revenue: totalRevenue,
+          profileViews: 0,
+          conversionRate,
+        });
+      } catch (error: any) {
+        console.error("Error fetching pro analytics summary:", error);
+        res.status(500).json({ message: "Failed to fetch analytics summary" });
       }
-
-      const conversionRate = totalRequests > 0 ? (totalConversions / totalRequests) * 100 : 0;
-
-      res.json({
-        totalRequests,
-        revenue: totalRevenue,
-        profileViews: 0,
-        conversionRate,
-      });
-    } catch (error: any) {
-      console.error("Error fetching pro analytics summary:", error);
-      res.status(500).json({ message: "Failed to fetch analytics summary" });
     }
-  });
+  );
 
-  app.get("/api/pro/analytics/revenue-trend", isAuthenticated, isContractor, async (req: any, res: any) => {
-    try {
-      const now = new Date();
-      const from = new Date(now);
-      from.setMonth(from.getMonth() - 5);
+  app.get(
+    "/api/pro/analytics/revenue-trend",
+    isAuthenticated,
+    isContractor,
+    async (req: any, res: any) => {
+      try {
+        const now = new Date();
+        const from = new Date(now);
+        from.setMonth(from.getMonth() - 5);
 
-      const rows = await storage.getPlatformAnalytics(from, now);
+        const rows = await storage.getPlatformAnalytics(from, now);
 
-      const points = (rows as any[]).map((row) => {
-        const date = new Date((row as any).date);
-        const label = date.toLocaleString("en-US", { month: "short" });
-        const value = Number((row as any).revenue || 0);
-        return {
-          date: date.toISOString(),
-          label,
-          value,
-        };
-      });
+        const points = (rows as any[]).map((row) => {
+          const date = new Date((row as any).date);
+          const label = date.toLocaleString("en-US", { month: "short" });
+          const value = Number((row as any).revenue || 0);
+          return {
+            date: date.toISOString(),
+            label,
+            value,
+          };
+        });
 
-      res.json({ points });
-    } catch (error: any) {
-      console.error("Error fetching pro revenue trend:", error);
-      res.status(500).json({ message: "Failed to fetch revenue trend" });
-    }
-  });
-
-  app.get("/api/pro/analytics/sources", isAuthenticated, isContractor, async (_req: any, res: any) => {
-    try {
-      // Source-level breakdowns are not yet tracked; return an empty dataset with clear semantics.
-      res.json({ sources: [] });
-    } catch (error: any) {
-      console.error("Error fetching pro analytics sources:", error);
-      res.status(500).json({ message: "Failed to fetch analytics sources" });
-    }
-  });
-
-  app.get("/api/pro/analytics/projects", isAuthenticated, isContractor, async (_req: any, res: any) => {
-    try {
-      // Project-level analytics will be wired to real project tables; for now return an empty list.
-      res.json({ projects: [] });
-    } catch (error: any) {
-      console.error("Error fetching pro analytics projects:", error);
-      res.status(500).json({ message: "Failed to fetch analytics projects" });
-    }
-  });
-
-  app.get("/api/pro/analytics/funnel", isAuthenticated, isContractor, async (_req: any, res: any) => {
-    try {
-      const now = new Date();
-      const from = new Date(now);
-      from.setMonth(from.getMonth() - 1);
-
-      const rows = await storage.getPlatformAnalytics(from, now);
-
-      let requestsReceived = 0;
-      let converted = 0;
-
-      for (const row of rows as any[]) {
-        requestsReceived += Number((row as any).listingsCreated || 0);
-        converted += Number((row as any).transactionsCompleted || 0);
+        res.json({ points });
+      } catch (error: any) {
+        console.error("Error fetching pro revenue trend:", error);
+        res.status(500).json({ message: "Failed to fetch revenue trend" });
       }
-
-      res.json({
-        requestsReceived,
-        contacted: 0,
-        quoted: 0,
-        converted,
-      });
-    } catch (error: any) {
-      console.error("Error fetching pro analytics funnel:", error);
-      res.status(500).json({ message: "Failed to fetch analytics funnel" });
     }
-  });
+  );
+
+  app.get(
+    "/api/pro/analytics/sources",
+    isAuthenticated,
+    isContractor,
+    async (_req: any, res: any) => {
+      try {
+        // Source-level breakdowns are not yet tracked; return an empty dataset with clear semantics.
+        res.json({ sources: [] });
+      } catch (error: any) {
+        console.error("Error fetching pro analytics sources:", error);
+        res.status(500).json({ message: "Failed to fetch analytics sources" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/pro/analytics/projects",
+    isAuthenticated,
+    isContractor,
+    async (_req: any, res: any) => {
+      try {
+        // Project-level analytics will be wired to real project tables; for now return an empty list.
+        res.json({ projects: [] });
+      } catch (error: any) {
+        console.error("Error fetching pro analytics projects:", error);
+        res.status(500).json({ message: "Failed to fetch analytics projects" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/pro/analytics/funnel",
+    isAuthenticated,
+    isContractor,
+    async (_req: any, res: any) => {
+      try {
+        const now = new Date();
+        const from = new Date(now);
+        from.setMonth(from.getMonth() - 1);
+
+        const rows = await storage.getPlatformAnalytics(from, now);
+
+        let requestsReceived = 0;
+        let converted = 0;
+
+        for (const row of rows as any[]) {
+          requestsReceived += Number((row as any).listingsCreated || 0);
+          converted += Number((row as any).transactionsCompleted || 0);
+        }
+
+        res.json({
+          requestsReceived,
+          contacted: 0,
+          quoted: 0,
+          converted,
+        });
+      } catch (error: any) {
+        console.error("Error fetching pro analytics funnel:", error);
+        res.status(500).json({ message: "Failed to fetch analytics funnel" });
+      }
+    }
+  );
 
   // Daily money movement summary for super admins
   app.get("/api/admin/money-movements/daily", isAuthenticated, async (req: any, res: any) => {
     try {
       const roleFromClaims = req.user?.claims?.role;
       const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
-      const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter((r): r is string => typeof r === 'string');
+      const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
+        (r): r is string => typeof r === "string"
+      );
 
       const isSuperAdminLike = roles.some((r) =>
         ["head_admin", "super_admin", "ops_admin", "analytics_read"].includes(r)
@@ -5178,61 +5522,63 @@ export async function registerRoutes(app: any) {
       const endOfDay = new Date(now);
       endOfDay.setHours(23, 59, 59, 999);
 
-      const [{ totalWalletCredits, totalWalletDebits }, { totalStripeVolume, totalOffPlatformVolume }] =
-        await Promise.all([
-          (async () => {
-            const rows = await db
-              .select({
-                direction: walletTransactions.direction,
-                amount: walletTransactions.amount,
-              })
-              .from(walletTransactions)
-              .where(
-                and(
-                  gte(walletTransactions.createdAt, startOfDay),
-                  lte(walletTransactions.createdAt, endOfDay)
-                )
-              );
+      const [
+        { totalWalletCredits, totalWalletDebits },
+        { totalStripeVolume, totalOffPlatformVolume },
+      ] = await Promise.all([
+        (async () => {
+          const rows = await db
+            .select({
+              direction: walletTransactions.direction,
+              amount: walletTransactions.amount,
+            })
+            .from(walletTransactions)
+            .where(
+              and(
+                gte(walletTransactions.createdAt, startOfDay),
+                lte(walletTransactions.createdAt, endOfDay)
+              )
+            );
 
-            let credits = 0;
-            let debits = 0;
-            for (const row of rows) {
-              const amt = Number((row as any).amount || 0);
-              if (!Number.isFinite(amt)) continue;
-              if ((row as any).direction === 'credit') credits += amt;
-              else if ((row as any).direction === 'debit') debits += amt;
-            }
+          let credits = 0;
+          let debits = 0;
+          for (const row of rows) {
+            const amt = Number((row as any).amount || 0);
+            if (!Number.isFinite(amt)) continue;
+            if ((row as any).direction === "credit") credits += amt;
+            else if ((row as any).direction === "debit") debits += amt;
+          }
 
-            return { totalWalletCredits: credits, totalWalletDebits: debits };
-          })(),
-          (async () => {
-            const rows = await db
-              .select({
-                method: marketplaceTransactions.paymentMethod,
-                amount: marketplaceTransactions.totalAmount,
-              })
-              .from(marketplaceTransactions)
-              .where(
-                and(
-                  gte(marketplaceTransactions.createdAt, startOfDay),
-                  lte(marketplaceTransactions.createdAt, endOfDay),
-                  eq(marketplaceTransactions.status, 'completed')
-                )
-              );
+          return { totalWalletCredits: credits, totalWalletDebits: debits };
+        })(),
+        (async () => {
+          const rows = await db
+            .select({
+              method: marketplaceTransactions.paymentMethod,
+              amount: marketplaceTransactions.totalAmount,
+            })
+            .from(marketplaceTransactions)
+            .where(
+              and(
+                gte(marketplaceTransactions.createdAt, startOfDay),
+                lte(marketplaceTransactions.createdAt, endOfDay),
+                eq(marketplaceTransactions.status, "completed")
+              )
+            );
 
-            let stripe = 0;
-            let offPlatform = 0;
-            for (const row of rows) {
-              const amt = Number((row as any).amount || 0);
-              if (!Number.isFinite(amt) || amt <= 0) continue;
-              const method = (row as any).method;
-              if (method === 'on_platform_stripe') stripe += amt;
-              else if (method === 'off_platform_direct') offPlatform += amt;
-            }
+          let stripe = 0;
+          let offPlatform = 0;
+          for (const row of rows) {
+            const amt = Number((row as any).amount || 0);
+            if (!Number.isFinite(amt) || amt <= 0) continue;
+            const method = (row as any).method;
+            if (method === "on_platform_stripe") stripe += amt;
+            else if (method === "off_platform_direct") offPlatform += amt;
+          }
 
-            return { totalStripeVolume: stripe, totalOffPlatformVolume: offPlatform };
-          })(),
-        ]);
+          return { totalStripeVolume: stripe, totalOffPlatformVolume: offPlatform };
+        })(),
+      ]);
 
       res.json({
         date: startOfDay.toISOString().slice(0, 10),
@@ -5253,203 +5599,228 @@ export async function registerRoutes(app: any) {
   });
 
   // Contractor application submission
-  app.post("/api/contractors/apply", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const user = await storage.getUser(userId);
+  app.post(
+    "/api/contractors/apply",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const user = await storage.getUser(userId);
 
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
+        if (!user) {
+          return res.status(401).json({ message: "User not found" });
+        }
 
-      // C2-3: Verification gate - check contractor verification (APPLY_AS_CONTRACTOR action)
-      // Requires: license, insurance, identity
-      const hasLicense = (user as any)?.licenseVerified || (user as any)?.verificationStatus === 'approved';
-      const hasInsurance = (user as any)?.insuranceVerified;
-      const hasIdentity = (user as any)?.identityVerified;
-      
-      const missingRequirements = [];
-      if (!hasLicense) missingRequirements.push('license');
-      if (!hasInsurance) missingRequirements.push('insurance');
-      if (!hasIdentity) missingRequirements.push('identity');
+        // C2-3: Verification gate - check contractor verification (APPLY_AS_CONTRACTOR action)
+        // Requires: license, insurance, identity
+        const hasLicense =
+          (user as any)?.licenseVerified || (user as any)?.verificationStatus === "approved";
+        const hasInsurance = (user as any)?.insuranceVerified;
+        const hasIdentity = (user as any)?.identityVerified;
 
-      if (missingRequirements.length > 0) {
-        const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
-        
-        const gateResponse = buildVerificationGateResponse({
-          action: 'APPLY_AS_CONTRACTOR',
-          missingRequirements: missingRequirements as any,
-          userRole: 'contractor',
-          targetUserId: undefined,
-          targetRole: undefined,
-          context: { intent: 'apply_as_contractor' },
+        const missingRequirements = [];
+        if (!hasLicense) missingRequirements.push("license");
+        if (!hasInsurance) missingRequirements.push("insurance");
+        if (!hasIdentity) missingRequirements.push("identity");
+
+        if (missingRequirements.length > 0) {
+          const { buildVerificationGateResponse } =
+            await import("./utils/explainAndOfferVerification");
+
+          const gateResponse = buildVerificationGateResponse({
+            action: "APPLY_AS_CONTRACTOR",
+            missingRequirements: missingRequirements as any,
+            userRole: "contractor",
+            targetUserId: undefined,
+            targetRole: undefined,
+            context: { intent: "apply_as_contractor" },
+          });
+
+          return res.status(200).json({
+            ...gateResponse,
+            verificationRequired: {
+              action: "APPLY_AS_CONTRACTOR",
+              retryPath: `/api/contractors/apply`,
+              context: { companyName: req.body?.companyName },
+            },
+          });
+        }
+
+        // Track contractor application with locality context
+        // LocalityTracker call removed
+
+        const applicationData = { ...req.body, userId };
+
+        // Create contractor profile from application data
+        const contractor = await storage.createContractor({
+          userId,
+          companyName: applicationData.companyName,
+          slug: applicationData.companyName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, ""),
+          phone: applicationData.phone,
+          email: applicationData.email,
+          website: applicationData.website,
+          yearsInBusiness: parseInt(applicationData.yearsInBusiness) || 0,
+          licenseNumber: applicationData.licenseNumber,
+          about: applicationData.description,
+          isGeneralContractor: applicationData.isGeneralContractor || false,
+          isResidentialContractor: applicationData.isResidentialContractor || false,
+          acceptsSubcontractWork: applicationData.acceptsSubcontractWork || false,
+          verifiedLicensed: false,
+          verifiedInsured: false,
+          isActive: true,
         });
 
-        return res.status(200).json({
-          ...gateResponse,
-          verificationRequired: {
-            action: 'APPLY_AS_CONTRACTOR',
-            retryPath: `/api/contractors/apply`,
-            context: { companyName: req.body?.companyName },
-          },
+        // Update user role to contractor
+        await storage.updateUser(userId, {
+          role: "contractor",
+          onboardingCompleted: true,
         });
+
+        console.log("New contractor application created:", contractor.id);
+
+        res.json({
+          message: "Application submitted successfully",
+          contractorId: contractor.id,
+          status: "pending_verification",
+        });
+      } catch (error: any) {
+        console.error("Error submitting contractor application:", error);
+        res.status(500).json({ message: "Failed to submit application" });
       }
-
-      // Track contractor application with locality context
-      // LocalityTracker call removed
-
-      const applicationData = { ...req.body, userId };
-
-      // Create contractor profile from application data
-      const contractor = await storage.createContractor({
-        userId,
-        companyName: applicationData.companyName,
-        slug: applicationData.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-        phone: applicationData.phone,
-        email: applicationData.email,
-        website: applicationData.website,
-        yearsInBusiness: parseInt(applicationData.yearsInBusiness) || 0,
-        licenseNumber: applicationData.licenseNumber,
-        about: applicationData.description,
-        isGeneralContractor: applicationData.isGeneralContractor || false,
-        isResidentialContractor: applicationData.isResidentialContractor || false,
-        acceptsSubcontractWork: applicationData.acceptsSubcontractWork || false,
-        verifiedLicensed: false,
-        verifiedInsured: false,
-        isActive: true,
-      });
-
-      // Update user role to contractor
-      await storage.updateUser(userId, { 
-        role: 'contractor',
-        onboardingCompleted: true 
-      });
-
-      console.log('New contractor application created:', contractor.id);
-
-      res.json({ 
-        message: "Application submitted successfully",
-        contractorId: contractor.id,
-        status: 'pending_verification'
-      });
-    } catch (error: any) {
-      console.error("Error submitting contractor application:", error);
-      res.status(500).json({ message: "Failed to submit application" });
     }
-  });
+  );
 
   // Admin: Get contractor applications
-  app.get("/api/admin/contractor-applications", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
-    try {
-      const { status, limit = 50 } = req.query;
-      const applications = await storage.getContractorApplications({ 
-        status: status as string,
-        limit: parseInt(limit as string) 
-      });
-      
-      res.json(applications);
-    } catch (error: any) {
-      console.error("Error fetching contractor applications:", error);
-      res.status(500).json({ message: "Failed to fetch applications" });
+  app.get(
+    "/api/admin/contractor-applications",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const { status, limit = 50 } = req.query;
+        const applications = await storage.getContractorApplications({
+          status: status as string,
+          limit: parseInt(limit as string),
+        });
+
+        res.json(applications);
+      } catch (error: any) {
+        console.error("Error fetching contractor applications:", error);
+        res.status(500).json({ message: "Failed to fetch applications" });
+      }
     }
-  });
+  );
 
   // Admin: Update contractor application status
-  app.patch("/api/admin/contractor-applications/:id", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { status, reviewNotes } = req.body;
-      const adminId = (req.user as any)?.id;
+  app.patch(
+    "/api/admin/contractor-applications/:id",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { status, reviewNotes } = req.body;
+        const adminId = (req.user as any)?.id;
 
-      await storage.updateContractorApplication(id, {
-        status,
-        reviewNotes,
-        reviewedBy: adminId,
-        reviewedAt: new Date()
-      });
+        await storage.updateContractorApplication(id, {
+          status,
+          reviewNotes,
+          reviewedBy: adminId,
+          reviewedAt: new Date(),
+        });
 
-      res.json({ message: "Application status updated successfully" });
-    } catch (error: any) {
-      console.error("Error updating contractor application:", error);
-      res.status(500).json({ message: "Failed to update application" });
+        res.json({ message: "Application status updated successfully" });
+      } catch (error: any) {
+        console.error("Error updating contractor application:", error);
+        res.status(500).json({ message: "Failed to update application" });
+      }
     }
-  });
+  );
 
   // Create recommendation for contractor with anti-abuse protection (LOGIN REQUIRED)
-  app.post("/api/contractors/:contractorId/recommendations", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const { contractorId } = req.params;
-      const {
-        recommendationType,
-        comment,
-        projectType,
-        projectValue,
-        workQuality,
-        timeliness,
-        communication,
-        wouldHireAgain,
-        customerName,
-        customerEmail,
-        customerPhone
-      } = (req.body ?? {}) as any;
+  app.post(
+    "/api/contractors/:contractorId/recommendations",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const { contractorId } = req.params;
+        const {
+          recommendationType,
+          comment,
+          projectType,
+          projectValue,
+          workQuality,
+          timeliness,
+          communication,
+          wouldHireAgain,
+          customerName,
+          customerEmail,
+          customerPhone,
+        } = (req.body ?? {}) as any;
 
-      // Validate required fields
-      if (!customerName || !customerEmail || !comment || !recommendationType) {
-        return res.status(400).json({
+        // Validate required fields
+        if (!customerName || !customerEmail || !comment || !recommendationType) {
+          return res.status(400).json({
+            success: false,
+            message: "Customer name, email, comment, and recommendation type are required",
+          });
+        }
+
+        // Get client IP and user agent for anti-abuse
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        const userAgent = req.get("User-Agent");
+
+        const recommendation = await storage.createRecommendation({
+          contractorId,
+          userId: (req.user as any)?.id || (req.user as any)?.claims?.sub, // User must be authenticated
+          recommendationType,
+          comment,
+          projectType,
+          projectValue,
+          workQuality,
+          timeliness,
+          communication,
+          wouldHireAgain,
+          customerName,
+          customerEmail,
+          customerPhone,
+          ipAddress,
+          userAgent,
+        });
+
+        res.json({
+          success: true,
+          message: "Recommendation submitted for review. It will be published after moderation.",
+          recommendation: {
+            id: recommendation.id,
+            recommendationType: recommendation.recommendationType,
+            moderationStatus: recommendation.moderationStatus,
+          },
+        });
+      } catch (error: any) {
+        console.error("Error creating recommendation:", error);
+        res.status(400).json({
           success: false,
-          message: "Customer name, email, comment, and recommendation type are required"
+          message: (error as Error).message || "Failed to submit recommendation",
         });
       }
-
-      // Get client IP and user agent for anti-abuse
-      const ipAddress = req.ip || req.connection.remoteAddress;
-      const userAgent = req.get('User-Agent');
-
-      const recommendation = await storage.createRecommendation({
-        contractorId,
-        userId: (req.user as any)?.id || (req.user as any)?.claims?.sub, // User must be authenticated
-        recommendationType,
-        comment,
-        projectType,
-        projectValue,
-        workQuality,
-        timeliness,
-        communication,
-        wouldHireAgain,
-        customerName,
-        customerEmail,
-        customerPhone,
-        ipAddress,
-        userAgent
-      });
-
-      res.json({ 
-        success: true, 
-        message: "Recommendation submitted for review. It will be published after moderation.",
-        recommendation: {
-          id: recommendation.id,
-          recommendationType: recommendation.recommendationType,
-          moderationStatus: recommendation.moderationStatus
-        }
-      });
-    } catch (error: any) {
-      console.error("Error creating recommendation:", error);
-      res.status(400).json({ 
-        success: false, 
-        message: (error as Error).message || "Failed to submit recommendation" 
-      });
     }
-  });
+  );
 
   // Get contractor recommendations
   app.get("/api/contractors/:contractorId/recommendations", async (req: any, res: any) => {
     try {
       const { contractorId } = req.params;
-      const { type = 'all', limit = 10 } = req.query;
+      const { type = "all", limit = 10 } = req.query;
 
       const recommendations = await storage.getContractorRecommendations(contractorId, {
-        type: type as 'positive' | 'negative' | 'all',
-        limit: parseInt(limit as string)
+        type: type as "positive" | "negative" | "all",
+        limit: parseInt(limit as string),
       });
 
       res.json(recommendations);
@@ -5460,89 +5831,99 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: Get pending recommendations for moderation
-  app.get("/api/admin/recommendations/pending", isAuthenticated, requireRole(['head_admin', 'ops_admin', 'moderator']), async (req: any, res: any) => {
-    try {
-      const { limit = 50 } = req.query;
-      
-      const pendingRecommendations = await db
-        .select({
-          id: recommendations.id,
-          contractorId: recommendations.contractorId,
-          recommendationType: recommendations.recommendationType,
-          comment: recommendations.comment,
-          customerName: recommendations.customerName,
-          customerEmail: recommendations.customerEmail,
-          projectType: recommendations.projectType,
-          projectValue: recommendations.projectValue,
-          createdAt: recommendations.createdAt,
-          contractorName: contractors.companyName
-        })
-        .from(recommendations)
-        .leftJoin(contractors, eq(recommendations.contractorId, contractors.id))
-        .where(eq(recommendations.moderationStatus, 'pending'))
-        .orderBy(desc(recommendations.createdAt))
-        .limit(parseInt(limit as string));
+  app.get(
+    "/api/admin/recommendations/pending",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin", "moderator"]),
+    async (req: any, res: any) => {
+      try {
+        const { limit = 50 } = req.query;
 
-      res.json(pendingRecommendations);
-    } catch (error: any) {
-      console.error("Error fetching pending recommendations:", error);
-      res.status(500).json({ message: "Failed to fetch pending recommendations" });
+        const pendingRecommendations = await db
+          .select({
+            id: recommendations.id,
+            contractorId: recommendations.contractorId,
+            recommendationType: recommendations.recommendationType,
+            comment: recommendations.comment,
+            customerName: recommendations.customerName,
+            customerEmail: recommendations.customerEmail,
+            projectType: recommendations.projectType,
+            projectValue: recommendations.projectValue,
+            createdAt: recommendations.createdAt,
+            contractorName: contractors.companyName,
+          })
+          .from(recommendations)
+          .leftJoin(contractors, eq(recommendations.contractorId, contractors.id))
+          .where(eq(recommendations.moderationStatus, "pending"))
+          .orderBy(desc(recommendations.createdAt))
+          .limit(parseInt(limit as string));
+
+        res.json(pendingRecommendations);
+      } catch (error: any) {
+        console.error("Error fetching pending recommendations:", error);
+        res.status(500).json({ message: "Failed to fetch pending recommendations" });
+      }
     }
-  });
+  );
 
   // Admin: Moderate recommendation
-  app.patch("/api/admin/recommendations/:id/moderate", isAuthenticated, requireRole(['head_admin', 'ops_admin', 'moderator']), async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { action, reason } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
-      const moderatorId = (req.user as any)?.id;
+  app.patch(
+    "/api/admin/recommendations/:id/moderate",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin", "moderator"]),
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { action, reason } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
+        const moderatorId = (req.user as any)?.id;
 
-      if (!['approve', 'reject'].includes(action)) {
-        return res.status(400).json({ message: "Action must be 'approve' or 'reject'" });
+        if (!["approve", "reject"].includes(action)) {
+          return res.status(400).json({ message: "Action must be 'approve' or 'reject'" });
+        }
+
+        // Get the recommendation first
+        const [recommendation] = await db
+          .select()
+          .from(recommendations)
+          .where(eq(recommendations.id, id));
+
+        if (!recommendation) {
+          return res.status(404).json({ message: "Recommendation not found" });
+        }
+
+        // Update moderation status
+        await db
+          .update(recommendations)
+          .set({
+            moderationStatus: action === "approve" ? "approved" : "rejected",
+            isPublic: action === "approve",
+            moderatedAt: new Date(),
+            moderatedBy: moderatorId,
+          })
+          .where(eq(recommendations.id, id));
+
+        // Update contractor stats if approved
+        if (action === "approve") {
+          await storage.updateContractorRecommendationStats(recommendation.contractorId);
+        }
+
+        res.json({
+          success: true,
+          message: `Recommendation ${action}d successfully`,
+        });
+      } catch (error: any) {
+        console.error("Error moderating recommendation:", error);
+        res.status(500).json({ message: "Failed to moderate recommendation" });
       }
-
-      // Get the recommendation first
-      const [recommendation] = await db
-        .select()
-        .from(recommendations)
-        .where(eq(recommendations.id, id));
-
-      if (!recommendation) {
-        return res.status(404).json({ message: "Recommendation not found" });
-      }
-
-      // Update moderation status
-      await db
-        .update(recommendations)
-        .set({
-          moderationStatus: action === 'approve' ? 'approved' : 'rejected',
-          isPublic: action === 'approve',
-          moderatedAt: new Date(),
-          moderatedBy: moderatorId
-        })
-        .where(eq(recommendations.id, id));
-
-      // Update contractor stats if approved
-      if (action === 'approve') {
-        await storage.updateContractorRecommendationStats(recommendation.contractorId);
-      }
-
-      res.json({ 
-        success: true, 
-        message: `Recommendation ${action}d successfully`
-      });
-    } catch (error: any) {
-      console.error("Error moderating recommendation:", error);
-      res.status(500).json({ message: "Failed to moderate recommendation" });
     }
-  });
+  );
 
   // Get contractor leaderboard (ranked by net recommendation score)
   app.get("/api/contractors/leaderboard", async (req: any, res: any) => {
     try {
       const { limit = 20, state, county, trade } = req.query;
-      
-      let query = db
+
+      const query = db
         .select({
           id: contractors.id,
           companyName: contractors.companyName,
@@ -5551,7 +5932,7 @@ export async function registerRoutes(app: any) {
           negativeRecommendations: contractors.negativeRecommendations,
           totalRecommendations: contractors.totalRecommendations,
           recommendationScore: contractors.recommendationScore, // Net score (positive - negative)
-          recommendationPercentage: contractors.recommendationPercentage
+          recommendationPercentage: contractors.recommendationPercentage,
         })
         .from(contractors)
         .where(
@@ -5606,7 +5987,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/exchange/contractor-promos", async (req: any, res: any) => {
     try {
       const { search, category, sort } = req.query;
-      
+
       const contractorId = req.query.contractorId as string | undefined;
       const promos = contractorId ? await storage.getContractorPromos(contractorId) : [];
       res.json(promos || []);
@@ -5620,7 +6001,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/exchange/company-promotions", async (req: any, res: any) => {
     try {
       const { search, dealType, sort } = req.query;
-      
+
       // Company promotions are not implemented yet; return an empty list instead of mocks
       res.json([]);
     } catch (error: any) {
@@ -5631,225 +6012,270 @@ export async function registerRoutes(app: any) {
 
   // Chat system routes
   // Conversations
-  app.post("/api/conversations", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const { contractorId, leadId } = (req.body ?? {}) as any;
+  app.post(
+    "/api/conversations",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const { contractorId, leadId } = (req.body ?? {}) as any;
 
-      const conversation = await storage.createConversation({
-        homeownerId: userId,
-        contractorId,
-        leadId,
-      });
-      res.json(conversation);
-    } catch (error: any) {
-      console.error("Error creating conversation:", error);
-      res.status(500).json({ message: "Failed to create conversation" });
+        const conversation = await storage.createConversation({
+          homeownerId: userId,
+          contractorId,
+          leadId,
+        });
+        res.json(conversation);
+      } catch (error: any) {
+        console.error("Error creating conversation:", error);
+        res.status(500).json({ message: "Failed to create conversation" });
+      }
     }
-  });
+  );
 
-  app.get("/api/conversations", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const userType = req.query.userType || 'homeowner'; 
+  app.get(
+    "/api/conversations",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const userType = req.query.userType || "homeowner";
 
-      const conversations = await storage.getConversationsByUser(userId, userType);
-      res.json(conversations);
-    } catch (error: any) {
-      console.error("Error fetching conversations:", error);
-      res.status(500).json({ message: "Failed to fetch conversations" });
+        const conversations = await storage.getConversationsByUser(userId, userType);
+        res.json(conversations);
+      } catch (error: any) {
+        console.error("Error fetching conversations:", error);
+        res.status(500).json({ message: "Failed to fetch conversations" });
+      }
     }
-  });
+  );
 
   // Message Threads API (Nextdoor-style inbox)
-  app.get("/api/messages/threads", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
+  app.get(
+    "/api/messages/threads",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+        const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+        const threads = await storage.getThreadsForUser(userId, { limit, offset });
+        res.json({ threads });
+      } catch (error: any) {
+        console.error("Error fetching message threads:", error);
+        res.status(500).json({ message: "Failed to fetch message threads" });
       }
-
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-
-      const threads = await storage.getThreadsForUser(userId, { limit, offset });
-      res.json({ threads });
-    } catch (error: any) {
-      console.error("Error fetching message threads:", error);
-      res.status(500).json({ message: "Failed to fetch message threads" });
     }
-  });
+  );
 
-  app.get("/api/messages/threads/:threadId", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
+  app.get(
+    "/api/messages/threads/:threadId",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const conversation = await storage.getConversation(req.params.threadId);
+        if (!conversation) {
+          return res.status(404).json({ message: "Thread not found" });
+        }
+
+        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const messages = await storage.getMessagesByConversation(req.params.threadId);
+
+        const thread = {
+          id: conversation.id,
+          subject: null as string | null,
+          lastMessageSnippet: null as string | null,
+          lastMessageAt: (conversation.lastMessageAt as any) ?? null,
+          unreadCount: 0,
+          participantCount: 2,
+        };
+
+        res.json({ thread, messages });
+      } catch (error: any) {
+        console.error("Error fetching thread messages:", error);
+        res.status(500).json({ message: "Failed to fetch thread messages" });
       }
-
-      const conversation = await storage.getConversation(req.params.threadId);
-      if (!conversation) {
-        return res.status(404).json({ message: "Thread not found" });
-      }
-
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const messages = await storage.getMessagesByConversation(req.params.threadId);
-
-      const thread = {
-        id: conversation.id,
-        subject: null as string | null,
-        lastMessageSnippet: null as string | null,
-        lastMessageAt: (conversation.lastMessageAt as any) ?? null,
-        unreadCount: 0,
-        participantCount: 2,
-      };
-
-      res.json({ thread, messages });
-    } catch (error: any) {
-      console.error("Error fetching thread messages:", error);
-      res.status(500).json({ message: "Failed to fetch thread messages" });
     }
-  });
+  );
 
-  app.post("/api/messages/threads/:threadId/messages", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
+  app.post(
+    "/api/messages/threads/:threadId/messages",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const conversation = await storage.getConversation(req.params.threadId);
+        if (!conversation) {
+          return res.status(404).json({ message: "Thread not found" });
+        }
+
+        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const { content, messageType, metadata } = (req.body ?? {}) as any;
+
+        const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
+
+        const message = await storage.createMessage({
+          conversationId: req.params.threadId,
+          senderId: userId,
+          senderType,
+          content,
+          messageType: messageType || "text",
+          metadata,
+        });
+
+        res.json({ message });
+      } catch (error: any) {
+        console.error("Error sending thread message:", error);
+        res.status(500).json({ message: "Failed to send message" });
       }
-
-      const conversation = await storage.getConversation(req.params.threadId);
-      if (!conversation) {
-        return res.status(404).json({ message: "Thread not found" });
-      }
-
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const { content, messageType, metadata } = (req.body ?? {}) as any;
-
-      const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
-
-      const message = await storage.createMessage({
-        conversationId: req.params.threadId,
-        senderId: userId,
-        senderType,
-        content,
-        messageType: messageType || "text",
-        metadata,
-      });
-
-      res.json({ message });
-    } catch (error: any) {
-      console.error("Error sending thread message:", error);
-      res.status(500).json({ message: "Failed to send message" });
     }
-  });
+  );
 
-  app.get("/api/conversations/:id", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const conversation = await storage.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ message: "Conversation not found" });
+  app.get(
+    "/api/conversations/:id",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const conversation = await storage.getConversation(req.params.id);
+        if (!conversation) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        res.json(conversation);
+      } catch (error: any) {
+        console.error("Error fetching conversation:", error);
+        res.status(500).json({ message: "Failed to fetch conversation" });
       }
-
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      res.json(conversation);
-    } catch (error: any) {
-      console.error("Error fetching conversation:", error);
-      res.status(500).json({ message: "Failed to fetch conversation" });
     }
-  });
+  );
 
-  app.post("/api/conversations/:id/rate", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const { rating, feedback } = (req.body ?? {}) as any;
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+  app.post(
+    "/api/conversations/:id/rate",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const { rating, feedback } = (req.body ?? {}) as any;
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const conversation = await storage.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ message: "Conversation not found" });
+        const conversation = await storage.getConversation(req.params.id);
+        if (!conversation) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        const raterType = conversation.homeownerId === userId ? "homeowner" : "contractor";
+
+        const updatedConversation = await storage.rateConversation(
+          req.params.id,
+          rating,
+          feedback,
+          raterType
+        );
+
+        res.json(updatedConversation);
+      } catch (error: any) {
+        console.error("Error rating conversation:", error);
+        res.status(500).json({ message: "Failed to rate conversation" });
       }
-
-      const raterType = conversation.homeownerId === userId ? 'homeowner' : 'contractor';
-
-      const updatedConversation = await storage.rateConversation(
-        req.params.id,
-        rating,
-        feedback,
-        raterType
-      );
-
-      res.json(updatedConversation);
-    } catch (error: any) {
-      console.error("Error rating conversation:", error);
-      res.status(500).json({ message: "Failed to rate conversation" });
     }
-  });
+  );
 
   // Messages
-  app.post("/api/conversations/:id/messages", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const { content, messageType, metadata } = req.body;
+  app.post(
+    "/api/conversations/:id/messages",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const { content, messageType, metadata } = req.body;
 
-      const conversation = await storage.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ message: "Conversation not found" });
+        const conversation = await storage.getConversation(req.params.id);
+        if (!conversation) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
+
+        const message = await storage.createMessage({
+          conversationId: req.params.id,
+          senderId: userId,
+          senderType,
+          content,
+          messageType: messageType || "text",
+          metadata,
+        });
+
+        res.json(message);
+      } catch (error: any) {
+        console.error("Error creating message:", error);
+        res.status(500).json({ message: "Failed to send message" });
       }
-
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const senderType = conversation.homeownerId === userId ? 'homeowner' : 'contractor';
-
-      const message = await storage.createMessage({
-        conversationId: req.params.id,
-        senderId: userId,
-        senderType,
-        content,
-        messageType: messageType || 'text',
-        metadata,
-      });
-
-      res.json(message);
-    } catch (error: any) {
-      console.error("Error creating message:", error);
-      res.status(500).json({ message: "Failed to send message" });
     }
-  });
+  );
 
-  app.get("/api/conversations/:id/messages", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+  app.get(
+    "/api/conversations/:id/messages",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const conversation = await storage.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ message: "Conversation not found" });
+        const conversation = await storage.getConversation(req.params.id);
+        if (!conversation) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const messages = await storage.getMessagesByConversation(req.params.id);
+        res.json(messages);
+      } catch (error: any) {
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ message: "Failed to fetch messages" });
       }
-
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const messages = await storage.getMessagesByConversation(req.params.id);
-      res.json(messages);
-    } catch (error: any) {
-      console.error("Error fetching messages:", error);
-      res.status(500).json({ message: "Failed to fetch messages" });
     }
-  });
+  );
 
-  // Quotes  
+  // Quotes
   app.post("/api/quotes", isAuthenticated, async (req: any, res: any) => {
     try {
       const contractorId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
@@ -5916,7 +6342,7 @@ export async function registerRoutes(app: any) {
       const suggestion = {
         ...req.body,
         id: req.body.id || `sugg-${Date.now()}`,
-        suggestedBy: req.body.suggestedBy || 'homeowner',
+        suggestedBy: req.body.suggestedBy || "homeowner",
       };
       const list = await storage.addMaterialListItemSuggestion(req.params.id, suggestion);
       res.json(list);
@@ -5926,21 +6352,24 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.patch("/api/material-lists/:id/items/:itemId/status", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const list = await storage.updateMaterialListItemStatus(
-        req.params.id,
-        req.params.itemId,
-        req.body.status,
-        req.body.denialReason,
-      );
-      res.json(list);
-    } catch (error: any) {
-      console.error("Error updating material item status:", error);
-      res.status(500).json({ message: "Failed to update material item" });
+  app.patch(
+    "/api/material-lists/:id/items/:itemId/status",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const list = await storage.updateMaterialListItemStatus(
+          req.params.id,
+          req.params.itemId,
+          req.body.status,
+          req.body.denialReason
+        );
+        res.json(list);
+      } catch (error: any) {
+        console.error("Error updating material item status:", error);
+        res.status(500).json({ message: "Failed to update material item" });
+      }
     }
-  });
-
+  );
 
   // Admin panel routes (require admin access)
   const requireAdmin = (req: any, res: any, next: any) => {
@@ -5954,9 +6383,9 @@ export async function registerRoutes(app: any) {
   app.post("/api/auth/emergency-admin-access", async (req: any, res: any) => {
     try {
       const { facebookId } = req.body;
-      
+
       // Check if this Facebook ID matches the master admin
-      if (facebookId !== '927070657') {
+      if (facebookId !== "927070657") {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -5971,11 +6400,11 @@ export async function registerRoutes(app: any) {
         if (err) {
           return res.status(500).json({ message: "Login failed" });
         }
-        
-        res.json({ 
+
+        res.json({
           message: "Emergency admin access granted",
           user: masterAdmin,
-          adminAccess: true
+          adminAccess: true,
         });
       });
     } catch (error: any) {
@@ -5997,11 +6426,14 @@ export async function registerRoutes(app: any) {
 
       const userRoles = currentUser.roles || [currentUser.role];
       if (!userRoles.includes(role)) {
-        return res.status(403).json({ message: "You don't have permission to switch to this role" });
+        return res
+          .status(403)
+          .json({ message: "You don't have permission to switch to this role" });
       }
 
       // Update active role
-      await db.update(users)
+      await db
+        .update(users)
         .set({ activeRole: role, updatedAt: new Date() })
         .where(eq(users.id, userId));
 
@@ -6009,7 +6441,7 @@ export async function registerRoutes(app: any) {
       req.user = {
         ...req.user,
         activeRole: role,
-        role: role // Update primary role reference too
+        role: role, // Update primary role reference too
       };
 
       res.json({ message: "Role switched successfully", activeRole: role });
@@ -6020,8 +6452,8 @@ export async function registerRoutes(app: any) {
   });
 
   // 1b. CORS DIAGNOSTICS
-  app.get('/api/cors-test', (req: Request, res: Response) => {
-    const origin = (req.headers.origin || '') as string;
+  app.get("/api/cors-test", (req: Request, res: Response) => {
+    const origin = (req.headers.origin || "") as string;
     const responseHeaders = res.getHeaders();
     res.json({ origin, responseHeaders });
   });
@@ -6045,7 +6477,9 @@ export async function registerRoutes(app: any) {
 
       // Check if conversation already exists
       const existingConversation = await storage.getMarketplaceConversationByParticipants(
-        listingId, userId, sellerId
+        listingId,
+        userId,
+        sellerId
       );
 
       if (existingConversation) {
@@ -6057,16 +6491,16 @@ export async function registerRoutes(app: any) {
         listingId,
         buyerId: userId,
         sellerId,
-        status: 'active'
+        status: "active",
       });
 
       // Send initial message
       await storage.createMarketplaceMessage({
         conversationId: conversation.id,
         senderId: userId,
-        senderType: 'buyer',
+        senderType: "buyer",
         content: initialMessage,
-        messageType: 'text'
+        messageType: "text",
       });
 
       res.json(conversation);
@@ -6076,72 +6510,93 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id;
-      const { conversationId } = req.params;
+  app.get(
+    "/api/marketplace/conversations/:conversationId/messages",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id;
+        const { conversationId } = req.params;
 
-      // Verify user is part of conversation
-      const conversation = await storage.getMarketplaceConversation(conversationId);
-      if (!conversation || (conversation.buyerId !== userId && conversation.sellerId !== userId)) {
-        return res.status(403).json({ message: "Access denied" });
+        // Verify user is part of conversation
+        const conversation = await storage.getMarketplaceConversation(conversationId);
+        if (
+          !conversation ||
+          (conversation.buyerId !== userId && conversation.sellerId !== userId)
+        ) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const messages = await storage.getMarketplaceMessages(conversationId);
+        res.json(messages);
+      } catch (error: any) {
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ message: "Failed to fetch messages" });
       }
-
-      const messages = await storage.getMarketplaceMessages(conversationId);
-      res.json(messages);
-    } catch (error: any) {
-      console.error("Error fetching messages:", error);
-      res.status(500).json({ message: "Failed to fetch messages" });
     }
-  });
+  );
 
-  app.post("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id;
-      const { conversationId } = req.params;
-      const { content, messageType = 'text' } = req.body;
+  app.post(
+    "/api/marketplace/conversations/:conversationId/messages",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id;
+        const { conversationId } = req.params;
+        const { content, messageType = "text" } = req.body;
 
-      // Verify user is part of conversation
-      const conversation = await storage.getMarketplaceConversation(conversationId);
-      if (!conversation || (conversation.buyerId !== userId && conversation.sellerId !== userId)) {
-        return res.status(403).json({ message: "Access denied" });
+        // Verify user is part of conversation
+        const conversation = await storage.getMarketplaceConversation(conversationId);
+        if (
+          !conversation ||
+          (conversation.buyerId !== userId && conversation.sellerId !== userId)
+        ) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const senderType = conversation.buyerId === userId ? "buyer" : "seller";
+
+        const message = await storage.createMarketplaceMessage({
+          conversationId,
+          senderId: userId,
+          senderType,
+          content,
+          messageType,
+        });
+
+        res.json(message);
+      } catch (error: any) {
+        console.error("Error sending message:", error);
+        res.status(500).json({ message: "Failed to send message" });
       }
-
-      const senderType = conversation.buyerId === userId ? 'buyer' : 'seller';
-
-      const message = await storage.createMarketplaceMessage({
-        conversationId,
-        senderId: userId,
-        senderType,
-        content,
-        messageType,
-      });
-
-      res.json(message);
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      res.status(500).json({ message: "Failed to send message" });
     }
-  });
+  );
 
-  app.put("/api/marketplace/conversations/:conversationId/read", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const { conversationId } = req.params;
+  app.put(
+    "/api/marketplace/conversations/:conversationId/read",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const { conversationId } = req.params;
 
-      // Verify user is part of conversation
-      const conversation = await storage.getMarketplaceConversation(conversationId);
-      if (!conversation || (conversation.buyerId !== userId && conversation.sellerId !== userId)) {
-        return res.status(403).json({ message: "Access denied" });
+        // Verify user is part of conversation
+        const conversation = await storage.getMarketplaceConversation(conversationId);
+        if (
+          !conversation ||
+          (conversation.buyerId !== userId && conversation.sellerId !== userId)
+        ) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        await storage.markMarketplaceMessagesAsRead(conversationId, userId);
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error marking messages as read:", error);
+        res.status(500).json({ message: "Failed to mark messages as read" });
       }
-
-      await storage.markMarketplaceMessagesAsRead(conversationId, userId);
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error marking messages as read:", error);
-      res.status(500).json({ message: "Failed to mark messages as read" });
     }
-  });
+  );
 
   // Professional verification endpoints
   app.get("/api/admin/professional/pending", isAuthenticated, async (req: any, res: any) => {
@@ -6152,7 +6607,7 @@ export async function registerRoutes(app: any) {
     try {
       const [realtors, carSalesmen] = await Promise.all([
         storage.getPendingRealtorApplications(),
-        storage.getPendingCarSalesmanApplications()
+        storage.getPendingCarSalesmanApplications(),
       ]);
 
       res.json({ realtors, carSalesmen });
@@ -6173,15 +6628,12 @@ export async function registerRoutes(app: any) {
       const { approved, notes } = req.body;
       const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const result = await storage.updateRealtorVerificationStatus(
-        profileId,
-        {
-          approved: !!approved,
-          notes: notes || '',
-          reviewedBy: adminId,
-          reviewedAt: new Date(),
-        }
-      );
+      const result = await storage.updateRealtorVerificationStatus(profileId, {
+        approved: !!approved,
+        notes: notes || "",
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+      });
 
       res.json(result);
     } catch (error: any) {
@@ -6191,74 +6643,95 @@ export async function registerRoutes(app: any) {
   });
 
   // Car salesman verification
-  app.post("/api/admin/car-salesman/verify/:profileId", isAuthenticated, async (req: any, res: any) => {
-    if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
+  app.post(
+    "/api/admin/car-salesman/verify/:profileId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
 
-    try {
-      const { profileId } = req.params;
-      const { approved, notes } = req.body;
-      const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      try {
+        const { profileId } = req.params;
+        const { approved, notes } = req.body;
+        const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const result = await storage.updateCarSalesmanVerificationStatus(
-        profileId,
-        {
+        const result = await storage.updateCarSalesmanVerificationStatus(profileId, {
           approved: !!approved,
-          notes: notes || '',
+          notes: notes || "",
           reviewedBy: adminId,
           reviewedAt: new Date(),
-        }
-      );
+        });
 
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error updating car salesman verification:", error);
-      res.status(500).json({ message: "Failed to update verification status" });
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error updating car salesman verification:", error);
+        res.status(500).json({ message: "Failed to update verification status" });
+      }
     }
-  });
+  );
 
   // Contractor settings management
-  app.get("/api/admin/contractor-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { category } = req.query;
-      const settings = await storage.getContractorSettings(category as string);
-      res.json(settings);
-    } catch (error: any) {
-      console.error("Error fetching contractor settings:", error);
-      res.status(500).json({ message: "Failed to fetch contractor settings" });
+  app.get(
+    "/api/admin/contractor-settings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { category } = req.query;
+        const settings = await storage.getContractorSettings(category as string);
+        res.json(settings);
+      } catch (error: any) {
+        console.error("Error fetching contractor settings:", error);
+        res.status(500).json({ message: "Failed to fetch contractor settings" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/contractor-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const setting = await storage.createContractorSetting(req.body);
-      res.json(setting);
-    } catch (error: any) {
-      console.error("Error creating contractor setting:", error);
-      res.status(500).json({ message: "Failed to create contractor setting" });
+  app.post(
+    "/api/admin/contractor-settings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const setting = await storage.createContractorSetting(req.body);
+        res.json(setting);
+      } catch (error: any) {
+        console.error("Error creating contractor setting:", error);
+        res.status(500).json({ message: "Failed to create contractor setting" });
+      }
     }
-  });
+  );
 
-  app.put("/api/admin/contractor-settings/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const setting = await storage.updateContractorSetting(req.params.id, req.body);
-      res.json(setting);
-    } catch (error: any) {
-      console.error("Error updating contractor setting:", error);
-      res.status(500).json({ message: "Failed to update contractor setting" });
+  app.put(
+    "/api/admin/contractor-settings/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const setting = await storage.updateContractorSetting(req.params.id, req.body);
+        res.json(setting);
+      } catch (error: any) {
+        console.error("Error updating contractor setting:", error);
+        res.status(500).json({ message: "Failed to update contractor setting" });
+      }
     }
-  });
+  );
 
-  app.delete("/api/admin/contractor-settings/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      await storage.deleteContractorSetting(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting contractor setting:", error);
-      res.status(500).json({ message: "Failed to delete contractor setting" });
+  app.delete(
+    "/api/admin/contractor-settings/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        await storage.deleteContractorSetting(req.params.id);
+        res.status(204).send();
+      } catch (error: any) {
+        console.error("Error deleting contractor setting:", error);
+        res.status(500).json({ message: "Failed to delete contractor setting" });
+      }
     }
-  });
+  );
 
   // Worker marketplace endpoints
   app.get("/api/workers", async (req: any, res: any) => {
@@ -6310,7 +6783,11 @@ export async function registerRoutes(app: any) {
         );
       }
 
-      const whereClause = filters.length ? (filters.length === 1 ? filters[0] : and(...filters)) : undefined;
+      const whereClause = filters.length
+        ? filters.length === 1
+          ? filters[0]
+          : and(...filters)
+        : undefined;
 
       const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       let viewerLat: number | undefined;
@@ -6339,12 +6816,17 @@ export async function registerRoutes(app: any) {
             }
           }
         } catch (e) {
-          console.warn("Failed to load viewer for tasks radius filter; falling back to non-radius listing", e);
+          console.warn(
+            "Failed to load viewer for tasks radius filter; falling back to non-radius listing",
+            e
+          );
         }
       }
 
-      const radiusMilesRaw = typeof req.query?.radiusMiles === "string" ? Number(req.query.radiusMiles) : NaN;
-      const radiusMiles = Number.isFinite(radiusMilesRaw) && radiusMilesRaw > 0 ? radiusMilesRaw : 50;
+      const radiusMilesRaw =
+        typeof req.query?.radiusMiles === "string" ? Number(req.query.radiusMiles) : NaN;
+      const radiusMiles =
+        Number.isFinite(radiusMilesRaw) && radiusMilesRaw > 0 ? radiusMilesRaw : 50;
       const radiusMeters = radiusMiles * 1609.34;
 
       const baseQuery = db
@@ -6360,7 +6842,7 @@ export async function registerRoutes(app: any) {
         lat1: number,
         lon1: number,
         lat2: number,
-        lon2: number,
+        lon2: number
       ): number => {
         const toRad = (value: number) => (value * Math.PI) / 180;
         const R = 6371e3; // Earth radius in meters
@@ -6372,27 +6854,32 @@ export async function registerRoutes(app: any) {
 
         const a =
           Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
-          Math.cos(phi1) * Math.cos(phi2) *
-            Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+          Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return R * c;
       };
 
-      const filtered = viewerLat != null && viewerLng != null
-        ? rows.filter(({ poster }) => {
-            if (!poster) return false;
-            const pLat = (poster as any)?.latitude;
-            const pLng = (poster as any)?.longitude;
-            if (pLat == null || pLng == null) return false;
-            const pLatNum = Number(pLat);
-            const pLngNum = Number(pLng);
-            if (!Number.isFinite(pLatNum) || !Number.isFinite(pLngNum)) return false;
+      const filtered =
+        viewerLat != null && viewerLng != null
+          ? rows.filter(({ poster }) => {
+              if (!poster) return false;
+              const pLat = (poster as any)?.latitude;
+              const pLng = (poster as any)?.longitude;
+              if (pLat == null || pLng == null) return false;
+              const pLatNum = Number(pLat);
+              const pLngNum = Number(pLng);
+              if (!Number.isFinite(pLatNum) || !Number.isFinite(pLngNum)) return false;
 
-            const distance = haversineDistanceMeters(viewerLat as number, viewerLng as number, pLatNum, pLngNum);
-            return distance <= radiusMeters;
-          })
-        : rows;
+              const distance = haversineDistanceMeters(
+                viewerLat as number,
+                viewerLng as number,
+                pLatNum,
+                pLngNum
+              );
+              return distance <= radiusMeters;
+            })
+          : rows;
 
       const normalized = filtered.map(({ task, poster }) => {
         let posterName = "Neighbor";
@@ -6470,8 +6957,8 @@ export async function registerRoutes(app: any) {
       const rawTargetIds = Array.isArray(body.targetContractorIds)
         ? body.targetContractorIds
         : typeof body.targetContractorIds === "string"
-        ? [body.targetContractorIds]
-        : [];
+          ? [body.targetContractorIds]
+          : [];
 
       const targetContractorIds = rawTargetIds
         .map((id: any) => (typeof id === "string" ? id.trim() : String(id)))
@@ -6498,7 +6985,10 @@ export async function registerRoutes(app: any) {
           if (typeof vCounty === "string" && vCounty.length > 0) countyFips = vCounty;
         }
       } catch (e) {
-        console.warn("Failed to load user for work request location; continuing without canonical geo", e);
+        console.warn(
+          "Failed to load user for work request location; continuing without canonical geo",
+          e
+        );
       }
 
       const [created] = await db
@@ -6546,7 +7036,7 @@ export async function registerRoutes(app: any) {
                   workRequestId: created.id,
                   contractorId: c.id,
                   status: "invited" as const,
-                })),
+                }))
               );
 
               await db.insert(workRequestEvents).values(
@@ -6559,7 +7049,7 @@ export async function registerRoutes(app: any) {
                     contractorUserId: c.userId ?? null,
                     source: "tasks",
                   },
-                })),
+                }))
               );
             }
           } catch (e) {
@@ -6621,7 +7111,9 @@ export async function registerRoutes(app: any) {
 
       const posterType = req.user?.role === "contractor" ? "contractor" : "homeowner";
       const requiredSkills = Array.isArray(body.requiredSkills)
-        ? body.requiredSkills.filter((s: any) => typeof s === "string" && s.trim()).map((s: string) => s.trim())
+        ? body.requiredSkills
+            .filter((s: any) => typeof s === "string" && s.trim())
+            .map((s: string) => s.trim())
         : undefined;
 
       const created = await db
@@ -6637,7 +7129,9 @@ export async function registerRoutes(app: any) {
           payAmount: String(payAmountNumber),
           schedulingType,
           estimatedHours:
-            body.estimatedHours !== undefined && body.estimatedHours !== null && body.estimatedHours !== ""
+            body.estimatedHours !== undefined &&
+            body.estimatedHours !== null &&
+            body.estimatedHours !== ""
               ? String(Number(body.estimatedHours))
               : undefined,
           requiredSkills,
@@ -6699,30 +7193,30 @@ export async function registerRoutes(app: any) {
   // Helper dashboard specific endpoints
   app.get("/api/workers/profile", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== 'helper') {
+      if (req.user.role !== "helper") {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
-      
+
       // For now, return a default helper profile - will be implemented when database is ready
       const helperProfile = {
         id: (req.user as any)?.id || (req.user as any)?.claims?.sub,
         userId: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        firstName: req.user.firstName || 'Helper',
-        lastName: req.user.lastName || 'User',
+        firstName: req.user.firstName || "Helper",
+        lastName: req.user.lastName || "User",
         phone: req.user.email, // placeholder
         email: req.user.email,
-        bio: 'Experienced helper ready to assist with various tasks.',
-        skills: ['General Labor', 'Assembly', 'Cleaning', 'Moving'],
-        hourlyRate: '25.00',
+        bio: "Experienced helper ready to assist with various tasks.",
+        skills: ["General Labor", "Assembly", "Cleaning", "Moving"],
+        hourlyRate: "25.00",
         isIdVerified: true,
         isBackgroundChecked: false,
         totalJobsCompleted: 5,
-        averageRating: '4.8',
-        totalEarnings: '1250.00',
+        averageRating: "4.8",
+        totalEarnings: "1250.00",
         isActive: true,
         isAvailable: true,
       };
-      
+
       res.json(helperProfile);
     } catch (error: any) {
       console.error("Error fetching helper profile:", error);
@@ -6732,10 +7226,10 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/tasks/available", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== 'helper') {
+      if (req.user.role !== "helper") {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
-      
+
       if ((db as any).select && (tasks as any)) {
         const availableTasks = await db.select().from(tasks).limit(100);
         res.json(availableTasks || []);
@@ -6750,10 +7244,10 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/workers/applications", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== 'helper') {
+      if (req.user.role !== "helper") {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
-      
+
       res.json([]);
     } catch (error: any) {
       console.error("Error fetching applications:", error);
@@ -6763,10 +7257,10 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/workers/completed-jobs", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== 'helper') {
+      if (req.user.role !== "helper") {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
-      
+
       res.json([]);
     } catch (error: any) {
       console.error("Error fetching completed jobs:", error);
@@ -6776,16 +7270,16 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/workers/reviews", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== 'helper') {
+      if (req.user.role !== "helper") {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
-      
+
       // Return sample reviews
       const reviews = [
         {
-          id: 'review-1',
+          id: "review-1",
           rating: 5,
-          reviewText: 'Excellent work! Very professional and completed the task perfectly.',
+          reviewText: "Excellent work! Very professional and completed the task perfectly.",
           qualityRating: 5,
           timelinessRating: 5,
           communicationRating: 5,
@@ -6794,18 +7288,18 @@ export async function registerRoutes(app: any) {
           createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
         },
         {
-          id: 'review-2',
+          id: "review-2",
           rating: 4,
-          reviewText: 'Good work, arrived on time and got the job done efficiently.',
+          reviewText: "Good work, arrived on time and got the job done efficiently.",
           qualityRating: 4,
           timelinessRating: 5,
           communicationRating: 4,
           professionalismRating: 4,
           wouldHireAgain: true,
           createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-        }
+        },
       ];
-      
+
       res.json(reviews);
     } catch (error: any) {
       console.error("Error fetching reviews:", error);
@@ -6818,7 +7312,7 @@ export async function registerRoutes(app: any) {
   app.post("/api/objects/upload", isAuthenticated, async (req: any, res: any) => {
     try {
       const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
-      
+
       if (useR2) {
         const { R2StorageService } = await import("./localStorage");
         const storageService = new R2StorageService();
@@ -6891,7 +7385,9 @@ export async function registerRoutes(app: any) {
       // If R2 is configured, uploads should go directly to the signed URL returned by POST /api/objects/upload.
       const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
       if (useR2) {
-        return res.status(400).json({ error: "Direct uploads are enabled; use the signed uploadURL" });
+        return res
+          .status(400)
+          .json({ error: "Direct uploads are enabled; use the signed uploadURL" });
       }
 
       const contentType = req.headers["content-type"] || "application/octet-stream";
@@ -6901,8 +7397,14 @@ export async function registerRoutes(app: any) {
 
       const contentLengthHeader = req.headers["content-length"];
       const contentLength =
-        typeof contentLengthHeader === "string" ? Number.parseInt(contentLengthHeader, 10) : undefined;
-      if (typeof contentLength === "number" && Number.isFinite(contentLength) && contentLength > limitBytes) {
+        typeof contentLengthHeader === "string"
+          ? Number.parseInt(contentLengthHeader, 10)
+          : undefined;
+      if (
+        typeof contentLength === "number" &&
+        Number.isFinite(contentLength) &&
+        contentLength > limitBytes
+      ) {
         return res.status(413).json({ error: "Upload too large" });
       }
 
@@ -6927,7 +7429,7 @@ export async function registerRoutes(app: any) {
       const { LocalStorageService } = await import("./localStorage");
       const storageService = new LocalStorageService();
       const publicUrl = await storageService.saveFile(fileId, buffer, contentType);
-      
+
       res.status(200).send(publicUrl);
     } catch (error: any) {
       console.error("Error uploading file:", error);
@@ -6936,31 +7438,38 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: ingest a folder of knowledge files into the manual cache
-  app.post("/api/admin/knowledge/ingest-folder", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { folderPath } = req.body || {};
-      if (!folderPath || typeof folderPath !== "string") {
-        return res.status(400).json({ error: "folderPath is required" });
-      }
+  app.post(
+    "/api/admin/knowledge/ingest-folder",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { folderPath } = req.body || {};
+        if (!folderPath || typeof folderPath !== "string") {
+          return res.status(400).json({ error: "folderPath is required" });
+        }
 
-      // Prevent ingesting arbitrary server directories.
-      const allowedRoots = [
-        path.join(__dirname, "uploads"),
-        path.join(__dirname, "cache", "manual", "bulk_uploads"),
-      ];
-      const resolvedFolder = path.resolve(folderPath);
-      const allowed = allowedRoots.some((root) => isPathUnder(root, resolvedFolder));
-      if (!allowed) {
-        return res.status(403).json({ error: "folderPath must be under an approved ingest root" });
-      }
+        // Prevent ingesting arbitrary server directories.
+        const allowedRoots = [
+          path.join(__dirname, "uploads"),
+          path.join(__dirname, "cache", "manual", "bulk_uploads"),
+        ];
+        const resolvedFolder = path.resolve(folderPath);
+        const allowed = allowedRoots.some((root) => isPathUnder(root, resolvedFolder));
+        if (!allowed) {
+          return res
+            .status(403)
+            .json({ error: "folderPath must be under an approved ingest root" });
+        }
 
-      const summary = ingestKnowledgeFolder(folderPath);
-      res.json({ message: "Knowledge folder ingested", summary });
-    } catch (error: any) {
-      console.error("Error ingesting knowledge folder:", error);
-      res.status(500).json({ error: error?.message || "Failed to ingest folder" });
+        const summary = ingestKnowledgeFolder(folderPath);
+        res.json({ message: "Knowledge folder ingested", summary });
+      } catch (error: any) {
+        console.error("Error ingesting knowledge folder:", error);
+        res.status(500).json({ error: error?.message || "Failed to ingest folder" });
+      }
     }
-  });
+  );
 
   // Admin: direct file upload (text/images/etc), then ingest and sort
   app.post("/api/admin/knowledge/upload", isAuthenticated, isAdmin, async (req: any, res: any) => {
@@ -7043,37 +7552,48 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: reset user password directly
-  app.post("/api/admin/users/reset-password", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { email, userId, newPassword } = req.body || {};
-      if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
-        return res.status(400).json({ error: "newPassword is required and must be at least 8 characters" });
+  app.post(
+    "/api/admin/users/reset-password",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { email, userId, newPassword } = req.body || {};
+        if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
+          return res
+            .status(400)
+            .json({ error: "newPassword is required and must be at least 8 characters" });
+        }
+
+        if (!email && !userId) {
+          return res.status(400).json({ error: "Provide email or userId" });
+        }
+
+        const target = email
+          ? await storage.getUserByEmail(String(email).toLowerCase())
+          : await storage.getUser(userId);
+
+        if (!target) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        const passwordHash = await hashPassword(newPassword);
+        await storage.updateUser(target.id, {
+          password: passwordHash,
+          updatedAt: new Date(),
+        });
+
+        res.json({
+          message: "Password reset successfully",
+          userId: target.id,
+          email: target.email,
+        });
+      } catch (error: any) {
+        console.error("Error resetting user password:", error);
+        res.status(500).json({ error: error?.message || "Failed to reset password" });
       }
-
-      if (!email && !userId) {
-        return res.status(400).json({ error: "Provide email or userId" });
-      }
-
-      const target = email
-        ? await storage.getUserByEmail(String(email).toLowerCase())
-        : await storage.getUser(userId);
-
-      if (!target) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const passwordHash = await hashPassword(newPassword);
-      await storage.updateUser(target.id, {
-        password: passwordHash,
-        updatedAt: new Date(),
-      });
-
-      res.json({ message: "Password reset successfully", userId: target.id, email: target.email });
-    } catch (error: any) {
-      console.error("Error resetting user password:", error);
-      res.status(500).json({ error: error?.message || "Failed to reset password" });
     }
-  });
+  );
 
   app.post("/api/error-reports", async (req: any, res: any) => {
     try {
@@ -7087,8 +7607,8 @@ export async function registerRoutes(app: any) {
       const report = {
         id: `report_${Date.now()}`,
         ...reportData,
-        status: 'open',
-        priority: 'medium',
+        status: "open",
+        priority: "medium",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -7116,12 +7636,14 @@ export async function registerRoutes(app: any) {
       // Get contractor ID for the authenticated user
       const contractor = await storage.getContractorByUserId(userId);
       if (!contractor) {
-        return res.status(403).json({ message: "You must be a verified contractor to create promos" });
+        return res
+          .status(403)
+          .json({ message: "You must be a verified contractor to create promos" });
       }
 
       const promoData = {
         ...req.body,
-        contractorId: contractor.id
+        contractorId: contractor.id,
       };
 
       const parsedPromo = insertContractorPromoSchema.safeParse(promoData);
@@ -7161,56 +7683,66 @@ export async function registerRoutes(app: any) {
   });
 
   // Update promo
-  app.put("/api/contractor-promos/:promoId", isAuthenticated, isContractor, async (req: any, res: any) => {
-    try {
-      const { promoId } = req.params;
-      const userId = req.user?.claims?.sub;
+  app.put(
+    "/api/contractor-promos/:promoId",
+    isAuthenticated,
+    isContractor,
+    async (req: any, res: any) => {
+      try {
+        const { promoId } = req.params;
+        const userId = req.user?.claims?.sub;
 
-      const contractor = await storage.getContractorByUserId(userId);
-      if (!contractor) {
-        return res.status(403).json({ message: "Contractor not found" });
+        const contractor = await storage.getContractorByUserId(userId);
+        if (!contractor) {
+          return res.status(403).json({ message: "Contractor not found" });
+        }
+
+        // Verify ownership
+        const existingPromo = await storage.getContractorPromo(promoId);
+        if (!existingPromo || existingPromo.contractorId !== contractor.id) {
+          return res.status(403).json({ message: "You can only edit your own promos" });
+        }
+
+        const updatedPromo = await storage.updateContractorPromo(promoId, req.body);
+        res.json(updatedPromo);
+      } catch (error: any) {
+        console.error("Error updating contractor promo:", error);
+        res.status(500).json({ message: "Failed to update promo" });
       }
-
-      // Verify ownership
-      const existingPromo = await storage.getContractorPromo(promoId);
-      if (!existingPromo || existingPromo.contractorId !== contractor.id) {
-        return res.status(403).json({ message: "You can only edit your own promos" });
-      }
-
-      const updatedPromo = await storage.updateContractorPromo(promoId, req.body);
-      res.json(updatedPromo);
-    } catch (error: any) {
-      console.error("Error updating contractor promo:", error);
-      res.status(500).json({ message: "Failed to update promo" });
     }
-  });
+  );
 
   // Delete promo
-  app.delete("/api/contractor-promos/:promoId", isAuthenticated, isContractor, async (req: any, res: any) => {
-    try {
-      const { promoId } = req.params;
-      const userId = req.user?.claims?.sub;
+  app.delete(
+    "/api/contractor-promos/:promoId",
+    isAuthenticated,
+    isContractor,
+    async (req: any, res: any) => {
+      try {
+        const { promoId } = req.params;
+        const userId = req.user?.claims?.sub;
 
-      const contractor = await storage.getContractorByUserId(userId);
-      if (!contractor) {
-        return res.status(403).json({ message: "Contractor not found" });
+        const contractor = await storage.getContractorByUserId(userId);
+        if (!contractor) {
+          return res.status(403).json({ message: "Contractor not found" });
+        }
+
+        // Verify ownership
+        const existingPromo = await storage.getContractorPromo(promoId);
+        if (!existingPromo || existingPromo.contractorId !== contractor.id) {
+          return res.status(403).json({ message: "You can only delete your own promos" });
+        }
+
+        await storage.deleteContractorPromo(promoId);
+        res.status(204).send();
+      } catch (error: any) {
+        console.error("Error deleting contractor promo:", error);
+        res.status(500).json({ message: "Failed to delete promo" });
       }
-
-      // Verify ownership
-      const existingPromo = await storage.getContractorPromo(promoId);
-      if (!existingPromo || existingPromo.contractorId !== contractor.id) {
-        return res.status(403).json({ message: "You can only delete your own promos" });
-      }
-
-      await storage.deleteContractorPromo(promoId);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting contractor promo:", error);
-      res.status(500).json({ message: "Failed to delete promo" });
     }
-  });
+  );
 
-  // Public promo viewing (by slug) 
+  // Public promo viewing (by slug)
   app.get("/promo/:slug", async (req: any, res: any) => {
     try {
       const { slug } = req.params;
@@ -7238,11 +7770,11 @@ export async function registerRoutes(app: any) {
       // Record interaction
       await storage.recordPromoInteraction({
         promoId: promo.id,
-        interactionType: 'view',
+        interactionType: "view",
         sessionId: req.sessionID,
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        referrer: req.get('Referer'),
+        userAgent: req.get("User-Agent"),
+        referrer: req.get("Referer"),
         county: req.locality?.county,
         state: req.locality?.state,
         city: req.locality?.city,
@@ -7253,18 +7785,20 @@ export async function registerRoutes(app: any) {
 
       res.json({
         promo,
-        contractor: contractor ? {
-          id: contractor.id,
-          companyName: contractor.companyName,
-          slug: contractor.slug,
-          phone: contractor.phone,
-          email: contractor.email,
-          about: contractor.about,
-          photos: contractor.photos,
-          yearsInBusiness: contractor.yearsInBusiness,
-          verifiedLicensed: contractor.verifiedLicensed,
-          verifiedInsured: contractor.verifiedInsured,
-        } : null
+        contractor: contractor
+          ? {
+              id: contractor.id,
+              companyName: contractor.companyName,
+              slug: contractor.slug,
+              phone: contractor.phone,
+              email: contractor.email,
+              about: contractor.about,
+              photos: contractor.photos,
+              yearsInBusiness: contractor.yearsInBusiness,
+              verifiedLicensed: contractor.verifiedLicensed,
+              verifiedInsured: contractor.verifiedInsured,
+            }
+          : null,
       });
     } catch (error: any) {
       console.error("Error fetching promo:", error);
@@ -7288,11 +7822,11 @@ export async function registerRoutes(app: any) {
       // Record interaction
       await storage.recordPromoInteraction({
         promoId: promo.id,
-        interactionType: 'click',
+        interactionType: "click",
         sessionId: req.sessionID,
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        referrer: req.get('Referer'),
+        userAgent: req.get("User-Agent"),
+        referrer: req.get("Referer"),
         county: req.locality?.county,
         state: req.locality?.state,
         city: req.locality?.city,
@@ -7306,29 +7840,36 @@ export async function registerRoutes(app: any) {
   });
 
   // Get promo analytics (contractor only)
-  app.get("/api/contractor-promos/:promoId/analytics", isAuthenticated, isContractor, async (req: any, res: any) => {
-    try {
-      const { promoId } = req.params;
-      const userId = req.user?.claims?.sub;
+  app.get(
+    "/api/contractor-promos/:promoId/analytics",
+    isAuthenticated,
+    isContractor,
+    async (req: any, res: any) => {
+      try {
+        const { promoId } = req.params;
+        const userId = req.user?.claims?.sub;
 
-      const contractor = await storage.getContractorByUserId(userId);
-      if (!contractor) {
-        return res.status(403).json({ message: "Contractor not found" });
+        const contractor = await storage.getContractorByUserId(userId);
+        if (!contractor) {
+          return res.status(403).json({ message: "Contractor not found" });
+        }
+
+        // Verify ownership
+        const promo = await storage.getContractorPromo(promoId);
+        if (!promo || promo.contractorId !== contractor.id) {
+          return res
+            .status(403)
+            .json({ message: "You can only view analytics for your own promos" });
+        }
+
+        const analytics = await storage.getPromoAnalytics(promoId);
+        res.json(analytics);
+      } catch (error: any) {
+        console.error("Error fetching promo analytics:", error);
+        res.status(500).json({ message: "Failed to fetch analytics" });
       }
-
-      // Verify ownership
-      const promo = await storage.getContractorPromo(promoId);
-      if (!promo || promo.contractorId !== contractor.id) {
-        return res.status(403).json({ message: "You can only view analytics for your own promos" });
-      }
-
-      const analytics = await storage.getPromoAnalytics(promoId);
-      res.json(analytics);
-    } catch (error: any) {
-      console.error("Error fetching promo analytics:", error);
-      res.status(500).json({ message: "Failed to fetch analytics" });
     }
-  });
+  );
 
   // Get active promos in area (public)
   app.get("/api/promos/area/:countyFips", async (req: any, res: any) => {
@@ -7342,12 +7883,14 @@ export async function registerRoutes(app: any) {
           const contractor = await storage.getContractor(promo.contractorId);
           return {
             ...promo,
-            contractor: contractor ? {
-              companyName: contractor.companyName,
-              slug: contractor.slug,
-              verifiedLicensed: contractor.verifiedLicensed,
-              verifiedInsured: contractor.verifiedInsured,
-            } : null
+            contractor: contractor
+              ? {
+                  companyName: contractor.companyName,
+                  slug: contractor.slug,
+                  verifiedLicensed: contractor.verifiedLicensed,
+                  verifiedInsured: contractor.verifiedInsured,
+                }
+              : null,
           };
         })
       );
@@ -7362,7 +7905,8 @@ export async function registerRoutes(app: any) {
   // One-tap bug report with screenshot
   app.post("/api/bug-reports", async (req: any, res: any) => {
     try {
-      const { title, description, screenshot, userAgent, url, timestamp, viewport, type } = req.body;
+      const { title, description, screenshot, userAgent, url, timestamp, viewport, type } =
+        req.body;
 
       // Generate unique report ID
       const reportId = `BUG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -7371,30 +7915,30 @@ export async function registerRoutes(app: any) {
       // LocalityTracker call removed
 
       // Debug log the incoming data
-      console.log("Bug report data received:", { 
-        title, 
-        description, 
-        type, 
-        url, 
-        userAgent, 
+      console.log("Bug report data received:", {
+        title,
+        description,
+        type,
+        url,
+        userAgent,
         viewport,
-        hasScreenshot: !!screenshot 
+        hasScreenshot: !!screenshot,
       });
 
       // Store bug report data with proper field mapping
       const bugReport = {
         id: reportId,
-        userId: req.user?.claims?.sub || 'anonymous',
+        userId: req.user?.claims?.sub || "anonymous",
         userEmail: req.user?.email || null,
-        title: title || 'One-Tap Bug Report',
+        title: title || "One-Tap Bug Report",
         // description: description || 'Automatically generated bug report with screenshot',
-        errorType: type || 'bug',
+        errorType: type || "bug",
         currentUrl: url,
         userAgent,
         browserInfo: viewport ? { viewport } : null,
-        attachments: screenshot ? [{ type: 'screenshot', data: screenshot }] : null,
-        status: 'open',
-        priority: 'medium'
+        attachments: screenshot ? [{ type: "screenshot", data: screenshot }] : null,
+        status: "open",
+        priority: "medium",
       };
 
       // Log detailed bug report
@@ -7402,18 +7946,18 @@ export async function registerRoutes(app: any) {
         reportId,
         url,
         viewport,
-        userAgent: userAgent?.substring(0, 50) + '...',
+        userAgent: userAgent?.substring(0, 50) + "...",
         timestamp,
-        hasScreenshot: !!req.files?.screenshot || !!req.body.screenshot
+        hasScreenshot: !!req.files?.screenshot || !!req.body.screenshot,
       });
 
       // Save to database
       await storage.createErrorReport(bugReport);
 
-      res.json({ 
-        message: "Bug report submitted successfully", 
+      res.json({
+        message: "Bug report submitted successfully",
         reportId,
-        status: 'received'
+        status: "received",
       });
     } catch (error: any) {
       console.error("Error processing bug report:", error);
@@ -7426,7 +7970,7 @@ export async function registerRoutes(app: any) {
       const userId = req.user?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -7444,7 +7988,7 @@ export async function registerRoutes(app: any) {
       const userId = req.user?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -7462,170 +8006,195 @@ export async function registerRoutes(app: any) {
   });
 
   // Testing settings endpoints
-  app.get("/api/admin/testing-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const settings = await storage.getSiteSettings("testing");
+  app.get(
+    "/api/admin/testing-settings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const settings = await storage.getSiteSettings("testing");
 
-      const defaults = {
-        bugReportEnabled: true,
-        testingModeEnabled: false,
-        showTestingBanner: false,
-      };
+        const defaults = {
+          bugReportEnabled: true,
+          testingModeEnabled: false,
+          showTestingBanner: false,
+        };
 
-      const merged = { ...defaults } as any;
+        const merged = { ...defaults } as any;
 
-      for (const setting of settings) {
-        const key = String((setting as any).key || "");
-        if (!key) continue;
-        const value = (setting as any).value;
+        for (const setting of settings) {
+          const key = String((setting as any).key || "");
+          if (!key) continue;
+          const value = (setting as any).value;
 
-        if (typeof value === "boolean") {
-          merged[key] = value;
-        } else if (value && typeof value === "object" && "enabled" in value) {
-          merged[key] = Boolean((value as any).enabled);
-        } else if (typeof value === "string") {
-          merged[key] = value === "true";
+          if (typeof value === "boolean") {
+            merged[key] = value;
+          } else if (value && typeof value === "object" && "enabled" in value) {
+            merged[key] = Boolean((value as any).enabled);
+          } else if (typeof value === "string") {
+            merged[key] = value === "true";
+          }
         }
-      }
 
-      res.json(merged);
-    } catch (error: any) {
-      console.error("Error fetching testing settings:", error);
-      res.status(500).json({ message: "Failed to fetch testing settings" });
+        res.json(merged);
+      } catch (error: any) {
+        console.error("Error fetching testing settings:", error);
+        res.status(500).json({ message: "Failed to fetch testing settings" });
+      }
     }
-  });
+  );
 
-  app.patch("/api/admin/testing-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const updates = req.body || {};
-      const allowedKeys = ["bugReportEnabled", "testingModeEnabled", "showTestingBanner"];
+  app.patch(
+    "/api/admin/testing-settings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const updates = req.body || {};
+        const allowedKeys = ["bugReportEnabled", "testingModeEnabled", "showTestingBanner"];
 
-      if (!updates || typeof updates !== "object") {
-        return res.status(400).json({ message: "Invalid settings payload" });
-      }
-
-      const existing = await storage.getSiteSettings("testing");
-      const byKey = new Map<string, any>();
-      for (const setting of existing) {
-        byKey.set(String((setting as any).key), setting);
-      }
-
-      for (const key of allowedKeys) {
-        if (!(key in updates)) continue;
-        const enabled = Boolean(updates[key]);
-        const current = byKey.get(key);
-
-        const value = { enabled } as any;
-
-        if (current) {
-          await storage.updateSiteSetting((current as any).id, { value });
-        } else {
-          await storage.createSiteSetting({
-            category: "testing",
-            key,
-            value,
-          } as any);
+        if (!updates || typeof updates !== "object") {
+          return res.status(400).json({ message: "Invalid settings payload" });
         }
+
+        const existing = await storage.getSiteSettings("testing");
+        const byKey = new Map<string, any>();
+        for (const setting of existing) {
+          byKey.set(String((setting as any).key), setting);
+        }
+
+        for (const key of allowedKeys) {
+          if (!(key in updates)) continue;
+          const enabled = Boolean(updates[key]);
+          const current = byKey.get(key);
+
+          const value = { enabled } as any;
+
+          if (current) {
+            await storage.updateSiteSetting((current as any).id, { value });
+          } else {
+            await storage.createSiteSetting({
+              category: "testing",
+              key,
+              value,
+            } as any);
+          }
+        }
+
+        res.json({ message: "Settings updated successfully" });
+      } catch (error: any) {
+        console.error("Error updating testing settings:", error);
+        res.status(500).json({ message: "Failed to update testing settings" });
       }
-
-      res.json({ message: "Settings updated successfully" });
-    } catch (error: any) {
-      console.error("Error updating testing settings:", error);
-      res.status(500).json({ message: "Failed to update testing settings" });
     }
-  });
+  );
 
-  app.get("/api/admin/error-report-stats", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const reports = await storage.getErrorReports();
+  app.get(
+    "/api/admin/error-report-stats",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const reports = await storage.getErrorReports();
 
-      const total = reports.length;
-      let open = 0;
-      let inProgress = 0;
-      let resolved = 0;
+        const total = reports.length;
+        let open = 0;
+        let inProgress = 0;
+        let resolved = 0;
 
-      for (const report of reports) {
-        const status = String((report as any).status || "");
-        if (status === "open") open++;
-        else if (status === "in_progress") inProgress++;
-        else if (status === "resolved") resolved++;
+        for (const report of reports) {
+          const status = String((report as any).status || "");
+          if (status === "open") open++;
+          else if (status === "in_progress") inProgress++;
+          else if (status === "resolved") resolved++;
+        }
+
+        res.json({
+          total,
+          open,
+          inProgress,
+          resolved,
+        });
+      } catch (error: any) {
+        console.error("Error computing error report stats:", error);
+        res.status(500).json({ message: "Failed to fetch error report stats" });
       }
-
-      res.json({
-        total,
-        open,
-        inProgress,
-        resolved,
-      });
-    } catch (error: any) {
-      console.error("Error computing error report stats:", error);
-      res.status(500).json({ message: "Failed to fetch error report stats" });
     }
-  });
+  );
 
-  app.post("/api/admin/generate-test-data", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const now = Date.now();
-      const samples = [
-        {
-          id: `TEST-${now}-1`,
-          userId: req.user?.claims?.sub || "test-user",
-          userEmail: req.user?.email || null,
-          title: "[TEST] Sample bug report",
-          errorType: "test_data",
-          currentUrl: "https://tradescout.app/admin/testing-controls",
-          userAgent: req.headers["user-agent"] || "test-agent",
-          browserInfo: null,
-          attachments: null,
-          status: "open",
-          priority: "medium",
-        },
-        {
-          id: `TEST-${now}-2`,
-          userId: req.user?.claims?.sub || "test-user",
-          userEmail: req.user?.email || null,
-          title: "[TEST] Sample UI issue",
-          errorType: "test_data",
-          currentUrl: "https://tradescout.app/",
-          userAgent: req.headers["user-agent"] || "test-agent",
-          browserInfo: null,
-          attachments: null,
-          status: "in_progress",
-          priority: "low",
-        },
-      ];
+  app.post(
+    "/api/admin/generate-test-data",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const now = Date.now();
+        const samples = [
+          {
+            id: `TEST-${now}-1`,
+            userId: req.user?.claims?.sub || "test-user",
+            userEmail: req.user?.email || null,
+            title: "[TEST] Sample bug report",
+            errorType: "test_data",
+            currentUrl: "https://tradescout.app/admin/testing-controls",
+            userAgent: req.headers["user-agent"] || "test-agent",
+            browserInfo: null,
+            attachments: null,
+            status: "open",
+            priority: "medium",
+          },
+          {
+            id: `TEST-${now}-2`,
+            userId: req.user?.claims?.sub || "test-user",
+            userEmail: req.user?.email || null,
+            title: "[TEST] Sample UI issue",
+            errorType: "test_data",
+            currentUrl: "https://tradescout.app/",
+            userAgent: req.headers["user-agent"] || "test-agent",
+            browserInfo: null,
+            attachments: null,
+            status: "in_progress",
+            priority: "low",
+          },
+        ];
 
-      for (const sample of samples) {
-        await storage.createErrorReport(sample);
+        for (const sample of samples) {
+          await storage.createErrorReport(sample);
+        }
+
+        res.json({ message: "Test data generated successfully" });
+      } catch (error: any) {
+        console.error("Error generating test error reports:", error);
+        res.status(500).json({ message: "Failed to generate test data" });
       }
-
-      res.json({ message: "Test data generated successfully" });
-    } catch (error: any) {
-      console.error("Error generating test error reports:", error);
-      res.status(500).json({ message: "Failed to generate test data" });
     }
-  });
+  );
 
-  app.delete("/api/admin/clear-test-data", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const reports = await storage.getErrorReports();
-      const testReports = reports.filter((report: any) => {
-        const id = String(report.id || "");
-        const type = String(report.errorType || "");
-        const title = String(report.title || "");
-        return id.startsWith("TEST-") || type === "test_data" || title.startsWith("[TEST]");
-      });
+  app.delete(
+    "/api/admin/clear-test-data",
+    isAuthenticated,
+    requireAdmin,
+    async (req: any, res: any) => {
+      try {
+        const reports = await storage.getErrorReports();
+        const testReports = reports.filter((report: any) => {
+          const id = String(report.id || "");
+          const type = String(report.errorType || "");
+          const title = String(report.title || "");
+          return id.startsWith("TEST-") || type === "test_data" || title.startsWith("[TEST]");
+        });
 
-      for (const report of testReports) {
-        await storage.deleteErrorReport((report as any).id);
+        for (const report of testReports) {
+          await storage.deleteErrorReport((report as any).id);
+        }
+
+        res.json({ message: "Test data cleared successfully" });
+      } catch (error: any) {
+        console.error("Error clearing test error reports:", error);
+        res.status(500).json({ message: "Failed to clear test data" });
       }
-
-      res.json({ message: "Test data cleared successfully" });
-    } catch (error: any) {
-      console.error("Error clearing test error reports:", error);
-      res.status(500).json({ message: "Failed to clear test data" });
     }
-  });
+  );
 
   // Marketplace routes
   // Categories
@@ -7669,10 +8238,10 @@ export async function registerRoutes(app: any) {
         priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
         condition: req.query.condition as string,
         searchQuery: req.query.search as string,
-        sortBy: req.query.sortBy as 'price_asc' | 'price_desc' | 'date_desc' | 'date_asc',
+        sortBy: req.query.sortBy as "price_asc" | "price_desc" | "date_desc" | "date_asc",
         limit: req.query.limit ? Number(req.query.limit) : 20,
         offset: req.query.offset ? Number(req.query.offset) : 0,
-        status: 'active', // Only show approved/active listings to public
+        status: "active", // Only show approved/active listings to public
       };
 
       const listings = await storage.getMarketplaceListings(filters);
@@ -7738,12 +8307,12 @@ export async function registerRoutes(app: any) {
       const listing = await storage.createMarketplaceListing({
         ...validatedData,
         sellerId: user?.id,
-        status: 'pending_approval', // Require approval for all new listings
+        status: "pending_approval", // Require approval for all new listings
       });
 
       res.status(201).json({
         ...listing,
-        message: "Listing submitted successfully and is pending admin approval."
+        message: "Listing submitted successfully and is pending admin approval.",
       });
     } catch (error: any) {
       console.error("Error creating marketplace listing:", error);
@@ -7774,13 +8343,13 @@ export async function registerRoutes(app: any) {
         buyerId: user.id,
         sellerId: listing.sellerId,
         totalAmount: BOOST_AMOUNT.toString(),
-        sellerAmount: '0',
-        paymentMethod: 'on_platform_stripe',
+        sellerAmount: "0",
+        paymentMethod: "on_platform_stripe",
         isOffPlatform: false,
-        status: 'pending',
-        notes: 'Marketplace listing visibility boost (7 days)',
-        buyerPreferredContact: 'platform_messages',
-        sellerPreferredContact: 'platform_messages',
+        status: "pending",
+        notes: "Marketplace listing visibility boost (7 days)",
+        buyerPreferredContact: "platform_messages",
+        sellerPreferredContact: "platform_messages",
       } as any);
 
       // Create a pending listing boost tied to this transaction
@@ -7789,7 +8358,7 @@ export async function registerRoutes(app: any) {
         sellerId: listing.sellerId,
         transactionId: transaction.id,
         amount: transaction.totalAmount,
-        status: 'pending_payment',
+        status: "pending_payment",
       } as any);
 
       const description = `Boost your listing "${listing.title}" for 7 days`;
@@ -7801,8 +8370,8 @@ export async function registerRoutes(app: any) {
         checkoutUrl,
       });
     } catch (error: any) {
-      console.error('Error creating listing boost:', error);
-      res.status(500).json({ message: 'Failed to create listing boost' });
+      console.error("Error creating listing boost:", error);
+      res.status(500).json({ message: "Failed to create listing boost" });
     }
   });
 
@@ -7833,7 +8402,11 @@ export async function registerRoutes(app: any) {
 
       // Check if user owns the listing or is admin
       const existingListing = await storage.getMarketplaceListing(id);
-      if (!existingListing || (existingListing.sellerId !== user?.id && !['head_admin', 'moderator', 'ops_admin'].includes(user.role || ''))) {
+      if (
+        !existingListing ||
+        (existingListing.sellerId !== user?.id &&
+          !["head_admin", "moderator", "ops_admin"].includes(user.role || ""))
+      ) {
         return res.status(403).json({ message: "Not authorized to delete this listing" });
       }
 
@@ -7848,81 +8421,96 @@ export async function registerRoutes(app: any) {
   // Admin/Moderator endpoints for listing approval
 
   // Get all pending listings for admin review
-  app.get("/api/admin/marketplace/pending", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const filters = {
-        status: 'pending_approval',
-        limit: req.query.limit ? Number(req.query.limit) : 50,
-        offset: req.query.offset ? Number(req.query.offset) : 0,
-      };
+  app.get(
+    "/api/admin/marketplace/pending",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const filters = {
+          status: "pending_approval",
+          limit: req.query.limit ? Number(req.query.limit) : 50,
+          offset: req.query.offset ? Number(req.query.offset) : 0,
+        };
 
-      const listings = await storage.getMarketplaceListings(filters);
-      res.json(listings);
-    } catch (error: any) {
-      console.error("Error fetching pending listings:", error);
-      res.status(500).json({ message: "Failed to fetch pending listings" });
+        const listings = await storage.getMarketplaceListings(filters);
+        res.json(listings);
+      } catch (error: any) {
+        console.error("Error fetching pending listings:", error);
+        res.status(500).json({ message: "Failed to fetch pending listings" });
+      }
     }
-  });
+  );
 
   // Approve a listing
-  app.post("/api/admin/marketplace/listings/:id/approve", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
-      const { notes } = req.body;
-
-      const listing = await storage.updateMarketplaceListing(id, {
-        status: 'active',
-        approvedBy: user?.id,
-        approvedAt: new Date(),
-        moderationNotes: notes,
-      });
-
-      // Trigger hyper-local notifications for nearby users when a listing goes live
+  app.post(
+    "/api/admin/marketplace/listings/:id/approve",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
       try {
-        await notificationService.notifyNearbyUsersOfMarketplaceListing(listing as any);
-      } catch (notifyError) {
-        console.error("Error sending nearby listing notifications:", notifyError);
-      }
+        const user = req.user as any;
+        const { id } = req.params;
+        const { notes } = req.body;
 
-      res.json({ 
-        message: "Listing approved successfully",
-        listing 
-      });
-    } catch (error: any) {
-      console.error("Error approving listing:", error);
-      res.status(400).json({ message: "Failed to approve listing" });
+        const listing = await storage.updateMarketplaceListing(id, {
+          status: "active",
+          approvedBy: user?.id,
+          approvedAt: new Date(),
+          moderationNotes: notes,
+        });
+
+        // Trigger hyper-local notifications for nearby users when a listing goes live
+        try {
+          await notificationService.notifyNearbyUsersOfMarketplaceListing(listing as any);
+        } catch (notifyError) {
+          console.error("Error sending nearby listing notifications:", notifyError);
+        }
+
+        res.json({
+          message: "Listing approved successfully",
+          listing,
+        });
+      } catch (error: any) {
+        console.error("Error approving listing:", error);
+        res.status(400).json({ message: "Failed to approve listing" });
+      }
     }
-  });
+  );
 
   // Reject a listing
-  app.post("/api/admin/marketplace/listings/:id/reject", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
-      const { reason, notes } = req.body;
+  app.post(
+    "/api/admin/marketplace/listings/:id/reject",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { id } = req.params;
+        const { reason, notes } = req.body;
 
-      if (!reason) {
-        return res.status(400).json({ message: "Rejection reason is required" });
+        if (!reason) {
+          return res.status(400).json({ message: "Rejection reason is required" });
+        }
+
+        const listing = await storage.updateMarketplaceListing(id, {
+          status: "rejected",
+          rejectedBy: user?.id,
+          rejectedAt: new Date(),
+          rejectionReason: reason,
+          moderationNotes: notes,
+        });
+
+        res.json({
+          message: "Listing rejected successfully",
+          listing,
+        });
+      } catch (error: any) {
+        console.error("Error rejecting listing:", error);
+        res.status(400).json({ message: "Failed to reject listing" });
       }
-
-      const listing = await storage.updateMarketplaceListing(id, {
-        status: 'rejected',
-        rejectedBy: user?.id,
-        rejectedAt: new Date(),
-        rejectionReason: reason,
-        moderationNotes: notes,
-      });
-
-      res.json({ 
-        message: "Listing rejected successfully",
-        listing 
-      });
-    } catch (error: any) {
-      console.error("Error rejecting listing:", error);
-      res.status(400).json({ message: "Failed to reject listing" });
     }
-  });
+  );
 
   // User's own listings
   app.get("/api/marketplace/my-listings", isAuthenticated, async (req: any, res: any) => {
@@ -7972,7 +8560,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/marketplace/inquiries/sent", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const inquiries = await storage.getUserInquiries(user?.id, 'sent');
+      const inquiries = await storage.getUserInquiries(user?.id, "sent");
       res.json(inquiries);
     } catch (error: any) {
       console.error("Error fetching sent inquiries:", error);
@@ -7983,7 +8571,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/marketplace/inquiries/received", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const inquiries = await storage.getUserInquiries(user?.id, 'received');
+      const inquiries = await storage.getUserInquiries(user?.id, "received");
       res.json(inquiries);
     } catch (error: any) {
       console.error("Error fetching received inquiries:", error);
@@ -7991,24 +8579,30 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/marketplace/listings/:id/inquiries", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
+  app.get(
+    "/api/marketplace/listings/:id/inquiries",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { id } = req.params;
 
-      // Check if user owns the listing
-      const listing = await storage.getMarketplaceListing(id);
-      if (!listing || listing.sellerId !== user?.id) {
-        return res.status(403).json({ message: "Not authorized to view inquiries for this listing" });
+        // Check if user owns the listing
+        const listing = await storage.getMarketplaceListing(id);
+        if (!listing || listing.sellerId !== user?.id) {
+          return res
+            .status(403)
+            .json({ message: "Not authorized to view inquiries for this listing" });
+        }
+
+        const inquiries = await storage.getListingInquiries(id);
+        res.json(inquiries);
+      } catch (error: any) {
+        console.error("Error fetching listing inquiries:", error);
+        res.status(500).json({ message: "Failed to fetch inquiries" });
       }
-
-      const inquiries = await storage.getListingInquiries(id);
-      res.json(inquiries);
-    } catch (error: any) {
-      console.error("Error fetching listing inquiries:", error);
-      res.status(500).json({ message: "Failed to fetch inquiries" });
     }
-  });
+  );
 
   app.put("/api/marketplace/inquiries/:id", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -8056,18 +8650,22 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.delete("/api/marketplace/favorites/:listingId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { listingId } = req.params;
+  app.delete(
+    "/api/marketplace/favorites/:listingId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { listingId } = req.params;
 
-      await storage.removeMarketplaceFavorite(user?.id, listingId);
-      res.json({ message: "Removed from favorites" });
-    } catch (error: any) {
-      console.error("Error removing marketplace favorite:", error);
-      res.status(500).json({ message: "Failed to remove from favorites" });
+        await storage.removeMarketplaceFavorite(user?.id, listingId);
+        res.json({ message: "Removed from favorites" });
+      } catch (error: any) {
+        console.error("Error removing marketplace favorite:", error);
+        res.status(500).json({ message: "Failed to remove from favorites" });
+      }
     }
-  });
+  );
 
   app.get("/api/marketplace/favorites", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -8106,55 +8704,66 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/marketplace/admin/reports", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const reports = await storage.getMarketplaceReports();
-      res.json(reports);
-    } catch (error: any) {
-      console.error("Error fetching marketplace reports:", error);
-      res.status(500).json({ message: "Failed to fetch reports" });
+  app.get(
+    "/api/marketplace/admin/reports",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const reports = await storage.getMarketplaceReports();
+        res.json(reports);
+      } catch (error: any) {
+        console.error("Error fetching marketplace reports:", error);
+        res.status(500).json({ message: "Failed to fetch reports" });
+      }
     }
-  });
+  );
 
-  app.put("/api/marketplace/admin/reports/:id", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
+  app.put(
+    "/api/marketplace/admin/reports/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const updates = req.body;
 
-      const report = await storage.updateMarketplaceReport(id, updates);
-      res.json(report);
-    } catch (error: any) {
-      console.error("Error updating marketplace report:", error);
-      res.status(400).json({ message: "Failed to update report" });
+        const report = await storage.updateMarketplaceReport(id, updates);
+        res.json(report);
+      } catch (error: any) {
+        console.error("Error updating marketplace report:", error);
+        res.status(400).json({ message: "Failed to update report" });
+      }
     }
-  });
+  );
 
   // Marketplace Verification Endpoints
   app.post("/api/marketplace/vendor-verification", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      
+
       // C2-3: Soft gate - offer address verification for marketplace vendor trust (BECOME_MARKETPLACE_VENDOR)
       const currentUser = await storage.getUser(user?.id);
       const isVerified = (currentUser as any)?.addressVerified;
-      
+
       if (!isVerified) {
-        const { buildSoftGateOffer, buildSoftGateResponse } = await import('./utils/softGateFramework');
-        
+        const { buildSoftGateOffer, buildSoftGateResponse } =
+          await import("./utils/softGateFramework");
+
         const offer = buildSoftGateOffer({
-          action: 'BECOME_MARKETPLACE_VENDOR',
-          userRole: (currentUser as any)?.role || 'user',
-          missingRequirements: ['address'],
-          context: { intent: 'become_vendor' },
+          action: "BECOME_MARKETPLACE_VENDOR",
+          userRole: (currentUser as any)?.role || "user",
+          missingRequirements: ["address"],
+          context: { intent: "become_vendor" },
         });
 
-        const response = buildSoftGateResponse(offer, 'BECOME_MARKETPLACE_VENDOR');
+        const response = buildSoftGateResponse(offer, "BECOME_MARKETPLACE_VENDOR");
 
         // Return soft gate but allow proceeding
         return res.status(200).json({
           ...response,
           verificationSuggested: {
-            action: 'BECOME_MARKETPLACE_VENDOR',
+            action: "BECOME_MARKETPLACE_VENDOR",
             benefits: offer.benefits,
           },
           allowProceedUnverified: true,
@@ -8218,8 +8827,8 @@ export async function registerRoutes(app: any) {
       res.json({
         vendor: vendorVerification || null,
         buyer: buyerVerification || null,
-        isVendorVerified: vendorVerification?.status === 'approved',
-        isBuyerVerified: buyerVerification?.status === 'approved'
+        isVendorVerified: vendorVerification?.status === "approved",
+        isBuyerVerified: buyerVerification?.status === "approved",
       });
     } catch (error: any) {
       console.error("Error fetching verification status:", error);
@@ -8227,21 +8836,26 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/marketplace/admin/verifications", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { type = 'all', status = 'all' } = req.query;
+  app.get(
+    "/api/marketplace/admin/verifications",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { type = "all", status = "all" } = req.query;
 
-      const verifications = await storage.getVerifications({
-        type: type as string,
-        status: status as string
-      });
+        const verifications = await storage.getVerifications({
+          type: type as string,
+          status: status as string,
+        });
 
-      res.json(verifications);
-    } catch (error: any) {
-      console.error("Error fetching verifications:", error);
-      res.status(500).json({ message: "Failed to fetch verifications" });
+        res.json(verifications);
+      } catch (error: any) {
+        console.error("Error fetching verifications:", error);
+        res.status(500).json({ message: "Failed to fetch verifications" });
+      }
     }
-  });
+  );
 
   // Unified notifications summary endpoint
   // NOTE: Detailed notification list + actions live in routes/notification-routes.ts
@@ -8256,35 +8870,40 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.put("/api/marketplace/admin/verifications/:id", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { status, adminNotes } = req.body;
-      const user = req.user as any;
+  app.put(
+    "/api/marketplace/admin/verifications/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { status, adminNotes } = req.body;
+        const user = req.user as any;
 
-      const updates = {
-        status,
-        adminNotes,
-        reviewedBy: user?.id,
-        reviewedAt: new Date()
-      };
+        const updates = {
+          status,
+          adminNotes,
+          reviewedBy: user?.id,
+          reviewedAt: new Date(),
+        };
 
-      const verification = await storage.updateVerification(id, updates);
-      res.json(verification);
-    } catch (error: any) {
-      console.error("Error updating verification:", error);
-      res.status(400).json({ message: "Failed to update verification" });
+        const verification = await storage.updateVerification(id, updates);
+        res.json(verification);
+      } catch (error: any) {
+        console.error("Error updating verification:", error);
+        res.status(400).json({ message: "Failed to update verification" });
+      }
     }
-  });
+  );
 
   // Admin Verification API (normalized view for Ops workspace)
   app.get("/api/admin/verifications", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
-      const { type = 'all', status = 'pending' } = req.query;
+      const { type = "all", status = "pending" } = req.query;
 
       const verifications = await storage.getVerifications({
-        type: (type as string) || 'all',
-        status: (status as string) || 'pending',
+        type: (type as string) || "all",
+        status: (status as string) || "pending",
       });
 
       const now = new Date();
@@ -8292,20 +8911,26 @@ export async function registerRoutes(app: any) {
       const normalized = (verifications || []).map((v: any) => {
         const isVendor = Boolean((v as any).categoryId);
 
-        const submittedAt: string = (v.createdAt || v.submittedAt || v.updatedAt || now).toISOString();
+        const submittedAt: string = (
+          v.createdAt ||
+          v.submittedAt ||
+          v.updatedAt ||
+          now
+        ).toISOString();
 
         // Derive document statuses from available fields
         const hasLicense = Boolean(
-          (v as any).businessLicenseUrl ||
-          (v as any).businessLicenseNumber
+          (v as any).businessLicenseUrl || (v as any).businessLicenseNumber
         );
 
-        let insuranceStatus: boolean | 'expires_soon' = false;
-        const insuranceExpiry = (v as any).insuranceExpiry ? new Date((v as any).insuranceExpiry) : null;
+        let insuranceStatus: boolean | "expires_soon" = false;
+        const insuranceExpiry = (v as any).insuranceExpiry
+          ? new Date((v as any).insuranceExpiry)
+          : null;
         if ((v as any).insuranceCertificateUrl || insuranceExpiry) {
           if (insuranceExpiry) {
             const diffDays = (insuranceExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-            insuranceStatus = diffDays <= 30 ? 'expires_soon' : true;
+            insuranceStatus = diffDays <= 30 ? "expires_soon" : true;
           } else {
             insuranceStatus = true;
           }
@@ -8315,13 +8940,13 @@ export async function registerRoutes(app: any) {
 
         return {
           id: v.id,
-          kind: isVendor ? 'vendor' : 'buyer',
+          kind: isVendor ? "vendor" : "buyer",
           status: v.status,
           userId: v.userId,
-          companyName: isVendor ? (v.businessName || null) : null,
+          companyName: isVendor ? v.businessName || null : null,
           trade: null,
           serviceArea: null,
-          licenseNumber: isVendor ? (v.businessLicenseNumber || null) : null,
+          licenseNumber: isVendor ? v.businessLicenseNumber || null : null,
           submittedAt,
           documents: {
             license: hasLicense,
@@ -8338,56 +8963,61 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/admin/verifications/:id/actions", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { action, reason } = req.body as { action: string; reason?: string };
-      const user = req.user as any;
+  app.post(
+    "/api/admin/verifications/:id/actions",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { action, reason } = req.body as { action: string; reason?: string };
+        const user = req.user as any;
 
-      if (!['approve', 'reject', 'request_update'].includes(action)) {
-        return res.status(400).json({ message: "Invalid action" });
-      }
-
-      const updates: any = {
-        reviewedBy: user?.id,
-        reviewedAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      if (action === 'approve') {
-        updates.status = 'approved';
-        updates.rejectionReason = null;
-      } else if (action === 'reject') {
-        updates.status = 'rejected';
-        updates.rejectionReason = reason || 'Rejected by admin';
-      } else if (action === 'request_update') {
-        updates.status = 'in_review';
-        if (reason) {
-          updates.adminNotes = reason;
+        if (!["approve", "reject", "request_update"].includes(action)) {
+          return res.status(400).json({ message: "Invalid action" });
         }
-      }
 
-      const verification = await storage.updateVerification(id, updates);
-      res.json(verification);
-    } catch (error: any) {
-      console.error("Error processing admin verification action:", error);
-      res.status(400).json({ message: "Failed to process verification action" });
+        const updates: any = {
+          reviewedBy: user?.id,
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        if (action === "approve") {
+          updates.status = "approved";
+          updates.rejectionReason = null;
+        } else if (action === "reject") {
+          updates.status = "rejected";
+          updates.rejectionReason = reason || "Rejected by admin";
+        } else if (action === "request_update") {
+          updates.status = "in_review";
+          if (reason) {
+            updates.adminNotes = reason;
+          }
+        }
+
+        const verification = await storage.updateVerification(id, updates);
+        res.json(verification);
+      } catch (error: any) {
+        console.error("Error processing admin verification action:", error);
+        res.status(400).json({ message: "Failed to process verification action" });
+      }
     }
-  });
+  );
 
   // Address Verification Endpoints
   app.post("/api/address-verification", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-        const parsedAddress = insertAddressVerificationSchema.safeParse(req.body);
-        if (!parsedAddress.success) {
-          return res.status(400).json({
-            message: "Invalid address verification payload",
-            issues: parsedAddress.error.issues,
-          });
-        }
+      const parsedAddress = insertAddressVerificationSchema.safeParse(req.body);
+      if (!parsedAddress.success) {
+        return res.status(400).json({
+          message: "Invalid address verification payload",
+          issues: parsedAddress.error.issues,
+        });
+      }
 
-        const validatedData = parsedAddress.data;
+      const validatedData = parsedAddress.data;
 
       // Calculate deadline (14 days from user creation)
       const userCreatedAt = new Date(user.createdAt);
@@ -8397,7 +9027,7 @@ export async function registerRoutes(app: any) {
       const verification = await storage.createAddressVerification({
         ...validatedData,
         userId: user?.id,
-        deadline
+        deadline,
       });
 
       res.status(201).json(verification);
@@ -8417,7 +9047,10 @@ export async function registerRoutes(app: any) {
       const deadline = new Date(userCreatedAt);
       deadline.setDate(deadline.getDate() + 14);
 
-      const daysRemaining = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      const daysRemaining = Math.max(
+        0,
+        Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      );
       const isExpired = daysRemaining === 0 && !user.addressVerified;
 
       res.json({
@@ -8426,7 +9059,7 @@ export async function registerRoutes(app: any) {
         deadline: deadline.toISOString(),
         daysRemaining,
         isExpired,
-        requiresVerification: !user.addressVerified
+        requiresVerification: !user.addressVerified,
       });
     } catch (error: any) {
       console.error("Error fetching address verification status:", error);
@@ -8434,55 +9067,65 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/address-verification/postcard/request", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
+  app.post(
+    "/api/address-verification/postcard/request",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
 
-      // Generate 6-digit verification code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate 6-digit verification code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      await storage.sendAddressVerificationPostcard(user?.id, code);
+        await storage.sendAddressVerificationPostcard(user?.id, code);
 
-      // In a real implementation, you would send the postcard via USPS API
-      console.log(`Postcard verification code for ${user?.id}: ${code}`);
+        // In a real implementation, you would send the postcard via USPS API
+        console.log(`Postcard verification code for ${user?.id}: ${code}`);
 
-      res.json({ 
-        message: "Verification postcard has been sent to your address. It should arrive within 5-7 business days.",
-        estimatedDelivery: "5-7 business days"
-      });
-    } catch (error: any) {
-      console.error("Error requesting postcard verification:", error);
-      res.status(500).json({ message: "Failed to request postcard verification" });
-    }
-  });
-
-  app.post("/api/address-verification/postcard/verify", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { code } = req.body;
-
-      if (!code || code.length !== 6) {
-        return res.status(400).json({ message: "Valid 6-digit code is required" });
-      }
-
-      const success = await storage.verifyAddressWithPostcard(user?.id, code);
-
-      if (success) {
-        res.json({ 
-          message: "Address verified successfully! You now have full access to the platform.",
-          verified: true
+        res.json({
+          message:
+            "Verification postcard has been sent to your address. It should arrive within 5-7 business days.",
+          estimatedDelivery: "5-7 business days",
         });
-      } else {
-        res.status(400).json({ 
-          message: "Invalid verification code. Please check the code on your postcard and try again.",
-          verified: false
-        });
+      } catch (error: any) {
+        console.error("Error requesting postcard verification:", error);
+        res.status(500).json({ message: "Failed to request postcard verification" });
       }
-    } catch (error: any) {
-      console.error("Error verifying postcard code:", error);
-      res.status(500).json({ message: "Failed to verify postcard code" });
     }
-  });
+  );
+
+  app.post(
+    "/api/address-verification/postcard/verify",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { code } = req.body;
+
+        if (!code || code.length !== 6) {
+          return res.status(400).json({ message: "Valid 6-digit code is required" });
+        }
+
+        const success = await storage.verifyAddressWithPostcard(user?.id, code);
+
+        if (success) {
+          res.json({
+            message: "Address verified successfully! You now have full access to the platform.",
+            verified: true,
+          });
+        } else {
+          res.status(400).json({
+            message:
+              "Invalid verification code. Please check the code on your postcard and try again.",
+            verified: false,
+          });
+        }
+      } catch (error: any) {
+        console.error("Error verifying postcard code:", error);
+        res.status(500).json({ message: "Failed to verify postcard code" });
+      }
+    }
+  );
 
   app.put("/api/address-verification/:id", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -8499,7 +9142,7 @@ export async function registerRoutes(app: any) {
       const verification = await storage.updateAddressVerification(id, {
         ...updates,
         submittedAt: new Date(),
-        status: 'submitted'
+        status: "submitted",
       });
 
       res.json(verification);
@@ -8510,63 +9153,85 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin endpoints for address verification
-  app.get("/api/admin/address-verifications", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const status = (req.query.status as string) || 'all';
+  app.get(
+    "/api/admin/address-verifications",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const status = (req.query.status as string) || "all";
 
-      let query: any = db.select({
-        verification: addressVerifications,
-        user: users
-      })
-      .from(addressVerifications)
-      .leftJoin(users, eq(addressVerifications.userId, users.id));
+        let query: any = db
+          .select({
+            verification: addressVerifications,
+            user: users,
+          })
+          .from(addressVerifications)
+          .leftJoin(users, eq(addressVerifications.userId, users.id));
 
-      if (status !== 'all') {
-        const allowedStatuses = ['pending', 'approved', 'rejected', 'expired', 'submitted'] as const;
-        if (allowedStatuses.includes(status as (typeof allowedStatuses)[number])) {
-          query = query.where(eq(addressVerifications.status, status as (typeof allowedStatuses)[number]));
+        if (status !== "all") {
+          const allowedStatuses = [
+            "pending",
+            "approved",
+            "rejected",
+            "expired",
+            "submitted",
+          ] as const;
+          if (allowedStatuses.includes(status as (typeof allowedStatuses)[number])) {
+            query = query.where(
+              eq(addressVerifications.status, status as (typeof allowedStatuses)[number])
+            );
+          }
         }
+
+        const results = await query.orderBy(desc(addressVerifications.createdAt));
+
+        res.json(results);
+      } catch (error: any) {
+        console.error("Error fetching address verifications:", error);
+        res.status(500).json({ message: "Failed to fetch verifications" });
       }
-
-      const results = await query.orderBy(desc(addressVerifications.createdAt));
-
-      res.json(results);
-    } catch (error: any) {
-      console.error("Error fetching address verifications:", error);
-      res.status(500).json({ message: "Failed to fetch verifications" });
     }
-  });
+  );
 
-  app.put("/api/admin/address-verifications/:id", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { status, adminNotes } = req.body;
-      const user = req.user as any;
+  app.put(
+    "/api/admin/address-verifications/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { status, adminNotes } = req.body;
+        const user = req.user as any;
 
-      const updates: any = {
-        status,
-        adminNotes,
-        reviewedBy: user?.id,
-        reviewedAt: new Date()
-      };
+        const updates: any = {
+          status,
+          adminNotes,
+          reviewedBy: user?.id,
+          reviewedAt: new Date(),
+        };
 
-      if (status === 'approved') {
-        updates.approvedAt = new Date();
+        if (status === "approved") {
+          updates.approvedAt = new Date();
 
-        // Get verification record to find the user
-        const [verification] = await db.select().from(addressVerifications).where(eq(addressVerifications.id, id));
-        if (verification) {
-          await storage.updateUser(verification.userId, { addressVerified: true });
+          // Get verification record to find the user
+          const [verification] = await db
+            .select()
+            .from(addressVerifications)
+            .where(eq(addressVerifications.id, id));
+          if (verification) {
+            await storage.updateUser(verification.userId, { addressVerified: true });
+          }
         }
-      }
 
-      const verification = await storage.updateAddressVerification(id, updates);
-      res.json(verification);
-    } catch (error: any) {
-      console.error("Error updating address verification:", error);
-      res.status(400).json({ message: "Failed to update verification" });
+        const verification = await storage.updateAddressVerification(id, updates);
+        res.json(verification);
+      } catch (error: any) {
+        console.error("Error updating address verification:", error);
+        res.status(400).json({ message: "Failed to update verification" });
+      }
     }
-  });
+  );
 
   // Social Features API Routes
 
@@ -8604,11 +9269,7 @@ export async function registerRoutes(app: any) {
   }
 
   function titleToHashtag(title: string): string {
-    const primary = title
-      .split(" - ")[0]
-      .split(" | ")[0]
-      .split(" — ")[0]
-      .trim();
+    const primary = title.split(" - ")[0].split(" | ")[0].split(" — ")[0].trim();
 
     const words = primary
       .replace(/[^\w\s]/g, " ")
@@ -8618,16 +9279,17 @@ export async function registerRoutes(app: any) {
       .filter((w) => w.length >= 3)
       .slice(0, 3);
 
-    const token = words
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join("");
+    const token = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
 
     return token ? `#${token}` : "#Trending";
   }
 
   async function fetchExternalTrendingHashtags(): Promise<Array<{ tag: string; source: "news" }>> {
     const now = Date.now();
-    if (communityExternalTrendingCache.items.length > 0 && now - communityExternalTrendingCache.fetchedAt < COMMUNITY_TRENDING_CACHE_TTL_MS) {
+    if (
+      communityExternalTrendingCache.items.length > 0 &&
+      now - communityExternalTrendingCache.fetchedAt < COMMUNITY_TRENDING_CACHE_TTL_MS
+    ) {
       return communityExternalTrendingCache.items;
     }
 
@@ -8645,7 +9307,7 @@ export async function registerRoutes(app: any) {
         const res = await fetch(url, {
           headers: {
             "User-Agent": "TradeScout/1.0 (+https://thetradescout.com)",
-            "Accept": "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
+            Accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
           },
         });
 
@@ -8679,7 +9341,8 @@ export async function registerRoutes(app: any) {
       const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = authUserId ? await storage.getUser(authUserId) : null;
 
-      const scopeParam = typeof req.query.scope === "string" ? (req.query.scope as string) : undefined;
+      const scopeParam =
+        typeof req.query.scope === "string" ? (req.query.scope as string) : undefined;
 
       // Phase 1: Global community toggle (read-only visibility)
       // Allow all users to view global posts (posts-only, no new contact paths)
@@ -8701,17 +9364,17 @@ export async function registerRoutes(app: any) {
         // When bypassing location, deliberately avoid applying any scope/state/county filters.
         scope: bypassLocation
           ? undefined
-          : ((scopeParam as any) || (user && !hasExplicitLocationFilters ? "county" : undefined)),
+          : (scopeParam as any) || (user && !hasExplicitLocationFilters ? "county" : undefined),
         stateCode: bypassLocation
           ? undefined
-          : ((req.query.stateCode as string) ||
-            (user && !hasExplicitLocationFilters ? (user.state as string | undefined) : undefined)),
+          : (req.query.stateCode as string) ||
+            (user && !hasExplicitLocationFilters ? (user.state as string | undefined) : undefined),
         countyFips: bypassLocation
           ? undefined
-          : ((req.query.countyFips as string) ||
+          : (req.query.countyFips as string) ||
             (user && !hasExplicitLocationFilters
               ? ((user as any).countyFips as string | undefined)
-              : undefined)),
+              : undefined),
         category: req.query.category as any,
         authorId: req.query.authorId as string,
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
@@ -8804,29 +9467,31 @@ export async function registerRoutes(app: any) {
         };
         posts = await storage.getCommunityPosts(fallbackFilters);
       }
-      
+
       // Phase 1: Fail-safe field stripping for global scope (posts-only)
       // Strip contact fields, profile shortcuts, action-enabling metadata
       if (wantsGlobalScope && !isSuperAdminLike) {
-        posts = posts.map(post => {
+        posts = posts.map((post) => {
           const { author, ...safePost } = post as any;
-          
+
           // Strip sensitive author fields, keep only safe display fields
-          const safeAuthor = author ? {
-            id: author.id,
-            firstName: author.firstName,
-            lastName: author.lastName,
-            profileImageUrl: author.profileImageUrl,
-            // Explicitly exclude: email, phone, address, city, state, zipCode, etc.
-          } : null;
-          
+          const safeAuthor = author
+            ? {
+                id: author.id,
+                firstName: author.firstName,
+                lastName: author.lastName,
+                profileImageUrl: author.profileImageUrl,
+                // Explicitly exclude: email, phone, address, city, state, zipCode, etc.
+              }
+            : null;
+
           return {
             ...safePost,
             author: safeAuthor,
           };
         });
       }
-      
+
       // NOTE: Outcome-based feed weighting is intentionally disabled (Phase 2C).
       // REASONING:
       // - Weighting implies earned trust before outcome data is reliable.
@@ -8834,14 +9499,15 @@ export async function registerRoutes(app: any) {
       // - Feed influence should follow, not precede, action gating validation.
       // ENABLE WHEN:
       // - >= 50 completed outcomes recorded
-      // - Outcome variance across posts is measurable  
+      // - Outcome variance across posts is measurable
       // - Admin diagnostics show stable override/regret calibration
       // STATUS: DISABLED - waiting for Phase 2A data
       const ENABLE_OUTCOME_WEIGHTING = false;
       if (ENABLE_OUTCOME_WEIGHTING) {
-        const { applyOutcomeWeighting, sortByOutcomeScore } = await import("./community/outcomeScoring");
+        const { applyOutcomeWeighting, sortByOutcomeScore } =
+          await import("./community/outcomeScoring");
         await applyOutcomeWeighting(posts);
-        
+
         // If sorting by recommended, re-sort by outcome score
         if (normalizedScope === "recommendations" || normalizedScope === "forYou") {
           sortByOutcomeScore(posts);
@@ -8909,63 +9575,65 @@ export async function registerRoutes(app: any) {
 
   // Trending Topics (DB-backed; community-only)
   app.get("/api/community/trending", async (req: any, res: any) => {
+    // XP & badges read endpoints (me-only for now)
+    app.get("/api/xp/me", isAuthenticated, async (req: any, res: any) => {
+      try {
+        const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
 
-  // XP & badges read endpoints (me-only for now)
-  app.get("/api/xp/me", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+        const [xpTotal, ledger] = await Promise.all([
+          storage.getUserXpTotal(userId),
+          storage.getUserXpLedger(userId, 50),
+        ]);
+
+        res.json({
+          userId,
+          xpTotal,
+          recentLedger: ledger,
+        });
+      } catch (error: any) {
+        console.error("Error fetching XP for current user:", error);
+        res.status(500).json({ message: "Failed to fetch XP" });
       }
+    });
 
-      const [xpTotal, ledger] = await Promise.all([
-        storage.getUserXpTotal(userId),
-        storage.getUserXpLedger(userId, 50),
-      ]);
+    app.get("/api/badges/me", isAuthenticated, async (req: any, res: any) => {
+      try {
+        const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
 
-      res.json({
-        userId,
-        xpTotal,
-        recentLedger: ledger,
-      });
-    } catch (error: any) {
-      console.error("Error fetching XP for current user:", error);
-      res.status(500).json({ message: "Failed to fetch XP" });
-    }
-  });
+        const [user, awarded] = await Promise.all([
+          storage.getUser(userId),
+          storage.getUserAwardedBadges(userId),
+        ]);
 
-  app.get("/api/badges/me", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const computedLabels = computeBadgesForUser(user);
+
+        res.json({
+          userId,
+          labels: computedLabels,
+          awarded,
+        });
+      } catch (error: any) {
+        console.error("Error fetching badges for current user:", error);
+        res.status(500).json({ message: "Failed to fetch badges" });
       }
-
-      const [user, awarded] = await Promise.all([
-        storage.getUser(userId),
-        storage.getUserAwardedBadges(userId),
-      ]);
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const computedLabels = computeBadgesForUser(user);
-
-      res.json({
-        userId,
-        labels: computedLabels,
-        awarded,
-      });
-    } catch (error: any) {
-      console.error("Error fetching badges for current user:", error);
-      res.status(500).json({ message: "Failed to fetch badges" });
-    }
-  });
+    });
     try {
       const stateCode = typeof req.query.stateCode === "string" ? req.query.stateCode : undefined;
-      const countyFips = typeof req.query.countyFips === "string" ? req.query.countyFips : undefined;
-      const limit = req.query.limit ? Math.max(1, Math.min(20, parseInt(req.query.limit as string, 10) || 10)) : 10;
+      const countyFips =
+        typeof req.query.countyFips === "string" ? req.query.countyFips : undefined;
+      const limit = req.query.limit
+        ? Math.max(1, Math.min(20, parseInt(req.query.limit as string, 10) || 10))
+        : 10;
 
       const since = new Date();
       since.setDate(since.getDate() - 7);
@@ -9038,7 +9706,8 @@ export async function registerRoutes(app: any) {
     if (/contractor|builder|remodel/.test(text)) tags.add("contractors");
     if (/marketplace|exchange|for sale|listing/.test(text)) tags.add("marketplace");
     if (/event|meetup|meeting|gathering/.test(text)) tags.add("events");
-    if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text)) tags.add("recommendations");
+    if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text))
+      tags.add("recommendations");
 
     if (category && typeof category === "string") {
       const cat = category.toLowerCase();
@@ -9057,14 +9726,15 @@ export async function registerRoutes(app: any) {
       const resolvedCountyFips = ((user as any).countyFips as string | undefined) || undefined;
       const countyLabel = ((user as any).county as string | undefined) || undefined;
 
-      const rolesRaw: string[] = Array.isArray((user as any).roles) && (user as any).roles.length
-        ? (user as any).roles
-        : ((user as any).role ? [(user as any).role] : []);
+      const rolesRaw: string[] =
+        Array.isArray((user as any).roles) && (user as any).roles.length
+          ? (user as any).roles
+          : (user as any).role
+            ? [(user as any).role]
+            : [];
 
       const formatRoleLabel = (role: string) =>
-        role
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
+        role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
       const rolesLabel = rolesRaw.length
         ? rolesRaw.map((r) => formatRoleLabel(r)).join(", ")
@@ -9083,11 +9753,7 @@ export async function registerRoutes(app: any) {
         `Please welcome ${firstName}${lastName ? " " + lastName[0] + "." : ""} in ${locationLabel} to the TradeScout community. ` +
         `They're joining as ${rolesLabel}. Say hi, share a recommendation, or invite them into your next project.`;
 
-      const welcomeTags = deriveCommunityTagsFromContent(
-        welcomeTitle,
-        welcomeContent,
-        "welcome"
-      );
+      const welcomeTags = deriveCommunityTagsFromContent(welcomeTitle, welcomeContent, "welcome");
 
       await storage.createCommunityPost({
         title: welcomeTitle,
@@ -9112,11 +9778,7 @@ export async function registerRoutes(app: any) {
           `I just joined TradeScout as ${rolesLabel}. ` +
           `I'm here to connect with neighbors, share recommendations, and keep up with trusted local pros in ${locationLabel}.`;
 
-        const introTags = deriveCommunityTagsFromContent(
-          introTitle,
-          introContent,
-          "introduction"
-        );
+        const introTags = deriveCommunityTagsFromContent(introTitle, introContent, "introduction");
 
         await storage.createCommunityPost({
           title: introTitle,
@@ -9142,110 +9804,129 @@ export async function registerRoutes(app: any) {
     }
   }
 
-  app.post("/api/community/posts", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const user = await storage.getUser(userId);
+  app.post(
+    "/api/community/posts",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const user = await storage.getUser(userId);
 
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
+        if (!user) {
+          return res.status(401).json({ message: "User not found" });
+        }
+
+        const { title, content, category, scope, stateCode, countyFips, images } = req.body;
+        const imageUrls: string[] | undefined = Array.isArray(images)
+          ? images
+          : images
+            ? [String(images)]
+            : undefined;
+
+        const resolvedScope = scope || "county";
+        const resolvedStateCode = stateCode || (user.state as string | undefined);
+        const resolvedCountyFips = countyFips || ((user as any).countyFips as string | undefined);
+
+        const tags = deriveCommunityTagsFromContent(title, content, category);
+
+        const newPost = await storage.createCommunityPost({
+          title,
+          content,
+          category,
+          scope: resolvedScope,
+          stateCode: resolvedStateCode,
+          countyFips: resolvedCountyFips,
+          imageUrls,
+          authorId: userId,
+          isPublished: true,
+          isHidden: false,
+          likeCount: 0,
+          commentCount: 0,
+          tags: tags.length ? tags : undefined,
+        });
+
+        // INTELLIGENT CATEGORY ROUTING
+        // Maps human intent → system actions WITHOUT exposing internal system names to users
+        // Philosophy: Users think "I need help", system routes to Direct Connect silently
+
+        // 1. REQUEST (work) → Check if Direct Connect eligible
+        if (category === "request") {
+          // TODO: Analyze post content for contractor keywords (fence, plumbing, electrical, etc.)
+          // If matched, create a silent Direct Connect opportunity for contractors to bid
+          // User doesn't see "Direct Connect" - they just get matched with pros
+          console.log(
+            `[CATEGORY ROUTING] Request post created: ${newPost.id} - Direct Connect eligibility check queued`
+          );
+        }
+
+        // 2. QUESTION → Notify Scout for potential AI response
+        if (category === "question") {
+          // TODO: Send to Scout analysis queue
+          // Scout can either answer directly OR route to human experts
+          // User sees helpful response, not "Scout vs Human" decision
+          console.log(
+            `[CATEGORY ROUTING] Question post created: ${newPost.id} - Scout analysis queued`
+          );
+        }
+
+        // 3. FOR SALE → Auto-create marketplace listing
+        if (category === "forsale") {
+          // TODO: Extract price, condition, item details
+          // Create marketplace listing automatically
+          // User gets "Your item is now for sale" confirmation, not "Marketplace created"
+          console.log(
+            `[CATEGORY ROUTING] For Sale post created: ${newPost.id} - Marketplace listing creation queued`
+          );
+        }
+
+        // 4. ALERT → Priority notifications to relevant users
+        if (category === "alert") {
+          // TODO: Determine notification scope (county, state, nearby)
+          // Send push notifications to affected users
+          // User sees "Alert sent to X neighbors", not notification system details
+          console.log(
+            `[CATEGORY ROUTING] Alert post created: ${newPost.id} - Priority notifications queued`
+          );
+        }
+
+        // 5. EVENT → Calendar integration
+        if (category === "event") {
+          // TODO: Parse date/time from content
+          // Add to community calendar
+          // Allow users to "Add to my calendar" with one tap
+          console.log(
+            `[CATEGORY ROUTING] Event post created: ${newPost.id} - Calendar integration queued`
+          );
+        }
+
+        // 6. RECOMMENDATION → Link to contractor/business profiles
+        if (category === "recommendation") {
+          // TODO: Extract mentioned businesses/contractors
+          // Create profile links, boost their reputation scores
+          // User sees "Thanks for the recommendation!" not profile system details
+          console.log(
+            `[CATEGORY ROUTING] Recommendation post created: ${newPost.id} - Profile linking queued`
+          );
+        }
+
+        // 7. TIP → Feed Scout learning system
+        if (category === "tip") {
+          // TODO: Extract actionable knowledge
+          // Add to Scout's local knowledge base
+          // Scout can reference this tip when helping other users
+          console.log(
+            `[CATEGORY ROUTING] Tip post created: ${newPost.id} - Scout learning ingestion queued`
+          );
+        }
+
+        res.status(201).json(newPost);
+      } catch (error: any) {
+        console.error("Error creating community post:", error);
+        res.status(500).json({ message: "Failed to create post" });
       }
-
-      const { title, content, category, scope, stateCode, countyFips, images } = req.body;
-      const imageUrls: string[] | undefined = Array.isArray(images)
-        ? images
-        : images
-          ? [String(images)]
-          : undefined;
-
-      const resolvedScope = scope || "county";
-      const resolvedStateCode = stateCode || (user.state as string | undefined);
-      const resolvedCountyFips = countyFips || ((user as any).countyFips as string | undefined);
-
-      const tags = deriveCommunityTagsFromContent(title, content, category);
-
-      const newPost = await storage.createCommunityPost({
-        title,
-        content,
-        category,
-        scope: resolvedScope,
-        stateCode: resolvedStateCode,
-        countyFips: resolvedCountyFips,
-        imageUrls,
-        authorId: userId,
-        isPublished: true,
-        isHidden: false,
-        likeCount: 0,
-        commentCount: 0,
-        tags: tags.length ? tags : undefined,
-      });
-
-      // INTELLIGENT CATEGORY ROUTING
-      // Maps human intent → system actions WITHOUT exposing internal system names to users
-      // Philosophy: Users think "I need help", system routes to Direct Connect silently
-      
-      // 1. REQUEST (work) → Check if Direct Connect eligible
-      if (category === 'request') {
-        // TODO: Analyze post content for contractor keywords (fence, plumbing, electrical, etc.)
-        // If matched, create a silent Direct Connect opportunity for contractors to bid
-        // User doesn't see "Direct Connect" - they just get matched with pros
-        console.log(`[CATEGORY ROUTING] Request post created: ${newPost.id} - Direct Connect eligibility check queued`);
-      }
-
-      // 2. QUESTION → Notify Scout for potential AI response
-      if (category === 'question') {
-        // TODO: Send to Scout analysis queue
-        // Scout can either answer directly OR route to human experts
-        // User sees helpful response, not "Scout vs Human" decision
-        console.log(`[CATEGORY ROUTING] Question post created: ${newPost.id} - Scout analysis queued`);
-      }
-
-      // 3. FOR SALE → Auto-create marketplace listing
-      if (category === 'forsale') {
-        // TODO: Extract price, condition, item details
-        // Create marketplace listing automatically
-        // User gets "Your item is now for sale" confirmation, not "Marketplace created"
-        console.log(`[CATEGORY ROUTING] For Sale post created: ${newPost.id} - Marketplace listing creation queued`);
-      }
-
-      // 4. ALERT → Priority notifications to relevant users
-      if (category === 'alert') {
-        // TODO: Determine notification scope (county, state, nearby)
-        // Send push notifications to affected users
-        // User sees "Alert sent to X neighbors", not notification system details
-        console.log(`[CATEGORY ROUTING] Alert post created: ${newPost.id} - Priority notifications queued`);
-      }
-
-      // 5. EVENT → Calendar integration
-      if (category === 'event') {
-        // TODO: Parse date/time from content
-        // Add to community calendar
-        // Allow users to "Add to my calendar" with one tap
-        console.log(`[CATEGORY ROUTING] Event post created: ${newPost.id} - Calendar integration queued`);
-      }
-
-      // 6. RECOMMENDATION → Link to contractor/business profiles
-      if (category === 'recommendation') {
-        // TODO: Extract mentioned businesses/contractors
-        // Create profile links, boost their reputation scores
-        // User sees "Thanks for the recommendation!" not profile system details
-        console.log(`[CATEGORY ROUTING] Recommendation post created: ${newPost.id} - Profile linking queued`);
-      }
-
-      // 7. TIP → Feed Scout learning system
-      if (category === 'tip') {
-        // TODO: Extract actionable knowledge
-        // Add to Scout's local knowledge base
-        // Scout can reference this tip when helping other users
-        console.log(`[CATEGORY ROUTING] Tip post created: ${newPost.id} - Scout learning ingestion queued`);
-      }
-
-      res.status(201).json(newPost);
-    } catch (error: any) {
-      console.error("Error creating community post:", error);
-      res.status(500).json({ message: "Failed to create post" });
     }
-  });
+  );
 
   app.get("/api/community/posts/:id", async (req: any, res: any) => {
     try {
@@ -9264,130 +9945,155 @@ export async function registerRoutes(app: any) {
   });
 
   // Post Interactions
-  app.post("/api/community/posts/:id/like", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { id: postId } = req.params;
+  app.post(
+    "/api/community/posts/:id/like",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const { id: postId } = req.params;
 
-      const result = await storage.togglePostLike(userId, postId);
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error toggling post like:", error);
-      res.status(500).json({ message: "Failed to toggle like" });
+        const result = await storage.togglePostLike(userId, postId);
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error toggling post like:", error);
+        res.status(500).json({ message: "Failed to toggle like" });
+      }
     }
-  });
+  );
 
-  app.post("/api/community/posts/:id/comments", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      const { id: postId } = req.params;
-      const { content } = req.body;
+  app.post(
+    "/api/community/posts/:id/comments",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.claims?.sub;
+        const { id: postId } = req.params;
+        const { content } = req.body;
 
-      const comment = await storage.createPostComment({
-        postId,
-        authorId: userId,
-        content,
-      });
+        const comment = await storage.createPostComment({
+          postId,
+          authorId: userId,
+          content,
+        });
 
-      res.status(201).json(comment);
-    } catch (error: any) {
-      console.error("Error creating comment:", error);
-      res.status(500).json({ message: "Failed to create comment" });
+        res.status(201).json(comment);
+      } catch (error: any) {
+        console.error("Error creating comment:", error);
+        res.status(500).json({ message: "Failed to create comment" });
+      }
     }
-  });
+  );
 
   // Community → Work Board: create or return an idempotent Work Request for a post
-  app.post("/api/community/posts/:id/send-to-board", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { id: postId } = req.params;
+  app.post(
+    "/api/community/posts/:id/send-to-board",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const { id: postId } = req.params;
 
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const post = await storage.getCommunityPost(postId);
-      if (!post) {
-        return res.status(404).json({ message: "Post not found" });
-      }
-
-      if (post.authorId !== String(userId)) {
-        return res.status(403).json({ message: "Only the original author can send a post to the Work Board" });
-      }
-
-      // Idempotency: if a Work Request already exists for this post, return it.
-      const [existing] = await db
-        .select()
-        .from(workRequests)
-        .where(and(eq(workRequests.source, "community"), eq(workRequests.sourceRefId, String(postId))));
-
-      if (existing) {
-        return res.json(existing);
-      }
-
-      const title = (post as any).title && String((post as any).title).trim().length > 0
-        ? String((post as any).title).trim()
-        : "Work request from community post";
-
-      const description = String((post as any).content || "").trim();
-      if (!description) {
-        return res.status(400).json({ message: "Post must have content to create a Work Request" });
-      }
-
-      const stateCode = typeof (post as any).stateCode === "string" && (post as any).stateCode.length === 2
-        ? (post as any).stateCode
-        : undefined;
-      const countyFips = typeof (post as any).countyFips === "string" && (post as any).countyFips.length > 0
-        ? (post as any).countyFips
-        : undefined;
-
-      const category = typeof (post as any).category === "string" && (post as any).category.trim().length > 0
-        ? (post as any).category.trim()
-        : undefined;
-
-      const [created] = await db
-        .insert(workRequests)
-        .values({
-          createdByUserId: String(userId),
-          title,
-          description,
-          category,
-          countyFips,
-          stateCode,
-          scope: "community",
-          source: "community",
-          sourceRefId: String(postId),
-          status: "open",
-          visibility: "community",
-          exposureMode: "guided",
-          competitionMode: "none",
-        })
-        .returning();
-
-      if (created) {
-        try {
-          await db.insert(workRequestEvents).values({
-            workRequestId: created.id,
-            type: "sent_to_board",
-            actorUserId: String(userId),
-            fromStatus: null,
-            toStatus: "open",
-            metadata: {
-              source: "community",
-              postId: String(postId),
-            },
-          });
-        } catch (e) {
-          console.warn("Failed to record work request sent_to_board event", e);
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
         }
-      }
 
-      res.status(201).json(created ?? null);
-    } catch (error: any) {
-      console.error("Error sending community post to Work Board:", error);
-      res.status(500).json({ message: error?.message || "Failed to send post to Work Board" });
+        const post = await storage.getCommunityPost(postId);
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+
+        if (post.authorId !== String(userId)) {
+          return res
+            .status(403)
+            .json({ message: "Only the original author can send a post to the Work Board" });
+        }
+
+        // Idempotency: if a Work Request already exists for this post, return it.
+        const [existing] = await db
+          .select()
+          .from(workRequests)
+          .where(
+            and(eq(workRequests.source, "community"), eq(workRequests.sourceRefId, String(postId)))
+          );
+
+        if (existing) {
+          return res.json(existing);
+        }
+
+        const title =
+          (post as any).title && String((post as any).title).trim().length > 0
+            ? String((post as any).title).trim()
+            : "Work request from community post";
+
+        const description = String((post as any).content || "").trim();
+        if (!description) {
+          return res
+            .status(400)
+            .json({ message: "Post must have content to create a Work Request" });
+        }
+
+        const stateCode =
+          typeof (post as any).stateCode === "string" && (post as any).stateCode.length === 2
+            ? (post as any).stateCode
+            : undefined;
+        const countyFips =
+          typeof (post as any).countyFips === "string" && (post as any).countyFips.length > 0
+            ? (post as any).countyFips
+            : undefined;
+
+        const category =
+          typeof (post as any).category === "string" && (post as any).category.trim().length > 0
+            ? (post as any).category.trim()
+            : undefined;
+
+        const [created] = await db
+          .insert(workRequests)
+          .values({
+            createdByUserId: String(userId),
+            title,
+            description,
+            category,
+            countyFips,
+            stateCode,
+            scope: "community",
+            source: "community",
+            sourceRefId: String(postId),
+            status: "open",
+            visibility: "community",
+            exposureMode: "guided",
+            competitionMode: "none",
+          })
+          .returning();
+
+        if (created) {
+          try {
+            await db.insert(workRequestEvents).values({
+              workRequestId: created.id,
+              type: "sent_to_board",
+              actorUserId: String(userId),
+              fromStatus: null,
+              toStatus: "open",
+              metadata: {
+                source: "community",
+                postId: String(postId),
+              },
+            });
+          } catch (e) {
+            console.warn("Failed to record work request sent_to_board event", e);
+          }
+        }
+
+        res.status(201).json(created ?? null);
+      } catch (error: any) {
+        console.error("Error sending community post to Work Board:", error);
+        res.status(500).json({ message: error?.message || "Failed to send post to Work Board" });
+      }
     }
-  });
+  );
 
   app.get("/api/community/posts/:id/comments", async (req: any, res: any) => {
     try {
@@ -9401,83 +10107,99 @@ export async function registerRoutes(app: any) {
   });
 
   // Community Post Admin Actions
-  app.patch("/api/community/posts/:id/pin", isAuthenticated, requireOnboardingComplete, isCommunityModerator, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { isPinned } = (req.body ?? {}) as any;
+  app.patch(
+    "/api/community/posts/:id/pin",
+    isAuthenticated,
+    requireOnboardingComplete,
+    isCommunityModerator,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { isPinned } = (req.body ?? {}) as any;
 
-      if (typeof isPinned !== "boolean") {
-        return res.status(400).json({ message: "isPinned must be a boolean" });
+        if (typeof isPinned !== "boolean") {
+          return res.status(400).json({ message: "isPinned must be a boolean" });
+        }
+
+        await db
+          .update(communityPosts)
+          .set({
+            isPinned,
+            updatedAt: new Date(),
+            moderatedBy: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+            moderatedAt: new Date(),
+          })
+          .where(eq(communityPosts.id, id));
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error updating community post pin state:", error);
+        res.status(500).json({ message: "Failed to update pin state" });
       }
-
-      await db
-        .update(communityPosts)
-        .set({
-          isPinned,
-          updatedAt: new Date(),
-          moderatedBy: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-          moderatedAt: new Date(),
-        })
-        .where(eq(communityPosts.id, id));
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error updating community post pin state:", error);
-      res.status(500).json({ message: "Failed to update pin state" });
     }
-  });
+  );
 
-  app.patch("/api/community/posts/:id/hide", isAuthenticated, requireOnboardingComplete, isCommunityModerator, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const { isHidden, moderatorNotes } = (req.body ?? {}) as any;
+  app.patch(
+    "/api/community/posts/:id/hide",
+    isAuthenticated,
+    requireOnboardingComplete,
+    isCommunityModerator,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const { isHidden, moderatorNotes } = (req.body ?? {}) as any;
 
-      if (typeof isHidden !== "boolean") {
-        return res.status(400).json({ message: "isHidden must be a boolean" });
+        if (typeof isHidden !== "boolean") {
+          return res.status(400).json({ message: "isHidden must be a boolean" });
+        }
+
+        await db
+          .update(communityPosts)
+          .set({
+            isHidden,
+            moderatorNotes: typeof moderatorNotes === "string" ? moderatorNotes : null,
+            moderatedBy: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+            moderatedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(communityPosts.id, id));
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error updating community post visibility:", error);
+        res.status(500).json({ message: "Failed to update visibility" });
       }
-
-      await db
-        .update(communityPosts)
-        .set({
-          isHidden,
-          moderatorNotes: typeof moderatorNotes === "string" ? moderatorNotes : null,
-          moderatedBy: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-          moderatedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(communityPosts.id, id));
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error updating community post visibility:", error);
-      res.status(500).json({ message: "Failed to update visibility" });
     }
-  });
+  );
 
-  app.delete("/api/community/posts/:id", isAuthenticated, requireOnboardingComplete, isCommunityModerator, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
+  app.delete(
+    "/api/community/posts/:id",
+    isAuthenticated,
+    requireOnboardingComplete,
+    isCommunityModerator,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
 
-      const [post] = await db
-        .select()
-        .from(communityPosts)
-        .where(eq(communityPosts.id, id))
-        .limit(1);
+        const [post] = await db
+          .select()
+          .from(communityPosts)
+          .where(eq(communityPosts.id, id))
+          .limit(1);
 
-      if (!post) {
-        return res.status(404).json({ message: "Post not found" });
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+
+        await db.delete(communityPosts).where(eq(communityPosts.id, id));
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error deleting community post:", error);
+        res.status(500).json({ message: "Failed to delete post" });
       }
-
-      await db
-        .delete(communityPosts)
-        .where(eq(communityPosts.id, id));
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error deleting community post:", error);
-      res.status(500).json({ message: "Failed to delete post" });
     }
-  });
+  );
 
   // Community Groups
   app.get("/api/community/groups", async (req: any, res: any) => {
@@ -9491,11 +10213,11 @@ export async function registerRoutes(app: any) {
       const filters: Parameters<typeof storage.getGroups>[0] = {
         stateCode:
           (req.query.stateCode as string) ||
-          (user && !hasExplicitLocationFilters ? ((user.state as string) || undefined) : undefined),
+          (user && !hasExplicitLocationFilters ? (user.state as string) || undefined : undefined),
         countyFips:
           (req.query.countyFips as string) ||
           (user && !hasExplicitLocationFilters
-            ? (((user as any).countyFips as string) || undefined)
+            ? ((user as any).countyFips as string) || undefined
             : undefined),
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
@@ -9511,46 +10233,56 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/community/groups/:groupId/join", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
+  app.post(
+    "/api/community/groups/:groupId/join",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const { groupId } = req.params;
+        await storage.joinGroup(userId, groupId);
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error joining community group:", error);
+        res.status(500).json({ message: "Failed to join group" });
       }
-
-      const { groupId } = req.params;
-      await storage.joinGroup(userId, groupId);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error joining community group:", error);
-      res.status(500).json({ message: "Failed to join group" });
     }
-  });
+  );
 
-  app.post("/api/community/groups/:groupId/leave", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
+  app.post(
+    "/api/community/groups/:groupId/leave",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const { groupId } = req.params;
+        await storage.leaveGroup(userId, groupId);
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error leaving community group:", error);
+        res.status(500).json({ message: "Failed to leave group" });
       }
-
-      const { groupId } = req.params;
-      await storage.leaveGroup(userId, groupId);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error leaving community group:", error);
-      res.status(500).json({ message: "Failed to leave group" });
     }
-  });
+  );
 
   // Regions
   app.get("/api/regions", async (req: any, res: any) => {
     try {
       const filters = {
         stateCode: req.query.stateCode as string,
-        isOfficial: req.query.isOfficial === 'true',
+        isOfficial: req.query.isOfficial === "true",
         limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
       };
@@ -9582,7 +10314,7 @@ export async function registerRoutes(app: any) {
       const filters = {
         categoryId: req.query.categoryId as string,
         sellerId: req.query.sellerId as string,
-        featured: req.query.featured === 'true',
+        featured: req.query.featured === "true",
         location: {
           state: req.query.state as string,
           county: req.query.county as string,
@@ -9591,8 +10323,8 @@ export async function registerRoutes(app: any) {
           min: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
           max: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
         },
-        materials: req.query.materials ? (req.query.materials as string).split(',') : undefined,
-        inStock: req.query.inStock === 'true',
+        materials: req.query.materials ? (req.query.materials as string).split(",") : undefined,
+        inStock: req.query.inStock === "true",
         search: req.query.search as string,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
@@ -9625,54 +10357,69 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/handmade/products", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const productData = {
-        ...req.body,
-        sellerId: userId,
-      };
+  app.post(
+    "/api/handmade/products",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const productData = {
+          ...req.body,
+          sellerId: userId,
+        };
 
-      const product = await storage.createHandmadeProduct(productData);
-      res.status(201).json(product);
-    } catch (error: any) {
-      console.error("Error creating product:", error);
-      res.status(500).json({ message: "Failed to create product" });
-    }
-  });
-
-  app.put("/api/handmade/products/:id", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-
-      // Check if user owns the product
-      const product = await storage.getHandmadeProduct(id);
-      if (!product || product.sellerId !== userId) {
-        return res.status(403).json({ message: "Unauthorized" });
+        const product = await storage.createHandmadeProduct(productData);
+        res.status(201).json(product);
+      } catch (error: any) {
+        console.error("Error creating product:", error);
+        res.status(500).json({ message: "Failed to create product" });
       }
-
-      const updatedProduct = await storage.updateHandmadeProduct(id, req.body);
-      res.json(updatedProduct);
-    } catch (error: any) {
-      console.error("Error updating product:", error);
-      res.status(500).json({ message: "Failed to update product" });
     }
-  });
+  );
+
+  app.put(
+    "/api/handmade/products/:id",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+
+        // Check if user owns the product
+        const product = await storage.getHandmadeProduct(id);
+        if (!product || product.sellerId !== userId) {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        const updatedProduct = await storage.updateHandmadeProduct(id, req.body);
+        res.json(updatedProduct);
+      } catch (error: any) {
+        console.error("Error updating product:", error);
+        res.status(500).json({ message: "Failed to update product" });
+      }
+    }
+  );
 
   // Product Favorites
-  app.post("/api/handmade/products/:id/favorite", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const { id: productId } = req.params;
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+  app.post(
+    "/api/handmade/products/:id/favorite",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const { id: productId } = req.params;
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
-      const result = await storage.toggleProductFavorite(userId, productId);
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error toggling favorite:", error);
-      res.status(500).json({ message: "Failed to toggle favorite" });
+        const result = await storage.toggleProductFavorite(userId, productId);
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error toggling favorite:", error);
+        res.status(500).json({ message: "Failed to toggle favorite" });
+      }
     }
-  });
+  );
 
   app.get("/api/handmade/favorites", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -9686,26 +10433,31 @@ export async function registerRoutes(app: any) {
   });
 
   // Product Orders
-  app.post("/api/handmade/orders", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const orderData = {
-        ...req.body,
-        buyerId: userId,
-      };
+  app.post(
+    "/api/handmade/orders",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const orderData = {
+          ...req.body,
+          buyerId: userId,
+        };
 
-      const order = await storage.createProductOrder(orderData);
-      res.status(201).json(order);
-    } catch (error: any) {
-      console.error("Error creating order:", error);
-      res.status(500).json({ message: "Failed to create order" });
+        const order = await storage.createProductOrder(orderData);
+        res.status(201).json(order);
+      } catch (error: any) {
+        console.error("Error creating order:", error);
+        res.status(500).json({ message: "Failed to create order" });
+      }
     }
-  });
+  );
 
   app.get("/api/handmade/orders", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const type = req.query.type as 'buyer' | 'seller' || 'buyer';
+      const type = (req.query.type as "buyer" | "seller") || "buyer";
 
       const orders = await storage.getUserOrders(userId, type);
       res.json(orders);
@@ -9737,45 +10489,55 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.put("/api/handmade/orders/:id", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+  app.put(
+    "/api/handmade/orders/:id",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const { id } = req.params;
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
-      const order = await storage.getProductOrder(id);
-      if (!order) {
-        return res.status(404).json({ message: "Order not found" });
+        const order = await storage.getProductOrder(id);
+        if (!order) {
+          return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Check if user is buyer or seller
+        if (order.buyerId !== userId && order.sellerId !== userId) {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        const updatedOrder = await storage.updateProductOrder(id, req.body);
+        res.json(updatedOrder);
+      } catch (error: any) {
+        console.error("Error updating order:", error);
+        res.status(500).json({ message: "Failed to update order" });
       }
-
-      // Check if user is buyer or seller
-      if (order.buyerId !== userId && order.sellerId !== userId) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-
-      const updatedOrder = await storage.updateProductOrder(id, req.body);
-      res.json(updatedOrder);
-    } catch (error: any) {
-      console.error("Error updating order:", error);
-      res.status(500).json({ message: "Failed to update order" });
     }
-  });
+  );
 
   // Product Reviews
-  app.post("/api/handmade/reviews", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const reviewData = {
-        ...req.body,
-        buyerId: userId,
-      };
+  app.post(
+    "/api/handmade/reviews",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const reviewData = {
+          ...req.body,
+          buyerId: userId,
+        };
 
-      const review = await storage.createProductReview(reviewData);
-      res.status(201).json(review);
-    } catch (error: any) {
-      console.error("Error creating review:", error);
-      res.status(500).json({ message: "Failed to create review" });
+        const review = await storage.createProductReview(reviewData);
+        res.status(201).json(review);
+      } catch (error: any) {
+        console.error("Error creating review:", error);
+        res.status(500).json({ message: "Failed to create review" });
+      }
     }
-  });
+  );
 
   app.get("/api/handmade/products/:id/reviews", async (req: any, res: any) => {
     try {
@@ -9816,32 +10578,42 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/handmade/seller-profile", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const profileData = {
-        ...req.body,
-        userId,
-      };
+  app.post(
+    "/api/handmade/seller-profile",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const profileData = {
+          ...req.body,
+          userId,
+        };
 
-      const profile = await storage.createSellerProfile(profileData);
-      res.status(201).json(profile);
-    } catch (error: any) {
-      console.error("Error creating seller profile:", error);
-      res.status(500).json({ message: "Failed to create seller profile" });
+        const profile = await storage.createSellerProfile(profileData);
+        res.status(201).json(profile);
+      } catch (error: any) {
+        console.error("Error creating seller profile:", error);
+        res.status(500).json({ message: "Failed to create seller profile" });
+      }
     }
-  });
+  );
 
-  app.put("/api/handmade/seller-profile", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const profile = await storage.updateSellerProfile(userId, req.body);
-      res.json(profile);
-    } catch (error: any) {
-      console.error("Error updating seller profile:", error);
-      res.status(500).json({ message: "Failed to update seller profile" });
+  app.put(
+    "/api/handmade/seller-profile",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const profile = await storage.updateSellerProfile(userId, req.body);
+        res.json(profile);
+      } catch (error: any) {
+        console.error("Error updating seller profile:", error);
+        res.status(500).json({ message: "Failed to update seller profile" });
+      }
     }
-  });
+  );
 
   app.get("/api/handmade/seller-profile", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -9879,39 +10651,44 @@ export async function registerRoutes(app: any) {
   // ===== COMMUNITY MODERATION API ROUTES =====
 
   // Report content for moderation
-  app.post("/api/moderation/reports", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      const user = await storage.getUser(userId);
+  app.post(
+    "/api/moderation/reports",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.claims?.sub;
+        const user = await storage.getUser(userId);
 
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
+        if (!user) {
+          return res.status(401).json({ message: "User not found" });
+        }
+
+        const reportData = {
+          ...req.body,
+          reporterId: userId,
+          reporterCounty: user.county,
+          reporterState: user.state,
+        };
+
+        const parsedReport = insertModerationReportSchema.safeParse(reportData);
+        if (!parsedReport.success) {
+          return res.status(400).json({
+            message: "Invalid moderation report payload",
+            issues: parsedReport.error.issues,
+          });
+        }
+
+        const validatedReport = parsedReport.data;
+        const report = await storage.createModerationReport(validatedReport);
+
+        res.json(report);
+      } catch (error: any) {
+        console.error("Error creating moderation report:", error);
+        res.status(500).json({ message: "Failed to create report" });
       }
-
-      const reportData = {
-        ...req.body,
-        reporterId: userId,
-        reporterCounty: user.county,
-        reporterState: user.state,
-      };
-
-      const parsedReport = insertModerationReportSchema.safeParse(reportData);
-      if (!parsedReport.success) {
-        return res.status(400).json({
-          message: "Invalid moderation report payload",
-          issues: parsedReport.error.issues,
-        });
-      }
-
-      const validatedReport = parsedReport.data;
-      const report = await storage.createModerationReport(validatedReport);
-
-      res.json(report);
-    } catch (error: any) {
-      console.error("Error creating moderation report:", error);
-      res.status(500).json({ message: "Failed to create report" });
     }
-  });
+  );
 
   // Get moderation reports for a user's location
   app.get("/api/moderation/reports", isAuthenticated, async (req: any, res: any) => {
@@ -9958,79 +10735,92 @@ export async function registerRoutes(app: any) {
   });
 
   // Vote on a moderation report
-  app.post("/api/moderation/reports/:reportId/vote", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const { reportId } = req.params;
-      const { vote } = req.body;
-      const userId = req.user?.claims?.sub;
-      const user = await storage.getUser(userId);
+  app.post(
+    "/api/moderation/reports/:reportId/vote",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const { reportId } = req.params;
+        const { vote } = req.body;
+        const userId = req.user?.claims?.sub;
+        const user = await storage.getUser(userId);
 
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
+        if (!user) {
+          return res.status(401).json({ message: "User not found" });
+        }
+
+        // Check if user can vote on this report
+        const canVote = await storage.canUserVoteOnReport(userId, reportId);
+        if (!canVote) {
+          return res.status(403).json({ message: "You are not eligible to vote on this report" });
+        }
+
+        const voteData = {
+          reportId,
+          voterId: userId,
+          vote,
+          voterCounty: user.county,
+          voterState: user.state,
+        };
+
+        const parsedVote = insertModerationVoteSchema.safeParse(voteData);
+        if (!parsedVote.success) {
+          return res.status(400).json({
+            message: "Invalid moderation vote payload",
+            issues: parsedVote.error.issues,
+          });
+        }
+
+        const validatedVote = parsedVote.data;
+        const moderationVote = await storage.createModerationVote(validatedVote);
+
+        res.json(moderationVote);
+      } catch (error: any) {
+        console.error("Error creating moderation vote:", error);
+
+        if (error.message === "User has already voted on this report") {
+          return res.status(400).json({ message: error.message });
+        }
+
+        res.status(500).json({ message: "Failed to create vote" });
       }
-
-      // Check if user can vote on this report
-      const canVote = await storage.canUserVoteOnReport(userId, reportId);
-      if (!canVote) {
-        return res.status(403).json({ message: "You are not eligible to vote on this report" });
-      }
-
-      const voteData = {
-        reportId,
-        voterId: userId,
-        vote,
-        voterCounty: user.county,
-        voterState: user.state,
-      };
-
-      const parsedVote = insertModerationVoteSchema.safeParse(voteData);
-      if (!parsedVote.success) {
-        return res.status(400).json({
-          message: "Invalid moderation vote payload",
-          issues: parsedVote.error.issues,
-        });
-      }
-
-      const validatedVote = parsedVote.data;
-      const moderationVote = await storage.createModerationVote(validatedVote);
-
-      res.json(moderationVote);
-    } catch (error: any) {
-      console.error("Error creating moderation vote:", error);
-
-      if (error.message === 'User has already voted on this report') {
-        return res.status(400).json({ message: error.message });
-      }
-
-      res.status(500).json({ message: "Failed to create vote" });
     }
-  });
+  );
 
   // Get votes for a specific report
-  app.get("/api/moderation/reports/:reportId/votes", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { reportId } = req.params;
-      const votes = await storage.getReportVotes(reportId);
-      res.json(votes);
-    } catch (error: any) {
-      console.error("Error fetching report votes:", error);
-      res.status(500).json({ message: "Failed to fetch votes" });
+  app.get(
+    "/api/moderation/reports/:reportId/votes",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { reportId } = req.params;
+        const votes = await storage.getReportVotes(reportId);
+        res.json(votes);
+      } catch (error: any) {
+        console.error("Error fetching report votes:", error);
+        res.status(500).json({ message: "Failed to fetch votes" });
+      }
     }
-  });
+  );
 
   // Check if user can vote on a report
-  app.get("/api/moderation/reports/:reportId/can-vote", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { reportId } = req.params;
-      const userId = req.user?.claims?.sub;
+  app.get(
+    "/api/moderation/reports/:reportId/can-vote",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { reportId } = req.params;
+        const userId = req.user?.claims?.sub;
 
-      const canVote = await storage.canUserVoteOnReport(userId, reportId);
-      res.json({ canVote });
-    } catch (error: any) {
-      console.error("Error checking vote eligibility:", error);
-      res.status(500).json({ message: "Failed to check vote eligibility" });
+        const canVote = await storage.canUserVoteOnReport(userId, reportId);
+        res.json({ canVote });
+      } catch (error: any) {
+        console.error("Error checking vote eligibility:", error);
+        res.status(500).json({ message: "Failed to check vote eligibility" });
+      }
     }
-  });
+  );
 
   // Create moderation appeal
   app.post("/api/moderation/appeals", isAuthenticated, async (req: any, res: any) => {
@@ -10128,16 +10918,20 @@ export async function registerRoutes(app: any) {
   });
 
   // Get moderation actions for content
-  app.get("/api/moderation/actions/:contentType/:contentId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { contentType, contentId } = req.params;
-      const actions = await storage.getModerationActions(contentType, contentId);
-      res.json(actions);
-    } catch (error: any) {
-      console.error("Error fetching moderation actions:", error);
-      res.status(500).json({ message: "Failed to fetch actions" });
+  app.get(
+    "/api/moderation/actions/:contentType/:contentId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { contentType, contentId } = req.params;
+        const actions = await storage.getModerationActions(contentType, contentId);
+        res.json(actions);
+      } catch (error: any) {
+        console.error("Error fetching moderation actions:", error);
+        res.status(500).json({ message: "Failed to fetch actions" });
+      }
     }
-  });
+  );
 
   // Get moderation settings for location
   app.get("/api/moderation/settings", isAuthenticated, async (req: any, res: any) => {
@@ -10151,7 +10945,7 @@ export async function registerRoutes(app: any) {
 
       const settings = await storage.getModerationSettings(
         user.county || undefined,
-        user.state || undefined,
+        user.state || undefined
       );
       res.json(settings);
     } catch (error: any) {
@@ -10193,8 +10987,8 @@ export async function registerRoutes(app: any) {
         targetRole,
         personalMessage: personalMessage || null,
         invitationCode,
-        type: 'email',
-        status: 'pending',
+        type: "email",
+        status: "pending",
         expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       });
 
@@ -10238,7 +11032,7 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Invalid invitation code" });
       }
 
-      if (invitation.status !== 'pending') {
+      if (invitation.status !== "pending") {
         return res.status(400).json({ message: "Invitation has already been used or expired" });
       }
 
@@ -10249,7 +11043,7 @@ export async function registerRoutes(app: any) {
       if (invitation.inviterId) {
         await storage.incrementInvitationsAccepted(
           invitation.inviterId,
-          invitation.targetRole as 'homeowner' | 'contractor'
+          invitation.targetRole as "homeowner" | "contractor"
         );
       }
 
@@ -10267,16 +11061,16 @@ export async function registerRoutes(app: any) {
 
       const invitation = await storage.getInvitationByCode(code);
       if (!invitation) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           message: "Invalid invitation code",
-          valid: false 
+          valid: false,
         });
       }
 
-      if (invitation.status !== 'pending') {
-        return res.status(400).json({ 
+      if (invitation.status !== "pending") {
+        return res.status(400).json({
           message: "Invitation has already been used or expired",
-          valid: false 
+          valid: false,
         });
       }
 
@@ -10284,7 +11078,7 @@ export async function registerRoutes(app: any) {
         valid: true,
         email: invitation.inviteeEmail,
         targetRole: invitation.targetRole,
-        personalMessage: invitation.personalMessage
+        personalMessage: invitation.personalMessage,
       });
     } catch (error: any) {
       console.error("Error validating invitation:", error);
@@ -10328,7 +11122,7 @@ export async function registerRoutes(app: any) {
           totalInvitationsSent: 0,
           totalInvitationsAccepted: 0,
           contractorReferrals: 0,
-          homeownerReferrals: 0
+          homeownerReferrals: 0,
         });
       }
 
@@ -10365,158 +11159,177 @@ export async function registerRoutes(app: any) {
   // Professional Network Applications
 
   // Realtor application submission
-  app.post("/api/realtor/application", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+  app.post(
+    "/api/realtor/application",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      // Check if user already has a realtor profile
-      const existingProfile = await storage.getRealtorProfile(userId);
-      if (existingProfile) {
-        return res.status(400).json({ message: "You already have a realtor profile" });
-      }
+        // Check if user already has a realtor profile
+        const existingProfile = await storage.getRealtorProfile(userId);
+        if (existingProfile) {
+          return res.status(400).json({ message: "You already have a realtor profile" });
+        }
 
-      const parsedRealtor = insertRealtorProfileSchema.safeParse(req.body);
-      if (!parsedRealtor.success) {
-        return res.status(400).json({
-          message: "Invalid realtor application payload",
-          issues: parsedRealtor.error.issues,
+        const parsedRealtor = insertRealtorProfileSchema.safeParse(req.body);
+        if (!parsedRealtor.success) {
+          return res.status(400).json({
+            message: "Invalid realtor application payload",
+            issues: parsedRealtor.error.issues,
+          });
+        }
+
+        const realtorProfile = await storage.createRealtorProfile(parsedRealtor.data);
+
+        // Update user role to realtor
+        await storage.updateUserRole(userId, "realtor");
+
+        await storage.logEvent("realtor_application_submitted", {
+          profileId: realtorProfile.id,
+          userId,
         });
+
+        res.json({
+          message: "Realtor application submitted successfully",
+          profileId: realtorProfile.id,
+        });
+      } catch (error: any) {
+        console.error("Error submitting realtor application:", error);
+        res.status(500).json({ message: "Failed to submit realtor application" });
       }
-
-      const realtorProfile = await storage.createRealtorProfile(parsedRealtor.data);
-
-      // Update user role to realtor
-      await storage.updateUserRole(userId, 'realtor');
-
-      await storage.logEvent('realtor_application_submitted', {
-        profileId: realtorProfile.id,
-        userId,
-      });
-
-      res.json({ 
-        message: "Realtor application submitted successfully", 
-        profileId: realtorProfile.id 
-      });
-    } catch (error: any) {
-      console.error("Error submitting realtor application:", error);
-      res.status(500).json({ message: "Failed to submit realtor application" });
     }
-  });
+  );
 
   // Car salesman application submission
-  app.post("/api/car-salesman/application", isAuthenticated, requireAddressVerification, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+  app.post(
+    "/api/car-salesman/application",
+    isAuthenticated,
+    requireAddressVerification,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      // Check if user already has a car salesman profile
-      const existingProfile = await storage.getCarSalesmanProfile(userId);
-      if (existingProfile) {
-        return res.status(400).json({ message: "You already have a car salesman profile" });
-      }
+        // Check if user already has a car salesman profile
+        const existingProfile = await storage.getCarSalesmanProfile(userId);
+        if (existingProfile) {
+          return res.status(400).json({ message: "You already have a car salesman profile" });
+        }
 
-      const parsedCarSalesman = insertCarSalesmanProfileSchema.safeParse(req.body);
-      if (!parsedCarSalesman.success) {
-        return res.status(400).json({
-          message: "Invalid car salesman application payload",
-          issues: parsedCarSalesman.error.issues,
+        const parsedCarSalesman = insertCarSalesmanProfileSchema.safeParse(req.body);
+        if (!parsedCarSalesman.success) {
+          return res.status(400).json({
+            message: "Invalid car salesman application payload",
+            issues: parsedCarSalesman.error.issues,
+          });
+        }
+
+        const carSalesmanProfile = await storage.createCarSalesmanProfile(parsedCarSalesman.data);
+
+        // Update user role to car_dealer
+        await storage.updateUserRole(userId, "car_dealer");
+
+        await storage.logEvent("car_salesman_application_submitted", {
+          profileId: carSalesmanProfile.id,
+          userId,
         });
+
+        res.json({
+          message: "Car salesman application submitted successfully",
+          profileId: carSalesmanProfile.id,
+        });
+      } catch (error: any) {
+        console.error("Error submitting car salesman application:", error);
+        res.status(500).json({ message: "Failed to submit car salesman application" });
       }
-
-      const carSalesmanProfile = await storage.createCarSalesmanProfile(parsedCarSalesman.data);
-
-      // Update user role to car_dealer
-      await storage.updateUserRole(userId, 'car_dealer');
-
-      await storage.logEvent('car_salesman_application_submitted', {
-        profileId: carSalesmanProfile.id,
-        userId,
-      });
-
-      res.json({ 
-        message: "Car salesman application submitted successfully", 
-        profileId: carSalesmanProfile.id 
-      });
-    } catch (error: any) {
-      console.error("Error submitting car salesman application:", error);
-      res.status(500).json({ message: "Failed to submit car salesman application" });
     }
-  });
+  );
 
   // Professional verification endpoints for admins
-  app.get("/api/admin/professional/pending", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const pendingRealtors = await storage.getPendingRealtorApplications();
-      const pendingCarSalesmen = await storage.getPendingCarSalesmanApplications();
+  app.get(
+    "/api/admin/professional/pending",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const pendingRealtors = await storage.getPendingRealtorApplications();
+        const pendingCarSalesmen = await storage.getPendingCarSalesmanApplications();
 
-      res.json({
-        realtors: pendingRealtors,
-        carSalesmen: pendingCarSalesmen
-      });
-    } catch (error: any) {
-      console.error("Error fetching pending applications:", error);
-      res.status(500).json({ message: "Failed to fetch pending applications" });
+        res.json({
+          realtors: pendingRealtors,
+          carSalesmen: pendingCarSalesmen,
+        });
+      } catch (error: any) {
+        console.error("Error fetching pending applications:", error);
+        res.status(500).json({ message: "Failed to fetch pending applications" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/realtor/verify/:profileId", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { profileId } = req.params;
-      const { approved, notes } = req.body;
-      const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+  app.post(
+    "/api/admin/realtor/verify/:profileId",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { profileId } = req.params;
+        const { approved, notes } = req.body;
+        const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const result = await storage.updateRealtorVerificationStatus(
-        profileId, 
-        {
+        const result = await storage.updateRealtorVerificationStatus(profileId, {
           approved: !!approved,
-          notes: notes || '',
+          notes: notes || "",
           reviewedBy: adminId,
           reviewedAt: new Date(),
-        }
-      );
+        });
 
-      await storage.logEvent('realtor_verification_decision', {
-        profileId,
-        adminId,
-        approved,
-        notes
-      });
+        await storage.logEvent("realtor_verification_decision", {
+          profileId,
+          adminId,
+          approved,
+          notes,
+        });
 
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error updating realtor verification:", error);
-      res.status(500).json({ message: "Failed to update verification status" });
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error updating realtor verification:", error);
+        res.status(500).json({ message: "Failed to update verification status" });
+      }
     }
-  });
+  );
 
-  app.post("/api/admin/car-salesman/verify/:profileId", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const { profileId } = req.params;
-      const { approved, notes } = req.body;
-      const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+  app.post(
+    "/api/admin/car-salesman/verify/:profileId",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const { profileId } = req.params;
+        const { approved, notes } = req.body;
+        const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const result = await storage.updateCarSalesmanVerificationStatus(
-        profileId, 
-        {
+        const result = await storage.updateCarSalesmanVerificationStatus(profileId, {
           approved: !!approved,
-          notes: notes || '',
+          notes: notes || "",
           reviewedBy: adminId,
           reviewedAt: new Date(),
-        }
-      );
+        });
 
-      await storage.logEvent('car_salesman_verification_decision', {
-        profileId,
-        adminId,
-        approved,
-        notes
-      });
+        await storage.logEvent("car_salesman_verification_decision", {
+          profileId,
+          adminId,
+          approved,
+          notes,
+        });
 
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error updating car salesman verification:", error);
-      res.status(500).json({ message: "Failed to update verification status" });
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error updating car salesman verification:", error);
+        res.status(500).json({ message: "Failed to update verification status" });
+      }
     }
-  });
+  );
 
   // ==================== PROFESSIONAL PARTNERSHIPS ====================
 
@@ -10540,8 +11353,8 @@ export async function registerRoutes(app: any) {
         partnershipType,
         referralTerms,
         partnershipDescription,
-        status: 'pending',
-        createdAt: new Date()
+        status: "pending",
+        createdAt: new Date(),
       };
 
       res.status(201).json(partnership);
@@ -10551,10 +11364,10 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Get user's partnerships  
+  // Get user's partnerships
   app.get("/api/partnerships/my", isAuthenticated, async (req: any, res: any) => {
     try {
-      return res.status(501).json({ message: 'Partnerships not implemented' });
+      return res.status(501).json({ message: "Partnerships not implemented" });
     } catch (error: any) {
       console.error("Error fetching partnerships:", error);
       res.status(500).json({ message: "Failed to fetch partnerships" });
@@ -10565,30 +11378,33 @@ export async function registerRoutes(app: any) {
   app.get("/api/partnerships/find/:role", isAuthenticated, async (req: any, res: any) => {
     try {
       const { role } = req.params;
-      
+
       // Mock potential partners based on requested role
-      const mockPartners = role === 'contractor' ? [
-        {
-          id: 'contractor_789',
-          firstName: 'Mike',
-          lastName: 'Rodriguez',
-          companyName: 'Rodriguez Construction',
-          specialties: ['Roofing', 'Siding', 'General'],
-          rating: 4.8,
-          completedJobs: 147,
-          location: 'Downtown Area'
-        },
-        {
-          id: 'contractor_101',
-          firstName: 'Sarah',
-          lastName: 'Johnson',
-          companyName: 'Johnson Home Improvements',
-          specialties: ['Kitchen Remodel', 'Bathroom Remodel'],
-          rating: 4.9,
-          completedJobs: 89,
-          location: 'Westside'
-        }
-      ] : [];
+      const mockPartners =
+        role === "contractor"
+          ? [
+              {
+                id: "contractor_789",
+                firstName: "Mike",
+                lastName: "Rodriguez",
+                companyName: "Rodriguez Construction",
+                specialties: ["Roofing", "Siding", "General"],
+                rating: 4.8,
+                completedJobs: 147,
+                location: "Downtown Area",
+              },
+              {
+                id: "contractor_101",
+                firstName: "Sarah",
+                lastName: "Johnson",
+                companyName: "Johnson Home Improvements",
+                specialties: ["Kitchen Remodel", "Bathroom Remodel"],
+                rating: 4.9,
+                completedJobs: 89,
+                location: "Westside",
+              },
+            ]
+          : [];
 
       res.json(mockPartners);
     } catch (error: any) {
@@ -10620,7 +11436,7 @@ export async function registerRoutes(app: any) {
       const program = await storage.createAffiliateProgram({
         userId,
         referralCode,
-        status: 'active',
+        status: "active",
       } as any);
 
       res.status(201).json(program);
@@ -10634,7 +11450,7 @@ export async function registerRoutes(app: any) {
   app.post("/api/affiliate/track-click", async (req: any, res: any) => {
     try {
       return res.status(501).json({
-        message: "Affiliate click tracking is disabled in the current deployment"
+        message: "Affiliate click tracking is disabled in the current deployment",
       });
     } catch (error: any) {
       console.error("Error tracking referral click:", error);
@@ -10668,18 +11484,18 @@ export async function registerRoutes(app: any) {
   // Process commission (internal use - called when revenue is generated)
   app.post("/api/affiliate/commission", isAuthenticated, async (req: any, res: any) => {
     try {
-      const { 
-        affiliateProgramId, 
-        referralId, 
-        transactionId, 
-        revenueAmount, 
-        commissionAmount, 
-        description 
+      const {
+        affiliateProgramId,
+        referralId,
+        transactionId,
+        revenueAmount,
+        commissionAmount,
+        description,
       } = req.body;
 
       if (!affiliateProgramId || !revenueAmount || !commissionAmount) {
-        return res.status(400).json({ 
-          message: "Affiliate program ID, revenue amount, and commission amount are required" 
+        return res.status(400).json({
+          message: "Affiliate program ID, revenue amount, and commission amount are required",
         });
       }
 
@@ -10690,7 +11506,7 @@ export async function registerRoutes(app: any) {
         revenueAmount: revenueAmount.toString(),
         commissionAmount: commissionAmount.toString(),
         // description: description || 'Commission earned',
-        status: 'pending'
+        status: "pending",
       });
 
       res.status(201).json(commission);
@@ -10764,29 +11580,33 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: Approve commission
-  app.put("/api/admin/affiliate/commissions/:commissionId/approve", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
+  app.put(
+    "/api/admin/affiliate/commissions/:commissionId/approve",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.claims?.sub;
+        if (!userId) {
+          return res.status(401).json({ message: "User not authenticated" });
+        }
+        const user = await storage.getUser(userId);
+
+        // Check admin permissions
+        const userRole = user?.role || "";
+        if (!user || !["ops_admin", "head_admin"].includes(userRole)) {
+          return res.status(403).json({ message: "Admin access required" });
+        }
+
+        const { commissionId } = req.params;
+        await storage.approveCommission(commissionId);
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error approving commission:", error);
+        res.status(500).json({ message: "Failed to approve commission" });
       }
-      const user = await storage.getUser(userId);
-
-      // Check admin permissions
-      const userRole = user?.role || '';
-      if (!user || !['ops_admin', 'head_admin'].includes(userRole)) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { commissionId } = req.params;
-      await storage.approveCommission(commissionId);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error approving commission:", error);
-      res.status(500).json({ message: "Failed to approve commission" });
     }
-  });
+  );
 
   // Admin: Create payout
   app.post("/api/admin/affiliate/payouts", isAuthenticated, async (req: any, res: any) => {
@@ -10798,25 +11618,25 @@ export async function registerRoutes(app: any) {
       const user = await storage.getUser(userId);
 
       // Check admin permissions
-      const userRole = user?.role || '';
-      if (!user || !['ops_admin', 'head_admin'].includes(userRole)) {
+      const userRole = user?.role || "";
+      if (!user || !["ops_admin", "head_admin"].includes(userRole)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const { affiliateProgramId, totalAmount, payoutMethod, notes } = req.body;
 
       if (!affiliateProgramId || !totalAmount) {
-        return res.status(400).json({ 
-          message: "Affiliate program ID and total amount are required" 
+        return res.status(400).json({
+          message: "Affiliate program ID and total amount are required",
         });
       }
 
       const payout = await storage.createPayout({
         affiliateProgramId,
         totalAmount: totalAmount.toString(),
-        payoutMethod: payoutMethod || 'manual',
-        status: 'pending',
-        notes
+        payoutMethod: payoutMethod || "manual",
+        status: "pending",
+        notes,
       });
 
       res.status(201).json(payout);
@@ -10827,35 +11647,39 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: Update payout status
-  app.put("/api/admin/affiliate/payouts/:payoutId/status", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
+  app.put(
+    "/api/admin/affiliate/payouts/:payoutId/status",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.claims?.sub;
+        if (!userId) {
+          return res.status(401).json({ message: "User not authenticated" });
+        }
+        const user = await storage.getUser(userId);
+
+        // Check admin permissions
+        const userRole = user?.role || "";
+        if (!user || !["ops_admin", "head_admin"].includes(userRole)) {
+          return res.status(403).json({ message: "Admin access required" });
+        }
+
+        const { payoutId } = req.params;
+        const { status } = req.body;
+
+        if (!status || !["pending", "processing", "completed", "failed"].includes(status)) {
+          return res.status(400).json({ message: "Valid status is required" });
+        }
+
+        await storage.updatePayoutStatus(payoutId, status);
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error updating payout status:", error);
+        res.status(500).json({ message: "Failed to update payout status" });
       }
-      const user = await storage.getUser(userId);
-
-      // Check admin permissions
-      const userRole = user?.role || '';
-      if (!user || !['ops_admin', 'head_admin'].includes(userRole)) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { payoutId } = req.params;
-      const { status } = req.body;
-
-      if (!status || !['pending', 'processing', 'completed', 'failed'].includes(status)) {
-        return res.status(400).json({ message: "Valid status is required" });
-      }
-
-      await storage.updatePayoutStatus(payoutId, status);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error updating payout status:", error);
-      res.status(500).json({ message: "Failed to update payout status" });
     }
-  });
+  );
 
   // Update affiliate program settings
   app.put("/api/affiliate/settings", isAuthenticated, async (req: AuthedRequest, res: Response) => {
@@ -10905,7 +11729,7 @@ export async function registerRoutes(app: any) {
   app.get("/api/tutorials/recommended", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const userRole = req.user?.role || 'homeowner';
+      const userRole = req.user?.role || "homeowner";
 
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
@@ -10953,9 +11777,9 @@ export async function registerRoutes(app: any) {
       await tutorialStorage.recordTutorialAnalytics({
         userId,
         tutorialId,
-        stepId: tutorial.steps[0]?.id || 'start',
-        action: 'started',
-        userAgent: req.headers['user-agent'],
+        stepId: tutorial.steps[0]?.id || "start",
+        action: "started",
+        userAgent: req.headers["user-agent"],
         viewport: req.body.viewport,
       });
 
@@ -10963,7 +11787,7 @@ export async function registerRoutes(app: any) {
       const progress = await tutorialStorage.createOrUpdateTutorialProgress({
         userId,
         tutorialId,
-        tutorialType: tutorial.type as 'onboarding' | 'feature',
+        tutorialType: tutorial.type as "onboarding" | "feature",
         stepIndex: "0",
         isCompleted: false,
         isSkipped: false,
@@ -10998,7 +11822,7 @@ export async function registerRoutes(app: any) {
         stepId: tutorial.steps[parseInt(stepIndex)]?.id || stepIndex,
         action,
         timeSpent: timeSpent?.toString(),
-        userAgent: req.headers['user-agent'],
+        userAgent: req.headers["user-agent"],
         viewport: req.body.viewport,
         metadata,
       });
@@ -11007,12 +11831,12 @@ export async function registerRoutes(app: any) {
       const progress = await tutorialStorage.createOrUpdateTutorialProgress({
         userId,
         tutorialId,
-        tutorialType: tutorial.type as 'onboarding' | 'feature',
+        tutorialType: tutorial.type as "onboarding" | "feature",
         stepIndex,
-        isCompleted: action === 'completed',
-        isSkipped: action === 'skipped',
+        isCompleted: action === "completed",
+        isSkipped: action === "skipped",
         metadata,
-        ...(action === 'completed' || action === 'skipped' ? { completedAt: new Date() } : {}),
+        ...(action === "completed" || action === "skipped" ? { completedAt: new Date() } : {}),
       });
 
       res.json(progress);
@@ -11032,15 +11856,19 @@ export async function registerRoutes(app: any) {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      const progress = await tutorialStorage.markTutorialCompleted(userId, tutorialId, finalStepIndex);
+      const progress = await tutorialStorage.markTutorialCompleted(
+        userId,
+        tutorialId,
+        finalStepIndex
+      );
 
       // Record completion analytics
       await tutorialStorage.recordTutorialAnalytics({
         userId,
         tutorialId,
-        stepId: 'completion',
-        action: 'completed',
-        userAgent: req.headers['user-agent'],
+        stepId: "completion",
+        action: "completed",
+        userAgent: req.headers["user-agent"],
         viewport: req.body.viewport,
       });
 
@@ -11066,9 +11894,9 @@ export async function registerRoutes(app: any) {
       await tutorialStorage.recordTutorialAnalytics({
         userId,
         tutorialId,
-        stepId: 'skip',
-        action: 'skipped',
-        userAgent: req.headers['user-agent'],
+        stepId: "skip",
+        action: "skipped",
+        userAgent: req.headers["user-agent"],
         viewport: req.body.viewport,
       });
 
@@ -11112,8 +11940,8 @@ export async function registerRoutes(app: any) {
   app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res: any) => {
     try {
       if (!stripe) {
-        return res.status(500).json({ 
-          message: "Payment processing not configured. Stripe keys needed." 
+        return res.status(500).json({
+          message: "Payment processing not configured. Stripe keys needed.",
         });
       }
 
@@ -11159,16 +11987,16 @@ export async function registerRoutes(app: any) {
       // Send notifications to both buyer and seller
       const sellerNotification = {
         userId: transaction.sellerId,
-        type: 'payment_received' as const,
-        title: 'New Purchase',
+        type: "payment_received" as const,
+        title: "New Purchase",
         message: `Someone purchased your item for $${transaction.totalAmount}`,
         actionUrl: `/transactions/${transaction.id}`,
       };
 
       const buyerNotification = {
         userId: transaction.buyerId,
-        type: 'payment_received' as const,
-        title: 'Purchase Confirmed',
+        type: "payment_received" as const,
+        title: "Purchase Confirmed",
         message: `Your purchase of $${transaction.totalAmount} has been confirmed`,
         actionUrl: `/transactions/${transaction.id}`,
       };
@@ -11182,16 +12010,24 @@ export async function registerRoutes(app: any) {
       try {
         const messaging = getMessagingService();
         await Promise.all([
-          messaging.notifyUser(String(transaction.sellerId), "notification:new_marketplace_transaction", {
-            role: "seller",
-            transactionId: transaction.id,
-            totalAmount: transaction.totalAmount,
-          }),
-          messaging.notifyUser(String(transaction.buyerId), "notification:new_marketplace_transaction", {
-            role: "buyer",
-            transactionId: transaction.id,
-            totalAmount: transaction.totalAmount,
-          }),
+          messaging.notifyUser(
+            String(transaction.sellerId),
+            "notification:new_marketplace_transaction",
+            {
+              role: "seller",
+              transactionId: transaction.id,
+              totalAmount: transaction.totalAmount,
+            }
+          ),
+          messaging.notifyUser(
+            String(transaction.buyerId),
+            "notification:new_marketplace_transaction",
+            {
+              role: "buyer",
+              transactionId: transaction.id,
+              totalAmount: transaction.totalAmount,
+            }
+          ),
         ]);
       } catch (err) {
         console.warn("[Messaging] Failed to emit marketplace transaction notifications", err);
@@ -11207,10 +12043,13 @@ export async function registerRoutes(app: any) {
   // Get user transactions
   app.get("/api/marketplace/transactions", isAuthenticated, async (req: any, res: any) => {
     try {
-      const { role = 'buyer' } = req.query;
+      const { role = "buyer" } = req.query;
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-      const transactions = await storage.getMarketplaceTransactionsByUser(userId, role as 'buyer' | 'seller');
+      const transactions = await storage.getMarketplaceTransactionsByUser(
+        userId,
+        role as "buyer" | "seller"
+      );
       res.json(transactions);
     } catch (error: any) {
       console.error("Error fetching transactions:", error);
@@ -11228,16 +12067,24 @@ export async function registerRoutes(app: any) {
       try {
         const messaging = getMessagingService();
         if (transaction?.buyerId) {
-          await messaging.notifyUser(String(transaction.buyerId), "marketplace:transaction_update", {
-            transaction,
-            role: "buyer",
-          });
+          await messaging.notifyUser(
+            String(transaction.buyerId),
+            "marketplace:transaction_update",
+            {
+              transaction,
+              role: "buyer",
+            }
+          );
         }
         if (transaction?.sellerId) {
-          await messaging.notifyUser(String(transaction.sellerId), "marketplace:transaction_update", {
-            transaction,
-            role: "seller",
-          });
+          await messaging.notifyUser(
+            String(transaction.sellerId),
+            "marketplace:transaction_update",
+            {
+              transaction,
+              role: "seller",
+            }
+          );
         }
       } catch (err) {
         console.warn("[Messaging] Failed to emit marketplace transaction update", err);
@@ -11263,8 +12110,8 @@ export async function registerRoutes(app: any) {
       // Send notification to reviewee
       const notification = {
         userId: review.revieweeId,
-        type: 'review_received' as const,
-        title: 'New Review Received',
+        type: "review_received" as const,
+        title: "New Review Received",
         message: `You received a ${review.rating}-star review`,
         actionUrl: `/profile/reviews`,
       };
@@ -11293,9 +12140,9 @@ export async function registerRoutes(app: any) {
   app.get("/api/reviews/:userId", async (req: any, res: any) => {
     try {
       const { userId } = req.params;
-      const { role = 'reviewee' } = req.query;
+      const { role = "reviewee" } = req.query;
 
-      const reviews = await storage.getUserReviews(userId, role as 'reviewer' | 'reviewee');
+      const reviews = await storage.getUserReviews(userId, role as "reviewer" | "reviewee");
       const ratings = await storage.getUserRatings(userId);
 
       res.json({ reviews, ratings });
@@ -11320,7 +12167,7 @@ export async function registerRoutes(app: any) {
         verifiedOnly,
         freeShipping,
         buyerProtection,
-        sortBy = 'date_desc'
+        sortBy = "date_desc",
       } = req.query;
 
       // Log search analytics if user is authenticated
@@ -11328,17 +12175,17 @@ export async function registerRoutes(app: any) {
         await storage.logSearchAnalytics({
           userId: (req.user as any)?.claims?.sub || (req.user as any)?.id,
           searchQuery: query as string,
-          searchType: 'marketplace',
+          searchType: "marketplace",
           filters: {
             category,
             minPrice: minPrice ? parseInt(minPrice as string) : undefined,
             maxPrice: maxPrice ? parseInt(maxPrice as string) : undefined,
             location,
             condition,
-            verifiedOnly: verifiedOnly === 'true',
-            freeShipping: freeShipping === 'true',
-            buyerProtection: buyerProtection === 'true',
-            sortBy
+            verifiedOnly: verifiedOnly === "true",
+            freeShipping: freeShipping === "true",
+            buyerProtection: buyerProtection === "true",
+            sortBy,
           },
           resultsCount: 0, // Will be updated after search
         });
@@ -11412,9 +12259,9 @@ export async function registerRoutes(app: any) {
       // Notify relevant parties
       const notification = {
         userId: dispute.transactionId, // Will need to get the other party's ID
-        type: 'dispute',
-        title: 'Transaction Dispute Opened',
-        message: 'A dispute has been opened for one of your transactions',
+        type: "dispute",
+        title: "Transaction Dispute Opened",
+        message: "A dispute has been opened for one of your transactions",
         actionUrl: `/disputes/${dispute.id}`,
       };
 
@@ -11483,8 +12330,10 @@ export async function registerRoutes(app: any) {
 
       const fromParam = typeof req.query.from === "string" ? req.query.from : undefined;
       const toParam = typeof req.query.to === "string" ? req.query.to : undefined;
-      const directionParam = typeof req.query.direction === "string" ? req.query.direction : undefined;
-      const typeParam = typeof req.query.transactionType === "string" ? req.query.transactionType : undefined;
+      const directionParam =
+        typeof req.query.direction === "string" ? req.query.direction : undefined;
+      const typeParam =
+        typeof req.query.transactionType === "string" ? req.query.transactionType : undefined;
 
       const fromDate = fromParam ? new Date(fromParam) : undefined;
       const toDate = toParam ? new Date(toParam) : undefined;
@@ -11493,7 +12342,8 @@ export async function registerRoutes(app: any) {
 
       const normalizedDirection =
         directionParam === "credit" || directionParam === "debit" ? directionParam : undefined;
-      const normalizedType = typeParam && typeParam.trim().length > 0 ? typeParam.trim() : undefined;
+      const normalizedType =
+        typeParam && typeParam.trim().length > 0 ? typeParam.trim() : undefined;
 
       const baseQuery = db.select().from(walletTransactions);
       const conditions: any[] = [];
@@ -11511,9 +12361,7 @@ export async function registerRoutes(app: any) {
         conditions.push(eq(walletTransactions.transactionType, normalizedType as any));
       }
 
-      const filteredQuery = conditions.length > 0
-        ? baseQuery.where(and(...conditions))
-        : baseQuery;
+      const filteredQuery = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
 
       const rows = await filteredQuery.orderBy(desc(walletTransactions.createdAt)).limit(safeLimit);
 
@@ -11732,16 +12580,16 @@ export async function registerRoutes(app: any) {
 
       // Debit sender and credit recipient
       await storage.debitWallet(fromUserId, numericAmount, {
-        type: 'p2p_send',
-        referenceType: 'wallet_transfer',
+        type: "p2p_send",
+        referenceType: "wallet_transfer",
         referenceId: toUserId,
         memo,
         counterpartyUserId: toUserId,
       });
 
       await storage.creditWallet(toUserId, numericAmount, {
-        type: 'p2p_receive',
-        referenceType: 'wallet_transfer',
+        type: "p2p_receive",
+        referenceType: "wallet_transfer",
         referenceId: fromUserId,
         memo,
         counterpartyUserId: fromUserId,
@@ -11755,153 +12603,161 @@ export async function registerRoutes(app: any) {
   });
 
   // Create contractor payment intent
-  app.post("/api/payments/contractor/create-intent", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { contractorPaymentId } = req.body;
+  app.post(
+    "/api/payments/contractor/create-intent",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { contractorPaymentId } = req.body;
 
-      if (!contractorPaymentId) {
-        return res.status(400).json({ message: "Payment ID required" });
+        if (!contractorPaymentId) {
+          return res.status(400).json({ message: "Payment ID required" });
+        }
+
+        const payment = await storage.getContractorPayment(contractorPaymentId);
+        if (!payment) {
+          return res.status(404).json({ message: "Payment not found" });
+        }
+
+        // Verify user authorization (either homeowner or contractor)
+        const user = req.user;
+        if (payment.homeownerId !== user?.id && payment.contractorId !== user?.id) {
+          return res.status(403).json({ message: "Not authorized to access this payment" });
+        }
+
+        const result = await paymentService.createContractorPaymentIntent(payment);
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error creating contractor payment intent:", error);
+        res.status(500).json({ message: "Failed to create payment intent" });
       }
-
-      const payment = await storage.getContractorPayment(contractorPaymentId);
-      if (!payment) {
-        return res.status(404).json({ message: "Payment not found" });
-      }
-
-      // Verify user authorization (either homeowner or contractor)
-      const user = req.user;
-      if (payment.homeownerId !== user?.id && payment.contractorId !== user?.id) {
-        return res.status(403).json({ message: "Not authorized to access this payment" });
-      }
-
-      const result = await paymentService.createContractorPaymentIntent(payment);
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error creating contractor payment intent:", error);
-      res.status(500).json({ message: "Failed to create payment intent" });
     }
-  });
+  );
 
   // Create marketplace payment intent
-  app.post("/api/payments/marketplace/create-intent", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { transactionId } = req.body;
+  app.post(
+    "/api/payments/marketplace/create-intent",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { transactionId } = req.body;
 
-      if (!transactionId) {
-        return res.status(400).json({ message: "Transaction ID required" });
+        if (!transactionId) {
+          return res.status(400).json({ message: "Transaction ID required" });
+        }
+
+        const transaction = await storage.getMarketplaceTransaction(transactionId);
+        if (!transaction) {
+          return res.status(404).json({ message: "Transaction not found" });
+        }
+
+        // Verify user authorization (either buyer or seller)
+        const user = req.user;
+        if (transaction.buyerId !== user?.id && transaction.sellerId !== user?.id) {
+          return res.status(403).json({ message: "Not authorized to access this transaction" });
+        }
+
+        const result = await paymentService.createMarketplacePaymentIntent(transaction);
+        res.json(result);
+      } catch (error: any) {
+        console.error("Error creating marketplace payment intent:", error);
+        res.status(500).json({ message: "Failed to create payment intent" });
       }
-
-      const transaction = await storage.getMarketplaceTransaction(transactionId);
-      if (!transaction) {
-        return res.status(404).json({ message: "Transaction not found" });
-      }
-
-      // Verify user authorization (either buyer or seller)
-      const user = req.user;
-      if (transaction.buyerId !== user?.id && transaction.sellerId !== user?.id) {
-        return res.status(403).json({ message: "Not authorized to access this transaction" });
-      }
-
-      const result = await paymentService.createMarketplacePaymentIntent(transaction);
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error creating marketplace payment intent:", error);
-      res.status(500).json({ message: "Failed to create payment intent" });
     }
-  });
+  );
 
   // Pay marketplace transaction using on-platform wallet balance
-  app.post("/api/payments/marketplace/pay-with-wallet", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.claims?.sub || req.user?.id;
-      const { transactionId } = req.body || {};
+  app.post(
+    "/api/payments/marketplace/pay-with-wallet",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.claims?.sub || req.user?.id;
+        const { transactionId } = req.body || {};
 
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
+        if (!userId) {
+          return res.status(401).json({ message: "User not authenticated" });
+        }
+        if (!transactionId) {
+          return res.status(400).json({ message: "Transaction ID required" });
+        }
+
+        const transaction = await storage.getMarketplaceTransaction(transactionId);
+        if (!transaction) {
+          return res.status(404).json({ message: "Transaction not found" });
+        }
+
+        if (transaction.buyerId !== userId) {
+          return res.status(403).json({ message: "Only the buyer can pay for this transaction" });
+        }
+
+        if (transaction.status !== "pending") {
+          return res.status(400).json({ message: "Transaction is not pending payment" });
+        }
+
+        const totalAmount = Number(transaction.totalAmount as any);
+        const sellerAmount = Number(transaction.sellerAmount as any);
+
+        if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+          return res.status(400).json({ message: "Invalid transaction amount" });
+        }
+
+        if (!Number.isFinite(sellerAmount) || sellerAmount <= 0) {
+          return res.status(400).json({ message: "Invalid seller amount" });
+        }
+
+        const balanceStr = await storage.getWalletBalance(userId);
+        const balance = Number(balanceStr);
+        if (!Number.isFinite(balance) || balance < totalAmount) {
+          return res.status(400).json({ message: "Insufficient wallet balance" });
+        }
+
+        // Debit buyer wallet for full transaction total
+        await storage.debitWallet(userId, totalAmount, {
+          type: "marketplace_purchase",
+          referenceType: "marketplace_transaction",
+          referenceId: transaction.id,
+          memo: `Marketplace purchase for listing ${transaction.listingId}`,
+          counterpartyUserId: transaction.sellerId,
+        });
+
+        // Credit seller wallet for sellerAmount (platform keeps the fee portion)
+        await storage.creditWallet(transaction.sellerId, sellerAmount, {
+          type: "marketplace_sale",
+          referenceType: "marketplace_transaction",
+          referenceId: transaction.id,
+          memo: `Marketplace sale for listing ${transaction.listingId}`,
+          counterpartyUserId: userId,
+        });
+
+        const updated = await storage.updateMarketplaceTransactionPayment(transaction.id, {
+          paymentMethod: "on_platform_wallet",
+          isOffPlatform: false,
+          status: "completed",
+        });
+
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error paying marketplace transaction with wallet:", error);
+        res.status(500).json({ message: "Failed to pay with wallet" });
       }
-      if (!transactionId) {
-        return res.status(400).json({ message: "Transaction ID required" });
-      }
-
-      const transaction = await storage.getMarketplaceTransaction(transactionId);
-      if (!transaction) {
-        return res.status(404).json({ message: "Transaction not found" });
-      }
-
-      if (transaction.buyerId !== userId) {
-        return res.status(403).json({ message: "Only the buyer can pay for this transaction" });
-      }
-
-      if (transaction.status !== 'pending') {
-        return res.status(400).json({ message: "Transaction is not pending payment" });
-      }
-
-      const totalAmount = Number(transaction.totalAmount as any);
-      const sellerAmount = Number(transaction.sellerAmount as any);
-
-      if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
-        return res.status(400).json({ message: "Invalid transaction amount" });
-      }
-
-      if (!Number.isFinite(sellerAmount) || sellerAmount <= 0) {
-        return res.status(400).json({ message: "Invalid seller amount" });
-      }
-
-      const balanceStr = await storage.getWalletBalance(userId);
-      const balance = Number(balanceStr);
-      if (!Number.isFinite(balance) || balance < totalAmount) {
-        return res.status(400).json({ message: "Insufficient wallet balance" });
-      }
-
-      // Debit buyer wallet for full transaction total
-      await storage.debitWallet(userId, totalAmount, {
-        type: 'marketplace_purchase',
-        referenceType: 'marketplace_transaction',
-        referenceId: transaction.id,
-        memo: `Marketplace purchase for listing ${transaction.listingId}`,
-        counterpartyUserId: transaction.sellerId,
-      });
-
-      // Credit seller wallet for sellerAmount (platform keeps the fee portion)
-      await storage.creditWallet(transaction.sellerId, sellerAmount, {
-        type: 'marketplace_sale',
-        referenceType: 'marketplace_transaction',
-        referenceId: transaction.id,
-        memo: `Marketplace sale for listing ${transaction.listingId}`,
-        counterpartyUserId: userId,
-      });
-
-      const updated = await storage.updateMarketplaceTransactionPayment(transaction.id, {
-        paymentMethod: 'on_platform_wallet',
-        isOffPlatform: false,
-        status: 'completed',
-      });
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error paying marketplace transaction with wallet:", error);
-      res.status(500).json({ message: "Failed to pay with wallet" });
     }
-  });
+  );
 
   // Confirm off-platform payment
   app.post("/api/payments/confirm-off-platform", isAuthenticated, async (req: any, res: any) => {
     try {
       const { paymentId, paymentType, confirmationData } = req.body;
 
-      if (!paymentId|| !paymentType || !confirmationData) {
+      if (!paymentId || !paymentType || !confirmationData) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
       const user = req.user;
-      const result = await paymentService.confirmOffPlatformPayment(
-        paymentId, 
-        paymentType, 
-        {
-          ...confirmationData,
-          confirmedBy: user?.id
-        }
-      );
+      const result = await paymentService.confirmOffPlatformPayment(paymentId, paymentType, {
+        ...confirmationData,
+        confirmedBy: user?.id,
+      });
 
       res.json(result);
     } catch (error: any) {
@@ -11933,55 +12789,62 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/payments/marketplace/:transactionId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { transactionId } = req.params;
-      const transaction = await storage.getMarketplaceTransaction(transactionId);
+  app.get(
+    "/api/payments/marketplace/:transactionId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { transactionId } = req.params;
+        const transaction = await storage.getMarketplaceTransaction(transactionId);
 
-      if (!transaction) {
-        return res.status(404).json({ message: "Transaction not found" });
+        if (!transaction) {
+          return res.status(404).json({ message: "Transaction not found" });
+        }
+
+        // Verify user authorization
+        const user = req.user;
+        if (transaction.buyerId !== user?.id && transaction.sellerId !== user?.id) {
+          return res.status(403).json({ message: "Not authorized to access this transaction" });
+        }
+
+        res.json(transaction);
+      } catch (error: any) {
+        console.error("Error fetching marketplace transaction:", error);
+        res.status(500).json({ message: "Failed to fetch transaction" });
       }
-
-      // Verify user authorization
-      const user = req.user;
-      if (transaction.buyerId !== user?.id && transaction.sellerId !== user?.id) {
-        return res.status(403).json({ message: "Not authorized to access this transaction" });
-      }
-
-      res.json(transaction);
-    } catch (error: any) {
-      console.error("Error fetching marketplace transaction:", error);
-      res.status(500).json({ message: "Failed to fetch transaction" });
     }
-  });
+  );
 
   // Get user payment history
   app.get("/api/payments/history", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user;
-      const { type = 'all' } = req.query;
+      const { type = "all" } = req.query;
 
       const history: any = {};
 
-      if (type === 'all' || type === 'contractor') {
+      if (type === "all" || type === "contractor") {
         // Get contractor payments where user is homeowner
         const homeownerPayments = await storage.getContractorPaymentsByHomeowner(user?.id);
-        // Get contractor payments where user is contractor  
+        // Get contractor payments where user is contractor
         const contractorPayments = await storage.getContractorPaymentsByContractor(user?.id);
         history.contractorPayments = {
           asHomeowner: homeownerPayments,
-          asContractor: contractorPayments
+          asContractor: contractorPayments,
         };
       }
 
-      if (type === 'all' || type === 'marketplace') {
+      if (type === "all" || type === "marketplace") {
         // Get marketplace transactions where user is buyer
-        const buyerTransactions = await storage.getMarketplaceTransactionsByUser(user?.id, 'buyer');
+        const buyerTransactions = await storage.getMarketplaceTransactionsByUser(user?.id, "buyer");
         // Get marketplace transactions where user is seller
-        const sellerTransactions = await storage.getMarketplaceTransactionsByUser(user?.id, 'seller');
+        const sellerTransactions = await storage.getMarketplaceTransactionsByUser(
+          user?.id,
+          "seller"
+        );
         history.marketplaceTransactions = {
           asBuyer: buyerTransactions,
-          asSeller: sellerTransactions
+          asSeller: sellerTransactions,
         };
       }
 
@@ -11995,7 +12858,7 @@ export async function registerRoutes(app: any) {
   // Calculate payment fees
   app.post("/api/payments/calculate-fees", async (req: any, res: any) => {
     try {
-      const { amount, paymentType = 'contractor_service' } = req.body;
+      const { amount, paymentType = "contractor_service" } = req.body;
 
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Valid amount required" });
@@ -12027,8 +12890,10 @@ export async function registerRoutes(app: any) {
   // Admin payment configuration routes
   app.get("/api/admin/payment-config", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
-      const { configType = 'contractor_service' } = req.query;
-      const normalizedConfigType = (configType as 'marketplace_transaction' | 'contractor_service' | 'premium_subscription') ?? 'contractor_service';
+      const { configType = "contractor_service" } = req.query;
+      const normalizedConfigType =
+        (configType as "marketplace_transaction" | "contractor_service" | "premium_subscription") ??
+        "contractor_service";
       const config = await storage.getPaymentConfiguration(normalizedConfigType);
       res.json(config || {});
     } catch (error: any) {
@@ -12048,75 +12913,74 @@ export async function registerRoutes(app: any) {
     }
   });
 
-
   // Get user's donations
-  app.get('/api/foundation/my-donations', isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/foundation/my-donations", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const { status, type } = req.query;
 
       const filters = {
         status: status as string,
-        type: type as string
+        type: type as string,
       };
 
       const donations = await storage.getUserDonations(userId, filters);
       res.json(donations);
     } catch (error: any) {
-      console.error('Error fetching user donations:', error);
-      res.status(500).json({ message: 'Failed to fetch donations' });
+      console.error("Error fetching user donations:", error);
+      res.status(500).json({ message: "Failed to fetch donations" });
     }
   });
 
   // Get/Update user donation preferences
-  app.get('/api/foundation/preferences', isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/foundation/preferences", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const preferences = await storage.getUserDonationPreferences(userId);
       res.json(preferences || {});
     } catch (error: any) {
-      console.error('Error fetching donation preferences:', error);
-      res.status(500).json({ message: 'Failed to fetch preferences' });
+      console.error("Error fetching donation preferences:", error);
+      res.status(500).json({ message: "Failed to fetch preferences" });
     }
   });
 
-  app.put('/api/foundation/preferences', isAuthenticated, async (req: any, res: any) => {
+  app.put("/api/foundation/preferences", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const preferences = await storage.upsertUserDonationPreferences(userId, req.body);
       res.json(preferences);
     } catch (error: any) {
-      console.error('Error updating donation preferences:', error);
-      res.status(500).json({ message: 'Failed to update preferences' });
+      console.error("Error updating donation preferences:", error);
+      res.status(500).json({ message: "Failed to update preferences" });
     }
   });
 
   // Get recent donations (public feed)
-  app.get('/api/foundation/recent-donations', async (req: any, res: any) => {
+  app.get("/api/foundation/recent-donations", async (req: any, res: any) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
       const donations = await storage.getRecentDonations(limit);
       res.json(donations);
     } catch (error: any) {
-      console.error('Error fetching recent donations:', error);
-      res.status(500).json({ message: 'Failed to fetch recent donations' });
+      console.error("Error fetching recent donations:", error);
+      res.status(500).json({ message: "Failed to fetch recent donations" });
     }
   });
 
   // Get foundation impact reports
-  app.get('/api/foundation/impact-reports', async (req: any, res: any) => {
+  app.get("/api/foundation/impact-reports", async (req: any, res: any) => {
     try {
       const { causeId } = req.query;
       const reports = await storage.getFoundationImpactReports(causeId as string);
       res.json(reports);
     } catch (error: any) {
-      console.error('Error fetching impact reports:', error);
-      res.status(500).json({ message: 'Failed to fetch impact reports' });
+      console.error("Error fetching impact reports:", error);
+      res.status(500).json({ message: "Failed to fetch impact reports" });
     }
   });
 
   // Public: browse active foundation causes
-  app.get('/api/foundation/causes', async (req: any, res: any) => {
+  app.get("/api/foundation/causes", async (req: any, res: any) => {
     try {
       const { category, state, sort } = req.query as {
         category?: string;
@@ -12126,18 +12990,18 @@ export async function registerRoutes(app: any) {
 
       let whereClause: any = eq(foundationCauses.isActive, true);
 
-      if (category && category !== 'all') {
+      if (category && category !== "all") {
         whereClause = and(whereClause, eq(foundationCauses.category, category));
       }
 
-      if (state && state !== 'all') {
+      if (state && state !== "all") {
         whereClause = and(whereClause, eq(counties.stateCode, state));
       }
 
       let orderByExpr: any = desc(foundationCauses.createdAt);
-      if (sort === 'trending') {
+      if (sort === "trending") {
         orderByExpr = desc(foundationCauses.raisedAmount);
-      } else if (sort === 'newest') {
+      } else if (sort === "newest") {
         orderByExpr = desc(foundationCauses.createdAt);
       }
 
@@ -12167,7 +13031,7 @@ export async function registerRoutes(app: any) {
         location:
           row.countyName && row.countyStateCode
             ? `${row.countyName}, ${row.countyStateCode}`
-            : 'Nationwide',
+            : "Nationwide",
         county: row.countyName,
         state: row.countyStateCode,
         targetAmount: Number(row.targetAmount ?? 0),
@@ -12176,19 +13040,19 @@ export async function registerRoutes(app: any) {
         organizationName: row.name,
         organizationVerified: Boolean(row.verifiedNonprofit),
         imageUrl: row.imageUrl ?? undefined,
-        urgency: 'medium',
+        urgency: "medium",
         featured: false,
       }));
 
       res.json(causes);
     } catch (error: any) {
-      console.error('Error fetching foundation causes:', error);
-      res.status(500).json({ message: 'Failed to fetch causes' });
+      console.error("Error fetching foundation causes:", error);
+      res.status(500).json({ message: "Failed to fetch causes" });
     }
   });
 
   // Foundation aggregate impact stats for Foundation page
-  app.get('/api/foundation/impact', async (req: any, res: any) => {
+  app.get("/api/foundation/impact", async (req: any, res: any) => {
     try {
       const stats = await storage.getFoundationStats();
 
@@ -12199,8 +13063,8 @@ export async function registerRoutes(app: any) {
         countiesSupported: Number(stats?.countiesSupported ?? 0),
       });
     } catch (error: any) {
-      console.error('Error fetching foundation impact stats:', error);
-      res.status(500).json({ message: 'Failed to fetch foundation impact' });
+      console.error("Error fetching foundation impact stats:", error);
+      res.status(500).json({ message: "Failed to fetch foundation impact" });
     }
   });
 
@@ -12208,14 +13072,14 @@ export async function registerRoutes(app: any) {
 
   // Aggregated "Local Impact" snapshot for the authenticated user and their primary county
   // This is read-only and safe to expose in dashboards and to the Scout agent.
-  app.get('/api/local-impact/summary', isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/local-impact/summary", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const userRecord = await storage.getUser(userId);
 
       if (!userRecord?.county || !userRecord?.state) {
         res.status(400).json({
-          message: 'Add your county and state to view your local impact.',
+          message: "Add your county and state to view your local impact.",
         });
         return;
       }
@@ -12226,9 +13090,7 @@ export async function registerRoutes(app: any) {
         stateCode: userRecord.state,
       });
 
-      const localVaultBalance = snapshot.vault
-        ? Number(snapshot.vault.currentBalance ?? 0)
-        : 0;
+      const localVaultBalance = snapshot.vault ? Number(snapshot.vault.currentBalance ?? 0) : 0;
 
       // Direct contribution: if the user is a Community Builder in this county,
       // use their verified totalContributionValue as a local direct impact signal.
@@ -12242,7 +13104,7 @@ export async function registerRoutes(app: any) {
           }
         }
       } catch (err) {
-        console.warn('[local-impact] Failed to load builder profile for direct contribution', err);
+        console.warn("[local-impact] Failed to load builder profile for direct contribution", err);
       }
 
       // Indirect contribution: reserved for deeper referral / territory effects.
@@ -12260,7 +13122,7 @@ export async function registerRoutes(app: any) {
           affiliatesOnboardedCount = stats.totalReferrals ?? 0;
         }
       } catch (err) {
-        console.warn('[local-impact] Failed to load affiliate stats', err);
+        console.warn("[local-impact] Failed to load affiliate stats", err);
       }
 
       res.json({
@@ -12274,8 +13136,8 @@ export async function registerRoutes(app: any) {
         stateCode: snapshot.county?.stateCode ?? userRecord.state ?? null,
       });
     } catch (error: any) {
-      console.error('Error fetching local impact summary:', error);
-      res.status(500).json({ message: 'Failed to load local impact summary' });
+      console.error("Error fetching local impact summary:", error);
+      res.status(500).json({ message: "Failed to load local impact summary" });
     }
   });
 
@@ -12284,14 +13146,15 @@ export async function registerRoutes(app: any) {
   // Read-only aggregate endpoint backing context-aware but non-creepy static language.
   // This intentionally exposes only group-level counts that can be backed by real queries.
   // If locality is missing or counts are zero, callers should fall back to neutral copy.
-  app.get('/api/aggregates/context', async (req: any, res: any) => {
+  app.get("/api/aggregates/context", async (req: any, res: any) => {
     try {
-      const stateCode = typeof req.query.stateCode === 'string' ? req.query.stateCode : undefined;
-      const countyFips = typeof req.query.countyFips === 'string' ? req.query.countyFips : undefined;
-      const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : undefined;
+      const stateCode = typeof req.query.stateCode === "string" ? req.query.stateCode : undefined;
+      const countyFips =
+        typeof req.query.countyFips === "string" ? req.query.countyFips : undefined;
+      const timeframe = typeof req.query.timeframe === "string" ? req.query.timeframe : undefined;
 
       // For now we support a single interest segment representing auto-related providers.
-      const interests: string[] = ['auto_dealers'];
+      const interests: string[] = ["auto_dealers"];
 
       // If we have no locality hints at all, return a neutral, data-empty payload.
       if (!stateCode && !countyFips) {
@@ -12315,7 +13178,7 @@ export async function registerRoutes(app: any) {
       const from30 = new Date(now);
       from30.setDate(from30.getDate() - 30);
 
-      const roleFilter = inArray(users.role, ['car_dealer', 'auto_service']);
+      const roleFilter = inArray(users.role, ["car_dealer", "auto_service"]);
       const localityFilters: any[] = [roleFilter];
 
       if (stateCode) {
@@ -12342,7 +13205,8 @@ export async function registerRoutes(app: any) {
       const count30 = rows30[0]?.count ?? 0;
 
       // Look up a human-friendly county label when we have a FIPS code; otherwise fall back to state-only.
-      let location: { city: string | null; state: string | null; county: string | null } | null = null;
+      let location: { city: string | null; state: string | null; county: string | null } | null =
+        null;
       if (countyFips) {
         try {
           const county = await storage.getCountyByFips(countyFips);
@@ -12354,7 +13218,7 @@ export async function registerRoutes(app: any) {
             };
           }
         } catch (err) {
-          console.warn('[aggregates:context] Failed to resolve county by FIPS', err);
+          console.warn("[aggregates:context] Failed to resolve county by FIPS", err);
         }
       }
 
@@ -12379,18 +13243,19 @@ export async function registerRoutes(app: any) {
       } as const;
 
       // Light observability: event-level logging with no user identifiers.
-      const scope: 'state' | 'county' = countyFips ? 'county' : 'state';
-      const effectiveTimeframe = timeframe === '30d' ? '30d' : '7d';
-      const seriesForWindow = effectiveTimeframe === '7d'
-        ? payload.activity.auto_dealers.last_7_days
-        : payload.activity.auto_dealers.last_30_days;
+      const scope: "state" | "county" = countyFips ? "county" : "state";
+      const effectiveTimeframe = timeframe === "30d" ? "30d" : "7d";
+      const seriesForWindow =
+        effectiveTimeframe === "7d"
+          ? payload.activity.auto_dealers.last_7_days
+          : payload.activity.auto_dealers.last_30_days;
 
       const hasData = seriesForWindow !== null;
 
       try {
-        await storage.logEvent('aggregates.context.requested', {
+        await storage.logEvent("aggregates.context.requested", {
           scope,
-          interest: 'auto_dealers',
+          interest: "auto_dealers",
           timeframe: effectiveTimeframe,
           hasData,
           asOf: payload.asOf,
@@ -12401,24 +13266,26 @@ export async function registerRoutes(app: any) {
           contractorId: null,
         });
       } catch (err) {
-        console.warn('[aggregates:context] Failed to log observability event', err);
+        console.warn("[aggregates:context] Failed to log observability event", err);
       }
 
       res.json(payload);
     } catch (error: any) {
-      console.error('[aggregates:context] Failed to compute contextual aggregates', error);
-      res.status(500).json({ message: 'Failed to fetch contextual aggregates' });
+      console.error("[aggregates:context] Failed to compute contextual aggregates", error);
+      res.status(500).json({ message: "Failed to fetch contextual aggregates" });
     }
   });
 
   // County vault balances (community reinvestment)
-  app.get('/api/vaults/my-county', isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/vaults/my-county", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const userRecord = await storage.getUser(userId);
 
       if (!userRecord?.county || !userRecord?.state) {
-        return res.status(400).json({ message: 'Add your county and state to view your community vault balance.' });
+        return res
+          .status(400)
+          .json({ message: "Add your county and state to view your community vault balance." });
       }
 
       const snapshot = await storage.getCountyVaultSnapshot({
@@ -12444,12 +13311,12 @@ export async function registerRoutes(app: any) {
         })),
       });
     } catch (error: any) {
-      console.error('Error fetching county vault:', error);
-      res.status(500).json({ message: 'Failed to load vault balance' });
+      console.error("Error fetching county vault:", error);
+      res.status(500).json({ message: "Failed to load vault balance" });
     }
   });
 
-  app.get('/api/vaults/county/:countyId', async (req: any, res: any) => {
+  app.get("/api/vaults/county/:countyId", async (req: any, res: any) => {
     try {
       const { countyId } = req.params;
       const snapshot = await storage.getCountyVaultSnapshot({ countyId });
@@ -12472,13 +13339,13 @@ export async function registerRoutes(app: any) {
         })),
       });
     } catch (error: any) {
-      console.error('Error fetching county vault by id:', error);
-      res.status(500).json({ message: 'Failed to load vault balance' });
+      console.error("Error fetching county vault by id:", error);
+      res.status(500).json({ message: "Failed to load vault balance" });
     }
   });
 
   // Admin: Create foundation cause
-  app.post('/api/admin/foundation/causes', isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/admin/foundation/causes", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       if (!userId) {
@@ -12501,11 +13368,7 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const userRows = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+      const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
       const user = userRows[0];
       if (!user || !Array.isArray(user.roles) || !user.roles.includes("admin")) {
@@ -12541,7 +13404,7 @@ export async function registerRoutes(app: any) {
       const user = req.user as any;
       const request = await dataManagementService.createDataRequest({
         userId: user?.id,
-        requestType: 'account_closure',
+        requestType: "account_closure",
         reason: req.body.reason,
         requestedBy: user?.id,
       });
@@ -12550,16 +13413,16 @@ export async function registerRoutes(app: any) {
         userId: user?.id,
         accessorId: user?.id,
         accessorRole: user.role,
-        actionType: 'delete',
-        resourceType: 'profile',
+        actionType: "delete",
+        resourceType: "profile",
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        metadata: { requestId: request.id }
+        userAgent: req.get("User-Agent"),
+        metadata: { requestId: request.id },
       });
 
       res.json({
         message: "Account deletion request created. This requires admin approval.",
-        requestId: request.id
+        requestId: request.id,
       });
     } catch (error: any) {
       console.error("Error creating account deletion request:", error);
@@ -12578,26 +13441,29 @@ export async function registerRoutes(app: any) {
 
       const request = await dataManagementService.createDataRequest({
         userId,
-        requestType: 'data_export',
+        requestType: "data_export",
         requestedBy: userId,
       });
 
       await dataManagementService.logDataAccess({
         userId,
         accessorId: userId,
-        accessorRole: user?.role || 'user',
-        actionType: 'export',
-        resourceType: 'profile',
+        accessorRole: user?.role || "user",
+        actionType: "export",
+        resourceType: "profile",
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        metadata: { requestId: request.id }
+        userAgent: req.get("User-Agent"),
+        metadata: { requestId: request.id },
       });
 
       const exportData = await dataManagementService.exportUserData(userId);
       const zipBuffer = await dataManagementService.createDataExportFile(exportData);
 
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-export-${userId}.zip"`);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="tradescout-data-export-${userId}.zip"`
+      );
       res.send(zipBuffer);
     } catch (error: any) {
       console.error("Error exporting user data:", error);
@@ -12614,10 +13480,10 @@ export async function registerRoutes(app: any) {
       await dataManagementService.logDataAccess({
         accessorId: user?.id,
         accessorRole: user.role,
-        actionType: 'view',
-        resourceType: 'analytics',
+        actionType: "view",
+        resourceType: "analytics",
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get("User-Agent"),
       });
 
       const requests = await dataManagementService.getAllDataRequests(status as string);
@@ -12628,63 +13494,74 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/admin/process-data-export/:id", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
+  app.post(
+    "/api/admin/process-data-export/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { id } = req.params;
 
-      const requests = await dataManagementService.getAllDataRequests();
-      const request = requests.find((r: any) => r.id === id);
+        const requests = await dataManagementService.getAllDataRequests();
+        const request = requests.find((r: any) => r.id === id);
 
-      if (!request || request.requestType !== 'data_export') {
-        return res.status(404).json({ message: "Data export request not found" });
+        if (!request || request.requestType !== "data_export") {
+          return res.status(404).json({ message: "Data export request not found" });
+        }
+
+        await dataManagementService.logDataAccess({
+          userId: request.userId,
+          accessorId: user?.id,
+          accessorRole: user.role,
+          actionType: "export",
+          resourceType: "profile",
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+          metadata: { adminProcessed: true, requestId: id },
+        });
+
+        const exportData = await dataManagementService.exportUserData(request.userId);
+        const zipBuffer = await dataManagementService.createDataExportFile(exportData);
+
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="tradescout-data-export-${request.userId}.zip"`
+        );
+        res.send(zipBuffer);
+      } catch (error: any) {
+        console.error("Error processing data export:", error);
+        res.status(500).json({ message: "Failed to process data export" });
       }
-
-      await dataManagementService.logDataAccess({
-        userId: request.userId,
-        accessorId: user?.id,
-        accessorRole: user.role,
-        actionType: 'export',
-        resourceType: 'profile',
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        metadata: { adminProcessed: true, requestId: id }
-      });
-
-      const exportData = await dataManagementService.exportUserData(request.userId);
-      const zipBuffer = await dataManagementService.createDataExportFile(exportData);
-
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-export-${request.userId}.zip"`);
-      res.send(zipBuffer);
-
-    } catch (error: any) {
-      console.error("Error processing data export:", error);
-      res.status(500).json({ message: "Failed to process data export" });
     }
-  });
+  );
 
-  app.post("/api/admin/approve-account-deletion/:id", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
+  app.post(
+    "/api/admin/approve-account-deletion/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { id } = req.params;
 
-      const requests = await dataManagementService.getAllDataRequests();
-      const request = requests.find((r: any) => r.id === id);
+        const requests = await dataManagementService.getAllDataRequests();
+        const request = requests.find((r: any) => r.id === id);
 
-      if (!request || request.requestType !== 'account_closure') {
-        return res.status(404).json({ message: "Account deletion request not found" });
+        if (!request || request.requestType !== "account_closure") {
+          return res.status(404).json({ message: "Account deletion request not found" });
+        }
+
+        await dataManagementService.deleteUserData(request.userId, user?.id);
+
+        res.json({ message: "Account successfully deleted" });
+      } catch (error: any) {
+        console.error("Error processing account deletion:", error);
+        res.status(500).json({ message: "Failed to process account deletion" });
       }
-
-      await dataManagementService.deleteUserData(request.userId, user?.id);
-
-      res.json({ message: "Account successfully deleted" });
-
-    } catch (error: any) {
-      console.error("Error processing account deletion:", error);
-      res.status(500).json({ message: "Failed to process account deletion" });
     }
-  });
+  );
 
   app.get("/api/admin/security-incidents", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
@@ -12694,10 +13571,10 @@ export async function registerRoutes(app: any) {
       await dataManagementService.logDataAccess({
         accessorId: user?.id,
         accessorRole: user.role,
-        actionType: 'view',
-        resourceType: 'analytics',
+        actionType: "view",
+        resourceType: "analytics",
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get("User-Agent"),
       });
 
       const incidents = await dataManagementService.getSecurityIncidents(status as string);
@@ -12708,38 +13585,46 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/admin/user-access-logs/:userId", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { userId } = req.params;
-      const { limit = 100 } = req.query;
+  app.get(
+    "/api/admin/user-access-logs/:userId",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const { userId } = req.params;
+        const { limit = 100 } = req.query;
 
-      await dataManagementService.logDataAccess({
-        userId: userId,
-        accessorId: user?.id,
-        accessorRole: user.role,
-        actionType: 'view',
-        resourceType: 'analytics',
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent')
-      });
+        await dataManagementService.logDataAccess({
+          userId: userId,
+          accessorId: user?.id,
+          accessorRole: user.role,
+          actionType: "view",
+          resourceType: "analytics",
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+        });
 
-      const logs = await dataManagementService.getUserAccessLogs(userId, parseInt(limit as string));
-      res.json(logs);
-    } catch (error: any) {
-      console.error("Error fetching user access logs:", error);
-      res.status(500).json({ message: "Failed to fetch access logs" });
+        const logs = await dataManagementService.getUserAccessLogs(
+          userId,
+          parseInt(limit as string)
+        );
+        res.json(logs);
+      } catch (error: any) {
+        console.error("Error fetching user access logs:", error);
+        res.status(500).json({ message: "Failed to fetch access logs" });
+      }
     }
-  });
+  );
 
   // Device management endpoints for master admin - temporarily removed for debugging
 
   // Register social media routes
   registerSocialRoutes(app);
-  
+
   // Register social features (search, friends, messaging)
   registerSocialFeatures(app);
-  
+
   // Register Scout recommendations (D2: confidence-based contact recommendations)
   registerScoutRecommendations(app);
 
@@ -12761,14 +13646,14 @@ export async function registerRoutes(app: any) {
 
   // Register CRM routes
   registerCrmRoutes(app);
-  
+
   // Register notification routes
   registerNotificationRoutes(app);
   registerDirectConnectRoutes(app);
-  
+
   // Register analytics routes
   registerAnalyticsRoutes(app);
-  
+
   // Register recommendation generator routes
   registerRecommendationGeneratorRoutes(app);
 
@@ -12780,9 +13665,15 @@ export async function registerRoutes(app: any) {
 
   // Register Profile website routes
   app.use(profilesRouter);
-  
+
   // Register contractor signup routes
   app.use(contractorSignupRouter);
+
+  // Register Hardrock commercial landing + staff directory routes
+  registerHardrockRoutes(app);
+
+  // Public geographic coverage endpoints used by county pages
+  app.use("/api/geographic-coverage", geographicCoverageRouter);
 
   // Register Community Builder routes
   app.use("/api/community-builder", communityBuilderRouter);
@@ -12848,32 +13739,32 @@ export async function registerRoutes(app: any) {
   app.post("/api/admin/scout-insights", scoutInsightsHandler);
 
   // Bug report endpoint with Formspree integration
-  app.post('/api/bug-report', async (req: any, res: any) => {
+  app.post("/api/bug-report", async (req: any, res: any) => {
     try {
       const formspreeUrl = process.env.FORMSPREE_FORM_ID;
-      
+
       if (!formspreeUrl) {
         return res.status(500).json({ message: "Bug reporting service not configured" });
       }
 
       // Extract form ID from URL if it's a full URL
-      const formId = formspreeUrl.replace('https://formspree.io/f/', '');
+      const formId = formspreeUrl.replace("https://formspree.io/f/", "");
       const formspreeEndpoint = `https://formspree.io/f/${formId}`;
 
       // Forward the form data to Formspree
-      const fetch = (await import('node-fetch')).default;
+      const fetch = (await import("node-fetch")).default;
       const response = await fetch(formspreeEndpoint, {
-        method: 'POST',
+        method: "POST",
         body: req.body as any, // FormData from client
       });
 
       if (response.ok) {
         // Log the bug report for admin awareness
-        await storage.logEvent('bug_report_submitted', {
+        await storage.logEvent("bug_report_submitted", {
           timestamp: new Date().toISOString(),
-          userAgent: req.get('User-Agent'),
+          userAgent: req.get("User-Agent"),
           ip: req.ip,
-          userId: (req.user as any)?.id || 'anonymous'
+          userId: (req.user as any)?.id || "anonymous",
         });
 
         res.json({ message: "Bug report submitted successfully" });
@@ -12887,15 +13778,15 @@ export async function registerRoutes(app: any) {
   });
 
   // Phase 1: Daily Deals System Routes
-  const { 
-    getDailyDeals, 
-    createDailyDeal, 
+  const {
+    getDailyDeals,
+    createDailyDeal,
     trackDealEngagement,
     getUserAffiliate,
     getAffiliateDashboard,
     updateDailyDeal,
     deleteDailyDeal,
-    getFeaturedDeals
+    getFeaturedDeals,
   } = await import("./routes/dailyDeals");
 
   // Public daily deals endpoints
@@ -12924,17 +13815,22 @@ export async function registerRoutes(app: any) {
   // Promotions admin endpoints (super admin only)
   app.get("/api/admin/promotions", isAuthenticated, isSuperAdmin, listPromotionsHandler as any);
   app.post("/api/admin/promotions", isAuthenticated, isSuperAdmin, createPromotionHandler as any);
-  app.put("/api/admin/promotions/:id", isAuthenticated, isSuperAdmin, updatePromotionHandler as any);
-  app.delete("/api/admin/promotions/:id", isAuthenticated, isSuperAdmin, deletePromotionHandler as any);
+  app.put(
+    "/api/admin/promotions/:id",
+    isAuthenticated,
+    isSuperAdmin,
+    updatePromotionHandler as any
+  );
+  app.delete(
+    "/api/admin/promotions/:id",
+    isAuthenticated,
+    isSuperAdmin,
+    deletePromotionHandler as any
+  );
 
   // Phase 2: Boost System Routes for Realtors & Dealers
-  const {
-    getAvailableBoosts,
-    purchaseBoost,
-    getUserBoosts,
-    getBoostAnalytics,
-    cancelBoost
-  } = await import("./routes/boosts");
+  const { getAvailableBoosts, purchaseBoost, getUserBoosts, getBoostAnalytics, cancelBoost } =
+    await import("./routes/boosts");
 
   app.get("/api/boosts/available", isAuthenticated, getAvailableBoosts);
   app.post("/api/boosts/purchase", isAuthenticated, purchaseBoost);
@@ -12950,7 +13846,7 @@ export async function registerRoutes(app: any) {
     getGroupPosts,
     createGroupPost,
     getUserGroups,
-    createGroup
+    createGroup,
   } = await import("./routes/groups");
 
   app.get("/api/groups", getGroups);
@@ -12974,7 +13870,7 @@ export async function registerRoutes(app: any) {
     getHOAMember,
     getHOAMembers,
     addHOAMember,
-    updateHOAMemberRole
+    updateHOAMemberRole,
   } = await import("./routes/hoa");
 
   app.get("/api/hoa/search", searchHOAs);
@@ -13062,28 +13958,32 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/hoa/votes/:id/vote", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
+  app.post(
+    "/api/hoa/votes/:id/vote",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const { id } = req.params;
+        const { option } = req.body || {};
+        if (!option) {
+          return res.status(400).json({ message: "option is required" });
+        }
+
+        // Delegate membership and vote window validation to storage helper
+        await (storage as any).submitHOAVote(userId, id, option);
+
+        res.json({ success: true });
+      } catch (error: any) {
+        console.error("Error casting HOA vote:", error);
+        res.status(500).json({ message: "Failed to cast vote" });
       }
-
-      const { id } = req.params;
-      const { option } = req.body || {};
-      if (!option) {
-        return res.status(400).json({ message: "option is required" });
-      }
-
-      // Delegate membership and vote window validation to storage helper
-      await (storage as any).submitHOAVote(userId, id, option);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error casting HOA vote:", error);
-      res.status(500).json({ message: "Failed to cast vote" });
     }
-  });
+  );
 
   // Phase 5: Nationwide Expansion Routes
   const {
@@ -13093,7 +13993,7 @@ export async function registerRoutes(app: any) {
     getFoundationImpact,
     requestCountyActivation,
     getCoverageMapData,
-    getAffiliatePerformance
+    getAffiliatePerformance,
   } = await import("./routes/nationwide");
 
   app.get("/api/nationwide/metrics", getNationwideMetrics);
@@ -13122,7 +14022,7 @@ export async function registerRoutes(app: any) {
       const generatedStory = await StoryGenerationService.generateStory({
         templateId,
         userInputs: userInputs || {},
-        userId
+        userId,
       });
 
       // Track the story generation event
@@ -13153,16 +14053,13 @@ export async function registerRoutes(app: any) {
       const validatedStory = parsedStory.data;
 
       // Save story to database
-      const [savedStory] = await db
-        .insert(generatedStories)
-        .values(validatedStory)
-        .returning();
+      const [savedStory] = await db.insert(generatedStories).values(validatedStory).returning();
 
       // Log the save event
-      await storage.logEvent('story_saved', {
+      await storage.logEvent("story_saved", {
         storyId: savedStory.id,
         userId,
-        templateId: savedStory.templateId
+        templateId: savedStory.templateId,
       });
 
       res.status(201).json(savedStory);
@@ -13180,12 +14077,10 @@ export async function registerRoutes(app: any) {
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
-      const whereClause = public_only === 'true'
-        ? and(
-          eq(generatedStories.userId, userId),
-          eq(generatedStories.isPublic, true)
-        )
-        : eq(generatedStories.userId, userId);
+      const whereClause =
+        public_only === "true"
+          ? and(eq(generatedStories.userId, userId), eq(generatedStories.isPublic, true))
+          : eq(generatedStories.userId, userId);
 
       const stories = await db
         .select()
@@ -13217,12 +14112,8 @@ export async function registerRoutes(app: any) {
   app.get("/api/dashboard", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || req.user?.claims?.sub;
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -13245,9 +14136,9 @@ export async function registerRoutes(app: any) {
       };
 
       // Fetch contractor-specific data
-      if (user.role === 'contractor') {
+      if (user.role === "contractor") {
         const contractor = await storage.getContractorByUserId(userId);
-        
+
         if (contractor) {
           // Get contractor's assigned leads (projects)
           const contractorLeads = await db
@@ -13266,7 +14157,7 @@ export async function registerRoutes(app: any) {
           }));
 
           dashboardData.stats.activeProjects = contractorLeads.filter(
-            (l: any) => l.status === 'new' || l.status === 'contacted' || l.status === 'qualified'
+            (l: any) => l.status === "new" || l.status === "contacted" || l.status === "qualified"
           ).length;
 
           // Get contractor's quotes
@@ -13278,7 +14169,7 @@ export async function registerRoutes(app: any) {
             .limit(10);
 
           dashboardData.quotes = contractorQuotes;
-          
+
           // Get contractor's conversations
           const contractorConversations = await db
             .select()
@@ -13292,7 +14183,7 @@ export async function registerRoutes(app: any) {
       }
 
       // Fetch homeowner-specific data
-      if (user.role === 'homeowner') {
+      if (user.role === "homeowner") {
         // Get homeowner's leads (project requests)
         const homeownerLeads = await db
           .select()
@@ -13310,7 +14201,7 @@ export async function registerRoutes(app: any) {
         }));
 
         dashboardData.stats.activeProjects = homeownerLeads.filter(
-          (l: any) => l.status === 'new' || l.status === 'contacted' || l.status === 'qualified'
+          (l: any) => l.status === "new" || l.status === "contacted" || l.status === "qualified"
         ).length;
 
         // Get homeowner's conversations
@@ -13359,12 +14250,12 @@ export async function registerRoutes(app: any) {
 
       dashboardData.myListings = userListings;
       dashboardData.stats.marketplaceListings = userListings.filter(
-        (l: any) => l.status === 'active'
+        (l: any) => l.status === "active"
       ).length;
 
       // Get realtor listings if user is a realtor
       const realEstateListingsTable = (db as any).query?.realEstateListings?.table;
-      if (user.role === 'realtor' && realEstateListingsTable) {
+      if (user.role === "realtor" && realEstateListingsTable) {
         const realtorListings = await db
           .select()
           .from(realEstateListingsTable)
@@ -13373,7 +14264,7 @@ export async function registerRoutes(app: any) {
           .limit(10);
         dashboardData.realEstateListings = realtorListings;
         dashboardData.stats.realEstateListings = realtorListings.filter(
-          (l: any) => l.status === 'active'
+          (l: any) => l.status === "active"
         ).length;
       }
 
@@ -13389,7 +14280,7 @@ export async function registerRoutes(app: any) {
         id: post.id,
         title: `Posted: ${post.title || post.content.substring(0, 50)}`,
         createdAt: post.createdAt,
-        type: 'post',
+        type: "post",
       }));
 
       // Profile views metric not available in schema; default to 0
@@ -13458,43 +14349,47 @@ export async function registerRoutes(app: any) {
   });
 
   // Remove a contractor from the current user's saved list
-  app.delete("/api/saved-contractors/:contractorId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || req.user?.claims?.sub;
-      const { contractorId } = req.params;
+  app.delete(
+    "/api/saved-contractors/:contractorId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || req.user?.claims?.sub;
+        const { contractorId } = req.params;
 
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-      if (!contractorId) {
-        return res.status(400).json({ message: "contractorId is required" });
-      }
+        if (!userId) {
+          return res.status(401).json({ message: "User not authenticated" });
+        }
+        if (!contractorId) {
+          return res.status(400).json({ message: "contractorId is required" });
+        }
 
-      const savedContractorsTable = (db as any).query?.savedContractors?.table;
-      if (!savedContractorsTable) {
-        return res.status(404).json({ message: "Saved contractors table not available" });
-      }
+        const savedContractorsTable = (db as any).query?.savedContractors?.table;
+        if (!savedContractorsTable) {
+          return res.status(404).json({ message: "Saved contractors table not available" });
+        }
 
-      await db
-        .delete(savedContractorsTable)
-        .where(
-          and(
-            eq((savedContractorsTable as any).userId, userId),
-            or(
-              eq((savedContractorsTable as any).contractorId, contractorId as any),
-              eq((savedContractorsTable as any).contractor_id, contractorId as any),
-              eq((savedContractorsTable as any).proId, contractorId as any),
-              eq((savedContractorsTable as any).pro_id, contractorId as any)
+        await db
+          .delete(savedContractorsTable)
+          .where(
+            and(
+              eq((savedContractorsTable as any).userId, userId),
+              or(
+                eq((savedContractorsTable as any).contractorId, contractorId as any),
+                eq((savedContractorsTable as any).contractor_id, contractorId as any),
+                eq((savedContractorsTable as any).proId, contractorId as any),
+                eq((savedContractorsTable as any).pro_id, contractorId as any)
+              )
             )
-          )
-        );
+          );
 
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error removing saved contractor:", error);
-      res.status(500).json({ message: "Failed to remove saved contractor" });
+        res.status(204).send();
+      } catch (error: any) {
+        console.error("Error removing saved contractor:", error);
+        res.status(500).json({ message: "Failed to remove saved contractor" });
+      }
     }
-  });
+  );
 
   // ============================================================================
   // CRITICAL FOUNDATION ENDPOINTS (Phase 0)
@@ -13506,7 +14401,7 @@ export async function registerRoutes(app: any) {
       const uptime = process.uptime();
       const memoryUsage = process.memoryUsage();
       const timestamp = new Date().toISOString();
-      
+
       // Quick database connectivity check
       let dbStatus = "connecting";
       try {
@@ -13543,7 +14438,11 @@ export async function registerRoutes(app: any) {
   // 1b. VERSION ENDPOINT (backend build metadata)
   app.get("/api/version", (req: Request, res: Response) => {
     // Prefer explicit build metadata from env when available
-    const commit = process.env.BUILD_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || "unknown";
+    const commit =
+      process.env.BUILD_COMMIT ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.RENDER_GIT_COMMIT ||
+      "unknown";
     const builtAt = process.env.BUILD_AT || process.env.VERCEL_BUILD_TIME || undefined;
 
     res.json({
@@ -13579,10 +14478,13 @@ export async function registerRoutes(app: any) {
       }
 
       // Create new conversation
-      const newConversation = await db.insert(conversations).values({
-        homeownerId: userId,
-        contractorId: participantId,
-      }).returning();
+      const newConversation = await db
+        .insert(conversations)
+        .values({
+          homeownerId: userId,
+          contractorId: participantId,
+        })
+        .returning();
 
       res.status(201).json(newConversation[0]);
     } catch (error: any) {
@@ -13656,7 +14558,8 @@ export async function registerRoutes(app: any) {
 
       const sig = req.headers["stripe-signature"] as string;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!webhookSecret) return res.status(400).json({ message: "STRIPE_WEBHOOK_SECRET not configured" });
+      if (!webhookSecret)
+        return res.status(400).json({ message: "STRIPE_WEBHOOK_SECRET not configured" });
 
       const rawBody = Buffer.isBuffer(req.body)
         ? req.body
@@ -13760,7 +14663,16 @@ export async function registerRoutes(app: any) {
   // 4. SENDGRID EMAIL - Setup endpoint
   app.post("/api/email/send", isAdmin, async (req: Request, res: Response) => {
     try {
-      const { to, subject, html, text, from = process.env.SENDGRID_FROM_EMAIL, cc, bcc, replyTo } = req.body;
+      const {
+        to,
+        subject,
+        html,
+        text,
+        from = process.env.SENDGRID_FROM_EMAIL,
+        cc,
+        bcc,
+        replyTo,
+      } = req.body;
 
       if (!to || !subject || !(html || text)) {
         return res.status(400).json({ message: "Missing required fields" });
@@ -13770,7 +14682,16 @@ export async function registerRoutes(app: any) {
         return res.status(503).json({ message: "SendGrid not configured" });
       }
 
-      const result = await emailService.sendEmail({ to, subject, html, text, from, cc, bcc, replyTo });
+      const result = await emailService.sendEmail({
+        to,
+        subject,
+        html,
+        text,
+        from,
+        cc,
+        bcc,
+        replyTo,
+      });
 
       res.json({ message: "Email sent successfully", messageId: result.messageId });
     } catch (error: any) {
@@ -13781,4 +14702,3 @@ export async function registerRoutes(app: any) {
 
   return httpServer;
 }
-

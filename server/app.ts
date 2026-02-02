@@ -6,7 +6,6 @@
 
 // Load test env early so module-level env reads are correct
 if (process.env.NODE_ENV === "test") {
-  // @ts-expect-error - dynamic require for early env loading
   await import("dotenv/config");
 }
 

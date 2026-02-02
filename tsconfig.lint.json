@@ -2,6 +2,8 @@
   "extends": "./tsconfig.json",
   "include": [
     "client/src/**/*",
+    "client/*.config.ts",
+    "client/vite.config.ts",
     "shared/**/*",
     "server/**/*",
     "tests/**/*",

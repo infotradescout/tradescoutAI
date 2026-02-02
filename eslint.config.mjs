@@ -47,7 +47,9 @@ export default [
             'no-console': 'off',
             'prefer-const': 'error',
             'no-var': 'error',
-            'eqeqeq': ['error', 'always'],
+            // Allow the common TypeScript pattern `value == null` / `value != null`
+            // to check both null and undefined, but enforce strict equality otherwise.
+            'eqeqeq': ['error', 'always', { null: 'ignore' }],
 
             // Guardrails
             'no-restricted-syntax': [

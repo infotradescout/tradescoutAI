@@ -46,52 +46,61 @@ type AppShellProps = {
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (isSuperAdmin: boolean): NavItem[] => {
+const buildFeatureNav = (isSuperAdmin: boolean, isAuthenticated: boolean): NavItem[] => {
   const baseNav: NavItem[] = [
     {
       label: "Scout",
       href: "/scout",
-      icon: <Compass className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Direct Connect",
       href: "/direct-connect",
-      icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
+    ...(isAuthenticated
+      ? [
+          {
+            label: "MealScout",
+            href: "/mealscout",
+            icon: <Utensils className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+          } as NavItem,
+        ]
+      : []),
     {
       label: "Community",
       href: ROUTES.COMMUNITY ?? "/community",
-      icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "TradeDeals",
       href: "/trade-deals",
-      icon: <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <Sparkles className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "EXCHANGE",
       href: ROUTES.EXCHANGE ?? "/exchange",
-      icon: <ShoppingBag className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Leaderboard",
       href: "/leaderboard",
-      icon: <Trophy className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <Trophy className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Community Builders",
       href: "/foundation",
-      icon: <Heart className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Help",
       href: ROUTES.HELP ?? "/help",
-      icon: <CircleHelp className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <CircleHelp className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Share",
       href: "/affiliate",
-      icon: <Share2 className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
   ];
 
@@ -101,7 +110,7 @@ const buildFeatureNav = (isSuperAdmin: boolean): NavItem[] => {
       {
         label: "Admin",
         href: "/admin",
-        icon: <Shield className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+        icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       },
       ...baseNav,
     ];
@@ -115,15 +124,17 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isLoggedIn = !!user;
   // Impersonation banner logic
   const isImpersonating = user?.isImpersonating || user?.impersonating;
-  const impersonatedUser = user?.impersonatedUser || (isImpersonating ? { name: user?.firstName + ' ' + user?.lastName, email: user?.email } : null);
+  const impersonatedUser =
+    user?.impersonatedUser ||
+    (isImpersonating ? { name: user?.firstName + " " + user?.lastName, email: user?.email } : null);
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const isSuperAdmin = (user as any)?.isSuperAdmin === true;
-  
-  const featureNav = buildFeatureNav(isSuperAdmin);
+
+  const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
@@ -147,7 +158,11 @@ export function AppShell({ children, footer }: AppShellProps) {
             type="button"
             onClick={() => navigate("/login")}
             className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.85rem] font-medium hover:text-white transition"
-            style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)', color: 'var(--text-secondary)' }}
+            style={{
+              borderColor: "var(--border-primary)",
+              backgroundColor: "var(--charcoal-900)",
+              color: "var(--text-secondary)",
+            }}
           >
             Log in
           </button>
@@ -159,9 +174,9 @@ export function AppShell({ children, footer }: AppShellProps) {
   // Set CSS variables for nav sizing (Step 2)
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--top-nav-h', '56px');
-    root.style.setProperty('--bottom-nav-h', '68px');
-    root.style.setProperty('--right-nav-w', '256px');
+    root.style.setProperty("--top-nav-h", "56px");
+    root.style.setProperty("--bottom-nav-h", "68px");
+    root.style.setProperty("--right-nav-w", "256px");
   }, []);
 
   // Rehydrate canonical location into the session layer on boot so that
@@ -198,8 +213,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   return (
     <div
       className="app-shell relative h-full w-full overflow-hidden"
-      style={{ 
-        color: 'var(--text-primary)',
+      style={{
+        color: "var(--text-primary)",
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
@@ -207,11 +222,11 @@ export function AppShell({ children, footer }: AppShellProps) {
       {isImpersonating && impersonatedUser && (
         <div
           style={{
-            backgroundColor: 'var(--surface-intermediate)',
-            color: 'var(--text-primary)',
-            borderBottom: '1px solid var(--border-active)',
-            padding: '10px 0',
-            textAlign: 'center',
+            backgroundColor: "var(--surface-intermediate)",
+            color: "var(--text-primary)",
+            borderBottom: "1px solid var(--border-active)",
+            padding: "10px 0",
+            textAlign: "center",
             zIndex: 9999,
             fontWeight: 600,
           }}
@@ -220,16 +235,19 @@ export function AppShell({ children, footer }: AppShellProps) {
           <button
             style={{
               marginLeft: 24,
-              backgroundColor: 'var(--theme-accent-primary)',
-              color: 'var(--text-primary)',
-              border: 'none',
+              backgroundColor: "var(--theme-accent-primary)",
+              color: "var(--text-primary)",
+              border: "none",
               borderRadius: 4,
-              padding: '4px 12px',
+              padding: "4px 12px",
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: "pointer",
             }}
             onClick={async () => {
-              await fetch('/api/admin/impersonate/exit', { method: 'POST', credentials: 'include' });
+              await fetch("/api/admin/impersonate/exit", {
+                method: "POST",
+                credentials: "include",
+              });
               window.location.reload();
             }}
           >
@@ -241,11 +259,17 @@ export function AppShell({ children, footer }: AppShellProps) {
       {isMobile ? (
         <header
           className="fixed top-0 inset-x-0 z-50 flex items-center h-[52px] px-3 md:hidden"
-          style={{ background: 'var(--surface-frame)', borderBottom: '1px solid var(--border-primary)' }}
+          style={{
+            background: "var(--surface-frame)",
+            borderBottom: "1px solid var(--border-primary)",
+          }}
         >
           <Link href={isSuperAdmin ? "/admin" : "/"} className="flex items-center cursor-pointer">
             <TradeScoutLogo size="sm" />
-            <span className="ml-2 text-xs font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+            <span
+              className="ml-2 text-xs font-semibold tracking-wide"
+              style={{ color: "var(--text-primary)" }}
+            >
               TradeScout
             </span>
           </Link>
@@ -256,19 +280,25 @@ export function AppShell({ children, footer }: AppShellProps) {
                   type="button"
                   onClick={() => navigate("/create-account")}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
-                  style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)' }}
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--charcoal-900)",
+                  }}
                   aria-label="Create account"
                 >
-                  <UserPlus className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+                  <UserPlus className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
-                  style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)' }}
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--charcoal-900)",
+                  }}
                   aria-label="Log in"
                 >
-                  <LogIn className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+                  <LogIn className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
                 </button>
               </>
             )}
@@ -279,7 +309,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />
+              <Menu className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
             </button>
           </div>
         </header>
@@ -288,7 +318,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           className={`fixed top-0 inset-x-0 z-40 glass-header flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
-          style={{ backgroundColor: 'var(--charcoal-950)', borderColor: 'var(--border-primary)' }}
+          style={{ backgroundColor: "var(--charcoal-950)", borderColor: "var(--border-primary)" }}
         >
           {/* Brand */}
           <Link
@@ -297,15 +327,15 @@ export function AppShell({ children, footer }: AppShellProps) {
               handedness === "left" ? "justify-end" : ""
             }`}
           >
-            <TradeScoutLogo
-              size="sm"
-              className=""
-            />
+            <TradeScoutLogo size="sm" className="" />
             <div className="flex flex-col leading-tight">
-              <span className="text-[0.65rem] uppercase tracking-[0.35em]" style={{ color: 'var(--text-secondary)' }}>
+              <span
+                className="text-[0.65rem] uppercase tracking-[0.35em]"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 TRADESCOUT
               </span>
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                 Connection without compromise
               </span>
             </div>
@@ -326,7 +356,11 @@ export function AppShell({ children, footer }: AppShellProps) {
                   type="button"
                   onClick={() => navigate("/login")}
                   className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.7rem] font-medium hover:text-white transition focus:outline-none"
-                  style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)', color: 'var(--text-secondary)' }}
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--charcoal-900)",
+                    color: "var(--text-secondary)",
+                  }}
                 >
                   Log in
                 </button>
@@ -340,7 +374,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Messages and helpers"
             >
-              <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+              <MessageCircle className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
             </button>
 
             {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
@@ -353,7 +387,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+                <Bell className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
               </button>
             )}
 
@@ -364,7 +398,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+              <Menu className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
             </button>
           </div>
         </header>
@@ -383,12 +417,12 @@ export function AppShell({ children, footer }: AppShellProps) {
           touch-pan-y
         `}
         style={{
-          top: 'var(--top-nav-h)',
-          bottom: 'var(--bottom-nav-h)',
-          paddingRight: !isMobile ? 'var(--right-nav-w)' : undefined,
+          top: "var(--top-nav-h)",
+          bottom: "var(--bottom-nav-h)",
+          paddingRight: !isMobile ? "var(--right-nav-w)" : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
-          background: 'transparent',
-          color: 'var(--text-primary)'
+          background: "transparent",
+          color: "var(--text-primary)",
         }}
       >
         {isMobile && isScoutSurface && renderMobileHero()}
@@ -400,12 +434,12 @@ export function AppShell({ children, footer }: AppShellProps) {
         <aside
           className="hidden lg:block fixed z-40"
           style={{
-            top: 'var(--top-nav-h)',
-            bottom: 'var(--bottom-nav-h)',
+            top: "var(--top-nav-h)",
+            bottom: "var(--bottom-nav-h)",
             right: 0,
-            width: 'var(--right-nav-w)',
-            background: 'var(--surface-intermediate)',
-            color: 'var(--text-primary)'
+            width: "var(--right-nav-w)",
+            background: "var(--surface-intermediate)",
+            color: "var(--text-primary)",
           }}
         >
           <RightToolsPanel />
@@ -413,37 +447,53 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
         <MobileAppBar items={featureNav} />
       </div>
 
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}
       {!isMobile && footer && (
-        <div className="border-t" style={{ borderColor: 'var(--border-secondary)', background: 'var(--surface-app-bg)' }}>
+        <div
+          className="border-t"
+          style={{ borderColor: "var(--border-secondary)", background: "var(--surface-app-bg)" }}
+        >
           {footer}
         </div>
       )}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
       {isMobile && isToolsOpen && (
-        <div className="fixed inset-x-0 top-0 z-40 flex" style={{ bottom: 'calc(68px + env(safe-area-inset-bottom))' }}>
+        <div
+          className="fixed inset-x-0 top-0 z-40 flex"
+          style={{ bottom: "calc(68px + env(safe-area-inset-bottom))" }}
+        >
           <button
             type="button"
             aria-label="Close tools menu"
             className="flex-1 bg-black/40"
             onClick={() => setIsToolsOpen(false)}
           />
-          <div className="w-72 max-w-full flex flex-col" style={{ backgroundColor: 'var(--surface-intermediate)' }}>
+          <div
+            className="w-72 max-w-full flex flex-col"
+            style={{ backgroundColor: "var(--surface-intermediate)" }}
+          >
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
+              <span
+                className="text-[0.7rem] uppercase tracking-[0.2em]"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 Tools &amp; profile
               </span>
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(false)}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border transition"
-                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}
+                style={{
+                  borderColor: "var(--border-primary)",
+                  color: "var(--text-secondary)",
+                  background: "var(--bg-secondary)",
+                }}
               >
                 ✕
               </button>

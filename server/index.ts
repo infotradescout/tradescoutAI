@@ -36,21 +36,21 @@ function log(message: string, source = "express") {
 }
 
 // Global error handlers
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  console.error('Stack:', error.stack);
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  console.error("Stack:", error.stack);
 });
 
-process.on('exit', (code) => {
+process.on("exit", (code) => {
   console.log(`Process exiting with code: ${code}`);
-  console.trace('Exit stack trace:');
+  console.trace("Exit stack trace:");
 });
 
-process.on('beforeExit', (code) => {
+process.on("beforeExit", (code) => {
   console.log(`Before exit with code: ${code}`);
 });
 
@@ -64,8 +64,8 @@ const shutdown = (signal: string) => {
   process.exit(0);
 };
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 const requiredEnv = ["DATABASE_URL", "SESSION_SECRET"];
 for (const key of requiredEnv) {
@@ -74,7 +74,9 @@ for (const key of requiredEnv) {
       console.error(`Missing required env: ${key}`);
       process.exit(1);
     } else {
-      console.warn(`[DEV] Missing env ${key} – server will start but related features may fail. Do NOT rely on this in production.`);
+      console.warn(
+        `[DEV] Missing env ${key} – server will start but related features may fail. Do NOT rely on this in production.`
+      );
     }
   }
 }
@@ -136,11 +138,7 @@ if (rawAllowlist && rawAllowlist !== "*") {
 
 // Always allow localhost dev ports (client + API) in dev
 if (process.env.NODE_ENV !== "production") {
-  const devOrigins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    `http://localhost:${PORT}`,
-  ];
+  const devOrigins = ["http://localhost:3000", "http://localhost:5173", `http://localhost:${PORT}`];
   for (const devOrigin of devOrigins) {
     if (!ALLOWED_ORIGINS.includes(devOrigin)) {
       ALLOWED_ORIGINS.push(devOrigin);
@@ -200,6 +198,16 @@ app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files (dev + prod). In dev, this supports local file workflows and
+// in-app previews; in prod, this supports staff-accessible upload links.
+const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+if (fs.existsSync(uploadsPath)) {
+  app.use(
+    "/uploads",
+    express.static(uploadsPath, { maxAge: process.env.NODE_ENV === "production" ? "1y" : "0" })
+  );
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -236,301 +244,299 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-  try {
-    await ensureProfilesTable();
-  } catch (err) {
-    if (process.env.NODE_ENV === "production") {
-      console.error("FATAL: ensureProfilesTable failed in production:", err);
-      throw err;
-    } else {
-      console.warn("[DEV] ensureProfilesTable failed; continuing without profiles table:", (err as Error)?.message);
-    }
-  }
-
-  const ensureMasterAdmin = async () => {
-    const email = process.env.MASTER_ADMIN_EMAIL;
-    const password = process.env.MASTER_ADMIN_PASSWORD;
-    if (!email || !password) {
-      console.warn('[Bootstrap] MASTER_ADMIN_EMAIL/PASSWORD not set; skipping master admin bootstrap');
-      return;
-    }
-
-    const existingHeadAdmin = await storage.getUserByRole('head_admin');
-    if (existingHeadAdmin) {
-      return;
-    }
-
-    const firstName = process.env.MASTER_ADMIN_FIRST_NAME || 'Super';
-    const lastName = process.env.MASTER_ADMIN_LAST_NAME || 'Admin';
-
     try {
-      await storage.createMasterAdmin(email, password, firstName, lastName);
-      console.log(`[Bootstrap] Created head_admin account for ${email}`);
+      await ensureProfilesTable();
     } catch (err) {
       if (process.env.NODE_ENV === "production") {
-        console.error("FATAL: Failed to create master admin in production:", err);
+        console.error("FATAL: ensureProfilesTable failed in production:", err);
         throw err;
-      }
-      console.warn("[DEV] Failed to create master admin; continuing without bootstrap head_admin:", (err as Error)?.message);
-    }
-  };
-
-  await ensureMasterAdmin();
-  // Best-effort, read-only schema drift check: logs but never blocks startup.
-  try {
-    await runSchemaPreflight();
-  } catch (err) {
-    console.error("[SchemaPreflight] Failed during startup (non-fatal):", err);
-  }
-  // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
-  // If 'routes' is not implicitly available, it needs to be imported.
-  // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
-  const server = await registerRoutes(app);
-
-  // Attach job documents + invoicing/contract APIs after auth/session are configured
-  app.use(createInvoicingDocumentsRouter(pool));
-
-  // Initialize WebSocket messaging service
-  initializeMessagingService(server);
-  console.log('[Messaging] Socket.io service initialized');
-
-  // Start the crawler scheduler for auto-caching
-  // Controlled by SCHEDULER_ENABLED env flag (default: false)
-  if (process.env.SCHEDULER_ENABLED === "true") {
-    console.log("[Scheduler] Enabling background jobs...");
-    startCrawlerScheduler();
-  } else {
-    console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
-  }
-
-  // Start birthday notification processing - runs daily at 9 AM
-  setInterval(async () => {
-    const now = new Date();
-    if (now.getHours() === 9 && now.getMinutes() === 0) {
-      try {
-        await notificationService.processBirthdayNotifications();
-        console.log('Daily birthday notifications processed');
-      } catch (error) {
-        console.error('Error processing birthday notifications:', error);
-      }
-    }
-  }, 60000); // Check every minute
-
-  if (process.env.SENTRY_DSN) {
-    app.use(Sentry.Handlers.errorHandler());
-  }
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err?.message || "Internal Server Error";
-    const errorId = `err_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-    // Log full error server-side (do not leak internals to clients)
-    try {
-      const reqAny = _req as any;
-      console.error("[API ERROR]", {
-        errorId,
-        status,
-        message,
-        method: reqAny?.method,
-        path: reqAny?.originalUrl || reqAny?.url,
-        origin: reqAny?.headers?.origin,
-        host: reqAny?.headers?.host,
-        xForwardedProto: reqAny?.headers?.["x-forwarded-proto"],
-        stack: err?.stack,
-      });
-    } catch {
-      // ignore logging failures
-    }
-
-    // If Express has already started sending, delegate
-    if (res.headersSent) {
-      return;
-    }
-
-    // Always return a safe payload
-    res.status(status).json({
-      message: status >= 500 ? "Internal Server Error" : message,
-      errorId,
-    });
-  });
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-
-  // Track the last port we attempted so we can increment it if needed.
-  let currentPort = PORT;
-
-  const startHttpServer = (portToUse: number) => {
-    currentPort = portToUse;
-    server.listen(
-      {
-        port: portToUse,
-        host: "0.0.0.0",
-      },
-      () => {
-        log(`serving on port ${portToUse}`);
-
-        // Setup vite AFTER the server is listening so the port is available
-        const isProduction =
-          process.env.NODE_ENV === "production" || app.get("env") === "production";
-        console.log(
-          `Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get(
-            "env",
-          )}, isProduction=${isProduction}`,
+      } else {
+        console.warn(
+          "[DEV] ensureProfilesTable failed; continuing without profiles table:",
+          (err as Error)?.message
         );
+      }
+    }
 
-        if (!isProduction) {
-          (async () => {
-            try {
-              // Set HMR environment variables to fix WebSocket connection issues
-              if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-                process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
-                process.env.VITE_HMR_PORT = "443";
-                process.env.VITE_HMR_PROTOCOL = "wss";
+    const ensureMasterAdmin = async () => {
+      const email = process.env.MASTER_ADMIN_EMAIL;
+      const password = process.env.MASTER_ADMIN_PASSWORD;
+      if (!email || !password) {
+        console.warn(
+          "[Bootstrap] MASTER_ADMIN_EMAIL/PASSWORD not set; skipping master admin bootstrap"
+        );
+        return;
+      }
+
+      const existingHeadAdmin = await storage.getUserByRole("head_admin");
+      if (existingHeadAdmin) {
+        return;
+      }
+
+      const firstName = process.env.MASTER_ADMIN_FIRST_NAME || "Super";
+      const lastName = process.env.MASTER_ADMIN_LAST_NAME || "Admin";
+
+      try {
+        await storage.createMasterAdmin(email, password, firstName, lastName);
+        console.log(`[Bootstrap] Created head_admin account for ${email}`);
+      } catch (err) {
+        if (process.env.NODE_ENV === "production") {
+          console.error("FATAL: Failed to create master admin in production:", err);
+          throw err;
+        }
+        console.warn(
+          "[DEV] Failed to create master admin; continuing without bootstrap head_admin:",
+          (err as Error)?.message
+        );
+      }
+    };
+
+    await ensureMasterAdmin();
+    // Best-effort, read-only schema drift check: logs but never blocks startup.
+    try {
+      await runSchemaPreflight();
+    } catch (err) {
+      console.error("[SchemaPreflight] Failed during startup (non-fatal):", err);
+    }
+    // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
+    // If 'routes' is not implicitly available, it needs to be imported.
+    // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
+    const server = await registerRoutes(app);
+
+    // Attach job documents + invoicing/contract APIs after auth/session are configured
+    app.use(createInvoicingDocumentsRouter(pool));
+
+    // Initialize WebSocket messaging service
+    initializeMessagingService(server);
+    console.log("[Messaging] Socket.io service initialized");
+
+    // Start the crawler scheduler for auto-caching
+    // Controlled by SCHEDULER_ENABLED env flag (default: false)
+    if (process.env.SCHEDULER_ENABLED === "true") {
+      console.log("[Scheduler] Enabling background jobs...");
+      startCrawlerScheduler();
+    } else {
+      console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
+    }
+
+    // Start birthday notification processing - runs daily at 9 AM
+    setInterval(async () => {
+      const now = new Date();
+      if (now.getHours() === 9 && now.getMinutes() === 0) {
+        try {
+          await notificationService.processBirthdayNotifications();
+          console.log("Daily birthday notifications processed");
+        } catch (error) {
+          console.error("Error processing birthday notifications:", error);
+        }
+      }
+    }, 60000); // Check every minute
+
+    if (process.env.SENTRY_DSN) {
+      app.use(Sentry.Handlers.errorHandler());
+    }
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err?.message || "Internal Server Error";
+      const errorId = `err_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+      // Log full error server-side (do not leak internals to clients)
+      try {
+        const reqAny = _req as any;
+        console.error("[API ERROR]", {
+          errorId,
+          status,
+          message,
+          method: reqAny?.method,
+          path: reqAny?.originalUrl || reqAny?.url,
+          origin: reqAny?.headers?.origin,
+          host: reqAny?.headers?.host,
+          xForwardedProto: reqAny?.headers?.["x-forwarded-proto"],
+          stack: err?.stack,
+        });
+      } catch {
+        // ignore logging failures
+      }
+
+      // If Express has already started sending, delegate
+      if (res.headersSent) {
+        return;
+      }
+
+      // Always return a safe payload
+      res.status(status).json({
+        message: status >= 500 ? "Internal Server Error" : message,
+        errorId,
+      });
+    });
+
+    // ALWAYS serve the app on the port specified in the environment variable PORT
+    // Other ports are firewalled. Default to 5000 if not specified.
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+
+    // Track the last port we attempted so we can increment it if needed.
+    let currentPort = PORT;
+
+    const startHttpServer = (portToUse: number) => {
+      currentPort = portToUse;
+      server.listen(
+        {
+          port: portToUse,
+          host: "0.0.0.0",
+        },
+        () => {
+          log(`serving on port ${portToUse}`);
+
+          // Setup vite AFTER the server is listening so the port is available
+          const isProduction =
+            process.env.NODE_ENV === "production" || app.get("env") === "production";
+          console.log(
+            `Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get(
+              "env"
+            )}, isProduction=${isProduction}`
+          );
+
+          if (!isProduction) {
+            (async () => {
+              try {
+                // Set HMR environment variables to fix WebSocket connection issues
+                if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+                  process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
+                  process.env.VITE_HMR_PORT = "443";
+                  process.env.VITE_HMR_PROTOCOL = "wss";
+                }
+                const skipVite = process.env.SKIP_VITE === "true";
+                console.log(`[DEV] Vite mode: ${skipVite ? "skipped" : "enabled"}`);
+                // Vite enabled by default in dev; set SKIP_VITE=true to disable.
+                if (skipVite) {
+                  console.log("[DEV] Vite skipped - API server will run without client");
+                } else {
+                  console.log("[DEV] Setting up Vite...");
+                  const { setupVite } = await import("./vite");
+                  await setupVite(app, server);
+                  console.log("[DEV] Vite setup complete - ready to accept connections");
+                }
+              } catch (viteError) {
+                console.error("[DEV] Failed to setup Vite:", viteError);
+                console.error("[DEV] Stack:", (viteError as Error).stack);
+                // Don't exit - let the server continue running without Vite
+                console.log("[DEV] Server will continue running without Vite dev server");
               }
-              const skipVite = process.env.SKIP_VITE === "true";
-              console.log(`[DEV] Vite mode: ${skipVite ? "skipped" : "enabled"}`);
-              // Vite enabled by default in dev; set SKIP_VITE=true to disable.
-              if (skipVite) {
-                console.log(
-                  "[DEV] Vite skipped - API server will run without client",
-                );
-              } else {
-                console.log("[DEV] Setting up Vite...");
-                const { setupVite } = await import("./vite");
-                await setupVite(app, server);
-                console.log(
-                  "[DEV] Vite setup complete - ready to accept connections",
-                );
-              }
-            } catch (viteError) {
-              console.error("[DEV] Failed to setup Vite:", viteError);
-              console.error("[DEV] Stack:", (viteError as Error).stack);
-              // Don't exit - let the server continue running without Vite
-              console.log(
-                "[DEV] Server will continue running without Vite dev server",
-              );
-            }
-          })();
-        } else {
-          // Serve static files from dist/public (Vite build output) if available
-          const workspaceRoot = process.cwd();
-          const publicDistPath = path.join(workspaceRoot, "dist/public");
-
-          // Only serve frontend if dist/public exists (allows API-only deployment)
-          if (fs.existsSync(publicDistPath)) {
-            console.log("Production mode - serving static files from:", publicDistPath);
-
-            // Serve uploaded files
-            const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
-            app.use("/uploads", express.static(uploadsPath, { maxAge: "1y" }));
-
-            // 1) Serve hashed asset chunks with long cache first
-            const assetsPath = path.join(publicDistPath, "assets");
-            if (fs.existsSync(assetsPath)) {
-              app.use(
-                "/assets",
-                express.static(assetsPath, {
-                  immutable: true,
-                  maxAge: "1y",
-                }),
-              );
-            }
-
-            // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
-            const identityAssets = new Set([
-              "/favicon.ico",
-              "/favicon-16x16.png",
-              "/favicon-32x32.png",
-              "/favicon-48x48.png",
-              "/apple-touch-icon.png",
-              "/apple-touch-icon-precomposed.png",
-              "/manifest.json",
-              "/site.webmanifest",
-              "/icon-192.png",
-              "/icon-512.png",
-              "/icon-192-maskable.png",
-              "/icon-512-maskable.png",
-              "/logo.png",
-              "/tradescout-logo.png",
-              "/tradescout-logo.jpg",
-            ]);
-
-            app.get(Array.from(identityAssets), (req, res, next) => {
-              const filePath = path.join(publicDistPath, req.path);
-              if (!fs.existsSync(filePath)) return next();
-              res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-              res.sendFile(filePath);
-            });
-
-            // 2) Serve other static files (index.html, icons, etc.)
-            app.use(express.static(publicDistPath));
-
-            // 3) Catch-all handler for client-side routing, but NEVER for /api or /assets
-            app.get("*", (req, res) => {
-              const reqPath = req.path || "";
-
-              if (reqPath.startsWith("/api")) {
-                return res.status(404).json({ message: "Not found" });
-              }
-
-              // If an asset was requested but not found by express.static, do NOT
-              // return index.html – this would surface as a MIME-type error in the browser.
-              if (reqPath.startsWith("/assets")) {
-                return res.status(404).end();
-              }
-
-              // If it looks like a file request (e.g. /favicon.ico), never fall back to index.html.
-              const base = path.posix.basename(reqPath);
-              if (base.includes(".")) {
-                return res.status(404).end();
-              }
-
-              const indexPath = path.join(publicDistPath, "index.html");
-
-              // Check if file exists before trying to serve
-              if (fs.existsSync(indexPath)) {
-                res.sendFile(indexPath, (err) => {
-                  if (err) {
-                    console.error("Error serving index.html:", err);
-                    res.status(500).send("Error loading application");
-                  }
-                });
-              } else {
-                console.error("index.html not found at:", indexPath);
-                res.status(404).send("Application files not found");
-              }
-            });
+            })();
           } else {
-            console.log("Production mode - API only (no dist/public found)");
-            // API-only mode: no frontend serving, just API routes
+            // Serve static files from dist/public (Vite build output) if available
+            const workspaceRoot = process.cwd();
+            const publicDistPath = path.join(workspaceRoot, "dist/public");
+
+            // Only serve frontend if dist/public exists (allows API-only deployment)
+            if (fs.existsSync(publicDistPath)) {
+              console.log("Production mode - serving static files from:", publicDistPath);
+
+              // 1) Serve hashed asset chunks with long cache first
+              const assetsPath = path.join(publicDistPath, "assets");
+              if (fs.existsSync(assetsPath)) {
+                app.use(
+                  "/assets",
+                  express.static(assetsPath, {
+                    immutable: true,
+                    maxAge: "1y",
+                  })
+                );
+              }
+
+              // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
+              const identityAssets = new Set([
+                "/favicon.ico",
+                "/favicon-16x16.png",
+                "/favicon-32x32.png",
+                "/favicon-48x48.png",
+                "/apple-touch-icon.png",
+                "/apple-touch-icon-precomposed.png",
+                "/manifest.json",
+                "/site.webmanifest",
+                "/icon-192.png",
+                "/icon-512.png",
+                "/icon-192-maskable.png",
+                "/icon-512-maskable.png",
+                "/logo.png",
+                "/tradescout-logo.png",
+                "/tradescout-logo.jpg",
+              ]);
+
+              app.get(Array.from(identityAssets), (req, res, next) => {
+                const filePath = path.join(publicDistPath, req.path);
+                if (!fs.existsSync(filePath)) return next();
+                res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+                res.sendFile(filePath);
+              });
+
+              // 2) Serve other static files (index.html, icons, etc.)
+              app.use(express.static(publicDistPath));
+
+              // 3) Catch-all handler for client-side routing, but NEVER for /api or /assets
+              app.get("*", (req, res) => {
+                const reqPath = req.path || "";
+
+                if (reqPath.startsWith("/api")) {
+                  return res.status(404).json({ message: "Not found" });
+                }
+
+                // If an asset was requested but not found by express.static, do NOT
+                // return index.html – this would surface as a MIME-type error in the browser.
+                if (reqPath.startsWith("/assets")) {
+                  return res.status(404).end();
+                }
+
+                // If it looks like a file request (e.g. /favicon.ico), never fall back to index.html.
+                const base = path.posix.basename(reqPath);
+                if (base.includes(".")) {
+                  return res.status(404).end();
+                }
+
+                const indexPath = path.join(publicDistPath, "index.html");
+
+                // Check if file exists before trying to serve
+                if (fs.existsSync(indexPath)) {
+                  res.sendFile(indexPath, (err) => {
+                    if (err) {
+                      console.error("Error serving index.html:", err);
+                      res.status(500).send("Error loading application");
+                    }
+                  });
+                } else {
+                  console.error("index.html not found at:", indexPath);
+                  res.status(404).send("Application files not found");
+                }
+              });
+            } else {
+              console.log("Production mode - API only (no dist/public found)");
+              // API-only mode: no frontend serving, just API routes
+            }
           }
         }
-      },
-    );
-  };
-
-  // Handle port-in-use errors by falling back to the next port instead of crashing
-  server.on("error", (err: any) => {
-    if (err && (err as any).code === "EADDRINUSE") {
-      const fallbackPort = currentPort + 1;
-      console.warn(
-        `Port ${currentPort} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`,
       );
-      startHttpServer(fallbackPort);
-    } else {
-      console.error("Server failed to start:", err);
-      process.exit(1);
-    }
-  });
+    };
 
-  startHttpServer(PORT);
+    // Handle port-in-use errors by falling back to the next port instead of crashing
+    server.on("error", (err: any) => {
+      if (err && (err as any).code === "EADDRINUSE") {
+        const fallbackPort = currentPort + 1;
+        console.warn(
+          `Port ${currentPort} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`
+        );
+        startHttpServer(fallbackPort);
+      } else {
+        console.error("Server failed to start:", err);
+        process.exit(1);
+      }
+    });
+
+    startHttpServer(PORT);
   } catch (error) {
-    console.error('FATAL ERROR during server initialization:', error);
-    console.error('Stack:', (error as Error).stack);
+    console.error("FATAL ERROR during server initialization:", error);
+    console.error("Stack:", (error as Error).stack);
     process.exit(1);
   }
 })();

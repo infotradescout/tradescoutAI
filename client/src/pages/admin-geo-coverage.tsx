@@ -128,6 +128,24 @@ export default function AdminGeoCoverageConsole() {
 
   const coverageRateLabel = `${data ? data.verifiedCoverageRatePercent.toFixed(1) : "0.0"}%`;
 
+  const seedCounties = useMutation({
+    mutationFn: async () => apiRequest("POST", "/api/admin/geo/seed-counties", {}),
+    onSuccess: (payload: any) => {
+      toast({
+        title: "Seed complete",
+        description: `Inserted ${payload?.insertedStates || 0} states and ${payload?.insertedCounties || 0} counties.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Seed failed",
+        description: err?.message ?? "Unable to seed counties.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const isAssignTmDialogOpen = !!assignCounty;
   const isAssignAffiliateDialogOpen = !!assignAffiliateCounty;
 
@@ -341,6 +359,26 @@ export default function AdminGeoCoverageConsole() {
         </Card>
       </div>
 
+      {data && data.totalCounties < 3000 && (
+        <Card className="bg-slate-950/60 border-slate-800">
+          <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="text-xs text-slate-300">
+              County table looks incomplete (<span className="font-mono">{data.totalCounties}</span>
+              ). Seed the full built-in county dataset so coverage tooling can represent every
+              county.
+            </div>
+            <Button
+              size="sm"
+              className="text-xs"
+              onClick={() => seedCounties.mutate()}
+              disabled={seedCounties.isPending}
+            >
+              {seedCounties.isPending ? "Seeding…" : "Seed counties"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="bg-slate-950/60 border-slate-800">
         <CardHeader className="pb-2 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>
@@ -422,10 +460,10 @@ export default function AdminGeoCoverageConsole() {
           {isLoading && <SkeletonTable rows={8} />}
           {error && !isLoading && (
             <ErrorState
-	          icon={<AlertCircle />}
-	          title="Failed to Load Coverage"
-	          description="Unable to fetch county data. Please refresh the page."
-	        />
+              icon={<AlertCircle />}
+              title="Failed to Load Coverage"
+              description="Unable to fetch county data. Please refresh the page."
+            />
           )}
 
           {!isLoading && !error && viewMode === "list" && (

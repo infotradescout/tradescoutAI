@@ -4,10 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,16 +44,25 @@ export function EmailPasswordAuth() {
         }!`,
       });
 
+      // Ensure the global auth query flips from "guest" to "user" before we route away.
+      // This prevents ProtectedRoute from immediately redirecting back to /create-account.
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      } catch {
+        // Fail-soft: routing will still work for most users, and the next mount will refetch auth.
+      }
+
       const anyUser: any = result?.user || result;
       const role: string | undefined = anyUser?.role;
-      const isSuperAdmin = role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
+      const isSuperAdmin =
+        role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
       window.location.href = isSuperAdmin ? "/admin" : "/dashboard";
     } catch (error) {
       console.error("Authentication error:", error);
       toast({
         title: "Authentication failed",
-        description:
-          error instanceof Error ? error.message : "Please try again.",
+        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
