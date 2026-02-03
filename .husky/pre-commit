@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # NOTE (Windows/Node 24): Node subprocess spawning `git` can fail with EPERM in this repo.
 # Keep the pre-commit hook pure shell to avoid Node spawning `git`.
 
