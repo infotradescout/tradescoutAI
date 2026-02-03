@@ -455,9 +455,7 @@ const AppLayout = memo(function AppLayout() {
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {showBetaNotice && (
-          <div
-            className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border p-6 flex flex-col items-center justify-center bg-[color:var(--theme-accent-primary,#ff6600)] border-[color:var(--theme-accent-primary,#ff6600)] shadow-2xl shadow-[0_4px_32px_0_rgba(249,115,22,0.25)] text-[color:var(--theme-on-accent,#fff)]"
-          >
+          <div className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border p-6 flex flex-col items-center justify-center bg-[color:var(--theme-accent-primary,#ff6600)] border-[color:var(--theme-accent-primary,#ff6600)] shadow-2xl shadow-[0_4px_32px_0_rgba(249,115,22,0.25)] text-[color:var(--theme-on-accent,#fff)]">
             <div className="flex items-center gap-3 w-full justify-center">
               <div className="h-2 w-2 rounded-full bg-[color:var(--theme-on-accent,#fff)] shadow-[0_0_0_4px_rgba(255,255,255,0.15)]" />
               <p className="font-bold tracking-wide text-lg text-[color:var(--theme-on-accent,#fff)]">
