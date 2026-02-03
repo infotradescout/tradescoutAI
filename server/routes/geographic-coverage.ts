@@ -9,7 +9,7 @@ geographicCoverageRouter.get("/county/:fips", async (req, res) => {
     const fips = z
       .string()
       .regex(/^\d{5}$/)
-      .parse(String((req.params as any).fips || ""));
+      .parse(String(req.params?.fips || ""));
 
     const row = await getCoverageForCounty(fips);
 
@@ -19,7 +19,7 @@ geographicCoverageRouter.get("/county/:fips", async (req, res) => {
     }
 
     res.json(row);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: "Invalid county FIPS" });
     }

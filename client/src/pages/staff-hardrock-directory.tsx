@@ -51,6 +51,8 @@ const STAFF_ALLOWED_ROLES = [
   "head_admin",
 ] as const;
 
+const STAFF_ROLE_SET = new Set<string>(STAFF_ALLOWED_ROLES);
+
 function extractUploadLinks(text: string | null | undefined): string[] {
   if (!text) return [];
   const matches = text.match(/\/uploads\/hardrock\/[^\s)"']+/g);
@@ -68,7 +70,7 @@ export default function StaffHardrockDirectory() {
   const hasAccess = useMemo(() => {
     if (!isAuthenticated || !user) return false;
     if (user.isAdmin === true) return true;
-    return STAFF_ALLOWED_ROLES.includes(String(user.role) as any);
+    return STAFF_ROLE_SET.has(String(user.role));
   }, [isAuthenticated, user]);
 
   const { data, isLoading, error } = useQuery<ContractorApplication[]>({
@@ -89,10 +91,10 @@ export default function StaffHardrockDirectory() {
       queryClient.invalidateQueries({ queryKey: ["/api/staff/hardrock/applications"] });
       toast({ title: "Updated", description: "Application updated." });
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast({
         title: "Update failed",
-        description: err?.message || "Please try again.",
+        description: err instanceof Error ? err.message : "Please try again.",
         variant: "destructive",
       });
     },
@@ -105,7 +107,7 @@ export default function StaffHardrockDirectory() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg text-tsTextMain px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-tsBg via-tsBg/70 to-tsBg text-tsTextMain px-4 py-10">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -133,8 +135,8 @@ export default function StaffHardrockDirectory() {
 
         {isLoading && <div className="text-sm text-tsTextMuted">Loading…</div>}
         {error && (
-          <div className="text-sm text-red-300">
-            {String((error as any)?.message || "Failed to load")}
+          <div className="text-sm text-destructive">
+            {error instanceof Error ? error.message : "Failed to load"}
           </div>
         )}
 

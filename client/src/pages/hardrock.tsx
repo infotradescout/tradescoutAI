@@ -69,7 +69,10 @@ export default function HardrockLanding() {
     if (keys.length === 0) return null;
     return keys
       .slice(0, 3)
-      .map((k) => (errs as any)[k]?.message)
+      .map((k) => {
+        const message = errs[k as keyof typeof errs]?.message;
+        return typeof message === "string" ? message : null;
+      })
       .filter(Boolean)
       .join(" • ");
   }, [form.formState.errors]);
@@ -108,10 +111,10 @@ export default function HardrockLanding() {
       });
       form.reset();
       if (filesInput) filesInput.value = "";
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Couldn’t submit",
-        description: err?.message || "Please try again.",
+        description: err instanceof Error ? err.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -120,7 +123,7 @@ export default function HardrockLanding() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg text-tsTextMain px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-tsBg via-tsBg/70 to-tsBg text-tsTextMain px-4 py-10">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-bold tracking-tight">Hardrock commercial jobs</h1>
@@ -208,13 +211,13 @@ export default function HardrockLanding() {
           </CardHeader>
           <CardContent>
             {errorSummary && (
-              <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {errorSummary}
               </div>
             )}
 
             {submittedId && (
-              <div className="mb-4 rounded-lg border border-green-500/40 bg-green-500/10 px-3 py-2 text-xs text-green-200">
+              <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">
                 Submitted. Reference ID: <span className="font-mono">{submittedId}</span>
               </div>
             )}
@@ -236,7 +239,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="companyName">Company name</Label>
                   <Input id="companyName" {...form.register("companyName")} />
                   {form.formState.errors.companyName && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.companyName.message}
                     </p>
                   )}
@@ -245,7 +248,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="contactName">Contact name</Label>
                   <Input id="contactName" {...form.register("contactName")} />
                   {form.formState.errors.contactName && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.contactName.message}
                     </p>
                   )}
@@ -257,7 +260,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
                   {form.formState.errors.email && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.email.message}
                     </p>
                   )}
@@ -266,7 +269,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="phone">Phone</Label>
                   <Input id="phone" autoComplete="tel" {...form.register("phone")} />
                   {form.formState.errors.phone && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.phone.message}
                     </p>
                   )}
@@ -298,7 +301,7 @@ export default function HardrockLanding() {
                     placeholder="e.g. TX"
                   />
                   {form.formState.errors.primaryState && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.primaryState.message}
                     </p>
                   )}
@@ -311,7 +314,7 @@ export default function HardrockLanding() {
                     placeholder="e.g. Travis"
                   />
                   {form.formState.errors.primaryCounty && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.primaryCounty.message}
                     </p>
                   )}
@@ -323,7 +326,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="licenseNumber">License number</Label>
                   <Input id="licenseNumber" {...form.register("licenseNumber")} />
                   {form.formState.errors.licenseNumber && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.licenseNumber.message}
                     </p>
                   )}
@@ -332,7 +335,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="insuranceProvider">Insurance provider</Label>
                   <Input id="insuranceProvider" {...form.register("insuranceProvider")} />
                   {form.formState.errors.insuranceProvider && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.insuranceProvider.message}
                     </p>
                   )}
@@ -348,7 +351,7 @@ export default function HardrockLanding() {
                     placeholder="e.g. Electrical"
                   />
                   {form.formState.errors.primaryTrade && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.primaryTrade.message}
                     </p>
                   )}
@@ -375,7 +378,7 @@ export default function HardrockLanding() {
                   placeholder="e.g. tenant improvements, framing, HVAC…"
                 />
                 {form.formState.errors.specialties && (
-                  <p className="text-xs text-red-400 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     {form.formState.errors.specialties.message}
                   </p>
                 )}
@@ -391,7 +394,9 @@ export default function HardrockLanding() {
                   placeholder="Project types, crew size, availability, service area, etc."
                 />
                 {form.formState.errors.about && (
-                  <p className="text-xs text-red-400 mt-1">{form.formState.errors.about.message}</p>
+                  <p className="text-xs text-destructive mt-1">
+                    {form.formState.errors.about.message}
+                  </p>
                 )}
               </div>
 
@@ -417,7 +422,7 @@ export default function HardrockLanding() {
                   </span>
                 </label>
                 {form.formState.errors.agreeToTerms && (
-                  <p className="text-xs text-red-400">
+                  <p className="text-xs text-destructive">
                     {form.formState.errors.agreeToTerms.message}
                   </p>
                 )}
@@ -434,7 +439,7 @@ export default function HardrockLanding() {
                   </span>
                 </label>
                 {form.formState.errors.agreeToVerification && (
-                  <p className="text-xs text-red-400">
+                  <p className="text-xs text-destructive">
                     {form.formState.errors.agreeToVerification.message}
                   </p>
                 )}

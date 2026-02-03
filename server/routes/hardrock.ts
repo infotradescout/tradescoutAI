@@ -93,9 +93,10 @@ export function registerHardrockRoutes(app: Express) {
         },
       }).array("files", 5);
 
-      upload(req as any, res as any, async (err: any) => {
+      upload(req, res, async (err) => {
         if (err) {
-          return res.status(400).json({ success: false, message: err?.message || "Upload failed" });
+          const message = err instanceof Error ? err.message : "Upload failed";
+          return res.status(400).json({ success: false, message });
         }
 
         const validated = hardrockApplySchema.parse(req.body || {});
@@ -134,7 +135,8 @@ export function registerHardrockRoutes(app: Express) {
           verificationStatus: "pending",
         });
 
-        const files = Array.isArray((req as any).files) ? ((req as any).files as any[]) : [];
+        const requestFiles = (req as Request & { files?: unknown }).files;
+        const files: Express.Multer.File[] = Array.isArray(requestFiles) ? requestFiles : [];
         const fileUrls = files.map((f) => ({
           filename: f.filename,
           originalName: f.originalname,
@@ -220,7 +222,7 @@ export function registerHardrockRoutes(app: Express) {
           applicationId: application.id,
         });
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           success: false,
@@ -236,11 +238,11 @@ export function registerHardrockRoutes(app: Express) {
   // Staff/admin directory (read-only-ish for now)
   app.get("/api/staff/hardrock/applications", isStaff, async (req: Request, res) => {
     try {
-      const status =
-        typeof (req.query as any)?.status === "string"
-          ? String((req.query as any).status)
-          : undefined;
-      const limit = Number.parseInt(String((req.query as any)?.limit || "100"), 10);
+      const statusParam = req.query["status"];
+      const limitParam = req.query["limit"];
+
+      const status = typeof statusParam === "string" ? statusParam : undefined;
+      const limit = Number.parseInt(typeof limitParam === "string" ? limitParam : "100", 10);
 
       const rows = await storage.getContractorApplications({
         statusPrefix: "hardrock_",
@@ -257,7 +259,7 @@ export function registerHardrockRoutes(app: Express) {
 
   app.put("/api/staff/hardrock/applications/:id", isStaff, async (req: Request, res) => {
     try {
-      const id = String((req.params as any).id || "");
+      const id = String(req.params.id || "");
       if (!id) return res.status(400).json({ message: "Missing id" });
 
       const schema = z.object({
@@ -271,10 +273,10 @@ export function registerHardrockRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid status" });
       }
 
-      await storage.updateContractorApplication(id, updates as any);
+      await storage.updateContractorApplication(id, updates);
       const refreshed = await storage.getContractorApplication(id);
       res.json(refreshed);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid payload", errors: error.errors });
       }

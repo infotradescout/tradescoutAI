@@ -1,10 +1,7 @@
 import React, { memo, Suspense, lazy, useEffect, useState } from "react";
-// In-app browser detection and safe storage utilities
-import { isFacebookInAppBrowser, useInAppBrowser } from "./utils/inAppBrowser";
-import { safeStorage } from "./utils/safeStorage";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Link, Router, Route, Switch, useLocation } from "wouter";
-import { MessageCircle, SlidersHorizontal, X } from "lucide-react";
+import { Router, Route, Switch, useLocation } from "wouter";
+import { X } from "lucide-react";
 import { queryClient } from "./lib/queryClient";
 import { trackShellEvent } from "./lib/analytics";
 import { ErrorBoundary } from "./components/ui/error-boundary";
@@ -13,7 +10,7 @@ import { SessionProvider } from "./contexts/SessionContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 import { AppShell } from "./components/layout/AppShell";
-import { resolveDefaultHomeRoute } from "./lib/homeRoute";
+import { resolveDefaultHomeRoute, type DefaultHomePage } from "./lib/homeRoute";
 import ScoutOS from "./scout";
 import { PreferredSourcePrompt } from "./components/PreferredSourcePrompt";
 import {
@@ -28,12 +25,10 @@ import TradeScoutBackground from "./components/TradeScoutBackground";
 
 // Only load essential components eagerly
 import SmartHome from "./SmartHome";
-import ScoutLanding from "./pages/ScoutLanding";
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
 import SimpleSubtleHints from "./components/onboarding/SimpleSubtleHints";
 import SimpleBugReportTool from "./components/SimpleBugReportTool";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
-import ComingSoon from "./pages/coming-soon";
 
 // Loading component for lazy-loaded pages
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -52,6 +47,17 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   return null;
 });
 
+function isDefaultHomePage(value: unknown): value is DefaultHomePage {
+  return (
+    value === "llm" ||
+    value === "marketplace" ||
+    value === "contractor-board" ||
+    value === "dashboard" ||
+    value === "profile" ||
+    value === "community"
+  );
+}
+
 // Root landing router: send non-authenticated users to create account, authenticated users to appropriate dashboard
 const RootLanding = memo(function RootLanding() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -64,14 +70,14 @@ const RootLanding = memo(function RootLanding() {
     // Wait for auth to load before redirecting
     if (isLoading) return;
 
-    const anyUser: any = user;
-    const role: string | undefined = anyUser?.role;
+    const role: string | undefined = typeof user?.role === "string" ? user.role : undefined;
     const isSuperAdmin =
-      role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
-    const isAdmin = !!(
-      anyUser?.isAdmin ||
-      (Array.isArray(anyUser?.roles) && anyUser.roles.some((r: string) => r.includes("admin")))
-    );
+      role === "super_admin" || role === "head_admin" || user?.isSuperAdmin === true;
+
+    const roles: string[] = Array.isArray(user?.roles)
+      ? user.roles.filter((r): r is string => typeof r === "string")
+      : [];
+    const isAdmin = user?.isAdmin === true || roles.some((r) => r.includes("admin"));
 
     if (!isAuthenticated) {
       // Non-authenticated users go to create account/login page
@@ -88,13 +94,9 @@ const RootLanding = memo(function RootLanding() {
   return null;
 });
 
-// Toggle to gate unfinished full-site features behind a Coming Soon screen
-const FULL_SITE_PAUSED = false;
-
 // Lazy load all pages by category for better code splitting
 // Core Pages
 // Contractors: canonical path is the licensed/verified contractor search
-const FindContractors = React.lazy(() => import("./pages/find-contractors"));
 const ContractorProfile = React.lazy(() => import("./pages/contractor-profile"));
 const DailyDeals = React.lazy(() => import("./pages/daily-deals"));
 const TradeDealsPage = React.lazy(() => import("./pages/trade-deals-lucky"));
@@ -105,62 +107,32 @@ const Profile = React.lazy(() => import("./pages/ProfilePage"));
 // Authentication & User Management
 const Login = React.lazy(() => import("./pages/login"));
 const AddressVerification = React.lazy(() => import("./pages/address-verification"));
-const Register = React.lazy(() => import("./pages/register"));
-const Signup = React.lazy(() => import("./pages/signup"));
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
-const OnboardingProfile = React.lazy(() => import("./pages/onboarding-profile"));
-const OnboardingIntent = React.lazy(() => import("./pages/onboarding-intent"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
-const ContractorBoard = React.lazy(() => import("./pages/contractor-board"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
 const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-dashboard"));
 
 // Admin Features (heavy components)
-const AdminPanel = React.lazy(() => import("./pages/admin-panel"));
-const AdminUserManagement = React.lazy(() => import("./pages/AdminUserManagement"));
-const AdminUsers = React.lazy(() => import("./pages/admin-users"));
-const AdminWorkspace = React.lazy(() => import("./pages/admin-workspace"));
-const AdminErrorReports = React.lazy(() => import("./pages/admin-error-reports"));
-const AdminTestingControls = React.lazy(() => import("./pages/admin-testing-controls"));
-const AdminAddressVerifications = React.lazy(() => import("./pages/admin-address-verifications"));
-const AdminProfessionalVerification = React.lazy(
-  () => import("./pages/admin-professional-verification")
-);
-const AdminListings = React.lazy(() => import("./pages/admin-listings"));
-const AdminAttachments = React.lazy(() => import("./pages/admin-attachments"));
-const AdminPricingAnalytics = React.lazy(() => import("./pages/admin-pricing-analytics"));
-const AdminCreateAccount = React.lazy(() => import("./pages/admin-create-account"));
-const AdminAffiliates = React.lazy(() => import("./pages/admin-affiliates"));
 const AdminShell = React.lazy(() => import("./pages/admin"));
-const AdminPromotions = React.lazy(() => import("./pages/admin-promotions"));
-const AdminToolDiscovery = React.lazy(() => import("./pages/admin-tool-discovery"));
 const AdminObservability = React.lazy(() => import("./pages/admin-observability"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
-const PromptAdminPage = React.lazy(() =>
-  import("./pages/PromptAdminPage").then((mod) => ({
-    default: (mod as any).default || (mod as any).PromptAdminPage,
-  }))
-);
 
 // Marketplace & Social
-const WorkerMarketplace = React.lazy(() => import("./pages/worker-marketplace"));
 const ContractorLeads = React.lazy(() => import("./pages/contractor-leads"));
 const Chat = React.lazy(() => import("./pages/chat"));
 const Messages = React.lazy(() => import("./pages/messages"));
 const SavedAds = React.lazy(() => import("./pages/saved-ads"));
 const Affiliate = React.lazy(() => import("./pages/affiliate"));
 const Boosts = React.lazy(() => import("./pages/boosts"));
-const AdvancedSearch = React.lazy(() => import("./pages/advanced-search"));
 
 // HOA & Groups
 const Groups = React.lazy(() => import("./pages/groups"));
 const GroupDetail = React.lazy(() => import("./pages/group-detail"));
 const HoaManagement = React.lazy(() => import("./pages/hoa-management"));
-const Community = React.lazy(() => import("./pages/community"));
 
 // Community Builder
 const CommunityBuilderDashboard = React.lazy(() => import("./pages/community-builder/dashboard"));
@@ -169,12 +141,6 @@ const CommunityBuilderContributionSuccess = React.lazy(
 );
 const ProfileCommunity = React.lazy(() => import("./pages/community-builder/profile-community"));
 const CountyTransparency = React.lazy(() => import("./pages/county/transparency"));
-const AdminCommunityBuilderReconciliation = React.lazy(
-  () => import("./pages/admin/community-builder-reconciliation")
-);
-const AdminCommunityBuilderBuilders = React.lazy(
-  () => import("./pages/admin/community-builder-builders")
-);
 
 // Additional Features
 const Exchange = React.lazy(() => import("./pages/exchange"));
@@ -217,7 +183,6 @@ const ProfileSiteEditor = React.lazy(() => import("./pages/ProfileSiteEditor"));
 const Help = React.lazy(() => import("./pages/help"));
 const HowTradeScoutWorks = React.lazy(() => import("./pages/how-tradescout-works"));
 const Invite = React.lazy(() => import("./pages/invite"));
-const CustomDashboard = React.lazy(() => import("./pages/Dashboard"));
 const DashboardSettings = React.lazy(() => import("./pages/DashboardSettings"));
 const MyTradeScoutPage = React.lazy(() => import("./pages/my-tradescout"));
 const RoleDashboardRouter = React.lazy(() => import("./components/RoleDashboardRouter"));
@@ -298,7 +263,6 @@ const ScoutLandingLite = React.lazy(() => import("./experiments/scout-landing-li
 const SocialIntegration = React.lazy(() => import("./pages/social-integration"));
 const CommunityFeed = React.lazy(() => import("./pages/community-feed"));
 const CommunityProfile = React.lazy(() => import("./pages/CommunityProfile"));
-const AdvancedSearchNew = React.lazy(() => import("./pages/advanced-search"));
 const ReferralDashboard = React.lazy(() => import("./pages/referral-dashboard"));
 const EventManagement = React.lazy(() => import("./pages/event-management"));
 const APIIntegrations = React.lazy(() => import("./pages/api-integrations"));
@@ -342,7 +306,7 @@ const LazyPage = memo(function LazyPage({
   Component,
   fallback = <PageLoader />,
 }: {
-  Component: React.LazyExoticComponent<React.ComponentType<any>>;
+  Component: React.LazyExoticComponent<React.ComponentType<object>>;
   fallback?: React.ReactNode;
 }) {
   return (
@@ -402,20 +366,18 @@ const AppLayout = memo(function AppLayout() {
 
     const roles: string[] = (() => {
       if (!user) return [];
-      const anyUser = user as any;
-      if (Array.isArray(anyUser.roles) && anyUser.roles.length > 0) {
-        return anyUser.roles as string[];
+      if (Array.isArray(user.roles) && user.roles.length > 0) {
+        return user.roles.filter((r): r is string => typeof r === "string");
       }
-      if (typeof anyUser.role === "string" && anyUser.role.length > 0) {
-        return [anyUser.role as string];
+      if (typeof user.role === "string" && user.role.length > 0) {
+        return [user.role];
       }
       return [];
     })();
 
-    const anyUser: any = user || {};
     const profileVersion: number =
-      typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-    const isSuperAdminLike = anyUser.role === "super_admin" || anyUser.role === "head_admin";
+      typeof user?.profileVersion === "number" ? user.profileVersion : 0;
+    const isSuperAdminLike = user?.role === "super_admin" || user?.role === "head_admin";
     const hasCompletedProfileBasics = isSuperAdminLike || profileVersion >= CURRENT_PROFILE_VERSION;
 
     trackShellEvent({
@@ -462,16 +424,17 @@ const AppLayout = memo(function AppLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const anyUser: any = user;
-    if (anyUser.communityFirst && location === "/") {
+    if (user.communityFirst && location === "/") {
       setLocation("/community-feed");
       return;
     }
 
     if (!user.preferences?.defaultHomePage) return;
 
-    const defaultPage = user.preferences.defaultHomePage as any;
-    const targetRoute = resolveDefaultHomeRoute(defaultPage);
+    const rawDefaultPage: unknown = user.preferences.defaultHomePage;
+    const targetRoute = resolveDefaultHomeRoute(
+      isDefaultHomePage(rawDefaultPage) ? rawDefaultPage : null
+    );
 
     if (targetRoute && location === "/") {
       setLocation(targetRoute);
@@ -488,55 +451,27 @@ const AppLayout = memo(function AppLayout() {
     ? "flex-1 relative w-full bg-tsBg"
     : "flex-1 relative w-full bg-tsBg";
 
-  const ContractorsBoardLegacy = memo(function ContractorsBoardLegacy() {
-    const [, setLocationInner] = useLocation();
-
-    useEffect(() => {
-      if (isLoading) return;
-      if (isAuthenticated) {
-        setLocationInner("/dashboard/jobs");
-      }
-    }, [isAuthenticated, isLoading, setLocationInner]);
-
-    if (isLoading) return null;
-    if (isAuthenticated) return null;
-
-    return <LazyPage Component={FindContractors} />;
-  });
-
   return (
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {showBetaNotice && (
           <div
-            className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border border-orange-500 bg-[color:var(--theme-accent-primary)] shadow-2xl shadow-orange-500/30 p-6 flex flex-col items-center justify-center"
-            style={{
-              color: "var(--theme-on-accent, #fff)",
-              background: "var(--theme-accent-primary, #ff6600)",
-              borderColor: "var(--theme-accent-primary, #ff6600)",
-              boxShadow: "0 4px 32px 0 rgba(249,115,22,0.25)",
-            }}
+            className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border p-6 flex flex-col items-center justify-center bg-[color:var(--theme-accent-primary,#ff6600)] border-[color:var(--theme-accent-primary,#ff6600)] shadow-2xl shadow-[0_4px_32px_0_rgba(249,115,22,0.25)] text-[color:var(--theme-on-accent,#fff)]"
           >
             <div className="flex items-center gap-3 w-full justify-center">
-              <div className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_0_4px_rgba(249,115,22,0.25)]" />
-              <p
-                className="font-bold tracking-wide text-lg"
-                style={{ color: "var(--theme-on-accent, #fff)" }}
-              >
+              <div className="h-2 w-2 rounded-full bg-[color:var(--theme-on-accent,#fff)] shadow-[0_0_0_4px_rgba(255,255,255,0.15)]" />
+              <p className="font-bold tracking-wide text-lg text-[color:var(--theme-on-accent,#fff)]">
                 TradeScout is in active beta
               </p>
               <button
                 aria-label="Dismiss beta notice"
                 onClick={dismissBetaNotice}
-                className="ml-auto text-white hover:text-orange-100 transition"
+                className="ml-auto text-[color:var(--theme-on-accent,#fff)] hover:opacity-90 transition"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p
-              className="leading-relaxed mt-3 text-center font-medium"
-              style={{ color: "var(--theme-on-accent, #fff)" }}
-            >
+            <p className="leading-relaxed mt-3 text-center font-medium text-[color:var(--theme-on-accent,#fff)]">
               You may encounter rough edges, non-working features, or intermittent errors.
               <br />
               Add TradeScout to your home screen from your browser so it lives like an app, and

@@ -18,6 +18,10 @@ import { apiRequest } from "@/lib/queryClient";
 type StateRow = { code: string; name: string };
 type CountyRow = { id: string; name: string; stateCode: string; fips: string };
 
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
 function nameToSlug(name: string): string {
   return name
     .toLowerCase()
@@ -34,11 +38,13 @@ const CountyDirectory = memo(function CountyDirectory() {
     queryFn: async () => {
       const rows = await apiRequest("GET", "/api/states");
       return (Array.isArray(rows) ? rows : [])
-        .map((s: any) => ({
-          code: String(s.code || "").toUpperCase(),
-          name: String(s.name || s.label || s.code || "").trim(),
-        }))
-        .filter((s: any) => s.code && s.name);
+        .map((s) => {
+          const r = toRecord(s);
+          const code = String(r.code || "").toUpperCase();
+          const name = String(r.name || r.label || r.code || "").trim();
+          return { code, name };
+        })
+        .filter((s) => s.code && s.name);
     },
     staleTime: 60 * 60 * 1000,
   });
@@ -52,13 +58,16 @@ const CountyDirectory = memo(function CountyDirectory() {
         `/api/counties?state=${encodeURIComponent(selectedState)}`
       );
       return (Array.isArray(rows) ? rows : [])
-        .map((c: any) => ({
-          id: String(c.id || ""),
-          name: String(c.name || ""),
-          stateCode: String(c.stateCode || selectedState || "").toUpperCase(),
-          fips: String(c.fips || c.fipsCode || ""),
-        }))
-        .filter((c: any) => c.name && c.stateCode && /^\d{5}$/.test(c.fips));
+        .map((c) => {
+          const r = toRecord(c);
+          return {
+            id: String(r.id || ""),
+            name: String(r.name || ""),
+            stateCode: String(r.stateCode || selectedState || "").toUpperCase(),
+            fips: String(r.fips || r.fipsCode || ""),
+          };
+        })
+        .filter((c) => c.name && c.stateCode && /^\d{5}$/.test(c.fips));
     },
     staleTime: 15 * 60 * 1000,
   });
@@ -79,33 +88,33 @@ const CountyDirectory = memo(function CountyDirectory() {
   }, [counties, searchQuery]);
 
   return (
-    <div className="text-white">
+    <div className="text-tsTextMain">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <MapPin className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">County Directory</h1>
+            <MapPin className="h-8 w-8 text-[color:var(--theme-accent-primary,#ff6600)]" />
+            <h1 className="text-4xl font-bold">County Directory</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-tsTextMuted text-lg">
             Browse counties by state. This page pulls from real data sources (no mock counts).
           </p>
         </div>
 
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <Card className="bg-tsCard border border-tsBorder backdrop-blur-sm mb-8">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-tsTextMuted" />
                 <Input
                   placeholder="Search counties in selected state…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-navy-700 border-navy-600 text-white"
+                  className="pl-10 bg-tsBg border-tsBorder text-tsTextMain"
                 />
               </div>
 
               <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectTrigger className="bg-tsBg border-tsBorder text-tsTextMain">
                   <SelectValue placeholder="Select State" />
                 </SelectTrigger>
                 <SelectContent>
@@ -118,7 +127,7 @@ const CountyDirectory = memo(function CountyDirectory() {
                 </SelectContent>
               </Select>
 
-              <div className="text-xs text-gray-400 flex items-center">
+              <div className="text-xs text-tsTextMuted flex items-center">
                 {statesLoading ? "Loading states…" : `State: ${selectedStateName}`}
                 {selectedState !== "all" && !countiesLoading
                   ? ` • Counties: ${counties.length}`
@@ -128,19 +137,19 @@ const CountyDirectory = memo(function CountyDirectory() {
 
             <div className="space-y-3">
               {selectedState === "all" && (
-                <div className="text-sm text-gray-300 bg-navy-700/30 border border-navy-600 rounded-lg p-6">
+                <div className="text-sm text-tsTextMuted bg-tsBg/40 border border-tsBorder rounded-lg p-6">
                   Select a state to see its full county list.
                 </div>
               )}
 
               {selectedState !== "all" && countiesLoading && (
-                <div className="text-sm text-gray-300 bg-navy-700/30 border border-navy-600 rounded-lg p-6">
+                <div className="text-sm text-tsTextMuted bg-tsBg/40 border border-tsBorder rounded-lg p-6">
                   Loading counties…
                 </div>
               )}
 
               {selectedState !== "all" && !countiesLoading && filtered.length === 0 && (
-                <div className="text-sm text-gray-300 bg-navy-700/30 border border-navy-600 rounded-lg p-6">
+                <div className="text-sm text-tsTextMuted bg-tsBg/40 border border-tsBorder rounded-lg p-6">
                   No counties found.
                 </div>
               )}
@@ -150,25 +159,23 @@ const CountyDirectory = memo(function CountyDirectory() {
                 filtered.slice(0, 200).map((county) => (
                   <div
                     key={county.fips}
-                    className="bg-navy-700/30 border border-navy-600 rounded-lg p-5 hover:bg-navy-700/50 transition-colors"
+                    className="bg-tsBg/40 border border-tsBorder rounded-lg p-5 hover:bg-tsBg/60 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-semibold text-white truncate">
-                            {county.name}
-                          </h3>
+                          <h3 className="text-lg font-semibold truncate">{county.name}</h3>
                           <Badge variant="outline" className="text-xs">
                             FIPS: {county.fips}
                           </Badge>
                         </div>
-                        <p className="text-gray-400 text-sm">{county.stateCode}</p>
+                        <p className="text-tsTextMuted text-sm">{county.stateCode}</p>
                       </div>
 
                       <Link
                         href={`/county/${county.stateCode.toLowerCase()}/${nameToSlug(county.name)}`}
                       >
-                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                        <Button size="sm" className="bg-tsAccent hover:bg-tsAccent/90 text-black">
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </Link>
