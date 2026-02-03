@@ -1,4 +1,5 @@
 import { db } from "../../../src/db/drizzle-mock";
+import { homeownerAssociations } from "@shared/schema";
 
 /**
  * Extract HOA information for caching
@@ -6,7 +7,7 @@ import { db } from "../../../src/db/drizzle-mock";
 export async function extractHOA() {
   try {
     // Use homeownerAssociations table for HOA data
-    const hoaRows = await db.select().from(require("@shared/schema").homeownerAssociations).limit(1000);
+    const hoaRows = await db.select().from(homeownerAssociations).limit(1000);
     const safeHOA = hoaRows.map((hoa: any) => ({
       id: hoa.id,
       name: hoa.name,

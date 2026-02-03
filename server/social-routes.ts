@@ -1,10 +1,10 @@
 import type { Express } from "express";
 import { eq, desc, and, or, like, sql, count, inArray } from "drizzle-orm";
 import { db } from "../src/db/drizzle-mock";
-import { 
-  socialPosts, 
-  postReactions, 
-  postComments, 
+import {
+  socialPosts,
+  postReactions,
+  postComments,
   commentReactions,
   postShares,
   contentReports,
@@ -32,34 +32,33 @@ const ALLOWED_REACTIONS = [
 type ReactionType = (typeof ALLOWED_REACTIONS)[number];
 
 export function registerSocialRoutes(app: Express) {
-  
   // Get social feed with filters
   app.get("/api/social/feed", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { 
-        postType = 'all',
-        location = 'neighborhood', 
-        sortBy = 'recent',
-        search = '',
+      const {
+        postType = "all",
+        location = "neighborhood",
+        sortBy = "recent",
+        search = "",
         page = 1,
         limit = 10,
-        scope = 'all', // all | connections (future scopes can be added)
+        scope = "all", // all | connections (future scopes can be added)
       } = req.query as any;
-      
+
       const limitNumber = parseInt(limit);
       const offset = (parseInt(page) - 1) * limitNumber;
-      
+
       // Build query conditions
-      let whereConditions: any[] = [];
-      
+      const whereConditions: any[] = [];
+
       // Post type filter
-      if (postType !== 'all') {
+      if (postType !== "all") {
         whereConditions.push(eq(socialPosts.postType, postType));
       }
-      
+
       // Location filter (simplified for now)
-      if (location === 'neighborhood') {
+      if (location === "neighborhood") {
         // Filter by user's county/state
         const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user[0]?.county) {
@@ -68,7 +67,7 @@ export function registerSocialRoutes(app: Express) {
       }
 
       // Scope filter: when viewing "connections" only show posts from people the user follows
-      if (scope === 'connections') {
+      if (scope === "connections") {
         const followingRows = await db
           .select({ followingId: userFollows.followingId })
           .from(userFollows)
@@ -83,7 +82,7 @@ export function registerSocialRoutes(app: Express) {
 
         whereConditions.push(inArray(socialPosts.authorId, followingIds));
       }
-      
+
       // Search filter
       if (search) {
         whereConditions.push(
@@ -93,7 +92,7 @@ export function registerSocialRoutes(app: Express) {
           )
         );
       }
-      
+
       // Base query
       let query: any = db
         .select({
@@ -114,12 +113,7 @@ export function registerSocialRoutes(app: Express) {
         .leftJoin(postReactions, eq(socialPosts.id, postReactions.postId))
         .leftJoin(postComments, eq(socialPosts.id, postComments.postId))
         .leftJoin(postShares, eq(socialPosts.id, postShares.postId))
-        .where(
-          and(
-            eq(socialPosts.isArchived, false),
-            ...whereConditions
-          )
-        )
+        .where(and(eq(socialPosts.isArchived, false), ...whereConditions))
         .groupBy(socialPosts.id, users.id);
 
       // Apply basic sorting
@@ -132,62 +126,59 @@ export function registerSocialRoutes(app: Express) {
 
       // Apply pagination
       const posts: any[] = await query.limit(limitNumber).offset(offset);
-      
+
       // Get user reactions for each post
       const postIds = posts.map((p: any) => p.post.id);
-      const userReactions = postIds.length > 0 ? await db
-        .select()
-        .from(postReactions)
-        .where(
-          and(
-            inArray(postReactions.postId, postIds),
-            eq(postReactions.userId, userId)
-          )
-        ) : [];
-      
+      const userReactions =
+        postIds.length > 0
+          ? await db
+              .select()
+              .from(postReactions)
+              .where(and(inArray(postReactions.postId, postIds), eq(postReactions.userId, userId)))
+          : [];
+
       // Get all reactions for each post
-      const allReactions = postIds.length > 0 ? await db
-        .select()
-        .from(postReactions)
-        .where(inArray(postReactions.postId, postIds)) : [];
-      
+      const allReactions =
+        postIds.length > 0
+          ? await db.select().from(postReactions).where(inArray(postReactions.postId, postIds))
+          : [];
+
       // Combine data
-        const postsWithReactions = posts.map(({ post, author, reactionCount, commentCount, shareCount }: any) => ({
-        ...post,
-        author,
+      const postsWithReactions = posts.map(
+        ({ post, author, reactionCount, commentCount, shareCount }: any) => ({
+          ...post,
+          author,
           reactions: allReactions.filter((r: any) => r.postId === post.id),
           userReaction: userReactions.find((r: any) => r.postId === post.id),
-        _count: {
-          reactions: parseInt(reactionCount.toString()),
-          comments: parseInt(commentCount.toString()),
-          shares: parseInt(shareCount.toString()),
-        },
-      }));
-      
+          _count: {
+            reactions: parseInt(reactionCount.toString()),
+            comments: parseInt(commentCount.toString()),
+            shares: parseInt(shareCount.toString()),
+          },
+        })
+      );
+
       res.json(postsWithReactions);
     } catch (error) {
       console.error("Error fetching social feed:", error);
       res.status(500).json({ message: "Failed to fetch social feed" });
     }
   });
-  
+
   // Create new post
   app.post("/api/social/posts", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = req.user as User;
-      
+
       const postData = {
         ...req.body,
         authorId: userId,
         county: user.county,
         state: user.state,
       };
-      
-      const [post] = await db
-        .insert(socialPosts)
-        .values(postData)
-        .returning();
+
+      const [post] = await db.insert(socialPosts).values(postData).returning();
       try {
         await storage.logEvent("post.created", {
           userId,
@@ -206,12 +197,12 @@ export function registerSocialRoutes(app: Express) {
       res.status(500).json({ message: "Failed to create post" });
     }
   });
-  
+
   // Get single post
   app.get("/api/social/posts/:postId", async (req, res) => {
     try {
       const { postId } = req.params;
-      
+
       const [post] = await db
         .select({
           post: socialPosts,
@@ -227,27 +218,27 @@ export function registerSocialRoutes(app: Express) {
         .leftJoin(users, eq(socialPosts.authorId, users.id))
         .where(eq(socialPosts.id, postId))
         .limit(1);
-      
+
       if (!post) {
         return res.status(404).json({ message: "Post not found" });
       }
-      
+
       // Get reactions and comments count
       const [reactionCount] = await db
         .select({ count: count() })
         .from(postReactions)
         .where(eq(postReactions.postId, postId));
-      
+
       const [commentCount] = await db
         .select({ count: count() })
         .from(postComments)
         .where(eq(postComments.postId, postId));
-      
+
       const [shareCount] = await db
         .select({ count: count() })
         .from(postShares)
         .where(eq(postShares.postId, postId));
-      
+
       const postWithCounts = {
         ...post.post,
         author: post.author,
@@ -257,7 +248,7 @@ export function registerSocialRoutes(app: Express) {
           shares: shareCount.count,
         },
       };
-      
+
       res.json(postWithCounts);
     } catch (error) {
       console.error("Error fetching post:", error);
@@ -288,10 +279,7 @@ export function registerSocialRoutes(app: Express) {
         .limit(1);
 
       if (!existing) {
-        await db
-          .insert(socialPostSaves)
-          .values({ userId, postId })
-          .returning();
+        await db.insert(socialPostSaves).values({ userId, postId }).returning();
 
         try {
           await storage.logEvent("post.saved", {
@@ -310,7 +298,7 @@ export function registerSocialRoutes(app: Express) {
       res.status(500).json({ message: "Failed to save post" });
     }
   });
-  
+
   // React to post
   app.post("/api/social/posts/:postId/reactions", isAuthenticated, async (req: any, res) => {
     try {
@@ -327,19 +315,14 @@ export function registerSocialRoutes(app: Express) {
       }
 
       const typedReactionType = reactionType as ReactionType;
-      
+
       // Check if user already reacted
       const [existingReaction] = await db
         .select()
         .from(postReactions)
-        .where(
-          and(
-            eq(postReactions.postId, postId),
-            eq(postReactions.userId, userId)
-          )
-        )
+        .where(and(eq(postReactions.postId, postId), eq(postReactions.userId, userId)))
         .limit(1);
-      
+
       if (existingReaction) {
         // Update existing reaction
         await db
@@ -348,13 +331,11 @@ export function registerSocialRoutes(app: Express) {
           .where(eq(postReactions.id, existingReaction.id));
       } else {
         // Create new reaction
-        await db
-          .insert(postReactions)
-          .values({
-            postId,
-            userId,
-            reactionType: typedReactionType,
-          });
+        await db.insert(postReactions).values({
+          postId,
+          userId,
+          reactionType: typedReactionType,
+        });
       }
       try {
         if (typedReactionType === "helpful" || typedReactionType === "thanks") {
@@ -366,14 +347,12 @@ export function registerSocialRoutes(app: Express) {
 
           if (post?.authorId && post.authorId !== userId) {
             await storage.logEvent(
-              typedReactionType === "helpful"
-                ? "reaction.marked_helpful"
-                : "user.thanked",
+              typedReactionType === "helpful" ? "reaction.marked_helpful" : "user.thanked",
               {
                 userId,
                 targetUserId: post.authorId,
                 postId,
-              },
+              }
             );
           }
         }
@@ -387,34 +366,29 @@ export function registerSocialRoutes(app: Express) {
       res.status(500).json({ message: "Failed to react to post" });
     }
   });
-  
+
   // Remove reaction from post
   app.delete("/api/social/posts/:postId/reactions", isAuthenticated, async (req: any, res) => {
     try {
       const { postId } = req.params;
       const userId = req.user.id;
-      
+
       await db
         .delete(postReactions)
-        .where(
-          and(
-            eq(postReactions.postId, postId),
-            eq(postReactions.userId, userId)
-          )
-        );
-      
+        .where(and(eq(postReactions.postId, postId), eq(postReactions.userId, userId)));
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error removing reaction:", error);
       res.status(500).json({ message: "Failed to remove reaction" });
     }
   });
-  
+
   // Get comments for a post
   app.get("/api/social/posts/:postId/comments", async (req, res) => {
     try {
       const { postId } = req.params;
-      
+
       const comments = await db
         .select({
           comment: postComments,
@@ -438,49 +412,54 @@ export function registerSocialRoutes(app: Express) {
         )
         .groupBy(postComments.id, users.id)
         .orderBy(desc(postComments.createdAt));
-      
+
       // Get replies for each comment
       const commentIds = comments.map((c: any) => c.comment.id);
-      const replies = commentIds.length > 0 ? await db
-        .select({
-          comment: postComments,
-          author: {
-            id: users.id,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            profileImageUrl: users.profileImageUrl,
-            role: users.role,
-          },
-        })
-        .from(postComments)
-        .leftJoin(users, eq(postComments.authorId, users.id))
-        .where(inArray(postComments.parentCommentId, commentIds))
-        .orderBy(postComments.createdAt) : [];
-      
+      const replies =
+        commentIds.length > 0
+          ? await db
+              .select({
+                comment: postComments,
+                author: {
+                  id: users.id,
+                  firstName: users.firstName,
+                  lastName: users.lastName,
+                  profileImageUrl: users.profileImageUrl,
+                  role: users.role,
+                },
+              })
+              .from(postComments)
+              .leftJoin(users, eq(postComments.authorId, users.id))
+              .where(inArray(postComments.parentCommentId, commentIds))
+              .orderBy(postComments.createdAt)
+          : [];
+
       // Organize replies under their parent comments
       const commentsWithReplies = comments.map(({ comment, author, reactionCount }: any) => ({
         ...comment,
         author,
-        replies: replies.filter((r: any) => r.comment.parentCommentId === comment.id).map((r: any) => ({
-          ...r.comment,
-          author: r.author,
-          reactions: [],
-          _count: { reactions: 0, replies: 0 }
-        })),
+        replies: replies
+          .filter((r: any) => r.comment.parentCommentId === comment.id)
+          .map((r: any) => ({
+            ...r.comment,
+            author: r.author,
+            reactions: [],
+            _count: { reactions: 0, replies: 0 },
+          })),
         reactions: [],
-        _count: { 
+        _count: {
           reactions: parseInt(reactionCount.toString()),
-            replies: replies.filter((r: any) => r.comment.parentCommentId === comment.id).length
-        }
+          replies: replies.filter((r: any) => r.comment.parentCommentId === comment.id).length,
+        },
       }));
-      
+
       res.json(commentsWithReplies);
     } catch (error) {
       console.error("Error fetching comments:", error);
       res.status(500).json({ message: "Failed to fetch comments" });
     }
   });
-  
+
   // Create comment
   app.post("/api/social/posts/:postId/comments", isAuthenticated, async (req: any, res) => {
     try {
@@ -491,7 +470,7 @@ export function registerSocialRoutes(app: Express) {
       if (typeof content !== "string" || !content.trim()) {
         return res.status(400).json({ message: "Comment content is required" });
       }
-      
+
       const [comment] = await db
         .insert(postComments)
         .values({
@@ -517,25 +496,21 @@ export function registerSocialRoutes(app: Express) {
       res.status(500).json({ message: "Failed to create comment" });
     }
   });
-  
+
   // Share post
   app.post("/api/social/posts/:postId/share", isAuthenticated, async (req: any, res) => {
     try {
       const { postId } = req.params;
       const userId = req.user.id;
       const { shareMessage, privacyLevel } = (req.body ?? {}) as any;
-      
+
       // Check if post exists
-      const [post] = await db
-        .select()
-        .from(socialPosts)
-        .where(eq(socialPosts.id, postId))
-        .limit(1);
-      
+      const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+
       if (!post) {
         return res.status(404).json({ message: "Post not found" });
       }
-      
+
       // Create share record
       const [share] = await db
         .insert(postShares)
@@ -543,10 +518,10 @@ export function registerSocialRoutes(app: Express) {
           postId,
           userId,
           shareMessage: shareMessage || null,
-          privacyLevel: privacyLevel || 'neighborhood',
+          privacyLevel: privacyLevel || "neighborhood",
         })
         .returning();
-      
+
       // Update share count
       await db
         .update(socialPosts)
@@ -555,77 +530,85 @@ export function registerSocialRoutes(app: Express) {
           updatedAt: new Date(),
         })
         .where(eq(socialPosts.id, postId));
-      
+
       res.json(share);
     } catch (error) {
       console.error("Error sharing post:", error);
       res.status(500).json({ message: "Failed to share post" });
     }
   });
-  
-  // Pin/unpin post (moderators only)
-  app.patch("/api/social/posts/:postId/pin", isAuthenticated, requirePermission('canModerateContent'), async (req: any, res) => {
-    try {
-      const { postId } = req.params;
-      const { isPinned } = (req.body ?? {}) as any;
 
-      if (typeof isPinned !== "boolean") {
-        return res.status(400).json({ message: "isPinned must be a boolean" });
+  // Pin/unpin post (moderators only)
+  app.patch(
+    "/api/social/posts/:postId/pin",
+    isAuthenticated,
+    requirePermission("canModerateContent"),
+    async (req: any, res) => {
+      try {
+        const { postId } = req.params;
+        const { isPinned } = (req.body ?? {}) as any;
+
+        if (typeof isPinned !== "boolean") {
+          return res.status(400).json({ message: "isPinned must be a boolean" });
+        }
+
+        await db
+          .update(socialPosts)
+          .set({
+            isPinned: isPinned,
+            updatedAt: new Date(),
+          })
+          .where(eq(socialPosts.id, postId));
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error pinning post:", error);
+        res.status(500).json({ message: "Failed to pin post" });
       }
-      
-      await db
-        .update(socialPosts)
-        .set({
-          isPinned: isPinned,
-          updatedAt: new Date(),
-        })
-        .where(eq(socialPosts.id, postId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error pinning post:", error);
-      res.status(500).json({ message: "Failed to pin post" });
     }
-  });
-  
+  );
+
   // Delete post
   app.delete("/api/social/posts/:postId", isAuthenticated, async (req: any, res) => {
     try {
       const { postId } = req.params;
       const userId = req.user.id;
-      
+
       // Check if user is the author or has moderation permissions
-      const [post] = await db
-        .select()
-        .from(socialPosts)
-        .where(eq(socialPosts.id, postId))
-        .limit(1);
-      
+      const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, postId)).limit(1);
+
       if (!post) {
         return res.status(404).json({ message: "Post not found" });
       }
-      
+
       // Check permissions
       const user = req.user as User;
       const isAuthor = post.authorId === userId;
-      const canModerate = user.role && ['moderator', 'ops_admin', 'super_admin', 'head_admin', 'community_moderator', 'community_leader'].includes(user.role);
-      
+      const canModerate =
+        user.role &&
+        [
+          "moderator",
+          "ops_admin",
+          "super_admin",
+          "head_admin",
+          "community_moderator",
+          "community_leader",
+        ].includes(user.role);
+
       if (!isAuthor && !canModerate) {
         return res.status(403).json({ message: "Not authorized to delete this post" });
       }
-      
+
       // Delete post (cascade will handle related records)
-      await db
-        .delete(socialPosts)
-        .where(eq(socialPosts.id, postId));
-      
+      await db.delete(socialPosts).where(eq(socialPosts.id, postId));
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting post:", error);
       res.status(500).json({ message: "Failed to delete post" });
     }
   });
-  
+
   // React to comment
   app.post("/api/social/comments/:commentId/reactions", isAuthenticated, async (req: any, res) => {
     try {
@@ -642,19 +625,14 @@ export function registerSocialRoutes(app: Express) {
       }
 
       const typedReactionType = reactionType as ReactionType;
-      
+
       // Check if user already reacted
       const [existingReaction] = await db
         .select()
         .from(commentReactions)
-        .where(
-          and(
-            eq(commentReactions.commentId, commentId),
-            eq(commentReactions.userId, userId)
-          )
-        )
+        .where(and(eq(commentReactions.commentId, commentId), eq(commentReactions.userId, userId)))
         .limit(1);
-      
+
       if (existingReaction) {
         // Update existing reaction
         await db
@@ -663,44 +641,43 @@ export function registerSocialRoutes(app: Express) {
           .where(eq(commentReactions.id, existingReaction.id));
       } else {
         // Create new reaction
-        await db
-          .insert(commentReactions)
-          .values({
-            commentId,
-            userId,
-            reactionType: typedReactionType,
-          });
+        await db.insert(commentReactions).values({
+          commentId,
+          userId,
+          reactionType: typedReactionType,
+        });
       }
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error reacting to comment:", error);
       res.status(500).json({ message: "Failed to react to comment" });
     }
   });
-  
+
   // Remove reaction from comment
-  app.delete("/api/social/comments/:commentId/reactions", isAuthenticated, async (req: any, res) => {
-    try {
-      const { commentId } = req.params;
-      const userId = req.user.id;
-      
-      await db
-        .delete(commentReactions)
-        .where(
-          and(
-            eq(commentReactions.commentId, commentId),
-            eq(commentReactions.userId, userId)
-          )
-        );
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error removing reaction:", error);
-      res.status(500).json({ message: "Failed to remove reaction" });
+  app.delete(
+    "/api/social/comments/:commentId/reactions",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { commentId } = req.params;
+        const userId = req.user.id;
+
+        await db
+          .delete(commentReactions)
+          .where(
+            and(eq(commentReactions.commentId, commentId), eq(commentReactions.userId, userId))
+          );
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error removing reaction:", error);
+        res.status(500).json({ message: "Failed to remove reaction" });
+      }
     }
-  });
-  
+  );
+
   // Submit content report
   app.post("/api/social/reports", isAuthenticated, async (req: any, res) => {
     try {
@@ -708,21 +685,18 @@ export function registerSocialRoutes(app: Express) {
       const reportData = {
         ...req.body,
         reporterId: userId,
-        status: 'pending',
+        status: "pending",
       };
-      
-      const [report] = await db
-        .insert(contentReports)
-        .values(reportData)
-        .returning();
-      
+
+      const [report] = await db.insert(contentReports).values(reportData).returning();
+
       res.json(report);
     } catch (error) {
       console.error("Error submitting report:", error);
       res.status(500).json({ message: "Failed to submit report" });
     }
   });
-  
+
   // Get trending topics/hashtags
   app.get("/api/social/trending", async (req, res) => {
     try {
@@ -732,7 +706,7 @@ export function registerSocialRoutes(app: Express) {
           [
             "https://www.thetradescout.com",
             "https://tradescoutai.onrender.com",
-            
+
             "https://thetradescout.com",
           ].map((o) => o.toLowerCase())
         );
@@ -751,50 +725,44 @@ export function registerSocialRoutes(app: Express) {
       res.json([]); // Return empty array on error
     }
   });
-  
+
   // Get neighborhood stats
   app.get("/api/social/neighborhood-stats", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user as User;
-      
+
       // Get stats for user's neighborhood/county
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const [postsToday] = await db
         .select({ count: count() })
         .from(socialPosts)
         .where(
-          and(
-            eq(socialPosts.county, user.county || ''),
-            sql`${socialPosts.createdAt} >= ${today}`
-          )
+          and(eq(socialPosts.county, user.county || ""), sql`${socialPosts.createdAt} >= ${today}`)
         );
-      
+
       const [activeMembers] = await db
         .select({ count: count() })
         .from(users)
-        .where(eq(users.county, user.county || ''));
-      
+        .where(eq(users.county, user.county || ""));
+
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const [newMembers] = await db
         .select({ count: count() })
         .from(users)
         .where(
-          and(
-            eq(users.county, user.county || ''),
-            sql`${users.createdAt} >= ${thirtyDaysAgo}`
-          )
+          and(eq(users.county, user.county || ""), sql`${users.createdAt} >= ${thirtyDaysAgo}`)
         );
-      
+
       const stats = {
         postsToday: postsToday.count,
         activeMembers: activeMembers.count,
         newMembers: newMembers.count,
       };
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Error fetching neighborhood stats:", error);
@@ -807,171 +775,155 @@ export function registerSocialRoutes(app: Express) {
   });
 
   // Follow another user (connections)
-  app.post("/api/social/connections/:targetUserId/follow", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id as string;
-      const { targetUserId } = req.params as { targetUserId: string };
+  app.post(
+    "/api/social/connections/:targetUserId/follow",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.id as string;
+        const { targetUserId } = req.params as { targetUserId: string };
 
-      if (!targetUserId || typeof targetUserId !== "string") {
-        return res.status(400).json({ message: "Target user ID is required" });
-      }
+        if (!targetUserId || typeof targetUserId !== "string") {
+          return res.status(400).json({ message: "Target user ID is required" });
+        }
 
-      if (targetUserId === userId) {
-        return res.status(400).json({ message: "You cannot follow yourself" });
-      }
+        if (targetUserId === userId) {
+          return res.status(400).json({ message: "You cannot follow yourself" });
+        }
 
-      // Ensure target user exists
-      const [target] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, targetUserId))
-        .limit(1);
+        // Ensure target user exists
+        const [target] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, targetUserId))
+          .limit(1);
 
-      if (!target) {
-        return res.status(404).json({ message: "Target user not found" });
-      }
+        if (!target) {
+          return res.status(404).json({ message: "Target user not found" });
+        }
 
-      // Check existing follow relationship
-      const [existing] = await db
-        .select()
-        .from(userFollows)
-        .where(
-          and(
-            eq(userFollows.followerId, userId),
-            eq(userFollows.followingId, targetUserId)
-          )
-        )
-        .limit(1);
+        // Check existing follow relationship
+        const [existing] = await db
+          .select()
+          .from(userFollows)
+          .where(and(eq(userFollows.followerId, userId), eq(userFollows.followingId, targetUserId)))
+          .limit(1);
 
-      if (existing) {
-        // Already following – return current status
+        if (existing) {
+          // Already following – return current status
+          const [reverse] = await db
+            .select()
+            .from(userFollows)
+            .where(
+              and(eq(userFollows.followerId, targetUserId), eq(userFollows.followingId, userId))
+            )
+            .limit(1);
+
+          return res.json({
+            success: true,
+            alreadyFollowing: true,
+            connection: existing,
+            viewerConnection: {
+              isFollowing: true,
+              isFollowedBy: !!reverse,
+              isMutual: !!reverse,
+            },
+          });
+        }
+
+        const [follow] = await db
+          .insert(userFollows)
+          .values({
+            followerId: userId,
+            followingId: targetUserId,
+          })
+          .returning();
+
         const [reverse] = await db
           .select()
           .from(userFollows)
-          .where(
-            and(
-              eq(userFollows.followerId, targetUserId),
-              eq(userFollows.followingId, userId)
-            )
-          )
+          .where(and(eq(userFollows.followerId, targetUserId), eq(userFollows.followingId, userId)))
           .limit(1);
 
-        return res.json({
+        // Create a basic in-app notification for the target user about the new follower.
+        try {
+          const [followerUser] = await db
+            .select({ firstName: users.firstName, lastName: users.lastName })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+          const followerName =
+            [followerUser?.firstName ?? "", followerUser?.lastName ?? ""].join(" ").trim() ||
+            "Someone";
+
+          await storage.createNotification({
+            userId: targetUserId,
+            type: "social_follow" as any,
+            title: "New follower",
+            message: `${followerName} just followed you on TradeScout.`,
+            actionUrl: "/connections",
+          } as any);
+        } catch (notifyErr) {
+          console.error("[Social] Failed to create follow notification", notifyErr);
+        }
+
+        res.json({
           success: true,
-          alreadyFollowing: true,
-          connection: existing,
+          connection: follow,
           viewerConnection: {
             isFollowing: true,
             isFollowedBy: !!reverse,
             isMutual: !!reverse,
           },
         });
+      } catch (error) {
+        console.error("Error following user:", error);
+        res.status(500).json({ message: "Failed to follow user" });
       }
-
-      const [follow] = await db
-        .insert(userFollows)
-        .values({
-          followerId: userId,
-          followingId: targetUserId,
-        })
-        .returning();
-
-      const [reverse] = await db
-        .select()
-        .from(userFollows)
-        .where(
-          and(
-            eq(userFollows.followerId, targetUserId),
-            eq(userFollows.followingId, userId)
-          )
-        )
-        .limit(1);
-
-      // Create a basic in-app notification for the target user about the new follower.
-      try {
-        const [followerUser] = await db
-          .select({ firstName: users.firstName, lastName: users.lastName })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-
-        const followerName = [
-          followerUser?.firstName ?? "",
-          followerUser?.lastName ?? "",
-        ]
-          .join(" ")
-          .trim() || "Someone";
-
-        await storage.createNotification({
-          userId: targetUserId,
-          type: "social_follow" as any,
-          title: "New follower",
-          message: `${followerName} just followed you on TradeScout.`,
-          actionUrl: "/connections",
-        } as any);
-      } catch (notifyErr) {
-        console.error("[Social] Failed to create follow notification", notifyErr);
-      }
-
-      res.json({
-        success: true,
-        connection: follow,
-        viewerConnection: {
-          isFollowing: true,
-          isFollowedBy: !!reverse,
-          isMutual: !!reverse,
-        },
-      });
-    } catch (error) {
-      console.error("Error following user:", error);
-      res.status(500).json({ message: "Failed to follow user" });
     }
-  });
+  );
 
   // Unfollow a user
-  app.delete("/api/social/connections/:targetUserId/follow", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id as string;
-      const { targetUserId } = req.params as { targetUserId: string };
+  app.delete(
+    "/api/social/connections/:targetUserId/follow",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.id as string;
+        const { targetUserId } = req.params as { targetUserId: string };
 
-      if (!targetUserId || typeof targetUserId !== "string") {
-        return res.status(400).json({ message: "Target user ID is required" });
+        if (!targetUserId || typeof targetUserId !== "string") {
+          return res.status(400).json({ message: "Target user ID is required" });
+        }
+
+        await db
+          .delete(userFollows)
+          .where(
+            and(eq(userFollows.followerId, userId), eq(userFollows.followingId, targetUserId))
+          );
+
+        // Check if target still follows viewer (for UI state)
+        const [reverse] = await db
+          .select()
+          .from(userFollows)
+          .where(and(eq(userFollows.followerId, targetUserId), eq(userFollows.followingId, userId)))
+          .limit(1);
+
+        res.json({
+          success: true,
+          viewerConnection: {
+            isFollowing: false,
+            isFollowedBy: !!reverse,
+            isMutual: false,
+          },
+        });
+      } catch (error) {
+        console.error("Error unfollowing user:", error);
+        res.status(500).json({ message: "Failed to unfollow user" });
       }
-
-      await db
-        .delete(userFollows)
-        .where(
-          and(
-            eq(userFollows.followerId, userId),
-            eq(userFollows.followingId, targetUserId)
-          )
-        );
-
-      // Check if target still follows viewer (for UI state)
-      const [reverse] = await db
-        .select()
-        .from(userFollows)
-        .where(
-          and(
-            eq(userFollows.followerId, targetUserId),
-            eq(userFollows.followingId, userId)
-          )
-        )
-        .limit(1);
-
-      res.json({
-        success: true,
-        viewerConnection: {
-          isFollowing: false,
-          isFollowedBy: !!reverse,
-          isMutual: false,
-        },
-      });
-    } catch (error) {
-      console.error("Error unfollowing user:", error);
-      res.status(500).json({ message: "Failed to unfollow user" });
     }
-  });
+  );
 
   // Get connection summary for the authenticated user
   app.get("/api/social/connections/summary", isAuthenticated, async (req: any, res) => {
@@ -988,9 +940,7 @@ export function registerSocialRoutes(app: Express) {
         .from(userFollows)
         .where(eq(userFollows.followerId, userId));
 
-      const followerIds = new Set(
-        followersRows.map((row: any) => row.followerId).filter(Boolean)
-      );
+      const followerIds = new Set(followersRows.map((row: any) => row.followerId).filter(Boolean));
       const followingIds = new Set(
         followingRows.map((row: any) => row.followingId).filter(Boolean)
       );

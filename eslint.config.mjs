@@ -1,13 +1,30 @@
 import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin';
 import typescriptEslintParser from '@typescript-eslint/parser';
 import eslintConfigPrettier from 'eslint-config-prettier';
-import js from '@eslint/js';
 
 export default [
     {
-        ignores: ['dist/**', 'node_modules/**', 'client/dist/**', '*.mjs', '*.js', 'vite.config.ts']
+        ignores: [
+            'dist/**',
+            'node_modules/**',
+            'client/dist/**',
+            'assets/**',
+            'client/public/**',
+            'legacy/**',
+            'components/**',
+            'services/**',
+            'server/tests/**',
+            'scripts/**',
+            'tools/**',
+            'test-*.ts',
+            'set-admin-role.ts',
+            '**/tailwind.config.*',
+            '**/*.mjs',
+            '**/*.js',
+            '**/*.cjs',
+            'vite.config.ts'
+        ]
     },
-    js.configs.recommended,
     {
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {

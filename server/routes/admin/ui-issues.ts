@@ -4,8 +4,8 @@ import { aiCodeFixingService } from "../../ai-code-fixes";
 
 interface UIIssue {
   id: string;
-  type: 'bug' | 'ux_issue' | 'performance' | 'accessibility' | 'layout';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: "bug" | "ux_issue" | "performance" | "accessibility" | "layout";
+  severity: "low" | "medium" | "high" | "critical";
   title: string;
   description: string;
   element?: string;
@@ -13,7 +13,7 @@ interface UIIssue {
   timestamp: Date;
   userAgent: string;
   suggestions: string[];
-  status?: 'new' | 'investigating' | 'resolved' | 'ignored';
+  status?: "new" | "investigating" | "resolved" | "ignored";
 }
 
 interface UIIssuesStore {
@@ -27,14 +27,14 @@ interface UIIssuesStore {
 }
 
 // In-memory store for demo - in production, use database
-let uiIssuesStore: UIIssuesStore = {
+const uiIssuesStore: UIIssuesStore = {
   issues: [],
   stats: {
     totalIssues: 0,
     resolvedIssues: 0,
     criticalIssues: 0,
-    lastAnalysis: new Date()
-  }
+    lastAnalysis: new Date(),
+  },
 };
 
 export function registerUIIssuesRoutes(app: Express) {
@@ -42,44 +42,48 @@ export function registerUIIssuesRoutes(app: Express) {
   app.get("/api/admin/ui-issues", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
+
       // Only allow admin users to access UI monitoring
-      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       // Calculate stats
       const totalIssues = uiIssuesStore.issues.length;
-      const resolvedIssues = uiIssuesStore.issues.filter(issue => issue.status === 'resolved').length;
-      const criticalIssues = uiIssuesStore.issues.filter(issue => issue.severity === 'critical').length;
+      const resolvedIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.status === "resolved"
+      ).length;
+      const criticalIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.severity === "critical"
+      ).length;
 
       // Group issues by type and severity
       const byType: Record<string, number> = {};
       const bySeverity: Record<string, number> = {};
       const byStatus: Record<string, number> = {};
 
-      uiIssuesStore.issues.forEach(issue => {
+      uiIssuesStore.issues.forEach((issue) => {
         byType[issue.type] = (byType[issue.type] || 0) + 1;
         bySeverity[issue.severity] = (bySeverity[issue.severity] || 0) + 1;
-        byStatus[issue.status || 'new'] = (byStatus[issue.status || 'new'] || 0) + 1;
+        byStatus[issue.status || "new"] = (byStatus[issue.status || "new"] || 0) + 1;
       });
 
       const response = {
-        issues: uiIssuesStore.issues.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        issues: uiIssuesStore.issues.sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         ),
         stats: {
           totalIssues,
           resolvedIssues,
           criticalIssues,
-          lastAnalysis: new Date()
+          lastAnalysis: new Date(),
         },
         summary: {
           total: totalIssues,
           byType,
           bySeverity,
-          byStatus
-        }
+          byStatus,
+        },
       };
 
       res.json(response);
@@ -93,32 +97,35 @@ export function registerUIIssuesRoutes(app: Express) {
   app.post("/api/admin/ui-issues", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
+
       // Only allow admin users to submit issues
-      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       const { issues } = (req.body ?? {}) as any;
-      
+
       if (!Array.isArray(issues)) {
         return res.status(400).json({ message: "Issues must be an array" });
       }
 
       // Process and store new issues
-      const newIssues = issues.map(issue => ({
+      const newIssues = issues.map((issue) => ({
         ...issue,
         id: issue.id || `issue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date(issue.timestamp || new Date()),
-        status: issue.status || 'new'
+        status: issue.status || "new",
       }));
 
       // Add to store (avoid duplicates)
-      newIssues.forEach(newIssue => {
-        const existingIssue = uiIssuesStore.issues.find(existing => 
-          existing.title === newIssue.title && 
-          existing.location === newIssue.location &&
-          Math.abs(new Date(existing.timestamp).getTime() - new Date(newIssue.timestamp).getTime()) < 60000
+      newIssues.forEach((newIssue) => {
+        const existingIssue = uiIssuesStore.issues.find(
+          (existing) =>
+            existing.title === newIssue.title &&
+            existing.location === newIssue.location &&
+            Math.abs(
+              new Date(existing.timestamp).getTime() - new Date(newIssue.timestamp).getTime()
+            ) < 60000
         );
 
         if (!existingIssue) {
@@ -129,20 +136,27 @@ export function registerUIIssuesRoutes(app: Express) {
       // Update stats
       uiIssuesStore.stats.lastAnalysis = new Date();
       uiIssuesStore.stats.totalIssues = uiIssuesStore.issues.length;
-      uiIssuesStore.stats.resolvedIssues = uiIssuesStore.issues.filter(issue => issue.status === 'resolved').length;
-      uiIssuesStore.stats.criticalIssues = uiIssuesStore.issues.filter(issue => issue.severity === 'critical').length;
+      uiIssuesStore.stats.resolvedIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.status === "resolved"
+      ).length;
+      uiIssuesStore.stats.criticalIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.severity === "critical"
+      ).length;
 
       console.log(`📊 AI Monitoring: Received ${newIssues.length} new issues`);
 
       // Auto-analyze new issues for potential fixes
       for (const issue of newIssues) {
-        if (issue.severity === 'high' || issue.severity === 'critical') {
+        if (issue.severity === "high" || issue.severity === "critical") {
           try {
-            const fix = await aiCodeFixingService.analyzeAndFixIssue(issue.description, issue.location);
+            const fix = await aiCodeFixingService.analyzeAndFixIssue(
+              issue.description,
+              issue.location
+            );
             if (fix && fix.confidence >= 0.9) {
               console.log(`🤖 AI Generated High-Confidence Fix: ${fix.description}`);
               // Auto-apply critical fixes with very high confidence
-              if (issue.severity === 'critical' && fix.confidence >= 0.95) {
+              if (issue.severity === "critical" && fix.confidence >= 0.95) {
                 setTimeout(() => aiCodeFixingService.applyFix(fix.id), 2000);
                 console.log(`🚀 Auto-Applied Critical Fix: ${fix.description}`);
               }
@@ -153,10 +167,10 @@ export function registerUIIssuesRoutes(app: Express) {
         }
       }
 
-      res.json({ 
+      res.json({
         message: "Issues received successfully",
         count: newIssues.length,
-        total: uiIssuesStore.issues.length
+        total: uiIssuesStore.issues.length,
       });
     } catch (error) {
       console.error("Error storing UI issues:", error);
@@ -168,16 +182,16 @@ export function registerUIIssuesRoutes(app: Express) {
   app.patch("/api/admin/ui-issues/:issueId", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
-      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+
+      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const { issueId } = req.params;
       const { status } = (req.body ?? {}) as any;
 
-      const issue = uiIssuesStore.issues.find(issue => issue.id === issueId);
-      
+      const issue = uiIssuesStore.issues.find((issue) => issue.id === issueId);
+
       if (!issue) {
         return res.status(404).json({ message: "Issue not found" });
       }
@@ -185,7 +199,9 @@ export function registerUIIssuesRoutes(app: Express) {
       issue.status = status;
 
       // Update stats
-      uiIssuesStore.stats.resolvedIssues = uiIssuesStore.issues.filter(issue => issue.status === 'resolved').length;
+      uiIssuesStore.stats.resolvedIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.status === "resolved"
+      ).length;
 
       res.json({ message: "Issue updated successfully", issue });
     } catch (error) {
@@ -198,15 +214,15 @@ export function registerUIIssuesRoutes(app: Express) {
   app.delete("/api/admin/ui-issues/:issueId", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
-      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+
+      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const { issueId } = req.params;
 
-      const issueIndex = uiIssuesStore.issues.findIndex(issue => issue.id === issueId);
-      
+      const issueIndex = uiIssuesStore.issues.findIndex((issue) => issue.id === issueId);
+
       if (issueIndex === -1) {
         return res.status(404).json({ message: "Issue not found" });
       }
@@ -215,8 +231,12 @@ export function registerUIIssuesRoutes(app: Express) {
 
       // Update stats
       uiIssuesStore.stats.totalIssues = uiIssuesStore.issues.length;
-      uiIssuesStore.stats.resolvedIssues = uiIssuesStore.issues.filter(issue => issue.status === 'resolved').length;
-      uiIssuesStore.stats.criticalIssues = uiIssuesStore.issues.filter(issue => issue.severity === 'critical').length;
+      uiIssuesStore.stats.resolvedIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.status === "resolved"
+      ).length;
+      uiIssuesStore.stats.criticalIssues = uiIssuesStore.issues.filter(
+        (issue) => issue.severity === "critical"
+      ).length;
 
       res.json({ message: "Issue deleted successfully" });
     } catch (error) {
@@ -229,32 +249,33 @@ export function registerUIIssuesRoutes(app: Express) {
   app.get("/api/admin/ui-analysis", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
-      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+
+      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const issues = uiIssuesStore.issues;
       const totalIssues = issues.length;
-      const resolvedIssues = issues.filter(issue => issue.status === 'resolved').length;
-      const criticalIssues = issues.filter(issue => issue.severity === 'critical').length;
+      const resolvedIssues = issues.filter((issue) => issue.status === "resolved").length;
+      const criticalIssues = issues.filter((issue) => issue.severity === "critical").length;
       const unresolvedIssues = totalIssues - resolvedIssues;
 
       // Calculate resolution rate
-      const resolutionRate = totalIssues > 0 ? ((resolvedIssues / totalIssues) * 100).toFixed(1) : '0';
+      const resolutionRate =
+        totalIssues > 0 ? ((resolvedIssues / totalIssues) * 100).toFixed(1) : "0";
 
       // Analyze patterns
       const pageIssues: Record<string, number> = {};
       const typeCount: Record<string, number> = {};
       const elementIssues: Record<string, number> = {};
 
-      issues.forEach(issue => {
+      issues.forEach((issue) => {
         // Count issues per page
         pageIssues[issue.location] = (pageIssues[issue.location] || 0) + 1;
-        
+
         // Count by type
         typeCount[issue.type] = (typeCount[issue.type] || 0) + 1;
-        
+
         // Count by element
         if (issue.element) {
           elementIssues[issue.element] = (elementIssues[issue.element] || 0) + 1;
@@ -263,66 +284,68 @@ export function registerUIIssuesRoutes(app: Express) {
 
       // Get top problematic pages
       const topProblematicPages = Object.entries(pageIssues)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([page, count]) => ({ page, issueCount: count }));
 
       // Get common problematic elements
       const commonElements = Object.entries(elementIssues)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([element, count]) => ({ element, issueCount: count }));
 
       // Generate priorities
       const priorities = [];
-      
+
       if (criticalIssues > 0) {
         priorities.push({
-          level: 'critical',
-          title: 'Critical Issues Need Immediate Attention',
+          level: "critical",
+          title: "Critical Issues Need Immediate Attention",
           description: `${criticalIssues} critical issues detected that may impact user experience`,
-          action: 'Review and fix critical issues first'
+          action: "Review and fix critical issues first",
         });
       }
 
       if (unresolvedIssues > 10) {
         priorities.push({
-          level: 'high',
-          title: 'High Volume of Unresolved Issues',
+          level: "high",
+          title: "High Volume of Unresolved Issues",
           description: `${unresolvedIssues} issues remain unresolved`,
-          action: 'Prioritize issue resolution workflow'
+          action: "Prioritize issue resolution workflow",
         });
       }
 
       if (typeCount.accessibility > 0) {
         priorities.push({
-          level: 'medium',
-          title: 'Accessibility Improvements Needed',
+          level: "medium",
+          title: "Accessibility Improvements Needed",
           description: `${typeCount.accessibility} accessibility issues found`,
-          action: 'Improve site accessibility for all users'
+          action: "Improve site accessibility for all users",
         });
       }
 
       // Generate recommendations
       const recommendations = [
-        'Regularly monitor and address critical issues to maintain user experience',
-        'Implement automated testing to catch issues before they reach users',
-        'Focus on the most problematic pages to maximize impact',
-        'Set up alerts for critical and high-severity issues',
-        'Review accessibility standards compliance regularly'
+        "Regularly monitor and address critical issues to maintain user experience",
+        "Implement automated testing to catch issues before they reach users",
+        "Focus on the most problematic pages to maximize impact",
+        "Set up alerts for critical and high-severity issues",
+        "Review accessibility standards compliance regularly",
       ];
 
       // Add specific recommendations based on patterns
       if (typeCount.performance > 0) {
-        recommendations.push('Optimize page load times and JavaScript performance');
+        recommendations.push("Optimize page load times and JavaScript performance");
       }
 
       if (typeCount.ux_issue > 0) {
-        recommendations.push('Conduct user testing to identify UX pain points');
+        recommendations.push("Conduct user testing to identify UX pain points");
       }
 
       if (topProblematicPages.length > 0) {
-        recommendations.push(`Focus attention on ${topProblematicPages[0].page} which has the most issues`);
+        recommendations.push(
+          `Focus attention on ${topProblematicPages[0].page} which has the most issues`
+        );
       }
 
       const analysis = {
@@ -330,15 +353,15 @@ export function registerUIIssuesRoutes(app: Express) {
           totalIssues,
           criticalIssues,
           unresolvedIssues,
-          resolutionRate
+          resolutionRate,
         },
         patterns: {
           topProblematicPages,
           commonIssueTypes: typeCount,
-          commonElements
+          commonElements,
         },
         priorities,
-        recommendations
+        recommendations,
       };
 
       res.json(analysis);

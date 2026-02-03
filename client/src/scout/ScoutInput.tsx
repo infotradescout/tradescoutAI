@@ -105,7 +105,6 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     } catch {
       // ignore storage errors
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillKey]);
 
   // Persist drafts while typing
@@ -149,7 +148,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     if (value.trim().length > 0) return;
 
     console.log("[INTRO DEMO] STARTING auto-demo; clearing any draft first");
-    
+
     // CRITICAL: Clear draft before demo fires
     if (prefillKey) {
       try {
@@ -188,11 +187,9 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     return () => {
       clearDemoTimers();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enableAutoDemo, autoDemoText, prefillKey]);
 
-  const isButtonDisabled =
-    disabled || isSubmitting || (!value.trim() && !isTypingDemo);
+  const isButtonDisabled = disabled || isSubmitting || (!value.trim() && !isTypingDemo);
 
   return (
     <div className="space-y-1.5 scout-input">
@@ -205,26 +202,26 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         rows={3}
         className="w-full resize-none rounded-lg px-4 py-3 text-[15px] min-h-[96px] transition-all"
         style={{
-          backgroundColor: 'var(--bg-secondary)',
-          color: 'var(--text-primary)',
-          border: 'none',
-          outline: 'none',
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+          border: "none",
+          outline: "none",
         }}
       />
       <div
-        className={`flex w-full ${
-          handedness === "left" ? "justify-start" : "justify-end"
-        } mt-1`}
+        className={`flex w-full ${handedness === "left" ? "justify-start" : "justify-end"} mt-1`}
       >
         <button
           type="button"
           onClick={() => handleSubmit()}
           disabled={isButtonDisabled}
           className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ 
-            backgroundColor: 'var(--theme-accent-primary)',
-            color: 'white',
-            boxShadow: isButtonDisabled ? 'none' : '0 4px 12px color-mix(in oklab, var(--theme-accent-primary) 35%, transparent)',
+          style={{
+            backgroundColor: "var(--theme-accent-primary)",
+            color: "white",
+            boxShadow: isButtonDisabled
+              ? "none"
+              : "0 4px 12px color-mix(in oklab, var(--theme-accent-primary) 35%, transparent)",
           }}
         >
           <Send className="h-4 w-4" />

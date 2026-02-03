@@ -6,20 +6,26 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { 
-  CreditCard, 
-  DollarSign, 
-  Calendar, 
-  User, 
+import {
+  CreditCard,
+  DollarSign,
+  Calendar,
+  User,
   Building2,
   ArrowUpRight,
   ArrowDownLeft,
   Clock,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import { formatDistance } from "date-fns";
 
@@ -44,15 +50,13 @@ interface PaymentHistoryResponse {
   };
 }
 
-interface PaymentHistoryProps {}
-
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'completed':
+    case "completed":
       return <CheckCircle className="w-4 h-4 text-tsSuccess" />;
-    case 'failed':
+    case "failed":
       return <XCircle className="w-4 h-4 text-tsError" />;
-    case 'processing':
+    case "processing":
       return <RefreshCw className="w-4 h-4 text-tsWarning animate-spin" />;
     default:
       return <Clock className="w-4 h-4 text-tsWarning" />;
@@ -61,22 +65,22 @@ const getStatusIcon = (status: string) => {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'completed':
-      return 'bg-tsSuccess text-tsSuccess';
-    case 'failed':
-      return 'bg-tsError text-tsError';
-    case 'processing':
-      return 'bg-tsWarning text-tsWarning';
+    case "completed":
+      return "bg-tsSuccess text-tsSuccess";
+    case "failed":
+      return "bg-tsError text-tsError";
+    case "processing":
+      return "bg-tsWarning text-tsWarning";
     default:
-      return 'bg-tsWarning text-tsWarning';
+      return "bg-tsWarning text-tsWarning";
   }
 };
 
 export default function PaymentHistory() {
-    const { user } = useAuth();
-    const isCommunityFirst = Boolean((user as any)?.communityFirst);
-  const [filterType, setFilterType] = useState('all');
-  
+  const { user } = useAuth();
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
+  const [filterType, setFilterType] = useState("all");
+
   const { data: paymentHistory, isLoading } = useQuery<PaymentHistoryResponse>({
     queryKey: ["/api/payments/history", { type: filterType }],
   });
@@ -96,17 +100,21 @@ export default function PaymentHistory() {
     );
   }
 
-  const contractorPayments = paymentHistory?.contractorPayments || { asHomeowner: [], asContractor: [] };
-  const marketplaceTransactions = paymentHistory?.marketplaceTransactions || { asBuyer: [], asSeller: [] };
+  const contractorPayments = paymentHistory?.contractorPayments || {
+    asHomeowner: [],
+    asContractor: [],
+  };
+  const marketplaceTransactions = paymentHistory?.marketplaceTransactions || {
+    asBuyer: [],
+    asSeller: [],
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-tsText">Payment History</h1>
-          <p className="text-tsTextSecondary">
-            Track all your payments and transactions
-          </p>
+          <p className="text-tsTextSecondary">Track all your payments and transactions</p>
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-48 bg-tsCard border-tsBorder text-tsText">
@@ -136,32 +144,31 @@ export default function PaymentHistory() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-tsText">
-                  ${(
+                  $
+                  {(
                     [...contractorPayments.asHomeowner, ...contractorPayments.asContractor]
-                      .filter(p => p.status === 'completed')
+                      .filter((p) => p.status === "completed")
                       .reduce((sum, p) => sum + Number(p.totalAmount || 0), 0) +
                     [...marketplaceTransactions.asBuyer, ...marketplaceTransactions.asSeller]
-                      .filter(t => t.status === 'completed')
+                      .filter((t) => t.status === "completed")
                       .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0)
                   ).toFixed(2)}
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  Completed transactions
-                </p>
+                <p className="text-xs text-tsTextMuted">Completed transactions</p>
               </CardContent>
             </Card>
             <Card className="bg-tsCard border-tsBorder">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-tsText">Contractor Services</CardTitle>
+                <CardTitle className="text-sm font-medium text-tsText">
+                  Contractor Services
+                </CardTitle>
                 <Building2 className="h-4 w-4 text-tsTextMuted" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-tsText">
                   {[...contractorPayments.asHomeowner, ...contractorPayments.asContractor].length}
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  Service payments
-                </p>
+                <p className="text-xs text-tsTextMuted">Service payments</p>
               </CardContent>
             </Card>
             <Card className="bg-tsCard border-tsBorder">
@@ -173,9 +180,7 @@ export default function PaymentHistory() {
                 <div className="text-2xl font-bold text-tsText">
                   {[...marketplaceTransactions.asBuyer, ...marketplaceTransactions.asSeller].length}
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  Item transactions
-                </p>
+                <p className="text-xs text-tsTextMuted">Item transactions</p>
               </CardContent>
             </Card>
           </div>
@@ -183,81 +188,86 @@ export default function PaymentHistory() {
           <Card className="bg-tsCard border-tsBorder">
             <CardHeader>
               <CardTitle className="text-tsText">Recent Activity</CardTitle>
-              <CardDescription className="text-tsTextMuted">Your latest payment transactions</CardDescription>
+              <CardDescription className="text-tsTextMuted">
+                Your latest payment transactions
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {/* Combine and sort all recent transactions */}
                 {[
                   ...contractorPayments.asHomeowner.map((p: any) => ({
-                    ...p, 
-                    type: 'contractor', 
-                    role: 'homeowner',
+                    ...p,
+                    type: "contractor",
+                    role: "homeowner",
                     title: `Contractor Service Payment`,
-                    subtitle: `Payment to contractor`
+                    subtitle: `Payment to contractor`,
                   })),
                   ...contractorPayments.asContractor.map((p: any) => ({
-                    ...p, 
-                    type: 'contractor', 
-                    role: 'contractor',
+                    ...p,
+                    type: "contractor",
+                    role: "contractor",
                     title: `Service Payment Received`,
-                    subtitle: `Payment from homeowner`
+                    subtitle: `Payment from homeowner`,
                   })),
                   ...marketplaceTransactions.asBuyer.map((t: any) => ({
-                    ...t, 
-                    type: 'marketplace', 
-                    role: 'buyer',
+                    ...t,
+                    type: "marketplace",
+                    role: "buyer",
                     title: `Marketplace Purchase`,
-                    subtitle: `Item purchase`
+                    subtitle: `Item purchase`,
                   })),
                   ...marketplaceTransactions.asSeller.map((t: any) => ({
-                    ...t, 
-                    type: 'marketplace', 
-                    role: 'seller',
+                    ...t,
+                    type: "marketplace",
+                    role: "seller",
                     title: `Marketplace Sale`,
-                    subtitle: `Item sold`
-                  }))
+                    subtitle: `Item sold`,
+                  })),
                 ]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 10)
-                .map((transaction, index) => (
-                  <div key={`${transaction.type}-${transaction.id}-${index}`} 
-                       className="flex items-center space-x-4 p-4 border-tsBorder border rounded-lg hover:bg-tsCardMuted transition-colors">
-                    <div className="flex-shrink-0">
-                      {transaction.role === 'homeowner' || transaction.role === 'buyer' ? (
-                        <ArrowUpRight className="w-5 h-5 text-tsError" />
-                      ) : (
-                        <ArrowDownLeft className="w-5 h-5 text-tsSuccess" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-tsText">
-                        {transaction.title}
-                      </p>
-                      <p className="text-sm text-tsTextMuted">
-                        {transaction.subtitle}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-tsText">
-                          ${Number(transaction.totalAmount || 0).toFixed(2)}
-                        </p>
-                        <p className="text-xs text-tsTextMuted">
-                          {formatDistance(new Date(transaction.createdAt), new Date(), { addSuffix: true })}
-                        </p>
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .slice(0, 10)
+                  .map((transaction, index) => (
+                    <div
+                      key={`${transaction.type}-${transaction.id}-${index}`}
+                      className="flex items-center space-x-4 p-4 border-tsBorder border rounded-lg hover:bg-tsCardMuted transition-colors"
+                    >
+                      <div className="flex-shrink-0">
+                        {transaction.role === "homeowner" || transaction.role === "buyer" ? (
+                          <ArrowUpRight className="w-5 h-5 text-tsError" />
+                        ) : (
+                          <ArrowDownLeft className="w-5 h-5 text-tsSuccess" />
+                        )}
                       </div>
-                      <div className="flex items-center">
-                        {getStatusIcon(transaction.status)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-tsText">{transaction.title}</p>
+                        <p className="text-sm text-tsTextMuted">{transaction.subtitle}</p>
                       </div>
-                      <Badge className={getStatusColor(transaction.status)}>
-                        {transaction.status}
-                      </Badge>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-tsText">
+                            ${Number(transaction.totalAmount || 0).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-tsTextMuted">
+                            {formatDistance(new Date(transaction.createdAt), new Date(), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex items-center">{getStatusIcon(transaction.status)}</div>
+                        <Badge className={getStatusColor(transaction.status)}>
+                          {transaction.status}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                {[...contractorPayments.asHomeowner, ...contractorPayments.asContractor, ...marketplaceTransactions.asBuyer, ...marketplaceTransactions.asSeller].length === 0 && (
+                {[
+                  ...contractorPayments.asHomeowner,
+                  ...contractorPayments.asContractor,
+                  ...marketplaceTransactions.asBuyer,
+                  ...marketplaceTransactions.asSeller,
+                ].length === 0 && (
                   <div className="text-center py-8">
                     <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-orange-500 mb-2">
@@ -271,7 +281,9 @@ export default function PaymentHistory() {
                     {isCommunityFirst && (
                       <div className="mt-4 flex items-center justify-center gap-3 text-sm">
                         <Link href="/community">
-                          <a className="text-sky-400 hover:text-sky-300">See what’s happening nearby</a>
+                          <a className="text-sky-400 hover:text-sky-300">
+                            See what’s happening nearby
+                          </a>
                         </Link>
                       </div>
                     )}
@@ -291,40 +303,34 @@ export default function PaymentHistory() {
                   <ArrowUpRight className="w-5 h-5 text-red-500" />
                   Payments Made
                 </CardTitle>
-                <CardDescription>
-                  Payments you've made to contractors
-                </CardDescription>
+                <CardDescription>Payments you've made to contractors</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {contractorPayments.asHomeowner?.map((payment: any) => (
                   <div key={payment.id} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium">
-                          Service Payment
-                        </p>
+                        <p className="font-medium">Service Payment</p>
                         <p className="text-sm text-gray-500">
-                          {formatDistance(new Date(payment.createdAt), new Date(), { addSuffix: true })}
+                          {formatDistance(new Date(payment.createdAt), new Date(), {
+                            addSuffix: true,
+                          })}
                         </p>
                       </div>
-                      <Badge className={getStatusColor(payment.status)}>
-                        {payment.status}
-                      </Badge>
+                      <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold">
                         ${Number(payment.totalAmount || 0).toFixed(2)}
                       </span>
                       <div className="text-right text-xs text-gray-500">
-                        {payment.isOffPlatform ? 'Off-platform' : 'Platform payment'}
+                        {payment.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
-                    
+
                     {payment.description && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        {payment.description}
-                      </p>
+                      <p className="text-sm text-gray-600 mt-2">{payment.description}</p>
                     )}
                   </div>
                 ))}
@@ -344,40 +350,34 @@ export default function PaymentHistory() {
                   <ArrowDownLeft className="w-5 h-5 text-green-500" />
                   Payments Received
                 </CardTitle>
-                <CardDescription>
-                  Payments you've received from homeowners
-                </CardDescription>
+                <CardDescription>Payments you've received from homeowners</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {contractorPayments.asContractor?.map((payment: any) => (
                   <div key={payment.id} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium">
-                          Service Payment
-                        </p>
+                        <p className="font-medium">Service Payment</p>
                         <p className="text-sm text-gray-500">
-                          {formatDistance(new Date(payment.createdAt), new Date(), { addSuffix: true })}
+                          {formatDistance(new Date(payment.createdAt), new Date(), {
+                            addSuffix: true,
+                          })}
                         </p>
                       </div>
-                      <Badge className={getStatusColor(payment.status)}>
-                        {payment.status}
-                      </Badge>
+                      <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-green-600">
                         +${Number(payment.totalAmount || 0).toFixed(2)}
                       </span>
                       <div className="text-right text-xs text-gray-500">
-                        {payment.isOffPlatform ? 'Off-platform' : 'Platform payment'}
+                        {payment.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
-                    
+
                     {payment.description && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        {payment.description}
-                      </p>
+                      <p className="text-sm text-gray-600 mt-2">{payment.description}</p>
                     )}
                   </div>
                 ))}
@@ -401,42 +401,38 @@ export default function PaymentHistory() {
                   <ArrowUpRight className="w-5 h-5 text-red-500" />
                   Purchases
                 </CardTitle>
-                <CardDescription>
-                  Items you've purchased
-                </CardDescription>
+                <CardDescription>Items you've purchased</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {marketplaceTransactions.asBuyer?.map((transaction: any) => (
                   <div key={transaction.id} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium">
-                          Marketplace Purchase
-                        </p>
+                        <p className="font-medium">Marketplace Purchase</p>
                         <p className="text-sm text-gray-500">
-                          {formatDistance(new Date(transaction.createdAt), new Date(), { addSuffix: true })}
+                          {formatDistance(new Date(transaction.createdAt), new Date(), {
+                            addSuffix: true,
+                          })}
                         </p>
                       </div>
                       <Badge className={getStatusColor(transaction.status)}>
                         {transaction.status}
                       </Badge>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold">
                         ${Number(transaction.totalAmount || 0).toFixed(2)}
                       </span>
                       <div className="text-right text-xs text-gray-500">
-                        {transaction.isOffPlatform ? 'Off-platform' : 'Platform payment'}
+                        {transaction.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
                   </div>
                 ))}
 
                 {marketplaceTransactions.asBuyer?.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No marketplace purchases yet
-                  </div>
+                  <div className="text-center py-8 text-gray-500">No marketplace purchases yet</div>
                 )}
               </CardContent>
             </Card>
@@ -448,42 +444,38 @@ export default function PaymentHistory() {
                   <ArrowDownLeft className="w-5 h-5 text-green-500" />
                   Sales
                 </CardTitle>
-                <CardDescription>
-                  Items you've sold
-                </CardDescription>
+                <CardDescription>Items you've sold</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {marketplaceTransactions.asSeller?.map((transaction: any) => (
                   <div key={transaction.id} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium">
-                          Marketplace Sale
-                        </p>
+                        <p className="font-medium">Marketplace Sale</p>
                         <p className="text-sm text-gray-500">
-                          {formatDistance(new Date(transaction.createdAt), new Date(), { addSuffix: true })}
+                          {formatDistance(new Date(transaction.createdAt), new Date(), {
+                            addSuffix: true,
+                          })}
                         </p>
                       </div>
                       <Badge className={getStatusColor(transaction.status)}>
                         {transaction.status}
                       </Badge>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-green-600">
                         +${Number(transaction.totalAmount || 0).toFixed(2)}
                       </span>
                       <div className="text-right text-xs text-gray-500">
-                        {transaction.isOffPlatform ? 'Off-platform' : 'Platform payment'}
+                        {transaction.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
                   </div>
                 ))}
 
                 {marketplaceTransactions.asSeller?.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No marketplace sales yet
-                  </div>
+                  <div className="text-center py-8 text-gray-500">No marketplace sales yet</div>
                 )}
               </CardContent>
             </Card>
@@ -501,15 +493,11 @@ export default function PaymentHistory() {
             <CardContent>
               <div className="text-center py-8">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-orange-500 mb-2">
-                  Receipt Generation
-                </h3>
+                <h3 className="text-lg font-medium text-orange-500 mb-2">Receipt Generation</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   Select a date range to generate and download receipts for your transactions.
                 </p>
-                <Button disabled>
-                  Coming Soon
-                </Button>
+                <Button disabled>Coming Soon</Button>
               </div>
             </CardContent>
           </Card>

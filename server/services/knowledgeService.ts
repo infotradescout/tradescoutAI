@@ -250,13 +250,18 @@ export function appendChatKnowledge(entry: {
 
     // Deduplicate by normalized question text
     const normalizedQuestion = entry.question.trim().toLowerCase();
-    const exists = corpus.some((item) =>
-      typeof item.question === "string" && item.question.trim().toLowerCase() === normalizedQuestion
+    const exists = corpus.some(
+      (item) =>
+        typeof item.question === "string" &&
+        item.question.trim().toLowerCase() === normalizedQuestion
     );
     if (exists) return;
 
     // Store a compact version of the answer to keep the corpus small.
-    const compactAnswer = typeof entry.answer === "string" ? entry.answer.slice(0, 800) : String(entry.answer).slice(0, 800);
+    const compactAnswer =
+      typeof entry.answer === "string"
+        ? entry.answer.slice(0, 800)
+        : String(entry.answer).slice(0, 800);
 
     corpus.push({
       question: entry.question,
@@ -281,11 +286,7 @@ export function appendChatKnowledge(entry: {
   }
 }
 
-function searchChatCorpus(
-  message: string,
-  countyCode?: string,
-  stateCode?: string
-): CacheResult {
+function searchChatCorpus(message: string, countyCode?: string, stateCode?: string): CacheResult {
   try {
     if (!fs.existsSync(CHAT_CORPUS_FILE)) {
       return { source: "none", data: null, layer: 0 };
@@ -324,9 +325,17 @@ function searchChatCorpus(
 
       if (!score) continue;
 
-      if (countyCode && item.countyCode && item.countyCode.toLowerCase() === countyCode.toLowerCase()) {
+      if (
+        countyCode &&
+        item.countyCode &&
+        item.countyCode.toLowerCase() === countyCode.toLowerCase()
+      ) {
         score += 2;
-      } else if (stateCode && item.stateCode && item.stateCode.toLowerCase() === stateCode.toLowerCase()) {
+      } else if (
+        stateCode &&
+        item.stateCode &&
+        item.stateCode.toLowerCase() === stateCode.toLowerCase()
+      ) {
         score += 1;
       }
 
@@ -610,12 +619,11 @@ async function searchInternet(
     const codeOrPermit = isCodeOrPermitQuery(lower);
     const taxQuery = isTaxQuery(lower);
 
-    const localityHint = [countyCode, stateCode]
-      .filter(Boolean)
-      .join(", ");
+    const localityHint = [countyCode, stateCode].filter(Boolean).join(", ");
 
-    const webPrompt = codeOrPermit || taxQuery
-      ? `You are helping with a local home or property question.
+    const webPrompt =
+      codeOrPermit || taxQuery
+        ? `You are helping with a local home or property question.
 
 User question: ${message}
 User locality (if provided, may be approximate): ${localityHint || "unknown"}.
@@ -631,7 +639,7 @@ Task:
   - Prefer official county or state tax authority information.
 
 Keep the answer compact (under ~8 sentences) and written as plain text notes that can be embedded into a larger AI response.`
-      : `Search the web and provide accurate, concise information about the following question.
+        : `Search the web and provide accurate, concise information about the following question.
 
 User question: ${message}
 User locality (if provided, may be approximate): ${localityHint || "unknown"}.
@@ -701,7 +709,11 @@ export async function resolveKnowledge(
   // LAYER 1B: Admin-controlled knowledge base in data/TradeScout Brain (docx/txt/md)
   // This is the canonical source for how TradeScout works (help docs, "TradeScout for Dummies", workflows, FAQs).
   const knowledgeBaseResult = await searchLocalKnowledgeBase(message);
-  if (knowledgeBaseResult.source === "manual" && Array.isArray(knowledgeBaseResult.data) && knowledgeBaseResult.data.length > 0) {
+  if (
+    knowledgeBaseResult.source === "manual" &&
+    Array.isArray(knowledgeBaseResult.data) &&
+    knowledgeBaseResult.data.length > 0
+  ) {
     sources.push("TradeScout Brain (data folder)");
     const formatted = knowledgeBaseResult.data
       .map((item: any) => `SOURCE: ${item.file}\n${item.snippet}`)
@@ -713,13 +725,20 @@ export async function resolveKnowledge(
   // LAYER 2: First-party website intelligence (auto-generated cache + live database)
   // Scout should reason over what exists on the site right now.
   // Check cache first (faster), then DB if needed.
-  let category = detectCategory(message);
-  
+  const category = detectCategory(message);
+
   // Try auto-generated cache
   const cacheResult = readAutoCache(category);
-  if (cacheResult.source !== "none" && cacheResult.data && Array.isArray(cacheResult.data) && cacheResult.data.length > 0) {
+  if (
+    cacheResult.source !== "none" &&
+    cacheResult.data &&
+    Array.isArray(cacheResult.data) &&
+    cacheResult.data.length > 0
+  ) {
     sources.push(`TradeScout Cache (${category})`);
-    aggregatedContent.push(`CACHED DATA (${category}):\n${JSON.stringify(cacheResult.data, null, 2)}`);
+    aggregatedContent.push(
+      `CACHED DATA (${category}):\n${JSON.stringify(cacheResult.data, null, 2)}`
+    );
     if (category === "contractors" && typeof cacheResult.itemCount === "number") {
       meta.contractors = { count: cacheResult.itemCount };
     }
@@ -730,12 +749,15 @@ export async function resolveKnowledge(
   const dbResult = await queryWebsite(message, userId, countyCode, stateCode);
   if (dbResult.source === "database" && dbResult.data?.items?.length > 0) {
     sources.push(`TradeScout Database (${dbResult.data.category})`);
-    aggregatedContent.push(`DATABASE (${dbResult.data.category}):\n${JSON.stringify(dbResult.data.items, null, 2)}`);
-    const count = typeof dbResult.itemCount === "number"
-      ? dbResult.itemCount
-      : Array.isArray(dbResult.data.items)
-      ? dbResult.data.items.length
-      : 0;
+    aggregatedContent.push(
+      `DATABASE (${dbResult.data.category}):\n${JSON.stringify(dbResult.data.items, null, 2)}`
+    );
+    const count =
+      typeof dbResult.itemCount === "number"
+        ? dbResult.itemCount
+        : Array.isArray(dbResult.data.items)
+          ? dbResult.data.items.length
+          : 0;
     if (dbResult.data.category === "community_posts") {
       meta.communityPosts = { count, items: dbResult.data.items } as any;
     }
@@ -793,7 +815,8 @@ export async function resolveKnowledge(
   // LAYER 4: Total Failure (Honest "I don't know")
   // No mocks, no examples, no made-up data
   return {
-    answer: "I couldn't find reliable information about this in TradeScout's local data or on the web. You may need to confirm with a local professional or contact your admin for assistance.",
+    answer:
+      "I couldn't find reliable information about this in TradeScout's local data or on the web. You may need to confirm with a local professional or contact your admin for assistance.",
     sources: ["No reliable source found"],
     layer: 4,
     confidence: "low",
@@ -805,19 +828,28 @@ export async function resolveKnowledge(
  */
 function detectCategory(message: string): string {
   const lower = message.toLowerCase();
-  
+
   // Public / marketplace profiles (profile pages, pro cards, seller pages)
   if (
     lower.includes("public profile") ||
-    (lower.includes("profile") && (lower.includes("page") || lower.includes("site") || lower.includes("url") || lower.includes("link"))) ||
+    (lower.includes("profile") &&
+      (lower.includes("page") ||
+        lower.includes("site") ||
+        lower.includes("url") ||
+        lower.includes("link"))) ||
     lower.includes("pro card")
   ) {
     return "profiles_public";
   }
 
-  if (lower.includes("contractor") || lower.includes("roofer") || 
-      lower.includes("plumber") || lower.includes("electrician") || 
-      lower.includes("hvac") || lower.includes("handyman")) {
+  if (
+    lower.includes("contractor") ||
+    lower.includes("roofer") ||
+    lower.includes("plumber") ||
+    lower.includes("electrician") ||
+    lower.includes("hvac") ||
+    lower.includes("handyman")
+  ) {
     return "contractors";
   }
   if (lower.includes("group") || lower.includes("community") || lower.includes("club")) {
@@ -880,14 +912,14 @@ export function getLocalMarkdownGuide(topic: string, county: string): string | n
 export async function loadComprehensiveKnowledge(): Promise<string> {
   const chunks: string[] = [];
   const maxSize = 50000; // 50KB total
-  
+
   try {
     // 1. Load all manual admin cache files
     if (fs.existsSync(MANUAL_CACHE_DIR)) {
       const manualFiles = walkKnowledgeFiles(MANUAL_CACHE_DIR);
       for (const file of manualFiles) {
-        if (chunks.join('').length > maxSize) break;
-        
+        if (chunks.join("").length > maxSize) break;
+
         const text = await loadKnowledgeText(file);
         if (text) {
           const relPath = path.relative(MANUAL_CACHE_DIR, file);
@@ -895,13 +927,13 @@ export async function loadComprehensiveKnowledge(): Promise<string> {
         }
       }
     }
-    
+
     // 2. Load all files from data/TradeScout Brain
     if (fs.existsSync(KNOWLEDGE_BASE_DIR)) {
       const knowledgeFiles = walkKnowledgeFiles(KNOWLEDGE_BASE_DIR);
       for (const file of knowledgeFiles) {
-        if (chunks.join('').length > maxSize) break;
-        
+        if (chunks.join("").length > maxSize) break;
+
         const text = await loadKnowledgeText(file);
         if (text) {
           const relPath = path.relative(KNOWLEDGE_BASE_DIR, file);
@@ -909,8 +941,8 @@ export async function loadComprehensiveKnowledge(): Promise<string> {
         }
       }
     }
-    
-    const combined = chunks.join('\n').slice(0, maxSize);
+
+    const combined = chunks.join("\n").slice(0, maxSize);
     return combined || "No comprehensive knowledge available";
   } catch (error) {
     console.error("Error loading comprehensive knowledge:", error);

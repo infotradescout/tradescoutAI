@@ -1,13 +1,12 @@
-import React, { createContext, useContext } from 'react';
-import { useTutorial } from '@/hooks/useTutorial';
-import { TutorialOverlay } from './TutorialOverlay';
-import type { TutorialContext } from '@shared/tutorial-schema';
+import React, { createContext, useContext } from "react";
+import { useTutorial } from "@/hooks/useTutorial";
+import { TutorialOverlay } from "./TutorialOverlay";
 
 interface TutorialProviderProps {
   children: React.ReactNode;
 }
 
-interface TutorialContextType extends ReturnType<typeof useTutorial> {}
+type TutorialContextType = ReturnType<typeof useTutorial>;
 
 const TutorialContext = createContext<TutorialContextType | null>(null);
 
@@ -38,7 +37,7 @@ export function TutorialProvider({ children }: TutorialProviderProps) {
 export function useTutorialContext() {
   const context = useContext(TutorialContext);
   if (!context) {
-    throw new Error('useTutorialContext must be used within a TutorialProvider');
+    throw new Error("useTutorialContext must be used within a TutorialProvider");
   }
   return context;
 }

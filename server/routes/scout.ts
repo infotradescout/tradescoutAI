@@ -1,7 +1,15 @@
 import { recordQuery, recordFallback, getAnalytics, getAuditLog } from "../services/adminAnalytics";
 import { Router, type Request, Response } from "express";
-import { extractUserMessage, extractMetadata, type RawScoutOutput } from "../utils/extractUserMessage";
-import { createCapabilityChecker, buildCapabilitySignals, type Capability } from "../utils/userCapabilities";
+import {
+  extractUserMessage,
+  extractMetadata,
+  type RawScoutOutput,
+} from "../utils/extractUserMessage";
+import {
+  createCapabilityChecker,
+  buildCapabilitySignals,
+  type Capability,
+} from "../utils/userCapabilities";
 import { runScoutAction, safeExecute, type ScoutActionContext } from "../utils/scoutActionGuard";
 import { classifyScoutError, getRecoveryStrategy } from "../utils/scoutErrorMapping";
 import { GeminiProvider, generateWithFallback, LLMProvider } from "../services/llmProvider";
@@ -31,7 +39,11 @@ import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import { COMMUNITY_TONE } from "../../shared/communityLanguage";
 import { db, pool } from "../db";
-import { leads, scoutInteractionFailureReasonEnum, type InsertScoutInteraction } from "../../shared/schema";
+import {
+  leads,
+  scoutInteractionFailureReasonEnum,
+  type InsertScoutInteraction,
+} from "../../shared/schema";
 import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -72,14 +84,14 @@ const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
 const VALID_SCOUT_FAILURE_REASONS = new Set(scoutInteractionFailureReasonEnum.enumValues);
 
 function normalizeFailureReason(
-  reason: InsertScoutInteraction["failureReason"] | null | undefined,
+  reason: InsertScoutInteraction["failureReason"] | null | undefined
 ): InsertScoutInteraction["failureReason"] | null {
   if (reason && VALID_SCOUT_FAILURE_REASONS.has(reason)) return reason;
   return null;
 }
 
 function ensureFailureReason(
-  reason: InsertScoutInteraction["failureReason"] | null | undefined,
+  reason: InsertScoutInteraction["failureReason"] | null | undefined
 ): InsertScoutInteraction["failureReason"] {
   return normalizeFailureReason(reason) ?? "unclear_copy";
 }
@@ -97,14 +109,8 @@ router.use((req, res, next) => {
   res.setHeader("Vary", "Origin");
 
   if (req.method === "OPTIONS") {
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, Origin, Accept"
-    );
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Origin, Accept");
     return res.sendStatus(204);
   }
 
@@ -115,16 +121,21 @@ function normalizeScoutRole(role?: string | null): InsertScoutInteraction["userR
   if (!role) return "homeowner";
   const lower = role.toLowerCase();
   if (lower.includes("admin") || lower.includes("moderator")) return "admin";
-  if (lower.includes("contractor") || lower.includes("service") || lower.includes("provider")) return "contractor";
+  if (lower.includes("contractor") || lower.includes("service") || lower.includes("provider"))
+    return "contractor";
   return "homeowner";
 }
 
-function normalizeScoutIntent(intent?: string | null, message?: string | null): InsertScoutInteraction["intent"] {
+function normalizeScoutIntent(
+  intent?: string | null,
+  message?: string | null
+): InsertScoutInteraction["intent"] {
   const source = (intent || "").toLowerCase();
   const text = (message || "").toLowerCase();
 
   if (source.includes("hire") || text.includes("hire") || text.includes("connect")) return "hire";
-  if (source.includes("collab") || text.includes("collaborate") || text.includes("partner")) return "collaborate";
+  if (source.includes("collab") || text.includes("collaborate") || text.includes("partner"))
+    return "collaborate";
   if (source.includes("advis") || text.includes("advice") || text.includes("help")) return "advise";
   return "unknown";
 }
@@ -165,13 +176,7 @@ const ALLOWED_OUTCOME_CONTEXTS = new Set([
   "general",
 ]);
 
-type DealRoomStage =
-  | "EMPTY"
-  | "MATERIALS"
-  | "ESTIMATE"
-  | "CONTRACT"
-  | "INVOICE"
-  | "RECEIPT";
+type DealRoomStage = "EMPTY" | "MATERIALS" | "ESTIMATE" | "CONTRACT" | "INVOICE" | "RECEIPT";
 
 type AllowedAction =
   | "OPEN_DEAL_ROOM"
@@ -206,11 +211,7 @@ interface ResolvedContext {
 //   speak on behalf of "the community" beyond the user’s intent.
 // In short: it rephrases what the user already wants to ask, so it
 // sounds like a real neighbor, without inventing any new facts.
-function buildCommunityPrefill(
-  original: string,
-  countyCode?: string,
-  stateCode?: string
-): string {
+function buildCommunityPrefill(original: string, countyCode?: string, stateCode?: string): string {
   const lower = original.toLowerCase().trim();
 
   const areaPhrase = countyCode || stateCode ? "in the county" : "around here";
@@ -286,7 +287,10 @@ function buildCommunityPrefill(
   }
 
   if (lower.includes("normal in my area") || lower.includes("normal around here")) {
-    const cleaned = original.replace(/is\s+this\s+/i, "").replace(/\?+$/g, "").trim();
+    const cleaned = original
+      .replace(/is\s+this\s+/i, "")
+      .replace(/\?+$/g, "")
+      .trim();
     if (cleaned) {
       return `${cleaned} — is this normal ${areaPhrase}?`;
     }
@@ -455,15 +459,14 @@ function buildWelcomeIntroDraft(
   if (county && !locationParts.includes(county)) locationParts.push(county);
   if (state) locationParts.push(state);
 
-  const locationLabel =
-    locationParts.length > 0 ? ` here in ${locationParts.join(", ")}` : "";
+  const locationLabel = locationParts.length > 0 ? ` here in ${locationParts.join(", ")}` : "";
 
   const rolesRaw =
     Array.isArray(userRecord?.roles) && userRecord.roles.length > 0
       ? userRecord.roles
       : userRecord?.role
-      ? [userRecord.role]
-      : [];
+        ? [userRecord.role]
+        : [];
 
   const baseRole =
     rolesRaw.find((r: unknown) => typeof r === "string" && r.trim().length > 0) ?? "";
@@ -521,7 +524,8 @@ function isExchangeListingRequest(message: string): boolean {
   if (/create\s+(an?\s+)?(exchange\s+)?listing/.test(lower)) return true;
   if (/list\s+(this|it|my)\s+.*for\s+sale/.test(lower)) return true;
   if (/post\s+this\s+for\s+sale/.test(lower)) return true;
-  if (lower.startsWith("write a listing") || lower.startsWith("write an exchange listing")) return true;
+  if (lower.startsWith("write a listing") || lower.startsWith("write an exchange listing"))
+    return true;
 
   return false;
 }
@@ -581,9 +585,10 @@ function buildExchangeListingDraft(
 
   const title = titlePieces.join(" ");
 
-  const priceLine = amount && amount > 0
-    ? `Asking around ${formatUsd(amount)} (open to reasonable offers).`
-    : "Set a fair asking price here (you can adjust based on interest).";
+  const priceLine =
+    amount && amount > 0
+      ? `Asking around ${formatUsd(amount)} (open to reasonable offers).`
+      : "Set a fair asking price here (you can adjust based on interest).";
 
   const locationLine = locationLabel
     ? `Located in ${locationLabel}.`
@@ -626,7 +631,12 @@ const DEFAULT_SUGGESTIONS = [
 ];
 
 // Cache auto-prompt to avoid regenerating on every page load
-let cachedAutoPrompt: { autoPrompt: string; suggestions: string[]; source: "static" | "gemini"; timestamp: number } | null = null;
+let cachedAutoPrompt: {
+  autoPrompt: string;
+  suggestions: string[];
+  source: "static" | "gemini";
+  timestamp: number;
+} | null = null;
 const AUTO_PROMPT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 // Cache comprehensive knowledge to avoid reloading on every request
@@ -642,7 +652,7 @@ async function getCachedComprehensiveKnowledge(): Promise<string> {
   if (cachedComprehensiveKnowledge && now - lastKnowledgeCache < KNOWLEDGE_CACHE_TTL) {
     return cachedComprehensiveKnowledge;
   }
-  
+
   cachedComprehensiveKnowledge = await loadComprehensiveKnowledge();
   lastKnowledgeCache = now;
   return cachedComprehensiveKnowledge;
@@ -662,8 +672,8 @@ function isIntroQuestion(message: string): boolean {
     /tradescout\s+features/i,
     /tradescout\s+capabilities/i,
   ];
-  
-  return introPatterns.some(pattern => pattern.test(lower));
+
+  return introPatterns.some((pattern) => pattern.test(lower));
 }
 
 /**
@@ -674,14 +684,14 @@ async function generateSmartSynthesis(
   gemini: GoogleGenerativeAI | null,
   llmProviders: LLMProvider[]
 ): Promise<string> {
-  if (!gemini || !llmProviders.some(p => p.isConfigured())) {
+  if (!gemini || !llmProviders.some((p) => p.isConfigured())) {
     return "I need the Gemini API configured to provide a comprehensive overview.";
   }
 
   try {
     // Use cached comprehensive knowledge
     const comprehensiveKnowledge = await getCachedComprehensiveKnowledge();
-    
+
     // Create a synthesis-focused prompt focused on TRANSFORMATION, ROLES, and OS MENTAL MODEL
     const synthPrompt = `You are Scout, the built-in helper that runs TradeScout. Your job is to give people a mind-opening orientation to TradeScout as their COMMUNITY OPERATING SYSTEM b7 not just "an app".
 
@@ -747,7 +757,7 @@ async function generateSmartSynthesis(
  * Enhanced version that elaborates and explains the knowledge intelligently
  * Now includes user-specific language and personalization
  * Returns structured response with message and suggestedActions
- * 
+ *
  * ENFORCES MANDATORY EXECUTION CONTRACT:
  * - Required response schema with intent, thought_flow, decision, message, suggestedActions
  * - Comprehensive state injection every turn
@@ -771,17 +781,23 @@ async function synthesizeResponse(
     locality: { county?: string; state?: string; region?: string };
   },
   resolvedContext?: ResolvedContext | null
-): Promise<{ message: string; suggestedActions: string[]; intent?: string; thought_flow?: string[]; decision?: string }> {
+): Promise<{
+  message: string;
+  suggestedActions: string[];
+  intent?: string;
+  thought_flow?: string[];
+  decision?: string;
+}> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
     "Explore Exchange deals",
-    "Start Community Builder"
+    "Start Community Builder",
   ];
 
   if (!gemini) {
     return {
       message: knowledge.answer,
-      suggestedActions: DEFAULT_ACTIONS
+      suggestedActions: DEFAULT_ACTIONS,
     }; // Fall back to raw knowledge if no Gemini
   }
 
@@ -795,7 +811,7 @@ TRADE TOPIC HINT: ${tradeTopic ? tradeTopic.toUpperCase() : "NONE"}
     const communityHintBlock = `
 COMMUNITY TOPIC HINT: ${communityTopic ? communityTopic.toUpperCase() : "NONE"}
 `;
-    
+
     // [STATE INJECTION - COMPREHENSIVE]
     let stateInjection = "";
     if (requestState) {
@@ -826,9 +842,7 @@ ${JSON.stringify(resolvedContext, null, 2)}
       userContextPrompt += `\n${generateThinkingContext(userContext)}\n`;
     }
 
-    const activityContext = recentActivityPrompt
-      ? `\n${recentActivityPrompt}\n`
-      : "";
+    const activityContext = recentActivityPrompt ? `\n${recentActivityPrompt}\n` : "";
 
     // Smart synthesis that ENFORCES the execution contract
     const synthesisPrompt = `${systemPrompt}
@@ -939,26 +953,39 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
     const result = await model.generateContent(synthesisPrompt);
     let rawResponse = result.response.text();
-    
+
     // Strip markdown code fences if present
-    rawResponse = rawResponse.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    
+    rawResponse = rawResponse
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
     // Parse JSON response with enforced schema
     try {
       const parsed = JSON.parse(rawResponse);
-      
+
       // Validate schema
-      if (!parsed.intent || !parsed.thought_flow || !parsed.decision || !parsed.message || !parsed.suggestedActions) {
+      if (
+        !parsed.intent ||
+        !parsed.thought_flow ||
+        !parsed.decision ||
+        !parsed.message ||
+        !parsed.suggestedActions
+      ) {
         console.warn("[Scout] LLM response missing required schema fields, using fallback");
         return {
           intent: "unknown",
-          thought_flow: ["Schema validation failed", "LLM did not follow contract", "Returning knowledge answer"],
+          thought_flow: [
+            "Schema validation failed",
+            "LLM did not follow contract",
+            "Returning knowledge answer",
+          ],
           decision: "Falling back to raw knowledge due to schema violation",
           message: knowledge.answer,
-          suggestedActions: DEFAULT_ACTIONS
+          suggestedActions: DEFAULT_ACTIONS,
         };
       }
-      
+
       // Enforce length limit on message
       parsed.message = trimResponseToScreenFit(parsed.message);
 
@@ -987,37 +1014,45 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
       }
 
       const finalActions = unique.slice(0, 3);
-      
+
       return {
         intent: parsed.intent,
         thought_flow: parsed.thought_flow,
         decision: parsed.decision,
         message: parsed.message,
-        suggestedActions: finalActions
+        suggestedActions: finalActions,
       };
     } catch (parseError) {
       console.error("[Scout] Failed to parse LLM JSON response:", parseError);
       console.error("[Scout] Raw response was:", rawResponse);
-      
+
       // NO FALLBACK PATHS - Return structured error
       return {
         intent: "parse_error",
-        thought_flow: ["LLM response was not valid JSON", "This violates the execution contract", "System needs attention"],
+        thought_flow: [
+          "LLM response was not valid JSON",
+          "This violates the execution contract",
+          "System needs attention",
+        ],
         decision: "Cannot process - LLM failed to follow schema",
         message: "I encountered a system error. Please try rephrasing your question.",
-        suggestedActions: DEFAULT_ACTIONS
+        suggestedActions: DEFAULT_ACTIONS,
       };
     }
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
-    
+
     // Even errors must follow the contract
     return {
       intent: "system_error",
-      thought_flow: ["System error occurred during synthesis", "Error: " + (error as Error).message, "Returning safe fallback"],
+      thought_flow: [
+        "System error occurred during synthesis",
+        "Error: " + (error as Error).message,
+        "Returning safe fallback",
+      ],
       decision: "Falling back to raw knowledge due to system error",
       message: knowledge.answer,
-      suggestedActions: DEFAULT_ACTIONS
+      suggestedActions: DEFAULT_ACTIONS,
     };
   }
 }
@@ -1037,7 +1072,7 @@ function deriveContextualActions(
     "Explore Exchange listings that match this need",
     "Start the Community Builder for my county",
     "Support a local cause through the Foundation",
-    "Turn this into a trackable project on my board"
+    "Turn this into a trackable project on my board",
   ];
 
   // Filter out generic, non-contextual meta prompts that the model
@@ -1056,7 +1091,7 @@ function deriveContextualActions(
 
   const keywords = [
     ...(historyMessages || []).map((h) => h.content.toLowerCase()),
-    lowerMessage
+    lowerMessage,
   ].join(" \n ");
 
   const prioritized: string[] = [];
@@ -1093,7 +1128,11 @@ function deriveContextualActions(
     pushUnique("Search local trailers, tools, and equipment");
   }
 
-  if (/community|neighbors?|neighbours?|group|groups|club|hoa|association|board meeting|meet people|connect with my local community/.test(keywords)) {
+  if (
+    /community|neighbors?|neighbours?|group|groups|club|hoa|association|board meeting|meet people|connect with my local community/.test(
+      keywords
+    )
+  ) {
     pushUnique("Open my community feed in TradeScout");
     pushUnique(`Show local groups, HOAs, and boards in ${county}`);
     pushUnique("Draft a welcome or intro post I can share locally");
@@ -1108,7 +1147,7 @@ function deriveContextualActions(
       if (Array.isArray(capabilitiesSet)) return capabilitiesSet.includes(cap);
       return false;
     };
-    
+
     if (hasCapability("find_contractors")) {
       pushUnique(`Get bids from vetted pros in ${county}`);
     }
@@ -1149,10 +1188,7 @@ function deriveContextualActions(
  * For general answers we keep things tight; for the first OS orientation
  * (intro questions) we allow a bit more depth while still staying mobile-friendly.
  */
-function trimResponseToScreenFit(
-  response: string,
-  opts?: { mode?: "default" | "intro" }
-): string {
+function trimResponseToScreenFit(response: string, opts?: { mode?: "default" | "intro" }): string {
   const mode = opts?.mode ?? "default";
 
   // Approximate a "no scroll" viewport using conservative text caps.
@@ -1165,7 +1201,10 @@ function trimResponseToScreenFit(
 
   // Normalize whitespace and split into paragraphs
   const normalized = response.replace(/\r\n/g, "\n").replace(/\s+$/gm, "").trim();
-  const paragraphs = normalized.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
   let result = "";
   let charCount = 0;
@@ -1249,31 +1288,59 @@ function prependLocalIntro(
 function detectTradeTopic(message: string): string | null {
   const lower = message.toLowerCase();
 
-  if (/(leak|clog|backup|sewer|drain|cleanout|p-trap|ptrap|trap arm|vent stack|sump pump|water heater|tankless|supply line|shutoff valve)/.test(lower)) {
+  if (
+    /(leak|clog|backup|sewer|drain|cleanout|p-trap|ptrap|trap arm|vent stack|sump pump|water heater|tankless|supply line|shutoff valve)/.test(
+      lower
+    )
+  ) {
     return "plumbing";
   }
 
-  if (/(panel upgrade|service panel|breaker panel|subpanel|gfci|g.f.c.i|afci|arc-fault|receptacle|outlet|dedicated circuit|240v|240 v|220v|220 v|load calculation|lighting circuit)/.test(lower)) {
+  if (
+    /(panel upgrade|service panel|breaker panel|subpanel|gfci|g.f.c.i|afci|arc-fault|receptacle|outlet|dedicated circuit|240v|240 v|220v|220 v|load calculation|lighting circuit)/.test(
+      lower
+    )
+  ) {
     return "electrical";
   }
 
-  if (/(furnace|air handler|condenser|heat pump|mini split|hvac|ac not working|no cooling|no heat|refrigerant|freon)/.test(lower)) {
+  if (
+    /(furnace|air handler|condenser|heat pump|mini split|hvac|ac not working|no cooling|no heat|refrigerant|freon)/.test(
+      lower
+    )
+  ) {
     return "hvac";
   }
 
-  if (/(shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(lower)) {
+  if (
+    /(shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(
+      lower
+    )
+  ) {
     return "roofing";
   }
 
-  if (/(foundation crack|settling|heaving|pier and beam|slab foundation|mudjacking|helical pier|concrete leveling|spalling)/.test(lower)) {
+  if (
+    /(foundation crack|settling|heaving|pier and beam|slab foundation|mudjacking|helical pier|concrete leveling|spalling)/.test(
+      lower
+    )
+  ) {
     return "foundation";
   }
 
-  if (/(concrete patio|driveway pour|slab pour|rebar grid|control joints|expansion joint|stamped concrete)/.test(lower)) {
+  if (
+    /(concrete patio|driveway pour|slab pour|rebar grid|control joints|expansion joint|stamped concrete)/.test(
+      lower
+    )
+  ) {
     return "concrete";
   }
 
-  if (/(framing|load-bearing wall|header beam|lintel|rim joist|floor joist|wall stud|sister joist)/.test(lower)) {
+  if (
+    /(framing|load-bearing wall|header beam|lintel|rim joist|floor joist|wall stud|sister joist)/.test(
+      lower
+    )
+  ) {
     return "framing";
   }
 
@@ -1283,11 +1350,19 @@ function detectTradeTopic(message: string): string | null {
 function detectCommunityTopic(message: string): string | null {
   const lower = message.toLowerCase();
 
-  if (/(connect|meet|talk|message|chat|get to know).*(neighbors?|neighbours?|people|community)/.test(lower)) {
+  if (
+    /(connect|meet|talk|message|chat|get to know).*(neighbors?|neighbours?|people|community)/.test(
+      lower
+    )
+  ) {
     return "community_connect";
   }
 
-  if (/(community|neighbors?|neighbours?|local people|my area|my town).*(group|groups|club|clubs|meetup|events?)/.test(lower)) {
+  if (
+    /(community|neighbors?|neighbours?|local people|my area|my town).*(group|groups|club|clubs|meetup|events?)/.test(
+      lower
+    )
+  ) {
     return "community_groups";
   }
 
@@ -1339,12 +1414,14 @@ Return JSON with keys autoPrompt (string) and suggestions (string array).`;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      const autoPrompt = typeof parsed.autoPrompt === "string" && parsed.autoPrompt.trim().length > 0
-        ? parsed.autoPrompt.trim()
-        : DEFAULT_AUTO_PROMPT;
-      const suggestions = Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
-        ? parsed.suggestions.slice(0, 6).map((s: any) => String(s))
-        : DEFAULT_SUGGESTIONS;
+      const autoPrompt =
+        typeof parsed.autoPrompt === "string" && parsed.autoPrompt.trim().length > 0
+          ? parsed.autoPrompt.trim()
+          : DEFAULT_AUTO_PROMPT;
+      const suggestions =
+        Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
+          ? parsed.suggestions.slice(0, 6).map((s: any) => String(s))
+          : DEFAULT_SUGGESTIONS;
 
       const generated = { source: "gemini" as const, autoPrompt, suggestions, timestamp: now };
       cachedAutoPrompt = generated;
@@ -1386,7 +1463,7 @@ interface ScoutRequest {
   history?: ChatMessage[];
   countyCode?: string;
   stateCode?: string;
-  countyHint?: string;          // Phase 3B: County FIPS for jurisdiction-aware bias
+  countyHint?: string; // Phase 3B: County FIPS for jurisdiction-aware bias
   intent?: string;
   roles?: string[];
   recentActivity?: Array<{
@@ -1398,9 +1475,9 @@ interface ScoutRequest {
     meta?: Record<string, unknown>;
   }>;
   shownAdIds?: string[];
-  onboarding?: boolean;          // D2-1: Onboarding flag
-  sessionId?: string;            // D2-1: Session tracking
-  onboardingAnswer?: string;     // D2-2: Answer to onboarding question
+  onboarding?: boolean; // D2-1: Onboarding flag
+  sessionId?: string; // D2-1: Session tracking
+  onboardingAnswer?: string; // D2-2: Answer to onboarding question
   onboardingQuestionKey?: string; // D2-2: Which question is being answered
 }
 
@@ -1536,21 +1613,35 @@ function isTradeDealIntent(message: string): boolean {
 }
 
 function isTaskOrProblemIntent(message: string): boolean {
-  return /(fix|repair|replace|install|build|need help|looking for|how much|estimate|cost|materials for)/i.test(message);
+  return /(fix|repair|replace|install|build|need help|looking for|how much|estimate|cost|materials for)/i.test(
+    message
+  );
 }
 
 function isDealHelpfulForTask(message: string): boolean {
-  return /(materials|supplies|lumber|roofing|plumbing|electrical|hvac|concrete|windows|insulation)/i.test(message);
+  return /(materials|supplies|lumber|roofing|plumbing|electrical|hvac|concrete|windows|insulation)/i.test(
+    message
+  );
 }
 
 function isDealSuppressedContext(message: string): boolean {
-  return /(who do you recommend|best contractor|is this normal|what should i do|legal|code|permit|inspection|complaint|scam)/i.test(message);
+  return /(who do you recommend|best contractor|is this normal|what should i do|legal|code|permit|inspection|complaint|scam)/i.test(
+    message
+  );
 }
 
 const SCOUT_DEAL_ASSIST_ENABLED = process.env.SCOUT_DEAL_ASSIST !== "false";
 
 export type ScoutClientAction = {
-  type: "NAVIGATE" | "CALL_TOOL" | "PREFILL_INPUT" | "OPEN_APP_DRAWER" | "OPEN_TOOLS_DRAWER" | "ASK_SCOUT" | "NOOP" | string;
+  type:
+    | "NAVIGATE"
+    | "CALL_TOOL"
+    | "PREFILL_INPUT"
+    | "OPEN_APP_DRAWER"
+    | "OPEN_TOOLS_DRAWER"
+    | "ASK_SCOUT"
+    | "NOOP"
+    | string;
   label: string;
   to?: string;
   path?: string;
@@ -1594,7 +1685,10 @@ function inferJobIdFromActivity(recentActivity: ScoutRequest["recentActivity"]):
   return null;
 }
 
-async function getPrimaryProjectIdForUser(userId: string, userRole: string | undefined): Promise<string | null> {
+async function getPrimaryProjectIdForUser(
+  userId: string,
+  userRole: string | undefined
+): Promise<string | null> {
   try {
     if (!userId) return null;
 
@@ -1685,7 +1779,7 @@ async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
         COALESCE((payload->>'total')::numeric, 0) AS total
       FROM documents
       WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
-    [userId],
+    [userId]
   );
 
   console.info("[Scout][Finance] standalone accounting snapshot", {
@@ -1740,7 +1834,7 @@ async function getStandaloneVendorSnapshotForUser(userId: string): Promise<{
         COALESCE((payload->>'total')::numeric, 0) AS total
       FROM documents
       WHERE type = 'EXPENSE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
-    [userId],
+    [userId]
   );
 
   console.info("[Scout][Finance] standalone vendor snapshot", {
@@ -1787,7 +1881,7 @@ async function getJobFinancesSnapshot(jobId: string): Promise<{
             COALESCE((payload->>'total')::numeric, 0) AS total
        FROM documents
        WHERE job_id = $1`,
-    [jobId],
+    [jobId]
   );
 
   console.info("[Scout][Finance] job finances snapshot", {
@@ -1820,7 +1914,9 @@ async function getJobFinancesSnapshot(jobId: string): Promise<{
   return { income, collected, outstanding, expenses, net };
 }
 
-async function getLatestInProgressDirectConnectForContractor(userId: string | null | undefined): Promise<{
+async function getLatestInProgressDirectConnectForContractor(
+  userId: string | null | undefined
+): Promise<{
   requestId: string;
   title: string;
   clientName?: string | null;
@@ -1848,7 +1944,7 @@ async function getLatestInProgressDirectConnectForContractor(userId: string | nu
          AND wr.source = 'direct_connect'
        ORDER BY a.updated_at DESC
        LIMIT 1`,
-      [String(contractor.id)],
+      [String(contractor.id)]
     );
 
     if (!rows || rows.length === 0) return null;
@@ -1860,7 +1956,10 @@ async function getLatestInProgressDirectConnectForContractor(userId: string | nu
       clientName: row.client_name ? String(row.client_name) : null,
     };
   } catch (err) {
-    console.error("[Scout][DirectConnect] Failed to resolve in-progress Direct Connect job for contractor", err);
+    console.error(
+      "[Scout][DirectConnect] Failed to resolve in-progress Direct Connect job for contractor",
+      err
+    );
     return null;
   }
 }
@@ -1868,20 +1967,60 @@ async function getLatestInProgressDirectConnectForContractor(userId: string | nu
 function getRegionFromState(stateCode: string): string {
   const regions: Record<string, string> = {
     // Northeast
-    CT: "Northeast", ME: "Northeast", MA: "Northeast", NH: "Northeast", RI: "Northeast", VT: "Northeast",
-    NJ: "Northeast", NY: "Northeast", PA: "Northeast",
+    CT: "Northeast",
+    ME: "Northeast",
+    MA: "Northeast",
+    NH: "Northeast",
+    RI: "Northeast",
+    VT: "Northeast",
+    NJ: "Northeast",
+    NY: "Northeast",
+    PA: "Northeast",
     // Southeast
-    DE: "Southeast", FL: "Southeast", GA: "Southeast", MD: "Southeast", NC: "Southeast", SC: "Southeast",
-    VA: "Southeast", WV: "Southeast", KY: "Southeast", TN: "Southeast", AL: "Southeast", MS: "Southeast",
-    AR: "Southeast", LA: "Southeast",
+    DE: "Southeast",
+    FL: "Southeast",
+    GA: "Southeast",
+    MD: "Southeast",
+    NC: "Southeast",
+    SC: "Southeast",
+    VA: "Southeast",
+    WV: "Southeast",
+    KY: "Southeast",
+    TN: "Southeast",
+    AL: "Southeast",
+    MS: "Southeast",
+    AR: "Southeast",
+    LA: "Southeast",
     // Midwest
-    IL: "Midwest", IN: "Midwest", MI: "Midwest", OH: "Midwest", WI: "Midwest",
-    IA: "Midwest", KS: "Midwest", MN: "Midwest", MO: "Midwest", NE: "Midwest", ND: "Midwest", SD: "Midwest",
+    IL: "Midwest",
+    IN: "Midwest",
+    MI: "Midwest",
+    OH: "Midwest",
+    WI: "Midwest",
+    IA: "Midwest",
+    KS: "Midwest",
+    MN: "Midwest",
+    MO: "Midwest",
+    NE: "Midwest",
+    ND: "Midwest",
+    SD: "Midwest",
     // Southwest
-    AZ: "Southwest", NM: "Southwest", OK: "Southwest", TX: "Southwest",
+    AZ: "Southwest",
+    NM: "Southwest",
+    OK: "Southwest",
+    TX: "Southwest",
     // West
-    CO: "West", ID: "West", MT: "West", NV: "West", UT: "West", WY: "West",
-    AK: "West", CA: "West", HI: "West", OR: "West", WA: "West"
+    CO: "West",
+    ID: "West",
+    MT: "West",
+    NV: "West",
+    UT: "West",
+    WY: "West",
+    AK: "West",
+    CA: "West",
+    HI: "West",
+    OR: "West",
+    WA: "West",
   };
   return regions[stateCode] || "Unknown";
 }
@@ -2108,10 +2247,7 @@ function resolveDealRoomContextFromDocs(
     if (invoice.status === "draft" && userRole === "contractor") {
       allowedActions.push("SEND_INVOICE");
     }
-    if (
-      (invoice.status === "sent" || invoice.status === "approved") &&
-      userRole === "contractor"
-    ) {
+    if ((invoice.status === "sent" || invoice.status === "approved") && userRole === "contractor") {
       allowedActions.push("MARK_INVOICE_PAID");
     }
     if (invoice.status === "paid" && !receipt && userRole === "contractor") {
@@ -2192,9 +2328,10 @@ router.post("/", async (req: Request, res: Response) => {
       (rawBody.countyCode as string | undefined) ||
       (requestUser as any)?.countyFips ||
       (requestUser as any)?.county_fips;
-    const normalizedFips = typeof countyCandidate === "string" && countyCandidate.trim().length >= 5
-      ? countyCandidate.trim().slice(0, 5)
-      : undefined;
+    const normalizedFips =
+      typeof countyCandidate === "string" && countyCandidate.trim().length >= 5
+        ? countyCandidate.trim().slice(0, 5)
+        : undefined;
 
     scoutInteractionLog = {
       userRole: normalizeScoutRole((requestUser as any)?.role),
@@ -2224,7 +2361,7 @@ router.post("/", async (req: Request, res: Response) => {
 
         if (scoutInteractionLog.outcome !== "completed") {
           scoutInteractionLog.failureReason = ensureFailureReason(
-            scoutInteractionLog.failureReason || (res.statusCode >= 400 ? "ui_dead_end" : null),
+            scoutInteractionLog.failureReason || (res.statusCode >= 400 ? "ui_dead_end" : null)
           );
         } else {
           scoutInteractionLog.failureReason = null;
@@ -2232,7 +2369,7 @@ router.post("/", async (req: Request, res: Response) => {
 
         try {
           await recordScoutInteraction(scoutInteractionLog);
-          
+
           // Track completed Scout actions for Preferred Source Prompt eligibility
           if (scoutInteractionLog.outcome === "completed" && (requestUser as any)?.id) {
             await logCompletedAction({
@@ -2276,7 +2413,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // D2-1: Detect and initialize onboarding session
     const userId = (req as any).user?.id;
-    const clientSessionId = sessionId || `${userId || 'guest'}_${Date.now()}`;
+    const clientSessionId = sessionId || `${userId || "guest"}_${Date.now()}`;
     let onboardingSession: OnboardingSession | undefined = getOnboardingSession(clientSessionId);
 
     if (onboarding && !onboardingSession) {
@@ -2286,7 +2423,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // D2-2: Process onboarding answer if provided
     if (onboardingSession && onboardingAnswer && onboardingQuestionKey) {
-      if (onboardingAnswer === 'skip') {
+      if (onboardingAnswer === "skip") {
         recordSkip(onboardingSession, onboardingQuestionKey);
       } else {
         recordAnswer(onboardingSession, onboardingQuestionKey, onboardingAnswer);
@@ -2312,7 +2449,7 @@ router.post("/", async (req: Request, res: Response) => {
           knowledge: {
             layer: 1,
             sources: ["Comprehensive Knowledge Base (All Documents)"],
-            confidence: "high"
+            confidence: "high",
           },
           llmProvider: "gemini",
           promptVersion: loadSystemPrompt().version,
@@ -2368,7 +2505,9 @@ router.post("/", async (req: Request, res: Response) => {
     });
 
     if (scoutInteractionLog) {
-      scoutInteractionLog.scoutConfidence = confidenceToScore((governorDecision as any)?.confidence);
+      scoutInteractionLog.scoutConfidence = confidenceToScore(
+        (governorDecision as any)?.confidence
+      );
     }
 
     // Log governor decision for development
@@ -2378,7 +2517,7 @@ router.post("/", async (req: Request, res: Response) => {
         role: governorDecision.intervention.role,
         reasoning: governorDecision.intervention.reasoning,
         requiresLLM: governorDecision.requiresLLM,
-        risks: governorDecision.situation.risks.map(r => ({
+        risks: governorDecision.situation.risks.map((r) => ({
           type: r.type,
           severity: r.severity,
           description: r.description,
@@ -2395,49 +2534,51 @@ router.post("/", async (req: Request, res: Response) => {
         if (intervention.action === "BLOCK") {
           scoutInteractionLog.outcome = "blocked";
           scoutInteractionLog.failureReason = ensureFailureReason(
-            scoutInteractionLog.failureReason || "permission",
+            scoutInteractionLog.failureReason || "permission"
           );
         } else if (intervention.action === "REDIRECT") {
           scoutInteractionLog.outcome = "handed_off";
           scoutInteractionLog.failureReason = ensureFailureReason(
-            scoutInteractionLog.failureReason || "no_route",
+            scoutInteractionLog.failureReason || "no_route"
           );
         } else {
           scoutInteractionLog.outcome = "blocked";
-          const missingDataDetected = Boolean(intervention.reasoning?.toLowerCase().includes("missing"))
-            || (governorDecision.situation?.unknowns?.length ?? 0) > 0;
+          const missingDataDetected =
+            Boolean(intervention.reasoning?.toLowerCase().includes("missing")) ||
+            (governorDecision.situation?.unknowns?.length ?? 0) > 0;
           scoutInteractionLog.failureReason = ensureFailureReason(
-            scoutInteractionLog.failureReason || (missingDataDetected ? "missing_data" : "unclear_copy"),
+            scoutInteractionLog.failureReason ||
+              (missingDataDetected ? "missing_data" : "unclear_copy")
           );
         }
       }
       let fullMessage = intervention.userMessage;
-      
+
       // Add next steps if present
       if (intervention.nextSteps && intervention.nextSteps.length > 0) {
-        fullMessage += "\n\n" + intervention.nextSteps
-          .filter(s => s.userFacing)
-          .map((s, i) => `${i + 1}. ${s.action}`)
-          .join("\n");
+        fullMessage +=
+          "\n\n" +
+          intervention.nextSteps
+            .filter((s) => s.userFacing)
+            .map((s, i) => `${i + 1}. ${s.action}`)
+            .join("\n");
       }
-      
+
       // Build suggested actions from next steps
-      const suggestedActions = intervention.nextSteps
-        ?.filter(s => s.userFacing)
-        .map(s => s.action)
-        .slice(0, 3) || [];
-      
+      const suggestedActions =
+        intervention.nextSteps
+          ?.filter((s) => s.userFacing)
+          .map((s) => s.action)
+          .slice(0, 3) || [];
+
       const aiResponse: ScoutResponse = {
         message: trimResponseToScreenFit(fullMessage),
         suggestedActions,
-        actions: shapeActionsByConfidence(
-          [],
-          {
-            confidence: normalizeConfidenceLabel(governorDecision.confidence),
-            hasLocality: Boolean(countyCode || stateCode),
-            communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
-          }
-        ),
+        actions: shapeActionsByConfidence([], {
+          confidence: normalizeConfidenceLabel(governorDecision.confidence),
+          hasLocality: Boolean(countyCode || stateCode),
+          communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+        }),
         sponsored: null,
         overrideOption: intervention.overrideOption
           ? {
@@ -2565,9 +2706,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Infer current job/project id from recent activity or dashboard-style data
     const inferredJobIdFromActivity = inferJobIdFromActivity(recentActivity);
-    const primaryProjectId = userId
-      ? await getPrimaryProjectIdForUser(userId, userRole)
-      : null;
+    const primaryProjectId = userId ? await getPrimaryProjectIdForUser(userId, userRole) : null;
     const currentJobId = inferredJobIdFromActivity || primaryProjectId || null;
 
     let resolvedContext: ResolvedContext | null = null;
@@ -2590,7 +2729,7 @@ router.post("/", async (req: Request, res: Response) => {
     // Phase 3B: Accept optional countyHint from request for jurisdiction-aware bias
     const countyHint = rawBody.countyHint || countyCode; // countyHint from URL param (?county=FIPS)
     const userContext = await buildUserContext(userId, countyHint);
-    
+
     // Telemetry: Track county hint injection (Phase 2)
     if (countyHint && userId) {
       try {
@@ -2606,9 +2745,10 @@ router.post("/", async (req: Request, res: Response) => {
         // fire-and-forget: ignore telemetry failures
       }
     }
-    
+
     // Telemetry: Detect if user requests broader scope (state/national override) - Phase 2
-    const overrideKeywords = /(statewide|anywhere|entire state|all of|nationally|across|everywhere)/i;
+    const overrideKeywords =
+      /(statewide|anywhere|entire state|all of|nationally|across|everywhere)/i;
     if (countyHint && userId && overrideKeywords.test(message)) {
       try {
         console.log("[Scout Telemetry] scout.county_bias_overridden", {
@@ -2624,14 +2764,14 @@ router.post("/", async (req: Request, res: Response) => {
         // fire-and-forget: ignore telemetry failures
       }
     }
-    
+
     // Add inferred capabilities to user context for use in response synthesis
     if (userContext) {
       (userContext as any).inferredCapabilities = capabilities.getAll();
     }
 
     const recentActivityPrompt = formatRecentActivityForPrompt(recentActivity);
-    
+
     // [STATE INJECTION] Build comprehensive state for execution contract
     const requestState = {
       auth: !!userId,
@@ -2642,7 +2782,7 @@ router.post("/", async (req: Request, res: Response) => {
       locality: {
         county: countyCode,
         state: stateCode,
-        region: stateCode ? getRegionFromState(stateCode) : undefined
+        region: stateCode ? getRegionFromState(stateCode) : undefined,
       },
       entry_intent: intent || undefined,
     };
@@ -2660,14 +2800,11 @@ router.post("/", async (req: Request, res: Response) => {
       const aiResponse: ScoutResponse = {
         message: trimResponseToScreenFit(deterministic.message),
         suggestedActions: deterministic.suggestedActions,
-        actions: shapeActionsByConfidence(
-          deterministic.actions as any,
-          {
-            confidence: normalizeConfidenceLabel(governorDecision.confidence),
-            hasLocality: Boolean(countyCode || stateCode),
-            communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
-          }
-        ),
+        actions: shapeActionsByConfidence(deterministic.actions as any, {
+          confidence: normalizeConfidenceLabel(governorDecision.confidence),
+          hasLocality: Boolean(countyCode || stateCode),
+          communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+        }),
         sponsored: null,
         metadata: deterministic.metadata as any,
       };
@@ -2685,7 +2822,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    let synthesized = await synthesizeResponse(
+    const synthesized = await synthesizeResponse(
       message,
       knowledge,
       geminiClient,
@@ -2699,7 +2836,10 @@ router.post("/", async (req: Request, res: Response) => {
     );
 
     if (scoutInteractionLog) {
-      scoutInteractionLog.intent = normalizeScoutIntent(synthesized.intent ?? intent, normalizedMessage);
+      scoutInteractionLog.intent = normalizeScoutIntent(
+        synthesized.intent ?? intent,
+        normalizedMessage
+      );
     }
 
     // Brand identity firewall: if the synthesized answer clearly violates
@@ -2709,7 +2849,11 @@ router.post("/", async (req: Request, res: Response) => {
     if (shouldOverrideResponse(synthesized.message)) {
       if (isOnboardingOrIdentityQuery(message)) {
         try {
-          const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
+          const synthesisResponse = await generateSmartSynthesis(
+            message,
+            geminiClient,
+            llmProviders
+          );
           synthesized.message = trimResponseToScreenFit(synthesisResponse);
         } catch (error) {
           console.error("[Scout] Brand-guard override synthesis failed", error);
@@ -2733,9 +2877,7 @@ router.post("/", async (req: Request, res: Response) => {
       const header =
         "Here's a starter you can share as a community welcome. Edit any part so it sounds like you:";
 
-      synthesized.message = trimResponseToScreenFit(
-        `${header}\n\n${draft}`
-      );
+      synthesized.message = trimResponseToScreenFit(`${header}\n\n${draft}`);
 
       synthesized.suggestedActions = [
         "Make this welcome post shorter and more casual",
@@ -2743,12 +2885,7 @@ router.post("/", async (req: Request, res: Response) => {
         "Draft a follow-up post asking for local recommendations",
       ];
     } else if (wantsExchangeListingDraft) {
-      const listingDraft = buildExchangeListingDraft(
-        message,
-        userRecord,
-        countyCode,
-        stateCode
-      );
+      const listingDraft = buildExchangeListingDraft(message, userRecord, countyCode, stateCode);
 
       const lines: string[] = [];
       lines.push(
@@ -2791,7 +2928,7 @@ router.post("/", async (req: Request, res: Response) => {
         suggestedActions: [
           "Create account now",
           "Learn more about TradeScout",
-          "Continue as guest"
+          "Continue as guest",
         ],
         actions: [],
         sponsored: null,
@@ -2801,7 +2938,7 @@ router.post("/", async (req: Request, res: Response) => {
           decision: synthesized.decision,
           redirect: "/register",
           resolvedContext,
-        }
+        },
       };
 
       return res.json({
@@ -2850,7 +2987,7 @@ router.post("/", async (req: Request, res: Response) => {
         decision: synthesized.decision,
         currentJobId: currentJobId || undefined,
         resolvedContext,
-      }
+      },
     };
 
     // Community Vault and navigation helpers (explicit chips; no auto-execution on client)
@@ -2878,13 +3015,12 @@ router.post("/", async (req: Request, res: Response) => {
         !lowConfidenceForLocal &&
         (dealIntent || dealHelpfulForTask);
 
-      const shouldAttachDeals =
-        allowDealAssist &&
-        !isDealSuppressedContext(message);
+      const shouldAttachDeals = allowDealAssist && !isDealSuppressedContext(message);
 
-      const dealAssistLabel = !dealIntent && dealHelpfulForTask
-        ? "Helpful local deals for materials mentioned"
-        : undefined;
+      const dealAssistLabel =
+        !dealIntent && dealHelpfulForTask
+          ? "Helpful local deals for materials mentioned"
+          : undefined;
 
       if (shouldAttachDeals) {
         try {
@@ -2929,10 +3065,7 @@ router.post("/", async (req: Request, res: Response) => {
               payload: { dealId: d.id },
             }));
 
-            aiResponse.publicEntities = [
-              ...(aiResponse.publicEntities || []),
-              ...dealEntities,
-            ];
+            aiResponse.publicEntities = [...(aiResponse.publicEntities || []), ...dealEntities];
 
             aiResponse.ctaHints = [
               ...(aiResponse.ctaHints || []),
@@ -2954,7 +3087,9 @@ router.post("/", async (req: Request, res: Response) => {
       // create an invoice or record payment, deep-linking into Finances with
       // project/client prefill.
       const directConnectContext =
-        userRole === "contractor" ? await getLatestInProgressDirectConnectForContractor(userId) : null;
+        userRole === "contractor"
+          ? await getLatestInProgressDirectConnectForContractor(userId)
+          : null;
 
       if (directConnectContext) {
         const dcPrompt =
@@ -2962,8 +3097,8 @@ router.post("/", async (req: Request, res: Response) => {
 
         const dcLabel = "Create invoice or record payment for this job";
 
-        const existingInvoiceSuggestion = (aiResponse.suggestedActions || []).some((label) =>
-          typeof label === "string" && label.toLowerCase().includes("invoice"),
+        const existingInvoiceSuggestion = (aiResponse.suggestedActions || []).some(
+          (label) => typeof label === "string" && label.toLowerCase().includes("invoice")
         );
 
         if (!existingInvoiceSuggestion) {
@@ -2974,7 +3109,8 @@ router.post("/", async (req: Request, res: Response) => {
         const params = new URLSearchParams();
         if (directConnectContext.title) params.set("project", directConnectContext.title);
         if (directConnectContext.clientName) params.set("client", directConnectContext.clientName);
-        const dcFinancesPath = "/finances/invoices" + (params.toString() ? `?${params.toString()}` : "");
+        const dcFinancesPath =
+          "/finances/invoices" + (params.toString() ? `?${params.toString()}` : "");
 
         const alreadyHasDcInvoiceNav = actions.some(
           (a) =>
@@ -2982,7 +3118,7 @@ router.post("/", async (req: Request, res: Response) => {
             typeof a.to === "string" &&
             a.to.startsWith("/finances/invoices") &&
             a.to.includes("project=") &&
-            a.to.includes(encodeURIComponent(directConnectContext.title)),
+            a.to.includes(encodeURIComponent(directConnectContext.title))
         );
 
         if (!alreadyHasDcInvoiceNav) {
@@ -2993,9 +3129,7 @@ router.post("/", async (req: Request, res: Response) => {
           });
         }
 
-        aiResponse.message = trimResponseToScreenFit(
-          `${aiResponse.message}\n\n${dcPrompt}`,
-        );
+        aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${dcPrompt}`);
       }
 
       const mentionsCommunityQuestion =
@@ -3017,7 +3151,8 @@ router.post("/", async (req: Request, res: Response) => {
           const safePrefill = encodeURIComponent(prefill);
 
           const alreadyHasCommunityNav = actions.some(
-            (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/community")
+            (a) =>
+              a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/community")
           );
 
           if (mentionsCommunityQuestion) {
@@ -3026,8 +3161,7 @@ router.post("/", async (req: Request, res: Response) => {
               communityLine =
                 "I’m seeing a few recent posts from neighbors in your county about this.";
             } else if (communityPostCount === 0) {
-              communityLine =
-                "I don’t see anyone discussing this yet in your area.";
+              communityLine = "I don’t see anyone discussing this yet in your area.";
             }
 
             const bridgeLines = [
@@ -3038,9 +3172,7 @@ router.post("/", async (req: Request, res: Response) => {
               .filter(Boolean)
               .join("\n\n");
 
-            aiResponse.message = trimResponseToScreenFit(
-              `${aiResponse.message}\n\n${bridgeLines}`
-            );
+            aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${bridgeLines}`);
 
             if (!alreadyHasCommunityNav) {
               actions.push(
@@ -3062,9 +3194,7 @@ router.post("/", async (req: Request, res: Response) => {
               "If you’d like, I can turn this into a quick question in your county feed so neighbors can weigh in.",
             ].join("\n\n");
 
-            aiResponse.message = trimResponseToScreenFit(
-              `${aiResponse.message}\n\n${bridgeLines}`
-            );
+            aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${bridgeLines}`);
 
             actions.push({
               type: "NAVIGATE",
@@ -3122,14 +3252,10 @@ router.post("/", async (req: Request, res: Response) => {
             params.push(`title=${encodeURIComponent(listingDraft.title)}`);
           }
           if (listingDraft.description) {
-            params.push(
-              `description=${encodeURIComponent(listingDraft.description)}`
-            );
+            params.push(`description=${encodeURIComponent(listingDraft.description)}`);
           }
           if (listingDraft.price && listingDraft.price > 0) {
-            params.push(
-              `price=${encodeURIComponent(String(listingDraft.price))}`
-            );
+            params.push(`price=${encodeURIComponent(String(listingDraft.price))}`);
           }
           if (listingDraft.locationLabel) {
             params.push(`loc=${encodeURIComponent(listingDraft.locationLabel)}`);
@@ -3139,10 +3265,7 @@ router.post("/", async (req: Request, res: Response) => {
           const to = `/exchange${qs}`;
 
           const alreadyHasExchangeNav = actions.some(
-            (a) =>
-              a.type === "NAVIGATE" &&
-              typeof a.to === "string" &&
-              a.to.startsWith("/exchange")
+            (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/exchange")
           );
 
           if (!alreadyHasExchangeNav) {
@@ -3159,7 +3282,7 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (contractorCount > 0) {
         aiResponse.message = trimResponseToScreenFit(
-          `${aiResponse.message}\n\nThese recommendations come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`,
+          `${aiResponse.message}\n\nThese recommendations come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`
         );
       }
 
@@ -3247,7 +3370,7 @@ router.post("/", async (req: Request, res: Response) => {
             },
             {
               type: "START_PLATFORM_SUPPORT",
-              label: `Support platform ${formatUsd(supportAmount)} (one-time split)` ,
+              label: `Support platform ${formatUsd(supportAmount)} (one-time split)`,
               payload: {
                 amount: supportAmount,
                 mode: "one_time",
@@ -3256,7 +3379,7 @@ router.post("/", async (req: Request, res: Response) => {
             },
             {
               type: "START_PLATFORM_SUPPORT",
-              label: `Support platform ${formatUsd(supportAmount)} (monthly split)` ,
+              label: `Support platform ${formatUsd(supportAmount)} (monthly split)`,
               payload: {
                 amount: supportAmount,
                 mode: "subscription",
@@ -3321,9 +3444,7 @@ router.post("/", async (req: Request, res: Response) => {
         }
       })();
 
-      const alreadyHasMealscoutCommand = actions.some(
-        (a) => a.type === "MEALSCOUT_COMMAND"
-      );
+      const alreadyHasMealscoutCommand = actions.some((a) => a.type === "MEALSCOUT_COMMAND");
 
       if ((isFoodOrDrinkIntent || hasMealscoutMerchantRole) && !alreadyHasMealscoutCommand) {
         actions.push({
@@ -3378,10 +3499,7 @@ router.post("/", async (req: Request, res: Response) => {
         lower.includes("tax estimate");
 
       const alreadyHasFinancesNav = actions.some(
-        (a) =>
-          a.type === "NAVIGATE" &&
-          typeof a.to === "string" &&
-          a.to.startsWith("/finances")
+        (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/finances")
       );
 
       if (
@@ -3400,7 +3518,7 @@ router.post("/", async (req: Request, res: Response) => {
           if (snapshot.totalInvoiced > 0) {
             const pieces: string[] = [];
             pieces.push(
-              `Based on your TradeScout accounting data, you've invoiced ${formatUsd(snapshot.totalInvoiced)} lifetime and collected ${formatUsd(snapshot.totalPaid)}.`,
+              `Based on your TradeScout accounting data, you've invoiced ${formatUsd(snapshot.totalInvoiced)} lifetime and collected ${formatUsd(snapshot.totalPaid)}.`
             );
 
             if (snapshot.totalUnpaid > 0) {
@@ -3419,10 +3537,15 @@ router.post("/", async (req: Request, res: Response) => {
             arSummaryLine = pieces.join(" ");
 
             // "Why this matters" interpretation line for AR
-            if (snapshot.totalUnpaid > 0 && snapshot.largestOpenClient && snapshot.largestOpenClient.amount > 0) {
-              const share = snapshot.totalUnpaid > 0
-                ? snapshot.largestOpenClient.amount / snapshot.totalUnpaid
-                : 0;
+            if (
+              snapshot.totalUnpaid > 0 &&
+              snapshot.largestOpenClient &&
+              snapshot.largestOpenClient.amount > 0
+            ) {
+              const share =
+                snapshot.totalUnpaid > 0
+                  ? snapshot.largestOpenClient.amount / snapshot.totalUnpaid
+                  : 0;
               if (share >= 0.6) {
                 arWhyLine = `Why this matters: most of your open AR is tied up with ${snapshot.largestOpenClient.name}, so nudging them will move cash the fastest.`;
               } else if (snapshot.clientCount > 1) {
@@ -3442,14 +3565,14 @@ router.post("/", async (req: Request, res: Response) => {
             if (vendorSnapshot.totalExpenses > 0) {
               const parts: string[] = [];
               parts.push(
-                `You've recorded ${formatUsd(vendorSnapshot.totalExpenses)} in standalone expenses.`,
+                `You've recorded ${formatUsd(vendorSnapshot.totalExpenses)} in standalone expenses.`
               );
               if (vendorSnapshot.vendorCount > 0) {
                 parts[0] += ` across ${vendorSnapshot.vendorCount} vendor${vendorSnapshot.vendorCount === 1 ? "" : "s"}.`;
               }
               if (vendorSnapshot.topVendor && vendorSnapshot.topVendor.amount > 0) {
                 parts.push(
-                  `Your top vendor so far is ${vendorSnapshot.topVendor.name} at ${formatUsd(vendorSnapshot.topVendor.amount)}.`,
+                  `Your top vendor so far is ${vendorSnapshot.topVendor.name} at ${formatUsd(vendorSnapshot.topVendor.amount)}.`
                 );
               }
               vendorSummaryLine = parts.join(" ");
@@ -3607,7 +3730,8 @@ router.post("/", async (req: Request, res: Response) => {
         // Project tracker is for users who can track projects
         if (wantsProjects && capabilities.canTrackProjects()) {
           const alreadyHasTracker = actions.some(
-            (a) => a.type === "NAVIGATE" && (a.to === "/lead-management" || a.to === "/project-tracker")
+            (a) =>
+              a.type === "NAVIGATE" && (a.to === "/lead-management" || a.to === "/project-tracker")
           );
 
           if (!alreadyHasTracker) {
@@ -3635,10 +3759,10 @@ router.post("/", async (req: Request, res: Response) => {
                   if (jf.income > 0 || jf.expenses > 0) {
                     const lines: string[] = [];
                     lines.push(
-                      `For this job's finances, you've invoiced ${formatUsd(jf.income)}, collected ${formatUsd(jf.collected)}, and still have ${formatUsd(jf.outstanding)} open.`,
+                      `For this job's finances, you've invoiced ${formatUsd(jf.income)}, collected ${formatUsd(jf.collected)}, and still have ${formatUsd(jf.outstanding)} open.`
                     );
                     lines.push(
-                      `You've recorded ${formatUsd(jf.expenses)} in expenses so far, for a simple net of ${formatUsd(jf.net)} before taxes and overhead.`,
+                      `You've recorded ${formatUsd(jf.expenses)} in expenses so far, for a simple net of ${formatUsd(jf.net)} before taxes and overhead.`
                     );
 
                     // "Why this matters" interpretation for per-job finances
@@ -3746,15 +3870,16 @@ router.post("/", async (req: Request, res: Response) => {
           (Array.isArray(roles) ? roles : []).map((r) => String(r).toLowerCase())
         );
 
-        const audience = lowerRoles.has("contractor") || lowerRoles.has("pro")
-          ? "contractors"
-          : lowerRoles.has("homeowner") || lowerRoles.has("resident")
-          ? "homeowners"
-          : userContext?.preferences?.isContractor
-          ? "contractors"
-          : userContext?.preferences?.isHomowner
-          ? "homeowners"
-          : "all";
+        const audience =
+          lowerRoles.has("contractor") || lowerRoles.has("pro")
+            ? "contractors"
+            : lowerRoles.has("homeowner") || lowerRoles.has("resident")
+              ? "homeowners"
+              : userContext?.preferences?.isContractor
+                ? "contractors"
+                : userContext?.preferences?.isHomowner
+                  ? "homeowners"
+                  : "all";
 
         const preferAffiliate =
           /deal|discount|coupon|offer|promo|save\b/i.test(message) ||
@@ -3795,7 +3920,12 @@ router.post("/", async (req: Request, res: Response) => {
 
           const user = req.user as any;
           const userId = (user as any)?.claims?.sub || (user as any)?.id || null;
-          await storage.trackAdEvent({ adId: ad.id, eventType: "impression", source: "scout", userId });
+          await storage.trackAdEvent({
+            adId: ad.id,
+            eventType: "impression",
+            source: "scout",
+            userId,
+          });
 
           const linkUrl = await storage.normalizeAdLinkForUser({
             linkUrl: (ad as any).linkUrl,
@@ -3841,14 +3971,14 @@ router.post("/", async (req: Request, res: Response) => {
 
     /**
      * CRITICAL: Sanitize Scout response before sending to frontend.
-     * 
+     *
      * Uses canonical extractor: enforces single choke point for normalizing
      * all model output into safe user-facing messages.
-     * 
+     *
      * Contract: No internal reasoning (intent, thought_flow, etc.) ever reaches UI.
      */
     const extracted = extractUserMessage(aiResponse as RawScoutOutput);
-    
+
     if (!extracted.isClean && extracted.hadLeakage) {
       console.warn("[Scout] Response blocked reasoning leakage", {
         userId,
@@ -3927,10 +4057,11 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     // Tag actions with guard context so they can self-recover if needed
-    const guardedActions = aiResponse.actions?.map((action: any) => ({
-      ...action,
-      _guardContext: guardContext, // Internal: used by client/server for recovery
-    })) || [];
+    const guardedActions =
+      aiResponse.actions?.map((action: any) => ({
+        ...action,
+        _guardContext: guardContext, // Internal: used by client/server for recovery
+      })) || [];
 
     res.json({
       message: finalMessage,
@@ -3955,7 +4086,7 @@ router.post("/", async (req: Request, res: Response) => {
     if (!isTestRun && scoutInteractionLog) {
       scoutInteractionLog.outcome = "abandoned";
       scoutInteractionLog.failureReason = ensureFailureReason(
-        scoutInteractionLog.failureReason || "ui_dead_end",
+        scoutInteractionLog.failureReason || "ui_dead_end"
       );
     }
     console.error("Scout API error:", error);
@@ -3994,16 +4125,12 @@ router.post("/execute-action", async (req: Request, res: Response) => {
     };
 
     // Execute action through guard
-    const result = await runScoutAction(
-      action,
-      guardContext,
-      async (act) => {
-        // Placeholder executor—real implementations would dispatch to
-        // specific action handlers (invoice, community post, etc.)
-        console.log("[Scout Action] Executing:", { type: act.type, target: act.target });
-        return { executed: true, action: act.type };
-      }
-    );
+    const result = await runScoutAction(action, guardContext, async (act) => {
+      // Placeholder executor—real implementations would dispatch to
+      // specific action handlers (invoice, community post, etc.)
+      console.log("[Scout Action] Executing:", { type: act.type, target: act.target });
+      return { executed: true, action: act.type };
+    });
 
     if (result.ok) {
       return res.json({

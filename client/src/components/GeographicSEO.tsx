@@ -1,6 +1,6 @@
 /**
  * GeographicSEO - Component for location-based SEO optimization
- * 
+ *
  * Handles city, county, and state-specific SEO to improve local search rankings
  * and help users find contractors in their specific geographic areas.
  */
@@ -17,27 +17,27 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
     const locationData = {
       "@context": "https://schema.org",
       "@type": "Place",
-      "name": `${county ? `${county}, ` : ''}${state || 'United States'}`,
-      "address": {
+      name: `${county ? `${county}, ` : ""}${state || "United States"}`,
+      address: {
         "@type": "PostalAddress",
-        "addressRegion": state,
-        "addressLocality": county,
-        "addressCountry": "US"
+        addressRegion: state,
+        addressLocality: county,
+        addressCountry: "US",
       },
-      "containsPlace": {
+      containsPlace: {
         "@type": "LocalBusiness",
-        "name": "Home Improvement Contractors",
-        "description": `Professional ${serviceType || 'home improvement'} contractors serving ${county ? `${county}, ` : ''}${state || 'the United States'}`,
-        "serviceArea": {
-          "@type": "GeoCircle", 
-          "geoMidpoint": {
+        name: "Home Improvement Contractors",
+        description: `Professional ${serviceType || "home improvement"} contractors serving ${county ? `${county}, ` : ""}${state || "the United States"}`,
+        serviceArea: {
+          "@type": "GeoCircle",
+          geoMidpoint: {
             "@type": "GeoCoordinates",
-            "addressRegion": state,
-            "addressLocality": county
+            addressRegion: state,
+            addressLocality: county,
           },
-          "geoRadius": "50000"
-        }
-      }
+          geoRadius: "50000",
+        },
+      },
     };
 
     return locationData;
@@ -45,59 +45,59 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
 
   const generateLocationKeywords = () => {
     const keywords: string[] = [];
-    
+
     if (county && state) {
-      keywords.push(`${serviceType || 'contractors'} in ${county}, ${state}`);
-      keywords.push(`${county} ${state} ${serviceType || 'home improvement'}`);
-      keywords.push(`local ${serviceType || 'contractors'} ${county} county`);
+      keywords.push(`${serviceType || "contractors"} in ${county}, ${state}`);
+      keywords.push(`${county} ${state} ${serviceType || "home improvement"}`);
+      keywords.push(`local ${serviceType || "contractors"} ${county} county`);
     }
-    
+
     if (state) {
-      keywords.push(`${state} ${serviceType || 'contractors'}`);
-      keywords.push(`${serviceType || 'home improvement'} services ${state}`);
+      keywords.push(`${state} ${serviceType || "contractors"}`);
+      keywords.push(`${serviceType || "home improvement"} services ${state}`);
     }
-    
-    keywords.push(`licensed ${serviceType || 'contractors'} near me`);
-    keywords.push(`verified ${serviceType || 'home improvement'} professionals`);
-    
-    return keywords.join(', ');
+
+    keywords.push(`licensed ${serviceType || "contractors"} near me`);
+    keywords.push(`verified ${serviceType || "home improvement"} professionals`);
+
+    return keywords.join(", ");
   };
 
   const generateLocationTitle = () => {
-    let title = 'Find';
-    
+    let title = "Find";
+
     if (serviceType) {
       title += ` ${serviceType} Contractors`;
     } else {
-      title += ' Contractors';
+      title += " Contractors";
     }
-    
+
     if (county && state) {
       title += ` in ${county}, ${state}`;
     } else if (state) {
       title += ` in ${state}`;
     }
-    
-    title += ' | TradeScout';
-    
+
+    title += " | TradeScout";
+
     return title;
   };
 
   const generateLocationDescription = () => {
-    let description = `Find verified ${serviceType || 'home improvement'} contractors`;
-    
+    let description = `Find verified ${serviceType || "home improvement"} contractors`;
+
     if (county && state) {
       description += ` in ${county}, ${state}`;
     } else if (state) {
       description += ` in ${state}`;
     }
-    
-    description += '. Get 3 free quotes from licensed and insured professionals.';
-    
+
+    description += ". Get 3 free quotes from licensed and insured professionals.";
+
     if (contractorCount && contractorCount > 0) {
-      description += ` ${contractorCount} contractor${contractorCount !== 1 ? 's' : ''} available in your area.`;
+      description += ` ${contractorCount} contractor${contractorCount !== 1 ? "s" : ""} available in your area.`;
     }
-    
+
     return description;
   };
 
@@ -108,25 +108,25 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
     document.title = generateLocationTitle();
 
     // Update meta description
-    let metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+    const metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
     const originalDescription = metaDesc?.content;
-    
+
     if (metaDesc) {
       metaDesc.content = generateLocationDescription();
     }
 
     // Update meta keywords
-    let metaKeywords = document.querySelector('meta[name="keywords"]') as HTMLMetaElement;
+    const metaKeywords = document.querySelector('meta[name="keywords"]') as HTMLMetaElement | null;
     const originalKeywords = metaKeywords?.content;
-    
+
     if (metaKeywords) {
       metaKeywords.content = generateLocationKeywords();
     }
 
     // Inject location structured data
     const locationStructuredData = generateLocationStructuredData();
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
     script.textContent = JSON.stringify(locationStructuredData);
     document.head.appendChild(script);
 
@@ -167,38 +167,42 @@ export function ServiceAreaSEO({ contractor, primaryLocation }: ServiceAreaSEOPr
     const serviceAreaData = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
-      "name": contractor.companyName,
-      "areaServed": [
+      name: contractor.companyName,
+      areaServed: [
         {
           "@type": "State",
-          "name": primaryLocation.state
+          name: primaryLocation.state,
         },
-        ...(primaryLocation.county ? [{
-          "@type": "City",
-          "name": primaryLocation.county,
-          "containedInPlace": {
-            "@type": "State", 
-            "name": primaryLocation.state
-          }
-        }] : []),
-        ...(contractor.serviceAreas?.map(area => ({
+        ...(primaryLocation.county
+          ? [
+              {
+                "@type": "City",
+                name: primaryLocation.county,
+                containedInPlace: {
+                  "@type": "State",
+                  name: primaryLocation.state,
+                },
+              },
+            ]
+          : []),
+        ...(contractor.serviceAreas?.map((area) => ({
           "@type": "Place",
-          "name": area
-        })) || [])
+          name: area,
+        })) || []),
       ],
-      "serviceRadius": {
+      serviceRadius: {
         "@type": "GeoCircle",
-        "geoRadius": "80467", // 50 miles in meters
-        "geoMidpoint": {
+        geoRadius: "80467", // 50 miles in meters
+        geoMidpoint: {
           "@type": "GeoCoordinates",
-          "addressRegion": primaryLocation.state,
-          "addressLocality": primaryLocation.county
-        }
-      }
+          addressRegion: primaryLocation.state,
+          addressLocality: primaryLocation.county,
+        },
+      },
     };
 
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
     script.textContent = JSON.stringify(serviceAreaData);
     document.head.appendChild(script);
 
@@ -222,19 +226,19 @@ export function generateNearbyLocationSuggestions(
   if (!currentLocation.state) return [];
 
   // Find locations in the same state
-  const sameState = allLocations.filter(loc => loc.state === currentLocation.state);
-  
+  const sameState = allLocations.filter((loc) => loc.state === currentLocation.state);
+
   // If we have a county, prioritize nearby counties
   if (currentLocation.county) {
-    const otherCounties = sameState.filter(loc => 
-      loc.county !== currentLocation.county
-    ).slice(0, 8);
-    
-    return otherCounties.map(loc => `${loc.name}, ${loc.state}`);
+    const otherCounties = sameState
+      .filter((loc) => loc.county !== currentLocation.county)
+      .slice(0, 8);
+
+    return otherCounties.map((loc) => `${loc.name}, ${loc.state}`);
   }
-  
+
   // Otherwise, suggest popular counties in the state
-  return sameState.slice(0, 10).map(loc => `${loc.name}, ${loc.state}`);
+  return sameState.slice(0, 10).map((loc) => `${loc.name}, ${loc.state}`);
 }
 
-import React from 'react';
+import React from "react";
