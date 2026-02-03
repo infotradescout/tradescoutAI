@@ -14,7 +14,7 @@ const hardrockApplyLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const hardrockApplySchema = z.object({
+export const hardrockApplySchema = z.object({
   companyName: z.string().min(2),
   contactName: z.string().min(2),
   email: z.string().email(),
