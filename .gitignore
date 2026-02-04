@@ -14,6 +14,11 @@ ssl
 *.key
 *.crt
 
+# AI packs / large logs
+repo-pack.md
+logs/repo-pack.md
+logs/eslint-warnings*.json
+
 # Playwright
 .playwright/
 playwright-report/
