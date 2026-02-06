@@ -383,7 +383,15 @@ app.use((req, res, next) => {
               res.sendFile(filePath);
             });
 
-            app.use(express.static(publicDistPath));
+            app.use(
+              express.static(publicDistPath, {
+                setHeaders: (res, filePath) => {
+                  if (filePath.endsWith(".html")) {
+                    res.setHeader("Cache-Control", "no-store");
+                  }
+                },
+              })
+            );
 
             app.get("*", (req, res) => {
               const reqPath = req.path || "";
@@ -405,6 +413,7 @@ app.use((req, res, next) => {
               const indexPath = path.join(publicDistPath, "index.html");
 
               if (fs.existsSync(indexPath)) {
+                res.setHeader("Cache-Control", "no-store");
                 res.sendFile(indexPath, (err) => {
                   if (err) {
                     console.error("Error serving index.html:", err);

@@ -26,6 +26,11 @@ app.use(
 	express.static(distPath, {
 		index: false,
 		maxAge: '1h',
+		setHeaders: (res, filePath) => {
+			if (filePath.endsWith('.html')) {
+				res.setHeader('Cache-Control', 'no-store')
+			}
+		},
 	})
 )
 
@@ -41,6 +46,7 @@ app.get('*', (req, res) => {
 		return res.status(404).end()
 	}
 
+	res.setHeader('Cache-Control', 'no-store')
 	res.sendFile(path.join(distPath, 'index.html'))
 })
 

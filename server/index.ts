@@ -473,7 +473,15 @@ app.use((req, res, next) => {
               });
 
               // 2) Serve other static files (index.html, icons, etc.)
-              app.use(express.static(publicDistPath));
+              app.use(
+                express.static(publicDistPath, {
+                  setHeaders: (res, filePath) => {
+                    if (filePath.endsWith(".html")) {
+                      res.setHeader("Cache-Control", "no-store");
+                    }
+                  },
+                })
+              );
 
               // 3) Catch-all handler for client-side routing, but NEVER for /api or /assets
               app.get("*", (req, res) => {
@@ -499,6 +507,7 @@ app.use((req, res, next) => {
 
                 // Check if file exists before trying to serve
                 if (fs.existsSync(indexPath)) {
+                  res.setHeader("Cache-Control", "no-store");
                   res.sendFile(indexPath, (err) => {
                     if (err) {
                       console.error("Error serving index.html:", err);
