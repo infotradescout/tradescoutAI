@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tradescout-v20260130';
+const CACHE_NAME = 'tradescout-v20260206';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -7,9 +7,25 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_ASSETS))
+  );
+});
+
+// Activate event - claim clients + clear older caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((key) => key.startsWith('tradescout-v') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key)),
+      );
+      await self.clients.claim();
+    })(),
   );
 });
 
