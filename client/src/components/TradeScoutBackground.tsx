@@ -5,11 +5,8 @@ type TradeScoutBackgroundProps = {
 };
 
 export default function TradeScoutBackground({ children }: TradeScoutBackgroundProps) {
-  const isDebug =
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bgdebug");
-
   return (
-    <div className="ts-bg" data-debug={isDebug ? "true" : "false"}>
+    <div className="ts-bg">
       <style>{css}</style>
 
       <div className="ts-bg__base" aria-hidden="true" />
@@ -30,19 +27,6 @@ const css = `
   background: var(--ts-bg, #0B0F14);
   overflow: hidden;
   isolation: isolate;
-}
-
-/* Debug: allow quick verification that the background is actually rendering. */
-.ts-bg[data-debug="true"]{
-  outline: 2px solid #ff4d4d;
-}
-.ts-bg[data-debug="true"] .ts-bg__base{
-  background: linear-gradient(135deg, #ff0066, #ffcc00);
-}
-.ts-bg[data-debug="true"] .ts-bg__grid,
-.ts-bg[data-debug="true"] .ts-bg__topo,
-.ts-bg[data-debug="true"] .ts-bg__signals{
-  opacity: 0.9;
 }
 
 .ts-bg__content{
@@ -66,11 +50,10 @@ const css = `
   z-index: 1;
   inset: -20%;
   background:
-    radial-gradient(800px 520px at 18% 10%, var(--ts-accent-soft, rgba(255,106,0,0.16)), transparent 60%),
-    radial-gradient(760px 520px at 82% 28%, color-mix(in oklab, var(--ts-accent, #FF6A00) 18%, transparent), transparent 62%),
-    radial-gradient(520px 420px at 55% 88%, rgba(255,255,255,.05), transparent 62%),
-    linear-gradient(180deg, color-mix(in oklab, var(--ts-bg, #0B0F14) 92%, #000 8%), var(--ts-bg, #0B0F14) 55%, color-mix(in oklab, var(--ts-bg, #0B0F14) 92%, #000 8%));
-  filter: saturate(1.02);
+    radial-gradient(720px 520px at 20% 12%, rgba(255,255,255,.03), transparent 60%),
+    radial-gradient(620px 460px at 80% 30%, rgba(255,255,255,.02), transparent 62%),
+    linear-gradient(180deg, color-mix(in oklab, var(--ts-bg, #0B0F14) 94%, #000 6%), var(--ts-bg, #0B0F14) 55%, color-mix(in oklab, var(--ts-bg, #0B0F14) 94%, #000 6%));
+  filter: saturate(1);
 }
 
 /* GRID: blueprint / measurement feel (subtle) */
@@ -82,7 +65,7 @@ const css = `
     repeating-linear-gradient(0deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(90deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 110px);
-  opacity: .45;
+  opacity: 0.22;
   transform: translateZ(0);
 }
 
@@ -90,7 +73,7 @@ const css = `
 .ts-bg__topo{
   z-index: 3;
   inset: -10%;
-  opacity: .22;
+  opacity: 0.12;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='860' height='560' viewBox='0 0 860 560'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1'%3E%3Cpath d='M-40 70 C 140 10, 260 140, 430 80 S 720 140, 910 90'/%3E%3Cpath d='M-40 130 C 130 60, 280 210, 430 150 S 740 220, 910 160'/%3E%3Cpath d='M-40 190 C 160 130, 260 250, 440 210 S 720 300, 910 240'/%3E%3Cpath d='M-40 250 C 120 220, 300 320, 460 290 S 740 390, 910 330'/%3E%3Cpath d='M-40 310 C 160 290, 280 390, 470 360 S 740 470, 910 410'/%3E%3Cpath d='M-40 370 C 140 360, 300 450, 470 430 S 720 540, 910 500'/%3E%3C/g%3E%3Cg fill='none' stroke='rgba(255,106,0,0.18)' stroke-width='1'%3E%3Cpath d='M-40 110 C 140 50, 260 170, 430 120 S 720 190, 910 130'/%3E%3Cpath d='M-40 290 C 120 260, 300 360, 460 330 S 740 430, 910 370'/%3E%3C/g%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 860px 560px;
@@ -101,7 +84,7 @@ const css = `
 /* SIGNALS: trust nodes + tiny “check-in” points */
 .ts-bg__signals{
   z-index: 4;
-  opacity: .55;
+  opacity: 0.18;
   background-image:
     radial-gradient(circle at 26px 22px, color-mix(in oklab, var(--ts-accent, #FF6A00) 50%, white 50%) 0 1px, transparent 2px),
     radial-gradient(circle at 120px 78px, rgba(255,106,0,.28) 0 1px, transparent 2px),

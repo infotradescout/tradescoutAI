@@ -1285,8 +1285,6 @@ const App = memo(function App() {
   // behavior is a one-line change.
   const enableThumbUX = true;
   const enableDarkDepth = true;
-  const isBgDebug =
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bgdebug");
 
   useEffect(() => {
     registerStarterActionDescriptors();
@@ -1295,20 +1293,7 @@ const App = memo(function App() {
   return (
     <div
       className={`app-root ${enableThumbUX ? "thumb-ux" : ""} ${enableDarkDepth ? "dark-depth" : ""}`}
-      data-bgdebug={isBgDebug ? "true" : "false"}
     >
-      {isBgDebug && (
-        <div
-          className="fixed top-2 right-2 z-[9999] rounded-md border px-2 py-1 text-[11px] font-semibold tracking-wide"
-          style={{
-            background: "rgba(255,0,102,0.9)",
-            borderColor: "#ffcc00",
-            color: "#111827",
-          }}
-        >
-          BGDEBUG ENABLED
-        </div>
-      )}
       <TradeScoutBackground>
         <ErrorBoundary fallback={<PageLoader />}>
           <QueryClientProvider client={queryClient}>
