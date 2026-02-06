@@ -87,7 +87,7 @@ const RootLanding = memo(function RootLanding() {
     } else if (isAdmin) {
       navigate("/dashboard");
     } else {
-      navigate("/community-feed");
+      navigate("/scout");
     }
   }, [user, isAuthenticated, isLoading, location, navigate]);
 
@@ -184,8 +184,6 @@ const Help = React.lazy(() => import("./pages/help"));
 const HowTradeScoutWorks = React.lazy(() => import("./pages/how-tradescout-works"));
 const Invite = React.lazy(() => import("./pages/invite"));
 const DashboardSettings = React.lazy(() => import("./pages/DashboardSettings"));
-const MyTradeScoutPage = React.lazy(() => import("./pages/my-tradescout"));
-const RoleDashboardRouter = React.lazy(() => import("./components/RoleDashboardRouter"));
 const DashboardJobs = React.lazy(() => import("./pages/dashboard-jobs"));
 const RecommendationGeneratorPage = React.lazy(
   () => import("./pages/contractor/recommendation-generator")
@@ -505,12 +503,12 @@ const AppLayout = memo(function AppLayout() {
                   {/* Dashboard routes (auth required) */}
                   <Route path="/my-tradescout">
                     <ProtectedRoute>
-                      <LazyPage Component={MyTradeScoutPage} />
+                      <RedirectTo to="/scout" />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/dashboard">
                     <ProtectedRoute>
-                      <LazyPage Component={RoleDashboardRouter} />
+                      <RedirectTo to="/scout" />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/dashboard/jobs">

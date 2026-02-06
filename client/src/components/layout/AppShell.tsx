@@ -140,32 +140,37 @@ export function AppShell({ children, footer }: AppShellProps) {
   const renderMobileHero = () => (
     <section className="px-4 py-6 md:hidden">
       <h1 className="text-xl font-semibold">
-        Empowering <span className="text-accent">Your Community</span>
+        Scout for your <span className="text-accent">next move</span>
       </h1>
       <p className="mt-2 text-sm text-secondary">
-        Scout local projects, pros, and updates in your area.
+        Ask Scout first, then move into Direct Connect, Community, and Exchange.
       </p>
       {!isLoggedIn && (
-        <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            onClick={() => navigate("/create-account")}
-            className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.85rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
-          >
-            Create account
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
-            className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.85rem] font-medium hover:text-white transition"
-            style={{
-              borderColor: "var(--border-primary)",
-              backgroundColor: "var(--charcoal-900)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            Log in
-          </button>
+        <div className="mt-4 space-y-2">
+          <p className="text-[11px] text-secondary">
+            Contact is account-gated for spam prevention.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/create-account")}
+              className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.85rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
+            >
+              Create free account
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.85rem] font-medium hover:text-white transition"
+              style={{
+                borderColor: "var(--border-primary)",
+                backgroundColor: "var(--charcoal-900)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Sign in
+            </button>
+          </div>
         </div>
       )}
     </section>
@@ -355,7 +360,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   onClick={() => navigate("/create-account")}
                   className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40 focus:outline-none"
                 >
-                  Create account
+                  Create free account
                 </button>
                 <button
                   type="button"
@@ -367,7 +372,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     color: "var(--text-secondary)",
                   }}
                 >
-                  Log in
+                  Sign in
                 </button>
               </>
             )}

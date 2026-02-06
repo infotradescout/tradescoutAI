@@ -3,7 +3,7 @@ import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MessageCircle } from "lucide-react";
+import { MessageCircle, ShieldCheck } from "lucide-react";
 
 type ProfileSections = {
   about?: boolean;
@@ -33,8 +33,6 @@ type PublicBusinessSubset = {
   name: string;
   categories: string[];
   serviceAreas: string[];
-  contactEmail?: string;
-  contactPhone?: string;
 } | null;
 
 type PublicProfileResponse = {
@@ -162,32 +160,29 @@ export default function ProfileSiteView() {
                 <h2 className="text-white font-semibold">Contact</h2>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="space-y-2 text-sm text-gray-300">
-                    {business?.contactEmail && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-orange-400" />
-                        <span>{business.contactEmail}</span>
-                      </div>
-                    )}
-                    {business?.contactPhone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-orange-400" />
-                        <span>{business.contactPhone}</span>
-                      </div>
-                    )}
-                    {!business?.contactEmail && !business?.contactPhone && (
-                      <p className="text-gray-400">
-                        This profile is set up to be contacted through TradeScout.
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2 text-gray-200">
+                      <ShieldCheck className="h-4 w-4 text-orange-400" />
+                      <span>Contact is protected to prevent spam.</span>
+                    </div>
+                    <p className="text-gray-400">
+                      Create a free TradeScout account to contact this profile through Direct
+                      Connect.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Link href="/">
-                      <Button
-                        variant="outline"
-                        className="border-navy-500 text-gray-200 flex items-center gap-2"
-                      >
+                  <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                    <Link
+                      href={`/create-account?next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
+                    >
+                      <Button className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        <span>Ask Scout about this profile</span>
+                        <span>Start Direct Connect</span>
+                      </Button>
+                    </Link>
+                    <Link
+                      href={`/auth/login?next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
+                    >
+                      <Button variant="outline" className="border-navy-500 text-gray-200">
+                        Sign in
                       </Button>
                     </Link>
                   </div>

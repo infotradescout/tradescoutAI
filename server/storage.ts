@@ -553,10 +553,8 @@ export interface IStorage {
   /** Return the owner user id for a given profile id, or null if missing. */
   getProfileOwnerUserId(profileId: string): Promise<string | null>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
-  searchProfilesPublic(args: {
-    query: string;
-    limit?: number;
-  }): Promise<
+  listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
+  searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
       slug: string;
@@ -1725,10 +1723,28 @@ export class DatabaseStorage implements IStorage {
     return rows[0];
   }
 
-  async searchProfilesPublic(args: {
-    query: string;
-    limit?: number;
-  }): Promise<
+  async listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
+    const rows = await db
+      .select({
+        slug: profiles.slug,
+        updatedAt: profiles.updatedAt,
+      })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .where(
+        and(
+          eq(profiles.status, "published" as any),
+          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
+        )
+      )
+      .orderBy(desc(profiles.updatedAt));
+    return rows.map((row) => ({
+      slug: row.slug,
+      updatedAt: row.updatedAt ?? null,
+    }));
+  }
+
+  async searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
       slug: string;

@@ -2,8 +2,31 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal, Crown, Percent, Shield, Settings, TrendingUp } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Menu,
+  X,
+  ChevronDown,
+  Home,
+  Calculator,
+  Users,
+  Wrench,
+  LayoutDashboard,
+  ArrowLeftRight,
+  Building,
+  MessageSquare,
+  MoreHorizontal,
+  Crown,
+  Percent,
+  Shield,
+  Settings,
+  TrendingUp,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -27,13 +50,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const { isAuthenticated, user } = useAuth();
   const [location] = useLocation();
   const [containerWidth, setContainerWidth] = useState<number>(0);
-  const [adaptiveLayout, setAdaptiveLayout] = useState<'full' | 'compact' | 'minimal'>('full');
+  const [adaptiveLayout, setAdaptiveLayout] = useState<"full" | "compact" | "minimal">("full");
   const navRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
   // Role-based navigation items with dynamic priority system
   const navItems: NavItem[] = useMemo(() => {
-    const userRole = user?.role || 'homeowner';
+    const userRole = user?.role || "homeowner";
     const isCommunityFirst = Boolean((user as any)?.communityFirst);
 
     // Direct Connect is the primary coordination hub; contractors/helpers
@@ -42,12 +65,22 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     const baseItems: NavItem[] = [
       { href: "/scout", label: "Scout", icon: Calculator, priority: 10 },
       { href: "/direct-connect", label: "Direct Connect", icon: LayoutDashboard, priority: 9 },
-      { href: "/community", label: "Community", icon: MessageSquare, priority: isCommunityFirst ? 9 : 8 },
+      {
+        href: "/community",
+        label: "Community",
+        icon: MessageSquare,
+        priority: isCommunityFirst ? 9 : 8,
+      },
       { href: "/trade-deals", label: "TradeDeals", icon: Percent, priority: 7 },
       { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 6 },
       ...(isAuthenticated
         ? [
-            { href: isAdminTier(userRole) ? "/admin" : "/dashboard", label: isSuperAdminLike(userRole) ? "Super Admin" : "Dashboard", icon: LayoutDashboard, priority: 11 },
+            {
+              href: isAdminTier(userRole) ? "/admin" : "/dashboard",
+              label: isSuperAdminLike(userRole) ? "Super Admin" : "Dashboard",
+              icon: LayoutDashboard,
+              priority: 11,
+            },
             { href: "/groups", label: "Groups", icon: Users, priority: 5 },
             { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 5 },
             { href: "/county-directory", label: "Area Directory", icon: Users, priority: 4 },
@@ -68,54 +101,57 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     // and Scout as the primary coordination entry points.
     if (isAdminTier(userRole)) {
       return baseItems.map((item) => {
-        if (item.href === '/admin/panel') return { ...item, priority: 20 };
-        if (item.href === '/admin/users') return { ...item, priority: 19 };
-        if (item.href === '/dashboard') return { ...item, priority: 18 };
+        if (item.href === "/admin/panel") return { ...item, priority: 20 };
+        if (item.href === "/admin/users") return { ...item, priority: 19 };
+        if (item.href === "/dashboard") return { ...item, priority: 18 };
         return item;
       });
     }
 
-    if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
+    if (userRole === "contractor_user" || userRole === "accelerator_member") {
       return baseItems.map((item) => {
-        if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/direct-connect') return { ...item, priority: 14 };
-        if (item.href === '/scout') return { ...item, priority: 13 };
+        if (item.href === "/dashboard") return { ...item, priority: 15 };
+        if (item.href === "/direct-connect") return { ...item, priority: 14 };
+        if (item.href === "/scout") return { ...item, priority: 13 };
         return item;
       });
     }
 
-    if (userRole === 'helper') {
+    if (userRole === "helper") {
       return baseItems.map((item) => {
-        if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/direct-connect') return { ...item, priority: 14 };
-        if (item.href === '/scout') return { ...item, priority: 13 };
+        if (item.href === "/dashboard") return { ...item, priority: 15 };
+        if (item.href === "/direct-connect") return { ...item, priority: 14 };
+        if (item.href === "/scout") return { ...item, priority: 13 };
         return item;
       });
     }
 
-    if (userRole === 'moderator') {
+    if (userRole === "moderator") {
       return baseItems.map((item) => {
-        if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/community') return { ...item, priority: 14 };
+        if (item.href === "/dashboard") return { ...item, priority: 15 };
+        if (item.href === "/community") return { ...item, priority: 14 };
         return item;
       });
     }
 
     // homeowner (default)
     return baseItems.map((item) => {
-      if (item.href === '/community' && isCommunityFirst) return { ...item, priority: 16 };
-      if (item.href === '/dashboard' && isCommunityFirst) return { ...item, priority: 8 };
+      if (item.href === "/community" && isCommunityFirst) return { ...item, priority: 16 };
+      if (item.href === "/dashboard" && isCommunityFirst) return { ...item, priority: 8 };
       return item;
     });
   }, [user, isAuthenticated]);
 
-  const allPages = useMemo(() => [
-    { href: "/", label: "Home", icon: Home },
-    ...navItems,
+  const allPages = useMemo(
+    () => [
+      { href: "/", label: "Home", icon: Home },
+      ...navItems,
 
-    { href: "/leaderboard", label: "Leaderboard", icon: Building },
-    // Growth Pack entry removed
-  ], [navItems]);
+      { href: "/leaderboard", label: "Leaderboard", icon: Building },
+      // Growth Pack entry removed
+    ],
+    [navItems]
+  );
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
@@ -132,59 +168,59 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
       // Simple, intuitive layout system
       if (width >= 900) {
-        setAdaptiveLayout('full'); // Show all items with text labels
+        setAdaptiveLayout("full"); // Show all items with text labels
       } else if (width >= 600) {
-        setAdaptiveLayout('compact'); // Show top priority items with text + others in dropdown
+        setAdaptiveLayout("compact"); // Show top priority items with text + others in dropdown
       } else {
-        setAdaptiveLayout('minimal'); // Show only icons for top items + dropdown
+        setAdaptiveLayout("minimal"); // Show only icons for top items + dropdown
       }
     };
 
     setMounted(true);
     const timer = setTimeout(calculateLayout, 50);
-    
+
     // Optimized resize handling
     let resizeTimeout: NodeJS.Timeout;
     const debouncedCalculateLayout = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(calculateLayout, 100);
     };
-    
+
     const resizeObserver = new ResizeObserver(debouncedCalculateLayout);
-    
+
     if (navRef.current) {
       resizeObserver.observe(navRef.current);
     }
 
-    window.addEventListener('resize', debouncedCalculateLayout);
+    window.addEventListener("resize", debouncedCalculateLayout);
 
     return () => {
       clearTimeout(timer);
       clearTimeout(resizeTimeout);
       resizeObserver.disconnect();
-      window.removeEventListener('resize', debouncedCalculateLayout);
+      window.removeEventListener("resize", debouncedCalculateLayout);
     };
   }, [mounted]);
 
   // Simplified item distribution - cleaner logic
   const { visibleItems, hiddenItems } = useMemo(() => {
     const sorted = [...navItems].sort((a, b) => b.priority - a.priority);
-    
+
     let visible: NavItem[] = [];
     let hidden: NavItem[] = [];
 
     switch (adaptiveLayout) {
-      case 'full':
+      case "full":
         // Show all top priority items when there's plenty of space
         visible = sorted.slice(0, 7);
         hidden = sorted.slice(7);
         break;
-      case 'compact':
+      case "compact":
         // Show only the most important items with text, others in dropdown
         visible = sorted.slice(0, 4);
         hidden = sorted.slice(4);
         break;
-      case 'minimal':
+      case "minimal":
         // Show only top 3 items as icons, rest in dropdown
         visible = sorted.slice(0, 3);
         hidden = sorted.slice(3);
@@ -202,16 +238,18 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   }
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-xl shadow-xl ${className}`}>
+    <header
+      className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-xl shadow-xl ${className}`}
+    >
       <div className="w-full flex items-center justify-between px-4 py-3 lg:px-6 lg:py-4">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-2 lg:space-x-3 group transition-all duration-300">
             <div className="w-8 h-8 lg:w-9 lg:h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300 overflow-hidden">
-              <TradeScoutLogo 
-                size="sm" 
-                variant="gradient" 
-                className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300" 
+              <TradeScoutLogo
+                size="sm"
+                variant="gradient"
+                className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300"
               />
             </div>
             <span className="text-lg lg:text-xl font-bold text-white group-hover:text-orange-400 transition-colors duration-300">
@@ -221,63 +259,72 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         </Link>
 
         {/* Revolutionary Adaptive Navigation */}
-        <nav className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4" ref={navRef} data-navigation data-tutorial="navigation-tour">
+        <nav
+          className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4"
+          ref={navRef}
+          data-navigation
+          data-tutorial="navigation-tour"
+        >
           <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out">
             {/* Priority-based visible items with smooth transitions */}
             {visibleItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
-              const showTextLabel = adaptiveLayout === 'full' || adaptiveLayout === 'compact';
-              
+              const showTextLabel = adaptiveLayout === "full" || adaptiveLayout === "compact";
+
               return (
                 <Link key={item.href} href={item.href}>
-                  <div 
+                  <div
                     className={`rounded-lg text-sm font-medium transition-all duration-300 ease-in-out whitespace-nowrap border flex items-center transform hover:scale-105 ${
-                      active 
-                        ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25" 
+                      active
+                        ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25"
                         : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
-                    } ${showTextLabel ? 'px-3 py-2 gap-2' : 'px-2.5 py-2'}`}
+                    } ${showTextLabel ? "px-3 py-2 gap-2" : "px-2.5 py-2"}`}
                     title={!showTextLabel ? item.label : undefined}
-                    data-nav-item={item.label.toLowerCase().replace(/\s+/g, '-')} 
-                    data-nav-contractors={item.href === '/contractors' ? 'true' : undefined}
-                    data-nav-dashboard={item.href === '/dashboard' ? 'true' : undefined}
+                    data-nav-item={item.label.toLowerCase().replace(/\s+/g, "-")}
+                    data-nav-contractors={item.href === "/contractors" ? "true" : undefined}
+                    data-nav-dashboard={item.href === "/dashboard" ? "true" : undefined}
                     data-nav-growth={undefined}
                   >
-                    <Icon className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
-                      active ? 'text-white' : 'text-orange-400'
-                    }`} />
-                    <span className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                      showTextLabel 
-                        ? 'opacity-100 max-w-[120px] ml-2' 
-                        : 'opacity-0 max-w-0 ml-0'
-                    }`}>
+                    <Icon
+                      className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
+                        active ? "text-white" : "text-orange-400"
+                      }`}
+                    />
+                    <span
+                      className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                        showTextLabel ? "opacity-100 max-w-[120px] ml-2" : "opacity-0 max-w-0 ml-0"
+                      }`}
+                    >
                       {item.label}
                     </span>
                   </div>
                 </Link>
               );
             })}
-            
+
             {/* Smart overflow dropdown - only show when items are hidden */}
             {hiddenItems.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="px-2.5 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-300 ease-in-out border border-transparent hover:border-slate-600 rounded-lg flex items-center transform hover:scale-105"
                   >
                     <MoreHorizontal className="w-4 h-4" />
-                    <span className={`text-xs transition-all duration-300 ease-in-out overflow-hidden ${
-                      adaptiveLayout === 'full' || adaptiveLayout === 'compact'
-                        ? 'opacity-100 max-w-[40px] ml-1' 
-                        : 'opacity-0 max-w-0 ml-0'
-                    }`}>
+                    <span
+                      className={`text-xs transition-all duration-300 ease-in-out overflow-hidden ${
+                        adaptiveLayout === "full" || adaptiveLayout === "compact"
+                          ? "opacity-100 max-w-[40px] ml-1"
+                          : "opacity-0 max-w-0 ml-0"
+                      }`}
+                    >
                       More
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent 
+                <DropdownMenuContent
                   className="bg-slate-800/95 border-slate-700 shadow-2xl backdrop-blur-xl min-w-48"
                   align="end"
                   sideOffset={8}
@@ -286,11 +333,11 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     const Icon = item.icon;
                     const active = isActive(item.href);
                     return (
-                      <DropdownMenuItem 
-                        key={item.href} 
+                      <DropdownMenuItem
+                        key={item.href}
                         className={`cursor-pointer transition-colors duration-150 ${
-                          active 
-                            ? "bg-orange-500/20 text-orange-400" 
+                          active
+                            ? "bg-orange-500/20 text-orange-400"
                             : "text-slate-200 hover:bg-slate-700/80 hover:text-white focus:bg-slate-700/80 focus:text-white"
                         }`}
                         asChild
@@ -310,13 +357,31 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
         {/* Right side actions */}
         <div className="flex items-center space-x-3">
+          {!isAuthenticated && (
+            <div className="hidden md:flex items-center gap-2">
+              <Link href="/create-account">
+                <Button className="h-8 rounded-full bg-orange-500 px-3 text-xs font-semibold text-slate-950 hover:bg-orange-400">
+                  Create free account
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  className="h-8 rounded-full border-slate-600 px-3 text-xs text-slate-200"
+                >
+                  Sign in
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* All Pages dropdown for desktop */}
           <div className="hidden lg:flex">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
                 >
                   <Menu className="w-4 h-4 mr-2" />
@@ -324,7 +389,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
+              <DropdownMenuContent
                 className="w-56 bg-slate-800/95 border-slate-700 shadow-2xl backdrop-blur-xl max-h-96 overflow-y-auto"
                 align="end"
                 sideOffset={8}
@@ -333,11 +398,11 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   const Icon = item.icon;
                   const active = isActive(item.href);
                   return (
-                    <DropdownMenuItem 
-                      key={item.href} 
+                    <DropdownMenuItem
+                      key={item.href}
                       className={`cursor-pointer transition-colors duration-150 ${
-                        active 
-                          ? "bg-orange-500/20 text-orange-400" 
+                        active
+                          ? "bg-orange-500/20 text-orange-400"
                           : "text-slate-200 hover:bg-slate-700/80 hover:text-white focus:bg-slate-700/80 focus:text-white"
                       }`}
                       asChild
@@ -364,22 +429,24 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
             <Link href="/profile">
               <div className="flex items-center space-x-2 bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                 {user?.profileImageUrl ? (
-                  <img 
-                    src={user.profileImageUrl} 
+                  <img
+                    src={user.profileImageUrl}
                     alt="Profile"
                     className="w-7 h-7 rounded-full object-cover border border-slate-600"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.nextElementSibling?.setAttribute('style', 'display: flex');
+                      target.style.display = "none";
+                      target.nextElementSibling?.setAttribute("style", "display: flex");
                     }}
                   />
                 ) : null}
-                <div className={`w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center ${user?.profileImageUrl ? 'hidden' : ''}`}>
+                <div
+                  className={`w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center ${user?.profileImageUrl ? "hidden" : ""}`}
+                >
                   <Users className="w-3.5 h-3.5 text-orange-400" />
                 </div>
                 <span className="text-sm text-slate-300 hover:text-white transition-colors duration-200 hidden lg:inline">
-                  {isSuperAdminLike(user?.role) ? 'Admin' : 'Profile'}
+                  {isSuperAdminLike(user?.role) ? "Admin" : "Profile"}
                 </span>
               </div>
             </Link>
@@ -388,16 +455,16 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           {/* Mobile menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="text-slate-300 hover:text-white hover:bg-slate-700/50 p-2 transition-colors duration-200"
               >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="right" 
+            <SheetContent
+              side="right"
               className="w-80 bg-slate-900/98 border-slate-700 backdrop-blur-xl"
             >
               <div className="flex flex-col space-y-6 pt-6">
@@ -419,10 +486,10 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     const active = isActive(item.href);
                     return (
                       <Link key={item.href} href={item.href}>
-                        <div 
+                        <div
                           className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                            active 
-                              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" 
+                            active
+                              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
                               : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
                           }`}
                           onClick={() => setIsMobileMenuOpen(false)}
@@ -438,6 +505,31 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 {isAuthenticated && (
                   <div className="border-t border-slate-700 pt-6">
                     <UserMenu />
+                  </div>
+                )}
+
+                {!isAuthenticated && (
+                  <div className="border-t border-slate-700 pt-6 space-y-2">
+                    <Link href="/create-account">
+                      <Button
+                        className="w-full bg-orange-500 text-slate-950 hover:bg-orange-400"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Create free account
+                      </Button>
+                    </Link>
+                    <Link href="/login">
+                      <Button
+                        variant="outline"
+                        className="w-full border-slate-600 text-slate-200"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Sign in
+                      </Button>
+                    </Link>
+                    <p className="text-[11px] text-slate-400">
+                      Contact is account-gated for spam prevention.
+                    </p>
                   </div>
                 )}
               </div>

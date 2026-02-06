@@ -17,10 +17,21 @@ import { runSchemaPreflight } from "./schemaPreflight";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { buildPublicProfileHtml } from "./publicProfileHtml";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const publicProfileTemplateCache = new Map<string, string>();
+
+function getCachedTemplate(indexPath: string) {
+  const cached = publicProfileTemplateCache.get(indexPath);
+  if (cached) return cached;
+  if (!fs.existsSync(indexPath)) return null;
+  const html = fs.readFileSync(indexPath, "utf-8");
+  publicProfileTemplateCache.set(indexPath, html);
+  return html;
+}
 
 // Override process.exit to trap explicit exits
 const originalExit = process.exit;
@@ -392,6 +403,37 @@ app.use((req, res, next) => {
                 },
               })
             );
+
+            // Public profile pages: server-rendered HTML for crawlability
+            app.get("/p/:slug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) {
+                  return res.status(404).send("Application files not found");
+                }
+
+                const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+                const host = req.headers.host || "www.thetradescout.com";
+                const origin = `${protocol}://${host}`;
+
+                const html = await buildPublicProfileHtml({
+                  slug: String(req.params.slug || ""),
+                  origin,
+                  templateHtml,
+                });
+
+                if (!html) {
+                  return res.status(404).send("Profile not found");
+                }
+
+                res.setHeader("Cache-Control", "no-store");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering public profile HTML:", err);
+                res.status(500).send("Failed to render profile");
+              }
+            });
 
             app.get("*", (req, res) => {
               const reqPath = req.path || "";

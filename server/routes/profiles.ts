@@ -95,7 +95,7 @@ router.post("/api/profiles", isAuthenticated, async (req, res) => {
       contentBlocks: data.contentBlocks || [],
       ctaConfig: data.ctaConfig || {},
       seoMeta: data.seoMeta || {},
-      status: ("draft" as any),
+      status: "draft" as any,
     } as any);
 
     if (data.setActive) {
@@ -162,7 +162,7 @@ router.put("/api/profiles/:id/publish", isAuthenticated, async (req, res) => {
     if (!existing) return res.status(404).json({ message: "Profile not found" });
 
     const updated = await storage.updateProfileForOwner(userId, profileId, {
-      status: ("published" as any),
+      status: "published" as any,
     } as any);
     res.json(updated);
   } catch (error: any) {
@@ -182,7 +182,7 @@ router.put("/api/profiles/:id/unpublish", isAuthenticated, async (req, res) => {
     if (!existing) return res.status(404).json({ message: "Profile not found" });
 
     const updated = await storage.updateProfileForOwner(userId, profileId, {
-      status: ("draft" as any),
+      status: "draft" as any,
     } as any);
     res.json(updated);
   } catch (error: any) {
@@ -237,7 +237,17 @@ router.get("/api/p/:slug", async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
 
-    const business = profile.businessId ? await storage.getBusinessPublicById(profile.businessId) : undefined;
+    const business = profile.businessId
+      ? await storage.getBusinessPublicById(profile.businessId)
+      : undefined;
+    const safeBusiness = business
+      ? {
+          id: business.id,
+          name: business.name,
+          categories: business.categories || [],
+          serviceAreas: business.serviceAreas || [],
+        }
+      : null;
 
     res.json({
       profile: {
@@ -251,11 +261,59 @@ router.get("/api/p/:slug", async (req, res) => {
         seoMeta: profile.seoMeta,
         profileSections: profile.profileSections || null,
       },
-      business: business || null,
+      business: safeBusiness,
     });
   } catch (error: any) {
     console.error("Error fetching public profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
+  }
+});
+
+router.get("/robots.txt", async (req, res) => {
+  const host = req.headers.host || "www.thetradescout.com";
+  const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+  res.type("text/plain");
+  res.send(
+    [
+      "User-agent: *",
+      "Allow: /p/",
+      "Disallow: /api/",
+      "Disallow: /admin",
+      `Sitemap: ${protocol}://${host}/sitemap.xml`,
+      "",
+    ].join("\n")
+  );
+});
+
+router.get("/sitemap.xml", async (req, res) => {
+  try {
+    const host = req.headers.host || "www.thetradescout.com";
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const baseUrl = `${protocol}://${host}`;
+
+    const profiles = await storage.listPublicProfilesForSitemap();
+
+    const urls = profiles.map((profile) => {
+      const lastmod = profile.updatedAt
+        ? profile.updatedAt.toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      return `
+  <url>
+    <loc>${baseUrl}/p/${encodeURIComponent(profile.slug)}</loc>
+    <lastmod>${lastmod}</lastmod>
+  </url>`;
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join("\n")}
+</urlset>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
   }
 });
 

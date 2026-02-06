@@ -346,9 +346,9 @@ const CommunityFeed = memo(function CommunityFeed() {
     navigate(`${currentPath}?${nextParams.toString()}`);
   };
 
-  // Telemetry: Track when community feed defaults to county scope
+  // Telemetry: Track when community feed defaults to local scope.
   useEffect(() => {
-    if (effectiveGeoScope === "county" && countyCommitted) {
+    if (effectiveGeoScope === "local" && countyCommitted) {
       try {
         // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
         if (user?.email === "traderscornerllc@gmail.com") {
@@ -358,7 +358,7 @@ const CommunityFeed = memo(function CommunityFeed() {
             path: typeof window !== "undefined" ? window.location.pathname : "",
             meta: {
               surface: "community",
-              scope: "county",
+              scope: "local",
               countyFips: countyFips || undefined,
               stateCode: stateCode || undefined,
               source: new URLSearchParams(window.location.search).has("scope")
@@ -375,7 +375,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   }, [effectiveGeoScope, countyCommitted, countyFips, stateCode, user]);
 
-  // Telemetry: Track when user changes scope (county <-> state <-> all)
+  // Telemetry: Track when user changes geo scope (local <-> global).
   useEffect(() => {
     if (effectiveGeoScope !== previousScopeRef.current) {
       const previousScope = previousScopeRef.current;
@@ -390,8 +390,8 @@ const CommunityFeed = memo(function CommunityFeed() {
             meta: {
               surface: "community",
               scope: effectiveGeoScope,
-              countyFips: effectiveGeoScope === "county" ? countyFips : undefined,
-              stateCode: effectiveGeoScope === "state" ? stateCode : undefined,
+              countyFips: effectiveGeoScope === "local" ? countyFips : undefined,
+              stateCode: effectiveGeoScope === "local" ? stateCode : undefined,
               source: "manual_change",
               sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
               asOf: new Date().toISOString(),
@@ -1168,6 +1168,12 @@ const CommunityFeed = memo(function CommunityFeed() {
     [communityStats, trendingTopics]
   );
 
+  const handleSnapshotFilterChange = (filter: string) => {
+    const next = normalizeFeed(filter);
+    if (!next) return;
+    handleTabChange(next);
+  };
+
   return (
     <div className="">
       <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
@@ -1184,7 +1190,7 @@ const CommunityFeed = memo(function CommunityFeed() {
               limit={10}
               communityStats={communityStats}
               activeFilter={activeTab}
-              onFilterChange={setActiveTab}
+              onFilterChange={handleSnapshotFilterChange}
             />
           )}
 

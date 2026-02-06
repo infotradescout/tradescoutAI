@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
@@ -79,6 +79,12 @@ import { useScoutMode } from "./useScoutMode";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import type { ScoutMode as ScoutModeType } from "./scoutModeTypes";
+import {
+  QuickActionsWidget,
+  RecentProjectsWidget,
+  SavedContractorsWidget,
+  CommunityBuilderImpactWidget,
+} from "@/components/dashboard/DashboardWidgets";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -168,25 +174,48 @@ function tokenOverlapScore(query: string, candidate: string): number {
   return Math.max(0, Math.min(0.95, jaccard * 0.9 + lengthBoost * 0.1));
 }
 
-function extractExplicitNavIntent(message: string): { to: string; label: string; confidence: number } | null {
+function extractExplicitNavIntent(
+  message: string
+): { to: string; label: string; confidence: number } | null {
   const lower = normalizeForMatch(message);
   const isExplicit =
     /^(go to|take me to|open|show me|navigate to)\b/.test(lower) ||
     /\b(take me|send me|route me)\b/.test(lower);
   if (!isExplicit) return null;
 
-  if (lower.includes("direct connect")) return { to: "/direct-connect", label: "Direct Connect", confidence: 0.95 };
-  if (lower.includes("community")) return { to: ROUTES.COMMUNITY ?? "/community", label: "Community", confidence: 0.95 };
-  if (lower.includes("exchange") || lower.includes("marketplace")) return { to: ROUTES.EXCHANGE ?? "/exchange", label: "Exchange", confidence: 0.95 };
-  if (lower.includes("message") || lower.includes("inbox") || lower.includes("conversations")) return { to: "/conversations", label: "Messages", confidence: 0.95 };
-  if (lower.includes("settings")) return { to: ROUTES.SETTINGS ?? "/settings", label: "Settings", confidence: 0.95 };
-  if (lower.includes("profile settings") || lower.includes("profile colors") || lower.includes("palette")) return { to: "/profile-settings", label: "Profile Settings", confidence: 0.92 };
-  if (lower.includes("contractor") || lower.includes("contractors") || lower.includes("contractor board")) {
-    return { to: ROUTES.CONTRACTORS ?? "/contractors/board", label: "Contractors", confidence: 0.9 };
+  if (lower.includes("direct connect"))
+    return { to: "/direct-connect", label: "Direct Connect", confidence: 0.95 };
+  if (lower.includes("community"))
+    return { to: ROUTES.COMMUNITY ?? "/community", label: "Community", confidence: 0.95 };
+  if (lower.includes("exchange") || lower.includes("marketplace"))
+    return { to: ROUTES.EXCHANGE ?? "/exchange", label: "Exchange", confidence: 0.95 };
+  if (lower.includes("message") || lower.includes("inbox") || lower.includes("conversations"))
+    return { to: "/conversations", label: "Messages", confidence: 0.95 };
+  if (lower.includes("settings"))
+    return { to: ROUTES.SETTINGS ?? "/settings", label: "Settings", confidence: 0.95 };
+  if (
+    lower.includes("profile settings") ||
+    lower.includes("profile colors") ||
+    lower.includes("palette")
+  )
+    return { to: "/profile-settings", label: "Profile Settings", confidence: 0.92 };
+  if (
+    lower.includes("contractor") ||
+    lower.includes("contractors") ||
+    lower.includes("contractor board")
+  ) {
+    return {
+      to: ROUTES.CONTRACTORS ?? "/contractors/board",
+      label: "Contractors",
+      confidence: 0.9,
+    };
   }
-  if (lower.includes("notes")) return { to: ROUTES.NOTES ?? "/notes", label: "Notes", confidence: 0.9 };
-  if (lower.includes("leaderboard")) return { to: "/leaderboard", label: "Leaderboard", confidence: 0.9 };
-  if (lower.includes("sign up") || lower.includes("create account") || lower.includes("register")) return { to: ROUTES.REGISTER ?? "/create-account", label: "Create Account", confidence: 0.95 };
+  if (lower.includes("notes"))
+    return { to: ROUTES.NOTES ?? "/notes", label: "Notes", confidence: 0.9 };
+  if (lower.includes("leaderboard"))
+    return { to: "/leaderboard", label: "Leaderboard", confidence: 0.9 };
+  if (lower.includes("sign up") || lower.includes("create account") || lower.includes("register"))
+    return { to: ROUTES.REGISTER ?? "/create-account", label: "Create Account", confidence: 0.95 };
 
   return null;
 }
@@ -348,15 +377,12 @@ export default function ScoutOS() {
       return AUTO_ROUTE_DEFAULT_ENABLED;
     }
   });
-  const [autoRoutePending, setAutoRoutePending] = useState<
-    | null
-    | {
-        to: string;
-        label: string;
-        confidence: number;
-        why?: string;
-      }
-  >(null);
+  const [autoRoutePending, setAutoRoutePending] = useState<null | {
+    to: string;
+    label: string;
+    confidence: number;
+    why?: string;
+  }>(null);
   const autoRouteTimerRef = useRef<number | null>(null);
   const introTimersRef = useRef<{
     typeTimer: number | null;
@@ -457,6 +483,7 @@ export default function ScoutOS() {
   ]);
 
   const hasMessages = state.messages.length > 0;
+  const showScoutDashboard = Boolean(isAuthenticated);
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -959,11 +986,14 @@ export default function ScoutOS() {
 
               const best = scored[0];
               const second = scored[1];
-              const confident = best && best.score >= 0.9 && (!second || best.score - second.score >= 0.08);
+              const confident =
+                best && best.score >= 0.9 && (!second || best.score - second.score >= 0.08);
 
               const fallbackToSearch = "/community";
 
-              const targetTo = best?.slug ? `/p/${encodeURIComponent(best.slug)}` : fallbackToSearch;
+              const targetTo = best?.slug
+                ? `/p/${encodeURIComponent(best.slug)}`
+                : fallbackToSearch;
 
               const msg: ScoutMessage = {
                 id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -977,7 +1007,9 @@ export default function ScoutOS() {
                     id: "profile-lookup",
                     title: best?.displayName ? best.displayName : "Browse community",
                     kind: "generic",
-                    body: best?.displayName ? "Open their public profile." : "Try browsing community activity first.",
+                    body: best?.displayName
+                      ? "Open their public profile."
+                      : "Try browsing community activity first.",
                     primaryAction: {
                       type: "NAVIGATE",
                       label: "Open",
@@ -1874,7 +1906,8 @@ export default function ScoutOS() {
             const called = value.match(/\b(named|called)\s+([^,.#\n]{3,80})/i);
             if (called && called[2]) return called[2].trim();
 
-            const k = /(contractor|contractors|roofer|roofing|plumber|plumbing|electrician|electrical|hvac|painter|painting|landscaper|landscaping)\b/i;
+            const k =
+              /(contractor|contractors|roofer|roofing|plumber|plumbing|electrician|electrical|hvac|painter|painting|landscaper|landscaping)\b/i;
             const m = value.match(k);
             if (!m) return null;
 
@@ -1914,9 +1947,9 @@ export default function ScoutOS() {
 
             const secondBestScore =
               nameQuery && contractors.length > 1
-                ? contractors
+                ? (contractors
                     .map((c) => tokenOverlapScore(nameQuery, c.name))
-                    .sort((a, b) => b - a)[1] ?? 0
+                    .sort((a, b) => b - a)[1] ?? 0)
                 : 0;
 
             const shouldAutoToProfile =
@@ -2468,7 +2501,10 @@ export default function ScoutOS() {
           navTarget: Array.isArray(res.actions)
             ? (() => {
                 const nav = res.actions.find(
-                  (a) => a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
+                  (a) =>
+                    a &&
+                    a.type === "NAVIGATE" &&
+                    (typeof a.to === "string" || typeof a.path === "string")
                 );
                 return (nav?.to as string) || (nav?.path as string) || undefined;
               })()
@@ -2480,7 +2516,8 @@ export default function ScoutOS() {
         // Auto-route: only when Scout provides a NAVIGATE action with high confidence.
         if (Array.isArray(res.actions)) {
           const nav = res.actions.find(
-            (a) => a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
+            (a) =>
+              a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
           );
           const navTo = (nav?.to as string) || (nav?.path as string) || null;
           const confidence = confidenceLabelToScore(res.metadata?.resolvedContext?.confidence) || 0;
@@ -3677,14 +3714,16 @@ export default function ScoutOS() {
                           {Math.round(autoRoutePending.confidence * 100)}%
                         </div>
                         <div className="text-xs text-tsTextMuted mt-0.5">
-                          {autoRouteEnabled && autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
+                          {autoRouteEnabled &&
+                          autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
                             ? `Taking you to ${autoRoutePending.label}…`
                             : `Suggested: ${autoRoutePending.label}`}
                           {autoRoutePending.why ? ` — ${autoRoutePending.why}` : ""}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {(!autoRouteEnabled || autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
+                        {(!autoRouteEnabled ||
+                          autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
                           <Button
                             size="sm"
                             className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
@@ -3702,7 +3741,8 @@ export default function ScoutOS() {
                           className="border-tsBorder text-tsText hover:bg-tsCardMuted"
                           onClick={cancelAutoRoute}
                         >
-                          {autoRouteEnabled && autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
+                          {autoRouteEnabled &&
+                          autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
                             ? "Cancel"
                             : "Dismiss"}
                         </Button>
@@ -3763,6 +3803,57 @@ export default function ScoutOS() {
               </div>
             )}
           </div>
+
+          {/* Unified dashboard lives under Scout so the assistant stays primary. */}
+          <section className="mx-auto mt-5 w-full max-w-5xl">
+            <div className="rounded-2xl border border-[color:var(--border-primary)] bg-[color:var(--surface-card)]/85 p-4 sm:p-5">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base sm:text-lg font-semibold text-[color:var(--text-primary)]">
+                    Your Scout dashboard
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[color:var(--text-secondary)]">
+                    Scout is your command surface. Your live activity sits directly underneath.
+                  </p>
+                </div>
+                {showScoutDashboard && (
+                  <Link href="/direct-connect">
+                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
+                      Open Direct Connect
+                    </Button>
+                  </Link>
+                )}
+              </div>
+
+              {showScoutDashboard ? (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <QuickActionsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                  <RecentProjectsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                  <SavedContractorsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                  <CommunityBuilderImpactWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] p-4">
+                  <p className="text-sm text-[color:var(--text-secondary)]">
+                    Create a free account to unlock your full Scout dashboard, Direct Connect
+                    history, and spam-protected contact flow.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link href="/create-account">
+                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
+                        Create free account
+                      </Button>
+                    </Link>
+                    <Link href="/login">
+                      <Button size="sm" variant="outline">
+                        Sign in
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
 
