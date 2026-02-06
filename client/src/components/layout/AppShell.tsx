@@ -430,8 +430,10 @@ export function AppShell({ children, footer }: AppShellProps) {
           color: "var(--text-primary)",
         }}
       >
-        {isMobile && isScoutSurface && renderMobileHero()}
-        {children}
+        <div className="app-page">
+          {isMobile && isScoutSurface && renderMobileHero()}
+          {children}
+        </div>
       </main>
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}

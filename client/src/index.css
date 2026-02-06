@@ -177,10 +177,10 @@ html {
     overflow: visible;
   }
 
-  .app-root {
-    height: 100%;
-    width: 100%;
-  }
+.app-root {
+  height: 100%;
+  width: 100%;
+}
 
   body {
     @apply font-sans antialiased;
@@ -228,6 +228,20 @@ html {
 .bg-tsSurface-strong {
   background-color: var(--surface-intermediate) !important;
   backdrop-filter: blur(8px);
+}
+
+/* Unified page frame */
+.app-page{
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 16px 84px;
+}
+
+@media (min-width: 1024px){
+  .app-page{
+    padding: 28px 24px 96px;
+  }
 }
 
 .ts-input {
@@ -543,17 +557,19 @@ html {
   .bg-slate-900\/40,
   .hover\:bg-slate-900,
   .dark\:bg-slate-900 {
-    background-color: var(--charcoal-900) !important;
+    background-color: var(--surface-card) !important;
+    backdrop-filter: blur(10px);
   }
 
   /* bg-slate-800 → charcoal-800 (interactive surfaces) */
-  .bg-slate-800,
-  .bg-slate-800\/50,
-  .bg-slate-800\/70,
-  .bg-slate-800\/30,
-  .dark\:bg-slate-800 {
-    background-color: var(--charcoal-800) !important;
-  }
+.bg-slate-800,
+.bg-slate-800\/50,
+.bg-slate-800\/70,
+.bg-slate-800\/30,
+.dark\:bg-slate-800 {
+  background-color: var(--surface-intermediate) !important;
+  backdrop-filter: blur(8px);
+}
 
   /* Border color mapping */
   .border-slate-900,
@@ -1551,7 +1567,8 @@ html, body {
   .bg-navy-900\/50,
   .bg-navy-900\/40,
   .hover\:bg-navy-900 {
-    background-color: var(--charcoal-900) !important;
+    background-color: var(--surface-card) !important;
+    backdrop-filter: blur(10px);
   }
 
 .bg-navy-800,
@@ -1560,7 +1577,8 @@ html, body {
 .bg-navy-800\/50,
 .bg-navy-800\/40,
 .hover\:bg-navy-800 {
-  background-color: var(--charcoal-800) !important;
+  background-color: var(--surface-intermediate) !important;
+  backdrop-filter: blur(8px);
 }
 
 .bg-navy-700,

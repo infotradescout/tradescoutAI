@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
+import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('max-w-6xl mx-auto space-y-6', className)}>{children}</div>;
+  return <div className={cn("w-full space-y-6", className)}>{children}</div>;
 }
 
 export function Section({
@@ -19,7 +19,7 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn('space-y-3', className)}>
+    <section className={cn("space-y-3", className)}>
       {(title || subtitle || actions) && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -36,16 +36,21 @@ export function Section({
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('rounded-2xl border border-navy-700 bg-navy-800/80 shadow-xl shadow-black/25', className)}>
+    <div
+      className={cn(
+        "rounded-2xl border border-navy-700 bg-navy-800/80 shadow-xl shadow-black/25",
+        className
+      )}
+    >
       {children}
     </div>
   );
 }
 
 export function CardHeader({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('px-5 pt-5 pb-3', className)}>{children}</div>;
+  return <div className={cn("px-5 pt-5 pb-3", className)}>{children}</div>;
 }
 
 export function CardBody({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('px-5 pb-5', className)}>{children}</div>;
+  return <div className={cn("px-5 pb-5", className)}>{children}</div>;
 }

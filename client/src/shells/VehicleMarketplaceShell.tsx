@@ -5,9 +5,5 @@ interface VehicleMarketplaceShellProps {
 }
 
 export function VehicleMarketplaceShell({ children }: VehicleMarketplaceShellProps) {
-  return (
-    <div className="">
-      <div className="container mx-auto px-4 py-8 pb-20">{children}</div>
-    </div>
-  );
+  return <div className="w-full">{children}</div>;
 }

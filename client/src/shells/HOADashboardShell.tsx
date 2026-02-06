@@ -9,9 +9,9 @@ interface HOADashboardShellProps {
 
 export function HOADashboardShell({ children, locationOverride }: HOADashboardShellProps) {
   return (
-    <div className="">
+    <div className="w-full">
       <CountyRequiredGate locationOverride={locationOverride}>
-        <div className="w-full py-8">{children}</div>
+        <div className="w-full">{children}</div>
       </CountyRequiredGate>
     </div>
   );

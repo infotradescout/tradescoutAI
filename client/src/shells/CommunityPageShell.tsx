@@ -5,5 +5,5 @@ interface CommunityPageShellProps {
 }
 
 export function CommunityPageShell({ children }: CommunityPageShellProps) {
-  return <div className="">{children}</div>;
+  return <div className="w-full">{children}</div>;
 }
