@@ -37,6 +37,12 @@ import {
   ThumbsUp,
   ThumbsDown,
   Ban,
+  LayoutDashboard,
+  ClipboardList,
+  Users2,
+  Wrench,
+  Home,
+  Shield,
 } from "lucide-react";
 import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
@@ -2962,6 +2968,166 @@ export default function ScoutOS() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const anyUser = user as any;
+  const userRole = String(anyUser?.role || "").toLowerCase();
+  const accountRoles = Array.isArray(anyUser?.roles)
+    ? anyUser.roles.map((r: unknown) => String(r).toLowerCase())
+    : [];
+  const projectCount = dashboardData?.myProjects?.length ?? 0;
+  const savedCount = savedContractorsData?.length ?? 0;
+  const invoiceCount = invoicesData?.length ?? 0;
+
+  const dashboardMetrics = useMemo(
+    () => [
+      { id: "projects", label: "Active projects", value: projectCount },
+      { id: "saved", label: "Saved providers", value: savedCount },
+      { id: "invoices", label: "Invoices", value: invoiceCount },
+    ],
+    [invoiceCount, projectCount, savedCount]
+  );
+
+  const roleActionRows = useMemo(() => {
+    const isContractor =
+      userRole === "contractor_user" ||
+      userRole === "accelerator_member" ||
+      accountRoles.includes("contractor_user");
+    const isRealtor = userRole === "realtor" || accountRoles.includes("realtor");
+    const isDealer = userRole === "car_salesman" || accountRoles.includes("car_salesman");
+    const isAdminLike =
+      anyUser?.isAdmin === true ||
+      anyUser?.isSuperAdmin === true ||
+      userRole.includes("admin") ||
+      accountRoles.some((r: string) => r.includes("admin"));
+
+    if (isAdminLike) {
+      return [
+        {
+          id: "admin-os",
+          title: "Admin operations",
+          subtitle: "Platform controls, users, and automation health.",
+          href: "/admin",
+          Icon: Shield,
+        },
+        {
+          id: "admin-observability",
+          title: "Observability",
+          subtitle: "Monitor platform reliability and service signals.",
+          href: "/admin-observability",
+          Icon: LayoutDashboard,
+        },
+        {
+          id: "admin-direct-connect",
+          title: "Direct Connect surface",
+          subtitle: "Review coordination behavior from the same hub users see.",
+          href: "/direct-connect",
+          Icon: ClipboardList,
+        },
+      ];
+    }
+
+    if (isContractor) {
+      return [
+        {
+          id: "contractor-leads",
+          title: "Contractor leads",
+          subtitle: "Respond to local requests matched for your trade.",
+          href: "/contractor-leads",
+          Icon: Wrench,
+        },
+        {
+          id: "contractor-finances",
+          title: "Finances workspace",
+          subtitle: "Track invoices, payouts, and payment events.",
+          href: "/finances",
+          Icon: LayoutDashboard,
+        },
+        {
+          id: "contractor-community",
+          title: "Community visibility",
+          subtitle: "Build trust through local activity and responses.",
+          href: "/community-feed",
+          Icon: Users2,
+        },
+      ];
+    }
+
+    if (isRealtor) {
+      return [
+        {
+          id: "realtor-marketplace",
+          title: "Real estate workspace",
+          subtitle: "Manage listings and local connections.",
+          href: "/real-estate-marketplace",
+          Icon: Home,
+        },
+        {
+          id: "realtor-connect",
+          title: "Direct Connect",
+          subtitle: "Coordinate project requests and referrals.",
+          href: "/direct-connect",
+          Icon: ClipboardList,
+        },
+        {
+          id: "realtor-community",
+          title: "Community feed",
+          subtitle: "Stay visible and relevant in county conversations.",
+          href: "/community-feed",
+          Icon: Users2,
+        },
+      ];
+    }
+
+    if (isDealer) {
+      return [
+        {
+          id: "dealer-market",
+          title: "Vehicle marketplace",
+          subtitle: "Publish inventory and reach local buyers.",
+          href: "/vehicle-marketplace",
+          Icon: Home,
+        },
+        {
+          id: "dealer-connect",
+          title: "Direct Connect",
+          subtitle: "Handle high-intent buyer and service coordination.",
+          href: "/direct-connect",
+          Icon: ClipboardList,
+        },
+        {
+          id: "dealer-exchange",
+          title: "Exchange",
+          subtitle: "Cross-promote inventory and offers.",
+          href: "/exchange",
+          Icon: Sparkles,
+        },
+      ];
+    }
+
+    return [
+      {
+        id: "homeowner-direct-connect",
+        title: "Start a request",
+        subtitle: "Open Direct Connect and route your next project.",
+        href: "/direct-connect",
+        Icon: ClipboardList,
+      },
+      {
+        id: "homeowner-community",
+        title: "Community signal",
+        subtitle: "See who is trusted locally before you hire.",
+        href: "/community-feed",
+        Icon: Users2,
+      },
+      {
+        id: "homeowner-exchange",
+        title: "Exchange",
+        subtitle: "Find local goods, services, and opportunities.",
+        href: "/exchange",
+        Icon: Sparkles,
+      },
+    ];
+  }, [accountRoles, anyUser?.isAdmin, anyUser?.isSuperAdmin, userRole]);
+
   // Build tile context from deterministic user state (no guessing, only real data)
   const tileContext: ScoutTileContext = useMemo(() => {
     const saved = savedContractorsData ?? [];
@@ -3806,31 +3972,73 @@ export default function ScoutOS() {
 
           {/* Unified dashboard lives under Scout so the assistant stays primary. */}
           <section className="mx-auto mt-5 w-full max-w-5xl">
-            <div className="rounded-2xl border border-[color:var(--border-primary)] bg-[color:var(--surface-card)]/85 p-4 sm:p-5">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-base sm:text-lg font-semibold text-[color:var(--text-primary)]">
-                    Your Scout dashboard
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[color:var(--text-secondary)]">
-                    Scout is your command surface. Your live activity sits directly underneath.
-                  </p>
+            <div className="rounded-2xl border border-[color:var(--border-active)] bg-[color:var(--surface-card)]/90 p-4 shadow-xl sm:p-5">
+              <div className="mb-4 rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-500/10 px-2 py-0.5 text-[11px] font-semibold text-orange-300">
+                      <LayoutDashboard className="h-3.5 w-3.5" />
+                      Scout Hub
+                    </div>
+                    <h2 className="mt-2 text-base sm:text-lg font-semibold text-[color:var(--text-primary)]">
+                      Scout front and center
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[color:var(--text-secondary)]">
+                      Decisions, routing, and dashboard state in one continuous workspace.
+                    </p>
+                  </div>
+                  {showScoutDashboard && (
+                    <Link href="/direct-connect">
+                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
+                        Open Direct Connect
+                      </Button>
+                    </Link>
+                  )}
                 </div>
                 {showScoutDashboard && (
-                  <Link href="/direct-connect">
-                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
-                      Open Direct Connect
-                    </Button>
-                  </Link>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {dashboardMetrics.map((metric) => (
+                      <div
+                        key={metric.id}
+                        className="rounded-lg border border-[color:var(--border-primary)] bg-[color:var(--surface-card)] px-2 py-2 text-center"
+                      >
+                        <div className="text-base font-semibold text-[color:var(--text-primary)]">
+                          {metric.value}
+                        </div>
+                        <div className="text-[11px] text-[color:var(--text-secondary)]">
+                          {metric.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
               {showScoutDashboard ? (
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <QuickActionsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                  <RecentProjectsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                  <SavedContractorsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                  <CommunityBuilderImpactWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    {roleActionRows.map((action) => (
+                      <Link key={action.id} href={action.href}>
+                        <div className="h-full cursor-pointer rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] px-3 py-3 transition hover:border-orange-500/60 hover:bg-[color:var(--surface-card)]">
+                          <div className="flex items-center gap-2">
+                            <action.Icon className="h-4 w-4 text-orange-400" />
+                            <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                              {action.title}
+                            </p>
+                          </div>
+                          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                            {action.subtitle}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <QuickActionsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                    <RecentProjectsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                    <SavedContractorsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                    <CommunityBuilderImpactWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] p-4">

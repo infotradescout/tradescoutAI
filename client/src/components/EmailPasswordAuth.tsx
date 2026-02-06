@@ -57,7 +57,7 @@ export function EmailPasswordAuth() {
       const role: string | undefined = anyUser?.role;
       const isSuperAdmin =
         role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
-      window.location.href = isSuperAdmin ? "/admin" : "/dashboard";
+      window.location.href = isSuperAdmin ? "/admin" : "/scout";
     } catch (error) {
       console.error("Authentication error:", error);
       toast({

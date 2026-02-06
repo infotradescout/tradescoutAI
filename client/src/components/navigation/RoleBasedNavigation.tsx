@@ -13,16 +13,16 @@ import { RoleBadge } from "@/components/ui/RoleBadge";
 import { useAuth, logoutUser } from "@/hooks/useAuth";
 import { getRolePermissions, getRoleDisplayName } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
-import { 
-  Home, 
-  Users, 
-  Settings, 
-  Shield, 
-  BarChart, 
-  MessageSquare, 
-  Briefcase, 
-  Building, 
-  Car, 
+import {
+  Home,
+  Users,
+  Settings,
+  Shield,
+  BarChart,
+  MessageSquare,
+  Briefcase,
+  Building,
+  Car,
   Heart,
   CreditCard,
   Search,
@@ -37,7 +37,7 @@ import {
   Paintbrush,
   Menu,
   ChevronDown,
-  LogOut
+  LogOut,
 } from "lucide-react";
 
 interface NavigationItem {
@@ -53,11 +53,11 @@ interface NavigationItem {
 const NAVIGATION_ITEMS: NavigationItem[] = [
   // Dashboard/Home
   {
-    label: "Dashboard",
-    href: "/dashboard",
+    label: "Scout",
+    href: "/scout",
     icon: Home,
   },
-  
+
   // Exchange Features (avoid duplicating what's in main nav)
   {
     label: "Exchange",
@@ -69,13 +69,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
       { label: "Business Listing", href: "/business-listing", icon: Building },
     ],
   },
-  
+
   // Service Provider Features
   {
     label: "Contractor Tools",
     href: "/contractor-dashboard",
     icon: Hammer,
-    requiredRoles: ['contractor_user'],
+    requiredRoles: ["contractor_user"],
     children: [
       { label: "Dashboard", href: "/contractor-dashboard", icon: Home },
       // Accelerator entry removed
@@ -83,30 +83,30 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
       // Growth Pack entry removed
     ],
   },
-  
+
   // Professional Services
   {
     label: "Realtor Tools",
     href: "/realtor-application",
     icon: Building,
-    requiredRoles: ['realtor'],
+    requiredRoles: ["realtor"],
   },
   {
     label: "Auto Sales",
-    href: "/car-salesman-application", 
+    href: "/car-salesman-application",
     icon: Car,
-    requiredRoles: ['car_salesman'],
+    requiredRoles: ["car_salesman"],
   },
-  
+
   // Community Features (avoid duplicating what's in main nav)
   {
     label: "Community Builders",
     href: "/foundation",
     icon: Heart,
   },
-  
+
   // Communication - These should be embedded elsewhere, not in header navigation
-  
+
   // Staff & Moderation
   {
     label: "Moderation",
@@ -114,7 +114,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Shield,
     requiredPermission: "canModerateContent",
   },
-  
+
   // Admin OS (single entry point)
   {
     label: "Admin Operations",
@@ -122,7 +122,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Settings,
     requiredPermission: "canAccessAdminPanel",
   },
-  
+
   // Account Features - These should be embedded elsewhere, not in header navigation
 ];
 
@@ -157,18 +157,18 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
     if (item.requiredRoles && !item.requiredRoles.includes(userRole)) {
       return false;
     }
-    
+
     // Check permission requirements
     if (item.requiredPermission && !permissions[item.requiredPermission]) {
       return false;
     }
-    
+
     return true;
   };
 
   const isItemActive = (href: string): boolean => {
-    if (href === "/" || href === "/dashboard") {
-      return location === "/" || location === "/dashboard";
+    if (href === "/" || href === "/scout") {
+      return location === "/" || location === "/scout";
     }
     return location.startsWith(href);
   };
@@ -181,11 +181,13 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
         {/* User Info */}
         <div className="flex items-center space-x-3 p-3 bg-secondary/50 rounded-lg mb-4">
           <div className="flex-1">
-            <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+            <p className="font-medium text-sm">
+              {user.firstName} {user.lastName}
+            </p>
             <RoleBadge role={userRole} size="sm" />
           </div>
         </div>
-        
+
         {/* Navigation Items */}
         {visibleItems.map((item, index) => (
           <div key={index}>
@@ -205,7 +207,11 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
                       >
                         <child.icon className="h-4 w-4 mr-2" />
                         {child.label}
-                        {child.badge && <Badge variant="secondary" className="ml-auto text-xs">{child.badge}</Badge>}
+                        {child.badge && (
+                          <Badge variant="secondary" className="ml-auto text-xs">
+                            {child.badge}
+                          </Badge>
+                        )}
                       </Button>
                     </Link>
                   ))}
@@ -220,7 +226,11 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
                 >
                   <item.icon className="h-4 w-4 mr-2" />
                   {item.label}
-                  {item.badge && <Badge variant="secondary" className="ml-auto text-xs">{item.badge}</Badge>}
+                  {item.badge && (
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      {item.badge}
+                    </Badge>
+                  )}
                 </Button>
               </Link>
             )}
@@ -255,7 +265,11 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
                     <Link href={child.href} className="flex items-center gap-2 cursor-pointer">
                       <child.icon className="h-4 w-4" />
                       {child.label}
-                      {child.badge && <Badge variant="secondary" className="ml-auto text-xs">{child.badge}</Badge>}
+                      {child.badge && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {child.badge}
+                        </Badge>
+                      )}
                     </Link>
                   </DropdownMenuItem>
                 ))}
@@ -263,13 +277,17 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
             </DropdownMenu>
           ) : (
             <Link href={item.href}>
-              <Button 
+              <Button
                 variant={isItemActive(item.href) ? "secondary" : "ghost"}
                 className="flex items-center gap-1"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
-                {item.badge && <Badge variant="secondary" className="ml-1 text-xs">{item.badge}</Badge>}
+                {item.badge && (
+                  <Badge variant="secondary" className="ml-1 text-xs">
+                    {item.badge}
+                  </Badge>
+                )}
               </Button>
             </Link>
           )}
@@ -296,9 +314,16 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2" data-profile-dropdown data-tutorial="profile-dropdown-tour">
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2"
+          data-profile-dropdown
+          data-tutorial="profile-dropdown-tour"
+        >
           <div className="flex flex-col items-end">
-            <span className="text-sm font-medium">{user.firstName} {user.lastName}</span>
+            <span className="text-sm font-medium">
+              {user.firstName} {user.lastName}
+            </span>
             <RoleBadge role={userRole} size="sm" />
           </div>
           <ChevronDown className="h-3 w-3" />
@@ -307,52 +332,77 @@ export function UserMenu() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <span className="font-medium">{user.firstName} {user.lastName}</span>
+            <span className="font-medium">
+              {user.firstName} {user.lastName}
+            </span>
             <span className="text-sm text-muted-foreground">{user.email}</span>
             <RoleBadge role={userRole} size="sm" />
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60" data-profile-link data-tutorial="profile-access">
+          <Link
+            href="/profile"
+            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+            data-profile-link
+            data-tutorial="profile-access"
+          >
             <Users className="h-4 w-4" />
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
         <DropdownMenuItem asChild>
-          <Link href="/notifications" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link
+            href="/notifications"
+            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          >
             <Bell className="h-4 w-4" />
             Notifications
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/chat" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link
+            href="/chat"
+            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          >
             <MessageSquare className="h-4 w-4" />
             Messages
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/chat" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link
+            href="/chat"
+            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          >
             <MessageSquare className="h-4 w-4" />
             Conversations
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/saved-ads" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link
+            href="/saved-ads"
+            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          >
             <Star className="h-4 w-4" />
             Saved Ads
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
         <DropdownMenuItem asChild>
-          <Link href="/payment-history" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link
+            href="/payment-history"
+            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          >
             <CreditCard className="h-4 w-4" />
             Payment History
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
-        <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-3 cursor-pointer text-red-400 hover:text-red-300 px-3 py-2 hover:bg-red-500/10">
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="flex items-center gap-3 cursor-pointer text-red-400 hover:text-red-300 px-3 py-2 hover:bg-red-500/10"
+        >
           <LogOut className="h-4 w-4" />
           Sign Out
         </DropdownMenuItem>

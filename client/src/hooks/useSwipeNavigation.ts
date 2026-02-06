@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 interface SwipeNavigationOptions {
   onSwipeLeft?: () => void;
@@ -14,7 +14,7 @@ export function useSwipeNavigation({
   onSwipeLeft,
   onSwipeRight,
   threshold = 100,
-  preventDefaultTouchMove = false
+  preventDefaultTouchMove = false,
 }: SwipeNavigationOptions) {
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
@@ -34,7 +34,7 @@ export function useSwipeNavigation({
       const currentY = e.targetTouches[0].clientY;
       const diffX = Math.abs(currentX - touchStartX.current);
       const diffY = Math.abs(currentY - touchStartY.current);
-      
+
       // More strict conditions to avoid conflicts with scrolling
       if (diffX > diffY && diffX > 30 && diffY < 15) {
         e.preventDefault();
@@ -54,11 +54,11 @@ export function useSwipeNavigation({
     const distanceX = touchStartX.current - touchEndX.current;
     const distanceY = touchStartY.current - touchEndY.current;
     const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-    
+
     // More sophisticated swipe detection
     const horizontalRatio = Math.abs(distanceX) / Math.abs(distanceY);
     const isDefinitelyHorizontal = horizontalRatio > 2; // Horizontal movement is 2x more than vertical
-    
+
     if (!isHorizontalSwipe || !isDefinitelyHorizontal) return;
 
     if (Math.abs(distanceX) > minSwipeDistance) {
@@ -66,7 +66,7 @@ export function useSwipeNavigation({
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      
+
       if (distanceX > 0) {
         // Swiped left
         onSwipeLeft?.();
@@ -79,9 +79,10 @@ export function useSwipeNavigation({
 
   useEffect(() => {
     // Enhanced mobile detection
-    const isMobile = ('ontouchstart' in window) || 
-                     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                     (window.innerWidth <= 768 && 'ontouchstart' in window);
+    const isMobile =
+      "ontouchstart" in window ||
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      (window.innerWidth <= 768 && "ontouchstart" in window);
 
     if (!isMobile) return;
 
@@ -89,59 +90,59 @@ export function useSwipeNavigation({
     const options = { passive: true };
     const moveOptions = { passive: false, capture: true };
 
-    document.addEventListener('touchstart', handleTouchStart, options);
-    document.addEventListener('touchmove', handleTouchMove, moveOptions);
-    document.addEventListener('touchend', handleTouchEnd, options);
+    document.addEventListener("touchstart", handleTouchStart, options);
+    document.addEventListener("touchmove", handleTouchMove, moveOptions);
+    document.addEventListener("touchend", handleTouchEnd, options);
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
     };
   }, [onSwipeLeft, onSwipeRight]);
 }
 
-// Define the page order for sequential navigation - dashboard first for authenticated users
+// Define the page order for sequential navigation - Scout first for authenticated users
 const PAGE_ORDER = [
-  '/dashboard',
-  '/contractors/board',
-  '/contractors',
-  '/foundation',
-  '/community',
-  '/helpers',
-  '/exchange',
-  '/leaderboard',
+  "/scout",
+  "/contractors/board",
+  "/contractors",
+  "/foundation",
+  "/community",
+  "/helpers",
+  "/exchange",
+  "/leaderboard",
   // '/growth-pack' retired
 ];
 
 // Unauthenticated user page order
 const GUEST_PAGE_ORDER = [
-  '/',
-  '/contractors/board',
-  '/contractors',
-  '/foundation',
-  '/community',
-  '/helpers',
-  '/exchange',
-  '/leaderboard',
+  "/",
+  "/contractors/board",
+  "/contractors",
+  "/foundation",
+  "/community",
+  "/helpers",
+  "/exchange",
+  "/leaderboard",
   // '/growth-pack' retired
 ];
 
 // Helper function to get display names for pages
 function getPageDisplayName(path: string): string {
   const displayNames: { [key: string]: string } = {
-    '/': 'Home',
-    '/contractors': 'For Contractors',
-    '/contractors/board': 'Contractors',
-    '/dashboard': 'Dashboard',
-    '/foundation': 'Community Builders',
-    '/community': 'Community',
-    '/helpers': 'Helpers',
-    '/exchange': 'Exchange',
-    '/leaderboard': 'Leaderboard',
+    "/": "Home",
+    "/contractors": "For Contractors",
+    "/contractors/board": "Contractors",
+    "/scout": "Scout",
+    "/foundation": "Community Builders",
+    "/community": "Community",
+    "/helpers": "Helpers",
+    "/exchange": "Exchange",
+    "/leaderboard": "Leaderboard",
     // '/growth-pack': 'Growth Pack' retired
   };
-  
+
   return displayNames[path] || path;
 }
 
@@ -150,12 +151,12 @@ export function useGlobalSwipeNavigation() {
   const [location, setLocation] = useLocation();
   const [transitionState, setTransitionState] = useState<{
     isTransitioning: boolean;
-    direction: 'left' | 'right' | null;
+    direction: "left" | "right" | null;
     targetPage: string;
   }>({
     isTransitioning: false,
     direction: null,
-    targetPage: ''
+    targetPage: "",
   });
 
   // Import useAuth hook within the component scope
@@ -167,7 +168,7 @@ export function useGlobalSwipeNavigation() {
     hiddenFromSwipe?: string[];
     enableSwipeNavigation?: boolean;
   }>({
-    queryKey: ['/api/user/navigation-preferences'],
+    queryKey: ["/api/user/navigation-preferences"],
     enabled: isAuthenticated,
     retry: false,
   });
@@ -175,28 +176,30 @@ export function useGlobalSwipeNavigation() {
   // Function to apply user preferences to page order
   const getCustomizedPageOrder = () => {
     const defaultOrder = isAuthenticated ? PAGE_ORDER : GUEST_PAGE_ORDER;
-    
+
     // If user has custom order preferences, apply them
     if (navigationPrefs?.customOrder && navigationPrefs.customOrder.length > 0) {
       // Start with user's custom order
-      const customOrder = navigationPrefs.customOrder.filter((page: string) => defaultOrder.includes(page));
+      const customOrder = navigationPrefs.customOrder.filter((page: string) =>
+        defaultOrder.includes(page)
+      );
       // Add any pages that weren't in the custom order at the end
-      const remainingPages = defaultOrder.filter(page => !customOrder.includes(page));
+      const remainingPages = defaultOrder.filter((page) => !customOrder.includes(page));
       const fullCustomOrder = [...customOrder, ...remainingPages];
-      
+
       // Filter out pages hidden from swipe navigation
       if (navigationPrefs.hiddenFromSwipe && navigationPrefs.hiddenFromSwipe.length > 0) {
-        return fullCustomOrder.filter(page => !navigationPrefs.hiddenFromSwipe!.includes(page));
+        return fullCustomOrder.filter((page) => !navigationPrefs.hiddenFromSwipe!.includes(page));
       }
-      
+
       return fullCustomOrder;
     }
-    
+
     // Filter out hidden pages from default order
     if (navigationPrefs?.hiddenFromSwipe && navigationPrefs.hiddenFromSwipe.length > 0) {
-      return defaultOrder.filter(page => !navigationPrefs.hiddenFromSwipe!.includes(page));
+      return defaultOrder.filter((page) => !navigationPrefs.hiddenFromSwipe!.includes(page));
     }
-    
+
     return defaultOrder;
   };
 
@@ -205,67 +208,67 @@ export function useGlobalSwipeNavigation() {
 
   const getCurrentPageIndex = () => {
     // Find exact match first
-    let currentIndex = currentPageOrder.findIndex(page => page === location);
-    
+    let currentIndex = currentPageOrder.findIndex((page) => page === location);
+
     // If no exact match, find partial match (for nested routes)
     if (currentIndex === -1) {
-      currentIndex = currentPageOrder.findIndex(page => {
-        if (page === '/') return location === '/';
+      currentIndex = currentPageOrder.findIndex((page) => {
+        if (page === "/") return location === "/";
         return location.startsWith(page);
       });
     }
-    
+
     return currentIndex;
   };
 
   const navigateToNextPage = () => {
     const currentIndex = getCurrentPageIndex();
     if (currentIndex === -1) return;
-    
+
     const nextIndex = (currentIndex + 1) % currentPageOrder.length;
     const targetPage = currentPageOrder[nextIndex];
-    
+
     // Show transition feedback
     setTransitionState({
       isTransitioning: true,
-      direction: 'right',
-      targetPage: getPageDisplayName(targetPage)
+      direction: "right",
+      targetPage: getPageDisplayName(targetPage),
     });
-    
+
     setTimeout(() => {
       setLocation(targetPage);
-      setTransitionState(prev => ({ ...prev, isTransitioning: false }));
+      setTransitionState((prev) => ({ ...prev, isTransitioning: false }));
     }, 200);
   };
 
   const navigateToPreviousPage = () => {
     const currentIndex = getCurrentPageIndex();
     if (currentIndex === -1) return;
-    
+
     const prevIndex = currentIndex === 0 ? currentPageOrder.length - 1 : currentIndex - 1;
     const targetPage = currentPageOrder[prevIndex];
-    
+
     // Show transition feedback
     setTransitionState({
       isTransitioning: true,
-      direction: 'left',
-      targetPage: getPageDisplayName(targetPage)
+      direction: "left",
+      targetPage: getPageDisplayName(targetPage),
     });
-    
+
     setTimeout(() => {
       setLocation(targetPage);
-      setTransitionState(prev => ({ ...prev, isTransitioning: false }));
+      setTransitionState((prev) => ({ ...prev, isTransitioning: false }));
     }, 200);
   };
 
   // Only enable swipe navigation if user preference allows it
   const swipeEnabled = navigationPrefs?.enableSwipeNavigation !== false;
-  
+
   useSwipeNavigation({
     onSwipeLeft: swipeEnabled ? navigateToNextPage : undefined,
     onSwipeRight: swipeEnabled ? navigateToPreviousPage : undefined,
     threshold: 80,
-    preventDefaultTouchMove: swipeEnabled
+    preventDefaultTouchMove: swipeEnabled,
   });
 
   // Add keyboard and mouse navigation support for desktop
@@ -273,19 +276,19 @@ export function useGlobalSwipeNavigation() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle arrow keys if not in input, textarea, or contenteditable elements
       const activeElement = document.activeElement;
-      const isInputElement = activeElement && (
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.getAttribute('contenteditable') === 'true'
-      );
+      const isInputElement =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.getAttribute("contenteditable") === "true");
 
       if (isInputElement) return;
 
       // Handle Left/Right arrow keys for page navigation
-      if (e.key === 'ArrowLeft') {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         navigateToPreviousPage();
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === "ArrowRight") {
         e.preventDefault();
         navigateToNextPage();
       }
@@ -296,16 +299,16 @@ export function useGlobalSwipeNavigation() {
       if (!e.shiftKey) return;
 
       const activeElement = document.activeElement;
-      const isInputElement = activeElement && (
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.getAttribute('contenteditable') === 'true'
-      );
+      const isInputElement =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.getAttribute("contenteditable") === "true");
 
       if (isInputElement) return;
 
       e.preventDefault();
-      
+
       // Navigate based on wheel direction
       if (e.deltaX > 0 || e.deltaY > 0) {
         navigateToNextPage();
@@ -315,14 +318,14 @@ export function useGlobalSwipeNavigation() {
     };
 
     // Only add keyboard listeners on desktop (non-touch devices)
-    const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
-    
+    const isDesktop = !("ontouchstart" in window) && window.innerWidth > 768;
+
     if (isDesktop) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.addEventListener('wheel', handleWheel, { passive: false });
+      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("wheel", handleWheel, { passive: false });
       return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('wheel', handleWheel);
+        document.removeEventListener("keydown", handleKeyDown);
+        document.removeEventListener("wheel", handleWheel);
       };
     }
   }, []);
@@ -333,6 +336,6 @@ export function useGlobalSwipeNavigation() {
     navigateToNextPage,
     navigateToPreviousPage,
     pageOrder: currentPageOrder,
-    transitionState
+    transitionState,
   };
 }

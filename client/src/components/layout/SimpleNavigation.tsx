@@ -1,34 +1,62 @@
-import React, { memo, useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { useAuth, useLogout } from '@/hooks/useAuth';
-import { 
-  User, Bell, LogOut, Search, Menu,
-  Home, Users, ShoppingCart, Wrench, MapPin, Settings, HelpCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React, { memo, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useAuth, useLogout } from "@/hooks/useAuth";
+import {
+  User,
+  Bell,
+  LogOut,
+  Search,
+  Menu,
+  Home,
+  Users,
+  ShoppingCart,
+  Wrench,
+  MapPin,
+  Settings,
+  HelpCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 const SimpleNavigation = memo(function SimpleNavigation() {
   const { user, isAuthenticated } = useAuth();
   const logout = useLogout();
   const [location] = useLocation();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isActivePath = (path: string) => location === path;
 
   const mainNavItems = [
-    { icon: Home, label: 'Home', path: '/dashboard', testId: 'nav-home', key: 'home' },
-    { icon: Users, label: 'Community', path: '/community', testId: 'nav-community', key: 'community' },
-    { icon: Wrench, label: 'Contractors', path: '/contractors', testId: 'nav-contractors', key: 'contractors' },
-    { icon: ShoppingCart, label: 'Exchange', path: '/exchange', testId: 'nav-exchange', key: 'exchange' },
+    { icon: Home, label: "Scout", path: "/scout", testId: "nav-home", key: "home" },
+    {
+      icon: Users,
+      label: "Community",
+      path: "/community",
+      testId: "nav-community",
+      key: "community",
+    },
+    {
+      icon: Wrench,
+      label: "Contractors",
+      path: "/contractors",
+      testId: "nav-contractors",
+      key: "contractors",
+    },
+    {
+      icon: ShoppingCart,
+      label: "Exchange",
+      path: "/exchange",
+      testId: "nav-exchange",
+      key: "exchange",
+    },
   ];
 
   return (
@@ -39,8 +67,18 @@ const SimpleNavigation = memo(function SimpleNavigation() {
           <div className="flex items-center gap-4">
             <Link href={isAuthenticated ? "/home" : "/"} className="flex items-center gap-2 group">
               <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                  />
                 </svg>
               </div>
               <span className="hidden sm:block text-lg font-bold text-slate-900 dark:text-white">
@@ -75,8 +113,8 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                     data-testid={item.testId}
                     className={`relative flex items-center justify-center h-14 px-8 transition-colors ${
                       isActive
-                        ? 'text-orange-600 dark:text-orange-500 border-b-2 border-orange-600'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? "text-orange-600 dark:text-orange-500 border-b-2 border-orange-600"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -114,7 +152,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                       <Avatar className="w-9 h-9">
                         <AvatarImage src={user?.profileImageUrl} />
                         <AvatarFallback className="bg-orange-500 text-white text-sm">
-                          {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+                          {user?.firstName?.[0] || user?.email?.[0] || "U"}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -141,7 +179,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                         My Groups
                       </Link>
                     </DropdownMenuItem>
-                    {(user?.role === 'hoa_board' || user?.role === 'hoa_manager') && (
+                    {(user?.role === "hoa_board" || user?.role === "hoa_manager") && (
                       <DropdownMenuItem asChild>
                         <Link href="/hoa-dashboard" className="cursor-pointer">
                           <Home className="w-4 h-4 mr-2" />
@@ -177,7 +215,11 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button size="sm" className="bg-orange-600 hover:bg-orange-700" data-testid="button-signup">
+                  <Button
+                    size="sm"
+                    className="bg-orange-600 hover:bg-orange-700"
+                    data-testid="button-signup"
+                  >
                     Sign Up
                   </Button>
                 </Link>

@@ -18,7 +18,11 @@ import {
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { openFloatingNote } from "@/lib/floatingNotes";
-import { buildAdminTools, SUPER_ADMIN_ROLES, type AdminToolLink } from "@/components/admin/AdminPageToolsBar";
+import {
+  buildAdminTools,
+  SUPER_ADMIN_ROLES,
+  type AdminToolLink,
+} from "@/components/admin/AdminPageToolsBar";
 
 type NavLinkProps = {
   href: string;
@@ -28,36 +32,39 @@ type NavLinkProps = {
   onClick?: () => void;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({
-  href,
-  icon,
-  label,
-  description,
-  onClick,
-}) => (
+const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onClick }) => (
   <Link
     href={href}
     onClick={onClick}
     className="flex flex-col gap-1 rounded-xl transition-colors"
     style={{
-      borderColor: 'var(--border-primary)',
-      backgroundColor: 'var(--surface-intermediate)',
+      borderColor: "var(--border-primary)",
+      backgroundColor: "var(--surface-intermediate)",
     }}
     onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-card)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
     }}
     onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-intermediate)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
     }}
   >
     <div className="px-3 py-2 flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--surface-intermediate)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border"
+        style={{
+          backgroundColor: "var(--surface-intermediate)",
+          borderColor: "var(--border-primary)",
+          color: "var(--text-primary)",
+        }}
+      >
         {icon}
       </span>
-      <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+        {label}
+      </span>
     </div>
     {description && (
-      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: "var(--text-secondary)" }}>
         {description}
       </p>
     )}
@@ -85,24 +92,33 @@ const ActionButton = ({
     onClick={onClick}
     className="w-full text-left flex flex-col gap-1 rounded-xl transition-colors focus:outline-none focus-visible:outline-none"
     style={{
-      borderColor: 'var(--border-primary)',
-      backgroundColor: 'var(--surface-intermediate)',
+      borderColor: "var(--border-primary)",
+      backgroundColor: "var(--surface-intermediate)",
     }}
     onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-card)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
     }}
     onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-intermediate)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
     }}
   >
     <div className="px-3 py-2 flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--surface-intermediate)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border"
+        style={{
+          backgroundColor: "var(--surface-intermediate)",
+          borderColor: "var(--border-primary)",
+          color: "var(--text-primary)",
+        }}
+      >
         {icon}
       </span>
-      <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+        {label}
+      </span>
     </div>
     {description && (
-      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: "var(--text-secondary)" }}>
         {description}
       </p>
     )}
@@ -116,7 +132,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
   const isSuperAdmin = !!(
     isAuthenticated &&
-    (((user as any)?.isSuperAdmin === true) ||
+    ((user as any)?.isSuperAdmin === true ||
       (user?.role && SUPER_ADMIN_ROLES.includes(user.role as (typeof SUPER_ADMIN_ROLES)[number])))
   );
 
@@ -125,10 +141,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
     return buildAdminTools(path || "");
   }, [isSuperAdmin, path]);
 
-  const displayName =
-    (user as any)?.firstName ||
-    (user as any)?.name ||
-    "Guest";
+  const displayName = (user as any)?.firstName || (user as any)?.name || "Guest";
 
   const locationLabel =
     (user as any)?.county && (user as any)?.state
@@ -136,17 +149,28 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       : undefined;
 
   return (
-    <div className="h-full flex flex-col relative" style={{ backgroundColor: 'var(--surface-intermediate)', borderLeft: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-primary)', zIndex: 60 }}>
+    <div
+      className="h-full flex flex-col relative"
+      style={{
+        backgroundColor: "var(--surface-intermediate)",
+        borderLeft: "1px solid rgba(255,255,255,0.06)",
+        color: "var(--text-primary)",
+        zIndex: 60,
+      }}
+    >
       {/* Header */}
-      <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-        <div className="text-[0.65rem] uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border-secondary)" }}>
+        <div
+          className="text-[0.65rem] uppercase tracking-[0.3em]"
+          style={{ color: "var(--text-secondary)" }}
+        >
           Your space
         </div>
-        <div className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <div className="mt-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
           {displayName}
         </div>
         {locationLabel && (
-          <div className="text-[0.7rem] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+          <div className="text-[0.7rem] mt-0.5" style={{ color: "var(--text-secondary)" }}>
             {locationLabel}
           </div>
         )}
@@ -156,27 +180,39 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {/* Profile & account */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Profile
           </div>
           <div className="space-y-2">
             <NavLink
               href="/profile"
-              icon={<User className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <User className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
               label="My profile"
               description="View and edit your public profile, sections, and visibility."
               onClick={onNavigate}
             />
             <NavLink
               href="/settings"
-              icon={<Settings className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <Settings
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
               label="Account settings"
               description="Notifications, app behavior, and connected tools."
               onClick={onNavigate}
             />
             <NavLink
               href="/notifications"
-              icon={<Bell className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <Bell className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
               label="Notifications"
               description="Control alerts from Scout and jobs."
               onClick={onNavigate}
@@ -186,51 +222,84 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
         {/* Workspaces (user-specific) */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Workspaces
           </div>
           <div className="space-y-2">
             {user?.isAdmin && (user as any)?.isSuperAdmin ? (
               <NavLink
                 href="/admin"
-                icon={<LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+                icon={
+                  <LayoutDashboard
+                    className="h-3.5 w-3.5"
+                    style={{ color: "var(--theme-accent-primary)" }}
+                  />
+                }
                 label="Super Admin OS"
                 description="Full-site controls for TradeScout."
                 onClick={onNavigate}
               />
             ) : (
               <NavLink
-                href="/dashboard"
-                icon={<LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-                label="Dashboard"
-                description="Your personal hub and live metrics."
+                href="/scout"
+                icon={
+                  <LayoutDashboard
+                    className="h-3.5 w-3.5"
+                    style={{ color: "var(--theme-accent-primary)" }}
+                  />
+                }
+                label="Scout hub"
+                description="Assistant-first workspace with your live dashboard."
                 onClick={onNavigate}
               />
             )}
             <NavLink
               href="/finances"
-              icon={<ClipboardList className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <ClipboardList
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
               label="Finances workspace"
               description="Invoices, job records, and deal workflow."
               onClick={onNavigate}
             />
             <NavLink
               href="/hoa-management"
-              icon={<Building className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <Building
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
               label="HOA & neighborhood"
               description="Join or manage your neighborhood HOA."
               onClick={onNavigate}
             />
             <NavLink
               href="/messages"
-              icon={<MessageCircle className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <MessageCircle
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
               onClick={onNavigate}
             />
             <NavLink
               href="/saved"
-              icon={<Bookmark className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+              icon={
+                <Bookmark
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
               label="Saved items"
               description="Saved projects, listings, and ideas."
               onClick={onNavigate}
@@ -241,20 +310,57 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
         {/* Admin tools (super admin only) */}
         {isSuperAdmin && adminTools.length > 0 && (
           <section>
-            <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <div
+              className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+              style={{ color: "var(--text-secondary)" }}
+            >
               Admin tools
             </div>
             <div className="space-y-2">
               {adminTools.map((tool) => {
                 const icon = (
                   <>
-                    {tool.id === "messages" && <MessageCircle className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-                    {tool.id === "admin-dashboard" && <LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-                    {tool.id === "admin-panel" && <Settings className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-                    {tool.id === "admin-users" && <Users className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-                    {tool.id === "listings-admin" && <ListChecks className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-                    {!["messages", "admin-dashboard", "admin-panel", "admin-users", "listings-admin"].includes(tool.id) && (
-                      <Shield className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />
+                    {tool.id === "messages" && (
+                      <MessageCircle
+                        className="h-3.5 w-3.5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    )}
+                    {tool.id === "admin-dashboard" && (
+                      <LayoutDashboard
+                        className="h-3.5 w-3.5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    )}
+                    {tool.id === "admin-panel" && (
+                      <Settings
+                        className="h-3.5 w-3.5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    )}
+                    {tool.id === "admin-users" && (
+                      <Users
+                        className="h-3.5 w-3.5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    )}
+                    {tool.id === "listings-admin" && (
+                      <ListChecks
+                        className="h-3.5 w-3.5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    )}
+                    {![
+                      "messages",
+                      "admin-dashboard",
+                      "admin-panel",
+                      "admin-users",
+                      "listings-admin",
+                    ].includes(tool.id) && (
+                      <Shield
+                        className="h-3.5 w-3.5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
                     )}
                   </>
                 );
@@ -278,7 +384,10 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
         {/* Notes */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Notes
           </div>
           <div className="space-y-2">
@@ -289,7 +398,10 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
         {/* Legal & policies */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Legal &amp; policies
           </div>
           <div className="space-y-2">
@@ -326,7 +438,10 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       </div>
 
       {/* Footer / bottom tab content */}
-      <div className="border-t px-4 py-3 text-[0.7rem] space-y-2" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)' }}>
+      <div
+        className="border-t px-4 py-3 text-[0.7rem] space-y-2"
+        style={{ borderColor: "var(--border-secondary)", color: "var(--text-secondary)" }}
+      >
         <div className="flex items-center justify-between gap-2">
           <div className="truncate">Signed in as {displayName}</div>
           {isAuthenticated && (
@@ -343,7 +458,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             </button>
           )}
         </div>
-        {footer && <div style={{ color: 'var(--text-secondary)' }}>{footer}</div>}
+        {footer && <div style={{ color: "var(--text-secondary)" }}>{footer}</div>}
       </div>
     </div>
   );
@@ -359,7 +474,7 @@ function EmbeddedNotesWorkspace() {
   useEffect(() => {
     try {
       const arr: Array<{ id: string; text: string }> = [];
-      for (let i = 0; i < (typeof window !== 'undefined' ? window.localStorage.length : 0); i++) {
+      for (let i = 0; i < (typeof window !== "undefined" ? window.localStorage.length : 0); i++) {
         const key = window.localStorage.key(i) || "";
         if (!key.startsWith("ts:note:")) continue;
         const id = key.slice("ts:note:".length);
@@ -367,7 +482,7 @@ function EmbeddedNotesWorkspace() {
         let text = raw;
         try {
           const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === 'object' && typeof parsed.text === 'string') {
+          if (parsed && typeof parsed === "object" && typeof parsed.text === "string") {
             text = parsed.text as string;
           }
         } catch {
@@ -380,7 +495,7 @@ function EmbeddedNotesWorkspace() {
       const quickRaw = window.localStorage.getItem("ts:note:quick") || "";
       try {
         const parsedQuick = JSON.parse(quickRaw);
-        setQuickText(typeof parsedQuick?.text === 'string' ? parsedQuick.text : quickRaw);
+        setQuickText(typeof parsedQuick?.text === "string" ? parsedQuick.text : quickRaw);
       } catch {
         setQuickText(quickRaw);
       }
@@ -399,31 +514,61 @@ function EmbeddedNotesWorkspace() {
   };
 
   return (
-    <div className="rounded-xl border" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--surface-intermediate)' }}>
-      <div className="px-3 pt-2 text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
+    <div
+      className="rounded-xl border"
+      style={{
+        borderColor: "var(--border-primary)",
+        backgroundColor: "var(--surface-intermediate)",
+      }}
+    >
+      <div
+        className="px-3 pt-2 text-[0.7rem] uppercase tracking-[0.2em]"
+        style={{ color: "var(--text-secondary)" }}
+      >
         Workspace notes
       </div>
       <div className="px-3 pb-2 space-y-2">
         <div>
-          <label className="text-[0.7rem]" style={{ color: 'var(--text-secondary)' }}>Quick note</label>
+          <label className="text-[0.7rem]" style={{ color: "var(--text-secondary)" }}>
+            Quick note
+          </label>
           <textarea
             value={quickText}
             onChange={(e) => setQuickText(e.target.value)}
             onBlur={saveQuick}
             className="mt-1 w-full rounded-lg border px-2 py-1 text-[0.8rem]"
-            style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--surface-intermediate)', color: 'var(--text-primary)' }}
+            style={{
+              borderColor: "var(--border-primary)",
+              backgroundColor: "var(--surface-intermediate)",
+              color: "var(--text-primary)",
+            }}
             rows={3}
             placeholder="Type and click away to save"
           />
         </div>
         {notes.length > 0 && (
           <div>
-            <div className="text-[0.7rem] mb-1" style={{ color: 'var(--text-secondary)' }}>Recent</div>
+            <div className="text-[0.7rem] mb-1" style={{ color: "var(--text-secondary)" }}>
+              Recent
+            </div>
             <ul className="space-y-1">
               {notes.map((n) => (
-                <li key={n.id} className="rounded-md border px-2 py-1 text-[0.8rem] truncate" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-primary)', backgroundColor: 'var(--surface-intermediate)' }}>
-                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{n.id}</span>
-                  <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>{n.text.slice(0, 60)}{n.text.length > 60 ? '…' : ''}</span>
+                <li
+                  key={n.id}
+                  className="rounded-md border px-2 py-1 text-[0.8rem] truncate"
+                  style={{
+                    borderColor: "var(--border-secondary)",
+                    color: "var(--text-primary)",
+                    backgroundColor: "var(--surface-intermediate)",
+                  }}
+                >
+                  <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+                    {n.id}
+                  </span>
+                  <span className="ml-2" style={{ color: "var(--text-secondary)" }}>
+                    {n.text.slice(0, 60)}
+                    {n.text.length > 60 ? "…" : ""}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -431,12 +576,24 @@ function EmbeddedNotesWorkspace() {
         )}
         {/* Notes routing button */}
         <div className="mt-3 flex justify-end">
-          <a href="/notes" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[0.8rem]"
-             style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
+          <a
+            href="/notes"
+            className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[0.8rem]"
+            style={{
+              backgroundColor: "var(--surface-card)",
+              borderColor: "var(--border-subtle)",
+              color: "var(--text-primary)",
+            }}
+          >
             Open Notes
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-              <path d="M13.5 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 .75.75v5.25a.75.75 0 0 1-1.5 0V6.31l-6.97 6.97a.75.75 0 1 1-1.06-1.06l6.97-6.97h-3.44a.75.75 0 0 1-.75-.75Z"/>
-              <path d="M3.75 5.25A2.25 2.25 0 0 1 6 3h5.25a.75.75 0 0 1 0 1.5H6A.75.75 0 0 0 5.25 5.25v12A.75.75 0 0 0 6 18.75h12a.75.75 0 0 0 .75-.75V12.75a.75.75 0 0 1 1.5 0V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18V5.25Z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-4 w-4"
+            >
+              <path d="M13.5 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 .75.75v5.25a.75.75 0 0 1-1.5 0V6.31l-6.97 6.97a.75.75 0 1 1-1.06-1.06l6.97-6.97h-3.44a.75.75 0 0 1-.75-.75Z" />
+              <path d="M3.75 5.25A2.25 2.25 0 0 1 6 3h5.25a.75.75 0 0 1 0 1.5H6A.75.75 0 0 0 5.25 5.25v12A.75.75 0 0 0 6 18.75h12a.75.75 0 0 0 .75-.75V12.75a.75.75 0 0 1 1.5 0V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18V5.25Z" />
             </svg>
           </a>
         </div>
@@ -445,4 +602,3 @@ function EmbeddedNotesWorkspace() {
     </div>
   );
 }
-

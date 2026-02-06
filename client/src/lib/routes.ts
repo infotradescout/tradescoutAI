@@ -1,48 +1,48 @@
 // Centralized route configuration to prevent drift
 export const ROUTES = {
   // Public routes
-  HOME: '/',
-  LOGIN: '/login',
-  REGISTER: '/create-account',
-  FIND_CONTRACTORS: '/contractors',
-  CONTRACTORS: '/contractors',
-  MARKETPLACE: '/marketplace',
-  EXCHANGE: '/exchange',
-  COMMUNITY: '/community',
-  HELP: '/help',
-  NOTES: '/notes',
-  PRICING: '/pricing',
+  HOME: "/",
+  LOGIN: "/login",
+  REGISTER: "/create-account",
+  FIND_CONTRACTORS: "/contractors",
+  CONTRACTORS: "/contractors",
+  MARKETPLACE: "/marketplace",
+  EXCHANGE: "/exchange",
+  COMMUNITY: "/community",
+  HELP: "/help",
+  NOTES: "/notes",
+  PRICING: "/pricing",
 
   // Protected routes (require auth)
-  DASHBOARD: '/dashboard',
-  PROFILE: '/profile',
-  CONVERSATIONS: '/conversations',
-  SETTINGS: '/settings',
+  DASHBOARD: "/scout",
+  PROFILE: "/profile",
+  CONVERSATIONS: "/conversations",
+  SETTINGS: "/settings",
 
   // Contractor routes
-  CONTRACTOR_DASHBOARD: '/contractor-dashboard',
-  CONTRACTOR_APPLY: '/contractors/apply',
-  CONTRACTOR_BOARD: '/contractor-board',
-  CONTRACTORS_LANDING: '/contractors',
-    connections: "/connections",
+  CONTRACTOR_DASHBOARD: "/contractor-dashboard",
+  CONTRACTOR_APPLY: "/contractors/apply",
+  CONTRACTOR_BOARD: "/contractor-board",
+  CONTRACTORS_LANDING: "/contractors",
+  connections: "/connections",
 
   // Admin routes (require admin role)
-  ADMIN_PANEL: '/admin',
-  ADMIN_DASHBOARD: '/admin-dashboard',
-  ADMIN_USERS: '/admin-users',
+  ADMIN_PANEL: "/admin",
+  ADMIN_DASHBOARD: "/admin-dashboard",
+  ADMIN_USERS: "/admin-users",
 
   // Legal pages
-  TERMS: '/terms',
-  PRIVACY: '/privacy',
-  COOKIES: '/cookies',
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
+  COOKIES: "/cookies",
 
   // Route aliases for backward compatibility
   ALIASES: {
-    '/dashboard/messages': '/conversations',
-    '/marketplace': '/exchange',
-    '/exchange/list': '/exchange',
-    '/contractors/dashboard': '/contractor-dashboard'
-  }
+    "/dashboard/messages": "/conversations",
+    "/marketplace": "/exchange",
+    "/exchange/list": "/exchange",
+    "/contractors/dashboard": "/contractor-dashboard",
+  },
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;
@@ -72,7 +72,7 @@ export const PROTECTED_ROUTES = [
   ROUTES.SETTINGS,
   ROUTES.CONTRACTOR_DASHBOARD,
   ROUTES.ADMIN_PANEL,
-  '/admin/*'  // All admin routes protected
+  "/admin/*", // All admin routes protected
 ];
 
 export const ADMIN_ROUTES = [
@@ -80,7 +80,7 @@ export const ADMIN_ROUTES = [
   ROUTES.ADMIN_DASHBOARD,
   ROUTES.ADMIN_USERS,
   // Added pricing analytics route to admin routes
-  '/admin/pricing-analytics'
+  "/admin/pricing-analytics",
 ];
 
 export function isPublicRoute(path: string): boolean {

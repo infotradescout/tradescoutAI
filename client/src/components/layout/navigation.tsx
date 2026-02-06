@@ -147,10 +147,10 @@ export default function Navigation() {
       description: "Review posts, reports, and flags",
     },
     {
-      href: "/dashboard",
-      label: "Dashboard",
+      href: "/scout",
+      label: "Scout",
       icon: Layout,
-      description: "Your personalized dashboard",
+      description: "Assistant-first hub with your live dashboard",
     },
     ...(isAdmin
       ? [
@@ -501,12 +501,12 @@ export default function Navigation() {
 
             {/* Dashboard - Only show if authenticated */}
             {isAuthenticated && (
-              <Link href="/dashboard">
+              <Link href="/scout">
                 <Button
                   variant="ghost"
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
-                    location === "/dashboard"
+                    location === "/scout"
                       ? "text-orange-500 bg-orange-500/15"
                       : "text-gray-300 hover:text-white"
                   }`}

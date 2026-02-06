@@ -1,25 +1,29 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, Eye, MapPin, ExternalLink, Sparkles } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import type { BusinessProfile, UpdateProfilePayload } from '@/../../shared/businessProfile';
-import { recordActivity } from '@/agent/activity';
-import { ScoutCopyAssistModal } from '@/components/business/ScoutCopyAssistModal';
-import { generateCopyVariants, recordCopyAssistTelemetry, type ScoutCopyVariant } from '@/agent/tools/scoutCopyAssist';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Save, Eye, MapPin, ExternalLink, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { BusinessProfile, UpdateProfilePayload } from "@/../../shared/businessProfile";
+import { recordActivity } from "@/agent/activity";
+import { ScoutCopyAssistModal } from "@/components/business/ScoutCopyAssistModal";
+import {
+  generateCopyVariants,
+  recordCopyAssistTelemetry,
+  type ScoutCopyVariant,
+} from "@/agent/tools/scoutCopyAssist";
 
 /**
  * BusinessProfileEditor
- * 
+ *
  * Edit view at /business/:slug/edit
- * 
+ *
  * Contract:
  * - Fetches via GET /api/business-profile/me
  * - Saves via PATCH /api/business-profile/me
@@ -33,61 +37,62 @@ export default function BusinessProfileEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
-  const [businessName, setBusinessName] = useState('');
-  const [headline, setHeadline] = useState('');
-  const [description, setDescription] = useState('');
+  const [businessName, setBusinessName] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [description, setDescription] = useState("");
   const [services, setServices] = useState<string[]>([]);
-  const [website, setWebsite] = useState('');
-  const [serviceAreasText, setServiceAreasText] = useState('');
+  const [website, setWebsite] = useState("");
+  const [serviceAreasText, setServiceAreasText] = useState("");
 
   // Scout Copy Assist state
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copyVariants, setCopyVariants] = useState<ScoutCopyVariant[]>([]);
   const [copyAssistLoading, setCopyAssistLoading] = useState(false);
-  const [copyAssistField, setCopyAssistField] = useState<'description' | 'headline' | 'services'>('description');
+  const [copyAssistField, setCopyAssistField] = useState<"description" | "headline" | "services">(
+    "description"
+  );
 
   useEffect(() => {
     async function loadProfile() {
       try {
-        const response = await fetch('/api/business-profile/me');
-        
+        const response = await fetch("/api/business-profile/me");
+
         if (!response.ok) {
           if (response.status === 404) {
-            setError('No business profile found. Please publish your profile first.');
+            setError("No business profile found. Please publish your profile first.");
           } else {
-            setError('Failed to load profile');
+            setError("Failed to load profile");
           }
           setLoading(false);
           return;
         }
 
         const data: BusinessProfile = await response.json();
-        
+
         // Verify ownership by slug match
         if (data.slug !== slug) {
-          setError('You do not own this business profile');
+          setError("You do not own this business profile");
           setLoading(false);
           return;
         }
 
         setProfile(data);
-        setBusinessName(data.name || '');
-        setHeadline(data.headline || '');
-        setDescription(data.description || '');
+        setBusinessName(data.name || "");
+        setHeadline(data.headline || "");
+        setDescription(data.description || "");
         setServices(data.services || []);
-        setWebsite(data.website || '');
-        setServiceAreasText((data.serviceAreas || []).join(', '));
+        setWebsite(data.website || "");
+        setServiceAreasText((data.serviceAreas || []).join(", "));
 
         // Non-optional telemetry
         recordActivity({
-          type: 'business_profile_edit_opened' as any,
+          type: "business_profile_edit_opened" as any,
           ts: new Date().toISOString(),
           path: window.location.pathname,
           meta: {
@@ -95,8 +100,8 @@ export default function BusinessProfileEditor() {
           },
         });
       } catch (err) {
-        console.error('Error loading business profile:', err);
-        setError('Failed to load profile');
+        console.error("Error loading business profile:", err);
+        setError("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -105,58 +110,58 @@ export default function BusinessProfileEditor() {
     loadProfile();
   }, [slug]);
 
-  async function handleGenerateCopyVariants(field: 'description' | 'headline' | 'services') {
+  async function handleGenerateCopyVariants(field: "description" | "headline" | "services") {
     if (!profile) return;
 
     setCopyAssistField(field);
     setCopyAssistLoading(true);
-    recordCopyAssistTelemetry('opened');
+    recordCopyAssistTelemetry("opened");
 
     try {
       const response = await generateCopyVariants({
         field,
         businessName: businessName.trim(),
-        countyName: profile.countyName || '',
+        countyName: profile.countyName || "",
         stateCode: profile.stateCode,
         serviceAreas: serviceAreasText
-          .split(',')
-          .map(s => s.trim())
+          .split(",")
+          .map((s) => s.trim())
           .filter(Boolean),
         existingDescription: description.trim(),
         existingHeadline: headline.trim(),
         existingServices: services,
-        userType: 'business_owner',
+        userType: "business_owner",
       });
 
       setCopyVariants(response.data?.variants || []);
       setShowCopyModal(true);
     } catch (err) {
-      console.error('Error generating copy variants:', err);
+      console.error("Error generating copy variants:", err);
       toast({
-        title: 'Copy assist failed',
-        description: 'Could not generate variants. Please try again.',
-        variant: 'destructive',
+        title: "Copy assist failed",
+        description: "Could not generate variants. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setCopyAssistLoading(false);
     }
   }
 
-  function handleCopyVariantAccept(variantId: 'safe' | 'growth') {
-    const variant = copyVariants.find(v => v.id === variantId);
+  function handleCopyVariantAccept(variantId: "safe" | "growth") {
+    const variant = copyVariants.find((v) => v.id === variantId);
     if (!variant) return;
 
-    if (copyAssistField === 'description') {
+    if (copyAssistField === "description") {
       setDescription(variant.text);
-    } else if (copyAssistField === 'headline') {
+    } else if (copyAssistField === "headline") {
       setHeadline(variant.text);
-    } else if (copyAssistField === 'services') {
+    } else if (copyAssistField === "services") {
       // Services come back as bullet points; split by newline
       const bullets = variant.text
-        .split('\n')
-        .map(s => s.trim())
-        .filter(s => s && !s.match(/^[-•*]\s*/))
-        .map(s => s.replace(/^[-•*]\s*/, ''));
+        .split("\n")
+        .map((s) => s.trim())
+        .filter((s) => s && !s.match(/^[-•*]\s*/))
+        .map((s) => s.replace(/^[-•*]\s*/, ""));
       setServices(bullets);
     }
     setShowCopyModal(false);
@@ -175,32 +180,32 @@ export default function BusinessProfileEditor() {
         services: services.filter(Boolean),
         website: website.trim() || undefined,
         serviceAreas: serviceAreasText
-          .split(',')
-          .map(s => s.trim())
+          .split(",")
+          .map((s) => s.trim())
           .filter(Boolean),
       };
 
-      const response = await fetch('/api/business-profile/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/business-profile/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save profile');
+        throw new Error("Failed to save profile");
       }
 
       const updated: BusinessProfile = await response.json();
       setProfile(updated);
 
       toast({
-        title: 'Profile updated',
-        description: 'Your business profile is live.',
+        title: "Profile updated",
+        description: "Your business profile is live.",
       });
 
       // Non-optional telemetry
       recordActivity({
-        type: 'business_profile_updated' as any,
+        type: "business_profile_updated" as any,
         ts: new Date().toISOString(),
         path: window.location.pathname,
         meta: {
@@ -208,11 +213,11 @@ export default function BusinessProfileEditor() {
         },
       });
     } catch (err) {
-      console.error('Error saving profile:', err);
+      console.error("Error saving profile:", err);
       toast({
-        title: 'Save failed',
-        description: 'Could not save your changes. Please try again.',
-        variant: 'destructive',
+        title: "Save failed",
+        description: "Could not save your changes. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -234,12 +239,8 @@ export default function BusinessProfileEditor() {
           <CardContent className="pt-6">
             <div className="text-center">
               <h2 className="text-xl font-semibold mb-2">Cannot edit profile</h2>
-              <p className="text-muted-foreground mb-6">
-                {error || 'Profile not found'}
-              </p>
-              <Button onClick={() => navigate('/dashboard')}>
-                Go to Dashboard
-              </Button>
+              <p className="text-muted-foreground mb-6">{error || "Profile not found"}</p>
+              <Button onClick={() => navigate("/scout")}>Go to Dashboard</Button>
             </div>
           </CardContent>
         </Card>
@@ -255,7 +256,7 @@ export default function BusinessProfileEditor() {
       <Alert className="mb-6">
         <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
           <span className="text-sm">
-            <strong>Your TradeScout page is live:</strong>{' '}
+            <strong>Your TradeScout page is live:</strong>{" "}
             <a
               href={publicUrl}
               className="text-primary hover:underline"
@@ -265,11 +266,7 @@ export default function BusinessProfileEditor() {
               tradescout.com{publicUrl}
             </a>
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(publicUrl, '_blank')}
-          >
+          <Button variant="outline" size="sm" onClick={() => window.open(publicUrl, "_blank")}>
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
@@ -308,7 +305,7 @@ export default function BusinessProfileEditor() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="headline">Headline (60–80 chars)</Label>
                   <Button
-                    onClick={() => handleGenerateCopyVariants('headline')}
+                    onClick={() => handleGenerateCopyVariants("headline")}
                     variant="ghost"
                     size="sm"
                     disabled={copyAssistLoading || !businessName.trim()}
@@ -332,7 +329,7 @@ export default function BusinessProfileEditor() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="description">Description</Label>
                   <Button
-                    onClick={() => handleGenerateCopyVariants('description')}
+                    onClick={() => handleGenerateCopyVariants("description")}
                     variant="ghost"
                     size="sm"
                     disabled={copyAssistLoading || !businessName.trim()}
@@ -361,7 +358,7 @@ export default function BusinessProfileEditor() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="services">Services (3–5 bullet points)</Label>
                   <Button
-                    onClick={() => handleGenerateCopyVariants('services')}
+                    onClick={() => handleGenerateCopyVariants("services")}
                     variant="ghost"
                     size="sm"
                     disabled={copyAssistLoading || !businessName.trim()}
@@ -399,7 +396,7 @@ export default function BusinessProfileEditor() {
                   ))}
                   {services.length < 5 && (
                     <Button
-                      onClick={() => setServices([...services, ''])}
+                      onClick={() => setServices([...services, ""])}
                       variant="outline"
                       size="sm"
                       className="w-full"
@@ -431,8 +428,8 @@ export default function BusinessProfileEditor() {
                   <Label className="mb-2 block">Preview</Label>
                   <div className="flex flex-wrap gap-2">
                     {serviceAreasText
-                      .split(',')
-                      .map(s => s.trim())
+                      .split(",")
+                      .map((s) => s.trim())
                       .filter(Boolean)
                       .map((area, idx) => (
                         <Badge key={idx} variant="secondary">
@@ -448,15 +445,13 @@ export default function BusinessProfileEditor() {
             <TabsContent value="coverage" className="space-y-4 mt-6">
               <Alert>
                 <AlertDescription>
-                  <strong>Current location:</strong>{' '}
-                  {[profile.city, profile.countyName, profile.stateCode]
-                    .filter(Boolean)
-                    .join(', ')}
+                  <strong>Current location:</strong>{" "}
+                  {[profile.city, profile.countyName, profile.stateCode].filter(Boolean).join(", ")}
                 </AlertDescription>
               </Alert>
               <p className="text-sm text-muted-foreground">
-                Your primary coverage area is based on your county selection during signup.
-                To change this, please contact support.
+                Your primary coverage area is based on your county selection during signup. To
+                change this, please contact support.
               </p>
             </TabsContent>
 
@@ -501,18 +496,12 @@ export default function BusinessProfileEditor() {
               )}
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={() => navigate(publicUrl)}
-            >
+            <Button variant="outline" onClick={() => navigate(publicUrl)}>
               <Eye className="h-4 w-4 mr-2" />
               View Public Profile
             </Button>
 
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/dashboard')}
-            >
+            <Button variant="ghost" onClick={() => navigate("/scout")}>
               Cancel
             </Button>
           </div>

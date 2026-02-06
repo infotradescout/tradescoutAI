@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, User } from 'lucide-react';
-import { getRoleUiConfig, getRoleDashboardPath } from '@/lib/roleUiConfig';
+import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { RefreshCw, User } from "lucide-react";
+import { getRoleUiConfig, getRoleDashboardPath } from "@/lib/roleUiConfig";
 
 export default function RoleSwitcher() {
   const { user } = useAuth();
@@ -17,22 +23,22 @@ export default function RoleSwitcher() {
 
   const switchRole = useMutation({
     mutationFn: async (newRole: string) => {
-      return apiRequest('/api/auth/switch-role', {
-        method: 'POST',
-        body: { role: newRole }
+      return apiRequest("/api/auth/switch-role", {
+        method: "POST",
+        body: { role: newRole },
       });
     },
     onSuccess: (data, newRole) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
       const roleConfig = getRoleUiConfig(newRole);
       toast({
         title: "Role Switched",
         description: `Now viewing as ${roleConfig?.label || newRole}`,
       });
-      
+
       // Navigate to role-specific dashboard
-      const dashboard = getRoleDashboardPath(newRole) || '/dashboard';
+      const dashboard = getRoleDashboardPath(newRole) || "/scout";
       if (dashboard) {
         setTimeout(() => {
           window.location.href = dashboard;
@@ -68,7 +74,7 @@ export default function RoleSwitcher() {
     return {
       label: roleConfig.label || currentRole,
       icon: roleConfig.icon || User,
-      color: roleConfig.color || 'bg-gray-500',
+      color: roleConfig.color || "bg-gray-500",
     };
   };
 
@@ -90,7 +96,9 @@ export default function RoleSwitcher() {
         {/* Current Role Display */}
         <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full ${currentRoleInfo.color} flex items-center justify-center`}>
+            <div
+              className={`w-10 h-10 rounded-full ${currentRoleInfo.color} flex items-center justify-center`}
+            >
               <CurrentIcon className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -98,9 +106,7 @@ export default function RoleSwitcher() {
               <div className="text-sm text-muted-foreground">{currentRoleInfo.label}</div>
             </div>
           </div>
-          <Badge className={`${currentRoleInfo.color} text-white`}>
-            Active
-          </Badge>
+          <Badge className={`${currentRoleInfo.color} text-white`}>Active</Badge>
         </div>
 
         {/* Available Roles */}
@@ -117,18 +123,20 @@ export default function RoleSwitcher() {
                   key={role}
                   className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
                     isActive
-                      ? 'border-primary bg-primary/10'
-                      : 'border hover:border-primary/50 cursor-pointer'
+                      ? "border-primary bg-primary/10"
+                      : "border hover:border-primary/50 cursor-pointer"
                   }`}
                   onClick={() => !isActive && setSelectedRole(role)}
                 >
-                  <div className={`w-8 h-8 rounded ${roleConfig.color || 'bg-gray-500'} flex items-center justify-center`}>
+                  <div
+                    className={`w-8 h-8 rounded ${roleConfig.color || "bg-gray-500"} flex items-center justify-center`}
+                  >
                     <Icon className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="font-medium">{roleConfig.label || role}</div>
                     <div className="text-xs text-muted-foreground">
-                      {isActive ? 'Currently active' : 'Click to select'}
+                      {isActive ? "Currently active" : "Click to select"}
                     </div>
                   </div>
                   {isActive && (
@@ -165,7 +173,7 @@ export default function RoleSwitcher() {
                 })}
               </SelectContent>
             </Select>
-            <Button 
+            <Button
               onClick={handleRoleSwitch}
               disabled={!selectedRole || selectedRole === currentRole || switchRole.isPending}
               data-testid="button-switch-role"
@@ -182,7 +190,8 @@ export default function RoleSwitcher() {
               Switching to: {getRoleUiConfig(selectedRole).label || selectedRole}
             </div>
             <div className="text-xs text-muted-foreground">
-              You'll be redirected to the {getRoleUiConfig(selectedRole).label || selectedRole} dashboard
+              You'll be redirected to the {getRoleUiConfig(selectedRole).label || selectedRole}{" "}
+              dashboard
             </div>
           </div>
         )}

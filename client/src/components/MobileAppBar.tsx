@@ -1,29 +1,39 @@
-
-import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import { 
-  Home, Search, MessageCircle, User, Menu, 
-  Wrench, Layout, Bell, Heart, Calculator, Package, Settings, ClipboardList
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Home,
+  Search,
+  MessageCircle,
+  User,
+  Menu,
+  Wrench,
+  Layout,
+  Bell,
+  Heart,
+  Calculator,
+  Package,
+  Settings,
+  ClipboardList,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const mobileNavItems = [
-  { href: '/', icon: Home, label: 'Home', guest: true },
-  { href: '/scout', icon: Calculator, label: 'Scout', guest: true },
-  { href: '/direct-connect', icon: ClipboardList, label: 'Direct Connect', guest: true },
-  { href: '/conversations', icon: MessageCircle, label: 'Messages', auth: true },
-  { href: '/profile', icon: User, label: 'Profile', auth: true },
+  { href: "/", icon: Home, label: "Home", guest: true },
+  { href: "/scout", icon: Calculator, label: "Scout", guest: true },
+  { href: "/direct-connect", icon: ClipboardList, label: "Direct Connect", guest: true },
+  { href: "/conversations", icon: MessageCircle, label: "Messages", auth: true },
+  { href: "/profile", icon: User, label: "Profile", auth: true },
 ];
 
 const quickActions = [
-  { href: '/scout?intent=estimate', icon: Calculator, label: 'Estimate', guest: true },
-  { href: '/exchange', icon: Package, label: 'EXCHANGE', guest: true },
-  { href: '/direct-connect', icon: ClipboardList, label: 'New Request', guest: true },
-  { href: '/foundation', icon: Heart, label: 'Community Builders', guest: true },
+  { href: "/scout?intent=estimate", icon: Calculator, label: "Estimate", guest: true },
+  { href: "/exchange", icon: Package, label: "EXCHANGE", guest: true },
+  { href: "/direct-connect", icon: ClipboardList, label: "New Request", guest: true },
+  { href: "/foundation", icon: Heart, label: "Community Builders", guest: true },
 ];
 
 export function MobileAppBar() {
@@ -31,12 +41,8 @@ export function MobileAppBar() {
   const { isAuthenticated, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isContractor = user?.role && ['contractor_user', 'accelerator_member'].includes(user.role);
-  const isHomeowner = user?.role === 'homeowner';
-
-  // Get dashboard link based on user type
-  const dashboardLink = isContractor ? '/contractor-dashboard' : 
-                       isHomeowner ? '/homeowner-dashboard' : '/dashboard';
+  // Unified user hub
+  const dashboardLink = "/scout";
 
   return (
     <>
@@ -53,7 +59,7 @@ export function MobileAppBar() {
             // Skip auth-required items if not authenticated
             if (item.auth && !isAuthenticated) return null;
             // Skip guest items if authenticated (replace with dashboard)
-            if (item.href === '/' && isAuthenticated) {
+            if (item.href === "/" && isAuthenticated) {
               return (
                 <Link key="dashboard" href={dashboardLink}>
                   <button
@@ -65,15 +71,16 @@ export function MobileAppBar() {
                     )}
                   >
                     <Layout className="h-5 w-5 mb-1" />
-                    <span className="text-xs font-medium">Dashboard</span>
+                    <span className="text-xs font-medium">Scout</span>
                   </button>
                 </Link>
               );
             }
 
             const IconComponent = item.icon;
-            const isActive = location === item.href || 
-                           (item.href === '/conversations' && location.startsWith('/chat'));
+            const isActive =
+              location === item.href ||
+              (item.href === "/conversations" && location.startsWith("/chat"));
 
             return (
               <Link key={item.href} href={item.href}>
@@ -87,9 +94,9 @@ export function MobileAppBar() {
                 >
                   <IconComponent className="h-5 w-5 mb-1" />
                   <span className="text-xs font-medium">{item.label}</span>
-                  
+
                   {/* Notification badge for messages */}
-                  {item.href === '/conversations' && (
+                  {item.href === "/conversations" && (
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
                       3
                     </Badge>

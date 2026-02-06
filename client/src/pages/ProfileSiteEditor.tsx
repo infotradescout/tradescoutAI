@@ -189,7 +189,7 @@ export default function ProfileSiteEditor() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-gray-300">You may not have access to this profile.</p>
-            <Link href="/dashboard">
+            <Link href="/scout">
               <Button className="bg-orange-500 hover:bg-orange-600 text-white">
                 Go to Dashboard
               </Button>

@@ -85,7 +85,7 @@ const RootLanding = memo(function RootLanding() {
     } else if (isSuperAdmin) {
       navigate("/admin");
     } else if (isAdmin) {
-      navigate("/dashboard");
+      navigate("/admin");
     } else {
       navigate("/scout");
     }

@@ -76,8 +76,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       ...(isAuthenticated
         ? [
             {
-              href: isAdminTier(userRole) ? "/admin" : "/dashboard",
-              label: isSuperAdminLike(userRole) ? "Super Admin" : "Dashboard",
+              href: isAdminTier(userRole) ? "/admin" : "/scout",
+              label: isSuperAdminLike(userRole) ? "Super Admin" : "Scout",
               icon: LayoutDashboard,
               priority: 11,
             },
@@ -103,14 +103,14 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       return baseItems.map((item) => {
         if (item.href === "/admin/panel") return { ...item, priority: 20 };
         if (item.href === "/admin/users") return { ...item, priority: 19 };
-        if (item.href === "/dashboard") return { ...item, priority: 18 };
+        if (item.href === "/scout") return { ...item, priority: 18 };
         return item;
       });
     }
 
     if (userRole === "contractor_user" || userRole === "accelerator_member") {
       return baseItems.map((item) => {
-        if (item.href === "/dashboard") return { ...item, priority: 15 };
+        if (item.href === "/scout") return { ...item, priority: 15 };
         if (item.href === "/direct-connect") return { ...item, priority: 14 };
         if (item.href === "/scout") return { ...item, priority: 13 };
         return item;
@@ -119,7 +119,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
     if (userRole === "helper") {
       return baseItems.map((item) => {
-        if (item.href === "/dashboard") return { ...item, priority: 15 };
+        if (item.href === "/scout") return { ...item, priority: 15 };
         if (item.href === "/direct-connect") return { ...item, priority: 14 };
         if (item.href === "/scout") return { ...item, priority: 13 };
         return item;
@@ -128,7 +128,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
     if (userRole === "moderator") {
       return baseItems.map((item) => {
-        if (item.href === "/dashboard") return { ...item, priority: 15 };
+        if (item.href === "/scout") return { ...item, priority: 15 };
         if (item.href === "/community") return { ...item, priority: 14 };
         return item;
       });
@@ -137,7 +137,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     // homeowner (default)
     return baseItems.map((item) => {
       if (item.href === "/community" && isCommunityFirst) return { ...item, priority: 16 };
-      if (item.href === "/dashboard" && isCommunityFirst) return { ...item, priority: 8 };
+      if (item.href === "/scout" && isCommunityFirst) return { ...item, priority: 8 };
       return item;
     });
   }, [user, isAuthenticated]);
@@ -283,7 +283,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     title={!showTextLabel ? item.label : undefined}
                     data-nav-item={item.label.toLowerCase().replace(/\s+/g, "-")}
                     data-nav-contractors={item.href === "/contractors" ? "true" : undefined}
-                    data-nav-dashboard={item.href === "/dashboard" ? "true" : undefined}
+                    data-nav-dashboard={item.href === "/scout" ? "true" : undefined}
                     data-nav-growth={undefined}
                   >
                     <Icon

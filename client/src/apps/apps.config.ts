@@ -13,8 +13,8 @@ export interface AppConfig {
 export const APPS: Record<string, AppConfig> = {
   dashboard: {
     slug: "dashboard",
-    route: "/dashboard",
-    label: "Dashboard",
+    route: "/scout",
+    label: "Scout Hub",
     icon: "Layout",
     nav: "right",
   },
@@ -69,10 +69,6 @@ export const APPS: Record<string, AppConfig> = {
   },
 };
 
-export const BOTTOM_NAV_APPS = Object.values(APPS).filter(
-  (app) => app.nav === "bottom"
-);
+export const BOTTOM_NAV_APPS = Object.values(APPS).filter((app) => app.nav === "bottom");
 
-export const RIGHT_DRAWER_APPS = Object.values(APPS).filter(
-  (app) => app.nav === "right"
-);
+export const RIGHT_DRAWER_APPS = Object.values(APPS).filter((app) => app.nav === "right");
