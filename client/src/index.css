@@ -76,6 +76,12 @@ html {
     --app-height: 100%;
     --bottom-nav-height: 64px;
 
+    /* Charcoal foundations (mapped to theme tokens) */
+    --charcoal-950: color-mix(in oklab, var(--ts-bg, #0B0F14) 92%, #000 8%);
+    --charcoal-900: color-mix(in oklab, var(--ts-bg, #0B0F14) 86%, #000 14%);
+    --charcoal-800: color-mix(in oklab, var(--ts-surface, #121A24) 82%, transparent);
+    --charcoal-700: color-mix(in oklab, var(--ts-surface-hover, #1A2432) 76%, transparent);
+
     /* ===== THEME LOCK: 4-SURFACE SYSTEM ===== */
     /* FRAME SURFACES (Darkest – Navigation) */
     --surface-frame: var(--ts-surface-strong, #0b0f14);
@@ -84,8 +90,8 @@ html {
     /* APPLICATION SURFACES */
     /* Canvas is provided by TradeScoutBackground; keep app shell transparent */
     --surface-app-bg: transparent;
-    --surface-card: var(--ts-surface, #161e2b);        /* Elevated: cards, suggestions, prompts */
-    --surface-intermediate: var(--ts-surface-hover, #1a2230); /* In-card surfaces */
+    --surface-card: color-mix(in oklab, var(--ts-surface, #161e2b) 82%, transparent);        /* Elevated: cards, suggestions, prompts */
+    --surface-intermediate: color-mix(in oklab, var(--ts-surface-hover, #1a2230) 78%, transparent); /* In-card surfaces */
     --surface-input: var(--ts-input-bg, #1b2332);      /* Inputs */
 
     /* INTERACTION STATES */
@@ -210,6 +216,19 @@ html {
 
 .bg-accent { background-color: var(--ts-accent); color: var(--ts-text-on-accent); }
 .bg-accent-soft { background-color: var(--ts-accent-soft); color: var(--ts-text); }
+
+/* Glass surfaces for new charcoal background */
+.bg-tsBg { background-color: transparent !important; }
+.bg-tsCard,
+.bg-tsSurface {
+  background-color: var(--surface-card) !important;
+  backdrop-filter: blur(10px);
+}
+.bg-tsCardMuted,
+.bg-tsSurface-strong {
+  background-color: var(--surface-intermediate) !important;
+  backdrop-filter: blur(8px);
+}
 
 .ts-input {
   background-color: var(--ts-input-bg);

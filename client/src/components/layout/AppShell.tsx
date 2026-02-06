@@ -174,10 +174,13 @@ export function AppShell({ children, footer }: AppShellProps) {
   // Set CSS variables for nav sizing (Step 2)
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--top-nav-h", "56px");
-    root.style.setProperty("--bottom-nav-h", "68px");
+    const topNavHeight = isMobile ? "calc(52px + env(safe-area-inset-top))" : "56px";
+    const bottomNavHeight = isMobile ? "calc(68px + env(safe-area-inset-bottom))" : "68px";
+
+    root.style.setProperty("--top-nav-h", topNavHeight);
+    root.style.setProperty("--bottom-nav-h", bottomNavHeight);
     root.style.setProperty("--right-nav-w", "256px");
-  }, []);
+  }, [isMobile]);
 
   // Rehydrate canonical location into the session layer on boot so that
   // useLocationContext can resolve a single authoritative source. Server
@@ -258,8 +261,10 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* TOP APP NAV HEADER (MOBILE/COMPACT) */}
       {isMobile ? (
         <header
-          className="fixed top-0 inset-x-0 z-50 flex items-center h-[52px] px-3 md:hidden"
+          className="fixed top-0 inset-x-0 z-50 flex items-center px-3 md:hidden"
           style={{
+            height: "calc(52px + env(safe-area-inset-top))",
+            paddingTop: "env(safe-area-inset-top)",
             background: "var(--surface-frame)",
             borderBottom: "1px solid var(--border-primary)",
           }}
