@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Star, 
-  DollarSign, 
-  Clock, 
-  CheckCircle, 
+import {
+  Star,
+  DollarSign,
+  Clock,
+  CheckCircle,
   Calendar,
   MapPin,
   User,
@@ -21,7 +21,7 @@ import {
   TrendingUp,
   Award,
   Target,
-  Plus
+  Plus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -36,36 +36,36 @@ export default function HelperDashboard() {
 
   // Fetch helper profile
   const { data: helperProfile, isLoading: profileLoading } = useQuery<Worker>({
-    queryKey: ['/api/workers/profile'],
-    enabled: !!user && user.role === 'helper',
+    queryKey: ["/api/workers/profile"],
+    enabled: !!user && user.role === "helper",
   });
 
   // Fetch available tasks
   const { data: availableTasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ['/api/tasks/available'],
+    queryKey: ["/api/tasks/available"],
     enabled: activeTab === "find-work",
   });
 
   // Fetch helper's applications
   const { data: applications = [], isLoading: applicationsLoading } = useQuery<TaskApplication[]>({
-    queryKey: ['/api/workers/applications'],
+    queryKey: ["/api/workers/applications"],
     enabled: activeTab === "applications",
   });
 
   // Fetch helper's completed jobs
   const { data: completedJobs = [], isLoading: jobsLoading } = useQuery<Task[]>({
-    queryKey: ['/api/workers/completed-jobs'],
+    queryKey: ["/api/workers/completed-jobs"],
     enabled: activeTab === "completed-jobs",
   });
 
   // Fetch helper's reviews
   const { data: reviews = [], isLoading: reviewsLoading } = useQuery<WorkerReview[]>({
-    queryKey: ['/api/workers/reviews'],
+    queryKey: ["/api/workers/reviews"],
     enabled: activeTab === "reviews",
   });
 
   return (
-    <div className="min-h-screen bg-tsBg p-6">
+    <div className=" p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Helper Dashboard</h1>

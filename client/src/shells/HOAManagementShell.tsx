@@ -9,7 +9,7 @@ interface HOAManagementShellProps {
 
 export function HOAManagementShell({ children, locationOverride }: HOAManagementShellProps) {
   return (
-    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
+    <div className="">
       <CountyRequiredGate locationOverride={locationOverride}>
         <div className="max-w-7xl mx-auto space-y-8" data-testid="hoa-management-page">
           {children}

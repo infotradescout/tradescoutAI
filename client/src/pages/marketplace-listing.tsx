@@ -8,7 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -24,12 +30,12 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
-import { 
-  ArrowLeft, 
-  AlertCircle, 
-  CheckCircle, 
-  Package, 
-  DollarSign, 
+import {
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle,
+  Package,
+  DollarSign,
   MapPin,
   Clock,
   Shield,
@@ -37,7 +43,7 @@ import {
   Info,
   Image as ImageIcon,
   X,
-  Upload
+  Upload,
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -93,7 +99,7 @@ export default function MarketplaceListing() {
     setUploadingImage(true);
     try {
       const newImageUrls: string[] = [];
-      
+
       for (const file of files) {
         if (uploadedImages.length + newImageUrls.length >= 8) {
           toast({
@@ -154,7 +160,8 @@ export default function MarketplaceListing() {
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
       toast({
         title: "Listing Submitted Successfully!",
-        description: "Your listing has been submitted for admin review. It will appear in the Exchange once approved.",
+        description:
+          "Your listing has been submitted for admin review. It will appear in the Exchange once approved.",
       });
       form.reset();
     },
@@ -184,12 +191,14 @@ export default function MarketplaceListing() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className=" flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-4">You need to be logged in to create Exchange listings.</p>
+            <p className="text-gray-600 mb-4">
+              You need to be logged in to create Exchange listings.
+            </p>
             <Button asChild className="bg-orange-600 hover:bg-orange-700">
               <Link href="/login">Log In</Link>
             </Button>
@@ -200,7 +209,7 @@ export default function MarketplaceListing() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className=" text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -226,9 +235,9 @@ export default function MarketplaceListing() {
         <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
           <Info className="h-4 w-4 text-blue-400" />
           <AlertDescription className="text-blue-100">
-            <strong>Approval Process:</strong> All listings require admin approval before going live. 
-            This ensures quality standards and helps maintain our trusted Exchange environment. 
-            You'll be notified once your listing is reviewed.
+            <strong>Approval Process:</strong> All listings require admin approval before going
+            live. This ensures quality standards and helps maintain our trusted Exchange
+            environment. You'll be notified once your listing is reviewed.
           </AlertDescription>
         </Alert>
 
@@ -262,63 +271,64 @@ export default function MarketplaceListing() {
                   <div>
                     {/* Image Upload Section */}
                     <div className="space-y-3">
-                  <FormLabel className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-orange-500" />
-                    Photos (up to 8)
-                  </FormLabel>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {uploadedImages.map((url, index) => (
-                      <div key={index} className="relative group aspect-square">
-                        <img
-                          src={url}
-                          alt={`Upload ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg border-2 border-navy-600"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-4 w-4 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    
-                    {uploadedImages.length < 8 && (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        className="aspect-square border-2 border-dashed border-navy-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
-                      >
-                        {uploadingImage ? (
-                          <>
-                            <div className="h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs text-gray-400">Uploading...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-8 w-8 text-gray-400" />
-                            <span className="text-xs text-gray-400">Add Photo</span>
-                          </>
+                      <FormLabel className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-orange-500" />
+                        Photos (up to 8)
+                      </FormLabel>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {uploadedImages.map((url, index) => (
+                          <div key={index} className="relative group aspect-square">
+                            <img
+                              src={url}
+                              alt={`Upload ${index + 1}`}
+                              className="w-full h-full object-cover rounded-lg border-2 border-navy-600"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-4 w-4 text-white" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {uploadedImages.length < 8 && (
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingImage}
+                            className="aspect-square border-2 border-dashed border-navy-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
+                          >
+                            {uploadingImage ? (
+                              <>
+                                <div className="h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                                <span className="text-xs text-gray-400">Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-8 w-8 text-gray-400" />
+                                <span className="text-xs text-gray-400">Add Photo</span>
+                              </>
+                            )}
+                          </button>
                         )}
-                      </button>
-                    )}
-                  </div>
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImagesSelected}
-                  />
-                  
-                  <p className="text-xs text-gray-400">
-                    Upload clear, well-lit photos of your item from multiple angles. Maximum 8 images.
-                  </p>
+                      </div>
+
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleImagesSelected}
+                      />
+
+                      <p className="text-xs text-gray-400">
+                        Upload clear, well-lit photos of your item from multiple angles. Maximum 8
+                        images.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -326,43 +336,43 @@ export default function MarketplaceListing() {
                 <FormField
                   control={form.control}
                   name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categoriesLoading ? (
-                              <SelectItem value="loading">Loading...</SelectItem>
-                            ) : (
-                              (categories as any[]).map((category: any) => (
-                                <SelectItem key={category.id} value={category.slug}>
-                                  {category.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categoriesLoading ? (
+                            <SelectItem value="loading">Loading...</SelectItem>
+                          ) : (
+                            (categories as any[]).map((category: any) => (
+                              <SelectItem key={category.id} value={category.slug}>
+                                {category.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="description"
+                <FormField
+                  control={form.control}
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Describe your item in detail. Include condition, features, and any relevant history..."
                           rows={4}
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -559,7 +569,7 @@ export default function MarketplaceListing() {
                       </>
                     )}
                   </Button>
-                  
+
                   <Button
                     type="button"
                     variant="outline"
@@ -575,24 +585,30 @@ export default function MarketplaceListing() {
         </Card>
 
         {/* Post-Submission Information */}
-        <Card
-          className="mt-8 border-slate-600"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="mt-8 border-slate-600" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 <Eye className="h-6 w-6 text-blue-500" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-white mb-2">
-                  What Happens Next?
-                </h4>
+                <h4 className="font-semibold text-white mb-2">What Happens Next?</h4>
                 <div className="text-gray-300 text-sm space-y-2">
-                  <p><strong>Review Process:</strong> Our team reviews all submissions to ensure quality and accuracy.</p>
-                  <p><strong>Timeline:</strong> Most listings are reviewed within 24-48 hours.</p>
-                  <p><strong>Notification:</strong> You'll receive an email when your listing is approved or if changes are needed.</p>
-                  <p><strong>Going Live:</strong> Once approved, your listing becomes visible to all TradeScout users.</p>
+                  <p>
+                    <strong>Review Process:</strong> Our team reviews all submissions to ensure
+                    quality and accuracy.
+                  </p>
+                  <p>
+                    <strong>Timeline:</strong> Most listings are reviewed within 24-48 hours.
+                  </p>
+                  <p>
+                    <strong>Notification:</strong> You'll receive an email when your listing is
+                    approved or if changes are needed.
+                  </p>
+                  <p>
+                    <strong>Going Live:</strong> Once approved, your listing becomes visible to all
+                    TradeScout users.
+                  </p>
                 </div>
               </div>
             </div>

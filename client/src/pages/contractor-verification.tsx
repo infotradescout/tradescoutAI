@@ -1,13 +1,22 @@
-import { memo, useState } from 'react';
-import { CheckCircle2, XCircle, Clock, FileText, Camera, Shield, Award, Briefcase } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
+import { memo, useState } from "react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileText,
+  Camera,
+  Shield,
+  Award,
+  Briefcase,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 const ContractorVerification = memo(function ContractorVerification() {
   const [activeTab, setActiveTab] = useState("pending");
@@ -26,9 +35,9 @@ const ContractorVerification = memo(function ContractorVerification() {
       documents: [
         { type: "License", status: "submitted", url: "/docs/license.pdf" },
         { type: "Insurance", status: "submitted", url: "/docs/insurance.pdf" },
-        { type: "Bond", status: "submitted", url: "/docs/bond.pdf" }
+        { type: "Bond", status: "submitted", url: "/docs/bond.pdf" },
       ],
-      priority: "high"
+      priority: "high",
     },
     {
       id: 2,
@@ -42,10 +51,10 @@ const ContractorVerification = memo(function ContractorVerification() {
       documents: [
         { type: "License", status: "submitted", url: "/docs/license2.pdf" },
         { type: "Insurance", status: "pending", url: null },
-        { type: "Bond", status: "submitted", url: "/docs/bond2.pdf" }
+        { type: "Bond", status: "submitted", url: "/docs/bond2.pdf" },
       ],
-      priority: "medium"
-    }
+      priority: "medium",
+    },
   ];
 
   const approvedVerifications = [
@@ -59,8 +68,8 @@ const ContractorVerification = memo(function ContractorVerification() {
       approvedDate: "2024-03-15",
       licenseNumber: "C-36-567890",
       verifiedBy: "Admin Team",
-      status: "active"
-    }
+      status: "active",
+    },
   ];
 
   const handleApprove = (verificationId: number) => {
@@ -80,11 +89,11 @@ const ContractorVerification = memo(function ContractorVerification() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'submitted':
+      case "submitted":
         return <CheckCircle2 className="h-4 w-4 text-green-400" />;
-      case 'pending':
+      case "pending":
         return <Clock className="h-4 w-4 text-yellow-400" />;
-      case 'rejected':
+      case "rejected":
         return <XCircle className="h-4 w-4 text-red-400" />;
       default:
         return <Clock className="h-4 w-4 text-gray-400" />;
@@ -93,19 +102,19 @@ const ContractorVerification = memo(function ContractorVerification() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'bg-red-600';
-      case 'medium':
-        return 'bg-yellow-600';
-      case 'low':
-        return 'bg-green-600';
+      case "high":
+        return "bg-red-600";
+      case "medium":
+        return "bg-yellow-600";
+      case "low":
+        return "bg-green-600";
       default:
-        return 'bg-gray-600';
+        return "bg-gray-600";
     }
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className=" text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -185,14 +194,21 @@ const ContractorVerification = memo(function ContractorVerification() {
 
           <TabsContent value="pending" className="space-y-6">
             {pendingVerifications.map((verification) => (
-              <Card key={verification.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card
+                key={verification.id}
+                className="bg-navy-800/50 border-navy-600 backdrop-blur-sm"
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${getPriorityColor(verification.priority)}`}></div>
+                      <div
+                        className={`w-3 h-3 rounded-full ${getPriorityColor(verification.priority)}`}
+                      ></div>
                       <div>
                         <CardTitle className="text-white">{verification.name}</CardTitle>
-                        <p className="text-gray-400">{verification.company} • {verification.trade}</p>
+                        <p className="text-gray-400">
+                          {verification.company} • {verification.trade}
+                        </p>
                       </div>
                     </div>
                     <Badge variant="outline" className="border-orange-600 text-orange-400">
@@ -230,13 +246,20 @@ const ContractorVerification = memo(function ContractorVerification() {
                       <h4 className="text-white font-medium">Submitted Documents</h4>
                       <div className="space-y-3">
                         {verification.documents.map((doc, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-navy-700 rounded-lg"
+                          >
                             <div className="flex items-center gap-3">
                               {getStatusIcon(doc.status)}
                               <span className="text-white">{doc.type}</span>
                             </div>
                             {doc.url && (
-                              <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                              >
                                 <FileText className="h-4 w-4 mr-1" />
                                 View
                               </Button>
@@ -250,30 +273,35 @@ const ContractorVerification = memo(function ContractorVerification() {
                     <div className="space-y-4">
                       <h4 className="text-white font-medium">Review Actions</h4>
                       <div className="space-y-3">
-                        <Button 
+                        <Button
                           className="w-full bg-green-600 hover:bg-green-700"
                           onClick={() => handleApprove(verification.id)}
                         >
                           <CheckCircle2 className="h-4 w-4 mr-2" />
                           Approve Contractor
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="w-full border-red-600 text-red-400 hover:bg-red-600/20"
                           onClick={() => handleReject(verification.id)}
                         >
                           <XCircle className="h-4 w-4 mr-2" />
                           Reject Application
                         </Button>
-                        <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                        <Button
+                          variant="outline"
+                          className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                        >
                           <Camera className="h-4 w-4 mr-2" />
                           Request More Info
                         </Button>
                       </div>
 
                       <div className="mt-4">
-                        <Label htmlFor="notes" className="text-white">Admin Notes</Label>
-                        <Textarea 
+                        <Label htmlFor="notes" className="text-white">
+                          Admin Notes
+                        </Label>
+                        <Textarea
                           id="notes"
                           placeholder="Add verification notes..."
                           className="mt-2 bg-navy-700 border-navy-600 text-white"
@@ -288,15 +316,22 @@ const ContractorVerification = memo(function ContractorVerification() {
 
           <TabsContent value="approved" className="space-y-6">
             {approvedVerifications.map((verification) => (
-              <Card key={verification.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card
+                key={verification.id}
+                className="bg-navy-800/50 border-navy-600 backdrop-blur-sm"
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <CheckCircle2 className="h-8 w-8 text-green-400" />
                       <div>
                         <h3 className="text-white font-medium">{verification.name}</h3>
-                        <p className="text-gray-400">{verification.company} • {verification.trade}</p>
-                        <p className="text-sm text-gray-500">Approved on {verification.approvedDate}</p>
+                        <p className="text-gray-400">
+                          {verification.company} • {verification.trade}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Approved on {verification.approvedDate}
+                        </p>
                       </div>
                     </div>
                     <Badge variant="outline" className="border-green-600 text-green-400">
@@ -312,7 +347,9 @@ const ContractorVerification = memo(function ContractorVerification() {
             <div className="text-center py-12">
               <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
               <h3 className="text-white text-xl mb-2">No Rejected Applications</h3>
-              <p className="text-gray-400">All contractor applications are currently approved or pending</p>
+              <p className="text-gray-400">
+                All contractor applications are currently approved or pending
+              </p>
             </div>
           </TabsContent>
         </Tabs>

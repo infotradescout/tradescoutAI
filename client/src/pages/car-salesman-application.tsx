@@ -8,7 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,11 +31,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  ArrowLeft, 
-  AlertCircle, 
-  CheckCircle, 
-  Car, 
+import {
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle,
+  Car,
   Shield,
   FileText,
   Award,
@@ -37,7 +43,7 @@ import {
   DollarSign,
   Star,
   Info,
-  Wrench
+  Wrench,
 } from "lucide-react";
 
 const carSalesmanApplicationSchema = z.object({
@@ -68,24 +74,103 @@ const vehicleSpecializations = [
   "Motorcycles",
   "RVs & Trailers",
   "Fleet Sales",
-  "Certified Pre-Owned"
+  "Certified Pre-Owned",
 ];
 
 const carBrands = [
-  "Toyota", "Honda", "Ford", "Chevrolet", "Nissan", "BMW", "Mercedes-Benz",
-  "Audi", "Lexus", "Acura", "Infiniti", "Cadillac", "Lincoln", "Buick",
-  "GMC", "Ram", "Jeep", "Chrysler", "Dodge", "Subaru", "Mazda", "Kia",
-  "Hyundai", "Volvo", "Jaguar", "Land Rover", "Porsche", "Ferrari",
-  "Lamborghini", "Maserati", "Bentley", "Rolls-Royce", "Tesla", "Rivian",
-  "Lucid", "Genesis", "Alfa Romeo", "MINI", "Volkswagen", "Other"
+  "Toyota",
+  "Honda",
+  "Ford",
+  "Chevrolet",
+  "Nissan",
+  "BMW",
+  "Mercedes-Benz",
+  "Audi",
+  "Lexus",
+  "Acura",
+  "Infiniti",
+  "Cadillac",
+  "Lincoln",
+  "Buick",
+  "GMC",
+  "Ram",
+  "Jeep",
+  "Chrysler",
+  "Dodge",
+  "Subaru",
+  "Mazda",
+  "Kia",
+  "Hyundai",
+  "Volvo",
+  "Jaguar",
+  "Land Rover",
+  "Porsche",
+  "Ferrari",
+  "Lamborghini",
+  "Maserati",
+  "Bentley",
+  "Rolls-Royce",
+  "Tesla",
+  "Rivian",
+  "Lucid",
+  "Genesis",
+  "Alfa Romeo",
+  "MINI",
+  "Volkswagen",
+  "Other",
 ];
 
 const states = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
 ];
 
 export default function CarSalesmanApplication() {
@@ -131,7 +216,8 @@ export default function CarSalesmanApplication() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       toast({
         title: "Application Submitted Successfully!",
-        description: "Your car salesman application has been submitted for review. You'll be notified once verified.",
+        description:
+          "Your car salesman application has been submitted for review. You'll be notified once verified.",
       });
       form.reset();
     },
@@ -160,29 +246,29 @@ export default function CarSalesmanApplication() {
   };
 
   const handleSpecializationToggle = (specialization: string) => {
-    setSelectedSpecializations(prev => 
-      prev.includes(specialization) 
-        ? prev.filter(s => s !== specialization)
+    setSelectedSpecializations((prev) =>
+      prev.includes(specialization)
+        ? prev.filter((s) => s !== specialization)
         : [...prev, specialization]
     );
   };
 
   const handleBrandToggle = (brand: string) => {
-    setSelectedBrands(prev => 
-      prev.includes(brand) 
-        ? prev.filter(b => b !== brand)
-        : [...prev, brand]
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     );
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className=" flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-4">You need to be logged in to apply as a car salesman.</p>
+            <p className="text-gray-600 mb-4">
+              You need to be logged in to apply as a car salesman.
+            </p>
             <Button asChild className="bg-orange-600 hover:bg-orange-700">
               <Link href="/login">Log In</Link>
             </Button>
@@ -193,7 +279,7 @@ export default function CarSalesmanApplication() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className=" text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -269,7 +355,7 @@ export default function CarSalesmanApplication() {
                 {/* License Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">License Information</h3>
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -345,7 +431,7 @@ export default function CarSalesmanApplication() {
                 {/* Dealership Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Dealership Information</h3>
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -381,7 +467,7 @@ export default function CarSalesmanApplication() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Vehicle Specializations</h3>
                   <p className="text-sm text-gray-400">Select your areas of expertise</p>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {vehicleSpecializations.map((specialization) => (
                       <div key={specialization} className="flex items-center space-x-2">
@@ -390,7 +476,7 @@ export default function CarSalesmanApplication() {
                           checked={selectedSpecializations.includes(specialization)}
                           onCheckedChange={() => handleSpecializationToggle(specialization)}
                         />
-                        <label 
+                        <label
                           htmlFor={specialization}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
@@ -405,7 +491,7 @@ export default function CarSalesmanApplication() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Brand Specialties</h3>
                   <p className="text-sm text-gray-400">Select brands you specialize in selling</p>
-                  
+
                   <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                     {carBrands.map((brand) => (
                       <div key={brand} className="flex items-center space-x-2">
@@ -414,7 +500,7 @@ export default function CarSalesmanApplication() {
                           checked={selectedBrands.includes(brand)}
                           onCheckedChange={() => handleBrandToggle(brand)}
                         />
-                        <label 
+                        <label
                           htmlFor={brand}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
@@ -429,7 +515,7 @@ export default function CarSalesmanApplication() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Service Areas</h3>
                   <p className="text-sm text-gray-400">Define your geographic coverage</p>
-                  
+
                   <FormField
                     control={form.control}
                     name="serviceCounties"
@@ -437,10 +523,12 @@ export default function CarSalesmanApplication() {
                       <FormItem>
                         <FormLabel>Primary Counties (comma-separated)</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             placeholder="e.g., Los Angeles County, Orange County"
                             value={serviceCounties.join(", ")}
-                            onChange={(e) => setServiceCounties(e.target.value.split(",").map(s => s.trim()))}
+                            onChange={(e) =>
+                              setServiceCounties(e.target.value.split(",").map((s) => s.trim()))
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -474,7 +562,11 @@ export default function CarSalesmanApplication() {
                 <div className="flex gap-4 pt-4">
                   <Button
                     type="submit"
-                    disabled={submitApplicationMutation.isPending || selectedSpecializations.length === 0 || selectedBrands.length === 0}
+                    disabled={
+                      submitApplicationMutation.isPending ||
+                      selectedSpecializations.length === 0 ||
+                      selectedBrands.length === 0
+                    }
                     className="bg-red-600 hover:bg-red-700 flex-1"
                   >
                     {submitApplicationMutation.isPending ? (
@@ -489,7 +581,7 @@ export default function CarSalesmanApplication() {
                       </>
                     )}
                   </Button>
-                  
+
                   <Button
                     type="button"
                     variant="outline"

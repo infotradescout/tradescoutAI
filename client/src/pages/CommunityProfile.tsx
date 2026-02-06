@@ -103,7 +103,7 @@ export default function CommunityProfile() {
   }, [posts]);
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
+    <div className="">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <Card
@@ -125,19 +125,19 @@ export default function CommunityProfile() {
                 {author?.name || "TradeScout community member"}
               </CardTitle>
               {author?.role && (
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                  {author.role}
-                </p>
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{author.role}</p>
               )}
               <p className="text-sm text-slate-300">
                 Local activity, questions, and recommendations shared in the community feed.
               </p>
             </div>
             <div className="flex flex-col gap-2">
-              <Button asChild variant="outline" className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10">
-                <Link href={`/profile/${encodeURIComponent(userId)}`}>
-                  View public profile
-                </Link>
+              <Button
+                asChild
+                variant="outline"
+                className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10"
+              >
+                <Link href={`/profile/${encodeURIComponent(userId)}`}>View public profile</Link>
               </Button>
             </div>
           </CardHeader>
@@ -149,7 +149,8 @@ export default function CommunityProfile() {
             </span>
             {user && user.id === userId && (
               <span className="text-slate-500">
-                This is your community-facing profile. Your professional site lives on your public profile.
+                This is your community-facing profile. Your professional site lives on your public
+                profile.
               </span>
             )}
           </CardContent>
@@ -170,9 +171,7 @@ export default function CommunityProfile() {
             {isLoading ? (
               <div className="py-10 text-center text-slate-400">Loading posts…</div>
             ) : wallPosts.length === 0 ? (
-              <div className="py-10 text-center text-slate-400">
-                No posts from this member yet.
-              </div>
+              <div className="py-10 text-center text-slate-400">No posts from this member yet.</div>
             ) : (
               <div className="space-y-4">
                 {wallPosts.map((post) => (

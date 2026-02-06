@@ -1,15 +1,47 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Plus, Share2, Eye, MousePointer, TrendingUp, Calendar, DollarSign, MapPin, Edit, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Share2,
+  Eye,
+  MousePointer,
+  TrendingUp,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -69,7 +101,7 @@ function PromoForm({
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const form = useForm<PromoFormValues>({
     resolver: zodResolver(promoFormSchema),
     defaultValues: {
@@ -81,7 +113,7 @@ function PromoForm({
       discountValue: initialValues?.discountValue ?? promo?.discountValue ?? "",
       minimumJobValue: initialValues?.minimumJobValue ?? promo?.minimumJobValue ?? "",
       promoCode: initialValues?.promoCode ?? promo?.promoCode ?? "",
-      maxUses: initialValues?.maxUses ?? (promo?.maxUses?.toString() ?? ""),
+      maxUses: initialValues?.maxUses ?? promo?.maxUses?.toString() ?? "",
       expiresAt:
         initialValues?.expiresAt ??
         (promo?.expiresAt ? new Date(promo.expiresAt).toISOString().split("T")[0] : ""),
@@ -89,16 +121,17 @@ function PromoForm({
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: PromoFormValues) => apiRequest("/api/contractor-promos", {
-      method: "POST",
-      body: {
-        ...data,
-        discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
-        minimumJobValue: data.minimumJobValue ? parseFloat(data.minimumJobValue) : null,
-        maxUses: data.maxUses ? parseInt(data.maxUses) : null,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
-      }
-    }),
+    mutationFn: (data: PromoFormValues) =>
+      apiRequest("/api/contractor-promos", {
+        method: "POST",
+        body: {
+          ...data,
+          discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
+          minimumJobValue: data.minimumJobValue ? parseFloat(data.minimumJobValue) : null,
+          maxUses: data.maxUses ? parseInt(data.maxUses) : null,
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contractor-promos"] });
       toast({ title: "Promo created successfully!" });
@@ -109,20 +142,21 @@ function PromoForm({
     },
     onError: () => {
       toast({ title: "Failed to create promo", variant: "destructive" });
-    }
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: PromoFormValues) => apiRequest(`/api/contractor-promos/${promo!.id}`, {
-      method: "PUT",
-      body: {
-        ...data,
-        discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
-        minimumJobValue: data.minimumJobValue ? parseFloat(data.minimumJobValue) : null,
-        maxUses: data.maxUses ? parseInt(data.maxUses) : null,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
-      }
-    }),
+    mutationFn: (data: PromoFormValues) =>
+      apiRequest(`/api/contractor-promos/${promo!.id}`, {
+        method: "PUT",
+        body: {
+          ...data,
+          discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
+          minimumJobValue: data.minimumJobValue ? parseFloat(data.minimumJobValue) : null,
+          maxUses: data.maxUses ? parseInt(data.maxUses) : null,
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contractor-promos"] });
       toast({ title: "Promo updated successfully!" });
@@ -130,7 +164,7 @@ function PromoForm({
     },
     onError: () => {
       toast({ title: "Failed to update promo", variant: "destructive" });
-    }
+    },
   });
 
   const onSubmit = (data: PromoFormValues) => {
@@ -150,7 +184,8 @@ function PromoForm({
             <div>
               <p className="font-medium text-gray-900">Draft imported from Scout</p>
               <p className="text-xs text-gray-600">
-                Scout prefilled this promotion based on your request. Review the details and make any edits before publishing.
+                Scout prefilled this promotion based on your request. Review the details and make
+                any edits before publishing.
               </p>
             </div>
           </div>
@@ -178,9 +213,9 @@ function PromoForm({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Get ready for winter with our professional roofing services. Limited time offer for new customers."
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormDescription>Detailed description of your promotional offer</FormDescription>
@@ -196,9 +231,9 @@ function PromoForm({
             <FormItem>
               <FormLabel>Offer Details</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="20% off all roofing installations and repairs. Free inspection included. Valid through December 31st."
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormDescription>Specific terms and conditions of your offer</FormDescription>
@@ -239,12 +274,7 @@ function PromoForm({
               <FormItem>
                 <FormLabel>Discount Value</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="20 (for 20% or $20)" 
-                    type="number" 
-                    step="0.01" 
-                    {...field} 
-                  />
+                  <Input placeholder="20 (for 20% or $20)" type="number" step="0.01" {...field} />
                 </FormControl>
                 <FormDescription>Amount or percentage</FormDescription>
                 <FormMessage />
@@ -261,12 +291,7 @@ function PromoForm({
               <FormItem>
                 <FormLabel>Minimum Job Value</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="500" 
-                    type="number" 
-                    step="0.01" 
-                    {...field} 
-                  />
+                  <Input placeholder="500" type="number" step="0.01" {...field} />
                 </FormControl>
                 <FormDescription>Minimum project cost to qualify</FormDescription>
                 <FormMessage />
@@ -298,11 +323,7 @@ function PromoForm({
               <FormItem>
                 <FormLabel>Max Uses (Optional)</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="50" 
-                    type="number" 
-                    {...field} 
-                  />
+                  <Input placeholder="50" type="number" {...field} />
                 </FormControl>
                 <FormDescription>Limit number of customers</FormDescription>
                 <FormMessage />
@@ -317,10 +338,7 @@ function PromoForm({
               <FormItem>
                 <FormLabel>Expiration Date (Optional)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="date" 
-                    {...field} 
-                  />
+                  <Input type="date" {...field} />
                 </FormControl>
                 <FormDescription>When the promo expires</FormDescription>
                 <FormMessage />
@@ -333,14 +351,12 @@ function PromoForm({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            disabled={createMutation.isPending || updateMutation.isPending}
-          >
-            {createMutation.isPending || updateMutation.isPending 
-              ? "Saving..." 
-              : promo ? "Update Promo" : "Create Promo"
-            }
+          <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+            {createMutation.isPending || updateMutation.isPending
+              ? "Saving..."
+              : promo
+                ? "Update Promo"
+                : "Create Promo"}
           </Button>
         </div>
       </form>
@@ -354,16 +370,17 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
   const [showForm, setShowForm] = useState(false);
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiRequest(`/api/contractor-promos/${promo.id}`, {
-      method: "DELETE"
-    }),
+    mutationFn: () =>
+      apiRequest(`/api/contractor-promos/${promo.id}`, {
+        method: "DELETE",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contractor-promos"] });
       toast({ title: "Promo deleted successfully!" });
     },
     onError: () => {
       toast({ title: "Failed to delete promo", variant: "destructive" });
-    }
+    },
   });
 
   const shareUrl = `${window.location.origin}/promo/${promo.slug}`;
@@ -378,9 +395,9 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
   };
 
   const formatDiscountValue = () => {
-    if (promo.discountType === 'percentage') {
+    if (promo.discountType === "percentage") {
       return `${promo.discountValue}%`;
-    } else if (promo.discountType === 'fixed_amount') {
+    } else if (promo.discountType === "fixed_amount") {
       return `$${promo.discountValue}`;
     }
     return promo.discountValue;
@@ -390,7 +407,7 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
   const isUsageLimitReached = promo.maxUses && promo.currentUses >= promo.maxUses;
 
   return (
-    <Card className={`${!promo.isActive || isExpired || isUsageLimitReached ? 'opacity-60' : ''}`}>
+    <Card className={`${!promo.isActive || isExpired || isUsageLimitReached ? "opacity-60" : ""}`}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -407,14 +424,12 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Edit Promo</DialogTitle>
-                  <DialogDescription>
-                    Update your promotional campaign details
-                  </DialogDescription>
+                  <DialogDescription>Update your promotional campaign details</DialogDescription>
                 </DialogHeader>
                 <PromoForm promo={promo} onClose={() => setShowForm(false)} />
               </DialogContent>
             </Dialog>
-            
+
             <Button
               size="sm"
               variant="outline"
@@ -425,10 +440,18 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2 mt-2">
-          <Badge variant={promo.isActive && !isExpired && !isUsageLimitReached ? "default" : "secondary"}>
-            {!promo.isActive ? "Inactive" : isExpired ? "Expired" : isUsageLimitReached ? "Limit Reached" : "Active"}
+          <Badge
+            variant={promo.isActive && !isExpired && !isUsageLimitReached ? "default" : "secondary"}
+          >
+            {!promo.isActive
+              ? "Inactive"
+              : isExpired
+                ? "Expired"
+                : isUsageLimitReached
+                  ? "Limit Reached"
+                  : "Active"}
           </Badge>
           <Badge variant="outline">
             <DollarSign className="h-3 w-3 mr-1" />
@@ -442,7 +465,7 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-4">
           <div className="text-sm">
@@ -486,12 +509,16 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
               <p className="font-medium">Usage:</p>
               <div className="flex items-center space-x-2">
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-orange-600 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min((promo.currentUses / promo.maxUses) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((promo.currentUses / promo.maxUses) * 100, 100)}%`,
+                    }}
                   />
                 </div>
-                <span className="text-xs">{promo.currentUses}/{promo.maxUses}</span>
+                <span className="text-xs">
+                  {promo.currentUses}/{promo.maxUses}
+                </span>
               </div>
             </div>
           )}
@@ -504,9 +531,7 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
                 Copy Link
               </Button>
             </div>
-            <div className="mt-2 p-2 bg-tsCard rounded text-xs break-all">
-              {shareUrl}
-            </div>
+            <div className="mt-2 p-2 bg-tsCard rounded text-xs break-all">{shareUrl}</div>
           </div>
         </div>
       </CardContent>
@@ -586,7 +611,7 @@ export default function ContractorPromos() {
       // Ignore URL parsing errors; form will simply open empty.
     }
   }, []);
-  
+
   const { data: promos = [], isLoading } = useQuery<ContractorPromo[]>({
     queryKey: ["/api/contractor-promos"],
     placeholderData: [] as ContractorPromo[],
@@ -594,7 +619,7 @@ export default function ContractorPromos() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-tsBg py-8">
+      <div className=" py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">Loading your promos...</div>
         </div>
@@ -603,17 +628,18 @@ export default function ContractorPromos() {
   }
 
   return (
-    <div className="min-h-screen bg-tsBg py-8">
+    <div className=" py-8">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">My Promotional Campaigns</h1>
             <p className="text-gray-600 mt-2">
               Create and manage your promotional offers with shareable links for local marketing.
-              You can also ask Scout to "Draft a promotion for my services" and well prefill this form for you.
+              You can also ask Scout to "Draft a promotion for my services" and well prefill this
+              form for you.
             </p>
           </div>
-          
+
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
               <Button>
@@ -634,12 +660,16 @@ export default function ContractorPromos() {
                 fromScoutDraft={fromScoutDraft}
                 onPublishedFromScoutDraft={() => {
                   try {
-                    const path = typeof window !== "undefined" ? window.location.pathname : "/contractor-promos";
+                    const path =
+                      typeof window !== "undefined"
+                        ? window.location.pathname
+                        : "/contractor-promos";
                     const ts = new Date().toISOString();
                     const deviceType = getDeviceType();
                     const startedAt = draftStartedAtRef.current;
                     draftStartedAtRef.current = null;
-                    const timeToPublishMs = typeof startedAt === "number" ? Date.now() - startedAt : undefined;
+                    const timeToPublishMs =
+                      typeof startedAt === "number" ? Date.now() - startedAt : undefined;
                     void trackShellEvent({
                       type: "scout_draft_published",
                       draftKind: "promo",
@@ -681,10 +711,12 @@ export default function ContractorPromos() {
                 <MapPin className="h-12 w-12 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No promotional campaigns yet</h3>
                 <p className="text-sm">
-                  Create your first promotional campaign to start attracting customers with special offers
+                  Create your first promotional campaign to start attracting customers with special
+                  offers
                 </p>
                 <p className="text-xs text-gray-500 mt-3">
-                  Tip: From the Scout chat, try asking "Draft a promotion for my services" and well bring you back here with a prefilled draft ready to review.
+                  Tip: From the Scout chat, try asking "Draft a promotion for my services" and well
+                  bring you back here with a prefilled draft ready to review.
                 </p>
               </div>
               <Button onClick={() => setShowForm(true)}>

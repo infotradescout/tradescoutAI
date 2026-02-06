@@ -1,42 +1,62 @@
-import { memo, useState } from 'react';
-import { Calendar, Clock, Users2, CheckCircle2, MapPin, Phone, Mail, User } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { memo, useState } from "react";
+import { Calendar, Clock, Users2, CheckCircle2, MapPin, Phone, Mail, User } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const ScheduleConsultation = memo(function ScheduleConsultation() {
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [consultationType, setConsultationType] = useState('');
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [consultationType, setConsultationType] = useState("");
   const { toast } = useToast();
 
-  const availableDates = [
-    '2024-03-25',
-    '2024-03-26',
-    '2024-03-27',
-    '2024-03-28',
-    '2024-03-29'
-  ];
+  const availableDates = ["2024-03-25", "2024-03-26", "2024-03-27", "2024-03-28", "2024-03-29"];
 
   const availableTimes = [
-    '09:00 AM',
-    '10:00 AM',
-    '11:00 AM',
-    '01:00 PM',
-    '02:00 PM',
-    '03:00 PM',
-    '04:00 PM'
+    "09:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "01:00 PM",
+    "02:00 PM",
+    "03:00 PM",
+    "04:00 PM",
   ];
 
   const consultationTypes = [
-    { value: 'accelerator', label: 'Accelerator Program', duration: '45 min', description: 'Learn about premium features and benefits' },
-    { value: 'business', label: 'Business Growth', duration: '30 min', description: 'Strategies for expanding your contractor business' },
-    { value: 'platform', label: 'Platform Training', duration: '30 min', description: 'Get started with TradeScout features' },
-    { value: 'technical', label: 'Technical Support', duration: '15 min', description: 'Resolve platform issues and questions' }
+    {
+      value: "accelerator",
+      label: "Accelerator Program",
+      duration: "45 min",
+      description: "Learn about premium features and benefits",
+    },
+    {
+      value: "business",
+      label: "Business Growth",
+      duration: "30 min",
+      description: "Strategies for expanding your contractor business",
+    },
+    {
+      value: "platform",
+      label: "Platform Training",
+      duration: "30 min",
+      description: "Get started with TradeScout features",
+    },
+    {
+      value: "technical",
+      label: "Technical Support",
+      duration: "15 min",
+      description: "Resolve platform issues and questions",
+    },
   ];
 
   const handleScheduleConsultation = () => {
@@ -56,7 +76,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className=" text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -65,7 +85,8 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
             <h1 className="text-4xl font-bold text-white">Schedule Consultation</h1>
           </div>
           <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-            Book a personalized consultation with our team to discuss your business goals and how TradeScout can help you succeed
+            Book a personalized consultation with our team to discuss your business goals and how
+            TradeScout can help you succeed
           </p>
         </div>
 
@@ -84,7 +105,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 <h3 className="text-white font-medium">Contact Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-white">First Name</Label>
+                    <Label htmlFor="firstName" className="text-white">
+                      First Name
+                    </Label>
                     <Input
                       id="firstName"
                       placeholder="John"
@@ -92,7 +115,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-white">Last Name</Label>
+                    <Label htmlFor="lastName" className="text-white">
+                      Last Name
+                    </Label>
                     <Input
                       id="lastName"
                       placeholder="Smith"
@@ -102,7 +127,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">Email Address</Label>
+                  <Label htmlFor="email" className="text-white">
+                    Email Address
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -112,7 +139,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-white">Phone Number</Label>
+                  <Label htmlFor="phone" className="text-white">
+                    Phone Number
+                  </Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -122,7 +151,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company" className="text-white">Company Name (Optional)</Label>
+                  <Label htmlFor="company" className="text-white">
+                    Company Name (Optional)
+                  </Label>
                   <Input
                     id="company"
                     placeholder="Your Company LLC"
@@ -143,7 +174,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                       <SelectItem key={type.value} value={type.value}>
                         <div>
                           <div className="font-medium">{type.label}</div>
-                          <div className="text-sm text-gray-400">{type.duration} • {type.description}</div>
+                          <div className="text-sm text-gray-400">
+                            {type.duration} • {type.description}
+                          </div>
                         </div>
                       </SelectItem>
                     ))}
@@ -154,7 +187,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
               {/* Date & Time Selection */}
               <div className="space-y-4">
                 <h3 className="text-white font-medium">Preferred Date & Time</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-white">Select Date</Label>
@@ -165,11 +198,11 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                       <SelectContent>
                         {availableDates.map((date) => (
                           <SelectItem key={date} value={date}>
-                            {new Date(date).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
+                            {new Date(date).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
                             })}
                           </SelectItem>
                         ))}
@@ -197,7 +230,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
 
               {/* Additional Information */}
               <div className="space-y-2">
-                <Label htmlFor="message" className="text-white">What would you like to discuss? (Optional)</Label>
+                <Label htmlFor="message" className="text-white">
+                  What would you like to discuss? (Optional)
+                </Label>
                 <Textarea
                   id="message"
                   placeholder="Tell us about your business goals, challenges, or specific topics you'd like to cover..."
@@ -206,7 +241,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 />
               </div>
 
-              <Button 
+              <Button
                 className="w-full bg-orange-600 hover:bg-orange-700"
                 onClick={handleScheduleConsultation}
               >
@@ -230,7 +265,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Personalized Strategy</p>
-                    <p className="text-gray-400 text-sm">Tailored advice for your specific business needs and goals</p>
+                    <p className="text-gray-400 text-sm">
+                      Tailored advice for your specific business needs and goals
+                    </p>
                   </div>
                 </div>
 
@@ -238,7 +275,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Platform Demo</p>
-                    <p className="text-gray-400 text-sm">Live walkthrough of features that will benefit your business</p>
+                    <p className="text-gray-400 text-sm">
+                      Live walkthrough of features that will benefit your business
+                    </p>
                   </div>
                 </div>
 
@@ -246,7 +285,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Q&A Session</p>
-                    <p className="text-gray-400 text-sm">Get answers to all your questions about TradeScout</p>
+                    <p className="text-gray-400 text-sm">
+                      Get answers to all your questions about TradeScout
+                    </p>
                   </div>
                 </div>
 
@@ -254,7 +295,9 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Next Steps</p>
-                    <p className="text-gray-400 text-sm">Clear action plan for getting started and maximizing results</p>
+                    <p className="text-gray-400 text-sm">
+                      Clear action plan for getting started and maximizing results
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -291,7 +334,8 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
 
                 <div className="pt-4 border-t border-navy-600">
                   <p className="text-gray-400 text-sm">
-                    Our consultation team includes experienced contractors and business development specialists who understand your challenges.
+                    Our consultation team includes experienced contractors and business development
+                    specialists who understand your challenges.
                   </p>
                 </div>
               </CardContent>
@@ -306,9 +350,10 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-300 mb-4">
-                  All consultations are conducted via video call for your convenience. You'll receive a meeting link via email 24 hours before your scheduled time.
+                  All consultations are conducted via video call for your convenience. You'll
+                  receive a meeting link via email 24 hours before your scheduled time.
                 </p>
-                
+
                 <div className="bg-navy-700 p-4 rounded-lg">
                   <p className="text-orange-400 font-medium mb-2">What You'll Need:</p>
                   <ul className="text-gray-300 text-sm space-y-1">

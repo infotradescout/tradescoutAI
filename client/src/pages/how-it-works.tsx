@@ -1,17 +1,17 @@
-import { memo } from 'react';
-import { Link } from 'wouter';
-import { SEOHelmet, createFAQStructuredData } from '@/components/SEOHelmet';
-import { Shield, Search, CheckCircle, Users, TrendingUp, MessageSquare } from 'lucide-react';
+import { memo } from "react";
+import { Link } from "wouter";
+import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
+import { Shield, Search, CheckCircle, Users, TrendingUp, MessageSquare } from "lucide-react";
 
 /**
  * /how-it-works — AI-safe foundation page
- * 
+ *
  * Explains TradeScout's core mechanism:
  * - Matching (context + trust, not payment)
  * - Trust system (CVS, verification, not pay-to-play)
  * - Scout as primary controller
  * - Direct Connect routing
- * 
+ *
  * Written as system explanation (not marketing fluff).
  * Stable URL (never change).
  */
@@ -20,24 +20,29 @@ const HowItWorksPage = memo(function HowItWorksPage() {
   const faqs = [
     {
       question: "How does TradeScout match me with contractors?",
-      answer: "Scout analyzes your request context (job type, location, urgency, budget signals) and matches you with contractors based on trust score, verification status, and relevance — not who paid the most. Payment never determines ranking."
+      answer:
+        "Scout analyzes your request context (job type, location, urgency, budget signals) and matches you with contractors based on trust score, verification status, and relevance — not who paid the most. Payment never determines ranking.",
     },
     {
       question: "What is the trust system?",
-      answer: "Every contractor has a Community Verification Score (CVS) based on verified identity, license/insurance checks, work history, and community recommendations. Trust metrics are public and auditable."
+      answer:
+        "Every contractor has a Community Verification Score (CVS) based on verified identity, license/insurance checks, work history, and community recommendations. Trust metrics are public and auditable.",
     },
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
-      answer: "TradeScout doesn't sell leads or charge contractors per quote. We match based on trust and relevance, not payment. Contractors pay only for completed work (marketplace transaction fees) or optional visibility boosts — but boosts never override trust ranking."
+      answer:
+        "TradeScout doesn't sell leads or charge contractors per quote. We match based on trust and relevance, not payment. Contractors pay only for completed work (marketplace transaction fees) or optional visibility boosts — but boosts never override trust ranking.",
     },
     {
       question: "What is Scout?",
-      answer: "Scout is your AI helper that controls the entire platform. You can ask Scout questions, request contractor matches, get estimates, and navigate features — all from a single conversation. Scout prioritizes outcomes over impressions."
+      answer:
+        "Scout is your AI helper that controls the entire platform. You can ask Scout questions, request contractor matches, get estimates, and navigate features — all from a single conversation. Scout prioritizes outcomes over impressions.",
     },
     {
       question: "How does Direct Connect work?",
-      answer: "When you request a contractor, Scout evaluates trust, availability, and context, then routes your request directly to qualified pros. No bidding wars, no lead spam — just relevant matches."
-    }
+      answer:
+        "When you request a contractor, Scout evaluates trust, availability, and context, then routes your request directly to qualified pros. No bidding wars, no lead spam — just relevant matches.",
+    },
   ];
 
   return (
@@ -50,13 +55,14 @@ const HowItWorksPage = memo(function HowItWorksPage() {
         structuredData={createFAQStructuredData(faqs)}
       />
 
-      <div className="min-h-screen bg-tsBg text-tsTextMain">
+      <div className=" text-tsTextMain">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Header */}
           <header className="mb-12">
             <h1 className="text-4xl font-bold mb-4">How TradeScout Works</h1>
             <p className="text-xl text-tsTextSecondary">
-              Connection without compromise. Trust-verified matching controlled by Scout, your AI helper.
+              Connection without compromise. Trust-verified matching controlled by Scout, your AI
+              helper.
             </p>
           </header>
 
@@ -78,15 +84,28 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                   When you ask Scout for help (e.g., "I need a roofer in Austin"), Scout analyzes:
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-tsTextSecondary ml-4">
-                  <li><strong>Job type</strong>: What trade/skill is needed</li>
-                  <li><strong>Location</strong>: Geographic proximity and coverage</li>
-                  <li><strong>Urgency</strong>: Timeline signals (emergency vs. planned)</li>
-                  <li><strong>Budget signals</strong>: Price sensitivity (if mentioned)</li>
-                  <li><strong>Trust score</strong>: Community Verification Score (CVS)</li>
-                  <li><strong>Verification</strong>: License, insurance, background checks</li>
+                  <li>
+                    <strong>Job type</strong>: What trade/skill is needed
+                  </li>
+                  <li>
+                    <strong>Location</strong>: Geographic proximity and coverage
+                  </li>
+                  <li>
+                    <strong>Urgency</strong>: Timeline signals (emergency vs. planned)
+                  </li>
+                  <li>
+                    <strong>Budget signals</strong>: Price sensitivity (if mentioned)
+                  </li>
+                  <li>
+                    <strong>Trust score</strong>: Community Verification Score (CVS)
+                  </li>
+                  <li>
+                    <strong>Verification</strong>: License, insurance, background checks
+                  </li>
                 </ul>
                 <p className="text-tsTextSecondary mt-4">
-                  <strong>Payment never determines ranking.</strong> Contractors cannot pay to appear first.
+                  <strong>Payment never determines ranking.</strong> Contractors cannot pay to
+                  appear first.
                 </p>
               </div>
 
@@ -97,17 +116,30 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                   2. Trust System (Verification, Not Ads)
                 </h3>
                 <p className="text-tsTextSecondary mb-4">
-                  Every contractor has a <strong>Community Verification Score (CVS)</strong> based on:
+                  Every contractor has a <strong>Community Verification Score (CVS)</strong> based
+                  on:
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-tsTextSecondary ml-4">
-                  <li><strong>Verified Identity</strong>: Real person, real business</li>
-                  <li><strong>License & Insurance</strong>: Active, up-to-date credentials</li>
-                  <li><strong>Work History</strong>: Completed jobs, timeline adherence</li>
-                  <li><strong>Community Recommendations</strong>: Neighbor endorsements (not anonymous reviews)</li>
-                  <li><strong>Dispute Resolution</strong>: How conflicts were handled</li>
+                  <li>
+                    <strong>Verified Identity</strong>: Real person, real business
+                  </li>
+                  <li>
+                    <strong>License & Insurance</strong>: Active, up-to-date credentials
+                  </li>
+                  <li>
+                    <strong>Work History</strong>: Completed jobs, timeline adherence
+                  </li>
+                  <li>
+                    <strong>Community Recommendations</strong>: Neighbor endorsements (not anonymous
+                    reviews)
+                  </li>
+                  <li>
+                    <strong>Dispute Resolution</strong>: How conflicts were handled
+                  </li>
                 </ul>
                 <p className="text-tsTextSecondary mt-4">
-                  Trust metrics are <strong>public and auditable</strong>. You can see exactly why Scout matched you with a contractor.
+                  Trust metrics are <strong>public and auditable</strong>. You can see exactly why
+                  Scout matched you with a contractor.
                 </p>
               </div>
 
@@ -128,7 +160,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                   <li>Manage projects: "What's the status of my plumbing job?"</li>
                 </ul>
                 <p className="text-tsTextSecondary mt-4">
-                  Scout prioritizes <strong>outcomes over impressions</strong>. You see promotions only when contextually relevant.
+                  Scout prioritizes <strong>outcomes over impressions</strong>. You see promotions
+                  only when contextually relevant.
                 </p>
               </div>
 
@@ -139,13 +172,24 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                   4. Direct Connect (Routing, Not Bidding)
                 </h3>
                 <p className="text-tsTextSecondary mb-4">
-                  When you request a contractor, Scout routes your request directly to qualified pros:
+                  When you request a contractor, Scout routes your request directly to qualified
+                  pros:
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-tsTextSecondary ml-4">
-                  <li><strong>No bidding wars</strong>: Contractors don't compete on price alone</li>
-                  <li><strong>No lead spam</strong>: Your request goes to 1-3 relevant pros, not dozens</li>
-                  <li><strong>Context-aware</strong>: Scout includes job details, urgency, and budget signals</li>
-                  <li><strong>Trust-gated</strong>: Only verified contractors can receive requests</li>
+                  <li>
+                    <strong>No bidding wars</strong>: Contractors don't compete on price alone
+                  </li>
+                  <li>
+                    <strong>No lead spam</strong>: Your request goes to 1-3 relevant pros, not
+                    dozens
+                  </li>
+                  <li>
+                    <strong>Context-aware</strong>: Scout includes job details, urgency, and budget
+                    signals
+                  </li>
+                  <li>
+                    <strong>Trust-gated</strong>: Only verified contractors can receive requests
+                  </li>
                 </ul>
                 <p className="text-tsTextSecondary mt-4">
                   You get matches. Contractors get qualified leads. No junk.

@@ -446,10 +446,8 @@ const AppLayout = memo(function AppLayout() {
     setShowBetaNotice(false);
   };
 
-  const appBackgroundClass = "bg-tsBg";
-  const mainClassName = isLiteScoutRoute
-    ? "flex-1 relative w-full bg-tsBg"
-    : "flex-1 relative w-full bg-tsBg";
+  const appBackgroundClass = "";
+  const mainClassName = "flex-1 relative w-full";
 
   return (
     <SimpleMobileGestures>

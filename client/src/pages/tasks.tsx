@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,12 +42,12 @@ function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): stri
     // Maintenance & home support
     "yard-work": "landscaper",
     "seasonal-tasks": "landscaper",
-    "cleaning": "cleaning_service",
-    "organization": "cleaning_service",
+    cleaning: "cleaning_service",
+    organization: "cleaning_service",
     "basic-repairs": "handyman",
-    "assembly": "handyman",
+    assembly: "handyman",
     // Light construction / prep
-    "demolition": "general_contractor",
+    demolition: "general_contractor",
     "painting-prep": "painter",
     // Misc personal help -> handyman-style
     "general-labor": "handyman",
@@ -72,8 +78,12 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
   const [taskCategoryId, setTaskCategoryId] = useState<string>("");
   const [taskPayType, setTaskPayType] = useState<"fixed" | "hourly" | "per_task">("fixed");
   const [taskPayAmount, setTaskPayAmount] = useState<string>("");
-  const [taskTaskType, setTaskTaskType] = useState<"one_time" | "recurring" | "project_based">("one_time");
-  const [taskSchedulingType, setTaskSchedulingType] = useState<"asap" | "scheduled" | "flexible">("asap");
+  const [taskTaskType, setTaskTaskType] = useState<"one_time" | "recurring" | "project_based">(
+    "one_time"
+  );
+  const [taskSchedulingType, setTaskSchedulingType] = useState<"asap" | "scheduled" | "flexible">(
+    "asap"
+  );
 
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
 
@@ -91,7 +101,9 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
               surface: "direct_connect",
               scope: "county",
               countyFips: defaultCountyFips,
-              source: new URLSearchParams(window.location.search).has("county") ? "county_page" : "manual_change",
+              source: new URLSearchParams(window.location.search).has("county")
+                ? "county_page"
+                : "manual_change",
               sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
               asOf: new Date().toISOString(),
             },
@@ -122,7 +134,7 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
 
   const tradeSlugForCategory = useMemo(
     () => mapTaskCategoryToTradeSlug(taskCategoryId || null),
-    [taskCategoryId],
+    [taskCategoryId]
   );
 
   useEffect(() => {
@@ -131,11 +143,7 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
   }, [taskCategoryId]);
 
   const { data: recommendedProviders, isLoading: providersLoading } = useQuery<TopContractor[]>({
-    queryKey: [
-      "/api/contractors/top",
-      selectedCountyFips || null,
-      tradeSlugForCategory || null,
-    ],
+    queryKey: ["/api/contractors/top", selectedCountyFips || null, tradeSlugForCategory || null],
     queryFn: async () => {
       const county = selectedCountyFips;
       const trade = tradeSlugForCategory;
@@ -158,7 +166,8 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
       const payAmount = Number(taskPayAmount);
       if (!taskTitle.trim()) throw new Error("Title is required");
       if (!taskDescription.trim()) throw new Error("Description is required");
-      if (!Number.isFinite(payAmount) || payAmount <= 0) throw new Error("Pay amount must be a positive number");
+      if (!Number.isFinite(payAmount) || payAmount <= 0)
+        throw new Error("Pay amount must be a positive number");
       if (!selectedCountyFips) throw new Error("County is required");
 
       return apiRequest("POST", "/api/direct-connect/requests", {
@@ -211,13 +220,14 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
   }, [workRequests, searchQuery, selectedCategory]);
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
+    <div className="">
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
           <p className="text-lg text-gray-300 max-w-3xl">
-            Direct Connect is where local coordination happens. Capture what you need done, and Scout plus your community help
-            route it to the right people over time until it's resolved.
+            Direct Connect is where local coordination happens. Capture what you need done, and
+            Scout plus your community help route it to the right people over time until it's
+            resolved.
           </p>
         </div>
 
@@ -239,8 +249,8 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                   <div className="flex-1">
                     <h2 className="text-lg font-semibold text-white">Active coordination</h2>
                     <p className="text-sm text-gray-300 max-w-xl mt-1">
-                      These are the things you're currently trying to get done. Scout, your community, and local providers all
-                      coordinate from here.
+                      These are the things you're currently trying to get done. Scout, your
+                      community, and local providers all coordinate from here.
                     </p>
                   </div>
                   {selectedCountyFips && (
@@ -302,10 +312,12 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
               <Card className="bg-navy-700 border-navy-600">
                 <CardContent className="p-8 text-center">
                   <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Sign in to use Direct Connect</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Sign in to use Direct Connect
+                  </h3>
                   <p className="text-gray-300">
-                    Direct Connect is your command center for getting things done locally. Once you sign in, Scout and your
-                    community can help coordinate what you need from here.
+                    Direct Connect is your command center for getting things done locally. Once you
+                    sign in, Scout and your community can help coordinate what you need from here.
                   </p>
                 </CardContent>
               </Card>
@@ -329,7 +341,9 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-white mb-1">{request.title}</h3>
-                          <p className="text-gray-300 text-sm line-clamp-3">{request.description}</p>
+                          <p className="text-gray-300 text-sm line-clamp-3">
+                            {request.description}
+                          </p>
                         </div>
                         <span className="ml-3 text-xs px-2 py-1 rounded-full border border-orange-400 text-orange-300 bg-orange-500/10 capitalize">
                           {request.status?.replace("_", " ") || "open"}
@@ -344,7 +358,10 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                             : "Not specified"}
                         </span>
                         <span>
-                          Created {request.createdAt ? new Date(request.createdAt as any).toLocaleDateString() : "recently"}
+                          Created{" "}
+                          {request.createdAt
+                            ? new Date(request.createdAt as any).toLocaleDateString()
+                            : "recently"}
                         </span>
                       </div>
                     </CardContent>
@@ -355,10 +372,12 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                     <Card className="bg-navy-700 border-navy-600">
                       <CardContent className="p-8 text-center">
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-white mb-2">Nothing in coordination yet</h3>
+                        <h3 className="text-lg font-semibold text-white mb-2">
+                          Nothing in coordination yet
+                        </h3>
                         <p className="text-gray-300">
-                          When you want to get something done  something big, a service, or help  it will appear here while Scout
-                          and your community work on it.
+                          When you want to get something done  something big, a service, or help  it
+                          will appear here while Scout and your community work on it.
                         </p>
                       </CardContent>
                     </Card>
@@ -371,16 +390,19 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
           <TabsContent value="post" className="mt-6">
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader className="pb-4">
-                <h2 className="text-lg font-semibold text-white mb-1">Create a new Direct Connect request</h2>
+                <h2 className="text-lg font-semibold text-white mb-1">
+                  Create a new Direct Connect request
+                </h2>
                 <p className="text-sm text-gray-300">
-                  Describe the work you need help with. Scout and your community can use this Direct Connect request to help you
-                  route it to the right people over time.
+                  Describe the work you need help with. Scout and your community can use this Direct
+                  Connect request to help you route it to the right people over time.
                 </p>
               </CardHeader>
               <CardContent>
                 {!isAuthenticated ? (
                   <p className="text-sm text-gray-300">
-                    You need an account to create Direct Connect requests. Please sign in or create an account first.
+                    You need an account to create Direct Connect requests. Please sign in or create
+                    an account first.
                   </p>
                 ) : (
                   <div className="grid gap-4">
@@ -427,7 +449,10 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
 
                       <div className="grid gap-2">
                         <Label>Request type</Label>
-                        <Select value={taskTaskType} onValueChange={(v) => setTaskTaskType(v as any)}>
+                        <Select
+                          value={taskTaskType}
+                          onValueChange={(v) => setTaskTaskType(v as any)}
+                        >
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
@@ -470,7 +495,10 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label>Scheduling</Label>
-                        <Select value={taskSchedulingType} onValueChange={(v) => setTaskSchedulingType(v as any)}>
+                        <Select
+                          value={taskSchedulingType}
+                          onValueChange={(v) => setTaskSchedulingType(v as any)}
+                        >
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
@@ -489,25 +517,26 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                       </Label>
                       {!isAuthenticated || !user?.countyFips ? (
                         <p className="text-sm text-gray-300">
-                          We'll post this on your Direct Connect board. Sign in with a saved home location to
-                          see tailored provider suggestions.
+                          We'll post this on your Direct Connect board. Sign in with a saved home
+                          location to see tailored provider suggestions.
                         </p>
                       ) : providersLoading ? (
                         <p className="text-sm text-gray-300">Loading recommended providers…</p>
                       ) : !tradeSlugForCategory ? (
                         <p className="text-sm text-gray-300">
-                          We don't have a direct provider match for this category yet. Your request will go to your
-                          Direct Connect board for any eligible provider to respond.
+                          We don't have a direct provider match for this category yet. Your request
+                          will go to your Direct Connect board for any eligible provider to respond.
                         </p>
                       ) : (recommendedProviders || []).length === 0 ? (
                         <p className="text-sm text-gray-300">
-                          No specific providers surfaced yet for this combination of category and location. We'll post
-                          this on your Direct Connect board.
+                          No specific providers surfaced yet for this combination of category and
+                          location. We'll post this on your Direct Connect board.
                         </p>
                       ) : (
                         <div className="space-y-3">
                           <p className="text-xs text-gray-300">
-                            Based on your category and home county, you can also send this directly to:
+                            Based on your category and home county, you can also send this directly
+                            to:
                           </p>
                           <div className="space-y-2">
                             {recommendedProviders!.map((provider) => {
@@ -539,19 +568,20 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                                         ? ` · ${provider.county}, ${provider.state}`
                                         : null}
                                     </div>
-                                    {provider.recommendationCount && provider.recommendationCount > 0 && (
-                                      <div className="text-[11px] text-gray-400 mt-0.5">
-                                        {provider.recommendationCount} neighbor recommendations
-                                      </div>
-                                    )}
+                                    {provider.recommendationCount &&
+                                      provider.recommendationCount > 0 && (
+                                        <div className="text-[11px] text-gray-400 mt-0.5">
+                                          {provider.recommendationCount} neighbor recommendations
+                                        </div>
+                                      )}
                                   </div>
                                 </label>
                               );
                             })}
                           </div>
                           <p className="text-[11px] text-gray-400">
-                            If you don't pick anyone here, your request will just post to your Direct
-                            Connect board and any eligible provider can respond.
+                            If you don't pick anyone here, your request will just post to your
+                            Direct Connect board and any eligible provider can respond.
                           </p>
                         </div>
                       )}
@@ -595,10 +625,14 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
             </DialogHeader>
             <div className="space-y-4 text-sm text-gray-300">
               <p>
-                Your current area: <span className="font-semibold text-orange-300">{selectedCountyFips || "Not set"}</span>
+                Your current area:{" "}
+                <span className="font-semibold text-orange-300">
+                  {selectedCountyFips || "Not set"}
+                </span>
               </p>
               <p className="text-xs text-gray-400">
-                Enter a county FIPS code to see contractors and requests for a different area. You can always change this again.
+                Enter a county FIPS code to see contractors and requests for a different area. You
+                can always change this again.
               </p>
               <Input
                 type="text"
@@ -667,7 +701,8 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                                 scope: "county",
                                 countyFips: newFips,
                                 source: "manual_change",
-                                sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+                                sessionId:
+                                  sessionStorage.getItem("sessionId") || crypto.randomUUID(),
                                 asOf: new Date().toISOString(),
                                 previousCounty: selectedCountyFips,
                               },

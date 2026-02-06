@@ -16,11 +16,11 @@ export default function AdminTestingControls() {
   const queryClient = useQueryClient();
 
   const { data: settings = {}, isLoading } = useQuery({
-    queryKey: ['/api/admin/testing-settings'],
+    queryKey: ["/api/admin/testing-settings"],
   });
 
   const { data: reportStats = {}, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['/api/admin/error-report-stats'],
+    queryKey: ["/api/admin/error-report-stats"],
   });
 
   const settingsData = settings as any;
@@ -31,7 +31,7 @@ export default function AdminTestingControls() {
       return apiRequest("PATCH", "/api/admin/testing-settings", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/testing-settings'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/testing-settings"] });
       toast({
         title: "Settings Updated",
         description: "Testing controls have been updated successfully.",
@@ -44,8 +44,8 @@ export default function AdminTestingControls() {
       return apiRequest("DELETE", "/api/admin/clear-test-data");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/error-report-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/error-reports'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-report-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-reports"] });
       toast({
         title: "Test Data Cleared",
         description: "All test error reports have been removed.",
@@ -58,8 +58,8 @@ export default function AdminTestingControls() {
       return apiRequest("POST", "/api/admin/generate-test-data");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/error-report-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/error-reports'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-report-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-reports"] });
       toast({
         title: "Test Data Generated",
         description: "Sample error reports have been created for testing.",
@@ -73,7 +73,7 @@ export default function AdminTestingControls() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-navy-900 text-white p-6">
+      <div className=" text-white p-6">
         <div className="max-w-4xl mx-auto">
           <div className="animate-pulse space-y-4">
             {[...Array(4)].map((_, i) => (
@@ -86,7 +86,7 @@ export default function AdminTestingControls() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className=" text-white">
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
@@ -108,12 +108,16 @@ export default function AdminTestingControls() {
             {/* System Status */}
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-gray-300 text-base font-semibold">Enable Bug Report System</Label>
-                <p className="text-gray-400 text-sm">Show bug report buttons throughout the application</p>
+                <Label className="text-gray-300 text-base font-semibold">
+                  Enable Bug Report System
+                </Label>
+                <p className="text-gray-400 text-sm">
+                  Show bug report buttons throughout the application
+                </p>
               </div>
               <Switch
                 checked={settingsData.bugReportEnabled ?? true}
-                onCheckedChange={(checked) => handleSettingChange('bugReportEnabled', checked)}
+                onCheckedChange={(checked) => handleSettingChange("bugReportEnabled", checked)}
               />
             </div>
 
@@ -123,11 +127,13 @@ export default function AdminTestingControls() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-gray-300 text-base font-semibold">Testing Mode</Label>
-                <p className="text-gray-400 text-sm">Show enhanced testing features and sample data generation</p>
+                <p className="text-gray-400 text-sm">
+                  Show enhanced testing features and sample data generation
+                </p>
               </div>
               <Switch
                 checked={settingsData.testingModeEnabled ?? false}
-                onCheckedChange={(checked) => handleSettingChange('testingModeEnabled', checked)}
+                onCheckedChange={(checked) => handleSettingChange("testingModeEnabled", checked)}
               />
             </div>
 
@@ -135,17 +141,21 @@ export default function AdminTestingControls() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-gray-300 text-base font-semibold">Show Testing Banner</Label>
-                <p className="text-gray-400 text-sm">Display prominent testing banner on landing page</p>
+                <p className="text-gray-400 text-sm">
+                  Display prominent testing banner on landing page
+                </p>
               </div>
               <Switch
                 checked={settingsData.showTestingBanner ?? false}
-                onCheckedChange={(checked) => handleSettingChange('showTestingBanner', checked)}
+                onCheckedChange={(checked) => handleSettingChange("showTestingBanner", checked)}
               />
             </div>
 
             {/* Test Component Preview */}
             <div className="bg-navy-800 border border-navy-600 rounded-lg p-4">
-              <Label className="text-gray-300 text-sm font-semibold mb-3 block">Testing Component Preview:</Label>
+              <Label className="text-gray-300 text-sm font-semibold mb-3 block">
+                Testing Component Preview:
+              </Label>
               <div className="space-y-3">
                 <TestingErrorReportButton variant="prominent" />
                 <TestingErrorReportButton variant="floating" />
@@ -180,7 +190,9 @@ export default function AdminTestingControls() {
                   <div className="text-gray-300 text-sm">Open Issues</div>
                 </div>
                 <div className="bg-navy-600 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-yellow-400">{statsData.inProgress || 0}</div>
+                  <div className="text-2xl font-bold text-yellow-400">
+                    {statsData.inProgress || 0}
+                  </div>
                   <div className="text-gray-300 text-sm">In Progress</div>
                 </div>
                 <div className="bg-navy-600 rounded-lg p-4 text-center">
@@ -210,7 +222,7 @@ export default function AdminTestingControls() {
                 <TestTube className="h-4 w-4 mr-2" />
                 {generateTestDataMutation.isPending ? "Generating..." : "Generate Test Reports"}
               </Button>
-              
+
               <Button
                 onClick={() => clearTestDataMutation.mutate()}
                 disabled={clearTestDataMutation.isPending}

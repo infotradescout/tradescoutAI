@@ -129,7 +129,10 @@ export default function ProfileSiteEditor() {
       const res = await apiRequest("PUT", `/api/profiles/${profile.id}/publish`);
       const updated = (await res.json()) as ProfileDetail;
       setProfile(updated);
-      toast({ title: "Published", description: "Your profile is now public (if your visibility is public)." });
+      toast({
+        title: "Published",
+        description: "Your profile is now public (if your visibility is public).",
+      });
     } catch (error: any) {
       toast({
         title: "Publish failed",
@@ -171,7 +174,7 @@ export default function ProfileSiteEditor() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center">
+      <div className=" flex items-center justify-center">
         <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">Loading editor…</div>
       </div>
     );
@@ -179,7 +182,7 @@ export default function ProfileSiteEditor() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4">
+      <div className=" flex items-center justify-center px-4">
         <Card className="bg-navy-800 border-navy-700 w-full max-w-xl">
           <CardHeader>
             <CardTitle className="text-white">Profile not found</CardTitle>
@@ -187,7 +190,9 @@ export default function ProfileSiteEditor() {
           <CardContent className="space-y-4">
             <p className="text-gray-300">You may not have access to this profile.</p>
             <Link href="/dashboard">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">Go to Dashboard</Button>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                Go to Dashboard
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -196,7 +201,7 @@ export default function ProfileSiteEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 py-8">
+    <div className=" py-8">
       <div className="container mx-auto px-4 max-w-3xl">
         <Card className="bg-navy-800 border-navy-700">
           <CardHeader className="space-y-1">
@@ -206,13 +211,29 @@ export default function ProfileSiteEditor() {
           <CardContent className="space-y-5">
             <div className="flex flex-wrap gap-2">
               <Link href={`/p/${profile.slug}`}>
-                <Button variant="outline" className="border-navy-500 text-gray-200">View public page</Button>
+                <Button variant="outline" className="border-navy-500 text-gray-200">
+                  View public page
+                </Button>
               </Link>
-              <Button onClick={save} className="bg-orange-500 hover:bg-orange-600 text-white">Save</Button>
+              <Button onClick={save} className="bg-orange-500 hover:bg-orange-600 text-white">
+                Save
+              </Button>
               {profile.status === "published" ? (
-                <Button onClick={unpublish} variant="outline" className="border-navy-500 text-gray-200">Unpublish</Button>
+                <Button
+                  onClick={unpublish}
+                  variant="outline"
+                  className="border-navy-500 text-gray-200"
+                >
+                  Unpublish
+                </Button>
               ) : (
-                <Button onClick={publish} variant="outline" className="border-navy-500 text-gray-200">Publish</Button>
+                <Button
+                  onClick={publish}
+                  variant="outline"
+                  className="border-navy-500 text-gray-200"
+                >
+                  Publish
+                </Button>
               )}
             </div>
 
@@ -223,26 +244,44 @@ export default function ProfileSiteEditor() {
 
             <div className="space-y-2">
               <Label className="text-gray-200">Headline</Label>
-              <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="One-liner" />
+              <Input
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="One-liner"
+              />
             </div>
 
             <div className="space-y-2">
               <Label className="text-gray-200">Content blocks (JSON)</Label>
-              <Textarea value={contentBlocksText} onChange={(e) => setContentBlocksText(e.target.value)} rows={10} />
+              <Textarea
+                value={contentBlocksText}
+                onChange={(e) => setContentBlocksText(e.target.value)}
+                rows={10}
+              />
             </div>
 
             <div className="space-y-2">
               <Label className="text-gray-200">CTA config (JSON)</Label>
-              <Textarea value={ctaConfigText} onChange={(e) => setCtaConfigText(e.target.value)} rows={6} />
+              <Textarea
+                value={ctaConfigText}
+                onChange={(e) => setCtaConfigText(e.target.value)}
+                rows={6}
+              />
             </div>
 
             <div className="space-y-2">
               <Label className="text-gray-200">SEO meta (JSON)</Label>
-              <Textarea value={seoMetaText} onChange={(e) => setSeoMetaText(e.target.value)} rows={6} />
+              <Textarea
+                value={seoMetaText}
+                onChange={(e) => setSeoMetaText(e.target.value)}
+                rows={6}
+              />
             </div>
 
             <div className="pt-2 border-t border-navy-700">
-              <p className="text-gray-300 text-sm mb-2">Visibility setting: <span className="text-white">{profileVisibility}</span></p>
+              <p className="text-gray-300 text-sm mb-2">
+                Visibility setting: <span className="text-white">{profileVisibility}</span>
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
@@ -260,7 +299,8 @@ export default function ProfileSiteEditor() {
                 </Button>
               </div>
               <p className="text-gray-400 text-xs mt-2">
-                Note: your profile must be published AND visibility must be public for guests to see it.
+                Note: your profile must be published AND visibility must be public for guests to see
+                it.
               </p>
             </div>
           </CardContent>

@@ -10,27 +10,27 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     // Parse payment_intent from URL if present
-    const urlParams = new URLSearchParams(location.split('?')[1] || '');
-    const paymentIntentId = urlParams.get('payment_intent');
-    const paymentIntentClientSecret = urlParams.get('payment_intent_client_secret');
-    
+    const urlParams = new URLSearchParams(location.split("?")[1] || "");
+    const paymentIntentId = urlParams.get("payment_intent");
+    const paymentIntentClientSecret = urlParams.get("payment_intent_client_secret");
+
     if (paymentIntentId) {
       setPaymentDetails({
         paymentIntentId,
-        paymentIntentClientSecret
+        paymentIntentClientSecret,
       });
     }
 
     // Auto-redirect after 10 seconds
     const timer = setTimeout(() => {
-      window.location.href = '/';
+      window.location.href = "/";
     }, 10000);
 
     return () => clearTimeout(timer);
   }, [location]);
 
   return (
-    <div className="min-h-screen bg-tsBg flex items-center justify-center p-4">
+    <div className=" flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardContent className="pt-6 text-center space-y-6">
           {/* Success Icon */}
@@ -40,20 +40,17 @@ export default function PaymentSuccess() {
 
           {/* Success Message */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-tsSuccess">
-              Payment Successful!
-            </h1>
+            <h1 className="text-2xl font-bold text-tsSuccess">Payment Successful!</h1>
             <p className="text-tsTextSecondary">
-              Your payment has been processed successfully. You should receive a confirmation email shortly.
+              Your payment has been processed successfully. You should receive a confirmation email
+              shortly.
             </p>
           </div>
 
           {/* Payment Details */}
           {paymentDetails && (
             <div className="bg-tsCard border-tsSuccess p-4 rounded-lg text-left">
-              <h3 className="font-medium text-tsSuccess mb-2">
-                Transaction Details
-              </h3>
+              <h3 className="font-medium text-tsSuccess mb-2">Transaction Details</h3>
               <div className="text-sm text-tsTextSecondary space-y-1">
                 <div className="flex justify-between">
                   <span>Payment ID:</span>
@@ -77,7 +74,7 @@ export default function PaymentSuccess() {
                 Return to Home
               </Link>
             </Button>
-            
+
             <Button variant="outline" asChild className="w-full">
               <Link href="/payments/history">
                 <Receipt className="w-4 h-4 mr-2" />

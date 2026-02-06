@@ -26,7 +26,10 @@ const registerSchema = z
     phone: z
       .string()
       .min(1, "Phone number is required")
-      .refine((value) => value.replace(/\D/g, "").length >= 10, "Please enter a valid phone number"),
+      .refine(
+        (value) => value.replace(/\D/g, "").length >= 10,
+        "Please enter a valid phone number"
+      ),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string(),
     firstName: z.string().min(1, "First name is required"),
@@ -119,7 +122,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Link href="/">
@@ -140,20 +143,23 @@ export default function Register() {
               One account. Every role you play in the community.
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              Pick your user types (homeowner, contractor, realtor, restaurant owner, community builder and more).
-              Your profile becomes your website - Scout handles the routing, tools, and trust badges.
+              Pick your user types (homeowner, contractor, realtor, restaurant owner, community
+              builder and more). Your profile becomes your website - Scout handles the routing,
+              tools, and trust badges.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-tsTextMuted">
               <div className="space-y-1">
                 <p className="font-semibold text-tsTextMain text-sm">Multi-role support</p>
                 <p>
-                  Check every hat you wear: contractor, realtor, landlord, organizer, affiliate, and more.
+                  Check every hat you wear: contractor, realtor, landlord, organizer, affiliate, and
+                  more.
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="font-semibold text-tsTextMain text-sm">County-first identity</p>
                 <p>
-                  We tie your roles to where you live so locals know exactly who they’re dealing with.
+                  We tie your roles to where you live so locals know exactly who they’re dealing
+                  with.
                 </p>
               </div>
             </div>
@@ -164,7 +170,8 @@ export default function Register() {
             <ul className="list-disc list-inside space-y-1">
               <li>Choose your colors and profile layout.</li>
               <li>
-                Toggle which sections appear on your public profile (About, services, RECOMMENDATIONS, and more).
+                Toggle which sections appear on your public profile (About, services,
+                RECOMMENDATIONS, and more).
               </li>
               <li>Connect Marketplace, Community, and any future roles under one profile URL.</li>
             </ul>
@@ -220,7 +227,9 @@ export default function Register() {
                     placeholder="John"
                   />
                   {form.formState.errors.firstName && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.firstName.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.firstName.message}
+                    </p>
                   )}
                 </div>
 
@@ -236,7 +245,9 @@ export default function Register() {
                     placeholder="Doe"
                   />
                   {form.formState.errors.lastName && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.lastName.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.lastName.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -254,7 +265,9 @@ export default function Register() {
                     placeholder="john_doe"
                   />
                   {form.formState.errors.username && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.username.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.username.message}
+                    </p>
                   )}
                 </div>
 
@@ -271,7 +284,9 @@ export default function Register() {
                     placeholder="john@example.com"
                   />
                   {form.formState.errors.email && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.email.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.email.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -309,7 +324,9 @@ export default function Register() {
                     For neighborhood verification and local content relevance.
                   </p>
                   {form.formState.errors.address && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.address.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.address.message}
+                    </p>
                   )}
                 </div>
 
@@ -323,7 +340,10 @@ export default function Register() {
                       selectedState={form.watch("state")}
                       selectedCounty={selectedCountyFips}
                       onStateChange={(stateCode) => {
-                        form.setValue("state", stateCode, { shouldValidate: true, shouldDirty: true });
+                        form.setValue("state", stateCode, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
                         // Reset county whenever state changes
                         setSelectedCountyFips("");
                         form.setValue("county", "", { shouldValidate: true, shouldDirty: true });
@@ -332,23 +352,30 @@ export default function Register() {
                         setSelectedCountyFips(countyFips);
                       }}
                       onCountySelected={(county) => {
-                        form.setValue("county", county?.name || "", { shouldValidate: true, shouldDirty: true });
+                        form.setValue("county", county?.name || "", {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
                       }}
                     />
                   </div>
                   {form.formState.errors.state && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.state.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.state.message}
+                    </p>
                   )}
                   {form.formState.errors.county && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.county.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.county.message}
+                    </p>
                   )}
                 </div>
               </div>
 
               <div>
                 <p className="text-xs text-tsTextMuted mt-1">
-                  We use your state and county for neighborhood verification, local feeds, and matching. You can
-                  update this later in your profile settings.
+                  We use your state and county for neighborhood verification, local feeds, and
+                  matching. You can update this later in your profile settings.
                 </p>
               </div>
 
@@ -361,7 +388,9 @@ export default function Register() {
                   )}
                 />
                 {form.formState.errors.userTypes && (
-                  <p className="text-red-400 text-sm mt-2">{form.formState.errors.userTypes.message}</p>
+                  <p className="text-red-400 text-sm mt-2">
+                    {form.formState.errors.userTypes.message}
+                  </p>
                 )}
               </div>
 
@@ -373,8 +402,7 @@ export default function Register() {
                   {...form.register("acceptTerms")}
                 />
                 <Label htmlFor="acceptTerms" className="text-xs text-tsTextMuted leading-relaxed">
-                  I agree to the
-                  {" "}
+                  I agree to the{" "}
                   <a href="/terms" className="underline" target="_blank" rel="noreferrer">
                     Terms of Service
                   </a>
@@ -396,7 +424,9 @@ export default function Register() {
                     placeholder="Create a strong password"
                   />
                   {form.formState.errors.password && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.password.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.password.message}
+                    </p>
                   )}
                 </div>
 
@@ -413,7 +443,9 @@ export default function Register() {
                     placeholder="Re-enter your password"
                   />
                   {form.formState.errors.confirmPassword && (
-                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.confirmPassword.message}</p>
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.confirmPassword.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -434,10 +466,11 @@ export default function Register() {
 
               <div className="mt-4 p-4 bg-tsBg border border-tsBorder rounded-lg">
                 <p className="text-xs text-tsTextMuted">
-                  <strong className="text-tsTextMain">Why join TradeScout?</strong>{" "}
-                  Your profile replaces a website: colors, roles, and your area are all baked in. Scout uses this to tune
-                  marketplace matches, community visibility, and future tools for whatever roles you pick - homeowner,
-                  pro, organizer, affiliate, or any new roles we add later.
+                  <strong className="text-tsTextMain">Why join TradeScout?</strong> Your profile
+                  replaces a website: colors, roles, and your area are all baked in. Scout uses this
+                  to tune marketplace matches, community visibility, and future tools for whatever
+                  roles you pick - homeowner, pro, organizer, affiliate, or any new roles we add
+                  later.
                 </p>
               </div>
             </form>

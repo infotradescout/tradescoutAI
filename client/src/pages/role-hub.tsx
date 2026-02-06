@@ -10,7 +10,7 @@ export default function RoleHubPage() {
 
   if (!match) {
     return (
-      <div className="min-h-screen bg-slate-950 text-tsTextMain flex items-center justify-center">
+      <div className=" text-tsTextMain flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-lg">Role not found.</p>
           <Link
@@ -31,7 +31,7 @@ export default function RoleHubPage() {
   const features = meta?.features ?? [];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-tsTextMain">
+    <div className=" text-tsTextMain">
       <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -39,12 +39,8 @@ export default function RoleHubPage() {
               <Layout className="h-4 w-4 text-tsAccent" />
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-                Role hub
-              </div>
-              <h1 className="text-xl md:text-2xl font-semibold text-white">
-                {label}
-              </h1>
+              <div className="text-xs uppercase tracking-[0.18em] text-tsAccentSoft">Role hub</div>
+              <h1 className="text-xl md:text-2xl font-semibold text-white">{label}</h1>
             </div>
           </div>
           <Link
@@ -59,15 +55,12 @@ export default function RoleHubPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2 space-y-4">
             <div className="rounded-2xl border border-tsBorder bg-slate-900/60 p-4 md:p-5">
-              <h2 className="text-sm font-medium text-white mb-2">
-                How Scout uses this role
-              </h2>
+              <h2 className="text-sm font-medium text-white mb-2">How Scout uses this role</h2>
               <p className="text-xs md:text-sm text-tsTextMuted">
-                This role tells Scout which playbooks, tools, and local signals
-                to prioritize when you ask questions or browse the platform. You
-                can combine multiple roles for a blended experience (for
-                example: homeowner + contractor, realtor + content creator, car
-                dealer + business owner, or restaurant owner + nonprofit).
+                This role tells Scout which playbooks, tools, and local signals to prioritize when
+                you ask questions or browse the platform. You can combine multiple roles for a
+                blended experience (for example: homeowner + contractor, realtor + content creator,
+                car dealer + business owner, or restaurant owner + nonprofit).
               </p>
             </div>
 
@@ -78,12 +71,10 @@ export default function RoleHubPage() {
                   Key: <span className="text-tsAccent">{roleKey}</span>
                 </span>
                 <span className="px-2 py-1 rounded-full bg-slate-800 text-tsTextMuted">
-                  Category:{" "}
-                  <span className="text-tsAccent">{category}</span>
+                  Category: <span className="text-tsAccent">{category}</span>
                 </span>
                 <span className="px-2 py-1 rounded-full bg-slate-800 text-tsTextMuted">
-                  Default view:{" "}
-                  <span className="text-tsAccent">{defaultView}</span>
+                  Default view: <span className="text-tsAccent">{defaultView}</span>
                 </span>
               </div>
 
@@ -94,10 +85,7 @@ export default function RoleHubPage() {
                   </div>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs md:text-sm">
                     {features.map((f) => (
-                      <li
-                        key={f}
-                        className="px-2 py-1 rounded-lg bg-slate-800 text-tsTextMuted"
-                      >
+                      <li key={f} className="px-2 py-1 rounded-lg bg-slate-800 text-tsTextMuted">
                         {f.replace(/_/g, " ")}
                       </li>
                     ))}
@@ -105,8 +93,8 @@ export default function RoleHubPage() {
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-tsTextMuted">
-                  This role does not define any special features yet, but Scout
-                  still uses it to tune your answers.
+                  This role does not define any special features yet, but Scout still uses it to
+                  tune your answers.
                 </p>
               )}
             </div>
@@ -114,14 +102,11 @@ export default function RoleHubPage() {
 
           <aside className="space-y-4">
             <div className="rounded-2xl border border-tsBorder bg-slate-900/60 p-4 md:p-5">
-              <h3 className="text-sm font-medium text-white mb-2">
-                Next steps
-              </h3>
+              <h3 className="text-sm font-medium text-white mb-2">Next steps</h3>
               <p className="text-xs md:text-sm text-tsTextMuted mb-3">
-                Use this hub as a starting point. Scout will route your
-                questions through the tools that match your roles and location,
-                whether you're a local business, restaurant owner, service
-                provider, or community builder.
+                Use this hub as a starting point. Scout will route your questions through the tools
+                that match your roles and location, whether you're a local business, restaurant
+                owner, service provider, or community builder.
               </p>
               <div className="space-y-2 text-xs md:text-sm">
                 <Link

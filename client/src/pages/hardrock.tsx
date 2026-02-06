@@ -123,7 +123,7 @@ export default function HardrockLanding() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-tsBg/70 to-tsBg text-tsTextMain px-4 py-10">
+    <div className="min-h-screen  text-tsTextMain px-4 py-10">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-bold tracking-tight">Hardrock commercial jobs</h1>

@@ -9,14 +9,14 @@ import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { apiRequest } from "@/lib/queryClient";
 import { MessageCircle, Users, Briefcase, SlidersHorizontal } from "lucide-react";
 
- type StartIntent = "community" | "services" | "business" | "tools";
+type StartIntent = "community" | "services" | "business" | "tools";
 
- const INTENT_ROUTES: Record<StartIntent, string> = {
+const INTENT_ROUTES: Record<StartIntent, string> = {
   community: "/community-feed",
   services: "/contractors",
   business: "/offer-services",
   tools: "/scout",
- } as const;
+} as const;
 
 export default function OnboardingIntent() {
   const { user, isAuthenticated } = useAuth();
@@ -64,7 +64,7 @@ export default function OnboardingIntent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Button
@@ -83,7 +83,8 @@ export default function OnboardingIntent() {
               What would you like to focus on right now?
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              This doesn't lock you into a role or limit what you can do. It just tells Scout what to open first - you can always explore everything from the navigation.
+              This doesn't lock you into a role or limit what you can do. It just tells Scout what
+              to open first - you can always explore everything from the navigation.
             </p>
           </div>
         </div>
@@ -93,7 +94,9 @@ export default function OnboardingIntent() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
-                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">TRADESCOUT</span>
+                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">
+                  TRADESCOUT
+                </span>
               </div>
             </div>
             <CardTitle className="text-lg font-semibold text-tsTextMain">
@@ -112,7 +115,9 @@ export default function OnboardingIntent() {
                   <Users className="h-4 w-4 text-tsAccent" />
                   <span className="font-medium text-tsTextMain">Explore my neighborhood</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">See posts, updates, and activity from people near you.</p>
+                <p className="text-xs text-tsTextMuted">
+                  See posts, updates, and activity from people near you.
+                </p>
               </button>
 
               <button
@@ -124,7 +129,9 @@ export default function OnboardingIntent() {
                   <Briefcase className="h-4 w-4 text-tsAccent" />
                   <span className="font-medium text-tsTextMain">Find local pros</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">Browse licensed and verified pros for projects and repairs.</p>
+                <p className="text-xs text-tsTextMuted">
+                  Browse licensed and verified pros for projects and repairs.
+                </p>
               </button>
 
               <button
@@ -136,7 +143,8 @@ export default function OnboardingIntent() {
                   <MessageCircle className="h-4 w-4 text-tsAccent" />
                   <span className="font-medium text-tsTextMain">Share my work or business</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">Start from your business tools and dashboards.
+                <p className="text-xs text-tsTextMuted">
+                  Start from your business tools and dashboards.
                 </p>
               </button>
 
@@ -149,7 +157,8 @@ export default function OnboardingIntent() {
                   <SlidersHorizontal className="h-4 w-4 text-tsAccent" />
                   <span className="font-medium text-tsTextMain">Use Scout tools</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">Jump into dashboards, notes, and planners.
+                <p className="text-xs text-tsTextMuted">
+                  Jump into dashboards, notes, and planners.
                 </p>
               </button>
 

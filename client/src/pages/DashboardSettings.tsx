@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Settings, Save, LayoutGrid, GripVertical } from 'lucide-react';
-import { AVAILABLE_WIDGETS } from '@/components/dashboard/DashboardWidgets';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Settings, Save, LayoutGrid, GripVertical } from "lucide-react";
+import { AVAILABLE_WIDGETS } from "@/components/dashboard/DashboardWidgets";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 export default function DashboardSettings() {
   const { user } = useAuth();
@@ -17,17 +17,19 @@ export default function DashboardSettings() {
   const queryClient = useQueryClient();
 
   const { data: preferences, isLoading } = useQuery({
-    queryKey: ['/api/users/preferences'],
+    queryKey: ["/api/users/preferences"],
   });
 
   type DashboardWidgetId = (typeof AVAILABLE_WIDGETS)[number]["id"];
 
-  const defaultEnabledWidgets: DashboardWidgetId[] = AVAILABLE_WIDGETS
-    .filter((w) => w.defaultEnabled)
-    .map((w) => w.id);
+  const defaultEnabledWidgets: DashboardWidgetId[] = AVAILABLE_WIDGETS.filter(
+    (w) => w.defaultEnabled
+  ).map((w) => w.id);
 
   const [enabledWidgets, setEnabledWidgets] = useState<DashboardWidgetId[]>(defaultEnabledWidgets);
-  const [widgetOrder, setWidgetOrder] = useState<DashboardWidgetId[]>(() => AVAILABLE_WIDGETS.map((w) => w.id));
+  const [widgetOrder, setWidgetOrder] = useState<DashboardWidgetId[]>(() =>
+    AVAILABLE_WIDGETS.map((w) => w.id)
+  );
 
   useEffect(() => {
     const dashboardPrefs = (preferences && (preferences as any).dashboard) || {};
@@ -39,11 +41,12 @@ export default function DashboardSettings() {
       : defaultEnabledWidgets;
 
     const defaultOrder: DashboardWidgetId[] = AVAILABLE_WIDGETS.map((w) => w.id);
-    let orderFromPrefs: DashboardWidgetId[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
-      ? (dashboardPrefs.widgetOrder.filter((id: string): id is DashboardWidgetId =>
-          AVAILABLE_WIDGETS.some((w) => w.id === id)
-        ) as DashboardWidgetId[])
-      : defaultOrder;
+    let orderFromPrefs: DashboardWidgetId[] =
+      Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
+        ? (dashboardPrefs.widgetOrder.filter((id: string): id is DashboardWidgetId =>
+            AVAILABLE_WIDGETS.some((w) => w.id === id)
+          ) as DashboardWidgetId[])
+        : defaultOrder;
 
     const availableIdSet = new Set<DashboardWidgetId>(defaultOrder);
     orderFromPrefs = orderFromPrefs.filter((id) => availableIdSet.has(id));
@@ -58,36 +61,36 @@ export default function DashboardSettings() {
   }, [preferences, defaultEnabledWidgets]);
 
   const savePreferencesMutation = useMutation({
-    mutationFn: async (data: { dashboard: { enabledWidgets: DashboardWidgetId[]; widgetOrder: DashboardWidgetId[] } }) => {
-      const response = await fetch('/api/users/preferences', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+    mutationFn: async (data: {
+      dashboard: { enabledWidgets: DashboardWidgetId[]; widgetOrder: DashboardWidgetId[] };
+    }) => {
+      const response = await fetch("/api/users/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to save preferences');
+      if (!response.ok) throw new Error("Failed to save preferences");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users/preferences'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/preferences"] });
       toast({
-        title: 'Settings saved',
-        description: 'Your dashboard preferences have been updated.',
+        title: "Settings saved",
+        description: "Your dashboard preferences have been updated.",
       });
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to save dashboard preferences.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to save dashboard preferences.",
+        variant: "destructive",
       });
     },
   });
 
   const handleToggleWidget = (widgetId: DashboardWidgetId) => {
-    setEnabledWidgets(prev =>
-      prev.includes(widgetId)
-        ? prev.filter(id => id !== widgetId)
-        : [...prev, widgetId]
+    setEnabledWidgets((prev) =>
+      prev.includes(widgetId) ? prev.filter((id) => id !== widgetId) : [...prev, widgetId]
     );
   };
 
@@ -110,7 +113,7 @@ export default function DashboardSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-tsBg dark:bg-slate-900">
+    <div className=" dark:bg-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -119,9 +122,7 @@ export default function DashboardSettings() {
               <Settings className="h-6 w-6 text-orange-600 dark:text-orange-500" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-orange-500">
-                Dashboard Settings
-              </h1>
+              <h1 className="text-3xl font-bold text-orange-500">Dashboard Settings</h1>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
                 Customize what you see on your homepage
               </p>
@@ -136,22 +137,18 @@ export default function DashboardSettings() {
               <LayoutGrid className="h-5 w-5 text-orange-500" />
               Dashboard Widgets
             </CardTitle>
-            <CardDescription>
-              Choose which widgets to display on your homepage
-            </CardDescription>
+            <CardDescription>Choose which widgets to display on your homepage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoading ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">Loading your dashboard preferences...</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Loading your dashboard preferences...
+              </p>
             ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="dashboard-widgets">
                   {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="space-y-2"
-                    >
+                    <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-2">
                       {widgetOrder.map((widgetId, index) => {
                         const widget = AVAILABLE_WIDGETS.find((w) => w.id === widgetId);
                         if (!widget) return null;
@@ -163,7 +160,9 @@ export default function DashboardSettings() {
                                 ref={draggableProvided.innerRef}
                                 {...draggableProvided.draggableProps}
                                 className={`flex items-center justify-between p-4 rounded-lg bg-tsBg dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border ${
-                                  snapshot.isDragging ? 'border-orange-500 shadow-md' : 'border-transparent'
+                                  snapshot.isDragging
+                                    ? "border-orange-500 shadow-md"
+                                    : "border-transparent"
                                 }`}
                               >
                                 <div className="flex items-center gap-3 flex-1">
@@ -218,7 +217,7 @@ export default function DashboardSettings() {
             data-testid="button-save-dashboard-settings"
           >
             <Save className="h-4 w-4 mr-2" />
-            {savePreferencesMutation.isPending ? 'Saving...' : 'Save Changes'}
+            {savePreferencesMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>
         </div>
 
@@ -226,8 +225,8 @@ export default function DashboardSettings() {
         <Card className="mt-6 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-900 dark:text-blue-100">
-              <strong>Tip:</strong> Your changes will take effect immediately on your dashboard. 
-              You can always come back and adjust your widget preferences.
+              <strong>Tip:</strong> Your changes will take effect immediately on your dashboard. You
+              can always come back and adjust your widget preferences.
             </p>
           </CardContent>
         </Card>

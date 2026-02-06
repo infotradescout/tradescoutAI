@@ -1,18 +1,18 @@
-import { memo, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'wouter';
-import { MapPin, ListChecks, Compass } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useLocationContext } from '@/hooks/useLocationContext';
-import { useContextualCopy } from '@/hooks/useContextualCopy';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { memo, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { MapPin, ListChecks, Compass } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocationContext } from "@/hooks/useLocationContext";
+import { useContextualCopy } from "@/hooks/useContextualCopy";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   QuickActionsWidget,
   RecentProjectsWidget,
   SavedContractorsWidget,
   CommunityBuilderImpactWidget,
-} from '@/components/dashboard/DashboardWidgets';
+} from "@/components/dashboard/DashboardWidgets";
 
 // Local view model for My TradeScout. This is intentionally
 // conservative: it only derives state from existing user/session
@@ -25,7 +25,7 @@ type MyTradeScoutState = {
   };
   activeThreads: Array<{
     id: string;
-    type: 'project';
+    type: "project";
     summary: string;
     primaryAction: { label: string; path: string };
   }>;
@@ -58,7 +58,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
   const locationCtx = useLocationContext();
 
   const { data: snapshot } = useQuery<DashboardSnapshot>({
-    queryKey: ['/api/dashboard', user?.id],
+    queryKey: ["/api/dashboard", user?.id],
     enabled: !!user?.id,
   });
 
@@ -71,7 +71,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
       const anyUser: any = user;
       if (!anyUser) return undefined;
       if (Array.isArray(anyUser.roles) && anyUser.roles.length > 0) {
-        return anyUser.roles.join(', ');
+        return anyUser.roles.join(", ");
       }
       return anyUser.role as string | undefined;
     })();
@@ -80,79 +80,79 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
 
     const activeThreads = projects.slice(0, 4).map((project) => ({
       id: project.id,
-      type: 'project' as const,
-      summary: project.title || 'Project',
+      type: "project" as const,
+      summary: project.title || "Project",
       primaryAction: {
-        label: 'Open in Project Tracker',
-        path: '/project-tracker',
+        label: "Open in Project Tracker",
+        path: "/project-tracker",
       },
     }));
 
-    const recommendedActions: MyTradeScoutState['recommendedActions'] = [];
+    const recommendedActions: MyTradeScoutState["recommendedActions"] = [];
 
     const isContractor =
-      (user as any)?.role === 'contractor_user' ||
-      (user as any)?.role === 'accelerator_member';
-    const isRealtor = (user as any)?.role === 'realtor';
+      (user as any)?.role === "contractor_user" || (user as any)?.role === "accelerator_member";
+    const isRealtor = (user as any)?.role === "realtor";
 
     if (!county || !state) {
       recommendedActions.push({
-        id: 'complete-location',
-        reason: 'We do not yet know your county; TradeScout needs this to route local help accurately.',
+        id: "complete-location",
+        reason:
+          "We do not yet know your county; TradeScout needs this to route local help accurately.",
         action: {
-          label: 'Confirm my address',
-          path: '/address-verification',
+          label: "Confirm my address",
+          path: "/address-verification",
         },
       });
     }
 
     if (!snapshot?.myProjects?.length && !isContractor && county && state) {
       recommendedActions.push({
-        id: 'start-first-project',
-        reason: 'You have no projects in progress for your home yet.',
+        id: "start-first-project",
+        reason: "You have no projects in progress for your home yet.",
         action: {
-          label: 'Start a project with Direct Connect',
-          path: '/direct-connect',
+          label: "Start a project with Direct Connect",
+          path: "/direct-connect",
         },
       });
     }
 
     if (isContractor && !snapshot?.myProjects?.length) {
       recommendedActions.push({
-        id: 'browse-leads',
-        reason: 'You are set up as a contractor but have no active projects here yet.',
+        id: "browse-leads",
+        reason: "You are set up as a contractor but have no active projects here yet.",
         action: {
-          label: 'Browse contractor leads',
-          path: '/contractor-leads',
+          label: "Browse contractor leads",
+          path: "/contractor-leads",
         },
       });
     }
 
     if (isRealtor && !snapshot?.myProjects?.length) {
       recommendedActions.push({
-        id: 'real-estate-marketplace',
-        reason: 'You are a realtor; your marketplace workspace is ready when you are.',
+        id: "real-estate-marketplace",
+        reason: "You are a realtor; your marketplace workspace is ready when you are.",
         action: {
-          label: 'Open real estate marketplace',
-          path: '/real-estate-marketplace',
+          label: "Open real estate marketplace",
+          path: "/real-estate-marketplace",
         },
       });
     }
 
-    const opportunities: MyTradeScoutState['opportunities'] = [];
+    const opportunities: MyTradeScoutState["opportunities"] = [];
 
     if ((snapshot?.stats?.savedContractors ?? 0) > 0) {
       opportunities.push({
-        id: 'saved-contractors',
-        label: 'Review your saved contractors',
-        path: '/saved-contractors',
+        id: "saved-contractors",
+        label: "Review your saved contractors",
+        path: "/saved-contractors",
       });
     }
 
     opportunities.push({
-      id: 'open-community-feed',
-      label: 'See what is happening in your community feed',
-      path: '/community-feed',
+      id: "open-community-feed",
+      label: "See what is happening in your community feed",
+      path: "/community-feed",
     });
 
     return {
@@ -169,7 +169,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-tsBg text-slate-200">
+      <div className="min-h-screen flex items-center justify-center  text-slate-200">
         <div className="max-w-md text-center space-y-3 px-4">
           <h1 className="text-xl font-semibold text-orange-500">My TradeScout</h1>
           <p className="text-sm text-slate-300">
@@ -192,22 +192,21 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
   const { line: myTradeScoutContextLine } = useContextualCopy({
     stateCode: locationCtx.stateCode,
     countyFips: locationCtx.countyFips,
-    interest: 'auto_dealers',
-    timeframe: '30d',
-    fallback: 'Local activity will begin to appear here as your county comes online.',
+    interest: "auto_dealers",
+    timeframe: "30d",
+    fallback: "Local activity will begin to appear here as your county comes online.",
   });
 
   return (
-    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
+    <div className=" pb-20 lg:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-lg sm:text-xl font-semibold text-orange-500">
-              My TradeScout
-            </h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-orange-500">My TradeScout</h1>
             <p className="text-sm text-slate-300 max-w-xl">
-              A simple, honest view of where you are right now and the next few things TradeScout can help you do.
+              A simple, honest view of where you are right now and the next few things TradeScout
+              can help you do.
             </p>
           </div>
         </div>
@@ -228,7 +227,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                   <span>
                     {model.context.countyLabel
                       ? model.context.countyLabel
-                      : 'We have not confirmed your county yet.'}
+                      : "We have not confirmed your county yet."}
                   </span>
                 </div>
                 {model.context.roleLabel && (
@@ -313,10 +312,16 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                   {model.recommendedActions.map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div
+                      key={item.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                    >
                       <p className="text-slate-200 max-w-xl">{item.reason}</p>
                       <Link href={item.action.path}>
-                        <Button size="sm" className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                        >
                           {item.action.label}
                         </Button>
                       </Link>

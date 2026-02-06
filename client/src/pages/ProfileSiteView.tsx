@@ -78,23 +78,29 @@ export default function ProfileSiteView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center">
-            <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">Loading profile site…</div>
+      <div className=" flex items-center justify-center">
+        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">
+          Loading profile site…
+        </div>
       </div>
     );
   }
 
   if (notFound || !data) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4">
+      <div className=" flex items-center justify-center px-4">
         <Card className="bg-navy-800 border-navy-700 w-full max-w-xl">
           <CardHeader>
             <CardTitle className="text-white">Profile not found</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-gray-300">This profile may be private, unpublished, or unavailable.</p>
+            <p className="text-gray-300">
+              This profile may be private, unpublished, or unavailable.
+            </p>
             <Link href="/">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">Back to Scout</Button>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                Back to Scout
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -105,12 +111,11 @@ export default function ProfileSiteView() {
   const { profile, business } = data;
   const profileSections = profile.profileSections || {};
   const showContactCard = profileSections.contactCard !== false;
-  const displayName = business?.name && business.name.trim().length > 0
-    ? business.name
-    : profile.displayName;
+  const displayName =
+    business?.name && business.name.trim().length > 0 ? business.name : profile.displayName;
 
   return (
-    <div className="min-h-screen bg-navy-900 py-8">
+    <div className=" py-8">
       <div className="container mx-auto px-4 max-w-5xl">
         <Card className="bg-navy-800 border-navy-700">
           <CardHeader className="space-y-2">
@@ -121,7 +126,9 @@ export default function ProfileSiteView() {
                   <p className="text-gray-300">{profile.headline}</p>
                 ) : null}
                 {profileSections.about !== false ? (
-                  <p className="text-gray-400 text-xs uppercase tracking-[0.18em]">{profile.roleContext}</p>
+                  <p className="text-gray-400 text-xs uppercase tracking-[0.18em]">
+                    {profile.roleContext}
+                  </p>
                 ) : null}
               </div>
               <Badge variant="secondary">Website Profile</Badge>
@@ -133,14 +140,18 @@ export default function ProfileSiteView() {
               <section className="space-y-2">
                 <h2 className="text-white font-semibold">Business</h2>
                 <div className="text-gray-300 text-sm space-y-1">
-                  <div><span className="text-gray-400">Name:</span> {business.name}</div>
+                  <div>
+                    <span className="text-gray-400">Name:</span> {business.name}
+                  </div>
                   <div>
                     <span className="text-gray-400">Categories:</span>{" "}
                     {business.categories.length ? business.categories.join(", ") : "None"}
                   </div>
                   <div>
                     <span className="text-gray-400">Service areas:</span>{" "}
-                    {business.serviceAreas.length ? `${business.serviceAreas.length} area(s)` : "None"}
+                    {business.serviceAreas.length
+                      ? `${business.serviceAreas.length} area(s)`
+                      : "None"}
                   </div>
                 </div>
               </section>

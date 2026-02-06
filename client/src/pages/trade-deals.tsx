@@ -10,7 +10,7 @@ export default function TradeDealsPage() {
   const isContractor = (role || "").toLowerCase().includes("contractor");
 
   return (
-    <div className="min-h-screen bg-tsBg px-4 py-8 md:px-8" data-testid="trade-deals-page">
+    <div className=" px-4 py-8 md:px-8" data-testid="trade-deals-page">
       <div className="max-w-6xl mx-auto space-y-10">
         {/* Top: mission + framing */}
         <section className="space-y-4 text-center md:text-left">
@@ -22,12 +22,13 @@ export default function TradeDealsPage() {
             TradeDeals — Exclusive offers you won&apos;t find anywhere else
           </h1>
           <p className="max-w-2xl text-slate-300 text-sm md:text-base">
-            Powered by TradeScout sponsors, affiliates, and partners. Every TradeDeal is designed to support real
-            projects and real communities – with clear attribution and no spam.
+            Powered by TradeScout sponsors, affiliates, and partners. Every TradeDeal is designed to
+            support real projects and real communities – with clear attribution and no spam.
           </p>
           <p className="max-w-2xl text-slate-400 text-xs md:text-sm">
-            TradeDeals are recommendations, not ads. They appear when Scout or the community believes they can
-            genuinely help with what you&apos;re doing – in Direct Connect, Community, or elsewhere.
+            TradeDeals are recommendations, not ads. They appear when Scout or the community
+            believes they can genuinely help with what you&apos;re doing – in Direct Connect,
+            Community, or elsewhere.
           </p>
         </section>
 
@@ -146,10 +147,22 @@ export default function TradeDealsPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 text-xs">
-            <ProjectLane title="Roofing" description="Materials, inspections, and warranties tied to real roof projects." />
-            <ProjectLane title="Plumbing" description="Fixtures, leak detection tools, and service bundles for active jobs." />
-            <ProjectLane title="Remodel" description="Cabinets, surfaces, and systems for kitchen and bath projects." />
-            <ProjectLane title="Landscaping" description="Hardscape, plants, and seasonal maintenance packs for outdoor work." />
+            <ProjectLane
+              title="Roofing"
+              description="Materials, inspections, and warranties tied to real roof projects."
+            />
+            <ProjectLane
+              title="Plumbing"
+              description="Fixtures, leak detection tools, and service bundles for active jobs."
+            />
+            <ProjectLane
+              title="Remodel"
+              description="Cabinets, surfaces, and systems for kitchen and bath projects."
+            />
+            <ProjectLane
+              title="Landscaping"
+              description="Hardscape, plants, and seasonal maintenance packs for outdoor work."
+            />
           </div>
         </section>
 
@@ -159,8 +172,8 @@ export default function TradeDealsPage() {
             <div>
               <h2 className="text-xl font-semibold text-white">All Partners Directory</h2>
               <p className="text-xs text-slate-300">
-                Logos here indicate vetted, contract-backed partners. Full sponsor workflows and dashboards live behind
-                Scout and admin tools.
+                Logos here indicate vetted, contract-backed partners. Full sponsor workflows and
+                dashboards live behind Scout and admin tools.
               </p>
             </div>
           </div>
@@ -176,8 +189,8 @@ export default function TradeDealsPage() {
         {/* Final positioning sentence */}
         <section className="border-t border-slate-800 pt-6 mt-4 text-xs text-slate-400">
           <p>
-            TradeDeals are exclusive offers from trusted partners, available only through TradeScout, designed to
-            support real projects and real communities — without compromise.
+            TradeDeals are exclusive offers from trusted partners, available only through
+            TradeScout, designed to support real projects and real communities — without compromise.
           </p>
         </section>
       </div>
@@ -196,12 +209,23 @@ interface TradeDealCardProps {
   disableDirectConnect?: boolean;
 }
 
-function TradeDealCard({ id, brand, title, description, locality, validity, redemption, disableDirectConnect }: TradeDealCardProps) {
+function TradeDealCard({
+  id,
+  brand,
+  title,
+  description,
+  locality,
+  validity,
+  redemption,
+  disableDirectConnect,
+}: TradeDealCardProps) {
   return (
     <Card className="border-slate-700 bg-slate-900/80 flex flex-col justify-between">
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">{brand}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+            {brand}
+          </span>
           <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold">
             Exclusive to TradeScout
           </Badge>
@@ -221,8 +245,8 @@ function TradeDealCard({ id, brand, title, description, locality, validity, rede
           </div>
         </div>
         <p className="text-[10px] text-slate-400">
-          This offer is exclusive to TradeScout and not available elsewhere. No external coupon codes or price
-          comparisons are shown.
+          This offer is exclusive to TradeScout and not available elsewhere. No external coupon
+          codes or price comparisons are shown.
         </p>
         <CommunityCTA
           layout="grid"
@@ -271,7 +295,9 @@ function PartnerBadge({ label, icon: Icon }: PartnerBadgeProps) {
         </div>
         <div className="space-y-1">
           <p className="text-xs font-semibold text-white">{label}</p>
-          <p className="text-[10px] text-slate-400">Vetted partners with contract-backed TradeDeals.</p>
+          <p className="text-[10px] text-slate-400">
+            Vetted partners with contract-backed TradeDeals.
+          </p>
         </div>
       </CardContent>
     </Card>

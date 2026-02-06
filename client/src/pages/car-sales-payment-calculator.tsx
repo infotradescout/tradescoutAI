@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { 
-  Calculator, 
-  DollarSign, 
-  Percent, 
+import {
+  Calculator,
+  DollarSign,
+  Percent,
   Calendar,
   TrendingDown,
   TrendingUp,
-  FileText
+  FileText,
 } from "lucide-react";
 
 export default function CarSalesPaymentCalculator() {
@@ -20,20 +20,22 @@ export default function CarSalesPaymentCalculator() {
   const [interestRate, setInterestRate] = useState([4.5]);
   const [loanTerm, setLoanTerm] = useState([60]);
   const [tradeValue, setTradeValue] = useState(0);
-  
+
   const loanAmount = vehiclePrice - downPayment - tradeValue;
   const monthlyRate = interestRate[0] / 100 / 12;
   const numPayments = loanTerm[0];
-  
-  const monthlyPayment = loanAmount > 0 && monthlyRate > 0 
-    ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
-    : 0;
-  
+
+  const monthlyPayment =
+    loanAmount > 0 && monthlyRate > 0
+      ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+        (Math.pow(1 + monthlyRate, numPayments) - 1)
+      : 0;
+
   const totalPaid = monthlyPayment * numPayments + downPayment + tradeValue;
   const totalInterest = totalPaid - vehiclePrice;
 
   return (
-    <div className="min-h-screen bg-tsBg text-tsText">
+    <div className=" text-tsText">
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
@@ -124,7 +126,9 @@ export default function CarSalesPaymentCalculator() {
                   </div>
 
                   <div>
-                    <Label>Loan Term: {loanTerm[0]} months ({(loanTerm[0] / 12).toFixed(1)} years)</Label>
+                    <Label>
+                      Loan Term: {loanTerm[0]} months ({(loanTerm[0] / 12).toFixed(1)} years)
+                    </Label>
                     <Slider
                       value={loanTerm}
                       onValueChange={setLoanTerm}
@@ -163,19 +167,23 @@ export default function CarSalesPaymentCalculator() {
                       <span className="text-tsTextMuted">Vehicle Price</span>
                       <span className="font-medium">${vehiclePrice.toLocaleString()}</span>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-tsTextMuted">Down Payment</span>
-                      <span className="font-medium text-tsSuccess">-${downPayment.toLocaleString()}</span>
+                      <span className="font-medium text-tsSuccess">
+                        -${downPayment.toLocaleString()}
+                      </span>
                     </div>
-                    
+
                     {tradeValue > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-tsTextMuted">Trade-In Value</span>
-                        <span className="font-medium text-tsSuccess">-${tradeValue.toLocaleString()}</span>
+                        <span className="font-medium text-tsSuccess">
+                          -${tradeValue.toLocaleString()}
+                        </span>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-center border-t border-tsBorder pt-3">
                       <span className="text-tsTextMuted">Loan Amount</span>
                       <span className="font-semibold">${loanAmount.toLocaleString()}</span>
@@ -196,32 +204,30 @@ export default function CarSalesPaymentCalculator() {
                     <span className="text-tsTextMuted">Total of Payments</span>
                     <span className="font-medium">${totalPaid.toFixed(2)}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <span className="text-tsTextMuted">Total Interest</span>
                     <span className="font-medium text-tsError">${totalInterest.toFixed(2)}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center border-t border-tsBorder pt-3">
                     <span className="text-tsTextMuted">Interest as % of Vehicle Price</span>
-                    <span className="font-semibold">{((totalInterest / vehiclePrice) * 100).toFixed(1)}%</span>
+                    <span className="font-semibold">
+                      {((totalInterest / vehiclePrice) * 100).toFixed(1)}%
+                    </span>
                   </div>
                 </CardContent>
               </Card>
 
               <div className="flex gap-3">
-                <Button 
+                <Button
                   className="flex-1 bg-tsAccent hover:bg-tsAccent/80"
                   data-testid="button-generate-quote"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Generate Quote
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  data-testid="button-compare-options"
-                >
+                <Button variant="outline" className="flex-1" data-testid="button-compare-options">
                   Compare Options
                 </Button>
               </div>
@@ -250,17 +256,23 @@ export default function CarSalesPaymentCalculator() {
                   <tbody>
                     {[36, 48, 60, 72].map((term) => {
                       const termRate = interestRate[0] / 100 / 12;
-                      const termPayment = loanAmount > 0 && termRate > 0
-                        ? (loanAmount * termRate * Math.pow(1 + termRate, term)) / (Math.pow(1 + termRate, term) - 1)
-                        : 0;
+                      const termPayment =
+                        loanAmount > 0 && termRate > 0
+                          ? (loanAmount * termRate * Math.pow(1 + termRate, term)) /
+                            (Math.pow(1 + termRate, term) - 1)
+                          : 0;
                       const termTotal = termPayment * term + downPayment + tradeValue;
                       const termInterest = termTotal - vehiclePrice;
-                      
+
                       return (
                         <tr key={term} className="border-b border-tsBorder/50">
-                          <td className="py-3">{term} months ({(term / 12).toFixed(1)} years)</td>
+                          <td className="py-3">
+                            {term} months ({(term / 12).toFixed(1)} years)
+                          </td>
                           <td className="text-right py-3 font-medium">${termPayment.toFixed(2)}</td>
-                          <td className="text-right py-3 text-tsError">${termInterest.toFixed(2)}</td>
+                          <td className="text-right py-3 text-tsError">
+                            ${termInterest.toFixed(2)}
+                          </td>
                           <td className="text-right py-3 font-semibold">${termTotal.toFixed(2)}</td>
                         </tr>
                       );

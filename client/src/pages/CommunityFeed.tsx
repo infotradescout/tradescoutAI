@@ -11,15 +11,7 @@ import { ModerationButtons } from "@/components/moderation/ModerationButtons";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  MessageSquare, 
-  Share2, 
-  MapPin, 
-  Clock,
-  Plus,
-  Filter,
-  Search
-} from "lucide-react";
+import { MessageSquare, Share2, MapPin, Clock, Plus, Filter, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface CommunityPost {
@@ -63,7 +55,8 @@ export default function CommunityFeed() {
     {
       id: "post1",
       authorId: "user1",
-      content: "Just moved to the neighborhood! Looking for recommendations for a good local mechanic. Anyone know someone reliable?",
+      content:
+        "Just moved to the neighborhood! Looking for recommendations for a good local mechanic. Anyone know someone reliable?",
       postType: "question",
       privacyLevel: "neighborhood",
       location: "Downtown",
@@ -78,21 +71,23 @@ export default function CommunityFeed() {
         username: "sarah_m",
         firstName: "Sarah",
         lastName: "Miller",
-        profileImageUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b35c?w=100&h=100&fit=crop&crop=face"
+        profileImageUrl:
+          "https://images.unsplash.com/photo-1494790108755-2616b612b35c?w=100&h=100&fit=crop&crop=face",
       },
       _count: {
         comments: 8,
-        reactions: 15
-      }
+        reactions: 15,
+      },
     },
     {
-      id: "post2", 
+      id: "post2",
       authorId: "user2",
-      content: "Community garden cleanup this Saturday at 9am! Bring gloves and we'll provide tools. Let's make our neighborhood beautiful together! 🌱",
+      content:
+        "Community garden cleanup this Saturday at 9am! Bring gloves and we'll provide tools. Let's make our neighborhood beautiful together! 🌱",
       postType: "event",
       privacyLevel: "neighborhood",
       location: "Riverside Park",
-      county: "Los Angeles County", 
+      county: "Los Angeles County",
       state: "CA",
       tags: ["community", "volunteering", "garden"],
       viewCount: 67,
@@ -103,22 +98,24 @@ export default function CommunityFeed() {
         username: "mike_gardener",
         firstName: "Mike",
         lastName: "Johnson",
-        profileImageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+        profileImageUrl:
+          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
       },
       _count: {
         comments: 23,
-        reactions: 45
-      }
+        reactions: 45,
+      },
     },
     {
       id: "post3",
-      authorId: "user3", 
-      content: "WARNING: Suspicious person going door-to-door claiming to be from the utility company. They're not wearing proper ID. Called non-emergency line to report.",
+      authorId: "user3",
+      content:
+        "WARNING: Suspicious person going door-to-door claiming to be from the utility company. They're not wearing proper ID. Called non-emergency line to report.",
       postType: "safety",
       privacyLevel: "neighborhood",
       location: "Oak Street Area",
       county: "Los Angeles County",
-      state: "CA", 
+      state: "CA",
       tags: ["safety", "alert", "scam"],
       viewCount: 156,
       shareCount: 34,
@@ -128,40 +125,45 @@ export default function CommunityFeed() {
         username: "jenny_safety",
         firstName: "Jenny",
         lastName: "Williams",
-        profileImageUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"
+        profileImageUrl:
+          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
       },
       _count: {
         comments: 12,
-        reactions: 89
-      }
-    }
+        reactions: 89,
+      },
+    },
   ];
 
   const getPostTypeColor = (postType: string) => {
     switch (postType) {
-      case "question": return "bg-blue-100 text-blue-800";
-      case "event": return "bg-green-100 text-green-800";
-      case "safety": return "bg-red-100 text-red-800";
-      case "general": return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "question":
+        return "bg-blue-100 text-blue-800";
+      case "event":
+        return "bg-green-100 text-green-800";
+      case "safety":
+        return "bg-red-100 text-red-800";
+      case "general":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const filteredPosts = (samplePosts || []).filter(post => {
+  const filteredPosts = (samplePosts || []).filter((post) => {
     if (!post) return false;
     if (filter !== "all" && post.postType !== filter) return false;
-    if (searchQuery && !post.content.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !post.content.toLowerCase().includes(searchQuery.toLowerCase()))
+      return false;
     return true;
   });
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
+    <div className="">
       <div className="max-w-4xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">
-            Community Feed
-          </h1>
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">Community Feed</h1>
           <p className="text-gray-600 dark:text-gray-300">
             Connect with your neighbors and stay informed about local happenings
           </p>
@@ -275,7 +277,8 @@ export default function CommunityFeed() {
                     <Avatar>
                       <AvatarImage src={post.author.profileImageUrl} />
                       <AvatarFallback>
-                        {post.author.firstName?.[0]}{post.author.lastName?.[0]}
+                        {post.author.firstName?.[0]}
+                        {post.author.lastName?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -295,12 +298,10 @@ export default function CommunityFeed() {
                       </div>
                     </div>
                   </div>
-                  <Badge className={getPostTypeColor(post.postType)}>
-                    {post.postType}
-                  </Badge>
+                  <Badge className={getPostTypeColor(post.postType)}>{post.postType}</Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent>
                 <div className="prose dark:prose-invert max-w-none mb-4">
                   <p className="text-sm leading-relaxed">{post.content}</p>
@@ -319,11 +320,8 @@ export default function CommunityFeed() {
                 {/* Community Moderation Buttons */}
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between">
-                    <ModerationButtons 
-                      targetType="post" 
-                      targetId={post.id} 
-                    />
-                    
+                    <ModerationButtons targetType="post" targetId={post.id} />
+
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
                         <MessageSquare className="h-4 w-4" />
@@ -349,10 +347,9 @@ export default function CommunityFeed() {
           <Card>
             <CardContent className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {searchQuery || filter !== "all" 
-                  ? "No posts match your current filters." 
-                  : "No community posts yet."
-                }
+                {searchQuery || filter !== "all"
+                  ? "No posts match your current filters."
+                  : "No community posts yet."}
               </p>
               {isAuthenticated && (
                 <Button onClick={() => setShowNewPostForm(true)}>

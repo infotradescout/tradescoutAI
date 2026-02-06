@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function UnauthorizedPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center  px-4">
       <Card className="w-full max-w-md bg-navy-900 border-navy-700 text-white">
         <CardHeader className="flex flex-row items-center gap-3 pb-2">
           <AlertCircle className="w-6 h-6 text-orange-400" />
@@ -15,8 +15,8 @@ export default function UnauthorizedPage() {
             You found a control room that's reserved for TradeScout admins.
           </p>
           <p className="text-gray-400 text-sm">
-            If you believe you should have access here, contact the
-            TradeScout team so they can review your account and permissions.
+            If you believe you should have access here, contact the TradeScout team so they can
+            review your account and permissions.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <a

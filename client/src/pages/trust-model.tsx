@@ -1,18 +1,18 @@
-import { memo } from 'react';
-import { Link } from 'wouter';
-import { SEOHelmet, createFAQStructuredData } from '@/components/SEOHelmet';
-import { Shield, CheckCircle, Users, TrendingUp, Star, Lock } from 'lucide-react';
+import { memo } from "react";
+import { Link } from "wouter";
+import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
+import { Shield, CheckCircle, Users, TrendingUp, Star, Lock } from "lucide-react";
 
 /**
  * /trust-model — AI-safe foundation page
- * 
+ *
  * Explains TradeScout's trust system:
  * - Community Verification Score (CVS)
  * - Verification layers (identity, license, insurance, background)
  * - Review lineage (not anonymous)
  * - Trust-weighted visibility
  * - Why trust outranks spend
- * 
+ *
  * Written as system explanation (not marketing fluff).
  * Stable URL (never change).
  */
@@ -21,24 +21,29 @@ const TrustModelPage = memo(function TrustModelPage() {
   const faqs = [
     {
       question: "What is the Community Verification Score (CVS)?",
-      answer: "CVS is a composite trust score (0-100) based on verified identity, active license/insurance, work history, community recommendations, and dispute resolution. Higher scores mean higher trust and better visibility."
+      answer:
+        "CVS is a composite trust score (0-100) based on verified identity, active license/insurance, work history, community recommendations, and dispute resolution. Higher scores mean higher trust and better visibility.",
     },
     {
       question: "How are contractors verified?",
-      answer: "Contractors must pass: (1) Identity verification (real person, real business), (2) License check (active, state-issued), (3) Insurance verification (liability + workers comp), (4) Background check (criminal/legal history), (5) First completed job review."
+      answer:
+        "Contractors must pass: (1) Identity verification (real person, real business), (2) License check (active, state-issued), (3) Insurance verification (liability + workers comp), (4) Background check (criminal/legal history), (5) First completed job review.",
     },
     {
       question: "Why are reviews not anonymous?",
-      answer: "Anonymous reviews enable fake testimonials and retaliation. TradeScout reviews are tied to verified community members who actually worked with the contractor. Review lineage is publicly auditable."
+      answer:
+        "Anonymous reviews enable fake testimonials and retaliation. TradeScout reviews are tied to verified community members who actually worked with the contractor. Review lineage is publicly auditable.",
     },
     {
       question: "Can contractors pay to boost their trust score?",
-      answer: "No. Trust score is based only on verification and performance. Contractors can pay for visibility boosts, but boosts never override trust ranking. Low-trust contractors cannot buy their way to the top."
+      answer:
+        "No. Trust score is based only on verification and performance. Contractors can pay for visibility boosts, but boosts never override trust ranking. Low-trust contractors cannot buy their way to the top.",
     },
     {
       question: "What happens if a contractor's license expires?",
-      answer: "Their CVS drops immediately, and they're marked 'verification pending.' They cannot receive new Direct Connect requests until verification is restored."
-    }
+      answer:
+        "Their CVS drops immediately, and they're marked 'verification pending.' They cannot receive new Direct Connect requests until verification is restored.",
+    },
   ];
 
   return (
@@ -50,7 +55,7 @@ const TrustModelPage = memo(function TrustModelPage() {
         structuredData={createFAQStructuredData(faqs)}
       />
 
-      <div className="min-h-screen bg-tsBg text-tsTextMain">
+      <div className=" text-tsTextMain">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Header */}
           <header className="mb-12">
@@ -67,10 +72,13 @@ const TrustModelPage = memo(function TrustModelPage() {
               Core Principle
             </h2>
             <p className="text-lg mb-4">
-              <strong>Trust determines visibility.</strong> Contractors with higher verification and better community standing rank higher — regardless of how much they pay.
+              <strong>Trust determines visibility.</strong> Contractors with higher verification and
+              better community standing rank higher — regardless of how much they pay.
             </p>
             <p className="text-tsTextSecondary">
-              Payment can buy optional visibility boosts, but it cannot override trust. A low-trust contractor with a paid boost will always rank below a high-trust contractor without one.
+              Payment can buy optional visibility boosts, but it cannot override trust. A low-trust
+              contractor with a paid boost will always rank below a high-trust contractor without
+              one.
             </p>
           </section>
 
@@ -107,10 +115,18 @@ const TrustModelPage = memo(function TrustModelPage() {
                   2. License & Insurance (30 points)
                 </h3>
                 <ul className="list-disc list-inside space-y-2 text-tsTextSecondary ml-4">
-                  <li><strong>Active state license</strong>: Verified against state registry</li>
-                  <li><strong>General liability insurance</strong>: Minimum $1M coverage</li>
-                  <li><strong>Workers comp insurance</strong>: If applicable (employees)</li>
-                  <li><strong>Expiration monitoring</strong>: Auto-alerts 30 days before expiry</li>
+                  <li>
+                    <strong>Active state license</strong>: Verified against state registry
+                  </li>
+                  <li>
+                    <strong>General liability insurance</strong>: Minimum $1M coverage
+                  </li>
+                  <li>
+                    <strong>Workers comp insurance</strong>: If applicable (employees)
+                  </li>
+                  <li>
+                    <strong>Expiration monitoring</strong>: Auto-alerts 30 days before expiry
+                  </li>
                 </ul>
                 <p className="text-tsTextSecondary mt-4">
                   <strong>If license or insurance lapses, CVS drops to 0 until restored.</strong>
@@ -138,10 +154,20 @@ const TrustModelPage = memo(function TrustModelPage() {
                   4. Community Recommendations (20 points)
                 </h3>
                 <ul className="list-disc list-inside space-y-2 text-tsTextSecondary ml-4">
-                  <li><strong>Neighbor endorsements</strong>: From verified community members</li>
-                  <li><strong>Review lineage</strong>: Every review tied to a real person who worked with the contractor</li>
-                  <li><strong>No anonymous reviews</strong>: Prevents fake testimonials and retaliation</li>
-                  <li><strong>Quality over quantity</strong>: Weighted by reviewer trust score</li>
+                  <li>
+                    <strong>Neighbor endorsements</strong>: From verified community members
+                  </li>
+                  <li>
+                    <strong>Review lineage</strong>: Every review tied to a real person who worked
+                    with the contractor
+                  </li>
+                  <li>
+                    <strong>No anonymous reviews</strong>: Prevents fake testimonials and
+                    retaliation
+                  </li>
+                  <li>
+                    <strong>Quality over quantity</strong>: Weighted by reviewer trust score
+                  </li>
                 </ul>
               </div>
 
@@ -155,7 +181,9 @@ const TrustModelPage = memo(function TrustModelPage() {
                   <li>How conflicts were resolved (mediation, refunds, repairs)</li>
                   <li>Response time to complaints</li>
                   <li>Willingness to fix issues vs. ghosting</li>
-                  <li><strong>Unresolved disputes penalize CVS heavily</strong></li>
+                  <li>
+                    <strong>Unresolved disputes penalize CVS heavily</strong>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -171,10 +199,19 @@ const TrustModelPage = memo(function TrustModelPage() {
                 When Scout matches you with contractors, ranking is determined by:
               </p>
               <ol className="list-decimal list-inside space-y-2 text-tsTextSecondary ml-4">
-                <li><strong>CVS (primary)</strong>: Higher trust = higher rank</li>
-                <li><strong>Relevance</strong>: Trade match, location proximity, availability</li>
-                <li><strong>Context</strong>: Urgency signals, budget alignment, job complexity</li>
-                <li><strong>Boosts (optional)</strong>: Paid visibility can move a contractor up <em>within the same trust tier</em></li>
+                <li>
+                  <strong>CVS (primary)</strong>: Higher trust = higher rank
+                </li>
+                <li>
+                  <strong>Relevance</strong>: Trade match, location proximity, availability
+                </li>
+                <li>
+                  <strong>Context</strong>: Urgency signals, budget alignment, job complexity
+                </li>
+                <li>
+                  <strong>Boosts (optional)</strong>: Paid visibility can move a contractor up{" "}
+                  <em>within the same trust tier</em>
+                </li>
               </ol>
             </div>
 
@@ -183,7 +220,8 @@ const TrustModelPage = memo(function TrustModelPage() {
                 Payment Cannot Override Trust
               </h3>
               <p className="text-tsTextSecondary">
-                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80. Boosts work <strong>within trust tiers</strong>, not across them.
+                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80. Boosts
+                work <strong>within trust tiers</strong>, not across them.
               </p>
             </div>
           </section>
@@ -195,11 +233,21 @@ const TrustModelPage = memo(function TrustModelPage() {
               Every contractor's trust metrics are publicly visible:
             </p>
             <ul className="list-disc list-inside space-y-2 text-tsTextSecondary ml-4">
-              <li><strong>CVS breakdown</strong>: How the score was calculated</li>
-              <li><strong>Verification status</strong>: License, insurance, background check dates</li>
-              <li><strong>Review history</strong>: Who left reviews and when</li>
-              <li><strong>Work timeline</strong>: Jobs completed, on-time rate, repeat clients</li>
-              <li><strong>Dispute log</strong>: How conflicts were resolved (or not)</li>
+              <li>
+                <strong>CVS breakdown</strong>: How the score was calculated
+              </li>
+              <li>
+                <strong>Verification status</strong>: License, insurance, background check dates
+              </li>
+              <li>
+                <strong>Review history</strong>: Who left reviews and when
+              </li>
+              <li>
+                <strong>Work timeline</strong>: Jobs completed, on-time rate, repeat clients
+              </li>
+              <li>
+                <strong>Dispute log</strong>: How conflicts were resolved (or not)
+              </li>
             </ul>
             <p className="text-tsTextSecondary mt-4">
               You can see exactly <strong>why Scout matched you with a contractor</strong>.

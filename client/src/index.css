@@ -1296,7 +1296,8 @@ html, body {
    -------------------------------------------------------------------------- */
 #app-scroll-root > [class*="bg-slate-950"],
 #app-scroll-root > [class*="bg-slate-900"],
-#app-scroll-root > [class*="bg-navy-900"] {
+#app-scroll-root > [class*="bg-navy-900"],
+#app-scroll-root > [class*="bg-tsBg"] {
   background-color: transparent !important;
   background-image: none !important;
 }

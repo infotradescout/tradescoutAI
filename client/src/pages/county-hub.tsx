@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const CountyHub = memo(function CountyHub() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg text-tsTextMain px-4 py-10">
+    <div className="min-h-screen  text-tsTextMain px-4 py-10">
       <div className="max-w-3xl mx-auto">
         <Card className="bg-tsCard border border-tsBorder">
           <CardHeader>

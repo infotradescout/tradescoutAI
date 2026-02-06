@@ -2,18 +2,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function FinancesPayrollPage() {
   return (
-    <div className="flex flex-col gap-4 bg-tsBg">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <h1 className="text-2xl md:text-3xl font-semibold text-tsText mb-1">Payroll</h1>
           <p className="text-sm text-tsTextMuted">
-            Summaries of payouts and tax statements driven by your wallet and external payroll tools.
+            Summaries of payouts and tax statements driven by your wallet and external payroll
+            tools.
           </p>
         </div>
         <a
           href="/payroll-helper"
           className="text-xs text-orange-500 hover:underline font-medium"
-          style={{ whiteSpace: 'nowrap' }}
+          style={{ whiteSpace: "nowrap" }}
         >
           Payroll math
         </a>
@@ -23,15 +24,16 @@ export default function FinancesPayrollPage() {
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-tsText">Payouts and taxes</CardTitle>
           <CardDescription className="text-xs text-tsTextMuted">
-            Today, TradeScout Wallet and your tax statements provide the source of truth for on-platform payouts.
-            This workspace will consolidate period statements and integrate with payroll providers.
+            Today, TradeScout Wallet and your tax statements provide the source of truth for
+            on-platform payouts. This workspace will consolidate period statements and integrate
+            with payroll providers.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-[11px] text-tsTextMuted">
-            Use the Wallet page to download period statements for bookkeeping and tax prep. As we wire deeper
-            payroll integrations, this view will show gross vs. net, employer taxes, and links into your payroll
-            provider.
+            Use the Wallet page to download period statements for bookkeeping and tax prep. As we
+            wire deeper payroll integrations, this view will show gross vs. net, employer taxes, and
+            links into your payroll provider.
           </p>
         </CardContent>
       </Card>

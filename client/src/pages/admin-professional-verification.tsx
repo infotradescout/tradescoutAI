@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Home, 
-  Car, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  FileText, 
+import {
+  Home,
+  Car,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
   User,
   Calendar,
   MapPin,
@@ -21,7 +21,7 @@ import {
   Mail,
   Award,
   Building,
-  CreditCard
+  CreditCard,
 } from "lucide-react";
 
 interface RealtorProfile {
@@ -85,7 +85,7 @@ export default function AdminProfessionalVerification() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTab, setSelectedTab] = useState("realtors");
-  const [verificationNotes, setVerificationNotes] = useState<{[key: string]: string}>({});
+  const [verificationNotes, setVerificationNotes] = useState<{ [key: string]: string }>({});
 
   interface PendingApplications {
     realtors: RealtorProfile[];
@@ -93,14 +93,23 @@ export default function AdminProfessionalVerification() {
   }
 
   // Fetch pending applications
-  const { data: pendingApplications = { realtors: [], carSalesmen: [] }, isLoading } = useQuery<PendingApplications>({
-    queryKey: ["/api/admin/professional/pending"],
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  const { data: pendingApplications = { realtors: [], carSalesmen: [] }, isLoading } =
+    useQuery<PendingApplications>({
+      queryKey: ["/api/admin/professional/pending"],
+      refetchInterval: 30000, // Refresh every 30 seconds
+    });
 
   // Verification mutations
   const realtorVerificationMutation = useMutation({
-    mutationFn: async ({ profileId, approved, notes }: { profileId: string; approved: boolean; notes: string }) => {
+    mutationFn: async ({
+      profileId,
+      approved,
+      notes,
+    }: {
+      profileId: string;
+      approved: boolean;
+      notes: string;
+    }) => {
       return apiRequest("POST", `/api/admin/realtor/verify/${profileId}`, { approved, notes });
     },
     onSuccess: () => {
@@ -121,7 +130,15 @@ export default function AdminProfessionalVerification() {
   });
 
   const carSalesmanVerificationMutation = useMutation({
-    mutationFn: async ({ profileId, approved, notes }: { profileId: string; approved: boolean; notes: string }) => {
+    mutationFn: async ({
+      profileId,
+      approved,
+      notes,
+    }: {
+      profileId: string;
+      approved: boolean;
+      notes: string;
+    }) => {
       return apiRequest("POST", `/api/admin/car-salesman/verify/${profileId}`, { approved, notes });
     },
     onSuccess: () => {
@@ -152,9 +169,9 @@ export default function AdminProfessionalVerification() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -162,7 +179,7 @@ export default function AdminProfessionalVerification() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-tsBg p-6">
+      <div className=" p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full"></div>
@@ -176,7 +193,7 @@ export default function AdminProfessionalVerification() {
   const carSalesmen = pendingApplications?.carSalesmen || [];
 
   return (
-    <div className="min-h-screen bg-tsBg p-6">
+    <div className=" p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -226,7 +243,9 @@ export default function AdminProfessionalVerification() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Pending</p>
-                  <p className="text-2xl font-bold text-orange-500">{realtors.length + carSalesmen.length}</p>
+                  <p className="text-2xl font-bold text-orange-500">
+                    {realtors.length + carSalesmen.length}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -303,7 +322,9 @@ export default function AdminProfessionalVerification() {
                             </div>
                             <div className="flex items-center gap-2">
                               <CreditCard className="h-4 w-4 text-gray-400" />
-                              <span>Avg. transaction: {formatCurrency(realtor.averageTransactionValue)}</span>
+                              <span>
+                                Avg. transaction: {formatCurrency(realtor.averageTransactionValue)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -325,7 +346,9 @@ export default function AdminProfessionalVerification() {
                             </div>
                             <div>
                               <span className="font-medium">Expiration:</span>
-                              <span className="ml-2">{new Date(realtor.licenseExpiration).toLocaleDateString()}</span>
+                              <span className="ml-2">
+                                {new Date(realtor.licenseExpiration).toLocaleDateString()}
+                              </span>
                             </div>
                             <div>
                               <span className="font-medium">Brokerage:</span>
@@ -344,7 +367,9 @@ export default function AdminProfessionalVerification() {
                             <h4 className="font-semibold text-orange-500 mb-2">Specializations</h4>
                             <div className="flex flex-wrap gap-2">
                               {realtor.specializations.map((spec, index) => (
-                                <Badge key={index} variant="secondary">{spec}</Badge>
+                                <Badge key={index} variant="secondary">
+                                  {spec}
+                                </Badge>
                               ))}
                             </div>
                           </div>
@@ -352,7 +377,11 @@ export default function AdminProfessionalVerification() {
                             <h4 className="font-semibold text-orange-500 mb-2">Service Areas</h4>
                             <div className="flex flex-wrap gap-2">
                               {realtor.serviceAreas.map((area, index) => (
-                                <Badge key={index} variant="outline" className="flex items-center gap-1">
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="flex items-center gap-1"
+                                >
                                   <MapPin className="h-3 w-3" />
                                   {area}
                                 </Badge>
@@ -362,19 +391,26 @@ export default function AdminProfessionalVerification() {
                         </div>
 
                         {/* Verification Documents */}
-                        {realtor.verificationDocuments && realtor.verificationDocuments.length > 0 && (
-                          <div className="lg:col-span-2">
-                            <h4 className="font-semibold text-orange-500 mb-2">Verification Documents</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {realtor.verificationDocuments.map((doc, index) => (
-                                <Badge key={index} variant="outline" className="flex items-center gap-1">
-                                  <FileText className="h-3 w-3" />
-                                  Document {index + 1}
-                                </Badge>
-                              ))}
+                        {realtor.verificationDocuments &&
+                          realtor.verificationDocuments.length > 0 && (
+                            <div className="lg:col-span-2">
+                              <h4 className="font-semibold text-orange-500 mb-2">
+                                Verification Documents
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {realtor.verificationDocuments.map((doc, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="flex items-center gap-1"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    Document {index + 1}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         {/* Verification Notes */}
                         <div className="lg:col-span-2">
@@ -382,10 +418,12 @@ export default function AdminProfessionalVerification() {
                           <Textarea
                             placeholder="Add notes about this verification decision..."
                             value={verificationNotes[realtor.id] || ""}
-                            onChange={(e) => setVerificationNotes(prev => ({
-                              ...prev,
-                              [realtor.id]: e.target.value
-                            }))}
+                            onChange={(e) =>
+                              setVerificationNotes((prev) => ({
+                                ...prev,
+                                [realtor.id]: e.target.value,
+                              }))
+                            }
                             className="min-h-[80px]"
                           />
                         </div>
@@ -474,7 +512,9 @@ export default function AdminProfessionalVerification() {
                             </div>
                             <div className="flex items-center gap-2">
                               <CreditCard className="h-4 w-4 text-gray-400" />
-                              <span>Avg. vehicle value: {formatCurrency(salesman.averageVehicleValue)}</span>
+                              <span>
+                                Avg. vehicle value: {formatCurrency(salesman.averageVehicleValue)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -500,7 +540,9 @@ export default function AdminProfessionalVerification() {
                             </div>
                             <div>
                               <span className="font-medium">Expiration:</span>
-                              <span className="ml-2">{new Date(salesman.licenseExpiration).toLocaleDateString()}</span>
+                              <span className="ml-2">
+                                {new Date(salesman.licenseExpiration).toLocaleDateString()}
+                              </span>
                             </div>
                             <div>
                               <span className="font-medium">Dealership:</span>
@@ -515,15 +557,21 @@ export default function AdminProfessionalVerification() {
                             <h4 className="font-semibold text-orange-500 mb-2">Specializations</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.specializations.map((spec, index) => (
-                                <Badge key={index} variant="secondary">{spec}</Badge>
+                                <Badge key={index} variant="secondary">
+                                  {spec}
+                                </Badge>
                               ))}
                             </div>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-orange-500 mb-2">Brand Specialties</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">
+                              Brand Specialties
+                            </h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.brandsSpecialty.map((brand, index) => (
-                                <Badge key={index} variant="outline">{brand}</Badge>
+                                <Badge key={index} variant="outline">
+                                  {brand}
+                                </Badge>
                               ))}
                             </div>
                           </div>
@@ -531,7 +579,11 @@ export default function AdminProfessionalVerification() {
                             <h4 className="font-semibold text-orange-500 mb-2">Service Areas</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.serviceAreas.map((area, index) => (
-                                <Badge key={index} variant="outline" className="flex items-center gap-1">
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="flex items-center gap-1"
+                                >
                                   <MapPin className="h-3 w-3" />
                                   {area}
                                 </Badge>
@@ -541,19 +593,26 @@ export default function AdminProfessionalVerification() {
                         </div>
 
                         {/* Verification Documents */}
-                        {salesman.verificationDocuments && salesman.verificationDocuments.length > 0 && (
-                          <div className="lg:col-span-2">
-                            <h4 className="font-semibold text-orange-500 mb-2">Verification Documents</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {salesman.verificationDocuments.map((doc, index) => (
-                                <Badge key={index} variant="outline" className="flex items-center gap-1">
-                                  <FileText className="h-3 w-3" />
-                                  Document {index + 1}
-                                </Badge>
-                              ))}
+                        {salesman.verificationDocuments &&
+                          salesman.verificationDocuments.length > 0 && (
+                            <div className="lg:col-span-2">
+                              <h4 className="font-semibold text-orange-500 mb-2">
+                                Verification Documents
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {salesman.verificationDocuments.map((doc, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="flex items-center gap-1"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    Document {index + 1}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         {/* Verification Notes */}
                         <div className="lg:col-span-2">
@@ -561,10 +620,12 @@ export default function AdminProfessionalVerification() {
                           <Textarea
                             placeholder="Add notes about this verification decision..."
                             value={verificationNotes[salesman.id] || ""}
-                            onChange={(e) => setVerificationNotes(prev => ({
-                              ...prev,
-                              [salesman.id]: e.target.value
-                            }))}
+                            onChange={(e) =>
+                              setVerificationNotes((prev) => ({
+                                ...prev,
+                                [salesman.id]: e.target.value,
+                              }))
+                            }
                             className="min-h-[80px]"
                           />
                         </div>

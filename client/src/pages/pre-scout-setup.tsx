@@ -19,7 +19,9 @@ export default function PreScoutSetup() {
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
 
-  const [presenceType, setPresenceType] = useState<PresenceType>(existingDraft?.presenceType || "personal");
+  const [presenceType, setPresenceType] = useState<PresenceType>(
+    existingDraft?.presenceType || "personal"
+  );
   const [stateCode, setStateCode] = useState(existingDraft?.stateCode || "");
   const [countyFips, setCountyFips] = useState(existingDraft?.countyFips || "");
   const [countyName, setCountyName] = useState<string | undefined>(existingDraft?.countyName);
@@ -113,7 +115,7 @@ export default function PreScoutSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Button
@@ -132,7 +134,8 @@ export default function PreScoutSetup() {
               Set your local setup before Scout takes over.
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              This quick check locks in where you operate and whether you&apos;re here as yourself or representing a business. Scout uses it to show only relevant actions and deals.
+              This quick check locks in where you operate and whether you&apos;re here as yourself
+              or representing a business. Scout uses it to show only relevant actions and deals.
             </p>
 
             <div className="rounded-2xl border border-tsBorder bg-black/30 p-4 text-xs text-tsTextMuted space-y-2">
@@ -140,9 +143,14 @@ export default function PreScoutSetup() {
                 <div className="h-2 w-full bg-tsBorder/50 rounded-full overflow-hidden">
                   <div className="h-full bg-tsAccent" style={{ width: "60%" }} />
                 </div>
-                <span className="text-[11px] uppercase tracking-[0.2em] text-tsAccentSoft">Setup</span>
+                <span className="text-[11px] uppercase tracking-[0.2em] text-tsAccentSoft">
+                  Setup
+                </span>
               </div>
-              <p>We only use this for routing and relevance. It does not publish or share your details until you choose to.</p>
+              <p>
+                We only use this for routing and relevance. It does not publish or share your
+                details until you choose to.
+              </p>
             </div>
           </div>
         </div>
@@ -151,8 +159,12 @@ export default function PreScoutSetup() {
           <CardHeader className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">Pre-Scout setup</span>
-                <CardTitle className="text-lg font-semibold text-tsTextMain">Your starting point</CardTitle>
+                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">
+                  Pre-Scout setup
+                </span>
+                <CardTitle className="text-lg font-semibold text-tsTextMain">
+                  Your starting point
+                </CardTitle>
               </div>
               <div className="text-xs text-tsTextMuted">Required</div>
             </div>
@@ -173,7 +185,9 @@ export default function PreScoutSetup() {
                     }`}
                   >
                     <div className="text-sm font-semibold text-tsTextMain">Just me</div>
-                    <div className="text-xs text-tsTextMuted">Plan projects, browse, and ask for help.</div>
+                    <div className="text-xs text-tsTextMuted">
+                      Plan projects, browse, and ask for help.
+                    </div>
                   </button>
                   <button
                     type="button"
@@ -184,8 +198,12 @@ export default function PreScoutSetup() {
                         : "border-tsBorder hover:border-tsAccent/60"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-tsTextMain">I&apos;m representing a business</div>
-                    <div className="text-xs text-tsTextMuted">Share services, deals, or hiring needs.</div>
+                    <div className="text-sm font-semibold text-tsTextMain">
+                      I&apos;m representing a business
+                    </div>
+                    <div className="text-xs text-tsTextMuted">
+                      Share services, deals, or hiring needs.
+                    </div>
                   </button>
                 </div>
               </div>
@@ -208,7 +226,8 @@ export default function PreScoutSetup() {
                   className="mt-3"
                 />
                 <p className="text-[11px] text-tsTextMuted">
-                  County is required so Scout can keep results local. City helps narrow things further.
+                  County is required so Scout can keep results local. City helps narrow things
+                  further.
                 </p>
               </div>
 
@@ -255,14 +274,16 @@ export default function PreScoutSetup() {
                   </div>
 
                   <div className="rounded-lg border border-dashed border-tsBorder/80 bg-black/20 p-3 text-xs text-tsTextMuted">
-                    Service area defaults to this county. You can expand it later after Scout suggests the right tools.
+                    Service area defaults to this county. You can expand it later after Scout
+                    suggests the right tools.
                   </div>
                 </div>
               )}
 
               <div className="flex items-center justify-between">
                 <div className="text-[11px] text-tsTextMuted max-w-xs">
-                  This is required so Scout can do its job. Nothing is shared publicly unless you choose to publish.
+                  This is required so Scout can do its job. Nothing is shared publicly unless you
+                  choose to publish.
                 </div>
                 <Button type="submit" disabled={!canContinue || submitting}>
                   {submitting ? "Saving..." : "Continue to Scout"}

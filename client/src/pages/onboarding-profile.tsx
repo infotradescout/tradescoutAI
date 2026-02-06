@@ -28,7 +28,8 @@ export default function OnboardingProfile() {
     if (!user || !isAuthenticated) return;
 
     const anyUser: any = user;
-    const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+    const profileVersion: number =
+      typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
     // If already on or above the current profile version, skip ahead.
     if (profileVersion >= CURRENT_PROFILE_VERSION) {
@@ -80,7 +81,8 @@ export default function OnboardingProfile() {
       }
       toast({
         title: "Profile updated",
-        description: "You're all set. You won't be asked to update this again unless something important changes.",
+        description:
+          "You're all set. You won't be asked to update this again unless something important changes.",
       });
       navigate("/onboarding/intent");
     },
@@ -102,7 +104,7 @@ export default function OnboardingProfile() {
   const canContinue = !!firstName.trim() && !!lastName.trim() && !!stateCode && !!countyFips;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Button
@@ -121,8 +123,9 @@ export default function OnboardingProfile() {
               We've improved how profiles work.
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              TradeScout now uses a simpler, more flexible profile setup that better reflects how people actually use the platform.
-              This quick update helps reduce duplicate badges, fix location issues, and make your profile clearer to others.
+              TradeScout now uses a simpler, more flexible profile setup that better reflects how
+              people actually use the platform. This quick update helps reduce duplicate badges, fix
+              location issues, and make your profile clearer to others.
             </p>
 
             <div className="rounded-2xl border border-tsBorder bg-black/30 p-4 text-xs text-tsTextMuted">
@@ -141,7 +144,9 @@ export default function OnboardingProfile() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
-                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">TRADESCOUT</span>
+                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">
+                  TRADESCOUT
+                </span>
               </div>
             </div>
             <CardTitle className="text-lg font-semibold text-tsTextMain">
@@ -183,7 +188,8 @@ export default function OnboardingProfile() {
 
               <div className="flex justify-between items-center pt-2">
                 <p className="text-[11px] text-tsTextMuted max-w-xs">
-                  We only use this to power local feeds and matching. You can change it anytime in Settings.
+                  We only use this to power local feeds and matching. You can change it anytime in
+                  Settings.
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
                   {updateProfile.isPending ? "Saving..." : "Update profile"}

@@ -8,7 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,18 +31,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  ArrowLeft, 
-  AlertCircle, 
-  CheckCircle, 
-  Home, 
+import {
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle,
+  Home,
   Shield,
   FileText,
   Award,
   MapPin,
   DollarSign,
   Star,
-  Info
+  Info,
 } from "lucide-react";
 
 const realtorApplicationSchema = z.object({
@@ -56,7 +62,7 @@ type RealtorApplicationForm = z.infer<typeof realtorApplicationSchema>;
 
 const realEstateSpecializations = [
   "Residential Sales",
-  "Commercial Real Estate", 
+  "Commercial Real Estate",
   "Luxury Properties",
   "First-Time Homebuyers",
   "Investment Properties",
@@ -66,15 +72,60 @@ const realEstateSpecializations = [
   "Foreclosures/REO",
   "Short Sales",
   "Property Management",
-  "Relocation Services"
+  "Relocation Services",
 ];
 
 const states = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
 ];
 
 export default function RealtorApplication() {
@@ -117,7 +168,8 @@ export default function RealtorApplication() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       toast({
         title: "Application Submitted Successfully!",
-        description: "Your realtor application has been submitted for review. You'll be notified once verified.",
+        description:
+          "Your realtor application has been submitted for review. You'll be notified once verified.",
       });
       form.reset();
     },
@@ -146,16 +198,16 @@ export default function RealtorApplication() {
   };
 
   const handleSpecializationToggle = (specialization: string) => {
-    setSelectedSpecializations(prev => 
-      prev.includes(specialization) 
-        ? prev.filter(s => s !== specialization)
+    setSelectedSpecializations((prev) =>
+      prev.includes(specialization)
+        ? prev.filter((s) => s !== specialization)
         : [...prev, specialization]
     );
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className=" flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
@@ -171,7 +223,7 @@ export default function RealtorApplication() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className=" text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -247,7 +299,7 @@ export default function RealtorApplication() {
                 {/* License Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-400">License Information</h3>
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -323,7 +375,7 @@ export default function RealtorApplication() {
                 {/* Brokerage Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-400">Brokerage Information</h3>
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -359,7 +411,7 @@ export default function RealtorApplication() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-400">Specializations</h3>
                   <p className="text-sm text-gray-400">Select your areas of expertise</p>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {realEstateSpecializations.map((specialization) => (
                       <div key={specialization} className="flex items-center space-x-2">
@@ -368,7 +420,7 @@ export default function RealtorApplication() {
                           checked={selectedSpecializations.includes(specialization)}
                           onCheckedChange={() => handleSpecializationToggle(specialization)}
                         />
-                        <label 
+                        <label
                           htmlFor={specialization}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
@@ -383,7 +435,7 @@ export default function RealtorApplication() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-400">Service Areas</h3>
                   <p className="text-sm text-gray-400">Define your geographic coverage</p>
-                  
+
                   <FormField
                     control={form.control}
                     name="serviceCounties"
@@ -391,10 +443,12 @@ export default function RealtorApplication() {
                       <FormItem>
                         <FormLabel>Primary Counties (comma-separated)</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             placeholder="e.g., Los Angeles County, Orange County"
                             value={serviceCounties.join(", ")}
-                            onChange={(e) => setServiceCounties(e.target.value.split(",").map(s => s.trim()))}
+                            onChange={(e) =>
+                              setServiceCounties(e.target.value.split(",").map((s) => s.trim()))
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -428,7 +482,9 @@ export default function RealtorApplication() {
                 <div className="flex gap-4 pt-4">
                   <Button
                     type="submit"
-                    disabled={submitApplicationMutation.isPending || selectedSpecializations.length === 0}
+                    disabled={
+                      submitApplicationMutation.isPending || selectedSpecializations.length === 0
+                    }
                     className="bg-blue-600 hover:bg-blue-700 flex-1"
                   >
                     {submitApplicationMutation.isPending ? (
@@ -443,7 +499,7 @@ export default function RealtorApplication() {
                       </>
                     )}
                   </Button>
-                  
+
                   <Button
                     type="button"
                     variant="outline"

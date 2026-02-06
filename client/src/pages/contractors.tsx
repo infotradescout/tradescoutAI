@@ -5,28 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Download, 
-  Users, 
-  CheckCircle, 
+import {
+  Download,
+  Users,
+  CheckCircle,
   ArrowRight,
   DollarSign,
   Briefcase,
-  FileText
+  FileText,
 } from "lucide-react";
 import { PublicHeatmap } from "@/components/PublicHeatmap";
 import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 
 export default function ForContractors() {
   const { user, isAuthenticated } = useAuth();
-  const isContractor = user && user.role === 'contractor_user';
+  const isContractor = user && user.role === "contractor_user";
 
   // Get total site-wide contractor count
   const { data: allContractors } = useQuery({
-    queryKey: ['/api/contractors'],
+    queryKey: ["/api/contractors"],
     queryFn: async () => {
-      const response = await fetch('/api/contractors?limit=10000');
-      if (!response.ok) throw new Error('Failed to fetch contractors');
+      const response = await fetch("/api/contractors?limit=10000");
+      if (!response.ok) throw new Error("Failed to fetch contractors");
       return response.json();
     },
   });
@@ -34,7 +34,7 @@ export default function ForContractors() {
   const totalContractorCount = allContractors?.length || 0;
 
   return (
-    <div className="min-h-screen bg-tsBg">
+    <div className="">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header - this is the Contractors tab under Direct Connect */}
         <div className="text-center mb-12">
@@ -68,15 +68,13 @@ export default function ForContractors() {
                   <Download className="h-6 w-6 mr-2 text-orange-500" />
                   Free Growth Pack
                 </CardTitle>
-                <Badge className="bg-orange-500 text-white">
-                  FREE
-                </Badge>
+                <Badge className="bg-orange-500 text-white">FREE</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-gray-300">
-                Get instant access to proven marketing strategies, pricing guides, and business growth tools 
-                specifically designed for contractors.
+                Get instant access to proven marketing strategies, pricing guides, and business
+                growth tools specifically designed for contractors.
               </p>
 
               <div className="space-y-2">
@@ -116,13 +114,19 @@ export default function ForContractors() {
               </p>
               {isContractor ? (
                 <Link href="/contractor-dashboard">
-                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white hover:text-white">
+                  <Button
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white hover:text-white"
+                  >
                     Go to Dashboard
                   </Button>
                 </Link>
               ) : (
                 <Link href="/contractors/apply">
-                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white hover:text-white">
+                  <Button
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white hover:text-white"
+                  >
                     Join Now
                   </Button>
                 </Link>
@@ -138,7 +142,10 @@ export default function ForContractors() {
                 Connect with homeowners actively seeking contractors in your area.
               </p>
               <Link href="/contractors/board">
-                <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white">
+                <Button
+                  variant="outline"
+                  className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                >
                   View Opportunities
                 </Button>
               </Link>
@@ -174,11 +181,7 @@ export default function ForContractors() {
 
         {/* Interactive County Explorer */}
         <div className="mt-16">
-          <InteractiveCountyMap 
-            variant="contractor" 
-            showTitle={true} 
-            className="max-w-full"
-          />
+          <InteractiveCountyMap variant="contractor" showTitle={true} className="max-w-full" />
         </div>
       </div>
     </div>
