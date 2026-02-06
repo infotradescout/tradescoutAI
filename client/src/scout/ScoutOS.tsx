@@ -3342,10 +3342,10 @@ export default function ScoutOS() {
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-3 pt-3 pb-24" : "max-w-5xl px-4 pt-4 pb-12"
+            isMobile ? "px-3 pt-1 pb-16" : "max-w-5xl px-4 pt-2 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
-            paddingBottom: isMobile ? "calc(6rem + env(safe-area-inset-bottom))" : undefined,
+            paddingBottom: isMobile ? "calc(4.75rem + env(safe-area-inset-bottom))" : undefined,
           }}
         >
           {/* Main conversation layout: used for all users, including first-time guests. */}
@@ -3477,7 +3477,7 @@ export default function ScoutOS() {
                 className={`mt-2 flex flex-col flex-1 min-h-0 ${
                   isMobile ? "space-y-2" : "space-y-2"
                 }`}
-                style={{ paddingBottom: isMobile ? "2rem" : "1.5rem" }}
+                style={{ paddingBottom: isMobile ? "1rem" : "1rem" }}
               >
                 {!hasUserMessages && (
                   <div className="flex flex-col gap-3 py-3 px-1">
@@ -3971,7 +3971,7 @@ export default function ScoutOS() {
           </div>
 
           {/* Unified dashboard lives under Scout so the assistant stays primary. */}
-          <section className="mx-auto mt-5 w-full max-w-5xl">
+          <section className="mx-auto mt-3 w-full max-w-5xl">
             <div className="rounded-2xl border border-[color:var(--border-active)] bg-[color:var(--surface-card)]/90 p-4 shadow-xl sm:p-5">
               <div className="mb-4 rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] px-4 py-3">
                 <div className="flex items-start justify-between gap-3">

@@ -235,12 +235,12 @@ html {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 16px 84px;
+  padding: 12px 14px 72px;
 }
 
 @media (min-width: 1024px){
   .app-page{
-    padding: 28px 24px 96px;
+    padding: 16px 20px 84px;
   }
 }
 
@@ -444,10 +444,9 @@ html {
     background-color: transparent;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
   }
 
   /* Mobile bottom nav glass shell */

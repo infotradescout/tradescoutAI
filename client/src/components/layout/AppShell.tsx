@@ -138,7 +138,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
-    <section className="px-4 py-6 md:hidden">
+    <section className="px-4 py-3 md:hidden">
       <h1 className="text-xl font-semibold">
         Scout for your <span className="text-accent">next move</span>
       </h1>
@@ -223,7 +223,6 @@ export function AppShell({ children, footer }: AppShellProps) {
       className="app-shell relative h-full w-full overflow-hidden"
       style={{
         color: "var(--text-primary)",
-        paddingTop: "env(safe-area-inset-top)",
       }}
     >
       {/* Impersonation banner (always visible, not dismissible) */}
