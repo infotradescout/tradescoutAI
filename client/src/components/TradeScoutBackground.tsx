@@ -5,8 +5,11 @@ type TradeScoutBackgroundProps = {
 };
 
 export default function TradeScoutBackground({ children }: TradeScoutBackgroundProps) {
+  const isDebug =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bgdebug");
+
   return (
-    <div className="ts-bg">
+    <div className="ts-bg" data-debug={isDebug ? "true" : "false"}>
       <style>{css}</style>
 
       <div className="ts-bg__base" aria-hidden="true" />
@@ -27,6 +30,19 @@ const css = `
   background: var(--ts-bg, #0B0F14);
   overflow: hidden;
   isolation: isolate;
+}
+
+/* Debug: allow quick verification that the background is actually rendering. */
+.ts-bg[data-debug="true"]{
+  outline: 2px solid #ff4d4d;
+}
+.ts-bg[data-debug="true"] .ts-bg__base{
+  background: linear-gradient(135deg, #ff0066, #ffcc00);
+}
+.ts-bg[data-debug="true"] .ts-bg__grid,
+.ts-bg[data-debug="true"] .ts-bg__topo,
+.ts-bg[data-debug="true"] .ts-bg__signals{
+  opacity: 0.9;
 }
 
 .ts-bg__content{
