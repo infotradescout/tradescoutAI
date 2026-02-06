@@ -9,7 +9,6 @@ import {
   Video,
   Calendar,
   Compass,
-  Users2,
   Crown,
   Award,
   Flag,
@@ -18,12 +17,10 @@ import {
   Trophy,
   BarChart3,
   Share,
-  Target,
   Heart,
   Send,
   Tag,
   MapPin,
-  Eye,
   HelpCircle,
   Wrench,
   Lightbulb,
@@ -262,7 +259,8 @@ type TrendingTopic = {
 };
 
 const CommunityFeed = memo(function CommunityFeed() {
-  const [activeTab, setActiveTab] = useState("forYou");
+  type FeedTab = "forYou" | "recent" | "nearby" | "trending" | "recs" | "vault";
+  const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
@@ -283,30 +281,74 @@ const CommunityFeed = memo(function CommunityFeed() {
   const countyFips = location.countyFips as string | undefined;
   const countyCommitted = hasCountyContext(location);
 
-  // Read scope from query params
-  const scopeFromRoute = useMemo(() => {
-    if (!route) return null;
+  const queryParams = useMemo(() => {
+    if (!route) return new URLSearchParams();
     const idx = route.indexOf("?");
-    if (idx === -1) return null;
-    const search = route.slice(idx + 1);
-    const params = new URLSearchParams(search);
-    return params.get("scope");
+    const search = idx >= 0 ? route.slice(idx + 1) : "";
+    return new URLSearchParams(search);
   }, [route]);
 
+  const rawScopeParam = queryParams.get("scope");
+  const rawFeedParam = queryParams.get("feed");
+
+  const normalizeFeed = (value?: string | null): FeedTab | null => {
+    if (!value) return null;
+    switch (value) {
+      case "forYou":
+      case "for_you":
+        return "forYou";
+      case "recent":
+        return "recent";
+      case "nearby":
+        return "nearby";
+      case "trending":
+        return "trending";
+      case "recs":
+      case "recommendations":
+        return "recs";
+      case "vault":
+        return "vault";
+      default:
+        return null;
+    }
+  };
+
+  const feedFromRoute = normalizeFeed(rawFeedParam) ?? normalizeFeed(rawScopeParam);
+  const geoScopeFromRoute =
+    rawScopeParam === "global" || rawScopeParam === "local" ? rawScopeParam : null;
+
   // Phase 1: Global community toggle (default: local/county)
-  const effectiveScope = (scopeFromRoute as string | null) || "local";
-  const isGlobalView = effectiveScope === "global";
+  const effectiveGeoScope = geoScopeFromRoute || "local";
+  const isGlobalView = effectiveGeoScope === "global";
   const previousScopeRef = useRef<string>("local");
 
-  // Toggle scope handler (Phase 1: UI toggle)
+  useEffect(() => {
+    if (!feedFromRoute) return;
+    if (feedFromRoute !== activeTab) {
+      setActiveTab(feedFromRoute);
+    }
+  }, [feedFromRoute, activeTab]);
+
+  const currentPath = route.split("?")[0];
   const handleScopeToggle = (newScope: "local" | "global") => {
-    const currentPath = route.split("?")[0];
-    navigate(`${currentPath}?scope=${newScope}`);
+    const nextParams = new URLSearchParams(queryParams);
+    nextParams.set("scope", newScope);
+    navigate(`${currentPath}?${nextParams.toString()}`);
+  };
+
+  const handleTabChange = (nextTab: FeedTab) => {
+    setActiveTab(nextTab);
+    const nextParams = new URLSearchParams(queryParams);
+    nextParams.set("feed", nextTab);
+    if (!nextParams.get("scope")) {
+      nextParams.set("scope", isGlobalView ? "global" : "local");
+    }
+    navigate(`${currentPath}?${nextParams.toString()}`);
   };
 
   // Telemetry: Track when community feed defaults to county scope
   useEffect(() => {
-    if (effectiveScope === "county" && countyCommitted) {
+    if (effectiveGeoScope === "county" && countyCommitted) {
       try {
         // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
         if (user?.email === "traderscornerllc@gmail.com") {
@@ -331,13 +373,13 @@ const CommunityFeed = memo(function CommunityFeed() {
         // fire-and-forget: ignore telemetry failures
       }
     }
-  }, [effectiveScope, countyCommitted, countyFips, stateCode, user]);
+  }, [effectiveGeoScope, countyCommitted, countyFips, stateCode, user]);
 
   // Telemetry: Track when user changes scope (county <-> state <-> all)
   useEffect(() => {
-    if (effectiveScope !== previousScopeRef.current) {
+    if (effectiveGeoScope !== previousScopeRef.current) {
       const previousScope = previousScopeRef.current;
-      previousScopeRef.current = effectiveScope;
+      previousScopeRef.current = effectiveGeoScope;
       try {
         // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
         if (user?.email === "traderscornerllc@gmail.com") {
@@ -347,9 +389,9 @@ const CommunityFeed = memo(function CommunityFeed() {
             path: typeof window !== "undefined" ? window.location.pathname : "",
             meta: {
               surface: "community",
-              scope: effectiveScope,
-              countyFips: effectiveScope === "county" ? countyFips : undefined,
-              stateCode: effectiveScope === "state" ? stateCode : undefined,
+              scope: effectiveGeoScope,
+              countyFips: effectiveGeoScope === "county" ? countyFips : undefined,
+              stateCode: effectiveGeoScope === "state" ? stateCode : undefined,
               source: "manual_change",
               sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
               asOf: new Date().toISOString(),
@@ -361,16 +403,30 @@ const CommunityFeed = memo(function CommunityFeed() {
         // fire-and-forget: ignore telemetry failures
       }
     }
-  }, [effectiveScope, countyFips, stateCode, user]);
+  }, [effectiveGeoScope, countyFips, stateCode, user]);
+
+  const serverScopeForFeed = useMemo(() => {
+    if (isGlobalView) return "global";
+    switch (activeTab) {
+      case "recent":
+        return "recent";
+      case "nearby":
+        return "nearby";
+      case "recs":
+        return "recommendations";
+      default:
+        return "for_you";
+    }
+  }, [activeTab, isGlobalView]);
 
   // Fetch posts from the API scoped to the user's county and nav scope
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/community/posts", stateCode, countyFips, effectiveScope],
+    queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed],
     // Phase 1: Global view doesn't require county commitment
     enabled: isGlobalView || countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams({
-        scope: isGlobalView ? "global" : effectiveScope,
+        scope: serverScopeForFeed,
         limit: "20",
         offset: "0",
       });
@@ -403,24 +459,6 @@ const CommunityFeed = memo(function CommunityFeed() {
       }
 
       return json;
-    },
-  });
-
-  const isSuperAdmin = Boolean((user as any)?.isSuperAdmin);
-
-  const { data: globalPostsData, isLoading: globalPostsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/community/posts", "global"],
-    enabled: isSuperAdmin && activeTab === "all",
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        scope: "all",
-        limit: "50",
-        offset: "0",
-      });
-
-      const response = await fetch(`/api/community/posts?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch posts");
-      return response.json();
     },
   });
 
@@ -493,7 +531,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   // Use real posts from API, with sample posts as fallback
-  const activePostsSource = isSuperAdmin && activeTab === "all" ? globalPostsData : postsData;
+  const activePostsSource = postsData;
   const posts = activePostsSource || [];
 
   const { data: communityStatsData } = useQuery<CommunityStats>({
@@ -673,6 +711,269 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const hasUserPosts = Array.isArray(posts) && posts.length > 0;
   const displayPosts: any[] = hasUserPosts ? posts : systemPosts;
+
+  const renderFeedList = () => (
+    <div className="space-y-3 md:space-y-5">
+      {postsLoading ? (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <p className="text-gray-400 mt-4">Loading posts...</p>
+        </div>
+      ) : (
+        <>
+          {displayPosts.map((post: any) => {
+            const isSystemPost = post.category === "system";
+            const locationLabel = post.location || post.author?.location;
+
+            return (
+              <Card
+                key={post.id}
+                className={`rounded-2xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors shadow-sm hover:shadow-md hover:shadow-black/40 ${
+                  isSystemPost
+                    ? "bg-[color:var(--surface-intermediate)]"
+                    : "bg-[color:var(--surface-card)]"
+                }`}
+                data-testid={`card-post-${post.id}`}
+              >
+                <CardContent className="p-3 md:p-5">
+                  {/* Post Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex gap-3">
+                      {isSystemPost ? (
+                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
+                          <TradeScoutIcon size="sm" variant="gradient" className="text-slate-950" />
+                        </div>
+                      ) : (
+                        <Avatar className="w-10 h-10 md:w-11 md:h-11">
+                          <AvatarImage src={post.author?.avatar} />
+                          <AvatarFallback>
+                            {(post.author?.name || user?.username || "U")
+                              .substring(0, 2)
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-white font-semibold">
+                            {isSystemPost
+                              ? "Scout"
+                              : post.author?.name || user?.username || "Community Member"}
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-1">
+                          <span>
+                            {post.timestamp || new Date(post.createdAt).toLocaleDateString()}
+                          </span>
+                          {locationLabel && (
+                            <>
+                              <span>•</span>
+                              <div className="flex items-center gap-1">
+                                <Compass className="h-3 w-3" />
+                                {locationLabel}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs md:text-sm">
+                      <div className="flex items-center gap-1">
+                        {getPostTypeIcon(post.type || post.postType)}
+                        <span className="text-xs text-gray-400">
+                          {getPostTypeLabel(post.type || post.postType)}
+                        </span>
+                      </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem>
+                            <Flag className="h-4 w-4 mr-2" />
+                            Report
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSharePost(post)}>
+                            <Share className="h-4 w-4 mr-2" />
+                            Share
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  {/* Post Content */}
+                  <div className="mb-3 md:mb-4">
+                    {post.title && (
+                      <h4 className="text-lg font-semibold text-white mb-2">{post.title}</h4>
+                    )}
+                    <p className="text-slate-200 mb-3 leading-relaxed whitespace-pre-line">
+                      {post.content}
+                    </p>
+
+                    {Array.isArray(post.tags) && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {post.tags.map((tag: string, index: number) => (
+                          <span
+                            key={index}
+                            className="text-orange-400 text-sm hover:text-orange-300 cursor-pointer"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {Array.isArray(post.imageUrls) && post.imageUrls.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        {post.imageUrls.map((image: string, index: number) => (
+                          <img
+                            key={index}
+                            src={image}
+                            alt={`Post image ${index + 1}`}
+                            className="rounded-lg w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Post Actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-[color:var(--border-subtle)] text-xs md:text-sm">
+                    <div className="flex items-center gap-4 md:gap-6">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`text-gray-400 hover:text-red-400 ${post.liked ? "text-red-400" : ""}`}
+                        onClick={() => handleLikePost(post.id)}
+                        data-testid={`button-like-${post.id}`}
+                      >
+                        <Heart className={`h-4 w-4 mr-1 ${post.liked ? "fill-current" : ""}`} />
+                        <span className="mr-1">Agree</span>
+                        {post.likeCount || post.likes || 0}
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-orange-400"
+                        data-testid={`button-comment-${post.id}`}
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            toast({
+                              title: "Sign In Required",
+                              description: "Please sign in to discuss community posts.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setOpenCommentsForPostId((current) =>
+                            current === post.id ? null : post.id
+                          );
+                        }}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-1" />
+                        <span className="mr-1">Discuss</span>
+                        {post.commentCount || post.comments || 0}
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-green-400"
+                        onClick={() => handleSharePost(post)}
+                        data-testid={`button-share-${post.id}`}
+                      >
+                        <Share className="h-4 w-4 mr-1" />
+                        <span className="mr-1">Share</span>
+                        {post.shareCount || post.shares || 0}
+                      </Button>
+                    </div>
+
+                    {post.type === "recommendation_request" && (
+                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                        Recommend Someone
+                      </Button>
+                    )}
+
+                    {post.type === "promotion" && (
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        View TradeDeal
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Lightweight social proof */}
+                  {(() => {
+                    const agreeCount = post.likeCount || post.likes || 0;
+                    const commentCount = post.commentCount || post.comments || 0;
+                    const shareCount = post.shareCount || post.shares || 0;
+
+                    if (!agreeCount && !commentCount && !shareCount) return null;
+
+                    const parts: string[] = [];
+                    if (agreeCount) {
+                      parts.push(
+                        `${agreeCount} ${agreeCount === 1 ? "neighbor agrees" : "neighbors agree"}`
+                      );
+                    }
+                    if (commentCount) {
+                      parts.push(`${commentCount} ${commentCount === 1 ? "reply" : "replies"}`);
+                    }
+
+                    return (
+                      <div className="mt-2 text-[11px] text-slate-400">{parts.join(" · ")}</div>
+                    );
+                  })()}
+
+                  {/* Comment teaser row */}
+                  <div className="mt-3 flex items-center gap-2">
+                    <Avatar className="w-7 h-7">
+                      <AvatarImage src={user?.avatar as string | undefined} />
+                      <AvatarFallback>
+                        {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <button
+                      type="button"
+                      className="flex-1 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-input)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)]"
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          toast({
+                            title: "Sign In Required",
+                            description: "Please sign in to comment on community posts.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setOpenCommentsForPostId((current) =>
+                          current === post.id ? null : post.id
+                        );
+                      }}
+                    >
+                      Add a comment...
+                    </button>
+                  </div>
+
+                  {openCommentsForPostId === post.id && <CommunityComments postId={post.id} />}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
 
   const handlePromptClick = (prompt: string) => {
     setNewPostContent(prompt);
@@ -869,7 +1170,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   return (
     <div className="">
-      <CountyRequiredGate locationOverride={location}>
+      <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
         <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
           <CommunityTopNav />
           {/* 
@@ -937,7 +1238,49 @@ const CommunityFeed = memo(function CommunityFeed() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             {/* Main Feed */}
             <div className="lg:col-span-2 space-y-3 md:space-y-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs
+                value={activeTab}
+                onValueChange={(value) => handleTabChange(value as FeedTab)}
+                className="w-full"
+              >
+                <TabsList className="mb-3 md:mb-4 flex flex-wrap items-center gap-2 bg-transparent p-0">
+                  <TabsTrigger
+                    value="forYou"
+                    className="rounded-full px-4 py-2 text-xs font-semibold"
+                  >
+                    For You
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="recent"
+                    className="rounded-full px-4 py-2 text-xs font-semibold"
+                  >
+                    Recent
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="nearby"
+                    className="rounded-full px-4 py-2 text-xs font-semibold"
+                  >
+                    Nearby
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="recs"
+                    className="rounded-full px-4 py-2 text-xs font-semibold"
+                  >
+                    Recommendations
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="trending"
+                    className="rounded-full px-4 py-2 text-xs font-semibold"
+                  >
+                    Trending
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="vault"
+                    className="rounded-full px-4 py-2 text-xs font-semibold"
+                  >
+                    Vault
+                  </TabsTrigger>
+                </TabsList>
                 {/* Inline composer always visible at top of feed */}
                 <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
                   <CardContent className="p-3 md:p-5">
@@ -1159,319 +1502,23 @@ const CommunityFeed = memo(function CommunityFeed() {
                 )}
 
                 <TabsContent value="forYou" className="mt-0">
-                  <div className="space-y-3 md:space-y-5">
-                    {postsLoading ? (
-                      <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                        <p className="text-gray-400 mt-4">Loading posts...</p>
-                      </div>
-                    ) : (
-                      <>
-                        {displayPosts.map((post: any) => {
-                          const isSystemPost = post.category === "system";
-                          const locationLabel = post.location || post.author?.location;
-
-                          return (
-                            <Card
-                              key={post.id}
-                              className={`rounded-2xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors shadow-sm hover:shadow-md hover:shadow-black/40 ${
-                                isSystemPost
-                                  ? "bg-[color:var(--surface-intermediate)]"
-                                  : "bg-[color:var(--surface-card)]"
-                              }`}
-                              data-testid={`card-post-${post.id}`}
-                            >
-                              <CardContent className="p-3 md:p-5">
-                                {/* Post Header */}
-                                <div className="flex justify-between items-start mb-4">
-                                  <div className="flex gap-3">
-                                    {isSystemPost ? (
-                                      <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
-                                        <TradeScoutIcon
-                                          size="sm"
-                                          variant="gradient"
-                                          className="text-slate-950"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <Avatar className="w-10 h-10 md:w-11 md:h-11">
-                                        <AvatarImage src={post.author?.avatar} />
-                                        <AvatarFallback>
-                                          {(post.author?.name || user?.username || "U")
-                                            .substring(0, 2)
-                                            .toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                    )}
-
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <h3 className="text-white font-semibold">
-                                          {isSystemPost
-                                            ? "Scout"
-                                            : post.author?.name ||
-                                              user?.username ||
-                                              "Community Member"}
-                                        </h3>
-                                      </div>
-
-                                      <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-1">
-                                        <span>
-                                          {post.timestamp ||
-                                            new Date(post.createdAt).toLocaleDateString()}
-                                        </span>
-                                        {locationLabel && (
-                                          <>
-                                            <span>•</span>
-                                            <div className="flex items-center gap-1">
-                                              <Compass className="h-3 w-3" />
-                                              {locationLabel}
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 text-xs md:text-sm">
-                                    <div className="flex items-center gap-1">
-                                      {getPostTypeIcon(post.type || post.postType)}
-                                      <span className="text-xs text-gray-400">
-                                        {getPostTypeLabel(post.type || post.postType)}
-                                      </span>
-                                    </div>
-
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="text-gray-400 hover:text-white"
-                                        >
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent>
-                                        <DropdownMenuItem>
-                                          <Flag className="h-4 w-4 mr-2" />
-                                          Report
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleSharePost(post)}>
-                                          <Share className="h-4 w-4 mr-2" />
-                                          Share
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </div>
-
-                                {/* Post Content */}
-                                <div className="mb-3 md:mb-4">
-                                  {post.title && (
-                                    <h4 className="text-lg font-semibold text-white mb-2">
-                                      {post.title}
-                                    </h4>
-                                  )}
-                                  <p className="text-slate-200 mb-3 leading-relaxed whitespace-pre-line">
-                                    {post.content}
-                                  </p>
-
-                                  {Array.isArray(post.tags) && post.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-3">
-                                      {post.tags.map((tag: string, index: number) => (
-                                        <span
-                                          key={index}
-                                          className="text-orange-400 text-sm hover:text-orange-300 cursor-pointer"
-                                        >
-                                          #{tag}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {Array.isArray(post.imageUrls) && post.imageUrls.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-2 mb-3">
-                                      {post.imageUrls.map((image: string, index: number) => (
-                                        <img
-                                          key={index}
-                                          src={image}
-                                          alt={`Post image ${index + 1}`}
-                                          className="rounded-lg w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                        />
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Post Actions */}
-                                <div className="flex items-center justify-between pt-3 border-t border-[color:var(--border-subtle)] text-xs md:text-sm">
-                                  <div className="flex items-center gap-4 md:gap-6">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className={`text-gray-400 hover:text-red-400 ${post.liked ? "text-red-400" : ""}`}
-                                      onClick={() => handleLikePost(post.id)}
-                                      data-testid={`button-like-${post.id}`}
-                                    >
-                                      <Heart
-                                        className={`h-4 w-4 mr-1 ${post.liked ? "fill-current" : ""}`}
-                                      />
-                                      <span className="mr-1">Agree</span>
-                                      {post.likeCount || post.likes || 0}
-                                    </Button>
-
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-gray-400 hover:text-orange-400"
-                                      data-testid={`button-comment-${post.id}`}
-                                      onClick={() => {
-                                        if (!isAuthenticated) {
-                                          toast({
-                                            title: "Sign In Required",
-                                            description:
-                                              "Please sign in to discuss community posts.",
-                                            variant: "destructive",
-                                          });
-                                          return;
-                                        }
-                                        setOpenCommentsForPostId((current) =>
-                                          current === post.id ? null : post.id
-                                        );
-                                      }}
-                                    >
-                                      <MessageSquare className="h-4 w-4 mr-1" />
-                                      <span className="mr-1">Discuss</span>
-                                      {post.commentCount || post.comments || 0}
-                                    </Button>
-
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-gray-400 hover:text-green-400"
-                                      onClick={() => handleSharePost(post)}
-                                      data-testid={`button-share-${post.id}`}
-                                    >
-                                      <Share className="h-4 w-4 mr-1" />
-                                      <span className="mr-1">Share</span>
-                                      {post.shareCount || post.shares || 0}
-                                    </Button>
-                                  </div>
-
-                                  {post.type === "recommendation_request" && (
-                                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                                      Recommend Someone
-                                    </Button>
-                                  )}
-
-                                  {post.type === "promotion" && (
-                                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                                      View TradeDeal
-                                    </Button>
-                                  )}
-                                </div>
-
-                                {/* Lightweight social proof */}
-                                {(() => {
-                                  const agreeCount = post.likeCount || post.likes || 0;
-                                  const commentCount = post.commentCount || post.comments || 0;
-                                  const shareCount = post.shareCount || post.shares || 0;
-
-                                  if (!agreeCount && !commentCount && !shareCount) return null;
-
-                                  const parts: string[] = [];
-                                  if (agreeCount) {
-                                    parts.push(
-                                      `${agreeCount} ${agreeCount === 1 ? "neighbor agrees" : "neighbors agree"}`
-                                    );
-                                  }
-                                  if (commentCount) {
-                                    parts.push(
-                                      `${commentCount} ${commentCount === 1 ? "reply" : "replies"}`
-                                    );
-                                  }
-
-                                  return (
-                                    <div className="mt-2 text-[11px] text-slate-400">
-                                      {parts.join(" · ")}
-                                    </div>
-                                  );
-                                })()}
-
-                                {/* Comment teaser row */}
-                                <div className="mt-3 flex items-center gap-2">
-                                  <Avatar className="w-7 h-7">
-                                    <AvatarImage src={user?.avatar as string | undefined} />
-                                    <AvatarFallback>
-                                      {(user?.username || user?.email || "U")
-                                        .substring(0, 2)
-                                        .toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <button
-                                    type="button"
-                                    className="flex-1 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-input)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)]"
-                                    onClick={() => {
-                                      if (!isAuthenticated) {
-                                        toast({
-                                          title: "Sign In Required",
-                                          description:
-                                            "Please sign in to comment on community posts.",
-                                          variant: "destructive",
-                                        });
-                                        return;
-                                      }
-                                      setOpenCommentsForPostId((current) =>
-                                        current === post.id ? null : post.id
-                                      );
-                                    }}
-                                  >
-                                    Add a comment...
-                                  </button>
-                                </div>
-
-                                {openCommentsForPostId === post.id && (
-                                  <CommunityComments postId={post.id} />
-                                )}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </>
-                    )}
-                  </div>
+                  {renderFeedList()}
                 </TabsContent>
 
                 <TabsContent value="recent" className="mt-0">
-                  <div className="text-center py-12">
-                    <TrendingUp className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-white text-xl mb-2">Recent activity</h3>
-                    <p className="text-gray-400">Newest posts from your community</p>
-                  </div>
+                  {renderFeedList()}
                 </TabsContent>
 
                 <TabsContent value="nearby" className="mt-0">
-                  <div className="text-center py-12">
-                    <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-white text-xl mb-2">Nearby</h3>
-                    <p className="text-gray-400">Posts from neighborhoods close to you</p>
-                  </div>
+                  {renderFeedList()}
                 </TabsContent>
 
                 <TabsContent value="trending" className="mt-0">
-                  <div className="text-center py-12">
-                    <Users2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-white text-xl mb-2">Trending</h3>
-                    <p className="text-gray-400">Posts getting the most engagement right now</p>
-                  </div>
+                  {renderFeedList()}
                 </TabsContent>
 
                 <TabsContent value="recs" className="mt-0">
-                  <div className="text-center py-12">
-                    <Eye className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-white text-xl mb-2">Recommendations</h3>
-                    <p className="text-gray-400">Trusted endorsements from your community</p>
-                  </div>
+                  {renderFeedList()}
                 </TabsContent>
 
                 <TabsContent value="vault" className="mt-0">

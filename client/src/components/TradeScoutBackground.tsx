@@ -7,7 +7,7 @@ type TradeScoutBackgroundProps = {
 type SketchDef = {
   id: string;
   viewBox: string;
-  path: string;
+  paths: string[];
 };
 
 type SketchInstance = SketchDef & {
@@ -21,62 +21,197 @@ const SKETCHES: SketchDef[] = [
   {
     id: "hammer",
     viewBox: "0 0 48 48",
-    path: "M8 30l12-12 6 6-12 12-6-6zM20 18l6-6 10 10-6 6-10-10zM32 8l8 8",
+    paths: ["M8 30l12-12 6 6-12 12-6-6z", "M20 18l6-6 10 10-6 6-10-10z", "M32 8l8 8"],
   },
   {
     id: "wrench",
     viewBox: "0 0 48 48",
-    path: "M30 10a8 8 0 0 0-9 9l-11 11 7 7 11-11a8 8 0 0 0 9-9l-5 5-5-5 5-7z",
+    paths: ["M30 10a8 8 0 0 0-9 9l-11 11 7 7 11-11a8 8 0 0 0 9-9l-5 5-5-5 5-7z"],
   },
   {
     id: "house",
     viewBox: "0 0 48 48",
-    path: "M8 24l16-14 16 14M14 22v16h20V22M20 38v-8h8v8",
+    paths: ["M8 24l16-14 16 14", "M14 22v16h20V22", "M20 38v-8h8v8"],
   },
   {
     id: "cup",
     viewBox: "0 0 48 48",
-    path: "M14 16h18v12a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8V16zM32 18h4a6 6 0 0 1 0 12h-4M16 40h18",
+    paths: [
+      "M14 16h18v12a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8V16z",
+      "M32 18h4a6 6 0 0 1 0 12h-4",
+      "M16 40h18",
+    ],
   },
   {
     id: "chair",
     viewBox: "0 0 48 48",
-    path: "M14 20h20v10H14zM16 30v10M32 30v10M18 20v-6h12v6",
+    paths: ["M14 20h20v10H14z", "M16 30v10", "M32 30v10", "M18 20v-6h12v6"],
   },
   {
     id: "lamp",
     viewBox: "0 0 48 48",
-    path: "M12 20l12-10 12 10M18 20h12l-2 8h-8l-2-8zM22 28v8M16 36h16",
+    paths: ["M12 20l12-10 12 10", "M18 20h12l-2 8h-8l-2-8z", "M22 28v8", "M16 36h16"],
   },
   {
     id: "book",
     viewBox: "0 0 48 48",
-    path: "M10 12h16a6 6 0 0 1 6 6v20H16a6 6 0 0 0-6 6V12zM26 12h12v26a6 6 0 0 0-6-6H26",
+    paths: ["M10 12h16a6 6 0 0 1 6 6v20H16a6 6 0 0 0-6 6V12z", "M26 12h12v26a6 6 0 0 0-6-6H26"],
   },
   {
     id: "scissors",
     viewBox: "0 0 48 48",
-    path: "M14 14a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM14 26a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM18 20l20-12M18 28l20 12",
+    paths: [
+      "M14 14a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+      "M14 26a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+      "M18 20l20-12",
+      "M18 28l20 12",
+    ],
   },
   {
     id: "phone",
     viewBox: "0 0 48 48",
-    path: "M18 8h12a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2zM22 34h4",
+    paths: [
+      "M18 8h12a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z",
+      "M22 34h4",
+    ],
   },
   {
     id: "key",
     viewBox: "0 0 48 48",
-    path: "M22 22a6 6 0 1 0-6-6 6 6 0 0 0 6 6zM22 16h20l-4 4 4 4-4 4-4-4H22",
+    paths: ["M22 22a6 6 0 1 0-6-6 6 6 0 0 0 6 6z", "M22 16h20l-4 4 4 4-4 4-4-4H22"],
   },
   {
     id: "plant",
     viewBox: "0 0 48 48",
-    path: "M24 30v10M16 20c0-6 8-10 8-10s8 4 8 10c0 4-3 8-8 8s-8-4-8-8zM14 40h20",
+    paths: ["M24 30v10", "M16 20c0-6 8-10 8-10s8 4 8 10c0 4-3 8-8 8s-8-4-8-8z", "M14 40h20"],
   },
   {
     id: "bicycle",
     viewBox: "0 0 48 48",
-    path: "M12 34a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM36 34a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM12 34l8-14h8l6 14M20 20l-4-8h8",
+    paths: [
+      "M12 34a6 6 0 1 0 0 12 6 6 0 0 0 0-12z",
+      "M36 34a6 6 0 1 0 0 12 6 6 0 0 0 0-12z",
+      "M12 34l8-14h8l6 14",
+      "M20 20l-4-8h8",
+    ],
+  },
+  {
+    id: "house-plan",
+    viewBox: "0 0 120 90",
+    paths: [
+      "M6 10h108v70H6z",
+      "M60 10v70",
+      "M6 40h54",
+      "M60 32h54",
+      "M20 10v22",
+      "M38 10v22",
+      "M72 32v22",
+      "M96 32v22",
+      "M70 60h18v20H70z",
+      "M22 52h18v18H22z",
+      "M10 60h8v8h-8z",
+    ],
+  },
+  {
+    id: "toaster",
+    viewBox: "0 0 96 64",
+    paths: [
+      "M10 26h76a8 8 0 0 1 8 8v10a10 10 0 0 1-10 10H12a10 10 0 0 1-10-10V34a8 8 0 0 1 8-8z",
+      "M22 12h16v14H22z",
+      "M58 12h16v14H58z",
+      "M16 44h64",
+      "M80 22v-8h8",
+      "M72 52v6",
+    ],
+  },
+  {
+    id: "car-blueprint",
+    viewBox: "0 0 140 80",
+    paths: [
+      "M10 50h120l-10-20H34z",
+      "M30 50v10h80V50",
+      "M28 60a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
+      "M112 60a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
+      "M42 34h56",
+      "M54 26h32",
+      "M18 54h8",
+      "M114 54h8",
+    ],
+  },
+  {
+    id: "pipe-fitting",
+    viewBox: "0 0 100 100",
+    paths: [
+      "M20 20h30v20h20v20H50v20H30V60H10V40h20z",
+      "M30 20v-8h20v8",
+      "M70 40h8v20h-8",
+      "M30 80v8h20v-8",
+      "M10 40h-8v20h8",
+    ],
+  },
+  {
+    id: "truss",
+    viewBox: "0 0 140 70",
+    paths: [
+      "M10 60h120",
+      "M10 60l60-40 60 40",
+      "M34 60l36-24 36 24",
+      "M22 52l12-8",
+      "M46 52l24-16 24 16",
+      "M70 20v40",
+    ],
+  },
+  {
+    id: "landscape-plan",
+    viewBox: "0 0 140 90",
+    paths: [
+      "M8 8h124v74H8z",
+      "M20 20c10-8 24-8 34 0 8 6 18 6 26 0 10-8 24-8 34 0",
+      "M24 50c8-6 20-6 28 0 6 4 14 4 20 0 8-6 20-6 28 0",
+      "M24 68h92",
+      "M30 30a6 6 0 1 0 0 12 6 6 0 0 0 0-12z",
+      "M110 54a6 6 0 1 0 0 12 6 6 0 0 0 0-12z",
+    ],
+  },
+  {
+    id: "deck-plan",
+    viewBox: "0 0 120 80",
+    paths: [
+      "M8 10h104v60H8z",
+      "M8 24h104",
+      "M8 38h104",
+      "M8 52h104",
+      "M28 10v60",
+      "M48 10v60",
+      "M68 10v60",
+      "M88 10v60",
+      "M46 70v8h28v-8",
+    ],
+  },
+  {
+    id: "stairs",
+    viewBox: "0 0 100 80",
+    paths: [
+      "M10 70h80",
+      "M10 70v-12h16v-12h16v-12h16v-12h16V10",
+      "M26 58h16",
+      "M42 46h16",
+      "M58 34h16",
+    ],
+  },
+  {
+    id: "site-plan",
+    viewBox: "0 0 120 90",
+    paths: [
+      "M6 8h108v74H6z",
+      "M18 58h36v20H18z",
+      "M66 40h32v24H66z",
+      "M18 20h26v18H18z",
+      "M12 44h96",
+      "M46 20l12 12-12 12-12-12z",
+      "M88 14v12",
+      "M82 20h12",
+    ],
   },
 ];
 
@@ -145,7 +280,9 @@ export default function TradeScoutBackground({ children }: TradeScoutBackgroundP
               animationDelay: `${sketch.delay}s`,
             }}
           >
-            <path d={sketch.path} />
+            {sketch.paths.map((path, index) => (
+              <path key={`${sketch.id}-${index}`} d={path} />
+            ))}
           </svg>
         ))}
       </div>

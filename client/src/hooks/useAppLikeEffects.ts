@@ -107,10 +107,34 @@ export function useAppLikeEffects() {
 
     // Register service worker for PWA functionality only in production (mobile only).
     if (isMobile) {
+      const handleControllerChange = () => {
+        window.location.reload();
+      };
+
+      navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
+        once: true,
+      });
+
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
           console.log("SW registered: ", registration);
+
+          registration.update().catch(() => undefined);
+
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
+
+          registration.addEventListener("updatefound", () => {
+            const installing = registration.installing;
+            if (!installing) return;
+            installing.addEventListener("statechange", () => {
+              if (installing.state === "installed" && navigator.serviceWorker.controller) {
+                registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+              }
+            });
+          });
         })
         .catch((registrationError) => {
           console.log("SW registration failed: ", registrationError);

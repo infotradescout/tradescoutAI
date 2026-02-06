@@ -1,7 +1,11 @@
 import { ReactNode, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useLocationContext, hasCountyContext, type LocationContext } from "@/hooks/useLocationContext";
+import {
+  useLocationContext,
+  hasCountyContext,
+  type LocationContext,
+} from "@/hooks/useLocationContext";
 import { recordActivity } from "../agent/activity";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -9,6 +13,7 @@ interface CountyRequiredGateProps {
   locationOverride?: LocationContext | null;
   children: ReactNode;
   surface?: "community" | "exchange" | "hoa_dashboard" | "hoa_management" | "leaderboard" | string;
+  allowBypass?: boolean;
 }
 
 /**
@@ -16,13 +21,18 @@ interface CountyRequiredGateProps {
  * If there is no committed county, shows neutral copy and a single
  * CTA that routes to Settings → Location. Otherwise renders children.
  */
-export function CountyRequiredGate({ locationOverride, children, surface }: CountyRequiredGateProps) {
+export function CountyRequiredGate({
+  locationOverride,
+  children,
+  surface,
+  allowBypass,
+}: CountyRequiredGateProps) {
   const { user } = useAuth() as any;
   // Canonical gate: user-level committed location, not ad-hoc context
   const hasCanonicalLocation = !!(
     user &&
     (((user as any).locationCommitted as boolean | undefined) ||
-      (((user as any).stateCode && (user as any).countyFips)))
+      ((user as any).stateCode && (user as any).countyFips))
   );
 
   const ctx = locationOverride ?? useLocationContext();
@@ -35,7 +45,7 @@ export function CountyRequiredGate({ locationOverride, children, surface }: Coun
     recordActivity({
       type: "county_gate_hit",
       ts: new Date().toISOString(),
-      path: typeof window !== "undefined" ? window.location.pathname : "", 
+      path: typeof window !== "undefined" ? window.location.pathname : "",
       meta: { surface: surf },
     });
 
@@ -56,7 +66,7 @@ export function CountyRequiredGate({ locationOverride, children, surface }: Coun
     }
   }, [hasCanonicalLocation, surface]);
 
-  if (hasCanonicalLocation) {
+  if (hasCanonicalLocation || allowBypass) {
     return <>{children}</>;
   }
 
@@ -72,12 +82,13 @@ export function CountyRequiredGate({ locationOverride, children, surface }: Coun
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-300">
-            TradeScout uses your saved county to power community feed, marketplace, and other local experiences. Choose
-            your county so what you see lines up with where you actually live.
+            TradeScout uses your saved county to power community feed, marketplace, and other local
+            experiences. Choose your county so what you see lines up with where you actually live.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-slate-400">
-              Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
+              Current location context:{" "}
+              <span className="font-medium text-slate-100">{areaLabel}</span>
             </p>
             <Button
               type="button"
