@@ -834,6 +834,15 @@ export function mountAdminRoutes(app: any) {
         const [totalPostsResult] = await db.select({ count: count() }).from(communityPosts);
         const totalPosts = totalPostsResult?.count || 0;
 
+        // Back-compat metrics still consumed by older admin surfaces.
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const totalContractors = (roleMap.contractor || 0) + (roleMap.handyman || 0);
+        const [newLeads, totalRecommendations] = await Promise.all([
+          storage.getEventStats("lead_submitted", { from: weekAgo, to: today }),
+          storage.getEventStats("recommendation_submitted"),
+        ]);
+
         // Log admin stats access for audit
         console.log(
           `[ADMIN AUDIT] Stats accessed by userId=${(req.user as any)?.id} at ${new Date().toISOString()}`
@@ -841,6 +850,9 @@ export function mountAdminRoutes(app: any) {
 
         res.json({
           totalUsers,
+          totalContractors,
+          newLeads,
+          totalRecommendations,
           roleBreakdown: {
             homeowner: roleMap.homeowner || 0,
             contractor: roleMap.contractor || 0,

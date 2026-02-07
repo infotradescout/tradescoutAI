@@ -1,7 +1,7 @@
-import { apiRequest } from '@/lib/queryClient';
-import { uploadObject } from '@/lib/objectUpload';
+import { apiRequest } from "@/lib/queryClient";
+import { uploadObject } from "@/lib/objectUpload";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Palette, 
+import {
+  User,
+  Bell,
+  Shield,
+  Palette,
   Globe,
   Smartphone,
   Mail,
@@ -54,32 +60,43 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [locationStateCode, setLocationStateCode] = useState<string>((user as any)?.stateCode || "");
-  const [locationCountyFips, setLocationCountyFips] = useState<string>((user as any)?.countyFips || "");
-  const [locationCountyName, setLocationCountyName] = useState<string>((user as any)?.countyName || (user as any)?.county || "");
+  const [locationStateCode, setLocationStateCode] = useState<string>(
+    (user as any)?.stateCode || ""
+  );
+  const [locationCountyFips, setLocationCountyFips] = useState<string>(
+    (user as any)?.countyFips || ""
+  );
+  const [locationCountyName, setLocationCountyName] = useState<string>(
+    (user as any)?.countyName || (user as any)?.county || ""
+  );
 
   const defaultTab = useMemo(() => {
-    if (typeof window === 'undefined') return 'profile';
-    const tab = new URLSearchParams(window.location.search).get('tab');
-    return tab || 'profile';
+    if (typeof window === "undefined") return "profile";
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    return tab || "profile";
   }, []);
 
   const [profileForm, setProfileForm] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    profileImageUrl: user?.profileImageUrl || '',
-    bio: (user as any)?.preferences?.bio || '',
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    profileImageUrl: user?.profileImageUrl || "",
+    bio: (user as any)?.preferences?.bio || "",
   });
 
   useEffect(() => {
     setProfileForm({
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      profileImageUrl: user?.profileImageUrl || '',
-      bio: (user as any)?.preferences?.bio || '',
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      profileImageUrl: user?.profileImageUrl || "",
+      bio: (user as any)?.preferences?.bio || "",
     });
-  }, [user?.firstName, user?.lastName, (user as any)?.profileImageUrl, (user as any)?.preferences?.bio]);
-  
+  }, [
+    user?.firstName,
+    user?.lastName,
+    (user as any)?.profileImageUrl,
+    (user as any)?.preferences?.bio,
+  ]);
+
   const [notifications, setNotifications] = useState(() => {
     const saved = (user as any)?.preferences?.notificationPrefs;
     return {
@@ -108,10 +125,10 @@ export default function Settings() {
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hasSW = 'serviceWorker' in navigator;
-    const hasPush = 'PushManager' in window;
-    const permission = typeof Notification !== 'undefined' ? Notification.permission : null;
+    if (typeof window === "undefined") return;
+    const hasSW = "serviceWorker" in navigator;
+    const hasPush = "PushManager" in window;
+    const permission = typeof Notification !== "undefined" ? Notification.permission : null;
 
     if (!hasSW || !hasPush) {
       setPushStatus({ supported: false, permission, registered: false });
@@ -131,9 +148,9 @@ export default function Settings() {
   const [privacy, setPrivacy] = useState(() => {
     const prefs = (user as any)?.preferences || {};
     return {
-      profileVisibility: (prefs.profileVisibility as 'public' | 'private') || 'public',
+      profileVisibility: (prefs.profileVisibility as "public" | "private") || "public",
       showInSearch: prefs.showInSearch !== false,
-      contactPolicy: (prefs.contactPolicy as string) || 'verified',
+      contactPolicy: (prefs.contactPolicy as string) || "verified",
       twoFactorEnabled: Boolean(prefs.twoFactorEnabled),
     };
   });
@@ -141,17 +158,17 @@ export default function Settings() {
   useEffect(() => {
     const prefs = (user as any)?.preferences || {};
     setPrivacy({
-      profileVisibility: (prefs.profileVisibility as 'public' | 'private') || 'public',
+      profileVisibility: (prefs.profileVisibility as "public" | "private") || "public",
       showInSearch: prefs.showInSearch !== false,
-      contactPolicy: (prefs.contactPolicy as string) || 'verified',
+      contactPolicy: (prefs.contactPolicy as string) || "verified",
       twoFactorEnabled: Boolean(prefs.twoFactorEnabled),
     });
   }, [(user as any)?.preferences]);
 
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmNewPassword: '',
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
   });
 
   const [handedness, setHandedness] = useState<HandednessPreference>(() => {
@@ -169,12 +186,28 @@ export default function Settings() {
     return "right";
   });
 
+  const { data: userPreferences } = useQuery<Record<string, any>>({
+    queryKey: ["/api/users/preferences"],
+    enabled: Boolean(user),
+    retry: false,
+  });
+
+  const { data: notificationChannelPreferences } = useQuery<{
+    enableEmailNotifications?: boolean;
+    enableSmsNotifications?: boolean;
+    enablePushNotifications?: boolean;
+  }>({
+    queryKey: ["/api/notifications/preferences"],
+    enabled: Boolean(user),
+    retry: false,
+  });
+
   const { data: navigationPrefs } = useQuery<{
     customOrder?: string[];
     hiddenFromSwipe?: string[];
     enableSwipeNavigation?: boolean;
   }>({
-    queryKey: ['/api/user/navigation-preferences'],
+    queryKey: ["/api/user/navigation-preferences"],
     enabled: Boolean(user),
     retry: false,
   });
@@ -195,21 +228,65 @@ export default function Settings() {
 
   const [selectedUserTypes, setSelectedUserTypes] = useState<string[]>(() => {
     const base = Array.isArray(userRoles) ? (userRoles as string[]) : [];
-    return base
-      .map((r) => normalizeRoleId(r))
-      .filter((r) => selectableUserTypeIds.has(r));
+    return base.map((r) => normalizeRoleId(r)).filter((r) => selectableUserTypeIds.has(r));
   });
+
+  useEffect(() => {
+    if (!userPreferences) return;
+
+    const prefs = userPreferences || {};
+    const notifPrefs = prefs.notificationPrefs || {};
+
+    setProfileForm((prev) => ({
+      ...prev,
+      bio: typeof prefs.bio === "string" ? prefs.bio : prev.bio,
+    }));
+
+    setPrivacy((prev) => ({
+      ...prev,
+      profileVisibility: prefs.profileVisibility === "private" ? "private" : "public",
+      showInSearch: prefs.showInSearch !== false,
+      contactPolicy:
+        typeof prefs.contactPolicy === "string" && prefs.contactPolicy.length > 0
+          ? prefs.contactPolicy
+          : "verified",
+      twoFactorEnabled: Boolean(prefs.twoFactorEnabled),
+    }));
+
+    setNotifications((prev) => ({
+      ...prev,
+      email: notifPrefs.email ?? prev.email,
+      sms: notifPrefs.sms ?? prev.sms,
+      push: notifPrefs.push ?? prev.push,
+      marketing: notifPrefs.marketing ?? prev.marketing,
+    }));
+
+    if (prefs.handedness === "left" || prefs.handedness === "right") {
+      setHandedness(prefs.handedness);
+    }
+  }, [userPreferences]);
+
+  useEffect(() => {
+    if (!notificationChannelPreferences) return;
+    setNotifications((prev) => ({
+      ...prev,
+      email: notificationChannelPreferences.enableEmailNotifications ?? prev.email,
+      sms: notificationChannelPreferences.enableSmsNotifications ?? prev.sms,
+      push: notificationChannelPreferences.enablePushNotifications ?? prev.push,
+    }));
+  }, [notificationChannelPreferences]);
 
   // Update roles mutation
   const updateRolesMutation = useMutation({
     mutationFn: async (roles: string[]) => {
-      return apiRequest('PATCH', '/api/user/roles', { roles });
+      return apiRequest("PATCH", "/api/user/roles", { roles });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Roles Updated!",
-        description: "Your account roles have been updated. Your dashboard will refresh automatically.",
+        description:
+          "Your account roles have been updated. Your dashboard will refresh automatically.",
       });
       // Reload to update dashboard
       setTimeout(() => window.location.reload(), 1500);
@@ -220,15 +297,15 @@ export default function Settings() {
         description: "Failed to update roles. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const updateUserTypesMutation = useMutation({
     mutationFn: async (types: string[]) => {
-      return apiRequest('PATCH', '/api/user/user-types', { userTypes: types });
+      return apiRequest("PATCH", "/api/user/user-types", { userTypes: types });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Account Types Updated!",
         description: "Your business and account types have been updated.",
@@ -245,7 +322,7 @@ export default function Settings() {
   });
 
   const toggleRole = (roleKey: string) => {
-    setSelectedRoles(prev => {
+    setSelectedRoles((prev) => {
       if (prev.includes(roleKey)) {
         // Don't allow removing all roles
         if (prev.length === 1) {
@@ -256,7 +333,7 @@ export default function Settings() {
           });
           return prev;
         }
-        return prev.filter(r => r !== roleKey);
+        return prev.filter((r) => r !== roleKey);
       } else {
         return [...prev, roleKey];
       }
@@ -356,7 +433,7 @@ export default function Settings() {
         ...existingPrefs,
         bio: profileForm.bio,
       };
-      return apiRequest('PUT', '/api/user/profile', {
+      return apiRequest("PUT", "/api/user/profile", {
         firstName: profileForm.firstName,
         lastName: profileForm.lastName,
         profileImageUrl: profileForm.profileImageUrl,
@@ -364,17 +441,18 @@ export default function Settings() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/preferences"] });
       toast({
-        title: 'Saved',
-        description: 'Your profile settings were updated.',
+        title: "Saved",
+        description: "Your profile settings were updated.",
       });
     },
     onError: (err: any) => {
       toast({
-        title: 'Error',
-        description: err?.message || 'Failed to update profile.',
-        variant: 'destructive',
+        title: "Error",
+        description: err?.message || "Failed to update profile.",
+        variant: "destructive",
       });
     },
   });
@@ -382,10 +460,10 @@ export default function Settings() {
   const updateNotificationsMutation = useMutation({
     mutationFn: async () => {
       const results = await Promise.all([
-        apiRequest('PATCH', '/api/users/preferences', {
+        apiRequest("PATCH", "/api/users/preferences", {
           notificationPrefs: notifications,
         }),
-        apiRequest('POST', '/api/notifications/preferences', {
+        apiRequest("POST", "/api/notifications/preferences", {
           enableEmailNotifications: notifications.email,
           enableSmsNotifications: notifications.sms,
           enablePushNotifications: notifications.push,
@@ -394,30 +472,43 @@ export default function Settings() {
       return results;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      toast({ title: 'Saved', description: 'Notification preferences updated.' });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/preferences"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/preferences"] });
+      toast({ title: "Saved", description: "Notification preferences updated." });
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err?.message || 'Failed to save notifications.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to save notifications.",
+        variant: "destructive",
+      });
     },
   });
 
   const updatePrivacyMutation = useMutation({
     mutationFn: async (nextPrivacy: typeof privacy) => {
       // profileVisibility has a dedicated endpoint (also updates prefs internally)
-      await apiRequest('PATCH', '/api/users/profile-visibility', { profileVisibility: nextPrivacy.profileVisibility });
-      return apiRequest('PATCH', '/api/users/preferences', {
+      await apiRequest("PATCH", "/api/users/profile-visibility", {
+        profileVisibility: nextPrivacy.profileVisibility,
+      });
+      return apiRequest("PATCH", "/api/users/preferences", {
         showInSearch: nextPrivacy.showInSearch,
         contactPolicy: nextPrivacy.contactPolicy,
         twoFactorEnabled: nextPrivacy.twoFactorEnabled,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      toast({ title: 'Saved', description: 'Privacy preferences updated.' });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/preferences"] });
+      toast({ title: "Saved", description: "Privacy preferences updated." });
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err?.message || 'Failed to save privacy preferences.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to save privacy preferences.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -428,7 +519,7 @@ export default function Settings() {
         ...existingPrefs,
         handedness: nextHandedness,
       };
-      return apiRequest('PATCH', '/api/users/preferences', mergedPreferences);
+      return apiRequest("PATCH", "/api/users/preferences", mergedPreferences);
     },
     onSuccess: (_data, variables) => {
       try {
@@ -436,27 +527,36 @@ export default function Settings() {
       } catch {
         // ignore storage errors
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      toast({ title: 'Saved', description: 'Handedness preference updated.' });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/preferences"] });
+      toast({ title: "Saved", description: "Handedness preference updated." });
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err?.message || 'Failed to save handedness preference.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to save handedness preference.",
+        variant: "destructive",
+      });
     },
   });
 
   const changePasswordMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('PUT', '/api/auth/change-password', {
+      return apiRequest("PUT", "/api/auth/change-password", {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
     },
     onSuccess: () => {
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
-      toast({ title: 'Password updated', description: 'Your password has been changed.' });
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+      toast({ title: "Password updated", description: "Your password has been changed." });
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err?.message || 'Failed to change password.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to change password.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -471,11 +571,15 @@ export default function Settings() {
     try {
       const { publicUrl } = await uploadObject(file);
       setProfileForm((prev) => ({ ...prev, profileImageUrl: publicUrl }));
-      toast({ title: 'Photo uploaded', description: 'Click Save Changes to apply it.' });
+      toast({ title: "Photo uploaded", description: "Click Save Changes to apply it." });
     } catch (error: any) {
-      toast({ title: 'Upload failed', description: error?.message || 'Could not upload photo.', variant: 'destructive' });
+      toast({
+        title: "Upload failed",
+        description: error?.message || "Could not upload photo.",
+        variant: "destructive",
+      });
     } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -500,28 +604,52 @@ export default function Settings() {
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
             <TabsList className="w-full bg-tsCard border border-tsBorder p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
-              <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="profile"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Profile
               </TabsTrigger>
-              <TabsTrigger value="roles" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="roles"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Roles
               </TabsTrigger>
-              <TabsTrigger value="navigation" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="navigation"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Navigation
               </TabsTrigger>
-              <TabsTrigger value="appearance" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="appearance"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Appearance
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="notifications"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Notifications
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="privacy"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Privacy
               </TabsTrigger>
-              <TabsTrigger value="security" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="security"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Security
               </TabsTrigger>
-              <TabsTrigger value="tools" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+              <TabsTrigger
+                value="tools"
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+              >
                 Financial Tools
               </TabsTrigger>
             </TabsList>
@@ -531,115 +659,158 @@ export default function Settings() {
               <div className="space-y-6">
                 <Card className="bg-tsCard border-tsBorder shadow-xl">
                   <CardHeader className="border-b border-tsBorder pb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <User className="w-5 h-5 text-orange-500" />
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <User className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Profile Information</CardTitle>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Update your personal details and profile
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl text-white">Profile Information</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">Update your personal details and profile</p>
-                    </div>
-                  </div>
                   </CardHeader>
                   <CardContent className="space-y-8 pt-6">
-                  {/* Profile Photo Section */}
-                  <div className="flex items-center gap-6 pb-6 border-b border-tsBorder">
-                    <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                      {profileForm.profileImageUrl ? (
-                        <img src={profileForm.profileImageUrl} alt="Profile" className="h-20 w-20 rounded-full object-cover" />
-                      ) : (
-                        <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
-                      )}
+                    {/* Profile Photo Section */}
+                    <div className="flex items-center gap-6 pb-6 border-b border-tsBorder">
+                      <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                        {profileForm.profileImageUrl ? (
+                          <img
+                            src={profileForm.profileImageUrl}
+                            alt="Profile"
+                            className="h-20 w-20 rounded-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            {user?.firstName?.[0]}
+                            {user?.lastName?.[0]}
+                          </>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-white font-medium mb-1">Profile Photo</h3>
+                        <p className="text-sm text-slate-400 mb-3">Update your profile picture</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                          onClick={handleUploadClick}
+                        >
+                          Upload Photo
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handlePhotoSelected}
+                        />
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium mb-1">Profile Photo</h3>
-                      <p className="text-sm text-slate-400 mb-3">Update your profile picture</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                        onClick={handleUploadClick}
+
+                    {/* Name Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName" className="text-white font-medium">
+                          First Name
+                        </Label>
+                        <Input
+                          id="firstName"
+                          value={profileForm.firstName}
+                          onChange={(e) =>
+                            setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))
+                          }
+                          className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          placeholder="Enter first name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName" className="text-white font-medium">
+                          Last Name
+                        </Label>
+                        <Input
+                          id="lastName"
+                          value={profileForm.lastName}
+                          onChange={(e) =>
+                            setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))
+                          }
+                          className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          placeholder="Enter last name"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email Field */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="email"
+                        className="text-white font-medium flex items-center gap-2"
                       >
-                        Upload Photo
+                        <Mail className="h-4 w-4 text-orange-500" />
+                        Email Address
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        defaultValue={user?.email || ""}
+                        disabled
+                        className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                        placeholder="email@example.com"
+                      />
+                      <p className="text-xs text-slate-400">
+                        We'll never share your email with anyone
+                      </p>
+                    </div>
+
+                    {/* Bio Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="bio" className="text-white font-medium">
+                        Bio
+                      </Label>
+                      <Textarea
+                        id="bio"
+                        placeholder="Tell us about yourself..."
+                        value={profileForm.bio}
+                        onChange={(e) =>
+                          setProfileForm((prev) => ({ ...prev, bio: e.target.value }))
+                        }
+                        className="bg-tsBg border-tsBorder text-tsTextMain min-h-[120px] focus:border-orange-500 transition-colors resize-none"
+                        rows={5}
+                      />
+                      <p className="text-xs text-slate-400">
+                        Brief description for your profile. Maximum 500 characters.
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3 pt-4 border-t border-tsBorder">
+                      <Button
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                        onClick={() => updateProfileMutation.mutate()}
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        {updateProfileMutation.isPending ? "Saving…" : "Save Changes"}
                       </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePhotoSelected}
-                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-tsBorder text-slate-300 hover:bg-tsBg"
+                        onClick={() =>
+                          setProfileForm({
+                            firstName: user?.firstName || "",
+                            lastName: user?.lastName || "",
+                            profileImageUrl: user?.profileImageUrl || "",
+                            bio:
+                              (userPreferences as any)?.bio ||
+                              (user as any)?.preferences?.bio ||
+                              "",
+                          })
+                        }
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  </div>
-
-                  {/* Name Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName" className="text-white font-medium">First Name</Label>
-                      <Input 
-                        id="firstName" 
-                        value={profileForm.firstName}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
-                        className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
-                        placeholder="Enter first name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName" className="text-white font-medium">Last Name</Label>
-                      <Input 
-                        id="lastName" 
-                        value={profileForm.lastName}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
-                        className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
-                        placeholder="Enter last name"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Email Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white font-medium flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-orange-500" />
-                      Email Address
-                    </Label>
-                    <Input 
-                      id="email" 
-                      type="email"
-                      defaultValue={user?.email || ""}
-                      disabled
-                      className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
-                      placeholder="email@example.com"
-                    />
-                    <p className="text-xs text-slate-400">We'll never share your email with anyone</p>
-                  </div>
-
-                  {/* Bio Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="bio" className="text-white font-medium">Bio</Label>
-                    <Textarea 
-                      id="bio"
-                      placeholder="Tell us about yourself..."
-                      value={profileForm.bio}
-                      onChange={(e) => setProfileForm((prev) => ({ ...prev, bio: e.target.value }))}
-                      className="bg-tsBg border-tsBorder text-tsTextMain min-h-[120px] focus:border-orange-500 transition-colors resize-none"
-                      rows={5}
-                    />
-                    <p className="text-xs text-slate-400">Brief description for your profile. Maximum 500 characters.</p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-3 pt-4 border-t border-tsBorder">
-                    <Button
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
-                      onClick={() => updateProfileMutation.mutate()}
-                      disabled={updateProfileMutation.isPending}
-                    >
-                      {updateProfileMutation.isPending ? 'Saving…' : 'Save Changes'}
-                    </Button>
-                    <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
-                      Cancel
-                    </Button>
-                  </div>
                   </CardContent>
                 </Card>
 
@@ -652,7 +823,9 @@ export default function Settings() {
                       <div>
                         <CardTitle className="text-xl text-white">Your Home County</CardTitle>
                         <p className="text-sm text-slate-400 mt-1">
-                          This is the one place where you commit your home state and county. It powers community, marketplace, HOA, and leaderboard surfaces across TradeScout.
+                          This is the one place where you commit your home state and county. It
+                          powers community, marketplace, HOA, and leaderboard surfaces across
+                          TradeScout.
                         </p>
                       </div>
                     </div>
@@ -661,7 +834,8 @@ export default function Settings() {
                     <div className="space-y-2">
                       <Label className="text-white font-medium">Home region (authoritative)</Label>
                       <p className="text-xs text-slate-400">
-                        Scout uses this saved county to unlock county-gated pages and match you with the right local feeds. Changing it here updates your location everywhere.
+                        Scout uses this saved county to unlock county-gated pages and match you with
+                        the right local feeds. Changing it here updates your location everywhere.
                       </p>
                     </div>
                     <StateCountySelector
@@ -678,11 +852,16 @@ export default function Settings() {
                     />
                     <div className="flex items-center justify-between gap-3 pt-4 border-t border-tsBorder flex-col sm:flex-row">
                       <p className="text-xs text-slate-500 max-w-xl">
-                        Device location (when shared) helps Scout understand what&apos;s nearby, but your saved county here is what actually unlocks local experiences.
+                        Device location (when shared) helps Scout understand what&apos;s nearby, but
+                        your saved county here is what actually unlocks local experiences.
                       </p>
                       <Button
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
-                        disabled={updateLocationMutation.isPending || !locationStateCode || !locationCountyFips}
+                        disabled={
+                          updateLocationMutation.isPending ||
+                          !locationStateCode ||
+                          !locationCountyFips
+                        }
                         onClick={() =>
                           updateLocationMutation.mutate({
                             stateCode: locationStateCode,
@@ -691,7 +870,7 @@ export default function Settings() {
                           })
                         }
                       >
-                        {updateLocationMutation.isPending ? 'Saving…' : 'Save Location'}
+                        {updateLocationMutation.isPending ? "Saving…" : "Save Location"}
                       </Button>
                     </div>
                   </CardContent>
@@ -710,7 +889,9 @@ export default function Settings() {
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Navigation Preferences</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">Customize the order and visibility of your mobile navigation.</p>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Customize the order and visibility of your mobile navigation.
+                        </p>
                       </div>
                     </div>
                   </CardHeader>
@@ -721,7 +902,7 @@ export default function Settings() {
                         hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || [],
                         enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation ?? true,
                       }}
-                      userRole={(user as any)?.role || ''}
+                      userRole={(user as any)?.role || ""}
                     />
                   </CardContent>
                 </Card>
@@ -742,7 +923,8 @@ export default function Settings() {
                     <div>
                       <CardTitle className="text-xl text-white">Manage Your Roles</CardTitle>
                       <p className="text-sm text-slate-400 mt-1">
-                        Select all the roles that apply to you. Your dashboard and experience will automatically adapt.
+                        Select all the roles that apply to you. Your dashboard and experience will
+                        automatically adapt.
                       </p>
                     </div>
                   </div>
@@ -761,7 +943,10 @@ export default function Settings() {
                           if (!config.icon) return null;
                           const Icon = config.icon;
                           return (
-                            <Badge key={roleKey} className="bg-orange-500 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5">
+                            <Badge
+                              key={roleKey}
+                              className="bg-orange-500 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                            >
                               <Icon className="h-3.5 w-3.5" />
                               {config.label}
                             </Badge>
@@ -777,10 +962,14 @@ export default function Settings() {
                   <div className="bg-tsBg border border-tsBorder rounded-xl p-6 shadow-lg space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Briefcase className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-white font-semibold text-lg">Account Types &amp; Business Personas</h3>
+                      <h3 className="text-white font-semibold text-lg">
+                        Account Types &amp; Business Personas
+                      </h3>
                     </div>
                     <p className="text-sm text-slate-400 mb-2">
-                      Select all the ways you use TradeScout — homeowner, landlord, restaurant owner, contractor, and more. Scout will use these types to personalize your dashboards and recommendations.
+                      Select all the ways you use TradeScout — homeowner, landlord, restaurant
+                      owner, contractor, and more. Scout will use these types to personalize your
+                      dashboards and recommendations.
                     </p>
                     <UserTypeSelect
                       selectedTypes={selectedUserTypes}
@@ -790,10 +979,12 @@ export default function Settings() {
                     <div className="flex justify-end pt-4 border-t border-tsBorder mt-2">
                       <Button
                         onClick={saveUserTypes}
-                        disabled={updateUserTypesMutation.isPending || selectedUserTypes.length === 0}
+                        disabled={
+                          updateUserTypesMutation.isPending || selectedUserTypes.length === 0
+                        }
                         className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg disabled:opacity-50"
                       >
-                        {updateUserTypesMutation.isPending ? 'Saving…' : 'Save Account Types'}
+                        {updateUserTypesMutation.isPending ? "Saving…" : "Save Account Types"}
                       </Button>
                     </div>
                   </div>
@@ -813,26 +1004,35 @@ export default function Settings() {
                             onClick={() => toggleRole(roleKey)}
                             className={`
                               relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                              ${isSelected 
-                                ? 'bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500 shadow-orange-500/20' 
-                                : 'bg-tsBg border-tsBorder hover:border-orange-500/50 hover:bg-tsCard/50'
+                              ${
+                                isSelected
+                                  ? "bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500 shadow-orange-500/20"
+                                  : "bg-tsBg border-tsBorder hover:border-orange-500/50 hover:bg-tsCard/50"
                               }
                             `}
                             data-testid={`role-option-${roleKey}`}
                           >
                             <div className="flex items-start gap-4">
-                              <div className={`p-3 rounded-xl transition-all ${isSelected ? 'bg-orange-500 shadow-lg' : 'bg-tsCard'}`}>
-                                <Icon className={`h-6 w-6 ${isSelected ? 'text-white' : 'text-orange-500'}`} />
+                              <div
+                                className={`p-3 rounded-xl transition-all ${isSelected ? "bg-orange-500 shadow-lg" : "bg-tsCard"}`}
+                              >
+                                <Icon
+                                  className={`h-6 w-6 ${isSelected ? "text-white" : "text-orange-500"}`}
+                                />
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1.5">
-                                  <h4 className="font-semibold text-white text-base">{config.label}</h4>
+                                  <h4 className="font-semibold text-white text-base">
+                                    {config.label}
+                                  </h4>
                                   {isSelected && (
                                     <CheckCircle2 className="h-5 w-5 text-orange-500" />
                                   )}
                                 </div>
                                 {config.desc && (
-                                  <p className="text-sm text-slate-400 leading-relaxed">{config.desc}</p>
+                                  <p className="text-sm text-slate-400 leading-relaxed">
+                                    {config.desc}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -846,19 +1046,21 @@ export default function Settings() {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-tsBorder">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <span className="text-orange-500 font-bold text-sm">{selectedRoles.length}</span>
+                        <span className="text-orange-500 font-bold text-sm">
+                          {selectedRoles.length}
+                        </span>
                       </div>
                       <p className="text-sm text-slate-300">
-                        role{selectedRoles.length !== 1 ? 's' : ''} selected
+                        role{selectedRoles.length !== 1 ? "s" : ""} selected
                       </p>
                     </div>
-                    <Button 
+                    <Button
                       onClick={saveRoles}
                       disabled={updateRolesMutation.isPending || selectedRoles.length === 0}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg disabled:opacity-50"
                       data-testid="button-save-roles"
                     >
-                      {updateRolesMutation.isPending ? 'Saving...' : 'Save Roles'}
+                      {updateRolesMutation.isPending ? "Saving..." : "Save Roles"}
                     </Button>
                   </div>
                 </CardContent>
@@ -877,14 +1079,17 @@ export default function Settings() {
                       <div>
                         <CardTitle className="text-xl text-white">Profile Colors & Theme</CardTitle>
                         <p className="text-sm text-slate-400 mt-1">
-                          Profile colors are managed from your Profile Settings so your in-app theme and public profile stay in sync.
+                          Profile colors are managed from your Profile Settings so your in-app theme
+                          and public profile stay in sync.
                         </p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <p className="text-slate-300 text-sm">
-                      Your color scheme is now driven by your profile color settings. Updating your profile colors will update how TradeScout looks to you and how your public profile appears to others.
+                      Your color scheme is now driven by your profile color settings. Updating your
+                      profile colors will update how TradeScout looks to you and how your public
+                      profile appears to others.
                     </p>
                     <Button
                       className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
@@ -902,9 +1107,12 @@ export default function Settings() {
                         <Smartphone className="w-5 h-5 text-orange-500" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl text-white">Handedness & One-Handed Layout</CardTitle>
+                        <CardTitle className="text-xl text-white">
+                          Handedness & One-Handed Layout
+                        </CardTitle>
                         <p className="text-sm text-slate-400 mt-1">
-                          Choose how top controls and key buttons are aligned so they are easier to reach with one hand.
+                          Choose how top controls and key buttons are aligned so they are easier to
+                          reach with one hand.
                         </p>
                       </div>
                     </div>
@@ -913,7 +1121,8 @@ export default function Settings() {
                     <div className="space-y-2">
                       <Label className="text-sm text-slate-300">Handedness</Label>
                       <p className="text-xs text-slate-400">
-                        Right-handed keeps primary controls on the right. Left-handed moves them to the left side of the screen.
+                        Right-handed keeps primary controls on the right. Left-handed moves them to
+                        the left side of the screen.
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -975,16 +1184,36 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
                   {Object.entries({
-                    email: { icon: Mail, label: "Email Notifications", desc: "Receive updates via email" },
-                    sms: { icon: Smartphone, label: "SMS Notifications", desc: "Get text message alerts" },
-                    push: { icon: Bell, label: "Push Notifications", desc: "Browser and app notifications" },
-                    marketing: { icon: Globe, label: "Marketing Communications", desc: "Updates about new features and offers" }
+                    email: {
+                      icon: Mail,
+                      label: "Email Notifications",
+                      desc: "Receive updates via email",
+                    },
+                    sms: {
+                      icon: Smartphone,
+                      label: "SMS Notifications",
+                      desc: "Get text message alerts",
+                    },
+                    push: {
+                      icon: Bell,
+                      label: "Push Notifications",
+                      desc: "Browser and app notifications",
+                    },
+                    marketing: {
+                      icon: Globe,
+                      label: "Marketing Communications",
+                      desc: "Updates about new features and offers",
+                    },
                   }).map(([key, config]) => {
                     const Icon = config.icon;
-                    const isPush = key === 'push';
-                    const pushDisabled = isPush && (!pushStatus.supported || pushStatus.permission === 'denied');
+                    const isPush = key === "push";
+                    const pushDisabled =
+                      isPush && (!pushStatus.supported || pushStatus.permission === "denied");
                     return (
-                      <div key={key} className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder hover:border-orange-500/30 transition-all">
+                      <div
+                        key={key}
+                        className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder hover:border-orange-500/30 transition-all"
+                      >
                         <div className="flex items-center space-x-4">
                           <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Icon className="w-5 h-5 text-orange-500" />
@@ -994,30 +1223,44 @@ export default function Settings() {
                             <p className="text-slate-400 text-sm">{config.desc}</p>
                             {isPush && (
                               <p className="text-xs text-slate-500 mt-1">
-                                {pushStatus.permission === 'denied'
-                                  ? 'Browser notifications are blocked for this site. Enable them in your browser settings to turn push on.'
+                                {pushStatus.permission === "denied"
+                                  ? "Browser notifications are blocked for this site. Enable them in your browser settings to turn push on."
                                   : pushStatus.registered
-                                  ? 'Registered on this device. Delivered to this device only.'
-                                  : 'Delivered to this device only on supported browsers.'}
+                                    ? "Registered on this device. Delivered to this device only."
+                                    : "Delivered to this device only on supported browsers."}
                               </p>
                             )}
                           </div>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notifications[key as keyof typeof notifications]}
                           disabled={pushDisabled}
                           onCheckedChange={async (checked) => {
                             if (isPush && pushDisabled) return;
-                            setNotifications(prev => ({ ...prev, [key]: checked }));
+                            setNotifications((prev) => ({ ...prev, [key]: checked }));
                             if (isPush) {
                               if (checked) {
                                 const sub = await registerPushNotifications();
-                                const permission = typeof Notification !== 'undefined' ? Notification.permission : pushStatus.permission;
-                                setPushStatus(prev => ({ ...prev, registered: !!sub, permission }));
+                                const permission =
+                                  typeof Notification !== "undefined"
+                                    ? Notification.permission
+                                    : pushStatus.permission;
+                                setPushStatus((prev) => ({
+                                  ...prev,
+                                  registered: !!sub,
+                                  permission,
+                                }));
                               } else {
                                 await unregisterPushSubscription();
-                                const permission = typeof Notification !== 'undefined' ? Notification.permission : pushStatus.permission;
-                                setPushStatus(prev => ({ ...prev, registered: false, permission }));
+                                const permission =
+                                  typeof Notification !== "undefined"
+                                    ? Notification.permission
+                                    : pushStatus.permission;
+                                setPushStatus((prev) => ({
+                                  ...prev,
+                                  registered: false,
+                                  permission,
+                                }));
                               }
                             }
                           }}
@@ -1030,7 +1273,8 @@ export default function Settings() {
                     <div>
                       <p className="text-white font-medium">Advanced per-area controls</p>
                       <p className="text-slate-400 text-sm">
-                        Fine-tune notifications for Marketplace, Community, HOA, wallet events, and more by channel.
+                        Fine-tune notifications for Marketplace, Community, HOA, wallet events, and
+                        more by channel.
                       </p>
                     </div>
                     <Button
@@ -1049,7 +1293,7 @@ export default function Settings() {
                       disabled={updateNotificationsMutation.isPending}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
                     >
-                      {updateNotificationsMutation.isPending ? 'Saving…' : 'Save Notifications'}
+                      {updateNotificationsMutation.isPending ? "Saving…" : "Save Notifications"}
                     </Button>
                   </div>
                 </CardContent>
@@ -1080,15 +1324,22 @@ export default function Settings() {
                       </div>
                       <div>
                         <p className="text-white font-medium">Profile Visibility</p>
-                        <p className="text-slate-400 text-sm">Make your profile visible to other users</p>
+                        <p className="text-slate-400 text-sm">
+                          Make your profile visible to other users
+                        </p>
                       </div>
                     </div>
                     <Switch
-                      checked={privacy.profileVisibility === 'public'}
-                      onCheckedChange={(checked) => setPrivacy((prev) => ({ ...prev, profileVisibility: checked ? 'public' : 'private' }))}
+                      checked={privacy.profileVisibility === "public"}
+                      onCheckedChange={(checked) =>
+                        setPrivacy((prev) => ({
+                          ...prev,
+                          profileVisibility: checked ? "public" : "private",
+                        }))
+                      }
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1096,12 +1347,16 @@ export default function Settings() {
                       </div>
                       <div>
                         <p className="text-white font-medium">Show in Search Results</p>
-                        <p className="text-slate-400 text-sm">Allow others to find you through search</p>
+                        <p className="text-slate-400 text-sm">
+                          Allow others to find you through search
+                        </p>
                       </div>
                     </div>
                     <Switch
                       checked={privacy.showInSearch}
-                      onCheckedChange={(checked) => setPrivacy((prev) => ({ ...prev, showInSearch: checked }))}
+                      onCheckedChange={(checked) =>
+                        setPrivacy((prev) => ({ ...prev, showInSearch: checked }))
+                      }
                     />
                   </div>
 
@@ -1117,7 +1372,9 @@ export default function Settings() {
                     </div>
                     <Select
                       value={privacy.contactPolicy}
-                      onValueChange={(value) => setPrivacy((prev) => ({ ...prev, contactPolicy: value }))}
+                      onValueChange={(value) =>
+                        setPrivacy((prev) => ({ ...prev, contactPolicy: value }))
+                      }
                     >
                       <SelectTrigger className="bg-tsCard border-tsBorder text-tsTextMain h-11">
                         <SelectValue />
@@ -1137,7 +1394,7 @@ export default function Settings() {
                       disabled={updatePrivacyMutation.isPending}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
                     >
-                      {updatePrivacyMutation.isPending ? 'Saving…' : 'Save Privacy'}
+                      {updatePrivacyMutation.isPending ? "Saving…" : "Save Privacy"}
                     </Button>
                   </div>
                 </CardContent>
@@ -1174,31 +1431,43 @@ export default function Settings() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-white font-medium">Current Password</Label>
-                        <Input 
-                          type="password" 
+                        <Input
+                          type="password"
                           placeholder="Enter current password"
                           value={passwordForm.currentPassword}
-                          onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                          onChange={(e) =>
+                            setPasswordForm((prev) => ({
+                              ...prev,
+                              currentPassword: e.target.value,
+                            }))
+                          }
                           className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-white font-medium">New Password</Label>
-                        <Input 
-                          type="password" 
+                        <Input
+                          type="password"
                           placeholder="Enter new password"
                           value={passwordForm.newPassword}
-                          onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                          onChange={(e) =>
+                            setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                          }
                           className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-white font-medium">Confirm New Password</Label>
-                        <Input 
-                          type="password" 
+                        <Input
+                          type="password"
                           placeholder="Confirm new password"
                           value={passwordForm.confirmNewPassword}
-                          onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))}
+                          onChange={(e) =>
+                            setPasswordForm((prev) => ({
+                              ...prev,
+                              confirmNewPassword: e.target.value,
+                            }))
+                          }
                           className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
@@ -1212,13 +1481,17 @@ export default function Settings() {
                         }
                         onClick={() => {
                           if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
-                            toast({ title: 'Error', description: 'New passwords do not match.', variant: 'destructive' });
+                            toast({
+                              title: "Error",
+                              description: "New passwords do not match.",
+                              variant: "destructive",
+                            });
                             return;
                           }
                           changePasswordMutation.mutate();
                         }}
                       >
-                        {changePasswordMutation.isPending ? 'Updating…' : 'Update Password'}
+                        {changePasswordMutation.isPending ? "Updating…" : "Update Password"}
                       </Button>
                     </div>
                   </div>
@@ -1230,19 +1503,24 @@ export default function Settings() {
                       </div>
                       <div>
                         <p className="text-white font-semibold">Two-Factor Authentication</p>
-                        <p className="text-slate-400 text-sm">Add an extra layer of security to your account</p>
+                        <p className="text-slate-400 text-sm">
+                          Add an extra layer of security to your account
+                        </p>
                       </div>
                     </div>
                     <Button
                       variant="outline"
                       className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6"
                       onClick={() => {
-                        const nextPrivacy = { ...privacy, twoFactorEnabled: !privacy.twoFactorEnabled };
+                        const nextPrivacy = {
+                          ...privacy,
+                          twoFactorEnabled: !privacy.twoFactorEnabled,
+                        };
                         setPrivacy(nextPrivacy);
                         updatePrivacyMutation.mutate(nextPrivacy);
                       }}
                     >
-                      {privacy.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+                      {privacy.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
                     </Button>
                   </div>
                 </CardContent>
@@ -1259,7 +1537,9 @@ export default function Settings() {
                     </div>
                     <div>
                       <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">Quick access to calculators and helpers for your finances.</p>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Quick access to calculators and helpers for your finances.
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
@@ -1267,30 +1547,54 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center md:gap-6">
                       <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1">Invoice Calculator</h3>
-                        <p className="text-sm text-slate-400 mb-2">Check payment math and totals for your invoices.</p>
-                        <a href="/tools/invoice-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Invoice Calculator</a>
+                        <h3 className="text-white font-semibold text-lg mb-1">
+                          Invoice Calculator
+                        </h3>
+                        <p className="text-sm text-slate-400 mb-2">
+                          Check payment math and totals for your invoices.
+                        </p>
+                        <a
+                          href="/finances/invoices"
+                          className="text-orange-400 underline hover:text-orange-300 text-sm"
+                        >
+                          Open Invoices
+                        </a>
                       </div>
                     </div>
                     <div className="flex flex-col md:flex-row md:items-center md:gap-6">
                       <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1">Estimate Calculator</h3>
-                        <p className="text-sm text-slate-400 mb-2">Double-check your job estimates before sending.</p>
-                        <a href="/tools/estimate-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Estimate Calculator</a>
+                        <h3 className="text-white font-semibold text-lg mb-1">
+                          Estimate Calculator
+                        </h3>
+                        <p className="text-sm text-slate-400 mb-2">
+                          Double-check your job estimates before sending.
+                        </p>
+                        <a
+                          href="/quote-calculator"
+                          className="text-orange-400 underline hover:text-orange-300 text-sm"
+                        >
+                          Open Quote Calculator
+                        </a>
                       </div>
                     </div>
                     <div className="flex flex-col md:flex-row md:items-center md:gap-6">
                       <div className="flex-1">
                         <h3 className="text-white font-semibold text-lg mb-1">Expense Helper</h3>
-                        <p className="text-sm text-slate-400 mb-2">Split, categorize, or review your expenses for better tracking.</p>
-                        <a href="/tools/expense-helper" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Expense Helper</a>
+                        <p className="text-sm text-slate-400 mb-2">
+                          Split, categorize, or review your expenses for better tracking.
+                        </p>
+                        <a
+                          href="/finances/expenses"
+                          className="text-orange-400 underline hover:text-orange-300 text-sm"
+                        >
+                          Open Expenses
+                        </a>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
-
           </Tabs>
           <NotificationPreferencesDialog
             open={advancedNotificationPrefsOpen}

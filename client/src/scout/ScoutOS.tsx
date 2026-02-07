@@ -3217,6 +3217,46 @@ export default function ScoutOS() {
     return resolved;
   }, [tileContext]);
 
+  const tileMetaById: Record<
+    string,
+    { icon: React.ComponentType<{ className?: string }>; eyebrow: string }
+  > = {
+    start_project: { icon: ClipboardList, eyebrow: "Direct Connect" },
+    find_pros: { icon: Wrench, eyebrow: "Provider Routing" },
+    nearby: { icon: Users2, eyebrow: "Community" },
+    manage: { icon: Sparkles, eyebrow: "Exchange" },
+  };
+
+  const suggestedPromptCards = useMemo(
+    () => [
+      {
+        id: "scope-project",
+        title: "Scope my project fast",
+        body: "Help me write a clear Direct Connect request for a roof leak and timeline.",
+        icon: ClipboardList,
+      },
+      {
+        id: "find-trusted-pro",
+        title: "Find trusted local help",
+        body: `Show top-rated providers${heroLocationLabel ? ` near ${heroLocationLabel}` : " near me"} and tell me who to contact first.`,
+        icon: Wrench,
+      },
+      {
+        id: "local-opportunities",
+        title: "See local opportunities",
+        body: "What jobs, offers, and community activity should I check first this week?",
+        icon: Activity,
+      },
+      {
+        id: "avoid-scams",
+        title: "Avoid bad hires",
+        body: "Give me a quick anti-scam checklist before I hire anyone.",
+        icon: Shield,
+      },
+    ],
+    [heroLocationLabel]
+  );
+
   const handleActionTile = useCallback(
     (tile: (typeof scoutActionTiles)[0]) => {
       // Derive lightweight variant metadata for KPI logging
@@ -3470,6 +3510,45 @@ export default function ScoutOS() {
                 </div>
               )}
 
+              <div className="mt-2 mb-3">
+                <ScoutInputRow
+                  isBusy={isBusy}
+                  prefillKey={prefillKey}
+                  heroLocationLabel={heroLocationLabel}
+                  isUpdatingGeo={isUpdatingGeo}
+                  onOpenLocationSettings={() => navigate("/settings")}
+                  onUseDeviceLocation={handleUseDeviceLocation}
+                  onSend={(value) => handleSend(value)}
+                  onTyping={() => {
+                    setHasGuestInteracted(true);
+                    recordActivity({
+                      type: "ask_scout",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      label: "typing",
+                    });
+                  }}
+                  autoDemoText={undefined}
+                  enableAutoDemo={false}
+                  autoRouteEnabled={autoRouteEnabled}
+                  onToggleAutoRoute={handleToggleAutoRoute}
+                />
+
+                {!isAuthenticated && (
+                  <div className="mt-2 text-xs text-slate-300/90">
+                    You can explore freely.{" "}
+                    <button
+                      type="button"
+                      className="text-tsAccent hover:text-orange-400 font-medium"
+                      onClick={() => navigate("/login")}
+                    >
+                      Sign in
+                    </button>{" "}
+                    to save, post, or message.
+                  </div>
+                )}
+              </div>
+
               {/* Thread + input in a single chat container that stretches toward
                   the bottom of the viewport, with the input pinned just above
                   the global bottom nav. */}
@@ -3482,17 +3561,20 @@ export default function ScoutOS() {
                 {!hasUserMessages && (
                   <div className="flex flex-col gap-3 py-3 px-1">
                     <div className="space-y-1">
-                      <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
-                        I help you get things done in your local community.
+                      <p
+                        className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Scout Starters
                       </p>
                       <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
-                        Tell me what you want to do, and I&apos;ll take you there.
+                        Start with a route card or a high-signal prompt.
                       </p>
                     </div>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
                     {countyCommitted ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                         {resolvedTiles.map((tile) => (
                           <button
                             key={tile.id}
@@ -3500,10 +3582,19 @@ export default function ScoutOS() {
                               setHasGuestInteracted(true);
                               handleActionTile(tile);
                             }}
-                            className="flex flex-col items-start justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3 text-left hover:border-orange-400/80 transition-colors"
+                            className="flex flex-col items-start justify-between rounded-xl border border-slate-800 bg-slate-900/75 px-3 py-3 text-left hover:border-orange-400/80 hover:bg-slate-900 transition-colors"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            <span className="font-medium text-sm mb-0.5">{tile.label}</span>
+                            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-300">
+                              {(() => {
+                                const meta = tileMetaById[tile.id];
+                                if (!meta) return null;
+                                const Icon = meta.icon;
+                                return <Icon className="h-3 w-3" />;
+                              })()}
+                              <span>{tileMetaById[tile.id]?.eyebrow || "Scout"}</span>
+                            </div>
+                            <span className="font-semibold text-sm mb-1">{tile.label}</span>
                             {tile.description && (
                               <span
                                 className="text-[11px]"
@@ -3512,6 +3603,9 @@ export default function ScoutOS() {
                                 {tile.description}
                               </span>
                             )}
+                            <span className="mt-2 text-[10px] text-orange-300/90 font-medium">
+                              Open route
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -3536,6 +3630,35 @@ export default function ScoutOS() {
                         </div>
                       </div>
                     )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      {suggestedPromptCards.map((card) => {
+                        const Icon = card.icon;
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            onClick={() => {
+                              setHasGuestInteracted(true);
+                              void handleSend(card.body);
+                            }}
+                            className="group rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-left transition-colors hover:border-orange-400/70 hover:bg-slate-900"
+                          >
+                            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                              <Icon className="h-3 w-3 text-orange-300" />
+                              Suggested Prompt
+                            </div>
+                            <p className="text-sm font-semibold text-slate-100">{card.title}</p>
+                            <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">
+                              {card.body}
+                            </p>
+                            <p className="mt-2 text-[10px] text-orange-300/90 font-medium">
+                              Send to Scout
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
 
                     {/* Optional, collapsed explanation about TradeScout (secondary) */}
                     <details className="mt-2 text-left">
@@ -3915,43 +4038,6 @@ export default function ScoutOS() {
                       </div>
                     </div>
                   </Card>
-                )}
-
-                <ScoutInputRow
-                  isBusy={isBusy}
-                  prefillKey={prefillKey}
-                  heroLocationLabel={heroLocationLabel}
-                  isUpdatingGeo={isUpdatingGeo}
-                  onOpenLocationSettings={() => navigate("/settings")}
-                  onUseDeviceLocation={handleUseDeviceLocation}
-                  onSend={(value) => handleSend(value)}
-                  onTyping={() => {
-                    setHasGuestInteracted(true);
-                    recordActivity({
-                      type: "ask_scout",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      label: "typing",
-                    });
-                  }}
-                  autoDemoText={undefined}
-                  enableAutoDemo={false}
-                  autoRouteEnabled={autoRouteEnabled}
-                  onToggleAutoRoute={handleToggleAutoRoute}
-                />
-
-                {!isAuthenticated && (
-                  <div className="text-xs text-slate-300/90">
-                    You can explore freely.{" "}
-                    <button
-                      type="button"
-                      className="text-tsAccent hover:text-orange-400 font-medium"
-                      onClick={() => navigate("/login")}
-                    >
-                      Sign in
-                    </button>{" "}
-                    to save, post, or message.
-                  </div>
                 )}
               </div>
             </div>

@@ -1,12 +1,28 @@
-import { memo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Users2, TrendingUp, DollarSign, MapPin, Calendar, Clock, Award, Target, Zap } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/useAuth';
+import { memo, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  BarChart3,
+  Users2,
+  TrendingUp,
+  DollarSign,
+  MapPin,
+  Clock,
+  Award,
+  Target,
+  Zap,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
 const PlatformAnalytics = memo(function PlatformAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
@@ -15,7 +31,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   const { user } = useAuth();
 
   type ScoutDraftArtifactSummary = {
-    draftKind: 'promo' | 'community';
+    draftKind: "promo" | "community";
     created: number;
     viewed: number;
     published: number;
@@ -36,7 +52,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   };
 
   type OutcomeSummaryByActionType = {
-    actionType: 'community_notice' | 'provider_coordination' | 'promotion';
+    actionType: "community_notice" | "provider_coordination" | "promotion";
     initiated: number;
     success: number;
     pending: number;
@@ -67,19 +83,21 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     staleTime: 60 * 1000,
   });
 
-  const outcomeRolesAllowed = !!user && [
-    'support_agent',
-    'content_moderator',
-    'territory_manager',
-    'contractor_success',
-    'content_seo',
-    'analytics_specialist',
-    'marketing_specialist',
-    'moderator',
-    'ops_admin',
-    'super_admin',
-    'head_admin',
-  ].includes(user.role || '');
+  const outcomeRolesAllowed =
+    !!user &&
+    [
+      "support_agent",
+      "content_moderator",
+      "territory_manager",
+      "contractor_success",
+      "content_seo",
+      "analytics_specialist",
+      "marketing_specialist",
+      "moderator",
+      "ops_admin",
+      "super_admin",
+      "head_admin",
+    ].includes(user.role || "");
 
   const { data: scoutDraftSummary } = useQuery<ScoutDraftSummaryResponse>({
     queryKey: ["/api/analytics/scout-drafts/summary"],
@@ -95,68 +113,218 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     staleTime: 30 * 1000,
   });
 
+  type AdminStatsResponse = {
+    totalUsers: number;
+    totalContractors?: number;
+    newLeads?: number;
+    totalRecommendations?: number;
+    totalCommunityPosts?: number;
+    roleBreakdown?: {
+      homeowner: number;
+      contractor: number;
+      handyman: number;
+      realtor: number;
+    };
+  };
+
+  type AdminUserSummary = {
+    id: string;
+    role?: string | null;
+    roles?: string[] | null;
+    createdAt?: string | null;
+  };
+
+  type CoverageSummary = {
+    totalCounties: number;
+    unassignedCounties: number;
+    partiallyCoveredCounties: number;
+    fullyCoveredCounties: number;
+    verifiedCoverageRatePercent: number;
+    rows: Array<{
+      countyName: string;
+      stateCode: string;
+      territoryManagerCount: number;
+      affiliateCount: number;
+      coverageStatus: "unassigned" | "partial" | "full";
+    }>;
+  };
+
+  type ObservabilitySummary = {
+    dbPool?: { current?: { active: number; idle: number; waiting: number } };
+    http?: {
+      total: number;
+      statusClasses?: { ["2xx"]?: number; ["4xx"]?: number; ["5xx"]?: number };
+    };
+  };
+
+  const { data: adminStats } = useQuery<AdminStatsResponse>({
+    queryKey: ["/api/admin/stats"],
+    queryFn: () => apiRequest("GET", "/api/admin/stats"),
+    staleTime: 60 * 1000,
+  });
+
+  const { data: adminUsers = [] } = useQuery<AdminUserSummary[]>({
+    queryKey: ["/api/admin/users"],
+    queryFn: () => apiRequest("GET", "/api/admin/users"),
+    staleTime: 60 * 1000,
+  });
+
+  const { data: coverageSummary } = useQuery<CoverageSummary>({
+    queryKey: ["/api/admin/geo/coverage", "analytics"],
+    queryFn: () => apiRequest("GET", "/api/admin/geo/coverage"),
+    staleTime: 60 * 1000,
+  });
+
+  const { data: observabilitySummary } = useQuery<ObservabilitySummary>({
+    queryKey: ["/api/admin/observability/summary"],
+    queryFn: () => apiRequest("GET", "/api/admin/observability/summary"),
+    staleTime: 30 * 1000,
+  });
+
+  const totalUsers = adminStats?.totalUsers ?? adminUsers.length;
+  const totalContractors =
+    adminStats?.totalContractors ??
+    (adminStats?.roleBreakdown?.contractor || 0) + (adminStats?.roleBreakdown?.handyman || 0);
+  const communityPosts = adminStats?.totalCommunityPosts || 0;
+  const marketplaceVolumeToday =
+    (moneyMovements?.marketplace.totalStripeVolume || 0) +
+    (moneyMovements?.marketplace.totalOffPlatformVolume || 0);
+  const httpTotal = observabilitySummary?.http?.total || 0;
+  const http2xx = observabilitySummary?.http?.statusClasses?.["2xx"] || 0;
+  const successRate = httpTotal > 0 ? (http2xx / httpTotal) * 100 : 0;
+
   const overviewStats = [
-    { label: "Total Users", value: "12,847", change: "+8.2%", trend: "up", icon: Users2, color: "text-blue-400" },
-    { label: "Active Contractors", value: "3,429", change: "+12.1%", trend: "up", icon: Award, color: "text-green-400" },
-    { label: "Platform Revenue", value: "$127,340", change: "+15.7%", trend: "up", icon: DollarSign, color: "text-purple-400" },
-    { label: "Successful Projects", value: "8,934", change: "+9.8%", trend: "up", icon: Target, color: "text-orange-400" }
+    {
+      label: "Total Users",
+      value: totalUsers.toLocaleString(),
+      change: "Live total",
+      trend: "up",
+      icon: Users2,
+      color: "text-blue-400",
+    },
+    {
+      label: "Active Contractors",
+      value: totalContractors.toLocaleString(),
+      change: "Contractor + handyman",
+      trend: "up",
+      icon: Award,
+      color: "text-green-400",
+    },
+    {
+      label: "Marketplace Volume (Today)",
+      value: formatCurrency(marketplaceVolumeToday),
+      change: "Stripe + off-platform",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-purple-400",
+    },
+    {
+      label: "Community Posts",
+      value: communityPosts.toLocaleString(),
+      change: "All-time",
+      trend: "up",
+      icon: Target,
+      color: "text-orange-400",
+    },
   ];
 
-  const userGrowth = [
-    { month: "Jan", homeowners: 820, contractors: 145, total: 965 },
-    { month: "Feb", homeowners: 1240, contractors: 189, total: 1429 },
-    { month: "Mar", homeowners: 1680, contractors: 234, total: 1914 },
-    { month: "Apr", homeowners: 2100, contractors: 298, total: 2398 },
-    { month: "May", homeowners: 2640, contractors: 367, total: 3007 },
-    { month: "Jun", homeowners: 3180, contractors: 445, total: 3625 }
-  ];
+  const userGrowth = useMemo(() => {
+    const now = new Date();
+    const months: Array<{ month: string; homeowners: number; contractors: number; total: number }> =
+      [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const monthLabel = d.toLocaleString("en-US", { month: "short" });
 
-  const topCounties = [
-    { name: "Los Angeles, CA", users: 2847, contractors: 423, projects: 1268 },
-    { name: "Orange, CA", users: 1934, contractors: 298, projects: 876 },
-    { name: "San Diego, CA", users: 1678, contractors: 234, projects: 654 },
-    { name: "Cook, IL", users: 1456, contractors: 189, projects: 543 },
-    { name: "Harris, TX", users: 1298, contractors: 167, projects: 478 }
-  ];
+      let homeowners = 0;
+      let contractors = 0;
+      let total = 0;
 
-  const revenueBreakdown = [
-    { source: "Accelerator Memberships", amount: 45280, percentage: 35.6 },
-    { source: "Connection Generation Fees", amount: 38520, percentage: 30.2 },
-    { source: "Transaction Fees", amount: 25680, percentage: 20.2 },
-    { source: "Premium Features", amount: 12740, percentage: 10.0 },
-    { source: "Advertising Revenue", amount: 5120, percentage: 4.0 }
-  ];
+      for (const u of adminUsers) {
+        const createdAt = u.createdAt ? new Date(u.createdAt) : null;
+        if (!createdAt || Number.isNaN(createdAt.getTime())) continue;
+        const key = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, "0")}`;
+        if (key !== monthKey) continue;
+        total += 1;
+        const roleSet = new Set([u.role, ...(u.roles || [])].filter(Boolean));
+        if (roleSet.has("homeowner")) homeowners += 1;
+        if (roleSet.has("contractor") || roleSet.has("handyman")) contractors += 1;
+      }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+      months.push({ month: monthLabel, homeowners, contractors, total });
+    }
+    return months;
+  }, [adminUsers]);
+
+  const topCounties = useMemo(() => {
+    const rows = coverageSummary?.rows || [];
+    return [...rows]
+      .sort((a, b) => {
+        const aCoverage = a.territoryManagerCount + a.affiliateCount;
+        const bCoverage = b.territoryManagerCount + b.affiliateCount;
+        return bCoverage - aCoverage;
+      })
+      .slice(0, 5)
+      .map((row) => ({
+        name: `${row.countyName}, ${row.stateCode}`,
+        coverageEntities: row.territoryManagerCount + row.affiliateCount,
+        territoryManagers: row.territoryManagerCount,
+        affiliates: row.affiliateCount,
+        status: row.coverageStatus,
+      }));
+  }, [coverageSummary]);
+
+  const revenueBreakdown = useMemo(() => {
+    const stripe = moneyMovements?.marketplace.totalStripeVolume || 0;
+    const offPlatform = moneyMovements?.marketplace.totalOffPlatformVolume || 0;
+    const walletCredits = moneyMovements?.wallet.totalCredits || 0;
+    const walletDebits = moneyMovements?.wallet.totalDebits || 0;
+    const total = stripe + offPlatform + walletCredits + walletDebits;
+    const pct = (amount: number) => (total > 0 ? Number(((amount / total) * 100).toFixed(1)) : 0);
+    return [
+      { source: "Stripe Volume (Today)", amount: stripe, percentage: pct(stripe) },
+      { source: "Off-platform Volume (Today)", amount: offPlatform, percentage: pct(offPlatform) },
+      { source: "Wallet Credits (Today)", amount: walletCredits, percentage: pct(walletCredits) },
+      { source: "Wallet Debits (Today)", amount: walletDebits, percentage: pct(walletDebits) },
+    ];
+  }, [moneyMovements]);
+
+  function formatCurrency(amount: number) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-  };
+  }
 
-  const scoutArtifacts = (scoutDraftSummary?.artifacts || []).reduce<Record<'promo' | 'community', ScoutDraftArtifactSummary | undefined>>(
+  const scoutArtifacts = (scoutDraftSummary?.artifacts || []).reduce<
+    Record<"promo" | "community", ScoutDraftArtifactSummary | undefined>
+  >(
     (acc, art) => {
       acc[art.draftKind] = art;
       return acc;
     },
-    { promo: undefined, community: undefined },
+    { promo: undefined, community: undefined }
   );
 
   const winnerLabel = (() => {
     const promo = scoutArtifacts.promo;
     const community = scoutArtifacts.community;
-    if (!promo && !community) return 'Not enough data yet';
+    if (!promo && !community) return "Not enough data yet";
     const promoRate = promo && promo.created > 0 ? promo.published / promo.created : 0;
-    const communityRate = community && community.created > 0 ? community.published / community.created : 0;
-    if (promoRate === 0 && communityRate === 0) return 'No publishes yet';
-    if (promoRate > communityRate) return 'Promotions are currently winning';
-    if (communityRate > promoRate) return 'Community posts are currently winning';
-    return 'Flows are performing similarly';
+    const communityRate =
+      community && community.created > 0 ? community.published / community.created : 0;
+    if (promoRate === 0 && communityRate === 0) return "No publishes yet";
+    if (promoRate > communityRate) return "Promotions are currently winning";
+    if (communityRate > promoRate) return "Community posts are currently winning";
+    return "Flows are performing similarly";
   })();
 
-  const outcomeByType = (outcomeSummary?.byActionType || []).reduce<Record<OutcomeSummaryByActionType['actionType'], OutcomeSummaryByActionType | undefined>>(
+  const outcomeByType = (outcomeSummary?.byActionType || []).reduce<
+    Record<OutcomeSummaryByActionType["actionType"], OutcomeSummaryByActionType | undefined>
+  >(
     (acc, item) => {
       acc[item.actionType] = item;
       return acc;
@@ -165,7 +333,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
       community_notice: undefined,
       provider_coordination: undefined,
       promotion: undefined,
-    },
+    }
   );
 
   return (
@@ -178,7 +346,9 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               <BarChart3 className="h-8 w-8 text-primary" />
               <div>
                 <h1 className="text-4xl font-bold text-foreground">Platform Analytics</h1>
-                <p className="text-muted-foreground text-lg">Comprehensive insights into platform performance and growth</p>
+                <p className="text-muted-foreground text-lg">
+                  Comprehensive insights into platform performance and growth
+                </p>
               </div>
             </div>
             <Select value={timeRange} onValueChange={setTimeRange}>
@@ -198,12 +368,42 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
         {/* Analytics Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-muted border-border">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
-            <TabsTrigger value="money" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Money Movements</TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Users</TabsTrigger>
-            <TabsTrigger value="revenue" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Revenue</TabsTrigger>
-            <TabsTrigger value="geography" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Geography</TabsTrigger>
-            <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Performance</TabsTrigger>
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="money"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Money Movements
+            </TabsTrigger>
+            <TabsTrigger
+              value="users"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Users
+            </TabsTrigger>
+            <TabsTrigger
+              value="revenue"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Revenue
+            </TabsTrigger>
+            <TabsTrigger
+              value="geography"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Geography
+            </TabsTrigger>
+            <TabsTrigger
+              value="performance"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Performance
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -218,7 +418,9 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                         <div>
                           <p className="text-gray-400 text-sm">{stat.label}</p>
                           <p className="text-2xl font-bold text-white">{stat.value}</p>
-                          <p className={`text-sm ${stat.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
+                          <p
+                            className={`text-sm ${stat.trend === "up" ? "text-green-400" : "text-red-400"}`}
+                          >
                             {stat.change} from last period
                           </p>
                         </div>
@@ -241,33 +443,42 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-200">
-                    {(['promo', 'community'] as const).map((kind) => {
+                    {(["promo", "community"] as const).map((kind) => {
                       const art = scoutArtifacts[kind];
-                      const label = kind === 'promo' ? 'Promotions' : 'Community Posts';
+                      const label = kind === "promo" ? "Promotions" : "Community Posts";
                       if (!art) {
                         return (
                           <div key={kind} className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold">{label}</span>
-                              <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-gray-500 text-gray-300"
+                              >
                                 No data yet
                               </Badge>
                             </div>
-                            <p className="text-xs text-gray-400">Waiting for Scout-driven drafts to accumulate.</p>
+                            <p className="text-xs text-gray-400">
+                              Waiting for Scout-driven drafts to accumulate.
+                            </p>
                           </div>
                         );
                       }
 
                       const publishRate = art.created > 0 ? (art.published / art.created) * 100 : 0;
-                      const medianMinutes = art.medianTimeToPublishMs != null
-                        ? Math.round(art.medianTimeToPublishMs / 60000)
-                        : null;
+                      const medianMinutes =
+                        art.medianTimeToPublishMs != null
+                          ? Math.round(art.medianTimeToPublishMs / 60000)
+                          : null;
 
                       return (
                         <div key={kind} className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold">{label}</span>
-                            <Badge variant="outline" className="text-xs border-orange-500/40 text-orange-300">
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-orange-500/40 text-orange-300"
+                            >
                               {publishRate.toFixed(1)}% publish rate
                             </Badge>
                           </div>
@@ -286,18 +497,23 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                           <div className="flex items-center justify-between text-xs">
                             <span>Median time-to-publish</span>
                             <span className="font-mono">
-                              {medianMinutes != null ? `${medianMinutes} min` : '—'}
+                              {medianMinutes != null ? `${medianMinutes} min` : "—"}
                             </span>
                           </div>
                           {art.topCountiesByPublishRate.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-[11px] text-gray-400 mb-1">Top counties by publish rate</p>
+                              <p className="text-[11px] text-gray-400 mb-1">
+                                Top counties by publish rate
+                              </p>
                               <ul className="space-y-0.5 text-[11px] text-gray-300">
                                 {art.topCountiesByPublishRate.map((c) => (
-                                  <li key={`${c.stateCode}-${c.countyFips}`} className="flex justify-between">
+                                  <li
+                                    key={`${c.stateCode}-${c.countyFips}`}
+                                    className="flex justify-between"
+                                  >
                                     <span>
-                                      {c.countyFips ?? 'Unknown'}
-                                      {c.stateCode ? `, ${c.stateCode}` : ''}
+                                      {c.countyFips ?? "Unknown"}
+                                      {c.stateCode ? `, ${c.stateCode}` : ""}
                                     </span>
                                     <span className="font-mono">
                                       {Math.round(c.publishRate * 100)}% ({c.published}/{c.created})
@@ -330,18 +546,23 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-200">
-                    {([
-                      { key: 'community_notice', label: 'Community Notices' },
-                      { key: 'provider_coordination', label: 'Provider Coordination' },
-                      { key: 'promotion', label: 'Promotions' },
-                    ] as const).map(({ key, label }) => {
+                    {(
+                      [
+                        { key: "community_notice", label: "Community Notices" },
+                        { key: "provider_coordination", label: "Provider Coordination" },
+                        { key: "promotion", label: "Promotions" },
+                      ] as const
+                    ).map(({ key, label }) => {
                       const bucket = outcomeByType[key];
                       if (!bucket) {
                         return (
                           <div key={key} className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold">{label}</span>
-                              <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-gray-500 text-gray-300"
+                              >
                                 No data yet
                               </Badge>
                             </div>
@@ -352,17 +573,28 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                         );
                       }
 
-                      const { initiated, success, pending, failed, medianTimeToOutcomeMs, topCountiesByConfirmationRate } = bucket;
+                      const {
+                        initiated,
+                        success,
+                        pending,
+                        failed,
+                        medianTimeToOutcomeMs,
+                        topCountiesByConfirmationRate,
+                      } = bucket;
                       const successRate = initiated > 0 ? (success / initiated) * 100 : 0;
-                      const medianMinutes = medianTimeToOutcomeMs != null
-                        ? Math.round(medianTimeToOutcomeMs / 60000)
-                        : null;
+                      const medianMinutes =
+                        medianTimeToOutcomeMs != null
+                          ? Math.round(medianTimeToOutcomeMs / 60000)
+                          : null;
 
                       return (
                         <div key={key} className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold">{label}</span>
-                            <Badge variant="outline" className="text-xs border-green-500/50 text-green-300">
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-green-500/50 text-green-300"
+                            >
                               {successRate.toFixed(1)}% confirmed
                             </Badge>
                           </div>
@@ -385,21 +617,27 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                           <div className="flex items-center justify-between text-xs">
                             <span>Median time-to-outcome</span>
                             <span className="font-mono">
-                              {medianMinutes != null ? `${medianMinutes} min` : '—'}
+                              {medianMinutes != null ? `${medianMinutes} min` : "—"}
                             </span>
                           </div>
                           {topCountiesByConfirmationRate.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-[11px] text-gray-400 mb-1">Top counties by confirmation rate</p>
+                              <p className="text-[11px] text-gray-400 mb-1">
+                                Top counties by confirmation rate
+                              </p>
                               <ul className="space-y-0.5 text-[11px] text-gray-300">
                                 {topCountiesByConfirmationRate.map((c) => (
-                                  <li key={`${c.stateCode}-${c.countyFips}`} className="flex justify-between">
+                                  <li
+                                    key={`${c.stateCode}-${c.countyFips}`}
+                                    className="flex justify-between"
+                                  >
                                     <span>
-                                      {c.countyFips ?? 'Unknown'}
-                                      {c.stateCode ? `, ${c.stateCode}` : ''}
+                                      {c.countyFips ?? "Unknown"}
+                                      {c.stateCode ? `, ${c.stateCode}` : ""}
                                     </span>
                                     <span className="font-mono">
-                                      {Math.round(c.confirmationRate * 100)}% ({c.confirmed}/{c.initiated})
+                                      {Math.round(c.confirmationRate * 100)}% ({c.confirmed}/
+                                      {c.initiated})
                                     </span>
                                   </li>
                                 ))}
@@ -425,15 +663,24 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               <CardContent>
                 <div className="space-y-4">
                   {userGrowth.map((month, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-navy-700 rounded-lg"
+                    >
                       <div className="flex items-center gap-4">
                         <span className="text-white font-medium w-12">{month.month}</span>
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-blue-600 text-white">{month.homeowners} Homeowners</Badge>
-                          <Badge className="bg-green-600 text-white">{month.contractors} Contractors</Badge>
+                          <Badge className="bg-blue-600 text-white">
+                            {month.homeowners} Homeowners
+                          </Badge>
+                          <Badge className="bg-green-600 text-white">
+                            {month.contractors} Contractors
+                          </Badge>
                         </div>
                       </div>
-                      <div className="text-white font-bold">{month.total.toLocaleString()} Total</div>
+                      <div className="text-white font-bold">
+                        {month.total.toLocaleString()} Total
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -454,7 +701,9 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <p className="text-sm text-gray-300">Wallet Flows (today)</p>
-                      <p className="text-xs text-gray-400">Credits, debits, and net change across all user wallets.</p>
+                      <p className="text-xs text-gray-400">
+                        Credits, debits, and net change across all user wallets.
+                      </p>
                       <div className="mt-2 space-y-1 text-sm">
                         <div className="flex justify-between text-emerald-300">
                           <span>Total Credits</span>
@@ -473,7 +722,9 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
                     <div className="space-y-2">
                       <p className="text-sm text-gray-300">Marketplace Volume (today)</p>
-                      <p className="text-xs text-gray-400">Completed transactions by payment rail.</p>
+                      <p className="text-xs text-gray-400">
+                        Completed transactions by payment rail.
+                      </p>
                       <div className="mt-2 space-y-1 text-sm">
                         <div className="flex justify-between text-blue-300">
                           <span>Stripe (on-platform)</span>
@@ -481,7 +732,9 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                         </div>
                         <div className="flex justify-between text-yellow-300">
                           <span>Off-platform / direct</span>
-                          <span>${moneyMovements.marketplace.totalOffPlatformVolume.toFixed(2)}</span>
+                          <span>
+                            ${moneyMovements.marketplace.totalOffPlatformVolume.toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -489,9 +742,10 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                     <div className="space-y-2 text-sm text-gray-300">
                       <p className="font-semibold">How to read this</p>
                       <p className="text-gray-400 text-xs">
-                        Wallet credits should line up with affiliate commissions, admin adjustments, and incoming payments.
-                        Debits should align with marketplace purchases, P2P sends, and any withdrawals. Stripe vs off-platform
-                        totals give a quick sense of how much volume is staying fully on-rails.
+                        Wallet credits should line up with affiliate commissions, admin adjustments,
+                        and incoming payments. Debits should align with marketplace purchases, P2P
+                        sends, and any withdrawals. Stripe vs off-platform totals give a quick sense
+                        of how much volume is staying fully on-rails.
                       </p>
                       <p className="text-gray-400 text-xs mt-2">
                         Date: <span className="font-mono">{moneyMovements.date}</span>
@@ -499,7 +753,9 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">No money movement data available for today yet.</p>
+                  <p className="text-sm text-gray-400">
+                    No money movement data available for today yet.
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -519,15 +775,27 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
                       <span className="text-white">Homeowners</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-white font-bold">9,418</span>
-                        <Badge className="bg-blue-600">73.3%</Badge>
+                        <span className="text-white font-bold">
+                          {(adminStats?.roleBreakdown?.homeowner || 0).toLocaleString()}
+                        </span>
+                        <Badge className="bg-blue-600">
+                          {totalUsers > 0
+                            ? `${Math.round(((adminStats?.roleBreakdown?.homeowner || 0) / totalUsers) * 100)}%`
+                            : "0%"}
+                        </Badge>
                       </div>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
                       <span className="text-white">Contractors</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-white font-bold">3,429</span>
-                        <Badge className="bg-green-600">26.7%</Badge>
+                        <span className="text-white font-bold">
+                          {totalContractors.toLocaleString()}
+                        </span>
+                        <Badge className="bg-green-600">
+                          {totalUsers > 0
+                            ? `${Math.round((totalContractors / totalUsers) * 100)}%`
+                            : "0%"}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -544,16 +812,20 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
-                      <span className="text-white">Daily Active Users</span>
-                      <span className="text-white font-bold">3,247</span>
+                      <span className="text-white">Daily New Users</span>
+                      <span className="text-white font-bold">
+                        {userGrowth[userGrowth.length - 1]?.total?.toLocaleString() || "0"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
-                      <span className="text-white">Weekly Active Users</span>
-                      <span className="text-white font-bold">8,934</span>
+                      <span className="text-white">Leads (last 7d)</span>
+                      <span className="text-white font-bold">
+                        {(adminStats?.newLeads || 0).toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
-                      <span className="text-white">Monthly Active Users</span>
-                      <span className="text-white font-bold">12,847</span>
+                      <span className="text-white">Current User Base</span>
+                      <span className="text-white font-bold">{totalUsers.toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -578,8 +850,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                         <span className="text-white font-bold">{formatCurrency(item.amount)}</span>
                       </div>
                       <div className="w-full bg-navy-700 rounded-full h-2">
-                        <div 
-                          className="bg-orange-600 h-2 rounded-full" 
+                        <div
+                          className="bg-orange-600 h-2 rounded-full"
                           style={{ width: `${item.percentage}%` }}
                         ></div>
                       </div>
@@ -603,16 +875,22 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
-                      <span className="text-white">Monthly Recurring Revenue</span>
-                      <span className="text-white font-bold">$89,450</span>
+                      <span className="text-white">Wallet Net Change (Today)</span>
+                      <span className="text-white font-bold">
+                        {formatCurrency(moneyMovements?.wallet.netChange || 0)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
-                      <span className="text-white">Average Revenue Per User</span>
-                      <span className="text-white font-bold">$9.92</span>
+                      <span className="text-white">Marketplace Volume / User (Today)</span>
+                      <span className="text-white font-bold">
+                        {formatCurrency(totalUsers > 0 ? marketplaceVolumeToday / totalUsers : 0)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
-                      <span className="text-white">Customer Lifetime Value</span>
-                      <span className="text-white font-bold">$347</span>
+                      <span className="text-white">Total Recommendations</span>
+                      <span className="text-white font-bold">
+                        {(adminStats?.totalRecommendations || 0).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -625,7 +903,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  Top Areas by User Activity
+                  Top Areas by Coverage Activity
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -638,17 +916,22 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div className="text-center">
-                          <p className="text-gray-400">Total Users</p>
-                          <p className="text-white font-bold">{county.users.toLocaleString()}</p>
+                          <p className="text-gray-400">Coverage Entities</p>
+                          <p className="text-white font-bold">
+                            {county.coverageEntities.toLocaleString()}
+                          </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">Contractors</p>
-                          <p className="text-white font-bold">{county.contractors}</p>
+                          <p className="text-gray-400">Territory Managers</p>
+                          <p className="text-white font-bold">{county.territoryManagers}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">Projects</p>
-                          <p className="text-white font-bold">{county.projects}</p>
+                          <p className="text-gray-400">Affiliates/Partners</p>
+                          <p className="text-white font-bold">{county.affiliates}</p>
                         </div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-400 text-center">
+                        Status: {county.status}
                       </div>
                     </div>
                   ))}
@@ -662,24 +945,30 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
                 <CardContent className="p-6 text-center">
                   <Zap className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-white mb-1">98.7%</div>
-                  <div className="text-gray-400 text-sm">Platform Uptime</div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {successRate.toFixed(1)}%
+                  </div>
+                  <div className="text-gray-400 text-sm">HTTP 2xx Success Rate</div>
                 </CardContent>
               </Card>
 
               <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
                 <CardContent className="p-6 text-center">
                   <Clock className="h-8 w-8 text-blue-400 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-white mb-1">1.2s</div>
-                  <div className="text-gray-400 text-sm">Avg Response Time</div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {observabilitySummary?.dbPool?.current?.waiting ?? 0}
+                  </div>
+                  <div className="text-gray-400 text-sm">DB Pool Waiting</div>
                 </CardContent>
               </Card>
 
               <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
                 <CardContent className="p-6 text-center">
                   <Target className="h-8 w-8 text-green-400 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-white mb-1">92.3%</div>
-                  <div className="text-gray-400 text-sm">Success Rate</div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {coverageSummary?.verifiedCoverageRatePercent?.toFixed(1) || "0.0"}%
+                  </div>
+                  <div className="text-gray-400 text-sm">Verified County Coverage</div>
                 </CardContent>
               </Card>
             </div>

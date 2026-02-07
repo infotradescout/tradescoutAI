@@ -64,7 +64,9 @@ interface Post {
   author: {
     id: string;
     name: string;
+    username?: string | null;
     avatar?: string | null;
+    profileImageUrl?: string | null;
     email?: string | null;
     role?: string | null;
     verified: boolean;
@@ -289,6 +291,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   }, [route]);
 
   const rawScopeParam = queryParams.get("scope");
+  const rawGeoParam = queryParams.get("geo");
   const rawFeedParam = queryParams.get("feed");
 
   const normalizeFeed = (value?: string | null): FeedTab | null => {
@@ -314,8 +317,14 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   const feedFromRoute = normalizeFeed(rawFeedParam) ?? normalizeFeed(rawScopeParam);
-  const geoScopeFromRoute =
-    rawScopeParam === "global" || rawScopeParam === "local" ? rawScopeParam : null;
+  const normalizeGeoScope = (value?: string | null): "local" | "global" | null => {
+    if (!value) return null;
+    if (value === "global" || value === "all" || value === "everywhere") return "global";
+    if (value === "local" || value === "county") return "local";
+    return null;
+  };
+  // Prefer explicit geo param; fall back to legacy scope param.
+  const geoScopeFromRoute = normalizeGeoScope(rawGeoParam) ?? normalizeGeoScope(rawScopeParam);
 
   // Phase 1: Global community toggle (default: local/county)
   const effectiveGeoScope = geoScopeFromRoute || "local";
@@ -332,7 +341,11 @@ const CommunityFeed = memo(function CommunityFeed() {
   const currentPath = route.split("?")[0];
   const handleScopeToggle = (newScope: "local" | "global") => {
     const nextParams = new URLSearchParams(queryParams);
-    nextParams.set("scope", newScope);
+    nextParams.set("geo", newScope);
+    // Remove ambiguous legacy key to prevent feed/scope collisions.
+    if (nextParams.get("scope") === "local" || nextParams.get("scope") === "global") {
+      nextParams.delete("scope");
+    }
     navigate(`${currentPath}?${nextParams.toString()}`);
   };
 
@@ -340,8 +353,9 @@ const CommunityFeed = memo(function CommunityFeed() {
     setActiveTab(nextTab);
     const nextParams = new URLSearchParams(queryParams);
     nextParams.set("feed", nextTab);
-    if (!nextParams.get("scope")) {
-      nextParams.set("scope", isGlobalView ? "global" : "local");
+    nextParams.set("geo", isGlobalView ? "global" : "local");
+    if (nextParams.get("scope") === "local" || nextParams.get("scope") === "global") {
+      nextParams.delete("scope");
     }
     navigate(`${currentPath}?${nextParams.toString()}`);
   };
@@ -415,7 +429,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       case "recs":
         return "recommendations";
       default:
-        return "for_you";
+        return "county";
     }
   }, [activeTab, isGlobalView]);
 
@@ -711,6 +725,21 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const hasUserPosts = Array.isArray(posts) && posts.length > 0;
   const displayPosts: any[] = hasUserPosts ? posts : systemPosts;
+  const getAuthorName = (post: any) =>
+    post.author?.name ||
+    [post.author?.firstName, post.author?.lastName].filter(Boolean).join(" ") ||
+    post.author?.username ||
+    "Community Member";
+  const getAuthorAvatar = (post: any) =>
+    post.author?.avatar || post.author?.profileImageUrl || post.author?.photoUrl || undefined;
+  const getAuthorInitials = (post: any) => {
+    const name = String(getAuthorName(post)).trim();
+    if (!name) return "CM";
+    const parts = name.split(/\s+/).filter(Boolean);
+    return parts.length > 1
+      ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+      : name.slice(0, 2).toUpperCase();
+  };
 
   const renderFeedList = () => (
     <div className="space-y-3 md:space-y-5">
@@ -735,32 +764,34 @@ const CommunityFeed = memo(function CommunityFeed() {
                 }`}
                 data-testid={`card-post-${post.id}`}
               >
-                <CardContent className="p-3 md:p-5">
+                <CardContent className="p-3 md:p-4">
                   {/* Post Header */}
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-3">
                     <div className="flex gap-3">
                       {isSystemPost ? (
                         <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
                           <TradeScoutIcon size="sm" variant="gradient" className="text-slate-950" />
                         </div>
                       ) : (
-                        <Avatar className="w-10 h-10 md:w-11 md:h-11">
-                          <AvatarImage src={post.author?.avatar} />
-                          <AvatarFallback>
-                            {(post.author?.name || user?.username || "U")
-                              .substring(0, 2)
-                              .toUpperCase()}
-                          </AvatarFallback>
+                        <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-orange-500/25">
+                          <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
+                          <AvatarFallback>{getAuthorInitials(post)}</AvatarFallback>
                         </Avatar>
                       )}
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-white font-semibold">
-                            {isSystemPost
-                              ? "Scout"
-                              : post.author?.name || user?.username || "Community Member"}
+                          <h3 className="text-white font-semibold text-sm md:text-base">
+                            {isSystemPost ? "Scout" : getAuthorName(post)}
                           </h3>
+                          {!isSystemPost && post.author?.verified && (
+                            <Badge
+                              variant="outline"
+                              className="h-5 px-1.5 text-[10px] border-emerald-500/50 text-emerald-300"
+                            >
+                              Verified
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-1">
@@ -815,9 +846,11 @@ const CommunityFeed = memo(function CommunityFeed() {
                   {/* Post Content */}
                   <div className="mb-3 md:mb-4">
                     {post.title && (
-                      <h4 className="text-lg font-semibold text-white mb-2">{post.title}</h4>
+                      <h4 className="text-base md:text-lg font-semibold text-white mb-2">
+                        {post.title}
+                      </h4>
                     )}
-                    <p className="text-slate-200 mb-3 leading-relaxed whitespace-pre-line">
+                    <p className="text-slate-200 text-sm md:text-[15px] mb-3 leading-relaxed whitespace-pre-line">
                       {post.content}
                     </p>
 
@@ -1195,11 +1228,12 @@ const CommunityFeed = memo(function CommunityFeed() {
           )}
 
           {/* Phase 1: Global Community Toggle (read-only visibility) */}
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-full p-1">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-full p-1">
               <button
                 onClick={() => handleScopeToggle("local")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                aria-pressed={!isGlobalView}
+                className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   !isGlobalView
                     ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
@@ -1210,7 +1244,8 @@ const CommunityFeed = memo(function CommunityFeed() {
               </button>
               <button
                 onClick={() => handleScopeToggle("global")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                aria-pressed={isGlobalView}
+                className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   isGlobalView
                     ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
@@ -1241,9 +1276,9 @@ const CommunityFeed = memo(function CommunityFeed() {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
             {/* Main Feed */}
-            <div className="lg:col-span-2 space-y-3 md:space-y-6">
+            <div className="lg:col-span-2 space-y-3 md:space-y-4">
               <Tabs
                 value={activeTab}
                 onValueChange={(value) => handleTabChange(value as FeedTab)}

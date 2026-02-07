@@ -1,7 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { CommunityCTA } from "./CommunityCTA";
-import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap, Star, MapPin, Clock, Eye, Vault, Info } from "lucide-react";
+import {
+  Tag,
+  Users2,
+  MessageSquare,
+  Sparkles,
+  TrendingUp,
+  Zap,
+  Star,
+  MapPin,
+  Clock,
+  Eye,
+  Vault,
+  Info,
+} from "lucide-react";
 
 // NOTE: Authority labels intentionally disabled (Phase 2B).
 // These signals imply validated judgment before outcomes exist.
@@ -17,7 +30,12 @@ import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap, Star, MapPin, Cl
 const ENABLE_AUTHORITY_LABELS = false;
 
 // Card types that can appear in the snapshot
-export type SnapshotCardType = "trade_deal" | "community_post" | "local_stats" | "starter_invitation" | "feed_filter";
+export type SnapshotCardType =
+  | "trade_deal"
+  | "community_post"
+  | "local_stats"
+  | "starter_invitation"
+  | "feed_filter";
 
 export type SnapshotCard = {
   id: string;
@@ -77,7 +95,14 @@ export const CommunitySnapshotRail: React.FC<{
   };
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
-}> = ({ countyFips, limit = 10, className, communityStats, activeFilter = "forYou", onFilterChange }) => {
+}> = ({
+  countyFips,
+  limit = 10,
+  className,
+  communityStats,
+  activeFilter = "forYou",
+  onFilterChange,
+}) => {
   const [, navigate] = useLocation();
   const [cards, setCards] = useState<SnapshotCard[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,7 +126,13 @@ export const CommunitySnapshotRail: React.FC<{
         if (cancelled) return;
 
         const dealCards: SnapshotCard[] = (rows || []).map((r) => ({
-          id: String(r.id ?? r.promotionId ?? r.dealId ?? crypto?.randomUUID?.() ?? Math.random().toString(36)),
+          id: String(
+            r.id ??
+              r.promotionId ??
+              r.dealId ??
+              crypto?.randomUUID?.() ??
+              Math.random().toString(36)
+          ),
           type: "trade_deal" as const,
           title: String(r.title ?? ""),
           description: String(r.shortDescription ?? r.description ?? ""),
@@ -112,13 +143,13 @@ export const CommunitySnapshotRail: React.FC<{
           canDirectConnect: Boolean(r.canDirectConnect ?? r.supportsDirectConnect ?? false),
           canMessage: Boolean((r.ownerUserId ?? r.providerUserId) && !r.disableMessaging),
           // Simple authority label based on engagement patterns
-          authorityLabel: r.verified 
-            ? "Verified provider in your area" 
-            : r.isNew 
-              ? "New listing — Scout recommends gathering context" 
+          authorityLabel: r.verified
+            ? "Verified provider in your area"
+            : r.isNew
+              ? "New listing — Scout recommends gathering context"
               : undefined,
         }));
-        
+
         // Compose cards: deals + stats + invitations (filters removed)
         const composedCards: SnapshotCard[] = [];
 
@@ -157,8 +188,10 @@ export const CommunitySnapshotRail: React.FC<{
           composedCards.push({
             id: "local-stats",
             type: "local_stats",
-            title: isNewCommunity ? "You're early in this community" : `${communityStats.totalMembers} neighbors here`,
-            description: isNewCommunity 
+            title: isNewCommunity
+              ? "You're early in this community"
+              : `${communityStats.totalMembers} neighbors here`,
+            description: isNewCommunity
               ? "Be among the first to shape your local network"
               : `${communityStats.activeToday} active today • ${communityStats.postsToday} posts`,
             label: "Community Pulse",
@@ -191,7 +224,11 @@ export const CommunitySnapshotRail: React.FC<{
               gradient: "from-purple-950 via-slate-900 to-slate-950",
             }
           );
-        } else if (composedCards.length > 0 && dealCards.length === 0 && composedCards.filter(c => c.type === 'local_stats').length === 1) {
+        } else if (
+          composedCards.length > 0 &&
+          dealCards.length === 0 &&
+          composedCards.filter((c) => c.type === "local_stats").length === 1
+        ) {
           // Only stats card exists (no deals), add one community invitation
           composedCards.push({
             id: "starter-first-post",
@@ -230,17 +267,28 @@ export const CommunitySnapshotRail: React.FC<{
 
   const getCardIcon = (iconName?: string) => {
     switch (iconName) {
-      case "users": return <Users2 className="h-3.5 w-3.5" />;
-      case "zap": return <Zap className="h-3.5 w-3.5" />;
-      case "message": return <MessageSquare className="h-3.5 w-3.5" />;
-      case "sparkles": return <Sparkles className="h-3.5 w-3.5" />;
-      case "trending": return <TrendingUp className="h-3.5 w-3.5" />;
-      case "star": return <Star className="h-3.5 w-3.5" />;
-      case "clock": return <Clock className="h-3.5 w-3.5" />;
-      case "mappin": return <MapPin className="h-3.5 w-3.5" />;
-      case "eye": return <Eye className="h-3.5 w-3.5" />;
-      case "vault": return <Vault className="h-3.5 w-3.5" />;
-      default: return <Tag className="h-3.5 w-3.5" />;
+      case "users":
+        return <Users2 className="h-3.5 w-3.5" />;
+      case "zap":
+        return <Zap className="h-3.5 w-3.5" />;
+      case "message":
+        return <MessageSquare className="h-3.5 w-3.5" />;
+      case "sparkles":
+        return <Sparkles className="h-3.5 w-3.5" />;
+      case "trending":
+        return <TrendingUp className="h-3.5 w-3.5" />;
+      case "star":
+        return <Star className="h-3.5 w-3.5" />;
+      case "clock":
+        return <Clock className="h-3.5 w-3.5" />;
+      case "mappin":
+        return <MapPin className="h-3.5 w-3.5" />;
+      case "eye":
+        return <Eye className="h-3.5 w-3.5" />;
+      case "vault":
+        return <Vault className="h-3.5 w-3.5" />;
+      default:
+        return <Tag className="h-3.5 w-3.5" />;
     }
   };
 
@@ -265,39 +313,35 @@ export const CommunitySnapshotRail: React.FC<{
         }}
         className={`
           snap-start shrink-0 
-          w-[140px] sm:w-[160px]
-          h-[200px] sm:h-[220px]
+          w-[118px] sm:w-[132px]
+          h-[176px] sm:h-[188px]
           rounded-2xl border 
-          ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-slate-800'}
-          ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : 'bg-slate-950/50'}
+          ${isActive ? "border-orange-500 ring-2 ring-orange-500/20" : "border-slate-800"}
+          ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : "bg-slate-950/50"}
           hover:bg-slate-900/40 hover:border-slate-700
           transition-all shadow-lg
-          flex flex-col justify-between p-3.5 text-left 
-          ${card.href || isFilter ? 'cursor-pointer' : 'cursor-default'}
+          flex flex-col justify-between p-2.5 text-left 
+          ${card.href || isFilter ? "cursor-pointer" : "cursor-default"}
           relative overflow-hidden
         `}
       >
         {/* Background decoration for visual interest */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-        
+
         {/* Card header */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/80 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-200">
-            {card.icon && (
-              <span className="text-orange-400">
-                {getCardIcon(card.icon)}
-              </span>
-            )}
+          <div className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/80 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-slate-200">
+            {card.icon && <span className="text-orange-400">{getCardIcon(card.icon)}</span>}
             <span className="truncate">{card.label ?? "Snapshot"}</span>
           </div>
         </div>
 
         {/* Card content */}
         <div className="relative z-10 flex-1 flex flex-col justify-end gap-1.5">
-          <div className="text-sm font-bold text-white leading-snug line-clamp-2">
+          <div className="text-[12px] sm:text-[13px] font-bold text-white leading-snug line-clamp-2">
             {card.title}
           </div>
-          <div className="text-xs text-slate-300 leading-tight line-clamp-2">
+          <div className="text-[10px] sm:text-[11px] text-slate-300 leading-tight line-clamp-2">
             {card.description}
           </div>
         </div>
@@ -305,9 +349,7 @@ export const CommunitySnapshotRail: React.FC<{
         {/* Minimal footer */}
         {isTradeDeal && card.canDirectConnect && (
           <div className="relative z-10 mt-2">
-            <div className="text-[10px] text-orange-400 font-medium">
-              ⚡ Quick Connect
-            </div>
+            <div className="text-[10px] text-orange-400 font-medium">⚡ Quick Connect</div>
           </div>
         )}
       </div>
@@ -315,8 +357,8 @@ export const CommunitySnapshotRail: React.FC<{
   };
 
   return (
-    <div className={["w-full px-3 pt-3 pb-4", className || ""].join(" ")}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={["w-full px-2 pt-2 pb-3", className || ""].join(" ")}>
+      <div className="flex items-center justify-between mb-2">
         <div className="text-base font-bold text-white">Community Snapshot</div>
         <button
           type="button"
@@ -332,20 +374,16 @@ export const CommunitySnapshotRail: React.FC<{
           <div className="text-sm text-slate-400 py-8 text-center">Loading snapshot…</div>
         )}
 
-        {!loading && error && (
-          <div className="text-sm text-red-400 py-8 text-center">{error}</div>
-        )}
+        {!loading && error && <div className="text-sm text-red-400 py-8 text-center">{error}</div>}
 
         {!loading && !error && (
-          <div
-            className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
+          <div className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {cards.map((card) => renderCard(card))}
           </div>
         )}
       </div>
 
-      <div className="mt-4 border-b border-slate-900" />
+      <div className="mt-3 border-b border-slate-900" />
     </div>
   );
 };

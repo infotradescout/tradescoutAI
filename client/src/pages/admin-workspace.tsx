@@ -35,9 +35,17 @@ import {
 } from "lucide-react";
 
 interface AdminStats {
+  totalUsers?: number;
   totalContractors: number;
   newLeads: number;
   totalRecommendations: number;
+  totalCommunityPosts?: number;
+  roleBreakdown?: {
+    homeowner: number;
+    contractor: number;
+    handyman: number;
+    realtor: number;
+  };
 }
 
 interface AdminVerificationItem {
@@ -190,14 +198,14 @@ export default function AdminWorkspace() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Contractors</p>
-                <p className="text-2xl font-bold text-white">{adminStats?.totalContractors || 0}</p>
+                <p className="text-gray-400 text-sm">Total Users</p>
+                <p className="text-2xl font-bold text-white">{adminStats?.totalUsers || 0}</p>
               </div>
               <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <HardHat className="h-6 w-6 text-blue-500" />
+                <Users className="h-6 w-6 text-blue-500" />
               </div>
             </div>
-            <p className="text-green-400 text-sm mt-2">+23 this week</p>
+            <p className="text-gray-400 text-sm mt-2">Live platform total</p>
           </CardContent>
         </Card>
 
@@ -205,14 +213,29 @@ export default function AdminWorkspace() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Active Leads</p>
-                <p className="text-2xl font-bold text-white">{adminStats?.newLeads || 0}</p>
+                <p className="text-gray-400 text-sm">Total Contractors</p>
+                <p className="text-2xl font-bold text-white">{adminStats?.totalContractors || 0}</p>
               </div>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-orange-500" />
+                <HardHat className="h-6 w-6 text-orange-500" />
               </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2">Last 24 hours</p>
+            <p className="text-gray-400 text-sm mt-2">Contractor + handyman roles</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-navy-700 border-navy-600">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">New Leads (7d)</p>
+                <p className="text-2xl font-bold text-white">{adminStats?.newLeads || 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+            <p className="text-gray-400 text-sm mt-2">Rolling week</p>
           </CardContent>
         </Card>
 
@@ -225,26 +248,11 @@ export default function AdminWorkspace() {
                   {adminStats?.totalRecommendations || 0}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <UserCheck className="h-6 w-6 text-green-500" />
-              </div>
-            </div>
-            <p className="text-gray-400 text-sm mt-2">All time</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-navy-700 border-navy-600">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Pending Verification</p>
-                <p className="text-2xl font-bold text-white">{pendingVerifications.length}</p>
-              </div>
               <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-yellow-400" />
+                <UserCheck className="h-6 w-6 text-yellow-400" />
               </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2">Needs review</p>
+            <p className="text-gray-400 text-sm mt-2">All-time submissions</p>
           </CardContent>
         </Card>
       </div>
