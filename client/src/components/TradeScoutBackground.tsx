@@ -16,6 +16,7 @@ type SketchInstance = SketchDef & {
   width: number;
   height: number;
   delay: number;
+  duration: number;
 };
 
 const SKETCHES: SketchDef[] = [
@@ -248,7 +249,17 @@ function mulberry32(seed: number) {
 function buildSketches(): SketchInstance[] {
   const seed = seedFromDate();
   const rand = mulberry32(seed);
-  const count = 16;
+  const count = 8;
+  const anchors = [
+    { x: 6, y: 6 },
+    { x: 36, y: 5 },
+    { x: 66, y: 6 },
+    { x: 12, y: 36 },
+    { x: 46, y: 34 },
+    { x: 76, y: 35 },
+    { x: 24, y: 66 },
+    { x: 58, y: 67 },
+  ];
   const picks: SketchInstance[] = [];
   for (let i = 0; i < count; i += 1) {
     const def = SKETCHES[Math.floor(rand() * SKETCHES.length)];
@@ -256,16 +267,20 @@ function buildSketches(): SketchInstance[] {
     const vbW = view[2] || 200;
     const vbH = view[3] || 120;
     const aspect = vbW / vbH;
-    const baseHeight = 88 + rand() * 96;
+    const baseHeight = 124 + rand() * 72;
     const height = baseHeight;
     const width = baseHeight * aspect;
+    const anchor = anchors[i % anchors.length];
+    const jitterX = -2 + rand() * 4;
+    const jitterY = -2 + rand() * 4;
     picks.push({
       ...def,
-      x: -6 + rand() * 94,
-      y: -2 + rand() * 88,
+      x: anchor.x + jitterX,
+      y: anchor.y + jitterY,
       width,
       height,
-      delay: Math.round(rand() * 20),
+      delay: Number((i * 4.2 + rand() * 0.9).toFixed(2)),
+      duration: 34 + (i % 3) * 4,
     });
   }
   return picks;
@@ -296,6 +311,7 @@ export default function TradeScoutBackground({ children }: TradeScoutBackgroundP
               width: `${sketch.width}px`,
               height: `${sketch.height}px`,
               animationDelay: `${sketch.delay}s`,
+              animationDuration: `${sketch.duration}s`,
             }}
           >
             {sketch.paths.map((path, index) => (
@@ -407,25 +423,25 @@ const css = `
 /* FLOW: animated linework sweep */
 .ts-bg__flow{
   z-index: 6;
-  opacity: 0.14;
+  opacity: 0.08;
   background-image:
     repeating-linear-gradient(120deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 120px),
     repeating-linear-gradient(120deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 60px);
   background-size: 220px 220px;
   animation: tsFlowDrift 36s linear infinite;
-  mix-blend-mode: screen;
+  mix-blend-mode: normal;
 }
 
 /* SKETCHES: larger technical blueprint sheets that drift and redraw */
 .ts-bg__sketches{
   z-index: 7;
-  opacity: 0.28;
+  opacity: 0.24;
 }
 
 .ts-bg__sketch{
   position: absolute;
   stroke: color-mix(in oklab, var(--ts-text, #E6EDF6) 52%, transparent);
-  stroke-width: 1.15;
+  stroke-width: 1.1;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -433,7 +449,7 @@ const css = `
   opacity: 0;
   stroke-dasharray: 520;
   stroke-dashoffset: 520;
-  animation: tsSketchDraw 22s ease-in-out infinite;
+  animation: tsSketchDraw 34s ease-in-out infinite;
 }
 
 /* VIGNETTE: keeps edges dark so content pops */
@@ -466,11 +482,12 @@ const css = `
 }
 
 @keyframes tsSketchDraw{
-  0%{ opacity: 0; stroke-dashoffset: 520; transform: translateY(10px); }
-  14%{ opacity: 0.72; }
-  48%{ opacity: 0.72; stroke-dashoffset: 0; }
-  68%{ opacity: 0.36; }
-  86%{ opacity: 0; transform: translateY(-10px); }
+  0%{ opacity: 0; stroke-dashoffset: 520; transform: translateY(6px); }
+  10%{ opacity: 0; }
+  22%{ opacity: 0.66; stroke-dashoffset: 220; }
+  34%{ opacity: 0.66; stroke-dashoffset: 0; transform: translateY(0); }
+  46%{ opacity: 0.28; }
+  56%{ opacity: 0; transform: translateY(-4px); }
   100%{ opacity: 0; stroke-dashoffset: -520; }
 }
 

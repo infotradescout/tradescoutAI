@@ -269,6 +269,9 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("general");
+  const [searchState, setSearchState] = useState<string>(() =>
+    typeof window !== "undefined" ? window.location.search : ""
+  );
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
@@ -283,12 +286,28 @@ const CommunityFeed = memo(function CommunityFeed() {
   const countyFips = location.countyFips as string | undefined;
   const countyCommitted = hasCountyContext(location);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onLocationChange = () => setSearchState(window.location.search || "");
+    window.addEventListener("popstate", onLocationChange);
+    window.addEventListener("pushstate", onLocationChange as EventListener);
+    window.addEventListener("replacestate", onLocationChange as EventListener);
+    return () => {
+      window.removeEventListener("popstate", onLocationChange);
+      window.removeEventListener("pushstate", onLocationChange as EventListener);
+      window.removeEventListener("replacestate", onLocationChange as EventListener);
+    };
+  }, []);
+
   const queryParams = useMemo(() => {
+    if (typeof window !== "undefined" && searchState) {
+      return new URLSearchParams(searchState);
+    }
     if (!route) return new URLSearchParams();
     const idx = route.indexOf("?");
     const search = idx >= 0 ? route.slice(idx + 1) : "";
     return new URLSearchParams(search);
-  }, [route]);
+  }, [route, searchState]);
 
   const rawScopeParam = queryParams.get("scope");
   const rawGeoParam = queryParams.get("geo");
@@ -338,7 +357,8 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   }, [feedFromRoute, activeTab]);
 
-  const currentPath = route.split("?")[0];
+  const currentPath =
+    typeof window !== "undefined" ? window.location.pathname : route.split("?")[0];
   const handleScopeToggle = (newScope: "local" | "global") => {
     const nextParams = new URLSearchParams(queryParams);
     nextParams.set("geo", newScope);
@@ -346,7 +366,9 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (nextParams.get("scope") === "local" || nextParams.get("scope") === "global") {
       nextParams.delete("scope");
     }
-    navigate(`${currentPath}?${nextParams.toString()}`);
+    const nextSearch = `?${nextParams.toString()}`;
+    setSearchState(nextSearch);
+    navigate(`${currentPath}${nextSearch}`);
   };
 
   const handleTabChange = (nextTab: FeedTab) => {
@@ -357,7 +379,9 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (nextParams.get("scope") === "local" || nextParams.get("scope") === "global") {
       nextParams.delete("scope");
     }
-    navigate(`${currentPath}?${nextParams.toString()}`);
+    const nextSearch = `?${nextParams.toString()}`;
+    setSearchState(nextSearch);
+    navigate(`${currentPath}${nextSearch}`);
   };
 
   // Telemetry: Track when community feed defaults to local scope.
@@ -725,6 +749,46 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const hasUserPosts = Array.isArray(posts) && posts.length > 0;
   const displayPosts: any[] = hasUserPosts ? posts : systemPosts;
+  const tabSortedPosts = useMemo(() => {
+    const list = [...displayPosts];
+    if (activeTab === "recent" || activeTab === "nearby") {
+      return list.sort((a, b) => {
+        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
+        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
+        return bTs - aTs;
+      });
+    }
+
+    if (activeTab === "trending") {
+      return list.sort((a, b) => {
+        const aScore =
+          Number(a.likeCount || a.likes || 0) * 2 +
+          Number(a.commentCount || a.comments || 0) * 3 +
+          Number(a.shareCount || a.shares || 0) * 4;
+        const bScore =
+          Number(b.likeCount || b.likes || 0) * 2 +
+          Number(b.commentCount || b.comments || 0) * 3 +
+          Number(b.shareCount || b.shares || 0) * 4;
+        if (bScore !== aScore) return bScore - aScore;
+        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
+        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
+        return bTs - aTs;
+      });
+    }
+
+    if (activeTab === "recs") {
+      return list.sort((a, b) => {
+        const aIsRec = /recommend/i.test(String(a.category || a.type || a.postType || ""));
+        const bIsRec = /recommend/i.test(String(b.category || b.type || b.postType || ""));
+        if (aIsRec !== bIsRec) return bIsRec ? 1 : -1;
+        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
+        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
+        return bTs - aTs;
+      });
+    }
+
+    return list;
+  }, [displayPosts, activeTab]);
   const getAuthorName = (post: any) =>
     post.author?.name ||
     [post.author?.firstName, post.author?.lastName].filter(Boolean).join(" ") ||
@@ -750,7 +814,7 @@ const CommunityFeed = memo(function CommunityFeed() {
         </div>
       ) : (
         <>
-          {displayPosts.map((post: any) => {
+          {tabSortedPosts.map((post: any) => {
             const isSystemPost = post.category === "system";
             const locationLabel = post.location || post.author?.location;
 
