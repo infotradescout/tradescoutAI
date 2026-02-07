@@ -3114,7 +3114,7 @@ export default function ScoutOS() {
       {
         id: "homeowner-community",
         title: "Community signal",
-        subtitle: "See who is trusted locally before you hire.",
+        subtitle: "See local trust signals before you hire.",
         href: "/community-feed",
         Icon: Users2,
       },
@@ -3237,8 +3237,8 @@ export default function ScoutOS() {
       },
       {
         id: "find-trusted-pro",
-        title: "Find trusted local help",
-        body: `Show top-rated providers${heroLocationLabel ? ` near ${heroLocationLabel}` : " near me"} and tell me who to contact first.`,
+        title: "Find signal-backed local help",
+        body: `Show providers with strong local trust signals${heroLocationLabel ? ` near ${heroLocationLabel}` : " near me"} and help me choose who to contact first.`,
         icon: Wrench,
       },
       {
@@ -3255,6 +3255,15 @@ export default function ScoutOS() {
       },
     ],
     [heroLocationLabel]
+  );
+
+  const scoutControlLinks = useMemo(
+    () => [
+      { id: "control-profile", href: "/profile-settings", label: "Profile Settings" },
+      { id: "control-verify", href: "/verification", label: "Verification" },
+      { id: "control-direct", href: "/direct-connect", label: "Direct Connect" },
+    ],
+    []
   );
 
   const handleActionTile = useCallback(
@@ -3630,6 +3639,23 @@ export default function ScoutOS() {
                         </div>
                       </div>
                     )}
+
+                    <div className="mt-1 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">
+                        Scout Controls
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {scoutControlLinks.map((item) => (
+                          <Link
+                            key={item.id}
+                            href={item.href}
+                            className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:border-orange-400/70 hover:text-orange-200 transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                       {suggestedPromptCards.map((card) => {

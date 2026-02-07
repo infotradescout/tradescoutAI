@@ -1,7 +1,7 @@
 /**
  * Scout Claim Inference System
  * Phase 3d-A: Convert free-form userIntent into structured claim suggestions
- * 
+ *
  * Contract:
  * - Takes provisional userIntent text + optional userTypes signals
  * - Returns 1-5 claim suggestions with confidence scores
@@ -10,8 +10,8 @@
  * - Never includes userTypes in output (only claimTypes)
  */
 
-import type { ClaimType, ClaimInferenceOutput } from './claimTypes';
-import type { ProfileDraft } from '@/types/profileDraft';
+import type { ClaimType, ClaimInferenceOutput } from "./claimTypes";
+import type { ProfileDraft } from "@/types/profileDraft";
 
 /**
  * System prompt for Scout inference
@@ -63,7 +63,7 @@ function buildUserPrompt(
   profileDraft?: ProfileDraft
 ): string {
   const userTypesJson = JSON.stringify(provisionalUserTypes);
-  const countyText = countyName || 'null';
+  const countyText = countyName || "null";
   const draftSummary = profileDraft
     ? JSON.stringify({
         presenceType: profileDraft.presenceType,
@@ -74,8 +74,8 @@ function buildUserPrompt(
         businessCategory: profileDraft.businessCategory,
         serviceAreasCount: profileDraft.serviceAreas?.length || 0,
       })
-    : 'null';
-  
+    : "null";
+
   return `User intent text:
 "${userIntentText}"
 
@@ -99,12 +99,17 @@ export async function inferClaimsFromIntent(
   profileDraft?: ProfileDraft
 ): Promise<ClaimInferenceOutput> {
   try {
-    const userPrompt = buildUserPrompt(userIntentText, provisionalUserTypes, countyName, profileDraft);
-    
-    const response = await fetch('/api/ai/inference', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    const userPrompt = buildUserPrompt(
+      userIntentText,
+      provisionalUserTypes,
+      countyName,
+      profileDraft
+    );
+
+    const response = await fetch("/api/ai/inference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         systemPrompt: SCOUT_INFERENCE_SYSTEM_PROMPT,
         userPrompt,
@@ -118,21 +123,19 @@ export async function inferClaimsFromIntent(
     }
 
     const result = await response.json();
-    
+
     // Parse JSON from LLM response
     let inference: ClaimInferenceOutput;
     try {
-      inference = typeof result.content === 'string' 
-        ? JSON.parse(result.content)
-        : result.content;
+      inference = typeof result.content === "string" ? JSON.parse(result.content) : result.content;
     } catch (parseError) {
-      console.error('[CLAIM_INFERENCE] Failed to parse LLM output:', result.content);
-      throw new Error('Invalid JSON from inference');
+      console.error("[CLAIM_INFERENCE] Failed to parse LLM output:", result.content);
+      throw new Error("Invalid JSON from inference");
     }
 
     // Validate structure
     if (!inference.suggestions || !Array.isArray(inference.suggestions)) {
-      throw new Error('Invalid inference output: missing suggestions array');
+      throw new Error("Invalid inference output: missing suggestions array");
     }
 
     // Cap at 5 suggestions
@@ -147,19 +150,19 @@ export async function inferClaimsFromIntent(
 
     return inference;
   } catch (error) {
-    console.error('[CLAIM_INFERENCE] Error during inference:', error);
-    
+    console.error("[CLAIM_INFERENCE] Error during inference:", error);
+
     // Fallback: return safe "exploring" suggestion
     return {
       suggestions: [
         {
-          claimType: 'exploring' as ClaimType,
-          confidence: 0.60,
-          evidence: 'Unable to parse intent; defaulting to exploring',
+          claimType: "exploring" as ClaimType,
+          confidence: 0.6,
+          evidence: "Unable to parse intent; defaulting to exploring",
         },
       ],
-      summary: 'Unable to determine specific intent from provided text.',
-      followups: ['What would you like to do on TradeScout?'],
+      summary: "Unable to determine specific intent from provided text.",
+      followups: ["What would you like to do on TradeScout?"],
     };
   }
 }
@@ -167,9 +170,7 @@ export async function inferClaimsFromIntent(
 /**
  * Convert ClaimInferenceOutput to ClaimConfirmationOptions for UI
  */
-export function buildConfirmationOptions(
-  inference: ClaimInferenceOutput
-): Array<{
+export function buildConfirmationOptions(inference: ClaimInferenceOutput): Array<{
   id: string;
   claimType: ClaimType;
   label: string;
@@ -180,7 +181,7 @@ export function buildConfirmationOptions(
   const options = inference.suggestions.map((suggestion, index) => {
     // Import CLAIM_LABELS dynamically to avoid circular dependency
     const label = getClaimLabel(suggestion.claimType);
-    
+
     return {
       id: `opt_${suggestion.claimType}`,
       claimType: suggestion.claimType,
@@ -188,7 +189,7 @@ export function buildConfirmationOptions(
       description: suggestion.evidence,
       confidence: suggestion.confidence,
       // Auto-check top 1-2 high confidence options
-      defaultChecked: index < 2 && suggestion.confidence >= 0.70,
+      defaultChecked: index < 2 && suggestion.confidence >= 0.7,
     };
   });
 
@@ -201,35 +202,35 @@ export function buildConfirmationOptions(
  */
 function getClaimLabel(claimType: ClaimType): string {
   const labels: Record<ClaimType, string> = {
-    exploring: 'Just exploring',
-    find_help: 'Find contractors or services',
-    offer_services: 'Offer my services',
-    represent_business: 'Promote my business',
-    buy_sell_locally: 'Buy or sell locally',
-    community_participation: 'Participate in community',
-    home_project: 'Working on a home project',
-    commercial_project: 'Working on a commercial project',
-    property_management: 'Managing properties',
-    emergency_service: 'Need emergency service',
-    design_planning: 'Design or planning work',
-    inspection_evaluation: 'Inspection or appraisal',
-    maintenance_recurring: 'Ongoing maintenance',
-    construction_trades: 'Construction trades',
-    food_business: 'Food or restaurant business',
-    hospitality: 'Hospitality or events',
-    real_estate: 'Real estate',
-    automotive: 'Automotive',
-    nonprofit: 'Non-profit organization',
-    technology_startup: 'Tech startup',
-    wants_recommendations: 'Looking for recommendations',
-    gives_recommendations: 'Give recommendations',
-    posts_deals: 'Post deals or promotions',
-    organizes_events: 'Organize events',
-    builds_community: 'Build community',
-    seeking_leads: 'Find new customers',
-    seeking_visibility: 'Increase visibility',
-    seeking_partnerships: 'Find partnerships',
-    seeking_tools: 'Access business tools',
+    exploring: "Just exploring",
+    find_help: "Find contractors or services",
+    offer_services: "Offer my services",
+    represent_business: "Promote my business",
+    buy_sell_locally: "Buy or sell locally",
+    community_participation: "Participate in community",
+    home_project: "Working on a home project",
+    commercial_project: "Working on a commercial project",
+    property_management: "Managing properties",
+    emergency_service: "Need emergency service",
+    design_planning: "Design or planning work",
+    inspection_evaluation: "Inspection or appraisal",
+    maintenance_recurring: "Ongoing maintenance",
+    construction_trades: "Construction trades",
+    food_business: "Food or restaurant business",
+    hospitality: "Hospitality or events",
+    real_estate: "Real estate",
+    automotive: "Automotive",
+    nonprofit: "Non-profit organization",
+    technology_startup: "Tech startup",
+    wants_recommendations: "Looking for trusted signals",
+    gives_recommendations: "Share trusted signals",
+    posts_deals: "Post deals or promotions",
+    organizes_events: "Organize events",
+    builds_community: "Build community",
+    seeking_leads: "Find new customers",
+    seeking_visibility: "Increase visibility",
+    seeking_partnerships: "Find partnerships",
+    seeking_tools: "Access business tools",
   };
 
   return labels[claimType] || claimType;

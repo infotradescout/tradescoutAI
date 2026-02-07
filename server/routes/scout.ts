@@ -53,6 +53,10 @@ import { govern, type GovernorDecision } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import { recordScoutInteraction } from "../services/missionControl";
 import { logCompletedAction } from "../services/preferredSource";
+import {
+  sanitizeScoutActionsForPolicy,
+  sanitizeScoutMessageForPolicy,
+} from "../services/scoutPolicy";
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
 import {
@@ -306,10 +310,10 @@ function buildCommunityPrefill(original: string, countyCode?: string, stateCode?
   const topic = stripped.replace(/\?+$/g, "").trim();
 
   if (topic && topic.length <= 140) {
-    return `${topic} — any recommendations ${areaPhrase}?`;
+    return `${topic} — any trusted local signals ${areaPhrase}?`;
   }
 
-  return "Looking for trustworthy local help — who do you recommend?";
+  return "Looking for trustworthy local help — who has strong local trust signals?";
 }
 
 // ====================== DEALS COMPLIANCE HELPERS ======================
@@ -504,7 +508,7 @@ function buildWelcomeIntroDraft(
       "I'm looking to connect with neighbors, local groups, and people who care about improving our area.";
   } else {
     focusLine =
-      "I'm excited to get more connected with our local community, share good recommendations, and support projects that help our neighborhood.";
+      "I'm excited to get more connected with our local community, share helpful field notes, and support projects that help our neighborhood.";
   }
 
   const closingLine =
@@ -911,11 +915,11 @@ CRITICAL EXECUTION RULES:
 11. Align suggestedActions with the user's auth state and capabilities:
   - Guests: prefer exploration, learning, and light planning actions that don't require posting/applying/messaging.
   - Logged-in users: you MAY include actions that create or update things (tasks, listings, projects, groups, applications) when consistent with intent.
-12. Order suggestedActions from most recommended to least recommended next step.
+12. Order suggestedActions from highest expected utility to lowest expected utility.
 
 HOME & TRADE PROJECT ENRICHMENT (IMPORTANT):
 TRADE TOPIC HINT is a pre-detected signal that this is a trade or home-repair question. If TRADE TOPIC HINT is not "NONE", you MUST treat it as a trade/home-repair problem and apply these rules conservatively.
-- If the user is asking about a home repair, improvement, or trade-specific problem (plumbing, electrical, HVAC, roofing, foundation, framing, concrete, etc.) and you are recommending contractors or next steps, your message SHOULD, **only when you have reliable information**, also:
+- If the user is asking about a home repair, improvement, or trade-specific problem (plumbing, electrical, HVAC, roofing, foundation, framing, concrete, etc.) and you are routing toward contractors or next steps, your message SHOULD, **only when you have reliable information**, also:
   - Briefly include a realistic price RANGE **only if** you can base it on trusted data (admin cache, TradeScout data, or well-known non-local cost guides). If you do not have a safe basis for a range, explicitly say you don't know exact pricing and avoid specific numbers.
   - Briefly mention the main MATERIALS or components likely involved **only if** they are standard for that trade and not speculative. Keep them high-level (for example, "common PVC drain components" instead of an exhaustive parts list).
   - Briefly call out 1–3 relevant building code or permit TOPICS by name or section reference **only if** they are generally applicable topics, and ALWAYS remind the user that final requirements come from their local building department and licensed professionals.
@@ -2882,7 +2886,7 @@ router.post("/", async (req: Request, res: Response) => {
       synthesized.suggestedActions = [
         "Make this welcome post shorter and more casual",
         "Tailor this welcome post for a specific group or HOA",
-        "Draft a follow-up post asking for local recommendations",
+        "Draft a follow-up post asking for local provider experiences",
       ];
     } else if (wantsExchangeListingDraft) {
       const listingDraft = buildExchangeListingDraft(message, userRecord, countyCode, stateCode);
@@ -3060,7 +3064,7 @@ router.post("/", async (req: Request, res: Response) => {
               to: typeof d.applyPath === "string" ? d.applyPath : "/trade-deals",
               path: typeof d.applyPath === "string" ? d.applyPath : "/trade-deals",
               // Disclosure + relevance rationale baked into label/why to avoid separate UI changes
-              subtitle: "Paid recommendation",
+              subtitle: "Sponsored placement",
               why: d._scoutWhy || dealAssistLabel || "Relevant to your current request",
               payload: { dealId: d.id },
             }));
@@ -3071,7 +3075,7 @@ router.post("/", async (req: Request, res: Response) => {
               ...(aiResponse.ctaHints || []),
               ...dealHints.map((hint) => ({
                 ...hint,
-                label: dealAssistLabel ?? "Paid recommendation",
+                label: dealAssistLabel ?? "Sponsored placement",
               })),
             ];
 
@@ -3282,7 +3286,7 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (contractorCount > 0) {
         aiResponse.message = trimResponseToScreenFit(
-          `${aiResponse.message}\n\nThese recommendations come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`
+          `${aiResponse.message}\n\nThese trust signals come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`
         );
       }
 
@@ -3323,9 +3327,9 @@ router.post("/", async (req: Request, res: Response) => {
       });
 
       // Deal dead-end guardrail: suppress any deal actions lacking applyPath
-      if (actions.some((a) => (a as any).subtitle === "Paid recommendation")) {
+      if (actions.some((a) => (a as any).subtitle === "Sponsored placement")) {
         actions = actions.filter(
-          (a) => (a as any).subtitle !== "Paid recommendation" || (a as any).to
+          (a) => (a as any).subtitle !== "Sponsored placement" || (a as any).to
         );
       }
 
@@ -4056,9 +4060,30 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
 
+    // Enforce governance policy: Scout may not recommend/endorse people.
+    const policyMessage = sanitizeScoutMessageForPolicy(finalMessage || "");
+    finalMessage = policyMessage.message;
+    const policyActions = sanitizeScoutActionsForPolicy((aiResponse.actions || []) as any[]);
+
+    const policyViolations = [...policyMessage.violations, ...policyActions.violations];
+    if (policyViolations.length > 0) {
+      try {
+        await storage.logEvent("scout_policy_violation_detected", {
+          userId: userId || null,
+          countyCode: countyCode || null,
+          stateCode: stateCode || null,
+          violations: policyViolations.slice(0, 10),
+          violationCount: policyViolations.length,
+          requestId: (req as any).requestId || null,
+        });
+      } catch (policyLogErr) {
+        console.error("[Scout] failed to log policy violation telemetry", policyLogErr);
+      }
+    }
+
     // Tag actions with guard context so they can self-recover if needed
     const guardedActions =
-      aiResponse.actions?.map((action: any) => ({
+      policyActions.actions.map((action: any) => ({
         ...action,
         _guardContext: guardContext, // Internal: used by client/server for recovery
       })) || [];
