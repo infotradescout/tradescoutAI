@@ -47,6 +47,16 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   return null;
 });
 
+const HardRedirectTo = memo(function HardRedirectTo({ to }: { to: string }) {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.location.assign(to);
+    }
+  }, [to]);
+
+  return null;
+});
+
 function isDefaultHomePage(value: unknown): value is DefaultHomePage {
   return (
     value === "llm" ||
@@ -136,6 +146,9 @@ const HoaManagement = React.lazy(() => import("./pages/hoa-management"));
 
 // Community Builder
 const CommunityBuilderDashboard = React.lazy(() => import("./pages/community-builder/dashboard"));
+const CommunityBuilderNewContribution = React.lazy(
+  () => import("./pages/community-builder/new-contribution")
+);
 const CommunityBuilderContributionSuccess = React.lazy(
   () => import("./pages/community-builder/contribution-success")
 );
@@ -735,6 +748,21 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={CommunityBuilderDashboard} />
                     </ProtectedRoute>
                   </Route>
+                  <Route path="/community-builder/contributions/new">
+                    <ProtectedRoute>
+                      <LazyPage Component={CommunityBuilderNewContribution} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/community-builder/setup">
+                    <ProtectedRoute>
+                      <RedirectTo to="/community-builder/dashboard" />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/community-builder/verify">
+                    <ProtectedRoute>
+                      <RedirectTo to="/community-builder/dashboard" />
+                    </ProtectedRoute>
+                  </Route>
                   {/* Community Builder setup route temporarily disabled until page is restored */}
                   <Route path="/community-builder/contributions/:id/success">
                     <ProtectedRoute>
@@ -754,6 +782,16 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin-panel">
                     <ProtectedRoute adminOnly>
                       <RedirectTo to="/admin/panel" />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/panel">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminShell} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/geo/coverage">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminShell} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/:rest*">
@@ -1241,6 +1279,77 @@ const AppLayout = memo(function AppLayout() {
                   {/* Story Generator */}
                   <Route path="/story-generator">
                     <LazyPage Component={StoryGeneratorPage} />
+                  </Route>
+
+                  {/* Back-compat aliases for legacy buttons/links */}
+                  <Route path="/settings/profile">
+                    <RedirectTo to="/profile-settings" />
+                  </Route>
+                  <Route path="/contractor/dashboard">
+                    <RedirectTo to="/contractor-dashboard" />
+                  </Route>
+                  <Route path="/contractor-profile">
+                    <RedirectTo to="/contractors" />
+                  </Route>
+                  <Route path="/payments/history">
+                    <RedirectTo to="/payment-history" />
+                  </Route>
+                  <Route path="/saved">
+                    <RedirectTo to="/saved-ads" />
+                  </Route>
+                  <Route path="/community-builder">
+                    <RedirectTo to="/community-builder/dashboard" />
+                  </Route>
+                  <Route path="/county/transparency">
+                    <RedirectTo to="/county-hub" />
+                  </Route>
+                  <Route path="/contractors/signup">
+                    <RedirectTo to="/contractors/apply" />
+                  </Route>
+                  <Route path="/contractors/accelerator">
+                    <RedirectTo to="/contractors/apply" />
+                  </Route>
+                  <Route path="/payroll-helper">
+                    <RedirectTo to="/finances/payroll" />
+                  </Route>
+                  <Route path="/cookie-preferences">
+                    <RedirectTo to="/privacy" />
+                  </Route>
+                  <Route path="/auth/logout">
+                    <HardRedirectTo to="/api/auth/logout" />
+                  </Route>
+                  <Route path="/logout">
+                    <HardRedirectTo to="/api/auth/logout" />
+                  </Route>
+                  <Route path="/tools/estimate-calculator">
+                    <RedirectTo to="/quote-calculator" />
+                  </Route>
+                  <Route path="/tools/invoice-calculator">
+                    <RedirectTo to="/finances/invoices" />
+                  </Route>
+                  <Route path="/tools/expense-helper">
+                    <RedirectTo to="/finances/expenses" />
+                  </Route>
+                  <Route path="/legal/privacy-policy">
+                    <RedirectTo to="/privacy" />
+                  </Route>
+                  <Route path="/legal/cookie-policy">
+                    <RedirectTo to="/privacy" />
+                  </Route>
+                  <Route path="/legal/compliance">
+                    <RedirectTo to="/compliance" />
+                  </Route>
+                  <Route path="/legal/accessibility">
+                    <RedirectTo to="/compliance" />
+                  </Route>
+                  <Route path="/legal/seller-agreement">
+                    <RedirectTo to="/terms" />
+                  </Route>
+                  <Route path="/legal/community-guidelines">
+                    <RedirectTo to="/terms" />
+                  </Route>
+                  <Route path="/legal/dispute-resolution">
+                    <RedirectTo to="/terms" />
                   </Route>
 
                   {/* 404 - this should be last */}

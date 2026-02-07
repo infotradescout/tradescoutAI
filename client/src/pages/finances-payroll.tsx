@@ -12,7 +12,7 @@ export default function FinancesPayrollPage() {
           </p>
         </div>
         <a
-          href="/payroll-helper"
+          href="/finances/payroll"
           className="text-xs text-orange-500 hover:underline font-medium"
           style={{ whiteSpace: "nowrap" }}
         >

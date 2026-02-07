@@ -3256,7 +3256,7 @@ export default function Landing() {
                   <p className="text-muted-foreground mb-6">
                     Join our verified network and connect with homeowners in your area.
                   </p>
-                  <Link href="/contractors/signup">
+                  <Link href="/contractors/apply">
                     <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg font-semibold">
                       Join as Contractor
                     </Button>

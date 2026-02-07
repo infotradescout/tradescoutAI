@@ -1,15 +1,24 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Activity, MessageSquare, Star, Briefcase, 
-  TrendingUp, Users2, Calendar, Bell, Wrench, Link as LinkIcon, Award
-} from 'lucide-react';
-import { Link } from 'wouter';
-import { formatDistanceToNow } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Activity,
+  MessageSquare,
+  Star,
+  Briefcase,
+  TrendingUp,
+  Users2,
+  Calendar,
+  Bell,
+  Wrench,
+  Link as LinkIcon,
+  Award,
+} from "lucide-react";
+import { Link } from "wouter";
+import { formatDistanceToNow } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 interface WidgetProps {
   className?: string;
@@ -76,7 +85,9 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
             My Projects
           </CardTitle>
           <Link href="/project-tracker">
-            <Button variant="ghost" size="sm" className="text-xs h-7">View All</Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7">
+              View All
+            </Button>
           </Link>
         </div>
       </CardHeader>
@@ -91,25 +102,33 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
           </div>
         ) : (
           projects.map((project) => (
-            <div key={project.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <div
+              key={project.id}
+              className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            >
               <div className="flex-1">
-                <h4 className="font-medium text-sm text-slate-900 dark:text-white">{project.title}</h4>
+                <h4 className="font-medium text-sm text-slate-900 dark:text-white">
+                  {project.title}
+                </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {project.contractorName
                     ? project.contractorName
                     : project.createdAt
-                    ? `Created ${formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}`
-                    : ""}
+                      ? `Created ${formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}`
+                      : ""}
                 </p>
               </div>
               <Badge
                 className={
-                  project.status && ["new", "contacted", "qualified", "matched"].includes(project.status)
+                  project.status &&
+                  ["new", "contacted", "qualified", "matched"].includes(project.status)
                     ? "bg-green-100 text-green-700"
                     : "bg-blue-100 text-blue-700"
                 }
               >
-                {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1) : "Active"}
+                {project.status
+                  ? project.status.charAt(0).toUpperCase() + project.status.slice(1)
+                  : "Active"}
               </Badge>
             </div>
           ))
@@ -142,7 +161,9 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
             Saved Contractors
           </CardTitle>
           <Link href="/saved-contractors">
-            <Button variant="ghost" size="sm" className="text-xs h-7">View Saved</Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7">
+              View Saved
+            </Button>
           </Link>
         </div>
       </CardHeader>
@@ -184,7 +205,10 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
           <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
             <p className="mb-3">You haven't saved any providers yet.</p>
             <Link href="/direct-connect">
-              <Button size="sm" className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+              >
                 Create a Direct Connect request
               </Button>
             </Link>
@@ -197,8 +221,18 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
 
 export function MessagesPreviewWidget({ className }: WidgetProps) {
   const messages = [
-    { id: 1, from: 'Mike Johnson', message: 'When can we schedule the inspection?', time: '2 hours ago' },
-    { id: 2, from: 'Elite Renovations', message: 'Your quote is ready for review', time: '1 day ago' },
+    {
+      id: 1,
+      from: "Mike Johnson",
+      message: "When can we schedule the inspection?",
+      time: "2 hours ago",
+    },
+    {
+      id: 2,
+      from: "Elite Renovations",
+      message: "Your quote is ready for review",
+      time: "1 day ago",
+    },
   ];
 
   return (
@@ -210,7 +244,9 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
             Recent Messages
           </CardTitle>
           <Link href="/messages">
-            <Button variant="ghost" size="sm" className="text-xs h-7">View All</Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7">
+              View All
+            </Button>
           </Link>
         </div>
       </CardHeader>
@@ -221,12 +257,17 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
+            <div
+              key={msg.id}
+              className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+            >
               <div className="flex items-center justify-between mb-1">
                 <h4 className="font-medium text-sm text-slate-900 dark:text-white">{msg.from}</h4>
                 <span className="text-xs text-slate-500 dark:text-slate-400">{msg.time}</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">{msg.message}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
+                {msg.message}
+              </p>
             </div>
           ))
         )}
@@ -237,9 +278,9 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
 
 export function QuickActionsWidget({ className }: WidgetProps) {
   const quickActions = [
-    { icon: Briefcase, label: 'Post a Project', href: '/request-quote', color: 'text-blue-600' },
-    { icon: Wrench, label: 'Find Contractor', href: '/contractors', color: 'text-orange-600' },
-    { icon: MessageSquare, label: 'Messages', href: '/messages', color: 'text-green-600' },
+    { icon: Briefcase, label: "Post a Project", href: "/request-quote", color: "text-blue-600" },
+    { icon: Wrench, label: "Find Contractor", href: "/contractors", color: "text-orange-600" },
+    { icon: MessageSquare, label: "Messages", href: "/messages", color: "text-green-600" },
   ];
 
   return (
@@ -253,7 +294,9 @@ export function QuickActionsWidget({ className }: WidgetProps) {
             <Link key={index} href={action.href}>
               <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors w-full">
                 <action.icon className={`h-5 w-5 ${action.color}`} />
-                <span className="text-xs font-medium text-slate-900 dark:text-white">{action.label}</span>
+                <span className="text-xs font-medium text-slate-900 dark:text-white">
+                  {action.label}
+                </span>
               </button>
             </Link>
           ))}
@@ -265,9 +308,9 @@ export function QuickActionsWidget({ className }: WidgetProps) {
 
 export function NotificationsWidget({ className }: WidgetProps) {
   const notifications = [
-    { id: 1, type: 'like', message: 'Someone liked your post', time: '1 hour ago' },
-    { id: 2, type: 'comment', message: 'New comment on your project', time: '3 hours ago' },
-    { id: 3, type: 'message', message: 'You have a new message', time: '5 hours ago' },
+    { id: 1, type: "like", message: "Someone liked your post", time: "1 hour ago" },
+    { id: 2, type: "comment", message: "New comment on your project", time: "3 hours ago" },
+    { id: 3, type: "message", message: "You have a new message", time: "5 hours ago" },
   ];
 
   return (
@@ -279,17 +322,26 @@ export function NotificationsWidget({ className }: WidgetProps) {
             Recent Notifications
           </CardTitle>
           <Link href="/notifications">
-            <Button variant="ghost" size="sm" className="text-xs h-7">View All</Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7">
+              View All
+            </Button>
           </Link>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {notifications.map((notification) => (
-          <div key={notification.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-            <div className={`h-2 w-2 rounded-full mt-2 ${notification.type === 'message' ? 'bg-blue-500' : 'bg-orange-500'}`} />
+          <div
+            key={notification.id}
+            className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <div
+              className={`h-2 w-2 rounded-full mt-2 ${notification.type === "message" ? "bg-blue-500" : "bg-orange-500"}`}
+            />
             <div className="flex-1">
               <p className="text-sm text-slate-900 dark:text-white">{notification.message}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{notification.time}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {notification.time}
+              </p>
             </div>
           </div>
         ))}
@@ -308,7 +360,9 @@ export function CommunityFeedWidget({ className }: WidgetProps) {
             Community Feed
           </CardTitle>
           <Link href="/home">
-            <Button variant="ghost" size="sm" className="text-xs h-7">View Full Feed</Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7">
+              View Full Feed
+            </Button>
           </Link>
         </div>
       </CardHeader>
@@ -365,7 +419,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
   const { user } = useAuth();
 
   const hasCommunityBuilderRole = Array.isArray(user?.roles)
-    ? user!.roles.includes('community_builder')
+    ? user!.roles.includes("community_builder")
     : false;
 
   const {
@@ -373,14 +427,14 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['/api/community-builder/profile', 'impact'],
+    queryKey: ["/api/community-builder/profile", "impact"],
     enabled: !!user,
     queryFn: async () => {
-      const res = await fetch('/api/community-builder/profile');
+      const res = await fetch("/api/community-builder/profile");
       if (res.status === 404 || res.status === 403) {
         return null;
       }
-      if (!res.ok) throw new Error('Failed to fetch Community Builder stats');
+      if (!res.ok) throw new Error("Failed to fetch Community Builder stats");
       return res.json();
     },
   });
@@ -399,23 +453,28 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
           Community Builder Impact
         </CardTitle>
         {hasCommunityBuilderRole && (
-          <Badge variant="outline" className="border-emerald-500 text-emerald-600 dark:text-emerald-300 text-xs">
+          <Badge
+            variant="outline"
+            className="border-emerald-500 text-emerald-600 dark:text-emerald-300 text-xs"
+          >
             Badge active
           </Badge>
         )}
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        {isLoading && (
-          <p className="text-slate-500 dark:text-slate-400">Loading your impact</p>
-        )}
+        {isLoading && <p className="text-slate-500 dark:text-slate-400">Loading your impact</p>}
 
         {!isLoading && profile === null && !hasCommunityBuilderRole && (
           <>
             <p className="text-slate-600 dark:text-slate-400">
-              Earn the Community Builder badge to send and vote on which local causes get funded from your community vault.
+              Earn the Community Builder badge to send and vote on which local causes get funded
+              from your community vault.
             </p>
-            <Link href="/community-builder">
-              <Button size="sm" className="mt-2 bg-orange-600 hover:bg-orange-700 text-white w-full">
+            <Link href="/community-builder/dashboard">
+              <Button
+                size="sm"
+                className="mt-2 bg-orange-600 hover:bg-orange-700 text-white w-full"
+              >
                 Activate Community Builder badge
               </Button>
             </Link>
@@ -425,7 +484,8 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
         {!isLoading && (profile !== null || hasCommunityBuilderRole) && !hasImpact && !isError && (
           <>
             <p className="text-slate-600 dark:text-slate-400">
-              Your Community Builder badge is ready. Propose a contribution or support a local cause to start building your impact history.
+              Your Community Builder badge is ready. Propose a contribution or support a local cause
+              to start building your impact history.
             </p>
             <div className="flex gap-2">
               <Link href="/community-builder/dashboard">
@@ -445,11 +505,14 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
         {!isLoading && hasImpact && stats && (
           <>
             <p className="text-slate-600 dark:text-slate-400">
-              Thanks to your Community Builder badge, you've helped unlock funding and hours for local causes.
+              Thanks to your Community Builder badge, you've helped unlock funding and hours for
+              local causes.
             </p>
             <div className="grid grid-cols-3 gap-3 mt-2">
               <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Verified contributions</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  Verified contributions
+                </div>
                 <div className="text-lg font-semibold text-slate-900 dark:text-white">
                   {stats.completedCount}
                 </div>
@@ -477,7 +540,8 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
 
         {isError && !isLoading && (
           <p className="text-xs text-red-500">
-            We couldn't load your Community Builder impact right now. Try refreshing, or visit the Community Builder dashboard.
+            We couldn't load your Community Builder impact right now. Try refreshing, or visit the
+            Community Builder dashboard.
           </p>
         )}
       </CardContent>
@@ -487,13 +551,58 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
 
 // Widget registry for easy configuration
 export const AVAILABLE_WIDGETS = [
-  { id: 'activity-stats', name: 'Activity Stats', component: ActivityStatsWidget, defaultEnabled: true },
-  { id: 'quick-actions', name: 'Quick Actions', component: QuickActionsWidget, defaultEnabled: true },
-  { id: 'recent-projects', name: 'My Projects', component: RecentProjectsWidget, defaultEnabled: true },
-  { id: 'saved-contractors', name: 'Saved Contractors', component: SavedContractorsWidget, defaultEnabled: true },
-  { id: 'messages-preview', name: 'Recent Messages', component: MessagesPreviewWidget, defaultEnabled: true },
-  { id: 'notifications', name: 'Notifications', component: NotificationsWidget, defaultEnabled: false },
-  { id: 'community-feed', name: 'Community Feed', component: CommunityFeedWidget, defaultEnabled: false },
-  { id: 'affiliate-stats', name: 'Affiliate Earnings', component: AffiliateStatsWidget, defaultEnabled: false },
-  { id: 'community-builder-impact', name: 'Community Builder Impact', component: CommunityBuilderImpactWidget, defaultEnabled: true },
+  {
+    id: "activity-stats",
+    name: "Activity Stats",
+    component: ActivityStatsWidget,
+    defaultEnabled: true,
+  },
+  {
+    id: "quick-actions",
+    name: "Quick Actions",
+    component: QuickActionsWidget,
+    defaultEnabled: true,
+  },
+  {
+    id: "recent-projects",
+    name: "My Projects",
+    component: RecentProjectsWidget,
+    defaultEnabled: true,
+  },
+  {
+    id: "saved-contractors",
+    name: "Saved Contractors",
+    component: SavedContractorsWidget,
+    defaultEnabled: true,
+  },
+  {
+    id: "messages-preview",
+    name: "Recent Messages",
+    component: MessagesPreviewWidget,
+    defaultEnabled: true,
+  },
+  {
+    id: "notifications",
+    name: "Notifications",
+    component: NotificationsWidget,
+    defaultEnabled: false,
+  },
+  {
+    id: "community-feed",
+    name: "Community Feed",
+    component: CommunityFeedWidget,
+    defaultEnabled: false,
+  },
+  {
+    id: "affiliate-stats",
+    name: "Affiliate Earnings",
+    component: AffiliateStatsWidget,
+    defaultEnabled: false,
+  },
+  {
+    id: "community-builder-impact",
+    name: "Community Builder Impact",
+    component: CommunityBuilderImpactWidget,
+    defaultEnabled: true,
+  },
 ] as const;

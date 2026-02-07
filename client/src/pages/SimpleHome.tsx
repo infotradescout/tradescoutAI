@@ -1,17 +1,34 @@
-import { memo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  Home, Wrench, ShoppingCart, Building, Car, Shield, DollarSign, 
-  TrendingUp, Clock, Star, Users, Package, MessageSquare, Heart,
-  CheckCircle2, AlertCircle, Calendar, MapPin, Award, Eye
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import { formatDistanceToNow } from 'date-fns';
+import { memo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Home,
+  Wrench,
+  ShoppingCart,
+  Building,
+  Car,
+  Shield,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  Star,
+  Users,
+  Package,
+  MessageSquare,
+  Heart,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  MapPin,
+  Award,
+  Eye,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
 
 interface SimpleHomeDashboard {
   stats: {
@@ -40,13 +57,13 @@ const defaultDashboard: SimpleHomeDashboard = {
     marketplaceListings: 0,
     realEstateListings: 0,
     totalViews: 0,
-    notifications: 0
+    notifications: 0,
   },
   myProjects: [],
   myListings: [],
   quotes: [],
   conversations: [],
-  recentActivity: []
+  recentActivity: [],
 };
 
 const SimpleHome = memo(function SimpleHome() {
@@ -54,21 +71,27 @@ const SimpleHome = memo(function SimpleHome() {
 
   // Fetch user-specific dashboard data
   const { data: dashboardData = defaultDashboard, isLoading } = useQuery<SimpleHomeDashboard>({
-    queryKey: ['/api/dashboard', user?.id],
+    queryKey: ["/api/dashboard", user?.id],
     enabled: !!user?.id,
   });
 
   const stats = dashboardData.stats;
 
   // Determine dashboard sections based on user role
-  const isContractor = user?.role === 'contractor_user' || user?.role === 'accelerator_member';
-  const isRealtor = user?.role === 'realtor';
-  const isCarSalesman = user?.role === 'car_salesman';
-  const isInsuranceAgent = user?.role === 'insurance_agent';
-  const isMortgageBroker = user?.role === 'mortgage_broker';
-  const isPropertyManager = user?.role === 'property_manager';
-  const isHelper = user?.role === 'helper';
-  const isProfessional = isContractor || isRealtor || isCarSalesman || isInsuranceAgent || isMortgageBroker || isPropertyManager;
+  const isContractor = user?.role === "contractor_user" || user?.role === "accelerator_member";
+  const isRealtor = user?.role === "realtor";
+  const isCarSalesman = user?.role === "car_salesman";
+  const isInsuranceAgent = user?.role === "insurance_agent";
+  const isMortgageBroker = user?.role === "mortgage_broker";
+  const isPropertyManager = user?.role === "property_manager";
+  const isHelper = user?.role === "helper";
+  const isProfessional =
+    isContractor ||
+    isRealtor ||
+    isCarSalesman ||
+    isInsuranceAgent ||
+    isMortgageBroker ||
+    isPropertyManager;
 
   return (
     <div className="h-full bg-background pb-20 lg:pb-0">
@@ -76,11 +99,9 @@ const SimpleHome = memo(function SimpleHome() {
         {/* Welcome Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-primary mb-2">
-            Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}
+            Welcome back, {user?.firstName || user?.email?.split("@")[0] || "there"}
           </h1>
-          <p className="text-slate-300 text-base">
-            Your personalized dashboard
-          </p>
+          <p className="text-slate-300 text-base">Your personalized dashboard</p>
         </div>
 
         {/* Quick Stats Grid */}
@@ -92,11 +113,11 @@ const SimpleHome = memo(function SimpleHome() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <Wrench className="h-5 w-5 text-orange-500" />
-                    <Badge variant="secondary" className="text-xs">{stats.activeProjects}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {stats.activeProjects}
+                    </Badge>
                   </div>
-                  <div className="text-2xl font-bold text-white mb-1">
-                    {stats.activeProjects}
-                  </div>
+                  <div className="text-2xl font-bold text-white mb-1">{stats.activeProjects}</div>
                   <p className="text-xs text-slate-200">Active Projects</p>
                 </CardContent>
               </Card>
@@ -104,7 +125,9 @@ const SimpleHome = memo(function SimpleHome() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <Star className="h-5 w-5 text-yellow-500" />
-                    <Badge variant="secondary" className="text-xs">4.8</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      4.8
+                    </Badge>
                   </div>
                   <div className="text-2xl font-bold text-white mb-1">4.8</div>
                   <p className="text-xs text-slate-200">Average Rating</p>
@@ -118,11 +141,11 @@ const SimpleHome = memo(function SimpleHome() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <Building className="h-5 w-5 text-orange-500" />
-                  <Badge variant="secondary" className="text-xs">{stats.realEstateListings}</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {stats.realEstateListings}
+                  </Badge>
                 </div>
-                <div className="text-2xl font-bold text-white mb-1">
-                  {stats.realEstateListings}
-                </div>
+                <div className="text-2xl font-bold text-white mb-1">{stats.realEstateListings}</div>
                 <p className="text-xs text-slate-200">Property Listings</p>
               </CardContent>
             </Card>
@@ -133,11 +156,11 @@ const SimpleHome = memo(function SimpleHome() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <Heart className="h-5 w-5 text-orange-500" />
-                <Badge variant="secondary" className="text-xs">{stats.savedContractors}</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {stats.savedContractors}
+                </Badge>
               </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {stats.savedContractors}
-              </div>
+              <div className="text-2xl font-bold text-white mb-1">{stats.savedContractors}</div>
               <p className="text-xs text-slate-200">Saved Items</p>
             </CardContent>
           </Card>
@@ -146,11 +169,11 @@ const SimpleHome = memo(function SimpleHome() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <ShoppingCart className="h-5 w-5 text-orange-500" />
-                <Badge variant="secondary" className="text-xs">{stats.marketplaceListings}</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {stats.marketplaceListings}
+                </Badge>
               </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {stats.marketplaceListings}
-              </div>
+              <div className="text-2xl font-bold text-white mb-1">{stats.marketplaceListings}</div>
               <p className="text-xs text-slate-200">My Listings</p>
             </CardContent>
           </Card>
@@ -159,11 +182,11 @@ const SimpleHome = memo(function SimpleHome() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <Eye className="h-5 w-5 text-orange-500" />
-                <Badge variant="secondary" className="text-xs">New</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  New
+                </Badge>
               </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {stats.totalViews}
-              </div>
+              <div className="text-2xl font-bold text-white mb-1">{stats.totalViews}</div>
               <p className="text-xs text-slate-200">Profile Views</p>
             </CardContent>
           </Card>
@@ -182,7 +205,9 @@ const SimpleHome = memo(function SimpleHome() {
                     My Active Projects
                   </CardTitle>
                   <Link href="/project-tracker">
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm">
+                      View All
+                    </Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
@@ -225,7 +250,9 @@ const SimpleHome = memo(function SimpleHome() {
                     My Property Listings
                   </CardTitle>
                   <Link href="/real-estate-marketplace">
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm">
+                      View All
+                    </Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
@@ -270,7 +297,9 @@ const SimpleHome = memo(function SimpleHome() {
                     My Home Projects
                   </CardTitle>
                   <Link href="/request-quote">
-                    <Button variant="ghost" size="sm">New Project</Button>
+                    <Button variant="ghost" size="sm">
+                      New Project
+                    </Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
@@ -305,15 +334,17 @@ const SimpleHome = memo(function SimpleHome() {
             )}
 
             {/* Quotes & Estimates (contractor and homeowner) */}
-            {((dashboardData?.quotes?.length ?? 0) > 0) && (
+            {(dashboardData?.quotes?.length ?? 0) > 0 && (
               <Card className="bg-tsCard border-tsBorder">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-orange-500" />
-                    {isContractor ? 'My Quotes' : 'Received Quotes'}
+                    {isContractor ? "My Quotes" : "Received Quotes"}
                   </CardTitle>
                   <Link href="/messages">
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm">
+                      View All
+                    </Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
@@ -331,11 +362,11 @@ const SimpleHome = memo(function SimpleHome() {
                         </div>
                         <Badge
                           variant={
-                            quote.status === 'accepted'
-                              ? 'default'
-                              : quote.status === 'sent'
-                              ? 'secondary'
-                              : 'outline'
+                            quote.status === "accepted"
+                              ? "default"
+                              : quote.status === "sent"
+                                ? "secondary"
+                                : "outline"
                           }
                         >
                           {quote.status}
@@ -348,7 +379,7 @@ const SimpleHome = memo(function SimpleHome() {
             )}
 
             {/* Active Conversations */}
-            {((dashboardData?.conversations?.length ?? 0) > 0) && (
+            {(dashboardData?.conversations?.length ?? 0) > 0 && (
               <Card className="bg-tsCard border-tsBorder">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
@@ -356,7 +387,9 @@ const SimpleHome = memo(function SimpleHome() {
                     Active Conversations
                   </CardTitle>
                   <Link href="/messages">
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm">
+                      View All
+                    </Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
@@ -366,7 +399,7 @@ const SimpleHome = memo(function SimpleHome() {
                         <div className="flex items-center justify-between p-3 bg-tsCard/80 rounded-lg hover:bg-slate-600 transition-colors cursor-pointer">
                           <div className="flex-1">
                             <p className="font-medium text-white">
-                              {conversation.projectType || 'Project Discussion'}
+                              {conversation.projectType || "Project Discussion"}
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-300">
                               {formatDistanceToNow(new Date(conversation.lastMessageAt), {
@@ -374,7 +407,9 @@ const SimpleHome = memo(function SimpleHome() {
                               })}
                             </p>
                           </div>
-                          <Badge variant={conversation.status === 'active' ? 'default' : 'secondary'}>
+                          <Badge
+                            variant={conversation.status === "active" ? "default" : "secondary"}
+                          >
                             {conversation.status}
                           </Badge>
                         </div>
@@ -393,7 +428,9 @@ const SimpleHome = memo(function SimpleHome() {
                   My Exchange Listings
                 </CardTitle>
                 <Link href="/exchange">
-                  <Button variant="ghost" size="sm">Create Listing</Button>
+                  <Button variant="ghost" size="sm">
+                    Create Listing
+                  </Button>
                 </Link>
               </CardHeader>
               <CardContent>
@@ -401,7 +438,7 @@ const SimpleHome = memo(function SimpleHome() {
                   <div className="space-y-3">
                     <p className="text-sm text-slate-200">
                       You have {stats.marketplaceListings} active listing
-                      {stats.marketplaceListings !== 1 ? 's' : ''}
+                      {stats.marketplaceListings !== 1 ? "s" : ""}
                     </p>
                     <Link href="/exchange">
                       <Button size="sm" variant="outline" className="w-full">
@@ -435,13 +472,19 @@ const SimpleHome = memo(function SimpleHome() {
                 {isContractor ? (
                   <>
                     <Link href="/contractor-leads">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                      <Button
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                      >
                         <TrendingUp className="h-4 w-4 mr-2" />
                         Find New Projects
                       </Button>
                     </Link>
-                    <Link href="/contractor-profile">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                    <Link href="/contractors">
+                      <Button
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                      >
                         <Star className="h-4 w-4 mr-2" />
                         Update Profile
                       </Button>
@@ -450,19 +493,28 @@ const SimpleHome = memo(function SimpleHome() {
                 ) : (
                   <>
                     <Link href="/scout?intent=estimate">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                      <Button
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                      >
                         <DollarSign className="h-4 w-4 mr-2" />
                         Ask Scout for Estimate
                       </Button>
                     </Link>
                     <Link href="/contractors">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                      <Button
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                      >
                         <Wrench className="h-4 w-4 mr-2" />
                         Find Contractors
                       </Button>
                     </Link>
                     <Link href="/request-quote">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                      <Button
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                      >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Request Quote
                       </Button>
@@ -470,13 +522,19 @@ const SimpleHome = memo(function SimpleHome() {
                   </>
                 )}
                 <Link href="/exchange">
-                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                  <Button
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                  >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Browse Exchange
                   </Button>
                 </Link>
                 <Link href="/community">
-                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
+                  <Button
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start"
+                  >
                     <Users className="h-4 w-4 mr-2" />
                     Community Feed
                   </Button>
@@ -493,14 +551,16 @@ const SimpleHome = memo(function SimpleHome() {
                     Saved Contractors
                   </CardTitle>
                   <Link href="/saved-contractors">
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm">
+                      View All
+                    </Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
                   {stats.savedContractors > 0 ? (
                     <p className="text-sm text-slate-200">
                       You have {stats.savedContractors} saved contractor
-                      {stats.savedContractors !== 1 ? 's' : ''}
+                      {stats.savedContractors !== 1 ? "s" : ""}
                     </p>
                   ) : (
                     <div className="text-center py-6">
@@ -529,7 +589,9 @@ const SimpleHome = memo(function SimpleHome() {
                         href={`/community/post/${activity.id}`}
                         className="block text-sm hover:bg-tsBg p-2 rounded transition-colors cursor-pointer"
                       >
-                        <p className="text-white hover:text-orange-500 transition-colors">{activity.title}</p>
+                        <p className="text-white hover:text-orange-500 transition-colors">
+                          {activity.title}
+                        </p>
                         <p className="text-xs text-slate-500 dark:text-slate-300">
                           {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
                         </p>
@@ -553,7 +615,9 @@ const SimpleHome = memo(function SimpleHome() {
                   Community
                 </CardTitle>
                 <Link href="/community">
-                  <Button variant="ghost" size="sm">View All</Button>
+                  <Button variant="ghost" size="sm">
+                    View All
+                  </Button>
                 </Link>
               </CardHeader>
               <CardContent>

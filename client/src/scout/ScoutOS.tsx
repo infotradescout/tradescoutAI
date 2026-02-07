@@ -3447,7 +3447,7 @@ export default function ScoutOS() {
                       onEdit={() => {
                         // TODO: Implement edit flow (navigate back to profile/signup)
                         onboarding.resetFlow();
-                        navigate("/settings/profile");
+                        navigate("/profile-settings");
                       }}
                     />
                   </div>

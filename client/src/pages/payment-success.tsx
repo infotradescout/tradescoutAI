@@ -76,7 +76,7 @@ export default function PaymentSuccess() {
             </Button>
 
             <Button variant="outline" asChild className="w-full">
-              <Link href="/payments/history">
+              <Link href="/payment-history">
                 <Receipt className="w-4 h-4 mr-2" />
                 View Payment History
               </Link>

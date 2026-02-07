@@ -6,13 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Heart, 
-  MapPin, 
-  DollarSign, 
-  Users, 
+import {
+  Heart,
+  MapPin,
+  DollarSign,
+  Users,
   Target,
   TrendingUp,
   Calendar,
@@ -25,7 +31,7 @@ import {
   Hospital,
   TreePine,
   Home,
-  Utensils
+  Utensils,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -47,7 +53,7 @@ interface Cause {
   organizationName: string;
   organizationVerified: boolean;
   imageUrl?: string;
-  urgency: 'low' | 'medium' | 'high';
+  urgency: "low" | "medium" | "high";
   endDate?: string;
   featured: boolean;
 }
@@ -70,15 +76,60 @@ interface FoundationImpactStats {
 }
 
 const CAUSE_CATEGORIES = [
-  { id: 'education', name: 'Education', icon: School, description: 'Schools, scholarships, and educational programs' },
-  { id: 'healthcare', name: 'Healthcare', icon: Hospital, description: 'Medical care, health programs, and wellness initiatives' },
-  { id: 'environment', name: 'Environment', icon: TreePine, description: 'Conservation, sustainability, and environmental protection' },
-  { id: 'housing', name: 'Housing', icon: Home, description: 'Affordable housing, homelessness prevention, and shelter' },
-  { id: 'community', name: 'Community', icon: Building, description: 'Local infrastructure, community centers, and public spaces' },
-  { id: 'food', name: 'Food Security', icon: Utensils, description: 'Food banks, nutrition programs, and hunger relief' },
-  { id: 'youth', name: 'Youth Programs', icon: Users, description: 'Youth development, sports, and after-school programs' },
-  { id: 'seniors', name: 'Senior Care', icon: Heart, description: 'Elder care, senior programs, and support services' },
-  { id: 'emergency', name: 'Emergency Relief', icon: Shield, description: 'Disaster relief, emergency assistance, and crisis support' },
+  {
+    id: "education",
+    name: "Education",
+    icon: School,
+    description: "Schools, scholarships, and educational programs",
+  },
+  {
+    id: "healthcare",
+    name: "Healthcare",
+    icon: Hospital,
+    description: "Medical care, health programs, and wellness initiatives",
+  },
+  {
+    id: "environment",
+    name: "Environment",
+    icon: TreePine,
+    description: "Conservation, sustainability, and environmental protection",
+  },
+  {
+    id: "housing",
+    name: "Housing",
+    icon: Home,
+    description: "Affordable housing, homelessness prevention, and shelter",
+  },
+  {
+    id: "community",
+    name: "Community",
+    icon: Building,
+    description: "Local infrastructure, community centers, and public spaces",
+  },
+  {
+    id: "food",
+    name: "Food Security",
+    icon: Utensils,
+    description: "Food banks, nutrition programs, and hunger relief",
+  },
+  {
+    id: "youth",
+    name: "Youth Programs",
+    icon: Users,
+    description: "Youth development, sports, and after-school programs",
+  },
+  {
+    id: "seniors",
+    name: "Senior Care",
+    icon: Heart,
+    description: "Elder care, senior programs, and support services",
+  },
+  {
+    id: "emergency",
+    name: "Emergency Relief",
+    icon: Shield,
+    description: "Disaster relief, emergency assistance, and crisis support",
+  },
 ];
 
 export default function Foundation() {
@@ -96,15 +147,15 @@ export default function Foundation() {
 
   // Fetch causes
   const { data: causes, isLoading: causesLoading } = useQuery<Cause[]>({
-    queryKey: ['/api/foundation/causes', selectedCategory, selectedState, sortBy],
+    queryKey: ["/api/foundation/causes", selectedCategory, selectedState, sortBy],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (selectedState) params.append('state', selectedState);
-      if (sortBy) params.append('sort', sortBy);
-      
+      if (selectedCategory) params.append("category", selectedCategory);
+      if (selectedState) params.append("state", selectedState);
+      if (sortBy) params.append("sort", sortBy);
+
       const response = await fetch(`/api/foundation/causes?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch causes');
+      if (!response.ok) throw new Error("Failed to fetch causes");
       return response.json();
     },
     enabled: activeTab === "causes",
@@ -112,22 +163,22 @@ export default function Foundation() {
 
   // Fetch user donations
   const { data: userDonations } = useQuery<Donation[]>({
-    queryKey: ['/api/foundation/my-donations'],
+    queryKey: ["/api/foundation/my-donations"],
     enabled: isAuthenticated && activeTab === "my-donations",
   });
 
   // Fetch impact stats
   const { data: impactStats } = useQuery<FoundationImpactStats | null>({
-    queryKey: ['/api/foundation/impact'],
+    queryKey: ["/api/foundation/impact"],
     enabled: activeTab === "impact",
   });
 
   const { data: vaultSnapshot, isLoading: vaultLoading } = useQuery({
-    queryKey: ['/api/vaults/my-county'],
+    queryKey: ["/api/vaults/my-county"],
     queryFn: async () => {
-      const res = await fetch('/api/vaults/my-county');
+      const res = await fetch("/api/vaults/my-county");
       if (res.status === 400) return null;
-      if (!res.ok) throw new Error('Failed to load vault');
+      if (!res.ok) throw new Error("Failed to load vault");
       return res.json();
     },
     enabled: isAuthenticated && Boolean(user?.county && user?.state),
@@ -136,22 +187,27 @@ export default function Foundation() {
 
   // Donation mutation
   const donateMutation = useMutation({
-    mutationFn: async ({ causeId, amount, anonymous, message }: { 
-      causeId: string; 
-      amount: number; 
-      anonymous: boolean; 
-      message?: string; 
+    mutationFn: async ({
+      causeId,
+      amount,
+      anonymous,
+      message,
+    }: {
+      causeId: string;
+      amount: number;
+      anonymous: boolean;
+      message?: string;
     }) => {
-      return apiRequest('POST', `/api/foundation/donate`, { 
-        causeId, 
-        amount, 
-        anonymous, 
-        message 
+      return apiRequest("POST", `/api/foundation/donate`, {
+        causeId,
+        amount,
+        anonymous,
+        message,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/foundation/causes'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/foundation/my-donations'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/foundation/causes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/foundation/my-donations"] });
       toast({
         title: "Donation Successful",
         description: "Thank you for your contribution to the community!",
@@ -182,7 +238,7 @@ export default function Foundation() {
 
   const submitDonation = (anonymous: boolean, message?: string) => {
     if (!selectedCause || !donationAmount) return;
-    
+
     const amount = parseFloat(donationAmount);
     if (amount < 1) {
       toast({
@@ -202,9 +258,9 @@ export default function Foundation() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -215,17 +271,17 @@ export default function Foundation() {
   };
 
   const getCategoryIcon = (categoryId: string) => {
-    const category = CAUSE_CATEGORIES.find(cat => cat.id === categoryId);
+    const category = CAUSE_CATEGORIES.find((cat) => cat.id === categoryId);
     return category ? category.icon : Heart;
   };
 
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {
-      case 'high':
+      case "high":
         return <Badge className="bg-red-500">Urgent</Badge>;
-      case 'medium':
+      case "medium":
         return <Badge className="bg-orange-500">Important</Badge>;
-      case 'low':
+      case "low":
         return <Badge className="bg-blue-500">Ongoing</Badge>;
       default:
         return <Badge variant="outline">Standard</Badge>;
@@ -250,8 +306,9 @@ export default function Foundation() {
                 Route Exchange givebacks into real local causes.
               </h1>
               <p className="text-sm sm:text-base text-gray-300">
-                Every contractor promotion, TradeDeal, roundup, and community vault contribution rolls up into county-level funds
-                that support verified projects across all 50 states.
+                Every contractor promotion, TradeDeal, roundup, and community vault contribution
+                rolls up into county-level funds that support verified projects across all 50
+                states.
               </p>
             </div>
             <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-gray-300">
@@ -287,7 +344,9 @@ export default function Foundation() {
                 <Badge className="bg-green-600 text-white">Transparent</Badge>
               </div>
               <p className="text-3xl font-bold text-white">
-                {vaultLoading ? 'Loading…' : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
+                {vaultLoading
+                  ? "Loading…"
+                  : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
               </p>
               <p className="text-sm text-gray-400">Funds earmarked for your community</p>
               <div className="mt-4 flex items-center space-x-3 text-sm text-gray-300">
@@ -295,10 +354,15 @@ export default function Foundation() {
                 <span>Last 30d inflow: {formatCurrency(vaultSnapshot?.last30dInflow ?? 0)}</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {vaultSnapshot?.sourcesBreakdown && Object.keys(vaultSnapshot.sourcesBreakdown).length > 0 ? (
+                {vaultSnapshot?.sourcesBreakdown &&
+                Object.keys(vaultSnapshot.sourcesBreakdown).length > 0 ? (
                   Object.entries(vaultSnapshot.sourcesBreakdown).map(([source, amount]) => (
-                    <Badge key={source} variant="outline" className="border-slate-600 text-slate-200">
-                      {source.replace(/_/g, ' ')} · {formatCurrency(amount as number)}
+                    <Badge
+                      key={source}
+                      variant="outline"
+                      className="border-slate-600 text-slate-200"
+                    >
+                      {source.replace(/_/g, " ")} · {formatCurrency(amount as number)}
                     </Badge>
                   ))
                 ) : (
@@ -315,14 +379,18 @@ export default function Foundation() {
                   <p className="text-sm text-gray-400">Community Builder badge</p>
                   <h3 className="text-xl font-semibold text-white">Decide where the vault goes</h3>
                 </div>
-                <Badge variant="outline" className="border-orange-500 text-orange-300">Give back</Badge>
+                <Badge variant="outline" className="border-orange-500 text-orange-300">
+                  Give back
+                </Badge>
               </div>
               <p className="text-gray-300 text-sm mb-3">
-                Donations, Exchange givebacks, and contractor programs all ladder into your community vault. With the Community Builder badge, you can send and vote on which local causes get funded.
+                Donations, Exchange givebacks, and contractor programs all ladder into your
+                community vault. With the Community Builder badge, you can send and vote on which
+                local causes get funded.
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <Button asChild className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
-                  <Link href="/community-builder">Activate Community Builder badge</Link>
+                  <Link href="/community-builder/dashboard">Activate Community Builder badge</Link>
                 </Button>
                 <Button
                   asChild
@@ -352,16 +420,28 @@ export default function Foundation() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-slate-800 border-slate-700">
-          <TabsTrigger value="causes" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+          <TabsTrigger
+            value="causes"
+            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             Local Causes
           </TabsTrigger>
-          <TabsTrigger value="impact" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+          <TabsTrigger
+            value="impact"
+            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             Our Impact
           </TabsTrigger>
-          <TabsTrigger value="my-donations" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+          <TabsTrigger
+            value="my-donations"
+            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             My Donations
           </TabsTrigger>
-          <TabsTrigger value="corporate" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+          <TabsTrigger
+            value="corporate"
+            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             Corporate Program
           </TabsTrigger>
         </TabsList>
@@ -377,7 +457,7 @@ export default function Foundation() {
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
                     <SelectItem value="all">All Categories</SelectItem>
-                    {CAUSE_CATEGORIES.map(category => (
+                    {CAUSE_CATEGORIES.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
@@ -435,31 +515,35 @@ export default function Foundation() {
                     </CardContent>
                   </Card>
                 ))
-              ) : (causes && causes.length > 0) ? (
+              ) : causes && causes.length > 0 ? (
                 causes.map((cause) => {
                   const IconComponent = getCategoryIcon(cause.category);
-                  const progressPercentage = getProgressPercentage(cause.currentAmount, cause.targetAmount);
-                  
+                  const progressPercentage = getProgressPercentage(
+                    cause.currentAmount,
+                    cause.targetAmount
+                  );
+
                   return (
-                    <Card key={cause.id} className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors">
+                    <Card
+                      key={cause.id}
+                      className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors"
+                    >
                       <div className="relative">
                         <div className="h-48 bg-slate-700 rounded-t-lg flex items-center justify-center">
                           <IconComponent className="h-16 w-16 text-slate-500" />
                         </div>
                         {cause.featured && (
-                          <Badge className="absolute top-2 right-2 bg-orange-500">
-                            Featured
-                          </Badge>
+                          <Badge className="absolute top-2 right-2 bg-orange-500">Featured</Badge>
                         )}
                         <div className="absolute top-2 left-2">
                           {getUrgencyBadge(cause.urgency)}
                         </div>
                       </div>
-                      
+
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-2">
                           <Badge variant="outline" className="border-slate-600 text-slate-400">
-                            {CAUSE_CATEGORIES.find(c => c.id === cause.category)?.name}
+                            {CAUSE_CATEGORIES.find((c) => c.id === cause.category)?.name}
                           </Badge>
                           {cause.organizationVerified && (
                             <div className="flex items-center">
@@ -469,14 +553,19 @@ export default function Foundation() {
                           )}
                         </div>
 
-                        <h3 className="font-semibold text-white mb-2 line-clamp-2">{cause.title}</h3>
-                        <p className="text-gray-300 text-sm mb-4 line-clamp-3">{cause.description}</p>
+                        <h3 className="font-semibold text-white mb-2 line-clamp-2">
+                          {cause.title}
+                        </h3>
+                        <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                          {cause.description}
+                        </p>
 
                         <div className="space-y-3 mb-4">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-400">Progress</span>
                             <span className="text-white font-medium">
-                              {formatCurrency(cause.currentAmount)} of {formatCurrency(cause.targetAmount)}
+                              {formatCurrency(cause.currentAmount)} of{" "}
+                              {formatCurrency(cause.targetAmount)}
                             </span>
                           </div>
                           <Progress value={progressPercentage} className="h-2" />
@@ -491,12 +580,10 @@ export default function Foundation() {
                             <MapPin className="h-4 w-4 mr-1" />
                             {cause.location}
                           </div>
-                          <div className="text-sm text-gray-400">
-                            by {cause.organizationName}
-                          </div>
+                          <div className="text-sm text-gray-400">by {cause.organizationName}</div>
                         </div>
 
-                        <Button 
+                        <Button
                           onClick={() => handleDonate(cause)}
                           className="w-full bg-orange-500 hover:bg-orange-600"
                         >
@@ -523,7 +610,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? formatCurrency(impactStats.totalRaised) : '0'}
+                  {impactStats ? formatCurrency(impactStats.totalRaised) : "0"}
                 </div>
                 <div className="text-sm text-gray-400">Total Raised</div>
               </CardContent>
@@ -532,7 +619,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? impactStats.totalDonors.toLocaleString() : '0'}
+                  {impactStats ? impactStats.totalDonors.toLocaleString() : "0"}
                 </div>
                 <div className="text-sm text-gray-400">Active Donors</div>
               </CardContent>
@@ -541,7 +628,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <Target className="h-8 w-8 text-orange-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? impactStats.countiesSupported.toLocaleString() : '0'}
+                  {impactStats ? impactStats.countiesSupported.toLocaleString() : "0"}
                 </div>
                 <div className="text-sm text-gray-400">Counties Served</div>
               </CardContent>
@@ -550,7 +637,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <Award className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? impactStats.activeCauses.toLocaleString() : '0'}
+                  {impactStats ? impactStats.activeCauses.toLocaleString() : "0"}
                 </div>
                 <div className="text-sm text-gray-400">Causes Funded</div>
               </CardContent>
@@ -586,9 +673,7 @@ export default function Foundation() {
               <CardContent className="p-12 text-center">
                 <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">Sign in to view your donation history</p>
-                <Button className="bg-orange-500 hover:bg-orange-600">
-                  Sign In
-                </Button>
+                <Button className="bg-orange-500 hover:bg-orange-600">Sign In</Button>
               </CardContent>
             </Card>
           ) : (
@@ -605,7 +690,9 @@ export default function Foundation() {
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">Corporate Matching Program</CardTitle>
-              <p className="text-gray-400">Amplify your business impact through charitable giving</p>
+              <p className="text-gray-400">
+                Amplify your business impact through charitable giving
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -614,7 +701,9 @@ export default function Foundation() {
                     <Building className="h-8 w-8 text-orange-500" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">Employee Matching</h3>
-                  <p className="text-gray-400 text-sm">Match employee donations to increase impact</p>
+                  <p className="text-gray-400 text-sm">
+                    Match employee donations to increase impact
+                  </p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -631,7 +720,7 @@ export default function Foundation() {
                   <p className="text-gray-400 text-sm">Showcase your community commitment</p>
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <Button className="bg-orange-500 hover:bg-orange-600">
                   Learn More About Corporate Program
@@ -661,16 +750,16 @@ export default function Foundation() {
                   className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
-              
+
               <div className="flex space-x-4">
-                <Button 
+                <Button
                   onClick={() => submitDonation(false)}
                   disabled={donateMutation.isPending}
                   className="flex-1 bg-orange-500 hover:bg-orange-600"
                 >
                   Donate Publicly
                 </Button>
-                <Button 
+                <Button
                   onClick={() => submitDonation(true)}
                   disabled={donateMutation.isPending}
                   variant="outline"
@@ -679,8 +768,8 @@ export default function Foundation() {
                   Donate Anonymously
                 </Button>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={() => setSelectedCause(null)}
                 variant="ghost"
                 className="w-full text-gray-400 hover:text-white"

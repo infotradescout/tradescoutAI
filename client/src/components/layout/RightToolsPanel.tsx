@@ -293,7 +293,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onClick={onNavigate}
             />
             <NavLink
-              href="/saved"
+              href="/saved-ads"
               icon={
                 <Bookmark
                   className="h-3.5 w-3.5"
@@ -406,7 +406,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           </div>
           <div className="space-y-2">
             <NavLink
-              href="/legal/privacy-policy"
+              href="/privacy"
               icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
               label="Privacy & data"
               description="Privacy policy, data handling, and cookie use."
@@ -420,14 +420,14 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onClick={onNavigate}
             />
             <NavLink
-              href="/legal/compliance"
+              href="/compliance"
               icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
               label="Compliance dashboard"
               description="Marketplace, INFORM Act, and safety disclosures."
               onClick={onNavigate}
             />
             <NavLink
-              href="/legal/cookie-policy"
+              href="/privacy"
               icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
               label="Cookie controls"
               description="Cookie policy and preference controls."

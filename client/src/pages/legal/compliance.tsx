@@ -4,18 +4,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { 
-  Shield, 
-  FileText, 
-  Scale, 
-  CheckCircle, 
+import {
+  Shield,
+  FileText,
+  Scale,
+  CheckCircle,
   AlertTriangle,
   Building,
   CreditCard,
   Users,
   Eye,
   Lock,
-  Globe
+  Globe,
 } from "lucide-react";
 
 export default function CompliancePage() {
@@ -35,8 +35,8 @@ export default function CompliancePage() {
         "Tax identification number collection",
         "Annual seller certification process",
         "Buyer disclosure of seller information",
-        "Suspicious activity reporting system"
-      ]
+        "Suspicious activity reporting system",
+      ],
     },
     {
       id: "sales-tax",
@@ -51,8 +51,8 @@ export default function CompliancePage() {
         "Tax exemption certificate management",
         "Regular remittance to tax authorities",
         "Detailed transaction record keeping",
-        "Multi-state compliance management"
-      ]
+        "Multi-state compliance management",
+      ],
     },
     {
       id: "privacy",
@@ -67,8 +67,8 @@ export default function CompliancePage() {
         "Cookie preference controls",
         "Data breach notification procedures",
         "Third-party vendor compliance",
-        "Regular privacy impact assessments"
-      ]
+        "Regular privacy impact assessments",
+      ],
     },
     {
       id: "accessibility",
@@ -83,8 +83,8 @@ export default function CompliancePage() {
         "Color contrast compliance",
         "Alternative text for images",
         "Accessible form design",
-        "Regular accessibility auditing"
-      ]
+        "Regular accessibility auditing",
+      ],
     },
     {
       id: "payment",
@@ -99,8 +99,8 @@ export default function CompliancePage() {
         "Secure data transmission",
         "Regular security assessments",
         "Incident response procedures",
-        "Employee security training"
-      ]
+        "Employee security training",
+      ],
     },
     {
       id: "content",
@@ -115,9 +115,9 @@ export default function CompliancePage() {
         "Appeal process implementation",
         "Illegal content reporting",
         "Copyright infringement handling",
-        "User safety protections"
-      ]
-    }
+        "User safety protections",
+      ],
+    },
   ];
 
   const getStatusColor = (status: string) => {
@@ -147,12 +147,9 @@ export default function CompliancePage() {
   return (
     <div className="min-h-screen bg-[var(--surface-frame)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-orange-500 mb-4">
-            Legal Compliance Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold text-orange-500 mb-4">Legal Compliance Dashboard</h1>
           <p className="text-gray-600 dark:text-gray-300">
             Comprehensive compliance management for federal, state, and local regulations
           </p>
@@ -167,9 +164,7 @@ export default function CompliancePage() {
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     Total Compliance Areas
                   </p>
-                  <p className="text-2xl font-bold text-orange-500">
-                    {complianceAreas.length}
-                  </p>
+                  <p className="text-2xl font-bold text-orange-500">{complianceAreas.length}</p>
                 </div>
                 <Scale className="h-8 w-8 text-blue-600" />
               </div>
@@ -184,7 +179,7 @@ export default function CompliancePage() {
                     Fully Compliant
                   </p>
                   <p className="text-2xl font-bold text-green-600">
-                    {complianceAreas.filter(area => area.status === "Compliant").length}
+                    {complianceAreas.filter((area) => area.status === "Compliant").length}
                   </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
@@ -200,7 +195,7 @@ export default function CompliancePage() {
                     In Progress
                   </p>
                   <p className="text-2xl font-bold text-yellow-600">
-                    {complianceAreas.filter(area => area.status === "In Progress").length}
+                    {complianceAreas.filter((area) => area.status === "In Progress").length}
                   </p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-yellow-600" />
@@ -234,13 +229,9 @@ export default function CompliancePage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                      {area.description}
-                    </p>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">{area.description}</p>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-orange-500">
-                        Key Requirements:
-                      </p>
+                      <p className="text-sm font-medium text-orange-500">Key Requirements:</p>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                         {area.requirements.slice(0, 3).map((req, index) => (
                           <li key={index} className="flex items-start">
@@ -277,21 +268,18 @@ export default function CompliancePage() {
                       </span>
                     </Badge>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    {area.description}
-                  </p>
+                  <p className="text-gray-600 dark:text-gray-300">{area.description}</p>
                 </CardHeader>
                 <CardContent>
-                  <h4 className="font-medium text-orange-500 mb-3">
-                    Implementation Requirements:
-                  </h4>
+                  <h4 className="font-medium text-orange-500 mb-3">Implementation Requirements:</h4>
                   <div className="space-y-3">
                     {area.requirements.map((req, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-start space-x-3 p-3 bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] rounded-lg"
+                      >
                         <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {req}
-                        </span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{req}</span>
                       </div>
                     ))}
                   </div>
@@ -312,7 +300,7 @@ export default function CompliancePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/privacy-policy">
+                <a href="/privacy">
                   <Lock className="h-4 w-4 mr-2" />
                   Privacy Policy
                 </a>
@@ -324,25 +312,25 @@ export default function CompliancePage() {
                 </a>
               </Button>
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/accessibility">
+                <a href="/compliance">
                   <Users className="h-4 w-4 mr-2" />
                   Accessibility Statement
                 </a>
               </Button>
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/seller-agreement">
+                <a href="/terms">
                   <Building className="h-4 w-4 mr-2" />
                   Seller Agreement
                 </a>
               </Button>
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/community-guidelines">
+                <a href="/terms">
                   <Eye className="h-4 w-4 mr-2" />
                   Community Guidelines
                 </a>
               </Button>
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/dispute-resolution">
+                <a href="/terms">
                   <Scale className="h-4 w-4 mr-2" />
                   Dispute Resolution
                 </a>
@@ -355,9 +343,9 @@ export default function CompliancePage() {
         <Alert className="mt-8">
           <Globe className="h-4 w-4" />
           <AlertDescription>
-            This compliance dashboard is updated regularly to reflect current legal requirements. 
-            For specific legal advice, please consult with qualified legal counsel. 
-            Last updated: August 11, 2025
+            This compliance dashboard is updated regularly to reflect current legal requirements.
+            For specific legal advice, please consult with qualified legal counsel. Last updated:
+            August 11, 2025
           </AlertDescription>
         </Alert>
       </div>

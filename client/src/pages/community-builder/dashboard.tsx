@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle, Clock, DollarSign, TrendingUp, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle, Clock, DollarSign, TrendingUp, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface BuilderProfile {
   id: string;
@@ -32,12 +26,12 @@ interface BuilderProfile {
 }
 
 const rankColors: Record<string, string> = {
-  prospect: 'bg-gray-100 text-gray-800',
-  bronze: 'bg-orange-100 text-orange-800',
-  silver: 'bg-slate-100 text-slate-800',
-  gold: 'bg-yellow-100 text-yellow-800',
-  platinum: 'bg-cyan-100 text-cyan-800',
-  diamond: 'bg-purple-100 text-purple-800',
+  prospect: "bg-gray-100 text-gray-800",
+  bronze: "bg-orange-100 text-orange-800",
+  silver: "bg-slate-100 text-slate-800",
+  gold: "bg-yellow-100 text-yellow-800",
+  platinum: "bg-cyan-100 text-cyan-800",
+  diamond: "bg-purple-100 text-purple-800",
 };
 
 export default function CommunityBuilderDashboard() {
@@ -46,45 +40,45 @@ export default function CommunityBuilderDashboard() {
 
   // Fetch Community Builder settings for this user
   const { data: profile, isLoading: profileLoading } = useQuery<BuilderProfile>({
-    queryKey: ['builderProfile'],
+    queryKey: ["builderProfile"],
     queryFn: async () => {
-      const res = await fetch('/api/community-builder/profile');
+      const res = await fetch("/api/community-builder/profile");
       if (res.status === 404) {
         return null;
       }
-      if (!res.ok) throw new Error('Failed to fetch profile');
+      if (!res.ok) throw new Error("Failed to fetch profile");
       return res.json();
     },
   });
 
   // Fetch notifications
   const { data: notifications } = useQuery({
-    queryKey: ['builderNotifications'],
+    queryKey: ["builderNotifications"],
     queryFn: async () => {
-      const res = await fetch('/api/community-builder/notifications?unreadOnly=true');
-      if (!res.ok) throw new Error('Failed to fetch notifications');
+      const res = await fetch("/api/community-builder/notifications?unreadOnly=true");
+      if (!res.ok) throw new Error("Failed to fetch notifications");
       return res.json();
     },
   });
 
   // Fetch contributions
   const { data: contributions = [] } = useQuery({
-    queryKey: ['builderContributions'],
+    queryKey: ["builderContributions"],
     queryFn: async () => {
-      const res = await fetch('/api/community-builder/contributions');
+      const res = await fetch("/api/community-builder/contributions");
       if (res.status === 404) return [];
-      if (!res.ok) throw new Error('Failed to fetch contributions');
+      if (!res.ok) throw new Error("Failed to fetch contributions");
       return res.json();
     },
   });
 
   // Fetch payouts
   const { data: payouts = [] } = useQuery({
-    queryKey: ['builderPayouts'],
+    queryKey: ["builderPayouts"],
     queryFn: async () => {
-      const res = await fetch('/api/community-builder/payouts');
+      const res = await fetch("/api/community-builder/payouts");
       if (res.status === 404) return [];
-      if (!res.ok) throw new Error('Failed to fetch payouts');
+      if (!res.ok) throw new Error("Failed to fetch payouts");
       return res.json();
     },
   });
@@ -97,18 +91,19 @@ export default function CommunityBuilderDashboard() {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Start Your Community Builder Journey</CardTitle>
               <CardDescription>
-                Claim your Community Builder badge and help decide what causes your county vault funds.
+                Claim your Community Builder badge and help decide what causes your county vault
+                funds.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-6">
               <div className="space-y-2">
                 <p className="text-gray-600">
-                  Community Builders contribute time, expertise, and resources to strengthen their communities.
-                  Your badge sets you apart and lets you send and vote on which causes get funded from the community vault.
+                  Community Builders contribute time, expertise, and resources to strengthen their
+                  communities. Your badge sets you apart and lets you send and vote on which causes
+                  get funded from the community vault.
                 </p>
                 <p className="text-sm text-gray-500">
-                  Want to support the broader Community Builder Fund directly?
-                  {' '}
+                  Want to support the broader Community Builder Fund directly?{" "}
                   <a
                     href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
                     target="_blank"
@@ -120,9 +115,9 @@ export default function CommunityBuilderDashboard() {
                   .
                 </p>
               </div>
-              <Button 
+              <Button
                 size="lg"
-                onClick={() => navigate('/community-builder/setup')}
+                onClick={() => navigate("/foundation")}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
                 Activate Your Community Builder Badge
@@ -142,7 +137,7 @@ export default function CommunityBuilderDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-gray-900">
-                {profile.businessName || 'Community Builder'}
+                {profile.businessName || "Community Builder"}
               </h1>
               <p className="text-gray-600 mt-1">Dashboard</p>
             </div>
@@ -151,7 +146,7 @@ export default function CommunityBuilderDashboard() {
             </Badge>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            Help seed projects across all counties by supporting the{' '}
+            Help seed projects across all counties by supporting the{" "}
             <a
               href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
               target="_blank"
@@ -233,7 +228,7 @@ export default function CommunityBuilderDashboard() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Users className="w-6 h-6 text-yellow-600" />
-                <span className="text-2xl font-bold">{profile.ratingScore?.toFixed(1) || '-'}</span>
+                <span className="text-2xl font-bold">{profile.ratingScore?.toFixed(1) || "-"}</span>
               </div>
               <p className="text-xs text-gray-500 mt-2">Out of 5 stars</p>
             </CardContent>
@@ -253,8 +248,8 @@ export default function CommunityBuilderDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => navigate('/community-builder/verify')}
+              <Button
+                onClick={() => navigate("/verification")}
                 className="bg-orange-600 hover:bg-orange-700"
               >
                 Complete Verification
@@ -271,9 +266,9 @@ export default function CommunityBuilderDashboard() {
                 <CardTitle>Recent Contributions</CardTitle>
                 <CardDescription>Your latest submitted contributions</CardDescription>
               </div>
-              <Button 
+              <Button
                 variant="outline"
-                onClick={() => navigate('/community-builder/contributions/new')}
+                onClick={() => navigate("/community-builder/contributions/new")}
               >
                 + New Contribution
               </Button>
@@ -287,24 +282,26 @@ export default function CommunityBuilderDashboard() {
             ) : (
               <div className="space-y-4">
                 {contributions.slice(0, 5).map((contrib: any) => (
-                  <div 
+                  <div
                     key={contrib.id}
                     className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
                     onClick={() => navigate(`/community-builder/contributions/${contrib.id}`)}
                   >
                     <div className="flex-1">
                       <p className="font-semibold">{contrib.title}</p>
-                      <p className="text-sm text-gray-600">{contrib.description.substring(0, 100)}...</p>
+                      <p className="text-sm text-gray-600">
+                        {contrib.description.substring(0, 100)}...
+                      </p>
                       <div className="flex items-center gap-3 mt-2">
                         <Badge variant="outline">{contrib.status}</Badge>
                         <span className="text-sm text-gray-500">${contrib.estimatedValue}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      {contrib.status === 'verified' && (
+                      {contrib.status === "verified" && (
                         <CheckCircle className="w-5 h-5 text-green-600" />
                       )}
-                      {contrib.status === 'proposed' && (
+                      {contrib.status === "proposed" && (
                         <Clock className="w-5 h-5 text-yellow-600" />
                       )}
                     </div>
@@ -329,7 +326,7 @@ export default function CommunityBuilderDashboard() {
             ) : (
               <div className="space-y-4">
                 {payouts.map((payout: any) => (
-                  <div 
+                  <div
                     key={payout.id}
                     className="flex items-center justify-between p-4 border rounded-lg"
                   >
