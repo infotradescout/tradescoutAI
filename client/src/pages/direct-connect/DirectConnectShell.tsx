@@ -38,6 +38,53 @@ const SECTION_LABELS: Record<Section, string> = {
   engagements: "My Requests",
 };
 
+const SECTION_META: Record<
+  Section,
+  {
+    title: string;
+    description: string;
+    hint: string;
+    actionLabel: string;
+    actionTarget: Section;
+  }
+> = {
+  post: {
+    title: "Post a request",
+    description: "Describe the job once. Direct Connect routes it by fit and trust policy.",
+    hint: "Best for: new work requests",
+    actionLabel: "Go to My Requests",
+    actionTarget: "engagements",
+  },
+  board: {
+    title: "Job board",
+    description: "Review open opportunities and route from a board-style view.",
+    hint: "Best for: browsing active demand",
+    actionLabel: "Open Inbox",
+    actionTarget: "inbox",
+  },
+  inbox: {
+    title: "Provider inbox",
+    description: "Evaluate routed opportunities and respond quickly.",
+    hint: "Best for: accepted/declined decisioning",
+    actionLabel: "View My Requests",
+    actionTarget: "engagements",
+  },
+  pros: {
+    title: "Pro directory",
+    description: "Explore providers and compare fit before opening engagement.",
+    hint: "Best for: pre-routing research",
+    actionLabel: "Post Request",
+    actionTarget: "post",
+  },
+  engagements: {
+    title: "My requests",
+    description: "Track routing progress, accepted matches, and lifecycle state.",
+    hint: "Best for: managing active engagements",
+    actionLabel: "Open Inbox",
+    actionTarget: "inbox",
+  },
+};
+
 const SECTION_ICONS: Record<Section, ReactNode> = {
   post: <ClipboardPlus className="h-4 w-4" />,
   board: <LayoutList className="h-4 w-4" />,
@@ -175,6 +222,9 @@ function DirectConnectInbox() {
   const [whyJobAssignmentId, setWhyJobAssignmentId] = useState<string | null>(null);
   const [declineAssignmentId, setDeclineAssignmentId] = useState<string | null>(null);
   const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
+  const [inboxFilter, setInboxFilter] = useState<"all" | "suggested" | "accepted" | "declined">(
+    "all"
+  );
 
   const { data, isLoading } = useQuery<DirectConnectInboxItem[]>({
     queryKey: ["/api/direct-connect/inbox"],
@@ -233,6 +283,10 @@ function DirectConnectInbox() {
   }
 
   const items = data || [];
+  const filteredItems = items.filter((i) =>
+    inboxFilter === "all" ? true : String(i.assignment.status || "suggested") === inboxFilter
+  );
+
   if (!items.length) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -260,7 +314,36 @@ function DirectConnectInbox() {
 
   return (
     <div className="space-y-3">
-      {items.map((item) => {
+      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardContent className="flex flex-wrap items-center gap-2 p-3">
+          {(["all", "suggested", "accepted", "declined"] as const).map((f) => {
+            const count =
+              f === "all"
+                ? items.length
+                : items.filter((i) => String(i.assignment.status || "suggested") === f).length;
+            const active = inboxFilter === f;
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setInboxFilter(f)}
+                className="rounded-full border px-3 py-1 text-xs"
+                style={{
+                  borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
+                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                  backgroundColor: active
+                    ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
+                    : "var(--surface-intermediate)",
+                }}
+              >
+                {f[0].toUpperCase() + f.slice(1)} ({count})
+              </button>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {filteredItems.map((item) => {
         const { assignment, request } = item;
         const status = assignment.status || "suggested";
         const snapshot = assignment.scoreSnapshot || undefined;
@@ -373,6 +456,14 @@ function DirectConnectInbox() {
           </Card>
         );
       })}
+
+      {!filteredItems.length && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
+            No items in this filter.
+          </CardContent>
+        </Card>
+      )}
 
       <WhyThisJobModal
         open={!!whyJobAssignmentId}
@@ -490,6 +581,9 @@ function DirectConnectInbox() {
 function MyDirectConnectRequests() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [requestFilter, setRequestFilter] = useState<"all" | "active" | "cancelled" | "accepted">(
+    "all"
+  );
 
   const { data, isLoading } = useQuery<DirectConnectRequest[]>({
     queryKey: ["/api/direct-connect/requests", "my"],
@@ -548,6 +642,14 @@ function MyDirectConnectRequests() {
   }
 
   const requests = data || [];
+  const filteredRequests = requests.filter((r) => {
+    const status = String(r.status || "").toLowerCase();
+    if (requestFilter === "all") return true;
+    if (requestFilter === "cancelled") return status === "cancelled";
+    if (requestFilter === "accepted") return Boolean(r.dcAcceptedAssignmentId);
+    return status !== "cancelled";
+  });
+
   if (!requests.length) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -560,7 +662,39 @@ function MyDirectConnectRequests() {
 
   return (
     <div className="space-y-3">
-      {requests.map((r) => {
+      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardContent className="flex flex-wrap items-center gap-2 p-3">
+          {(["all", "active", "accepted", "cancelled"] as const).map((f) => {
+            const count = requests.filter((r) => {
+              const status = String(r.status || "").toLowerCase();
+              if (f === "all") return true;
+              if (f === "cancelled") return status === "cancelled";
+              if (f === "accepted") return Boolean(r.dcAcceptedAssignmentId);
+              return status !== "cancelled";
+            }).length;
+            const active = requestFilter === f;
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setRequestFilter(f)}
+                className="rounded-full border px-3 py-1 text-xs"
+                style={{
+                  borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
+                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                  backgroundColor: active
+                    ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
+                    : "var(--surface-intermediate)",
+                }}
+              >
+                {f[0].toUpperCase() + f.slice(1)} ({count})
+              </button>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {filteredRequests.map((r) => {
         const status = r.status || "open";
         const suggested = r.dcSuggestedCount ?? 0;
         const hasAccepted = Boolean(r.dcAcceptedAssignmentId);
@@ -654,6 +788,14 @@ function MyDirectConnectRequests() {
           </Card>
         );
       })}
+
+      {!filteredRequests.length && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
+            No requests in this filter.
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -700,6 +842,8 @@ export default function DirectConnectShell() {
     }),
     [inboxData, requestsData]
   );
+
+  const sectionMeta = SECTION_META[activeSection];
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -780,7 +924,33 @@ export default function DirectConnectShell() {
             </CardContent>
           </Card>
 
-          <div className="min-w-0">{centerContent}</div>
+          <div className="min-w-0 space-y-4">
+            <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+              <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-[color:var(--text-primary)]">
+                    {sectionMeta.title}
+                  </h2>
+                  <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                    {sectionMeta.description}
+                  </p>
+                  <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
+                    {sectionMeta.hint}
+                  </p>
+                </div>
+                {sectionMeta.actionTarget !== activeSection && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigateSection(sectionMeta.actionTarget)}
+                  >
+                    {sectionMeta.actionLabel}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+            {centerContent}
+          </div>
 
           <Card className="h-fit border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
             <CardHeader className="pb-2">
