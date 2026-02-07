@@ -39,8 +39,9 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   onCancel,
   contactOutcome,
 }) => {
-  const actionLabel = action === "message" ? "Message" : action === "contact_person" ? "Contact" : "Direct Connect";
-  
+  const actionLabel =
+    action === "message" ? "Message" : action === "contact_person" ? "Contact" : "Direct Connect";
+
   // D1: Contact outcome modal state
   const [showContactModal, setShowContactModal] = useState(false);
 
@@ -58,7 +59,8 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   }, [action, scoutAction, context.targetRole]);
 
   // Map Scout action to guidance state
-  const guidanceState = scoutAction === "COMPLY" ? "safe" : scoutAction === "DEFER" ? "caution" : "blocked";
+  const guidanceState =
+    scoutAction === "COMPLY" ? "safe" : scoutAction === "DEFER" ? "caution" : "blocked";
 
   const getGuidanceIcon = () => {
     switch (guidanceState) {
@@ -93,18 +95,14 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
           <p className="font-medium">{context.targetName}</p>
           <p className="text-slate-600">{context.targetRole}</p>
           <p className="text-slate-500">{context.communitySignal}</p>
-          {context.absenceNote && (
-            <p className="text-slate-400 italic">{context.absenceNote}</p>
-          )}
+          {context.absenceNote && <p className="text-slate-400 italic">{context.absenceNote}</p>}
         </div>
       </div>
 
       {/* 2. Risk Framing */}
       {riskFraming.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-900">
-            What could go wrong here?
-          </h3>
+          <h3 className="text-sm font-medium text-slate-900">What could go wrong here?</h3>
           <div className="space-y-1">
             {riskFraming.slice(0, 2).map((risk, i) => (
               <p key={i} className="text-sm text-slate-600">
@@ -118,14 +116,12 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
       {/* 3. Scout Guidance */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-slate-900">
-          What Scout recommends right now
+          How Scout governs this decision right now
         </h3>
         <div className="flex items-start gap-3">
           {getGuidanceIcon()}
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-slate-900">
-              {getGuidanceText()}
-            </p>
+            <p className="text-sm font-medium text-slate-900">{getGuidanceText()}</p>
             <p className="text-sm text-slate-600">{guidance}</p>
           </div>
         </div>
@@ -133,9 +129,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
 
       {/* 4. Action Choice */}
       <div className="space-y-2 pt-2 border-t border-slate-100">
-        <h3 className="text-sm font-medium text-slate-900">
-          What do you want to do?
-        </h3>
+        <h3 className="text-sm font-medium text-slate-900">What do you want to do?</h3>
         <div className="flex flex-wrap gap-2">
           {/* Show "Contact now" only if COMPLY */}
           {scoutAction === "COMPLY" && (

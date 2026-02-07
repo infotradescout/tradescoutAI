@@ -9,6 +9,31 @@ function getAuthedUserId(req: any): string {
   return (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
 }
 
+function sanitizePublicCtaConfig(ctaConfig: unknown) {
+  const safe = (ctaConfig && typeof ctaConfig === "object" ? ctaConfig : {}) as Record<string, any>;
+
+  const sanitizeCta = (cta: unknown) => {
+    if (!cta || typeof cta !== "object") return null;
+    const source = cta as Record<string, any>;
+    const kind = typeof source.kind === "string" ? source.kind : "message";
+    const label = typeof source.label === "string" ? source.label : "Contact on TradeScout";
+
+    return {
+      label,
+      kind,
+      // Public pages never expose direct contact values.
+      value: null,
+      requiresTradeScoutAccount: true,
+      route: "/direct-connect",
+    };
+  };
+
+  return {
+    primary: sanitizeCta(safe.primary),
+    secondary: sanitizeCta(safe.secondary),
+  };
+}
+
 const contentBlockSchema = z
   .object({
     type: z.enum(["hero", "about", "services", "gallery", "faq", "reviews", "cta", "custom"]),
@@ -257,9 +282,14 @@ router.get("/api/p/:slug", async (req, res) => {
         displayName: profile.displayName,
         headline: profile.headline,
         contentBlocks: profile.contentBlocks,
-        ctaConfig: profile.ctaConfig,
+        ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
         seoMeta: profile.seoMeta,
         profileSections: profile.profileSections || null,
+        contactPolicy: {
+          mode: "direct_connect_only",
+          requiresTradeScoutAccount: true,
+          reason: "Spam prevention",
+        },
       },
       business: safeBusiness,
     });

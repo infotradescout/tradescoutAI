@@ -41,7 +41,7 @@ async function checkCTAAuthority(
       credentials: "include",
       body: JSON.stringify({ action, context, contextId, scope }),
     });
-    
+
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (error) {
@@ -56,7 +56,10 @@ async function checkCTAAuthority(
   }
 }
 
-async function trackCTA(action: "ask_scout" | "direct_connect" | "message", source: CommunityCTASource) {
+async function trackCTA(
+  action: "ask_scout" | "direct_connect" | "message",
+  source: CommunityCTASource
+) {
   try {
     const mod = await import("../../agent/activity");
     const recordActivity = (mod as any).recordActivity as
@@ -91,52 +94,52 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
+
   // Authority state for each CTA
   const [directConnectAuthority, setDirectConnectAuthority] = useState<CTAAuthority | null>(null);
   const [messageAuthority, setMessageAuthority] = useState<CTAAuthority | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Decision card state
   const [showDecisionCard, setShowDecisionCard] = useState(false);
   const [pendingAction, setPendingAction] = useState<"message" | "direct_connect" | null>(null);
 
   const id = encodeURIComponent(String(contextId));
-  
+
   // Check authority on mount
   useEffect(() => {
     let cancelled = false;
-    
+
     async function checkAuthority() {
       setLoading(true);
-      
+
       const checks = [];
-      
+
       if (canDirectConnect && !disableDirectConnect) {
         checks.push(
-          checkCTAAuthority("direct_connect", source, String(contextId), scope)
-            .then(result => {
-              if (!cancelled) setDirectConnectAuthority(result);
-            })
+          checkCTAAuthority("direct_connect", source, String(contextId), scope).then((result) => {
+            if (!cancelled) setDirectConnectAuthority(result);
+          })
         );
       }
-      
+
       if (canMessage && ownerUserId) {
         checks.push(
-          checkCTAAuthority("message", source, String(contextId), scope)
-            .then(result => {
-              if (!cancelled) setMessageAuthority(result);
-            })
+          checkCTAAuthority("message", source, String(contextId), scope).then((result) => {
+            if (!cancelled) setMessageAuthority(result);
+          })
         );
       }
-      
+
       await Promise.all(checks);
       if (!cancelled) setLoading(false);
     }
-    
+
     void checkAuthority();
-    
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [source, contextId, canDirectConnect, canMessage, ownerUserId, disableDirectConnect, scope]);
 
   const handleAskScout = async () => {
@@ -196,24 +199,26 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     setShowDecisionCard(false);
     setPendingAction(null);
   };
-  
+
   // Determine what to show for Direct Connect CTA
   const directConnectMode = directConnectAuthority?.ctaMode || "show";
-  const showDirectConnect = (canDirectConnect && !disableDirectConnect) && directConnectMode !== "hide";
-  const directConnectLabel = directConnectMode === "ask_scout" 
-    ? (directConnectAuthority?.label || "Ask Scout")
-    : "Direct Connect";
-  
+  const showDirectConnect =
+    canDirectConnect && !disableDirectConnect && directConnectMode !== "hide";
+  const directConnectLabel =
+    directConnectMode === "ask_scout"
+      ? directConnectAuthority?.label || "Ask Scout"
+      : "Direct Connect";
+
   // Determine what to show for Message CTA
   const messageMode = messageAuthority?.ctaMode || "show";
-  const showMessage = (canMessage && ownerUserId) && messageMode !== "hide";
-  const messageLabel = messageMode === "ask_scout"
-    ? (messageAuthority?.label || "Ask Scout")
-    : "Message";
-  
+  const showMessage = canMessage && ownerUserId && messageMode !== "hide";
+  const messageLabel =
+    messageMode === "ask_scout" ? messageAuthority?.label || "Ask Scout" : "Message";
+
   // Get authority for pending action
-  const currentAuthority = pendingAction === "direct_connect" ? directConnectAuthority : messageAuthority;
-  
+  const currentAuthority =
+    pendingAction === "direct_connect" ? directConnectAuthority : messageAuthority;
+
   // Render DecisionCard if active
   if (showDecisionCard && pendingAction && currentAuthority) {
     return (
@@ -230,10 +235,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
           riskFraming={currentAuthority.explanation ? [currentAuthority.explanation] : []}
           guidance={
             currentAuthority.action === "COMPLY"
-              ? "This looks like a normal contact. You're good to proceed."
+              ? "Human trust signals are healthy here. Scout allows contact."
               : currentAuthority.action === "DEFER"
-              ? "Before contacting, Scout suggests clarifying your scope to avoid misalignment."
-              : "Scout recommends waiting. Missing details here increase the chance of a bad outcome."
+                ? "Scout is holding this action until scope is clearer to reduce misalignment."
+                : "Scout is blocking this action for now. Missing details increase bad-outcome risk."
           }
           explanation={currentAuthority.explanation}
           onProceed={handleDecisionProceed}
@@ -247,13 +252,14 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   // Show loading state briefly
   if (loading) {
     return (
-      <div className={layout === "inline" 
-        ? "flex items-center gap-1 pt-2 text-[11px] text-neutral-500" 
-        : "mt-2 grid grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-tsBorder/70"
-      }>
-        <div className="flex items-center justify-center py-2 text-neutral-600">
-          Loading...
-        </div>
+      <div
+        className={
+          layout === "inline"
+            ? "flex items-center gap-1 pt-2 text-[11px] text-neutral-500"
+            : "mt-2 grid grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-tsBorder/70"
+        }
+      >
+        <div className="flex items-center justify-center py-2 text-neutral-600">Loading...</div>
       </div>
     );
   }

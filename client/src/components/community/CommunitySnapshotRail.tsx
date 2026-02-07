@@ -146,7 +146,7 @@ export const CommunitySnapshotRail: React.FC<{
           authorityLabel: r.verified
             ? "Verified provider in your area"
             : r.isNew
-              ? "New listing — Scout recommends gathering context"
+              ? "New listing — gather context before contact"
               : undefined,
         }));
 

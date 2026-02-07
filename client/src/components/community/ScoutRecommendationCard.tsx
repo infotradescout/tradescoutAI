@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, AlertCircle, XCircle, User, MapPin, Briefcase, TrendingUp } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  User,
+  MapPin,
+  Briefcase,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -44,13 +52,16 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
   // Action mutation (accept/dismiss)
   const actionMutation = useMutation({
-    mutationFn: async (action: 'accept' | 'dismiss') => {
-      const res = await fetch(`/api/scout/recommendations/${recommendation.recommendationId}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action }),
-      });
+    mutationFn: async (action: "accept" | "dismiss") => {
+      const res = await fetch(
+        `/api/scout/recommendations/${recommendation.recommendationId}/action`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ action }),
+        }
+      );
 
       if (!res.ok) {
         const error = await res.json();
@@ -67,7 +78,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   };
 
   const handleDismiss = () => {
-    actionMutation.mutate('dismiss', {
+    actionMutation.mutate("dismiss", {
       onSuccess: () => {
         toast({ title: "Recommendation dismissed" });
         onDismiss?.();
@@ -81,53 +92,53 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   // Get confidence styling
   const getConfidenceBadge = () => {
     const score = Math.round(recommendation.confidenceScore * 100);
-    
-    if (recommendation.confidenceTier === 'auto_allow') {
+
+    if (recommendation.confidenceTier === "auto_allow") {
       return {
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+        color: "bg-emerald-100 text-emerald-800 border-emerald-300",
         icon: <CheckCircle2 className="w-4 h-4" />,
         label: `${score}% match`,
       };
     }
-    
-    if (recommendation.confidenceTier === 'manual_confirm') {
+
+    if (recommendation.confidenceTier === "manual_confirm") {
       return {
-        color: 'bg-blue-100 text-blue-800 border-blue-300',
+        color: "bg-blue-100 text-blue-800 border-blue-300",
         icon: <CheckCircle2 className="w-4 h-4" />,
         label: `${score}% match`,
       };
     }
-    
-    if (recommendation.confidenceTier === 'caution') {
+
+    if (recommendation.confidenceTier === "caution") {
       return {
-        color: 'bg-amber-100 text-amber-800 border-amber-300',
+        color: "bg-amber-100 text-amber-800 border-amber-300",
         icon: <AlertCircle className="w-4 h-4" />,
         label: `${score}% match`,
       };
     }
-    
+
     // blocked
     return {
-      color: 'bg-slate-100 text-slate-600 border-slate-300',
+      color: "bg-slate-100 text-slate-600 border-slate-300",
       icon: <XCircle className="w-4 h-4" />,
-      label: 'Not recommended',
+      label: "Not recommended",
     };
   };
 
   const badge = getConfidenceBadge();
 
   // Don't render blocked recommendations
-  if (recommendation.confidenceTier === 'blocked') {
+  if (recommendation.confidenceTier === "blocked") {
     return null;
   }
 
   return (
     <>
       <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-        {/* Header: Scout branding */}
+        {/* Header: governance framing */}
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <TrendingUp className="w-4 h-4" />
-          <span className="font-medium">Scout recommends</span>
+          <span className="font-medium">Human recommendation, Scout-governed</span>
         </div>
 
         {/* Target User */}
@@ -138,7 +149,9 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
           <div className="flex-1 space-y-1">
             <div className="flex items-center gap-2">
               <p className="font-semibold text-slate-900">{recommendation.targetUserName}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.color}`}>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.color}`}
+              >
                 {badge.icon}
                 {badge.label}
               </span>
@@ -194,7 +207,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         </div>
 
         {/* Risk Flags (if caution level) */}
-        {recommendation.confidenceTier === 'caution' && recommendation.riskFlags.length > 0 && (
+        {recommendation.confidenceTier === "caution" && recommendation.riskFlags.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
             <p className="text-sm font-medium text-amber-900">Considerations:</p>
             <ul className="space-y-0.5 text-sm text-amber-800">
@@ -207,7 +220,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
         {/* Actions */}
         <div className="flex gap-2 pt-2 border-t border-slate-100">
-          {recommendation.confidenceTier === 'auto_allow' && (
+          {recommendation.confidenceTier === "auto_allow" && (
             <Button
               onClick={handleAccept}
               className="flex-1 bg-slate-900 hover:bg-slate-800 text-white"
@@ -217,7 +230,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             </Button>
           )}
 
-          {recommendation.confidenceTier === 'manual_confirm' && (
+          {recommendation.confidenceTier === "manual_confirm" && (
             <Button
               onClick={handleAccept}
               variant="outline"
@@ -228,7 +241,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             </Button>
           )}
 
-          {recommendation.confidenceTier === 'caution' && (
+          {recommendation.confidenceTier === "caution" && (
             <Button
               onClick={handleAccept}
               variant="outline"
@@ -263,8 +276,8 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             confidenceScore: recommendation.confidenceScore,
             riskFlags: recommendation.riskFlags,
             sourceScoutRecommendationId: recommendation.recommendationId, // D2: Scout rec ID
-            decisionScope: recommendation.decisionScope || '',
-            decisionTitle: 'Scout Recommendation',
+            decisionScope: recommendation.decisionScope || "",
+            decisionTitle: "Scout Recommendation",
           }}
           onClose={() => setShowContactModal(false)}
         />

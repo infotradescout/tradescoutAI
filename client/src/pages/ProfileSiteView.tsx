@@ -3,6 +3,7 @@ import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SEOHelmet } from "@/components/SEOHelmet";
 import { MessageCircle, ShieldCheck } from "lucide-react";
 
 type ProfileSections = {
@@ -26,6 +27,11 @@ type PublicProfile = {
   ctaConfig: any;
   seoMeta: any;
   profileSections?: ProfileSections | null;
+  contactPolicy?: {
+    mode?: "direct_connect_only";
+    requiresTradeScoutAccount?: boolean;
+    reason?: string;
+  } | null;
 };
 
 type PublicBusinessSubset = {
@@ -114,6 +120,15 @@ export default function ProfileSiteView() {
 
   return (
     <div className=" py-8">
+      <SEOHelmet
+        title={`${displayName} | TradeScout Public Profile`}
+        description={
+          profile.headline ||
+          `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`
+        }
+        canonical={`${window.location.origin}/p/${encodeURIComponent(profile.slug)}`}
+        ogType="profile"
+      />
       <div className="container mx-auto px-4 max-w-5xl">
         <Card className="bg-navy-800 border-navy-700">
           <CardHeader className="space-y-2">
@@ -162,7 +177,12 @@ export default function ProfileSiteView() {
                   <div className="space-y-2 text-sm text-gray-300">
                     <div className="flex items-center gap-2 text-gray-200">
                       <ShieldCheck className="h-4 w-4 text-orange-400" />
-                      <span>Contact is protected to prevent spam.</span>
+                      <span>
+                        Contact is protected to prevent spam
+                        {profile.contactPolicy?.reason
+                          ? ` (${profile.contactPolicy.reason.toLowerCase()})`
+                          : "."}
+                      </span>
                     </div>
                     <p className="text-gray-400">
                       Create a free TradeScout account to contact this profile through Direct
