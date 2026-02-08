@@ -1,14 +1,13 @@
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Phone, Mail, MapPin, Calendar, Clock, Shield, CheckCircle, ExternalLink, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Calendar, Shield, CheckCircle, ExternalLink, ThumbsUp, ThumbsDown, MessageSquare, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { ChatButton } from "@/components/ChatButton";
 import { RecommendationForm } from "@/components/RecommendationForm";
 import type { Contractor, Recommendation } from "@shared/schema";
-import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 interface ContractorProfileData {
   contractor: Contractor;
@@ -22,6 +21,7 @@ interface ContractorProfileData {
 export default function ContractorProfile() {
   const { slug } = useParams();
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   const { data: contractorData, isLoading, error } = useQuery<ContractorProfileData>({
     queryKey: [`/api/contractors/${slug}`],
@@ -71,8 +71,6 @@ export default function ContractorProfile() {
     "name": contractor.companyName,
     "description": contractor.about || `Professional contractor services by ${contractor.companyName}`,
     "url": window.location.href,
-    "telephone": contractor.phone || undefined,
-    "email": contractor.email || undefined,
     "address": {
       "@type": "PostalAddress",
       "addressCountry": "US"
@@ -89,6 +87,7 @@ export default function ContractorProfile() {
 
   const seoTitle = `${contractor.companyName} - Verified Local Contractor | TradeScout`;
   const seoDescription = `Hire ${contractor.companyName} for quality home improvement services. ${ratingSummary ? `${ratingSummary.average} star rating` : 'Verified'} contractor${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ''}. Licensed and insured.`;
+  const directConnectHref = `/direct-connect?intent=hire&contractor=${encodeURIComponent(String(slug || contractor.id))}`;
 
   return (
     <>
@@ -178,23 +177,40 @@ export default function ContractorProfile() {
             </div>
             
             <div className="flex flex-col space-y-3">
-              <ChatButton 
-                contractorId={contractor.id}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300"
-              />
-              
-              {contractor.phone && (
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold glow-effect transition-all duration-300">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Call {contractor.phone}
+              <div className="rounded-lg border border-navy-600 bg-navy-800/60 px-4 py-3 text-xs text-gray-300">
+                <div className="flex items-center gap-2 text-gray-200">
+                  <ShieldCheck className="h-4 w-4 text-orange-400" />
+                  <span>Contact is protected to prevent spam.</span>
+                </div>
+                <p className="mt-1 text-gray-400">
+                  Start Direct Connect to route requests through TradeScoutâ€™s trust policy.
+                </p>
+              </div>
+
+              {isAuthenticated ? (
+                <Button
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300"
+                  onClick={() => setLocation(directConnectHref)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Start Direct Connect
                 </Button>
-              )}
-              
-              {contractor.email && (
-                <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6 py-3">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Message
-                </Button>
+              ) : (
+                <>
+                  <Link
+                    href={`/create-account?next=${encodeURIComponent(directConnectHref)}`}
+                  >
+                    <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 w-full">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Create Account to Connect
+                    </Button>
+                  </Link>
+                  <Link href={`/auth/login?next=${encodeURIComponent(directConnectHref)}`}>
+                    <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6 py-3 w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </div>

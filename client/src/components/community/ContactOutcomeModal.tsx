@@ -129,16 +129,16 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
             <AlertCircle className="w-6 h-6 text-slate-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
               <h2 className="text-lg font-semibold text-slate-900">
-                Contact not recommended
+                Contact blocked by policy
               </h2>
               <p className="text-sm text-slate-600">
-                Scout's assessment shows this contact is not a good match for your decision right now.
+                Scout policy indicates this contact is not a good match for your decision right now.
               </p>
             </div>
           </div>
 
           <div className="space-y-2 pt-2 border-t border-slate-100">
-            <h3 className="text-sm font-medium text-slate-900">Why Scout blocked this</h3>
+            <h3 className="text-sm font-medium text-slate-900">Why policy blocked this</h3>
             <ul className="space-y-1 text-sm text-slate-600">
               {outcome.riskFlags.map((flag, i) => (
                 <li key={i}>• {flag}</li>
@@ -204,14 +204,14 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
             </p>
             <p className="text-sm text-slate-600">{outcome.reasonForContact}</p>
             <p className="text-xs text-slate-500 italic mt-2">
-              This intent was determined by Scout and cannot be changed.
+              This intent was determined by Scout policy and cannot be changed.
             </p>
           </div>
         </div>
 
         {/* Section 3: Scout Assessment */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-900">Scout's assessment</h3>
+          <h3 className="text-sm font-medium text-slate-900">Policy assessment</h3>
           <div className="flex items-start gap-3">
             {getConfidenceIcon()}
             <div className="flex-1 space-y-1">

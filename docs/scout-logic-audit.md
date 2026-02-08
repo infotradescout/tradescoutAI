@@ -36,12 +36,14 @@ Date: 2026-02-07
    - `server/tests/scout-policy.test.ts`
    - Verifies recommendation phrasing is rewritten before user-visible output.
 
+## Additional Changes (2026-02-08)
+1. Removed recommendation language from system prompt templates (`server/cache/manual/system_prompt.md`).
+2. Extended policy tests to assert system prompt avoids recommendation phrasing.
+3. Added admin observability panel + API for `scout_policy_violation_detected` telemetry.
+4. Updated community decision/CTA copy to emphasize policy governance and trust signals.
+
 ## Remaining Audit Backlog
-1. Full server Scout prompt audit for any remaining "recommend/recommended" wording in deep branches.
-2. Replace/retire auxiliary scoring/helper names that imply direct recommendation generation (for semantic clarity).
-3. Extend policy tests to cover prompt templates and fallback strings.
-4. Add admin observability panel for `scout_policy_violation_detected` events.
-5. Review all Trust/Community UI cards to ensure "human recommendation, Scout-governed" copy is consistent.
+1. Review any remaining non-community UI copy that implies Scout endorses people (site-wide sweep).
 
 ## Release Gate For This Phase
 - Recommendation endpoints return `410`.

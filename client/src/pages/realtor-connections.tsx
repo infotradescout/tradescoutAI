@@ -5,16 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
-  Phone, 
-  Mail,
   MapPin,
   Home,
   Briefcase,
   Network,
   Star,
-  Calendar,
   MessageSquare,
-  Plus
+  Plus,
+  ShieldCheck
 } from "lucide-react";
 
 export default function RealtorConnections() {
@@ -178,12 +176,8 @@ export default function RealtorConnections() {
                                 {contractor.contact}
                               </div>
                               <div className="flex items-center gap-2 text-muted-foreground">
-                                <Phone className="h-4 w-4" />
-                                {contractor.phone}
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {contractor.email}
+                                <ShieldCheck className="h-4 w-4" />
+                                Contact protected via TradeScout
                               </div>
                             </div>
                             
@@ -222,9 +216,18 @@ export default function RealtorConnections() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" data-testid="button-contact-contractor">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Contact
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          data-testid="button-contact-contractor"
+                          onClick={() => {
+                            window.location.href = `/direct-connect?intent=collaborate&source=realtor_connections&target=${encodeURIComponent(
+                              contractor.name
+                            )}`;
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Start Direct Connect
                         </Button>
                         <Button size="sm" className="bg-primary hover:bg-primary/90" data-testid="button-refer-contractor">
                           <MessageSquare className="h-4 w-4 mr-2" />
@@ -262,12 +265,8 @@ export default function RealtorConnections() {
                                 {lender.contact}
                               </div>
                               <div className="flex items-center gap-2 text-muted-foreground">
-                                <Phone className="h-4 w-4" />
-                                {lender.phone}
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {lender.email}
+                                <ShieldCheck className="h-4 w-4" />
+                                Contact protected via TradeScout
                               </div>
                             </div>
                             
@@ -300,9 +299,18 @@ export default function RealtorConnections() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" data-testid="button-contact-lender">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Contact
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          data-testid="button-contact-lender"
+                          onClick={() => {
+                            window.location.href = `/direct-connect?intent=collaborate&source=realtor_connections&target=${encodeURIComponent(
+                              lender.name
+                            )}`;
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Start Direct Connect
                         </Button>
                         <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" data-testid="button-refer-lender">
                           <MessageSquare className="h-4 w-4 mr-2" />
@@ -340,12 +348,8 @@ export default function RealtorConnections() {
                                 {inspector.contact}
                               </div>
                               <div className="flex items-center gap-2 text-muted-foreground">
-                                <Phone className="h-4 w-4" />
-                                {inspector.phone}
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {inspector.email}
+                                <ShieldCheck className="h-4 w-4" />
+                                Contact protected via TradeScout
                               </div>
                             </div>
                           </div>
@@ -372,9 +376,18 @@ export default function RealtorConnections() {
                         </div>
                       </div>
 
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-schedule-inspection">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Schedule
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        data-testid="button-schedule-inspection"
+                        onClick={() => {
+                          window.location.href = `/direct-connect?intent=collaborate&source=realtor_connections&target=${encodeURIComponent(
+                            inspector.name
+                          )}`;
+                        }}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Start Direct Connect
                       </Button>
                     </div>
                   </CardContent>

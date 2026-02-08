@@ -15,9 +15,8 @@ import {
   TrendingUp, 
   Award,
   ExternalLink,
-  Phone,
-  Mail,
-  Clock
+  Clock,
+  MessageSquare
 } from "lucide-react";
 
 type HeatmapDataPoint = {
@@ -39,8 +38,6 @@ type CountyContractor = {
   specialties: string[];
   isVerified: boolean;
   yearsInBusiness: number;
-  phone?: string;
-  email?: string;
 };
 
 interface InteractiveCountyMapProps {
@@ -365,18 +362,19 @@ export function InteractiveCountyMap({
                                     </div>
                                     
                                     <div className="flex gap-2">
-                                      {contractor.phone && (
-                                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                          <Phone className="w-4 h-4 mr-1" />
-                                          Call
-                                        </Button>
-                                      )}
-                                      {contractor.email && (
-                                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                          <Mail className="w-4 h-4 mr-1" />
-                                          Email
-                                        </Button>
-                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-slate-600 text-slate-300"
+                                        onClick={() => {
+                                          window.location.href = `/direct-connect?intent=hire&contractorId=${encodeURIComponent(
+                                            contractor.id
+                                          )}`;
+                                        }}
+                                      >
+                                        <MessageSquare className="w-4 h-4 mr-1" />
+                                        Start Direct Connect
+                                      </Button>
                                     </div>
                                   </CardContent>
                                 </Card>

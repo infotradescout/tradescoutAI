@@ -563,49 +563,15 @@ export default function AdminWorkspace() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Quality Weight (%)</label>
-                    <Select defaultValue="50">
-                      <SelectTrigger className="form-field">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="40">40%</SelectItem>
-                        <SelectItem value="50">50%</SelectItem>
-                        <SelectItem value="60">60%</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="rounded-lg border border-navy-500 bg-navy-700/40 p-4 text-sm text-gray-300">
+                    Live routing weights are managed in platform settings. Use the admin panel to
+                    review or update lead routing policies.
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">
-                      Response Rate Weight (%)
-                    </label>
-                    <Select defaultValue="30">
-                      <SelectTrigger className="form-field">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="20">20%</SelectItem>
-                        <SelectItem value="30">30%</SelectItem>
-                        <SelectItem value="40">40%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Speed Weight (%)</label>
-                    <Select defaultValue="20">
-                      <SelectTrigger className="form-field">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10%</SelectItem>
-                        <SelectItem value="20">20%</SelectItem>
-                        <SelectItem value="30">30%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600">
-                    Update Routing Rules
+                  <Button
+                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    onClick={() => (window.location.href = "/admin/panel")}
+                  >
+                    Open Admin Panel
                   </Button>
                 </CardContent>
               </Card>
@@ -617,20 +583,26 @@ export default function AdminWorkspace() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Leads Today</span>
-                      <span className="text-white font-semibold">23</span>
+                      <span className="text-gray-400">New Leads (7d)</span>
+                      <span className="text-white font-semibold">{adminStats?.newLeads || 0}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Avg Response Time</span>
-                      <span className="text-white font-semibold">1.2 hours</span>
+                      <span className="text-gray-400">Total Recommendations</span>
+                      <span className="text-white font-semibold">
+                        {adminStats?.totalRecommendations || 0}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Acceptance Rate</span>
-                      <span className="text-green-400 font-semibold">87%</span>
+                      <span className="text-gray-400">Pending Verifications</span>
+                      <span className="text-white font-semibold">
+                        {pendingVerifications.length}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Top 3 Requests</span>
-                      <span className="text-white font-semibold">156</span>
+                      <span className="text-gray-400">Community Posts</span>
+                      <span className="text-white font-semibold">
+                        {adminStats?.totalCommunityPosts || 0}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -714,20 +686,14 @@ export default function AdminWorkspace() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Verified</span>
-                    <span className="text-green-400 font-semibold">
-                      {Math.round((adminStats?.totalContractors || 0) * 0.85)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-gray-400">Pending Verification</span>
                     <span className="text-yellow-400 font-semibold">
                       {pendingVerifications.length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Growth Rate</span>
-                    <span className="text-green-400 font-semibold">+12.5%</span>
+                    <span className="text-gray-400">Total Users</span>
+                    <span className="text-white font-semibold">{adminStats?.totalUsers || 0}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -741,20 +707,24 @@ export default function AdminWorkspace() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total This Month</span>
-                    <span className="text-white font-semibold">1,247</span>
+                    <span className="text-gray-400">New Leads (7d)</span>
+                    <span className="text-white font-semibold">{adminStats?.newLeads || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Conversion Rate</span>
-                    <span className="text-green-400 font-semibold">73.2%</span>
+                    <span className="text-gray-400">Recommendations</span>
+                    <span className="text-white font-semibold">
+                      {adminStats?.totalRecommendations || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Avg Response Time</span>
-                    <span className="text-white font-semibold">1.8 hrs</span>
+                    <span className="text-gray-400">Community Posts</span>
+                    <span className="text-white font-semibold">
+                      {adminStats?.totalCommunityPosts || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Top 3 Success Rate</span>
-                    <span className="text-green-400 font-semibold">89.4%</span>
+                    <span className="text-gray-400">Total Users</span>
+                    <span className="text-white font-semibold">{adminStats?.totalUsers || 0}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -791,29 +761,17 @@ export default function AdminWorkspace() {
                   <CardTitle className="text-white text-lg">Export Reports</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button
-                      variant="outline"
-                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Contractor Report
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Lead Analytics
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Revenue Report
-                    </Button>
+                  <div className="text-sm text-gray-300 mb-4">
+                    Exportable reports are available in Platform Analytics.
                   </div>
+                  <Button
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    onClick={() => (window.location.href = "/platform-analytics")}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Open Platform Analytics
+                  </Button>
                 </CardContent>
               </Card>
             </div>

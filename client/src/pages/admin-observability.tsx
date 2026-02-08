@@ -64,9 +64,30 @@ interface AlertsResponse {
   total: number;
 }
 
+interface ScoutPolicyViolation {
+  rule?: string;
+  kind?: string;
+}
+
+interface ScoutPolicyEvent {
+  id: string;
+  createdAt: string;
+  violationCount: number;
+  violations: ScoutPolicyViolation[];
+  countyCode?: string | null;
+  stateCode?: string | null;
+}
+
+interface ScoutPolicyTelemetry {
+  total: number;
+  last7d: number;
+  recent: ScoutPolicyEvent[];
+}
+
 export default function ObservabilityDashboard() {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
+  const [scoutPolicy, setScoutPolicy] = useState<ScoutPolicyTelemetry | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -95,11 +116,24 @@ export default function ObservabilityDashboard() {
       }
     };
 
+    const fetchScoutPolicy = async () => {
+      try {
+        const response = await fetch("/api/admin/observability/scout-policy");
+        if (!response.ok) throw new Error("Failed to fetch Scout policy telemetry");
+        const data = await response.json();
+        setScoutPolicy(data);
+      } catch (err) {
+        console.error("Failed to fetch Scout policy telemetry:", err);
+      }
+    };
+
     fetchMetrics();
     fetchAlerts();
+    fetchScoutPolicy();
     const interval = setInterval(() => {
       fetchMetrics();
       fetchAlerts();
+      fetchScoutPolicy();
     }, 15000);
 
     return () => clearInterval(interval);
@@ -143,7 +177,7 @@ export default function ObservabilityDashboard() {
     );
   }
 
-  if (!metrics || !alerts) {
+  if (!metrics || !alerts || !scoutPolicy) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -234,6 +268,69 @@ export default function ObservabilityDashboard() {
           </div>
         </Card>
       )}
+
+      {/* Scout Policy Violations */}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle className="h-5 w-5" />
+          <h2 className="text-xl font-semibold">Scout Policy Violations</h2>
+          <span className="text-xs text-muted-foreground ml-auto">
+            Telemetry: scout_policy_violation_detected
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Total violations</div>
+            <div className="text-2xl font-semibold">{scoutPolicy.total}</div>
+          </div>
+          <div className="border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Last 7 days</div>
+            <div className="text-2xl font-semibold">{scoutPolicy.last7d}</div>
+          </div>
+        </div>
+        {scoutPolicy.recent.length === 0 ? (
+          <div className="text-sm text-muted-foreground">No recent violations logged.</div>
+        ) : (
+          <div className="space-y-3">
+            {scoutPolicy.recent.map((event) => {
+              const uniqueRules = Array.from(
+                new Set((event.violations || []).map((v) => v.rule).filter(Boolean))
+              );
+              const location =
+                event.countyCode && event.stateCode
+                  ? `${event.countyCode}, ${event.stateCode}`
+                  : event.stateCode || event.countyCode || "Unknown location";
+
+              return (
+                <div key={event.id} className="border rounded-lg p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-medium">Violation batch</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(event.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Count</div>
+                      <div className="font-semibold">{event.violationCount}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Location</div>
+                      <div className="font-semibold">{location}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Rules</div>
+                      <div className="font-semibold">
+                        {uniqueRules.length > 0 ? uniqueRules.join(", ") : "n/a"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* Scheduler Metrics */}
       <Card className="p-6">

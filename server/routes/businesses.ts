@@ -204,7 +204,6 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
       category: profileData.category,
       services: profileData.services,
       website: profileData.website,
-      phone: profileData.phone,
       contactPreference: profileData.contactPreference,
     };
 

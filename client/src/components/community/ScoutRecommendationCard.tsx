@@ -80,7 +80,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   const handleDismiss = () => {
     actionMutation.mutate("dismiss", {
       onSuccess: () => {
-        toast({ title: "Recommendation dismissed" });
+        toast({ title: "Signal dismissed" });
         onDismiss?.();
       },
       onError: (error: Error) => {
@@ -121,7 +121,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
     return {
       color: "bg-slate-100 text-slate-600 border-slate-300",
       icon: <XCircle className="w-4 h-4" />,
-      label: "Not recommended",
+      label: "Blocked by policy",
     };
   };
 
@@ -253,13 +253,13 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
           )}
 
           <Button
-            onClick={handleDismiss}
-            variant="ghost"
-            className="text-slate-600 hover:bg-slate-50"
-            disabled={actionMutation.isPending}
-          >
-            Dismiss
-          </Button>
+      onClick={handleDismiss}
+      variant="ghost"
+      className="text-slate-600 hover:bg-slate-50"
+      disabled={actionMutation.isPending}
+    >
+      Dismiss
+    </Button>
         </div>
       </div>
 
@@ -277,7 +277,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             riskFlags: recommendation.riskFlags,
             sourceScoutRecommendationId: recommendation.recommendationId, // D2: Scout rec ID
             decisionScope: recommendation.decisionScope || "",
-            decisionTitle: "Scout Recommendation",
+            decisionTitle: "Scout-governed signal",
           }}
           onClose={() => setShowContactModal(false)}
         />

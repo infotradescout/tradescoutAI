@@ -8,8 +8,7 @@ import {
   MapPin, 
   Calendar, 
   Clock, 
-  Phone, 
-  Mail,
+  MessageSquare,
   CheckCircle,
   Shield,
   ExternalLink
@@ -211,24 +210,15 @@ export default function ContractorCard({
         {/* Action Buttons */}
         {showCallToAction ? (
           <div className="flex space-x-2">
-            {contractor.phone ? (
-              <a href={`tel:${contractor.phone}`} className="flex-1">
-                <Button className="w-full ts-accent-btn transition-all duration-300">
-                  <Phone className="h-4 w-4 mr-1" />
-                  Call Now
-                </Button>
-              </a>
-            ) : (
-              <Link
-                href={`/contractors/${contractor.slug}`}
-                className="flex-1"
-              >
-                <Button className="w-full ts-accent-btn transition-all duration-300">
-                  <Phone className="h-4 w-4 mr-1" />
-                  Get Contact
-                </Button>
-              </Link>
-            )}
+            <Link
+              href={`/direct-connect?intent=hire&contractor=${encodeURIComponent(contractor.slug)}`}
+              className="flex-1"
+            >
+              <Button className="w-full ts-accent-btn transition-all duration-300">
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Start Direct Connect
+              </Button>
+            </Link>
 
             <Link
               href={`/contractors/${contractor.slug}`}

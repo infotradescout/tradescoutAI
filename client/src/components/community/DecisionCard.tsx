@@ -78,9 +78,9 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
       case "safe":
         return "Safe to proceed";
       case "caution":
-        return "Pause recommended";
+        return "Pause advised";
       case "blocked":
-        return "Not recommended yet";
+        return "Blocked by policy";
     }
   };
 
@@ -205,7 +205,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
             <Button
               onClick={() => {
                 const confirmed = window.confirm(
-                  "Scout strongly recommends against this action. Are you sure you want to proceed?"
+                  "Scout policy blocks this action right now. Are you sure you want to proceed?"
                 );
                 if (confirmed) {
                   recordActivity({

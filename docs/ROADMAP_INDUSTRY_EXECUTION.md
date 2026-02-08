@@ -26,6 +26,9 @@ Progress:
 - Implemented public profile API CTA redaction with `direct_connect_only` policy metadata.
 - Added profile page SEOHelmet canonical/metadata fallback for client route hydration.
 - Aligned public contact copy with account-required anti-spam policy.
+- Removed direct contact fields from public business profile API responses.
+
+Status: **Complete** (meets required outcomes as of 2026-02-08)
 
 ## Phase 2: Direct Connect canonical funnel
 
@@ -36,6 +39,13 @@ Required outcomes:
 - Remove bypass paths that reveal direct phone/email on public surfaces.
 - Normalize all "contact/message/hire" CTA paths to Direct Connect intent flow.
 - Add explicit intent context payload (`hire`, `advise`, `collaborate`, `reconnect`) in routing.
+
+Progress:
+- Removed direct phone/email from public contractor APIs and public UI surfaces (cards, profiles, county map).
+- Routed contractor contact CTAs and chat entry points through Direct Connect with explicit `intent=hire` context.
+- Routed internal connection/contact CTAs (realtor connections) through Direct Connect and removed direct contact displays.
+
+Status: **Complete** (meets required outcomes as of 2026-02-08)
 
 ## Phase 3: Scout trust governance model
 
@@ -49,6 +59,11 @@ Required outcomes:
 
 Progress:
 - Updated core community recommendation and decision components away from "Scout recommends" phrasing.
+- Removed recommendation language from system prompt templates and added policy-test coverage.
+- Added admin observability telemetry panel for `scout_policy_violation_detected`.
+- Updated decision/CTA copy to emphasize policy-governed trust signals.
+
+Status: **Complete** (meets required outcomes as of 2026-02-08)
 
 ## Phase 4: Community UX overhaul
 
@@ -59,6 +74,13 @@ Required outcomes:
 - Top cards more compact.
 - Local/Everywhere toggle strictly controls feed scope.
 - Post cards and profile image rendering consistency.
+
+Progress:
+- Compacted Community Snapshot cards (size + typography).
+- Local/Everywhere toggle now hides local snapshot in global view to prevent mixed scope.
+- Standardized community post avatar sizing for consistent profile rendering.
+
+Status: **Complete** (meets required outcomes as of 2026-02-08)
 
 ## Phase 5: Admin/data integrity
 

@@ -87,6 +87,12 @@ import {
   walletTransactions,
   marketplaceTransactions,
 } from "../shared/schema";
+
+function sanitizeContractorPublic<T extends Record<string, any>>(contractor: T): Omit<T, "phone" | "email"> {
+  if (!contractor || typeof contractor !== "object") return contractor as any;
+  const { phone, email, ...rest } = contractor as any;
+  return rest;
+}
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
@@ -3307,7 +3313,7 @@ export async function registerRoutes(app: any) {
       }
 
       const contractors = await storage.getContractors(filters);
-      res.json(contractors);
+      res.json(contractors.map(sanitizeContractorPublic));
     } catch (error: any) {
       console.error("Error fetching contractors:", error);
       res.status(500).json({ message: "Failed to fetch contractors" });
@@ -3359,7 +3365,7 @@ export async function registerRoutes(app: any) {
       }
 
       const contractors = await storage.getContractors(filters);
-      res.json(contractors);
+      res.json(contractors.map(sanitizeContractorPublic));
     } catch (error: any) {
       console.error("Error searching contractors:", error);
       res.status(500).json({ message: "Failed to search contractors" });
@@ -3551,7 +3557,7 @@ export async function registerRoutes(app: any) {
       const ratings = await storage.getContractorRatings(contractor.id);
 
       res.json({
-        ...contractor,
+        contractor: sanitizeContractorPublic(contractor),
         recommendations,
         ratingSummary: ratings,
       });
@@ -4510,7 +4516,7 @@ export async function registerRoutes(app: any) {
       }
 
       const contractors = await storage.getContractors({ countyId: String(county) });
-      res.json(contractors || []);
+      res.json((contractors || []).map(sanitizeContractorPublic));
     } catch (error: any) {
       console.error("Error fetching county contractors:", error);
       res.status(500).json({ message: "Failed to fetch contractors" });
@@ -5341,30 +5347,6 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error logging event:", error);
       res.status(500).json({ message: "Failed to log event" });
-    }
-  });
-
-  // Admin analytics (requires admin auth)
-  app.get("/api/admin/stats", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userRole = req.user.claims.role;
-      if (!["owner", "ops_admin", "analytics_read"].includes(userRole)) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const today = new Date();
-      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-      const stats = {
-        totalContractors: await storage.getContractors({ limit: 10000 }).then((c) => c.length),
-        newLeads: await storage.getEventStats("lead_submitted", { from: weekAgo, to: today }),
-        totalRecommendations: await storage.getEventStats("recommendation_submitted"),
-      };
-
-      res.json(stats);
-    } catch (error: any) {
-      console.error("Error fetching admin stats:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
 

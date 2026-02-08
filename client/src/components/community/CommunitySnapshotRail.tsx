@@ -313,14 +313,14 @@ export const CommunitySnapshotRail: React.FC<{
         }}
         className={`
           snap-start shrink-0 
-          w-[118px] sm:w-[132px]
-          h-[176px] sm:h-[188px]
+          w-[104px] sm:w-[120px]
+          h-[156px] sm:h-[168px]
           rounded-2xl border 
           ${isActive ? "border-orange-500 ring-2 ring-orange-500/20" : "border-slate-800"}
           ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : "bg-slate-950/50"}
           hover:bg-slate-900/40 hover:border-slate-700
           transition-all shadow-lg
-          flex flex-col justify-between p-2.5 text-left 
+          flex flex-col justify-between p-2 text-left 
           ${card.href || isFilter ? "cursor-pointer" : "cursor-default"}
           relative overflow-hidden
         `}
@@ -338,10 +338,10 @@ export const CommunitySnapshotRail: React.FC<{
 
         {/* Card content */}
         <div className="relative z-10 flex-1 flex flex-col justify-end gap-1.5">
-          <div className="text-[12px] sm:text-[13px] font-bold text-white leading-snug line-clamp-2">
+          <div className="text-[11px] sm:text-[12px] font-bold text-white leading-snug line-clamp-2">
             {card.title}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-slate-300 leading-tight line-clamp-2">
+          <div className="text-[9px] sm:text-[10px] text-slate-300 leading-tight line-clamp-2">
             {card.description}
           </div>
         </div>

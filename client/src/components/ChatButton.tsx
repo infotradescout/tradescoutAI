@@ -1,6 +1,3 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -25,53 +22,34 @@ export function ChatButton({
     </>
   )
 }: ChatButtonProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-
-  const createConversationMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/conversations", {
-        contractorId,
-        leadId,
-      });
-    },
-    onSuccess: (conversation: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      setLocation(`/chat/${conversation.id}`);
-      toast({
-        title: "Chat Started",
-        description: "Your conversation with the contractor has been created.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to start chat. Please try again.",
-        variant: "destructive",
-      });
-    },
+  const params = new URLSearchParams({
+    intent: "hire",
+    contractorId,
   });
+  if (leadId) params.set("leadId", leadId);
+  const directConnectHref = `/direct-connect?${params.toString()}`;
 
   const handleStartChat = () => {
     if (!isAuthenticated) {
       toast({
         title: "Sign In Required",
-        description: "Please sign in to start a chat with contractors.",
+        description: "Please sign in to start Direct Connect.",
         variant: "destructive",
       });
-      setLocation("/login");
+      setLocation(`/auth/login?next=${encodeURIComponent(directConnectHref)}`);
       return;
     }
 
-    createConversationMutation.mutate();
+    setLocation(directConnectHref);
   };
 
   return (
     <Button
       onClick={handleStartChat}
-      disabled={createConversationMutation.isPending}
+      disabled={false}
       className={`btn-primary ${className}`}
     >
       {children}

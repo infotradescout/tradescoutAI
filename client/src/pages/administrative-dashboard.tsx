@@ -1,13 +1,17 @@
 import { memo } from 'react';
-import { Shield, Users, FileText, BarChart3, Settings, AlertTriangle, CheckCircle, Clock, Eye } from 'lucide-react';
+import { Shield, Users, FileText, BarChart3, Settings, AlertTriangle, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 interface AdminStats {
   totalUsers: number;
+  totalContractors?: number;
+  newLeads?: number;
+  totalRecommendations?: number;
   roleBreakdown: {
     homeowner: number;
     contractor: number;
@@ -19,9 +23,77 @@ interface AdminStats {
   totalCommunityPosts: number;
 }
 
+interface ObservabilitySummary {
+  timestamp: string;
+  scheduler: Array<{
+    jobName: string;
+    totalRuns: number;
+    errorCount: number;
+    overlapCount: number;
+    duration: { p50: number; p95: number; p99: number } | null;
+    rowsWritten: { min: number; avg: number; max: number };
+  }>;
+  dbPool: {
+    current: {
+      active: number;
+      idle: number;
+      waiting: number;
+    };
+  };
+  http: {
+    statusClasses: Record<string, number>;
+    total: number;
+  };
+}
+
+interface ObservabilityAlerts {
+  active: Array<{
+    id: string;
+    severity: string;
+    name: string;
+    description: string;
+    startedAt: string;
+  }>;
+  history: Array<{
+    id: string;
+    severity: string;
+    name: string;
+    description: string;
+    resolvedAt?: string;
+  }>;
+  total: number;
+}
+
+interface AuditLogEntry {
+  type: string;
+  userId?: string;
+  adminId?: string;
+  newRole?: string;
+  targetUserId?: string;
+  timestamp?: string;
+}
+
+interface AuditLogResponse {
+  log: AuditLogEntry[];
+}
+
 const AdministrativeDashboard = memo(function AdministrativeDashboard() {
   const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
+  });
+  const { data: observabilitySummary } = useQuery<ObservabilitySummary>({
+    queryKey: ['/api/admin/observability/summary'],
+  });
+  const { data: observabilityAlerts } = useQuery<ObservabilityAlerts>({
+    queryKey: ['/api/admin/observability/alerts'],
+  });
+  const {
+    data: auditLog,
+    isError: auditLogError,
+  } = useQuery<AuditLogResponse>({
+    queryKey: ['/api/admin/audit-log'],
+    retry: false,
+    queryFn: async () => apiRequest('GET', '/api/admin/audit-log'),
   });
 
   return (
@@ -44,10 +116,12 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-muted-foreground text-sm">Platform Health</p>
-                  <p className="text-2xl font-bold text-green-500">98.5%</p>
+                  <p className="text-muted-foreground text-sm">Active Alerts</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {observabilityAlerts?.total ?? 0}
+                  </p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-500" />
+                <AlertTriangle className="h-8 w-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
@@ -84,10 +158,12 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-muted-foreground text-sm">System Alerts</p>
-                  <p className="text-2xl font-bold text-red-500">0</p>
+                  <p className="text-muted-foreground text-sm">New Leads (7d)</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {isLoading ? '...' : (stats?.newLeads || 0).toLocaleString()}
+                  </p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-red-500" />
+                <BarChart3 className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
@@ -156,34 +232,42 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  { metric: "Server Response Time", value: "145ms", status: "good", target: "< 200ms" },
-                  { metric: "Database Performance", value: "98.2%", status: "excellent", target: "> 95%" },
-                  { metric: "Storage Usage", value: "67%", status: "good", target: "< 80%" },
-                  { metric: "API Availability", value: "99.9%", status: "excellent", target: "> 99%" },
-                ].map((metric, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <div>
-                      <p className="text-foreground font-medium text-sm">{metric.metric}</p>
-                      <p className="text-muted-foreground text-xs">Target: {metric.target}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-foreground font-bold">{metric.value}</p>
-                      <Badge variant={
-                      metric.status === 'excellent' ? 'default' :
-                      metric.status === 'good' ? 'secondary' : 'error'
-                    } className="text-xs">
-                        {metric.status}
-                      </Badge>
+              {!observabilitySummary ? (
+                <div className="text-sm text-muted-foreground">
+                  No observability snapshots available yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-foreground font-medium text-sm">Scheduler Jobs</p>
+                    <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                      {observabilitySummary.scheduler.map((job) => (
+                        <div key={job.jobName} className="flex flex-wrap justify-between">
+                          <span>{job.jobName.replace(/_/g, ' ')}</span>
+                          <span>
+                            Runs {job.totalRuns} | Errors {job.errorCount} | Overlaps {job.overlapCount} | p95{' '}
+                            {job.duration?.p95 ? `${job.duration.p95}ms` : 'n/a'}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
 
-              <Button className="w-full mt-4">
-                View Detailed Analytics
-              </Button>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-foreground font-medium text-sm">DB Pool</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Active {observabilitySummary.dbPool.current.active} | Idle {observabilitySummary.dbPool.current.idle} | Waiting {observabilitySummary.dbPool.current.waiting}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-foreground font-medium text-sm">HTTP Statuses</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Total {observabilitySummary.http.total} | 2xx {observabilitySummary.http.statusClasses['2xx'] || 0} | 4xx {observabilitySummary.http.statusClasses['4xx'] || 0} | 5xx {observabilitySummary.http.statusClasses['5xx'] || 0}
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -200,24 +284,30 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { action: "User verification approved", user: "Johnson Construction", time: "2 hours ago", admin: "Sarah Admin" },
-                  { action: "Content moderation review", user: "Community Post #2847", time: "4 hours ago", admin: "Mike Moderator" },
-                  { action: "Payment dispute resolved", user: "HomeRepair Pro", time: "6 hours ago", admin: "Lisa Admin" },
-                  { action: "New contractor application", user: "Elite Landscaping", time: "8 hours ago", admin: "Auto-System" },
-                  { action: "Error report investigated", user: "Bug Report #1205", time: "1 day ago", admin: "Tech Support" },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <div className="flex-1">
-                      <p className="text-foreground text-sm">{activity.action}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {activity.user} • by {activity.admin}
-                      </p>
-                    </div>
-                    <div className="text-muted-foreground text-xs">{activity.time}</div>
+                {auditLogError ? (
+                  <div className="text-sm text-muted-foreground">
+                    Audit log requires super admin access.
                   </div>
-                ))}
+                ) : (auditLog?.log?.length || 0) === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No recent admin actions recorded.
+                  </div>
+                ) : (
+                  auditLog?.log?.slice(0, 6).map((entry, index) => (
+                    <div key={`${entry.type}-${index}`} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <div className="flex-1">
+                        <p className="text-foreground text-sm">{entry.type.replace(/_/g, ' ')}</p>
+                        <p className="text-muted-foreground text-xs">
+                          User {entry.userId || entry.targetUserId || 'n/a'} - Admin {entry.adminId || 'n/a'}
+                        </p>
+                      </div>
+                      <div className="text-muted-foreground text-xs">
+                        {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'n/a'}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -232,51 +322,32 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { 
-                    type: "warning", 
-                    title: "High Storage Usage", 
-                    message: "Database storage is at 78% capacity", 
-                    time: "30 min ago",
-                    action: "Review cleanup policies"
-                  },
-                  { 
-                    type: "info", 
-                    title: "Scheduled Maintenance", 
-                    message: "Database backup scheduled for 2:00 AM", 
-                    time: "2 hours ago",
-                    action: "Monitor progress"
-                  },
-                  { 
-                    type: "success", 
-                    title: "Security Scan Complete", 
-                    message: "Weekly security scan completed successfully", 
-                    time: "1 day ago",
-                    action: "View report"
-                  }
-                ].map((alert, index) => (
-                  <div key={index} className="p-4 bg-muted/50 rounded-lg border-l-4 border-l-orange-500">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-foreground font-medium text-sm">{alert.title}</h4>
-                      <Badge variant={
-                      alert.type === 'warning' ? 'warning' :
-                      alert.type === 'success' ? 'default' : 'secondary'
-                    } className="text-xs">
-                        {alert.type}
-                      </Badge>
+                {(observabilityAlerts?.active?.length || 0) === 0 ? (
+                  <div className="text-sm text-muted-foreground">No active alerts.</div>
+                ) : (
+                  observabilityAlerts?.active?.slice(0, 5).map((alert) => (
+                    <div key={alert.id} className="p-4 bg-muted/50 rounded-lg border-l-4 border-l-orange-500">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-foreground font-medium text-sm">{alert.name}</h4>
+                        <Badge
+                          variant={alert.severity === 'CRITICAL' ? 'error' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {alert.severity.toLowerCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground text-sm mb-3">{alert.description}</p>
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>Started {alert.startedAt ? new Date(alert.startedAt).toLocaleString() : 'n/a'}</span>
+                        <span>{alert.id}</span>
+                      </div>
                     </div>
-                    <p className="text-muted-foreground text-sm mb-3">{alert.message}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-xs">{alert.time}</span>
-                      <Button size="sm" variant="outline" className="text-xs">
-                        {alert.action}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
+
         </div>
 
         {/* Quick Actions */}
@@ -314,3 +385,4 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
 });
 
 export default AdministrativeDashboard;
+

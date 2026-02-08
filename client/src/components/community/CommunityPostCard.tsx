@@ -87,7 +87,7 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
 
   if (normalized === "recommendations" || normalized === "recommendation") {
     return {
-      label: "Recommendation",
+      label: "Trust Signal",
       icon: <ThumbsUp className="w-3.5 h-3.5" />, 
       className:
         "bg-emerald-500/10 border-emerald-500/40 text-emerald-300",
@@ -325,7 +325,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 href={`/community/u/${encodeURIComponent(post.author.id)}`}
                 className="flex gap-3 group cursor-pointer"
               >
-                <Avatar className="h-12 w-12 sm:h-14 sm:w-14 ring-2 ring-orange-500/40 group-hover:ring-orange-400/70">
+                <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40 group-hover:ring-orange-400/70">
                   <AvatarImage src={post.author.avatar} />
                   <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
                     {post.author.name?.[0] || "U"}
@@ -371,7 +371,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               </Link>
             ) : (
               <>
-                <Avatar className="h-12 w-12 sm:h-14 sm:w-14 ring-2 ring-orange-500/40">
+                <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40">
                   <AvatarImage src={post.author?.avatar} />
                   <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
                     {post.author?.name?.[0] || "U"}

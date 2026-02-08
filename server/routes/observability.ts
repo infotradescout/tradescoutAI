@@ -14,6 +14,10 @@
  */
 
 import { Router } from "express";
+import { desc, eq } from "drizzle-orm";
+import { db } from "../db";
+import { events } from "../../shared/schema";
+import { storage } from "../storage";
 import {
   getJobMetrics,
   getPoolMetrics,
@@ -217,5 +221,48 @@ observabilityRouter.post("/baselines", (req, res) => {
   } catch (error) {
     console.error("Baseline update failed:", error);
     sendInternalServerError(res, "Failed to update baselines", { error: String(error) });
+  }
+});
+
+/**
+ * GET /api/admin/observability/scout-policy
+ * Returns recent Scout policy violation telemetry for admin review.
+ */
+observabilityRouter.get("/scout-policy", async (req, res) => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalCount, last7dCount] = await Promise.all([
+      storage.getEventStats("scout_policy_violation_detected"),
+      storage.getEventStats("scout_policy_violation_detected", { from: sevenDaysAgo, to: now }),
+    ]);
+
+    const recent = await db
+      .select({
+        id: events.id,
+        createdAt: events.createdAt,
+        data: events.data,
+      })
+      .from(events)
+      .where(eq(events.eventType, "scout_policy_violation_detected"))
+      .orderBy(desc(events.createdAt))
+      .limit(25);
+
+    res.json({
+      total: totalCount,
+      last7d: last7dCount,
+      recent: (recent || []).map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt,
+        violationCount: (row.data as any)?.violationCount ?? 0,
+        violations: (row.data as any)?.violations ?? [],
+        countyCode: (row.data as any)?.countyCode ?? null,
+        stateCode: (row.data as any)?.stateCode ?? null,
+      })),
+    });
+  } catch (error) {
+    console.error("Scout policy telemetry query failed:", error);
+    sendInternalServerError(res, "Failed to fetch scout policy telemetry", { error: String(error) });
   }
 });

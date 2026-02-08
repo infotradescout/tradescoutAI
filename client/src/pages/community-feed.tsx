@@ -669,7 +669,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       title: "How recommendations work here",
       content:
         "Recommendations here aren’t stars — they’re accountability.\n\n" +
-        `When someone is recommended on TradeScout, that endorsement is ${COMMUNITY_TONE.accountability}, and attached to real people in your community.\n\n` +
+        `When someone is recommended on TradeScout, that endorsement is ${COMMUNITY_TONE.accountability}, and attached to real people in your community. Scout does not endorse people — Scout governs weighting, decay, and enforcement.\n\n` +
         "Good work gets repeated. Bad work doesn’t hide.\n" +
         "That’s how communities used to work — we just made it transparent again.",
       author: {
@@ -1281,7 +1281,7 @@ const CommunityFeed = memo(function CommunityFeed() {
           Do not add fallback Snapshot UI elsewhere.
           This is the single authority for Community Snapshot—data, layout, and CTAs.
         */}
-          {countyFips && (
+          {countyFips && !isGlobalView && (
             <CommunitySnapshotRail
               countyFips={countyFips}
               limit={10}
@@ -1646,3 +1646,4 @@ const CommunityFeed = memo(function CommunityFeed() {
 });
 
 export default CommunityFeed;
+

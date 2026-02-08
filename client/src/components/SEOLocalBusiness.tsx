@@ -3,8 +3,6 @@ import { useEffect } from 'react';
 interface LocalBusinessSEOProps {
   contractor?: {
     companyName: string;
-    phone?: string;
-    email?: string;
     website?: string;
     about?: string;
     yearsInBusiness?: number;
@@ -27,13 +25,11 @@ export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps
 
     const structuredData = {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": contractor.companyName,
-      "description": contractor.about || `Professional home improvement services by ${contractor.companyName}`,
-      "url": window.location.href,
-      "telephone": contractor.phone,
-      "email": contractor.email,
-      "sameAs": contractor.website ? [contractor.website] : undefined,
+    "@type": "LocalBusiness",
+    "name": contractor.companyName,
+    "description": contractor.about || `Professional home improvement services by ${contractor.companyName}`,
+    "url": window.location.href,
+    "sameAs": contractor.website ? [contractor.website] : undefined,
       "address": {
         "@type": "PostalAddress",
         "addressRegion": location?.state || "US",
