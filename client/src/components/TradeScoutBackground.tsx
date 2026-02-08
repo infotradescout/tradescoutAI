@@ -296,6 +296,8 @@ export default function TradeScoutBackground({ children }: TradeScoutBackgroundP
       <div className="ts-bg__base" aria-hidden="true" />
       <div className="ts-bg__grid" aria-hidden="true" />
       <div className="ts-bg__dimensions" aria-hidden="true" />
+      <div className="ts-bg__sheet" aria-hidden="true" />
+      <div className="ts-bg__callouts" aria-hidden="true" />
       <div className="ts-bg__community" aria-hidden="true" />
       <div className="ts-bg__topo" aria-hidden="true" />
       <div className="ts-bg__signals" aria-hidden="true" />
@@ -346,6 +348,8 @@ const css = `
 .ts-bg__base,
 .ts-bg__grid,
 .ts-bg__dimensions,
+.ts-bg__sheet,
+.ts-bg__callouts,
 .ts-bg__community,
 .ts-bg__topo,
 .ts-bg__signals,
@@ -377,20 +381,42 @@ const css = `
     repeating-linear-gradient(0deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(90deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 110px);
-  opacity: 0.22;
+  opacity: 0.14;
   transform: translateZ(0);
 }
 
 /* DIMENSIONS: arrows + measurement ticks to feel like real blueprints */
 .ts-bg__dimensions{
   z-index: 2;
-  opacity: 0.18;
+  opacity: 0.12;
   inset: -6%;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='420' viewBox='0 0 720 420'%3E%3Cdefs%3E%3Cmarker id='arrow' markerWidth='6' markerHeight='6' refX='3' refY='3' orient='auto'%3E%3Cpath d='M0,0 L6,3 L0,6 Z' fill='rgba(255,255,255,0.45)'/%3E%3C/marker%3E%3C/defs%3E%3Cg fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='1'%3E%3Cline x1='60' y1='60' x2='260' y2='60' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='60' y1='300' x2='260' y2='300' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='60' y1='60' x2='60' y2='300' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='420' y1='80' x2='640' y2='80' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='420' y1='260' x2='640' y2='260' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='420' y1='80' x2='420' y2='260' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='300' y1='120' x2='360' y2='120'/%3E%3Cline x1='300' y1='200' x2='360' y2='200'/%3E%3Cline x1='300' y1='120' x2='300' y2='200' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cpath d='M120 90v20M200 90v20M120 270v20M200 270v20M460 100v20M600 100v20M460 240v20M600 240v20'/%3E%3C/g%3E%3Cg fill='rgba(255,255,255,0.55)' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' font-size='10'%3E%3Ctext x='140' y='52'%3E20'-0%22%3C/text%3E%3Ctext x='142' y='292'%3E20'-0%22%3C/text%3E%3Ctext x='22' y='188' transform='rotate(-90 22 188)'%3E24'-0%22%3C/text%3E%3Ctext x='488' y='72'%3E22'-6%22%3C/text%3E%3Ctext x='490' y='252'%3E22'-6%22%3C/text%3E%3Ctext x='382' y='188' transform='rotate(-90 382 188)'%3E18'-0%22%3C/text%3E%3Ctext x='312' y='168'%3E6'-0%22%3C/text%3E%3C/g%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 720px 420px;
   animation: tsDimensionDrift 48s linear infinite;
   mix-blend-mode: normal;
+}
+
+/* SHEET: title blocks, scale bar, north arrow, grid labels */
+.ts-bg__sheet{
+  z-index: 2;
+  opacity: 0.15;
+  inset: -8%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='540' viewBox='0 0 960 540'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.32)' stroke-width='1'%3E%3Crect x='20' y='20' width='920' height='500'/%3E%3Crect x='640' y='390' width='280' height='110'/%3E%3Cline x1='640' y1='420' x2='920' y2='420'/%3E%3Cline x1='640' y1='450' x2='920' y2='450'/%3E%3Cline x1='740' y1='390' x2='740' y2='500'/%3E%3Cline x1='820' y1='390' x2='820' y2='500'/%3E%3Cline x1='660' y1='410' x2='720' y2='410'/%3E%3Cline x1='660' y1='440' x2='720' y2='440'/%3E%3Cline x1='660' y1='470' x2='720' y2='470'/%3E%3C/ g%3E%3Cg fill='rgba(255,255,255,0.52)' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' font-size='9'%3E%3Ctext x='652' y='412'%3ETRADESCOUT%3C/text%3E%3Ctext x='652' y='442'%3ECOUNTY SHEET%3C/text%3E%3Ctext x='652' y='472'%3EREV A%3C/text%3E%3Ctext x='744' y='412'%3EAUTH GATE%3C/text%3E%3Ctext x='744' y='442'%3ECVS VERIFIED%3C/text%3E%3Ctext x='744' y='472'%3EINTENT ONLY%3C/text%3E%3Ctext x='824' y='412'%3E1/8\" = 1'-0\"%3C/text%3E%3Ctext x='824' y='442'%3EDATE: 2026%3C/text%3E%3Ctext x='824' y='472'%3ESHEET: TS-01%3C/text%3E%3C/text%3E%3C/ g%3E%3Cg stroke='rgba(255,255,255,0.35)' stroke-width='1'%3E%3Cline x1='60' y1='70' x2='200' y2='70'/%3E%3Cline x1='60' y1='75' x2='60' y2='65'/%3E%3Cline x1='200' y1='75' x2='200' y2='65'/%3E%3Cline x1='60' y1='90' x2='120' y2='90'/%3E%3Cline x1='120' y1='90' x2='180' y2='90'/%3E%3Cline x1='180' y1='90' x2='240' y2='90'/%3E%3Cline x1='240' y1='90' x2='300' y2='90'/%3E%3C/ g%3E%3Cg fill='rgba(255,255,255,0.55)' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' font-size='9'%3E%3Ctext x='60' y='60'%3ESCALE BAR%3C/text%3E%3Ctext x='64' y='108'%3E0%3C/text%3E%3Ctext x='118' y='108'%3E10%3C/text%3E%3Ctext x='178' y='108'%3E20%3C/text%3E%3Ctext x='238' y='108'%3E30%3C/text%3E%3Ctext x='298' y='108'%3E40%3C/text%3E%3C/text%3E%3C/ g%3E%3Cg stroke='rgba(255,255,255,0.42)' stroke-width='1'%3E%3Ccircle cx='900' cy='70' r='18'/%3E%3Cline x1='900' y1='52' x2='900' y2='88'/%3E%3Cline x1='882' y1='70' x2='918' y2='70'/%3E%3C/ g%3E%3Cg fill='rgba(255,255,255,0.55)' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' font-size='9'%3E%3Ctext x='892' y='44'%3EN%3C/text%3E%3C/ g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 960px 540px;
+  animation: tsSheetDrift 60s linear infinite;
+}
+
+/* CALLOUTS: leader lines + notes for trust intent */
+.ts-bg__callouts{
+  z-index: 3;
+  opacity: 0.13;
+  inset: -6%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='820' height='520' viewBox='0 0 820 520'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.34)' stroke-width='1'%3E%3Cpath d='M120 140h160l30-30h110'/%3E%3Cpath d='M520 220h90l30 30h110'/%3E%3Cpath d='M140 360h160l30 30h120'/%3E%3Ccircle cx='120' cy='140' r='4'/%3E%3Ccircle cx='520' cy='220' r='4'/%3E%3Ccircle cx='140' cy='360' r='4'/%3E%3C/ g%3E%3Cg fill='rgba(255,255,255,0.55)' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' font-size='10'%3E%3Ctext x='320' y='116'%3EAUTHORITY GATE REQUIRED%3C/text%3E%3Ctext x='640' y='246'%3ECVS VERIFIED ONLY%3C/text%3E%3Ctext x='330' y='406'%3EINTENT %26 DECISION CARD%3C/text%3E%3C/ g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 820px 520px;
+  animation: tsCalloutFloat 52s ease-in-out infinite;
 }
 
 /* COMMUNITY PLAN: parcels + corridors + nodes = "community as blueprint" */
@@ -449,7 +475,7 @@ const css = `
 /* SKETCHES: larger technical blueprint sheets that drift and redraw */
 .ts-bg__sketches{
   z-index: 7;
-  opacity: 0.24;
+  opacity: 0.16;
 }
 
 .ts-bg__sketch{
@@ -464,6 +490,20 @@ const css = `
   stroke-dasharray: 520;
   stroke-dashoffset: 520;
   animation: tsSketchDraw 34s ease-in-out infinite;
+}
+
+/* Subtle reveal on interaction: blueprint becomes a touch more visible */
+.ts-bg:focus-within .ts-bg__grid,
+.ts-bg:focus-within .ts-bg__dimensions,
+.ts-bg:focus-within .ts-bg__sheet,
+.ts-bg:focus-within .ts-bg__callouts,
+.ts-bg:focus-within .ts-bg__sketches,
+.ts-bg:hover .ts-bg__grid,
+.ts-bg:hover .ts-bg__dimensions,
+.ts-bg:hover .ts-bg__sheet,
+.ts-bg:hover .ts-bg__callouts,
+.ts-bg:hover .ts-bg__sketches{
+  opacity: 0.2;
 }
 
 /* VIGNETTE: keeps edges dark so content pops */
@@ -490,6 +530,16 @@ const css = `
   100%{ background-position: 260px 140px; }
 }
 
+@keyframes tsSheetDrift{
+  0%{ background-position: 0px 0px; }
+  100%{ background-position: 320px 200px; }
+}
+
+@keyframes tsCalloutFloat{
+  0%,100%{ background-position: 0px 0px; }
+  50%{ background-position: -120px 80px; }
+}
+
 @keyframes tsSignalFloat{
   0%,100%{ background-position: 0px 0px; filter: blur(0px); }
   50%{ background-position: 80px -40px; filter: blur(.15px); }
@@ -511,6 +561,15 @@ const css = `
 }
 
 @media (prefers-reduced-motion: reduce){
-  .ts-bg__community, .ts-bg__topo, .ts-bg__signals, .ts-bg__flow, .ts-bg__sketch, .ts-bg__dimensions{ animation: none !important; }
+  .ts-bg__community,
+  .ts-bg__topo,
+  .ts-bg__signals,
+  .ts-bg__flow,
+  .ts-bg__sketch,
+  .ts-bg__dimensions,
+  .ts-bg__sheet,
+  .ts-bg__callouts{
+    animation: none !important;
+  }
 }
 `;
