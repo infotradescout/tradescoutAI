@@ -54,7 +54,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
         title="TradeScout vs. Angi – Trust vs. Lead Sales | TradeScout"
         description="Compare TradeScout and Angi (formerly Angie's List). Learn how business models, incentives, and trust verification differ. Why TradeScout matches on trust, not payment."
         keywords="tradescout vs angi, angi alternative, angie's list alternative, no lead spam, trust-verified contractors, no pay-per-lead"
-        canonical="https://www.thetradescout.com/compare-angi"
+        canonical="https://www.thetradescout.com/compare/angi"
         structuredData={createFAQStructuredData(faqs)}
       />
 

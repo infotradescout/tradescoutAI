@@ -224,7 +224,7 @@ export default function CreateAccountPortal() {
   };
 
   return (
-    <div className="h-full bg-background flex items-center justify-center px-4 py-10 text-foreground">
+    <div className="min-h-[calc(100vh-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-6 text-tsTextMain">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Button

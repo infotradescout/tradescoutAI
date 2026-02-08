@@ -244,6 +244,16 @@ html {
   }
 }
 
+.app-page--auth{
+  padding-bottom: 32px;
+}
+
+@media (min-width: 1024px){
+  .app-page--auth{
+    padding-bottom: 40px;
+  }
+}
+
 .ts-input {
   background-color: var(--ts-input-bg);
   border: 1px solid var(--ts-input-border);

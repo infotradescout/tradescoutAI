@@ -1,0 +1,76 @@
+{
+  "version": "1.0",
+  "source": "server/observability/alerts.ts",
+  "alerts": [
+    {
+      "id": "dbpool.pressure.warn",
+      "severity": "WARN",
+      "condition": "db_pool_waiting_connections > 0 for 60s",
+      "response": "Monitor; prepare to scale or disable scheduler",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "dbpool.pressure.critical",
+      "severity": "CRITICAL",
+      "condition": "db_pool_waiting_connections > 0 for 120s",
+      "response": "Page on-call; disable scheduler immediately",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "scheduler.duration_spike.warn",
+      "severity": "WARN",
+      "condition": "job_duration_p95 > 2x baseline for 3 consecutive windows",
+      "response": "Investigate slow query path; check DB pool saturation",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "scheduler.rows_spike.warn",
+      "severity": "WARN",
+      "condition": "avg_rows_written > 2x baseline",
+      "response": "Investigate data explosion or duplicate writes",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "scheduler.overlap.warn",
+      "severity": "WARN",
+      "condition": "1 overlap in last 10 runs",
+      "response": "Investigate scheduling drift or concurrent execution",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "scheduler.overlap.critical",
+      "severity": "CRITICAL",
+      "condition": "2+ overlaps in last 10 runs",
+      "response": "Page on-call; disable scheduler immediately",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "scheduler.error.warn",
+      "severity": "WARN",
+      "condition": "1 job error",
+      "response": "Monitor; verify next run succeeds",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "scheduler.error.critical",
+      "severity": "CRITICAL",
+      "condition": "2+ consecutive job errors",
+      "response": "Page on-call; disable scheduler immediately",
+      "killSwitch": "SCHEDULER_ENABLED=false"
+    },
+    {
+      "id": "http.5xx_server_faults.critical",
+      "severity": "CRITICAL",
+      "condition": "5xx rate sustained >30s",
+      "response": "Page on-call; investigate server fault root cause",
+      "killSwitch": "Disable feature or rollback"
+    },
+    {
+      "id": "http.4xx_surge.info",
+      "severity": "INFO",
+      "condition": "4xx rate > 30%",
+      "response": "Review client validation or auth behavior",
+      "killSwitch": "None"
+    }
+  ]
+}

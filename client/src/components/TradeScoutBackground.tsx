@@ -295,6 +295,7 @@ export default function TradeScoutBackground({ children }: TradeScoutBackgroundP
 
       <div className="ts-bg__base" aria-hidden="true" />
       <div className="ts-bg__grid" aria-hidden="true" />
+      <div className="ts-bg__dimensions" aria-hidden="true" />
       <div className="ts-bg__community" aria-hidden="true" />
       <div className="ts-bg__topo" aria-hidden="true" />
       <div className="ts-bg__signals" aria-hidden="true" />
@@ -344,6 +345,7 @@ const css = `
 
 .ts-bg__base,
 .ts-bg__grid,
+.ts-bg__dimensions,
 .ts-bg__community,
 .ts-bg__topo,
 .ts-bg__signals,
@@ -377,6 +379,18 @@ const css = `
     repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 110px);
   opacity: 0.22;
   transform: translateZ(0);
+}
+
+/* DIMENSIONS: arrows + measurement ticks to feel like real blueprints */
+.ts-bg__dimensions{
+  z-index: 2;
+  opacity: 0.18;
+  inset: -6%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='420' viewBox='0 0 720 420'%3E%3Cdefs%3E%3Cmarker id='arrow' markerWidth='6' markerHeight='6' refX='3' refY='3' orient='auto'%3E%3Cpath d='M0,0 L6,3 L0,6 Z' fill='rgba(255,255,255,0.45)'/%3E%3C/marker%3E%3C/defs%3E%3Cg fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='1'%3E%3Cline x1='60' y1='60' x2='260' y2='60' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='60' y1='300' x2='260' y2='300' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='60' y1='60' x2='60' y2='300' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='420' y1='80' x2='640' y2='80' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='420' y1='260' x2='640' y2='260' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='420' y1='80' x2='420' y2='260' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cline x1='300' y1='120' x2='360' y2='120'/%3E%3Cline x1='300' y1='200' x2='360' y2='200'/%3E%3Cline x1='300' y1='120' x2='300' y2='200' marker-start='url(%23arrow)' marker-end='url(%23arrow)'/%3E%3Cpath d='M120 90v20M200 90v20M120 270v20M200 270v20M460 100v20M600 100v20M460 240v20M600 240v20'/%3E%3C/g%3E%3Cg fill='rgba(255,255,255,0.55)' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' font-size='10'%3E%3Ctext x='140' y='52'%3E20'-0%22%3C/text%3E%3Ctext x='142' y='292'%3E20'-0%22%3C/text%3E%3Ctext x='22' y='188' transform='rotate(-90 22 188)'%3E24'-0%22%3C/text%3E%3Ctext x='488' y='72'%3E22'-6%22%3C/text%3E%3Ctext x='490' y='252'%3E22'-6%22%3C/text%3E%3Ctext x='382' y='188' transform='rotate(-90 382 188)'%3E18'-0%22%3C/text%3E%3Ctext x='312' y='168'%3E6'-0%22%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 720px 420px;
+  animation: tsDimensionDrift 48s linear infinite;
+  mix-blend-mode: normal;
 }
 
 /* COMMUNITY PLAN: parcels + corridors + nodes = "community as blueprint" */
@@ -471,6 +485,11 @@ const css = `
   100%{ background-position: 360px 180px; }
 }
 
+@keyframes tsDimensionDrift{
+  0%{ background-position: 0px 0px; }
+  100%{ background-position: 260px 140px; }
+}
+
 @keyframes tsSignalFloat{
   0%,100%{ background-position: 0px 0px; filter: blur(0px); }
   50%{ background-position: 80px -40px; filter: blur(.15px); }
@@ -492,6 +511,6 @@ const css = `
 }
 
 @media (prefers-reduced-motion: reduce){
-  .ts-bg__community, .ts-bg__topo, .ts-bg__signals, .ts-bg__flow, .ts-bg__sketch{ animation: none !important; }
+  .ts-bg__community, .ts-bg__topo, .ts-bg__signals, .ts-bg__flow, .ts-bg__sketch, .ts-bg__dimensions{ animation: none !important; }
 }
 `;

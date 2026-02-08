@@ -54,7 +54,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
         title="TradeScout vs. HomeAdvisor – Trust vs. Lead Sales | TradeScout"
         description="Compare TradeScout and HomeAdvisor. Learn how business models, incentives, and trust verification differ. Why TradeScout matches on trust, not payment."
         keywords="tradescout vs homeadvisor, homeadvisor alternative, no lead spam, trust-verified contractors, no pay-per-lead, no bidding wars"
-        canonical="https://www.thetradescout.com/compare-homeadvisor"
+        canonical="https://www.thetradescout.com/compare/homeadvisor"
         structuredData={createFAQStructuredData(faqs)}
       />
 

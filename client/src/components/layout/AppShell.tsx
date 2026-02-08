@@ -132,6 +132,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const isScoutSurface = location === "/" || location.startsWith("/scout");
+  const isAuthSurface =
+    location.startsWith("/create-account") ||
+    location.startsWith("/login") ||
+    location.startsWith("/register");
   const isSuperAdmin = (user as any)?.isSuperAdmin === true;
 
   const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
@@ -434,7 +438,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           color: "var(--text-primary)",
         }}
       >
-        <div className="app-page">
+        <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
           {isMobile && isScoutSurface && renderMobileHero()}
           {children}
         </div>

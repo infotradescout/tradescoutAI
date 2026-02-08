@@ -1,0 +1,55 @@
+{
+  "title": "TradeScout Scheduler Health",
+  "version": "1.0",
+  "dataSources": [
+    {
+      "name": "observability",
+      "type": "http-json",
+      "baseUrl": "/api/admin/observability"
+    }
+  ],
+  "panels": [
+    {
+      "id": "scheduler-summary",
+      "title": "Scheduler Summary",
+      "type": "table",
+      "source": "observability:/summary",
+      "fields": ["jobName", "totalRuns", "errorCount", "overlapCount", "duration", "rowsWritten"]
+    },
+    {
+      "id": "scheduler-duration",
+      "title": "Scheduler Duration (p50/p95/p99)",
+      "type": "timeseries",
+      "source": "observability:/jobs/{jobName}",
+      "params": {
+        "jobName": "users_aggregation"
+      },
+      "fields": ["percentiles.p50", "percentiles.p95", "percentiles.p99"]
+    },
+    {
+      "id": "db-pool",
+      "title": "DB Pool Snapshot",
+      "type": "timeseries",
+      "source": "observability:/pool",
+      "fields": ["current.active", "current.idle", "current.waiting"]
+    },
+    {
+      "id": "http-status",
+      "title": "HTTP Status Distribution",
+      "type": "pie",
+      "source": "observability:/http",
+      "fields": ["statusClasses.2xx", "statusClasses.4xx", "statusClasses.5xx"]
+    },
+    {
+      "id": "alerts",
+      "title": "Active Alerts",
+      "type": "table",
+      "source": "observability:/alerts",
+      "fields": ["active.id", "active.severity", "active.name", "active.description", "active.startedAt"]
+    }
+  ],
+  "notes": [
+    "This config is a starting point for a single-pane dashboard.",
+    "Replace placeholder panel types/fields with your monitoring provider schema."
+  ]
+}
