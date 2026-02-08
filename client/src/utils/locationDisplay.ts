@@ -32,8 +32,14 @@ export function formatCityOnly(ctx: CityOnlyContext): string {
     primary = cityStateMatch[1].trim();
   }
 
-  // If we only have a county-style label, refuse it for city-only copy.
-  if (/county$/i.test(primary)) {
+  // If we only have an administrative-area label, refuse it for
+  // city-facing copy (e.g. "Tangipahoa Parish", "Cook County").
+  if (/\b(county|parish|borough|census area|municipality|township)\b$/i.test(primary)) {
+    return "";
+  }
+
+  // Defensive: reject obvious machine labels or pure numeric identifiers.
+  if (/^(county|parish)\s*\d+$/i.test(primary) || /^\d{4,}$/.test(primary)) {
     return "";
   }
 

@@ -318,7 +318,7 @@ const CountyPage = memo(function CountyPage() {
               Community in {county.name}
             </h2>
             <p className="text-gray-700 mb-6">
-              Join neighbors, contractors, and professionals. Share recommendations, post projects, and discover what's happening locally.
+              Join neighbors, contractors, and professionals. Share trusted local signals, post projects, and discover what's happening locally.
             </p>
             <Link href={`/community?county=${county.fipsCode}`}>
               <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">

@@ -16,7 +16,7 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
             Start the conversation in your community
           </h3>
           <p className="text-slate-300 text-sm max-w-xl mx-auto">
-            Share an update, ask for a recommendation, or post a tip for your neighbors.
+            Share an update, ask for trusted local signals, or post a tip for your neighbors.
             Your first post helps kick off a more helpful local feed for everyone.
           </p>
         </div>

@@ -492,29 +492,70 @@ function buildWelcomeIntroDraft(
     }
   }
 
-  let introLine = "Hi neighbors" + locationLabel + "!";
-  if (firstName && rolePhrase) {
-    introLine = `Hi neighbors${locationLabel}, I'm ${firstName}, ${rolePhrase}.`;
-  } else if (firstName) {
-    introLine = `Hi neighbors${locationLabel}, I'm ${firstName}.`;
+  const isHoa = /(hoa|homeowners' association|condo board|board meeting)/.test(lower);
+  const isBusiness = /(business|company|customers|services|work|contractor|trade)/.test(lower);
+  const isNewHere = /(new here|just moved|moved|new to|introduce myself)/.test(lower);
+  const isShort = /(short|concise|quick|one[-\s]?liner)/.test(lower);
+
+  const introBase =
+    firstName && rolePhrase
+      ? `Hi neighbors${locationLabel}, I'm ${firstName}, ${rolePhrase}.`
+      : firstName
+        ? `Hi neighbors${locationLabel}, I'm ${firstName}.`
+        : `Hi neighbors${locationLabel}.`;
+
+  const focusLine = isHoa
+    ? "I’m here to stay on top of HOA updates, contribute where I can, and help keep communication clear and useful."
+    : isBusiness
+      ? "I’m active in the local trade ecosystem and want to build real working relationships with people who value solid work and clear communication."
+      : isNewHere
+        ? "I recently moved to the area and I’m looking forward to learning from longtime locals and getting involved in the community."
+        : "I’m here to connect with neighbors, share useful local info, and support projects that make our area stronger.";
+
+  const askLine = isBusiness
+    ? "If you’ve worked with reliable local pros, seen good local groups, or know community projects worth supporting, I’d appreciate the direction."
+    : "If you have favorite local groups, trusted pros, or community causes I should know about, I’d appreciate the pointers.";
+
+  if (isShort) {
+    return `${introBase} ${askLine}`;
   }
 
-  let focusLine: string;
-  if (/(hoa|homeowners' association|condo board|board meeting)/.test(lower)) {
-    focusLine =
-      "I'm here to stay on top of HOA updates and help make our neighborhood easier to run together.";
-  } else if (/(group|club|meetup|neighbors|community)/.test(lower)) {
-    focusLine =
-      "I'm looking to connect with neighbors, local groups, and people who care about improving our area.";
-  } else {
-    focusLine =
-      "I'm excited to get more connected with our local community, share helpful field notes, and support projects that help our neighborhood.";
-  }
+  return `${introBase} ${focusLine} ${askLine}`;
+}
 
-  const closingLine =
-    "If you have favorite local pros, groups, or causes I should know about, I'd really appreciate your tips and introductions.";
+function buildWelcomeIntroVariants(
+  originalMessage: string,
+  userRecord?: any,
+  countyCode?: string,
+  stateCode?: string
+): { primary: string; concise: string; professional: string } {
+  const primary = buildWelcomeIntroDraft(originalMessage, userRecord, countyCode, stateCode);
+  const concise = buildWelcomeIntroDraft(
+    `${originalMessage} short one-liner`,
+    userRecord,
+    countyCode,
+    stateCode
+  );
 
-  return `${introLine} ${focusLine} ${closingLine}`;
+  const firstName =
+    typeof userRecord?.firstName === "string" && userRecord.firstName.trim().length > 0
+      ? userRecord.firstName.trim()
+      : "I";
+  const city =
+    typeof userRecord?.city === "string" && userRecord.city.trim().length > 0
+      ? userRecord.city.trim()
+      : "";
+  const state =
+    typeof userRecord?.state === "string" && userRecord.state.trim().length > 0
+      ? userRecord.state.trim()
+      : stateCode || "";
+
+  const locality = [city, state].filter(Boolean).join(", ");
+  const localityPhrase = locality ? ` in ${locality}` : "";
+
+  const professional = `Hello neighbors${localityPhrase}. ${firstName} here. I’m looking to connect with people focused on reliable local services, community improvements, and practical collaboration. If there are local groups, initiatives, or trusted service pros I should follow, I’d appreciate the guidance.`;
+
+  return { primary, concise, professional };
 }
 
 function isExchangeListingRequest(message: string): boolean {
@@ -630,7 +671,7 @@ const DEFAULT_SUGGESTIONS = [
   "List my pressure washer for $250",
   "Start the Community Builder for my county",
   "Support a local cause through the Foundation",
-  "Draft a welcome post for neighbors",
+  "Draft 3 welcome post options for my county feed",
   "Show me top marketplace listings this week",
 ];
 
@@ -2876,17 +2917,23 @@ router.post("/", async (req: Request, res: Response) => {
     // override the core message with a concrete draft they can post
     // and steer suggested actions toward refining or using that draft.
     if (wantsWelcomeDraft) {
-      const draft = buildWelcomeIntroDraft(message, userRecord, countyCode, stateCode);
+      const drafts = buildWelcomeIntroVariants(message, userRecord, countyCode, stateCode);
 
       const header =
-        "Here's a starter you can share as a community welcome. Edit any part so it sounds like you:";
+        "Here are stronger welcome-post options you can use right now. Pick one and I can tune the voice, length, or audience:";
 
-      synthesized.message = trimResponseToScreenFit(`${header}\n\n${draft}`);
+      const options = [
+        `Option A (Balanced)\n${drafts.primary}`,
+        `Option B (Concise)\n${drafts.concise}`,
+        `Option C (Professional)\n${drafts.professional}`,
+      ].join("\n\n");
+
+      synthesized.message = trimResponseToScreenFit(`${header}\n\n${options}`);
 
       synthesized.suggestedActions = [
-        "Make this welcome post shorter and more casual",
-        "Tailor this welcome post for a specific group or HOA",
-        "Draft a follow-up post asking for local provider experiences",
+        "Post Option A in my community feed now",
+        "Make Option B more casual and neighborly",
+        "Tailor Option C for my HOA or specific group",
       ];
     } else if (wantsExchangeListingDraft) {
       const listingDraft = buildExchangeListingDraft(message, userRecord, countyCode, stateCode);
@@ -4088,11 +4135,26 @@ router.post("/", async (req: Request, res: Response) => {
         _guardContext: guardContext, // Internal: used by client/server for recovery
       })) || [];
 
+    const safeMetadata = aiResponse.metadata
+      ? {
+          intent: aiResponse.metadata.intent,
+          currentJobId: aiResponse.metadata.currentJobId,
+          resolvedContext: aiResponse.metadata.resolvedContext ?? null,
+        }
+      : undefined;
+
     res.json({
       message: finalMessage,
+      suggestedActions: aiResponse.suggestedActions ?? [],
       actions: guardedActions,
       actionResults: [],
+      overrideOption: aiResponse.overrideOption,
+      frame: aiResponse.frame,
+      workingContext: aiResponse.workingContext,
       sponsored: aiResponse.sponsored ?? null,
+      publicEntities: aiResponse.publicEntities ?? [],
+      ctaHints: aiResponse.ctaHints ?? [],
+      metadata: safeMetadata,
       guardContext: {
         canRetry: true,
         recoveryAvailable: true,

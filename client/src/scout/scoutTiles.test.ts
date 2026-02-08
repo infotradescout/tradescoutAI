@@ -93,7 +93,25 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
       const nearbyTile = scoutActionTiles.find((t) => t.id === "nearby")!;
       const resolved = resolveTile(nearbyTile, withLocation);
 
-      expect(resolved.label).toContain("Pensacola, FL");
+      expect(resolved.label).toBe("See local activity");
+      expect(resolved.description).toContain("Community");
+    });
+
+    it("should avoid county/parish jargon in find_pros label", () => {
+      const withAdministrativeLocation: ScoutTileContext = {
+        activeJobs: [],
+        activeInvoices: [],
+        savedContractors: [],
+        location: "Tangipahoa Parish, LA",
+        recentActivity: [],
+      };
+
+      const findProsTile = scoutActionTiles.find((t) => t.id === "find_pros")!;
+      const resolved = resolveTile(findProsTile, withAdministrativeLocation);
+
+      expect(resolved.label).toBe("Find pros near me");
+      expect(resolved.label.toLowerCase()).not.toContain("parish");
+      expect(resolved.label.toLowerCase()).not.toContain("county");
     });
 
     it("should apply freshness rule for single active project within 14 days", () => {

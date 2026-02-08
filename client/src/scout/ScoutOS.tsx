@@ -2745,7 +2745,7 @@ export default function ScoutOS() {
   // session-scoped enable flag and the demo text.
 
   const handleClusterAction = useCallback(
-    (action: ScoutAction) => {
+    async (action: ScoutAction) => {
       if (action.type === "NAVIGATE") {
         const ttaMs = renderStartRef.current ? Date.now() - renderStartRef.current : undefined;
         recordActivity({
@@ -2774,25 +2774,30 @@ export default function ScoutOS() {
       // fake "typing".
       setStatus("executing_action");
 
-      executeScoutActions([action], {
-        navigate: (to) => navigate(to),
-        openAppDrawer: () => setAppDrawerOpen(true),
-        openToolsDrawer: () => setToolsOpen(true),
-        prefillInput: (text) => {
-          try {
-            window.localStorage.setItem("scout:prefill:scout-main", text);
-          } catch {
-            // ignore
-          }
-          setPrefillKey((k) => k + 1);
-        },
-        askScout: (prompt) => {
-          void handleSend(prompt);
-        },
-      });
-      setStatus("idle");
+      try {
+        await executeScoutActions([action], {
+          navigate: (to) => navigate(to),
+          openAppDrawer: () => setAppDrawerOpen(true),
+          openToolsDrawer: () => setToolsOpen(true),
+          prefillInput: (text) => {
+            try {
+              window.localStorage.setItem("scout:prefill:scout-main", text);
+            } catch {
+              // ignore
+            }
+            setPrefillKey((k) => k + 1);
+          },
+          askScout: (prompt) => {
+            void handleSend(prompt);
+          },
+        });
+      } catch (err: any) {
+        setError(err?.message || "Action failed to execute.");
+      } finally {
+        setStatus("idle");
+      }
     },
-    [location, navigate, handleSend]
+    [location, navigate, handleSend, setError]
   );
 
   const handleOverride = useCallback(
@@ -3231,30 +3236,18 @@ export default function ScoutOS() {
     () => [
       {
         id: "scope-project",
-        title: "Scope my project fast",
-        body: "Help me write a clear Direct Connect request for a roof leak and timeline.",
+        title: "Write my request clearly",
+        body: "Turn my idea into a clean Direct Connect request I can post now.",
         icon: ClipboardList,
       },
       {
-        id: "find-trusted-pro",
-        title: "Find signal-backed local help",
-        body: `Show providers with strong local trust signals${heroLocationLabel ? ` near ${heroLocationLabel}` : " near me"} and help me choose who to contact first.`,
-        icon: Wrench,
-      },
-      {
         id: "local-opportunities",
-        title: "See local opportunities",
-        body: "What jobs, offers, and community activity should I check first this week?",
+        title: "What should I check first?",
+        body: "Give me the top local jobs, offers, and community activity this week.",
         icon: Activity,
       },
-      {
-        id: "avoid-scams",
-        title: "Avoid bad hires",
-        body: "Give me a quick anti-scam checklist before I hire anyone.",
-        icon: Shield,
-      },
     ],
-    [heroLocationLabel]
+    []
   );
 
   const scoutControlLinks = useMemo(
@@ -3569,16 +3562,29 @@ export default function ScoutOS() {
               >
                 {!hasUserMessages && (
                   <div className="flex flex-col gap-3 py-3 px-1">
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex items-start justify-between gap-3">
+                      <div>
                       <p
                         className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        Scout Starters
+                        Get Started
                       </p>
                       <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
-                        Start with a route card or a high-signal prompt.
+                        Pick a route or send a focused prompt.
                       </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {scoutControlLinks.map((item) => (
+                          <Link
+                            key={item.id}
+                            href={item.href}
+                            className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-slate-200 hover:border-orange-400/70 hover:text-orange-200 transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
@@ -3640,23 +3646,6 @@ export default function ScoutOS() {
                       </div>
                     )}
 
-                    <div className="mt-1 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">
-                        Scout Controls
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {scoutControlLinks.map((item) => (
-                          <Link
-                            key={item.id}
-                            href={item.href}
-                            className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:border-orange-400/70 hover:text-orange-200 transition-colors"
-                          >
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                       {suggestedPromptCards.map((card) => {
                         const Icon = card.icon;
@@ -3672,7 +3661,7 @@ export default function ScoutOS() {
                           >
                             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
                               <Icon className="h-3 w-3 text-orange-300" />
-                              Suggested Prompt
+                              Prompt
                             </div>
                             <p className="text-sm font-semibold text-slate-100">{card.title}</p>
                             <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">
@@ -3685,38 +3674,6 @@ export default function ScoutOS() {
                         );
                       })}
                     </div>
-
-                    {/* Optional, collapsed explanation about TradeScout (secondary) */}
-                    <details className="mt-2 text-left">
-                      <summary
-                        className="text-[11px] md:text-xs font-semibold cursor-pointer"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        What is TradeScout?
-                      </summary>
-                      <p
-                        className="mt-1 text-[11px] md:text-xs"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        TradeScout helps people connect, work, and trade locally — without spam,
-                        paywalls, or fake leads.
-                      </p>
-                    </details>
-                  </div>
-                )}
-
-                {/* Scout welcome banner (copy-only, no actions) */}
-                {hasUserMessages && (
-                  <div className="mb-3 px-3 py-2 rounded-lg border border-slate-800/50 bg-slate-900/40">
-                    <p
-                      className="text-xs font-semibold mb-1"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Decisions before contact.
-                    </p>
-                    <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                      Scout turns intent into a Decision Card before anyone is contacted.
-                    </p>
                   </div>
                 )}
 
@@ -4090,13 +4047,13 @@ export default function ScoutOS() {
                   <div className="min-w-0">
                     <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-500/10 px-2 py-0.5 text-[11px] font-semibold text-orange-300">
                       <LayoutDashboard className="h-3.5 w-3.5" />
-                      Scout Hub
+                      Your Workspace
                     </div>
                     <h2 className="mt-2 text-base sm:text-lg font-semibold text-[color:var(--text-primary)]">
-                      Scout front and center
+                      Everything in one place
                     </h2>
                     <p className="text-xs sm:text-sm text-[color:var(--text-secondary)]">
-                      Decisions, routing, and dashboard state in one continuous workspace.
+                      Manage requests, conversations, and progress without jumping around.
                     </p>
                   </div>
                   {showScoutDashboard && (

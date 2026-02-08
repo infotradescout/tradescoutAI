@@ -293,7 +293,7 @@ const Dashboard = memo(function Dashboard() {
                   ) : (
                     <div className="flex-1 space-y-3">
                       <Textarea
-                        placeholder="Share an update, ask for recommendations, or post a project..."
+                        placeholder="Share an update, ask for trusted local signals, or post a project..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
                         className="min-h-[100px] border-slate-200 dark:border-slate-600 resize-none"

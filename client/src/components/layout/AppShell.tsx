@@ -140,10 +140,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const renderMobileHero = () => (
     <section className="px-4 py-3 md:hidden">
       <h1 className="text-xl font-semibold">
-        Scout for your <span className="text-accent">next move</span>
+        Get help with your <span className="text-accent">next project</span>
       </h1>
       <p className="mt-2 text-sm text-secondary">
-        Ask Scout first, then move into Direct Connect, Community, and Exchange.
+        Tell Scout what you need, then jump straight to the right part of the app.
       </p>
       {!isLoggedIn && (
         <div className="mt-4 space-y-2">

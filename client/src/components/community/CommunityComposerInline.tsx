@@ -104,7 +104,7 @@ export function CommunityComposerInline({
               [
                 { k: "alert", label: "Alert" },
                 { k: "project", label: "Project" },
-                { k: "recommendation", label: "Recommendation" },
+                { k: "recommendation", label: "Trust Request" },
                 { k: "discussion", label: "Discussion" },
                 { k: "admin_notice", label: "Admin Notice" },
               ] as Array<{ k: PostType; label: string }>

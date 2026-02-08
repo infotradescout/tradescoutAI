@@ -81,21 +81,25 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "find_pros",
-    label: "Route this job to providers",
-    description: "Send a Direct Connect request to matched providers",
+    label: "Find the right local pros",
+    description: "Open Direct Connect and match with providers who fit your request",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
         // Proven by: User's geo context (heroLocationLabel from session)
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
-        label: (ctx) => `Route jobs near ${ctx.location}`,
-        description: "Send a Direct Connect request to local providers",
+        label: "Find pros near me",
+        description: (ctx) =>
+          `Open Direct Connect and match with local providers${
+            ctx.location ? ` around ${ctx.location}` : ""
+          }`,
       },
       {
         // Proven by: GET /api/saved-contractors (when array.length > 0)
         when: (ctx) => ctx.savedContractors.length > 0,
-      label: (ctx) => `Route a job to ${ctx.savedContractors.length} saved provider${ctx.savedContractors.length > 1 ? 's' : ''}`,
-      description: "Use Direct Connect with your saved providers",
+        label: (ctx) =>
+          `Use ${ctx.savedContractors.length} saved pro${ctx.savedContractors.length > 1 ? "s" : ""}`,
+        description: "Start with providers you already trust",
       },
     ],
   },
@@ -108,7 +112,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
       {
         // Proven by: User's geo context (heroLocationLabel from session)
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
-        label: (ctx) => `See what's happening in ${ctx.location}`,
+        label: "See local activity",
         description: "Community updates and local marketplace",
       },
     ],
