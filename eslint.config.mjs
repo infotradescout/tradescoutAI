@@ -1,9 +1,6 @@
-import path from 'node:path';
 import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin';
 import typescriptEslintParser from '@typescript-eslint/parser';
 import eslintConfigPrettier from 'eslint-config-prettier';
-
-const tsconfigPath = path.resolve(process.cwd(), 'tsconfig.lint.json').replace(/\\/g, '/');
 
 export default [
     {
@@ -35,8 +32,6 @@ export default [
             parserOptions: {
                 ecmaVersion: 2022,
                 sourceType: 'module',
-                project: tsconfigPath,
-                tsconfigRootDir: process.cwd(),
             },
             globals: {
                 process: 'readonly',
