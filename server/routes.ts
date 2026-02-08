@@ -88,7 +88,9 @@ import {
   marketplaceTransactions,
 } from "../shared/schema";
 
-function sanitizeContractorPublic<T extends Record<string, any>>(contractor: T): Omit<T, "phone" | "email"> {
+function sanitizeContractorPublic<T extends Record<string, any>>(
+  contractor: T
+): Omit<T, "phone" | "email"> {
   if (!contractor || typeof contractor !== "object") return contractor as any;
   const { phone, email, ...rest } = contractor as any;
   return rest;
@@ -2264,11 +2266,9 @@ export async function registerRoutes(app: any) {
       const includeTypes = body.includeTypes;
 
       if (typeof homeLocation.lat !== "number" || typeof homeLocation.lng !== "number") {
-        return res
-          .status(400)
-          .json({
-            message: "homeLocation.lat and homeLocation.lng are required and must be numbers",
-          });
+        return res.status(400).json({
+          message: "homeLocation.lat and homeLocation.lng are required and must be numbers",
+        });
       }
 
       const currentPrefs: any = (currentUser as any).preferences || {};
@@ -3144,12 +3144,10 @@ export async function registerRoutes(app: any) {
   // Complete password reset (temporarily guarded to avoid crash during CORS verification)
   app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
     if (process.env.NODE_ENV !== "production" && process.env.SKIP_RESET_COMPLETION === "true") {
-      return res
-        .status(503)
-        .json({
-          message:
-            "Reset completion temporarily disabled during verification. Set SKIP_RESET_COMPLETION=false to enable.",
-        });
+      return res.status(503).json({
+        message:
+          "Reset completion temporarily disabled during verification. Set SKIP_RESET_COMPLETION=false to enable.",
+      });
     }
     try {
       console.log("[RESET-PASSWORD] Request received:", { body: req.body });
@@ -7952,7 +7950,10 @@ export async function registerRoutes(app: any) {
       const userId = req.user?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
+      if (
+        !user ||
+        !["head_admin", "moderator", "ops_admin", "support_agent"].includes(user.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -7970,7 +7971,10 @@ export async function registerRoutes(app: any) {
       const userId = req.user?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
+      if (
+        !user ||
+        !["head_admin", "moderator", "ops_admin", "support_agent"].includes(user.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -8071,38 +8075,43 @@ export async function registerRoutes(app: any) {
     }
   );
 
-  app.get(
-    "/api/admin/error-report-stats",
-    isAuthenticated,
-    requireAdmin,
-    async (req: any, res: any) => {
-      try {
-        const reports = await storage.getErrorReports();
+  app.get("/api/admin/error-report-stats", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
 
-        const total = reports.length;
-        let open = 0;
-        let inProgress = 0;
-        let resolved = 0;
-
-        for (const report of reports) {
-          const status = String((report as any).status || "");
-          if (status === "open") open++;
-          else if (status === "in_progress") inProgress++;
-          else if (status === "resolved") resolved++;
-        }
-
-        res.json({
-          total,
-          open,
-          inProgress,
-          resolved,
-        });
-      } catch (error: any) {
-        console.error("Error computing error report stats:", error);
-        res.status(500).json({ message: "Failed to fetch error report stats" });
+      if (
+        !user ||
+        !["head_admin", "moderator", "ops_admin", "support_agent"].includes(user.role || "")
+      ) {
+        return res.status(403).json({ message: "Admin access required" });
       }
+
+      const reports = await storage.getErrorReports();
+
+      const total = reports.length;
+      let open = 0;
+      let inProgress = 0;
+      let resolved = 0;
+
+      for (const report of reports) {
+        const status = String((report as any).status || "");
+        if (status === "open") open++;
+        else if (status === "in_progress") inProgress++;
+        else if (status === "resolved") resolved++;
+      }
+
+      res.json({
+        total,
+        open,
+        inProgress,
+        resolved,
+      });
+    } catch (error: any) {
+      console.error("Error computing error report stats:", error);
+      res.status(500).json({ message: "Failed to fetch error report stats" });
     }
-  );
+  });
 
   app.post(
     "/api/admin/generate-test-data",
