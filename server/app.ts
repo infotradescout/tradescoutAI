@@ -51,7 +51,7 @@ export async function createApp() {
   if (process.env.NODE_ENV !== "test") {
     app.use((req, res, next) => {
       const host = req.headers.host?.toLowerCase() || "";
-      if (host.includes("tradescoutai.onrender.com")) {
+      if (host.includes("tradescoutai.onrender.com") || host === "thetradescout.com") {
         const targetHost = "www.thetradescout.com";
         const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
         const redirectUrl = `${protocol}://${targetHost}${req.originalUrl || ""}`;

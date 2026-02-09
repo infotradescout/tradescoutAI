@@ -107,7 +107,7 @@ if (process.env.SENTRY_DSN) {
 
 app.use((req, res, next) => {
   const host = req.headers.host?.toLowerCase() || "";
-  if (host.includes("tradescoutai.onrender.com")) {
+  if (host.includes("tradescoutai.onrender.com") || host === "thetradescout.com") {
     const targetHost = "www.thetradescout.com";
     const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
     const redirectUrl = `${protocol}://${targetHost}${req.originalUrl || ""}`;
@@ -385,12 +385,18 @@ app.use((req, res, next) => {
               "/logo.png",
               "/tradescout-logo.png",
               "/tradescout-logo.jpg",
+              "/sw.js",
+              "/service-worker.js",
             ]);
 
             app.get(Array.from(identityAssets), (req, res, next) => {
               const filePath = path.join(publicDistPath, req.path);
               if (!fs.existsSync(filePath)) return next();
-              res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+              if (req.path === "/sw.js" || req.path === "/service-worker.js") {
+                res.setHeader("Cache-Control", "no-store");
+              } else {
+                res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+              }
               res.sendFile(filePath);
             });
 

@@ -371,8 +371,23 @@ const DEFAULT_FIRST_INTRO_APPENDIX =
   'TradeScout is a community operating system that keeps projects and dollars local. Homeowners and contractors can connect, message, and run the full job flow—quotes, scheduling, invoices, and payments (including off-site work). Beyond jobs, TradeScout includes a local marketplace, community feed and groups, and real neighborhood tools so communities can manage vendors, requests, budgets, and decisions with total transparency. Community Builders and the foundation layer add public accountability and local reinvestment—so TradeScout isn’t just "find a pro," it’s how a town organizes and improves itself.';
 
 export async function registerRoutes(app: any) {
+  const buildRevision =
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.SOURCE_VERSION ||
+    process.env.GIT_COMMIT ||
+    "unknown";
+
   // Setup authentication
   await setupAuth(app);
+
+  // Emit build identity on every API response so production log/debug
+  // can confirm which revision is actually serving traffic.
+  app.use((req: any, res: any, next: any) => {
+    if (typeof req?.path === "string" && req.path.startsWith("/api/")) {
+      res.setHeader("X-TradeScout-Build", buildRevision);
+    }
+    next();
+  });
 
   // Anti-scraping guard: blocks obvious bots and throttles bursts
   app.use(antiScrapeShield);
@@ -396,6 +411,7 @@ export async function registerRoutes(app: any) {
     res.status(200).json({
       firstIntroAppendix: process.env.TS_FIRST_INTRO_APPENDIX || DEFAULT_FIRST_INTRO_APPENDIX,
       vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
+      buildRevision,
     });
   });
 
