@@ -1,55 +1,32 @@
-const CACHE_NAME = 'tradescout-v20260206';
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/offline.html'
-];
+// Emergency service worker reset.
+// Goal: guarantee clients stop serving stale UI bundles.
 
-// Install event - cache static assets
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil(Promise.resolve());
 });
 
-// Activate event - claim clients + clear older caches
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((key) => key.startsWith('tradescout-v') && key !== CACHE_NAME)
+          .filter(
+            (key) =>
+              key.startsWith("tradescout-") ||
+              key.startsWith("workbox-") ||
+              key.startsWith("vite-"),
+          )
           .map((key) => caches.delete(key)),
       );
+
       await self.clients.claim();
+      await self.registration.unregister();
     })(),
   );
 });
 
-// Background sync for offline actions
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(syncOfflineActions());
-  }
+self.addEventListener("fetch", () => {
+  // Intentionally no caching.
 });
-
-// Push notifications
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data.text(),
-    icon: '/icon-192.png',
-    badge: '/icon-192.png'
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('TradeScout', options)
-  );
-});
-
-function syncOfflineActions() {
-  // Placeholder for actual offline action synchronization logic
-  return Promise.resolve();
-}

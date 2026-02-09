@@ -76,18 +76,11 @@ export function useAppLikeEffects() {
   useEffect(() => {
     if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
 
-    // Cleanup any legacy service workers/caches that could interfere with icons/identity assets.
+    // Emergency freshness mode:
+    // aggressively remove legacy service workers/caches to prevent stale bundles.
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       registrations.forEach((registration) => {
-        const scriptUrl =
-          registration.active?.scriptURL ||
-          registration.waiting?.scriptURL ||
-          registration.installing?.scriptURL ||
-          "";
-
-        if (scriptUrl.includes("/service-worker.js") || scriptUrl.includes("/sw.js")) {
-          registration.unregister();
-        }
+        registration.unregister();
       });
     });
 
@@ -97,48 +90,13 @@ export function useAppLikeEffects() {
           if (
             key === "tradescout-static-v1" ||
             key.startsWith("tradescout-v") ||
-            key.startsWith("tradescout-static-")
+            key.startsWith("tradescout-static-") ||
+            key.startsWith("workbox-")
           ) {
             caches.delete(key);
           }
         });
       });
     }
-
-    // Register service worker for PWA functionality only in production (mobile only).
-    if (isMobile) {
-      const handleControllerChange = () => {
-        window.location.reload();
-      };
-
-      navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
-        once: true,
-      });
-
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((registration) => {
-          console.log("SW registered: ", registration);
-
-          registration.update().catch(() => undefined);
-
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: "SKIP_WAITING" });
-          }
-
-          registration.addEventListener("updatefound", () => {
-            const installing = registration.installing;
-            if (!installing) return;
-            installing.addEventListener("statechange", () => {
-              if (installing.state === "installed" && navigator.serviceWorker.controller) {
-                registration.waiting?.postMessage({ type: "SKIP_WAITING" });
-              }
-            });
-          });
-        })
-        .catch((registrationError) => {
-          console.log("SW registration failed: ", registrationError);
-        });
-    }
-  }, [isMobile]);
+  }, []);
 }
