@@ -5,9 +5,93 @@ services:
     buildCommand: npm run build
     startCommand: node server.mjs
     envVars:
+      - key: NODE_ENV
+        value: production
+        scope: run
+      - key: PORT
+        value: "10000"
+        scope: run
       - key: SCOUT_RECOMMENDATIONS_ENABLED
         value: "true"
         scope: run
-      - key: NODE_ENV
-        value: production
+      - key: DATABASE_URL
+        sync: false
+        scope: run
+      - key: SESSION_SECRET
+        sync: false
+        scope: run
+      - key: GEMINI_API_KEY
+        sync: false
+        scope: run
+      - key: MASTER_ADMIN_EMAIL
+        sync: false
+        scope: run
+      - key: MASTER_ADMIN_PASSWORD
+        sync: false
+        scope: run
+      - key: MASTER_ADMIN_FIRST_NAME
+        sync: false
+        scope: run
+      - key: MASTER_ADMIN_LAST_NAME
+        sync: false
+        scope: run
+      - key: DISABLE_FACEBOOK_AUTH
+        value: "true"
+        scope: run
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+        scope: run
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+        scope: run
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+        scope: run
+      - key: FACEBOOK_APP_ID
+        sync: false
+        scope: run
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+        scope: run
+      - key: FACEBOOK_CALLBACK_URL
+        sync: false
+        scope: run
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+        scope: run
+      - key: SENTRY_DSN
+        sync: false
+        scope: run
+      - key: STRIPE_SECRET_KEY
+        sync: false
+        scope: run
+      - key: R2_ACCOUNT_ID
+        sync: false
+        scope: run
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+        scope: run
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+        scope: run
+      - key: R2_BUCKET_NAME
+        sync: false
+        scope: run
+      - key: R2_PUBLIC_URL
+        sync: false
+        scope: run
+      - key: UPLOAD_DIR
+        value: uploads
+        scope: run
+      - key: PUBLIC_URL_BASE
+        sync: false
+        scope: run
+      - key: MEALSCOUT_BASE_URL
+        sync: false
+        scope: run
+      - key: MEALSCOUT_SHARED_SECRET
+        sync: false
+        scope: run
+      - key: MEALSCOUT_API_TOKEN
+        sync: false
         scope: run
