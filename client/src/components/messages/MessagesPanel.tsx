@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,11 +49,28 @@ type Message = {
   isMine: boolean;
 };
 
+type IncomingRequest = {
+  id: string;
+  createdAt: string;
+  fromUserId: string;
+  fromName: string;
+  fromRole?: string | null;
+  preview?: string;
+  intent: "hire" | "advise" | "collaborate" | "reconnect";
+};
+
 export default function MessagesPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [requestPreview, setRequestPreview] = useState("");
+  const searchParams = useMemo(
+    () => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""),
+    []
+  );
+  const requestedUserId = searchParams.get("user");
+  const preselectedThreadId = searchParams.get("thread");
 
   const threadsQuery = useQuery<{ threads: ApiThread[] }>({
     queryKey: ["/api/messages/threads"],
@@ -65,6 +82,13 @@ export default function MessagesPanel() {
     ...t,
     lastMessageAt: t.lastMessageAt || new Date().toISOString(),
   }));
+
+  const incomingRequestsQuery = useQuery<{ requests: IncomingRequest[] }>({
+    queryKey: ["/api/social/conversations/requests/incoming"],
+    enabled: Boolean(user),
+    queryFn: () => apiRequest("GET", "/api/social/conversations/requests/incoming"),
+  });
+  const incomingRequests = incomingRequestsQuery.data?.requests || [];
 
   const messagesQuery = useQuery<{ thread: ApiThread; messages: ApiMessage[] } | null>({
     queryKey: ["/api/messages/threads", activeThreadId],
@@ -99,10 +123,60 @@ export default function MessagesPanel() {
     },
   });
 
+  const sendFirstContactRequestMutation = useMutation({
+    mutationFn: (payload: { targetUserId: string; preview: string }) =>
+      apiRequest("POST", "/api/social/conversations/start", {
+        targetUserId: payload.targetUserId,
+        intent: "collaborate",
+        authorityGate: "scout_recommendation",
+        initiatedFromScoutRecommendationId: "community-first-contact",
+        decisionScope: "Community first-contact request",
+        contactPreview: payload.preview,
+      }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/social/conversations/requests/incoming"] });
+      if (data?.threadId) {
+        setActiveThreadId(String(data.threadId));
+      }
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("user");
+        window.history.replaceState({}, "", url.toString());
+      }
+    },
+  });
+
+  const respondToRequestMutation = useMutation({
+    mutationFn: (payload: { requestId: string; action: "accept" | "decline" }) =>
+      apiRequest("POST", `/api/social/conversations/requests/${payload.requestId}/respond`, {
+        action: payload.action,
+      }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/social/conversations/requests/incoming"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/threads"] });
+      if (data?.threadId) {
+        setActiveThreadId(String(data.threadId));
+      }
+    },
+  });
+
   const handleSend = () => {
     if (!activeThreadId || !newMessage.trim()) return;
     sendMutation.mutate({ threadId: activeThreadId, content: newMessage });
   };
+
+  const handleSendFirstContactRequest = () => {
+    if (!requestedUserId) return;
+    const preview = requestPreview.trim();
+    if (!preview) return;
+    sendFirstContactRequestMutation.mutate({ targetUserId: requestedUserId, preview });
+  };
+
+  useEffect(() => {
+    if (!activeThreadId && preselectedThreadId) {
+      setActiveThreadId(preselectedThreadId);
+    }
+  }, [activeThreadId, preselectedThreadId]);
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || null;
 
@@ -115,6 +189,82 @@ export default function MessagesPanel() {
         </div>
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-2">
+            {incomingRequests.length > 0 && (
+              <div className="rounded-lg border border-amber-600/40 bg-amber-950/20 p-3 space-y-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+                  Contact Requests
+                </div>
+                {incomingRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="rounded-md border border-slate-700 bg-slate-900 p-2"
+                  >
+                    <div className="text-sm text-white font-medium">{request.fromName}</div>
+                    <div className="text-xs text-slate-300 capitalize">
+                      Intent: {request.intent}
+                    </div>
+                    {request.preview ? (
+                      <div className="mt-1 text-xs text-slate-400 line-clamp-3">
+                        {request.preview}
+                      </div>
+                    ) : null}
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          respondToRequestMutation.mutate({
+                            requestId: request.id,
+                            action: "accept",
+                          })
+                        }
+                        disabled={respondToRequestMutation.isPending}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          respondToRequestMutation.mutate({
+                            requestId: request.id,
+                            action: "decline",
+                          })
+                        }
+                        disabled={respondToRequestMutation.isPending}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {requestedUserId && (
+              <div className="rounded-lg border border-blue-600/40 bg-blue-950/20 p-3 space-y-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-blue-300">
+                  First Contact Preview
+                </div>
+                <div className="text-xs text-slate-300">
+                  Your first message is sent as a request. The other person must accept before chat
+                  opens.
+                </div>
+                <Input
+                  value={requestPreview}
+                  onChange={(e) => setRequestPreview(e.target.value)}
+                  placeholder="Write a short intro and why you want to connect"
+                  disabled={sendFirstContactRequestMutation.isPending}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleSendFirstContactRequest}
+                  disabled={!requestPreview.trim() || sendFirstContactRequestMutation.isPending}
+                >
+                  Send Contact Request
+                </Button>
+              </div>
+            )}
+
             {threads.length === 0 ? (
               <div className="text-center text-slate-400 py-8 space-y-3">
                 <p>No conversations yet.</p>

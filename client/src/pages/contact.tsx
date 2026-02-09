@@ -1,389 +1,46 @@
-import { memo, useState } from "react";
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import {
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  MessageSquare,
-  Users,
-  HeadphonesIcon,
-  HelpCircle,
-} from "lucide-react";
+import { MessageSquare, ShieldCheck } from "lucide-react";
 
-const Contact = memo(function Contact() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    subject: "",
-    category: "",
-    message: "",
-  });
+export default function ContactGatePage() {
+  const [, setLocation] = useLocation();
 
-  const contactMethods = [
-    {
-      icon: Phone,
-      title: "Phone Support",
-      value: "(555) 123-4567",
-      description: "Monday - Friday, 8 AM - 8 PM PST",
-      available: true,
-    },
-    {
-      icon: Mail,
-      title: "Email Support",
-      value: "support@tradescout.com",
-      description: "We respond within 24 hours",
-      available: true,
-    },
-    {
-      icon: MessageSquare,
-      title: "Live Chat",
-      value: "Available Now",
-      description: "Monday - Friday, 8 AM - 8 PM PST",
-      available: true,
-    },
-    {
-      icon: HeadphonesIcon,
-      title: "Video Call",
-      value: "Schedule a Call",
-      description: "For complex technical issues",
-      available: false,
-    },
-  ];
-
-  const supportCategories = [
-    { value: "general", label: "General Question" },
-    { value: "technical", label: "Technical Support" },
-    { value: "billing", label: "Billing & Payments" },
-    { value: "contractor", label: "Contractor Support" },
-    { value: "homeowner", label: "Homeowner Support" },
-    { value: "verification", label: "Verification Issues" },
-    { value: "partnership", label: "Business Partnership" },
-    { value: "feedback", label: "Feedback & Suggestions" },
-  ];
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission
-    console.log("Form submitted:", formData);
-  };
+  useEffect(() => {
+    setLocation("/scout?intent=support&source=contact-page");
+  }, [setLocation]);
 
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Get in Touch</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Have questions or need support? We're here to help. Choose the best way to reach us.
-          </p>
-        </div>
-
-        {/* Contact Methods Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {contactMethods.map((method, index) => {
-            const Icon = method.icon;
-            return (
-              <Card key={index} className="bg-card border-border text-center">
-                <CardContent className="p-6">
-                  <div className="w-16 h-16 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-8 h-8 text-orange-400" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">{method.title}</h3>
-                  <p className="text-orange-400 font-medium mb-2">{method.value}</p>
-                  <p className="text-muted-foreground text-sm mb-4">{method.description}</p>
-
-                  {method.available ? (
-                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700 w-full">
-                      Contact Now
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" className="w-full">
-                      Use Message Form
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Form */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-orange-500" />
-                Send us a Message
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Fill out the form below and we'll get back to you as soon as possible
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name" className="text-gray-300">
-                      Full Name
-                    </Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
-                      placeholder="Enter your full name"
-                      className="bg-slate-700 border-slate-600 text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="text-foreground">
-                      Email Address
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      placeholder="Enter your email"
-                      className="bg-background border-input text-foreground"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="phone" className="text-foreground">
-                      Phone Number
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      placeholder="(555) 123-4567"
-                      className="bg-background border-input text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category" className="text-foreground">
-                      Category
-                    </Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) => handleInputChange("category", value)}
-                    >
-                      <SelectTrigger className="bg-background border-input text-foreground">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border">
-                        {supportCategories.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="subject" className="text-foreground">
-                    Subject
-                  </Label>
-                  <Input
-                    id="subject"
-                    value={formData.subject}
-                    onChange={(e) => handleInputChange("subject", e.target.value)}
-                    placeholder="Brief description of your inquiry"
-                    className="bg-background border-input text-foreground"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="message" className="text-foreground">
-                    Message
-                  </Label>
-                  <Textarea
-                    id="message"
-                    value={formData.message}
-                    onChange={(e) => handleInputChange("message", e.target.value)}
-                    placeholder="Please provide detailed information about your question or issue..."
-                    className="bg-background border-input text-foreground"
-                    rows={6}
-                    required
-                  />
-                </div>
-
-                <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 py-3">
-                  Send Message
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Contact Information & FAQ */}
-          <div className="space-y-8">
-            {/* Business Hours */}
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-orange-500" />
-                  Business Hours
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Monday - Friday</span>
-                    <span className="text-foreground font-medium">8:00 AM - 8:00 PM PST</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Saturday</span>
-                    <span className="text-foreground font-medium">9:00 AM - 5:00 PM PST</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sunday</span>
-                    <span className="text-foreground font-medium">Closed</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 p-3 bg-orange-600/10 border border-orange-600/20 rounded-lg">
-                  <p className="text-orange-400 text-sm">
-                    <strong>Emergency Support:</strong> For urgent technical issues, we provide 24/7
-                    support via our emergency hotline.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Office Locations */}
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-orange-500" />
-                  Office Locations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-muted/30 rounded-lg">
-                    <h4 className="font-semibold text-foreground mb-2">Headquarters</h4>
-                    <p className="text-muted-foreground text-sm">
-                      123 Innovation Drive
-                      <br />
-                      San Francisco, CA 94105
-                      <br />
-                      United States
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-muted/30 rounded-lg">
-                    <h4 className="font-semibold text-foreground mb-2">East Coast Office</h4>
-                    <p className="text-muted-foreground text-sm">
-                      456 Business Center
-                      <br />
-                      New York, NY 10001
-                      <br />
-                      United States
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Help */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-orange-500" />
-                  Quick Help
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Common questions and immediate resources
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users className="w-4 h-4 mr-2" />
-                    How to Get Verified
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Lead Response Tips
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Payment Issues
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Account Settings
-                  </Button>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-border">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Visit Help Center
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Response Time Notice */}
-        <Card className="bg-blue-600/10 border-blue-600/20 mt-12">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <Clock className="w-6 h-6 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-400 mb-2">Response Time Commitment</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                  <div>
-                    <strong className="text-foreground">General Inquiries:</strong>
-                    <br />
-                    Within 24 hours
-                  </div>
-                  <div>
-                    <strong className="text-foreground">Technical Support:</strong>
-                    <br />
-                    Within 4 hours
-                  </div>
-                  <div>
-                    <strong className="text-foreground">Urgent Issues:</strong>
-                    <br />
-                    Within 1 hour
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <Card className="w-full max-w-2xl bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-orange-500" />
+            Contact Is Intent-Gated
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            TradeScout routes outreach through Scout and Direct Connect to prevent spam and preserve
+            trusted contact flows.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button
+            className="w-full bg-orange-600 hover:bg-orange-700"
+            onClick={() => setLocation("/scout?intent=support&source=contact-cta")}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Continue in Scout
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setLocation("/direct-connect?intent=support&source=contact-cta")}
+          >
+            Open Direct Connect
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
-});
-
-export default Contact;
+}

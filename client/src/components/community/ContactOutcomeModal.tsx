@@ -55,6 +55,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           }),
           confidenceScore: outcome.confidenceScore,
           decisionScope: outcome.decisionScope,
+          contactPreview: outcome.reasonForContact,
         }),
       });
 
@@ -67,6 +68,14 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/social/conversations"] });
+      if (data?.pending) {
+        toast({
+          title: "Request sent",
+          description: `${outcome.targetUserName} will review your first-contact preview before chat opens.`,
+        });
+        setLocation("/messages");
+        return;
+      }
       toast({
         title: "Contact initiated",
         description: `You can now message ${outcome.targetUserName}`,

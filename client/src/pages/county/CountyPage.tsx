@@ -308,7 +308,9 @@ const CountyPage = memo(function CountyPage() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">Not Yet Covered</h3>
                     <p className="text-gray-700 mb-3">{county.name} is on our expansion roadmap.</p>
-                    <Link href="/contact">
+                    <Link
+                      href={`/scout?intent=county-coverage-request&county=${encodeURIComponent(county.name)}&countyFips=${encodeURIComponent(county.fipsCode)}`}
+                    >
                       <a className="inline-block px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
                         Request Coverage →
                       </a>

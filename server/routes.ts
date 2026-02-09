@@ -6045,7 +6045,25 @@ export async function registerRoutes(app: any) {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
 
-        const threads = await storage.getThreadsForUser(userId, { limit, offset });
+        const marketplaceConversations = await storage.getUserMarketplaceConversations(userId);
+        const marketplaceThreads = marketplaceConversations.map((conv: any) => ({
+          id: conv.id,
+          subject: conv.listing?.title ?? "Conversation",
+          lastMessageSnippet: conv.lastMessage?.content ?? null,
+          lastMessageAt: conv.lastMessageAt ?? conv.createdAt ?? null,
+          unreadCount: Number(conv.unreadCount || 0),
+          participantCount: 2,
+        }));
+        const legacyThreads = await storage.getThreadsForUser(userId, {
+          limit: Math.max(limit * 3, 100),
+          offset: 0,
+        });
+        const merged = [...marketplaceThreads, ...legacyThreads].sort((a: any, b: any) => {
+          const left = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+          const right = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+          return right - left;
+        });
+        const threads = merged.slice(offset, offset + limit);
         res.json({ threads });
       } catch (error: any) {
         console.error("Error fetching message threads:", error);
@@ -6065,27 +6083,64 @@ export async function registerRoutes(app: any) {
           return res.status(401).json({ message: "Authentication required" });
         }
 
-        const conversation = await storage.getConversation(req.params.threadId);
-        if (!conversation) {
+        const marketplaceConversation = await storage.getMarketplaceConversation(
+          req.params.threadId
+        );
+        if (marketplaceConversation) {
+          if (
+            marketplaceConversation.buyerId !== userId &&
+            marketplaceConversation.sellerId !== userId
+          ) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+
+          const marketplaceMsgs = await storage.getMarketplaceMessages(req.params.threadId);
+          const messages = marketplaceMsgs.map((m: any) => ({
+            id: m.id,
+            conversationId: m.conversationId,
+            senderId: m.senderId,
+            senderType: m.senderType,
+            content: m.content,
+            messageType: m.messageType,
+            metadata: m.metadata,
+            readAt: m.readAt,
+            createdAt: m.createdAt,
+          }));
+
+          const thread = {
+            id: marketplaceConversation.id,
+            subject: null as string | null,
+            lastMessageSnippet: messages.length ? messages[messages.length - 1].content : null,
+            lastMessageAt: (marketplaceConversation.lastMessageAt as any) ?? null,
+            unreadCount: messages.filter((m: any) => m.senderId !== userId && !m.readAt).length,
+            participantCount: 2,
+          };
+
+          return res.json({ thread, messages });
+        }
+
+        const legacyConversation = await storage.getConversation(req.params.threadId);
+        if (!legacyConversation) {
           return res.status(404).json({ message: "Thread not found" });
         }
-
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (
+          legacyConversation.homeownerId !== userId &&
+          legacyConversation.contractorId !== userId
+        ) {
           return res.status(403).json({ message: "Access denied" });
         }
-
-        const messages = await storage.getMessagesByConversation(req.params.threadId);
-
-        const thread = {
-          id: conversation.id,
+        const legacyMessages = await storage.getMessagesByConversation(req.params.threadId);
+        const legacyThread = {
+          id: legacyConversation.id,
           subject: null as string | null,
-          lastMessageSnippet: null as string | null,
-          lastMessageAt: (conversation.lastMessageAt as any) ?? null,
-          unreadCount: 0,
+          lastMessageSnippet: legacyMessages.length
+            ? legacyMessages[legacyMessages.length - 1]?.content || null
+            : null,
+          lastMessageAt: (legacyConversation.lastMessageAt as any) ?? null,
+          unreadCount: legacyMessages.filter((m: any) => m.senderId !== userId && !m.readAt).length,
           participantCount: 2,
         };
-
-        res.json({ thread, messages });
+        res.json({ thread: legacyThread, messages: legacyMessages });
       } catch (error: any) {
         console.error("Error fetching thread messages:", error);
         res.status(500).json({ message: "Failed to fetch thread messages" });
@@ -6104,28 +6159,46 @@ export async function registerRoutes(app: any) {
           return res.status(401).json({ message: "Authentication required" });
         }
 
-        const conversation = await storage.getConversation(req.params.threadId);
-        if (!conversation) {
-          return res.status(404).json({ message: "Thread not found" });
+        const conversation = await storage.getMarketplaceConversation(req.params.threadId);
+        const { content, messageType, metadata } = (req.body ?? {}) as any;
+
+        if (conversation) {
+          if (conversation.buyerId !== userId && conversation.sellerId !== userId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+
+          const senderType = conversation.buyerId === userId ? "buyer" : "seller";
+          const message = await storage.createMarketplaceMessage({
+            conversationId: req.params.threadId,
+            senderId: userId,
+            senderType: senderType as any,
+            content,
+            messageType: messageType || "text",
+            metadata,
+          });
+          return res.json({ message });
         }
 
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        const legacyConversation = await storage.getConversation(req.params.threadId);
+        if (!legacyConversation) {
+          return res.status(404).json({ message: "Thread not found" });
+        }
+        if (
+          legacyConversation.homeownerId !== userId &&
+          legacyConversation.contractorId !== userId
+        ) {
           return res.status(403).json({ message: "Access denied" });
         }
 
-        const { content, messageType, metadata } = (req.body ?? {}) as any;
-
-        const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
-
+        const senderType = legacyConversation.homeownerId === userId ? "homeowner" : "contractor";
         const message = await storage.createMessage({
           conversationId: req.params.threadId,
           senderId: userId,
-          senderType,
+          senderType: senderType as any,
           content,
           messageType: messageType || "text",
           metadata,
         });
-
         res.json({ message });
       } catch (error: any) {
         console.error("Error sending thread message:", error);

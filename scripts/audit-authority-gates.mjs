@@ -50,6 +50,7 @@ const clientFiles = findFiles(path.join(root, "client", "src")).filter((p) =>
 let contactButtonCount = 0;
 let startEndpointRefs = 0;
 let startEndpointOutsideAllowed = 0;
+let contactRouteBypassRefs = 0;
 const allowedStartRefs = [
   path.join("client", "src", "components", "community", "ContactOutcomeModal.tsx"),
 ];
@@ -61,6 +62,16 @@ for (const filePath of clientFiles) {
   if (content.includes("button-contact-")) {
     contactButtonCount += 1;
     failures.push(`Forbidden contact button test id in ${rel}`);
+  }
+
+  const hasContactBypass =
+    /\bhref\s*=\s*["']\/contact["']/.test(content) ||
+    /\bto\s*=\s*["']\/contact["']/.test(content) ||
+    /\b(navigate|setLocation)\(\s*["']\/contact["']/.test(content) ||
+    /\bwindow\.location\.(href|assign)\s*=\s*["']\/contact["']/.test(content);
+  if (hasContactBypass) {
+    contactRouteBypassRefs += 1;
+    failures.push(`Forbidden /contact bypass reference in ${rel}`);
   }
 
   if (content.includes('"/api/social/conversations/start"') || content.includes("'/api/social/conversations/start'")) {
@@ -89,5 +100,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `[authority-gates] pass (contactButtons=${contactButtonCount}, startRefs=${startEndpointRefs}, outsideAllowed=${startEndpointOutsideAllowed})`
+  `[authority-gates] pass (contactButtons=${contactButtonCount}, startRefs=${startEndpointRefs}, outsideAllowed=${startEndpointOutsideAllowed}, contactBypassRefs=${contactRouteBypassRefs})`
 );

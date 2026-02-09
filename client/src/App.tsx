@@ -232,7 +232,6 @@ const Terms = React.lazy(() => import("./pages/terms"));
 const Privacy = React.lazy(() => import("./pages/privacy"));
 const PrivacyRequest = React.lazy(() => import("./pages/privacy-request"));
 const About = React.lazy(() => import("./pages/about"));
-const Contact = React.lazy(() => import("./pages/contact"));
 const Pricing = React.lazy(() => import("./pages/pricing"));
 const HowItWorks = React.lazy(() => import("./pages/how-it-works"));
 const TrustModel = React.lazy(() => import("./pages/trust-model"));
@@ -1292,7 +1291,7 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={About} />
                   </Route>
                   <Route path="/contact">
-                    <LazyPage Component={Contact} />
+                    <RedirectTo to="/scout?intent=support&source=contact-route" />
                   </Route>
 
                   {/* Story Generator */}

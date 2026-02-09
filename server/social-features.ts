@@ -1,175 +1,184 @@
 /**
  * MESSAGING AUTHORITY SYSTEM
- * 
+ *
  * Core Rule:
  * "Messaging is a consequence of decisions, never a discovery action."
  * "All conversations require explicit authority, intent, and scope."
- * 
+ *
  * Authority Gates (Decision → Contact):
  * - decision_card: Contact from Decision Card outcome
  * - scout_recommendation: Contact from Scout recommendation
- * 
+ *
  * Deprecated (no longer supported):
  * - Social graph endpoints (friends, suggestions)
  * - Direct search-to-message flows
  * - user_search authority gate
- * 
+ *
  * See: MESSAGING_AUTHORITY_CONTRACT.md
  */
 
 import type { Express } from "express";
 import { eq, desc, and, or, like, ilike, sql, inArray, notInArray } from "drizzle-orm";
 import { db } from "../src/db/drizzle-mock";
-import { 
+import {
   users,
   userFollows,
   conversations,
   messages,
   marketplaceConversations,
   marketplaceMessages,
+  notifications,
 } from "@shared/schema";
 import { storage } from "./storage";
 import { isAuthenticated, requireOnboardingComplete } from "./auth";
 
 export function registerSocialFeatures(app: Express) {
-
   /**
    * SEARCH: Find people in the community
    * GET /api/social/search?q=name&scope=county&limit=20
-   * 
+   *
    * Allows users to search:
    * - By name
    * - By location (county, state)
    * - By role (homeowner, contractor)
    * - Filter out people already connected to
    */
-  app.get("/api/social/search", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.id || req.user?.claims?.sub;
-      if (!userId) return res.status(401).json({ message: "Authentication required" });
+  app.get(
+    "/api/social/search",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-      const { 
-        q = '',
-        scope = 'county',
-        role = undefined,
-        limit = 20,
-        offset = 0,
-        excludeFollowing = true,
-      } = req.query;
+        const {
+          q = "",
+          scope = "county",
+          role = undefined,
+          limit = 20,
+          offset = 0,
+          excludeFollowing = true,
+        } = req.query;
 
-      const limitNum = Math.min(parseInt(limit as string) || 20, 100);
-      const offsetNum = parseInt(offset as string) || 0;
+        const limitNum = Math.min(parseInt(limit as string) || 20, 100);
+        const offsetNum = parseInt(offset as string) || 0;
 
-      // Get current user's location for scoped search
-      const currentUser = await storage.getUser(userId);
-      if (!currentUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Build search conditions
-      const searchConditions = [
-        eq(users.addressVerified, true), // Only show verified users
-      ];
-
-      // Exclude self
-      searchConditions.push(notInArray(users.id, [userId]));
-
-      // Search by name (first name, last name, or email)
-      if (q) {
-        const searchTerm = `%${q}%`;
-        const nameCondition = or(
-          ilike(users.firstName, searchTerm),
-          ilike(users.lastName, searchTerm),
-          ilike(users.email, searchTerm),
-        );
-        if (nameCondition) {
-          searchConditions.push(nameCondition);
+        // Get current user's location for scoped search
+        const currentUser = await storage.getUser(userId);
+        if (!currentUser) {
+          return res.status(404).json({ message: "User not found" });
         }
-      }
 
-      // Scope by location
-      if (scope === 'county' && (currentUser as any).countyFips) {
-        searchConditions.push(eq(users.countyFips, (currentUser as any).countyFips));
-      } else if (scope === 'state' && currentUser.state) {
-        searchConditions.push(eq(users.state, currentUser.state));
-      }
+        // Build search conditions
+        const searchConditions = [
+          eq(users.addressVerified, true), // Only show verified users
+        ];
 
-      // Filter by role if specified
-      if (role && ['homeowner', 'contractor', 'business'].includes(role as string)) {
-        searchConditions.push(eq(users.role, role as any));
-      }
+        // Exclude self
+        searchConditions.push(notInArray(users.id, [userId]));
 
-      // Exclude users already following if requested
-      let excludedUserIds: string[] = [];
-      if (excludeFollowing) {
-        const following = await db
-          .select({ followingId: userFollows.followingId })
-          .from(userFollows)
-          .where(eq(userFollows.followerId, userId));
-        
-        excludedUserIds = following
-          .map((f) => f.followingId)
-          .filter((id): id is string => Boolean(id));
-        
-        if (excludedUserIds.length > 0) {
-          searchConditions.push(notInArray(users.id, excludedUserIds));
+        // Search by name (first name, last name, or email)
+        if (q) {
+          const searchTerm = `%${q}%`;
+          const nameCondition = or(
+            ilike(users.firstName, searchTerm),
+            ilike(users.lastName, searchTerm),
+            ilike(users.email, searchTerm)
+          );
+          if (nameCondition) {
+            searchConditions.push(nameCondition);
+          }
         }
+
+        // Scope by location
+        if (scope === "county" && (currentUser as any).countyFips) {
+          searchConditions.push(eq(users.countyFips, (currentUser as any).countyFips));
+        } else if (scope === "state" && currentUser.state) {
+          searchConditions.push(eq(users.state, currentUser.state));
+        }
+
+        // Filter by role if specified
+        if (role && ["homeowner", "contractor", "business"].includes(role as string)) {
+          searchConditions.push(eq(users.role, role as any));
+        }
+
+        // Exclude users already following if requested
+        let excludedUserIds: string[] = [];
+        if (excludeFollowing) {
+          const following = await db
+            .select({ followingId: userFollows.followingId })
+            .from(userFollows)
+            .where(eq(userFollows.followerId, userId));
+
+          excludedUserIds = following
+            .map((f) => f.followingId)
+            .filter((id): id is string => Boolean(id));
+
+          if (excludedUserIds.length > 0) {
+            searchConditions.push(notInArray(users.id, excludedUserIds));
+          }
+        }
+
+        // Execute search
+        const results = await db
+          .select({
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            profileImageUrl: users.profileImageUrl,
+            role: users.role,
+            state: users.state,
+            countyFips: users.countyFips,
+            verified: users.addressVerified,
+            badges: sql`COALESCE(${users.role}, 'user')::text[]`,
+          })
+          .from(users)
+          .where(and(...searchConditions))
+          .orderBy(
+            // Prioritize exact name matches, then verified users, then recent
+            desc(sql`CASE WHEN LOWER(${users.firstName}) = LOWER(${q}) THEN 1 ELSE 0 END`),
+            desc(users.addressVerified),
+            desc(users.createdAt)
+          )
+          .limit(limitNum)
+          .offset(offsetNum);
+
+        const formattedResults = results.map((user) => ({
+          id: user.id,
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User",
+          avatar: user.profileImageUrl,
+          role: user.role,
+          location: user.countyFips ? `${user.countyFips}, ${user.state}` : user.state,
+          verified: user.verified,
+        }));
+
+        res.json({ results: formattedResults, total: formattedResults.length });
+      } catch (error: any) {
+        console.error("Search error:", error);
+        res.status(500).json({ message: "Search failed" });
       }
-
-      // Execute search
-      const results = await db
-        .select({
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-          profileImageUrl: users.profileImageUrl,
-          role: users.role,
-          state: users.state,
-          countyFips: users.countyFips,
-          verified: users.addressVerified,
-          badges: sql`COALESCE(${users.role}, 'user')::text[]`,
-        })
-        .from(users)
-        .where(and(...searchConditions))
-        .orderBy(
-          // Prioritize exact name matches, then verified users, then recent
-          desc(sql`CASE WHEN LOWER(${users.firstName}) = LOWER(${q}) THEN 1 ELSE 0 END`),
-          desc(users.addressVerified),
-          desc(users.createdAt),
-        )
-        .limit(limitNum)
-        .offset(offsetNum);
-
-      const formattedResults = results.map((user) => ({
-        id: user.id,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
-        avatar: user.profileImageUrl,
-        role: user.role,
-        location: user.countyFips ? `${user.countyFips}, ${user.state}` : user.state,
-        verified: user.verified,
-      }));
-
-      res.json({ results: formattedResults, total: formattedResults.length });
-    } catch (error: any) {
-      console.error("Search error:", error);
-      res.status(500).json({ message: "Search failed" });
     }
-  });
+  );
 
   /**
    * DEPRECATED: Social graph discovery is no longer supported
    * @deprecated Use Decision Cards or Scout Recommendations to connect
    * GET /api/social/friends?filter=all|friends|suggestions
    */
-  app.get("/api/social/friends", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    console.warn('[DEPRECATED] GET /api/social/friends called - endpoint is deprecated');
-    return res.status(410).json({ 
-      message: "Social graph actions are deprecated. Use Scout or Decision Cards to connect.",
-      reasonCode: 'ENDPOINT_DEPRECATED'
-    });
-    
-    /* ORIGINAL IMPLEMENTATION ARCHIVED
+  app.get(
+    "/api/social/friends",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      console.warn("[DEPRECATED] GET /api/social/friends called - endpoint is deprecated");
+      return res.status(410).json({
+        message: "Social graph actions are deprecated. Use Scout or Decision Cards to connect.",
+        reasonCode: "ENDPOINT_DEPRECATED",
+      });
+
+      /* ORIGINAL IMPLEMENTATION ARCHIVED
     try {
       const userId = req.user?.id || req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
@@ -259,21 +268,29 @@ export function registerSocialFeatures(app: Express) {
       res.status(500).json({ message: "Failed to fetch friends" });
     }
     */
-  });
+    }
+  );
 
   /**
    * DEPRECATED: Direct friend/follow actions no longer supported
    * @deprecated Use Decision Cards or Scout Recommendations to connect
    * POST /api/social/friends/:userId/add
    */
-  app.post("/api/social/friends/:userId/add", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    console.warn('[DEPRECATED] POST /api/social/friends/:userId/add called - endpoint is deprecated');
-    return res.status(410).json({ 
-      message: "Social graph actions are deprecated. Contact requires explicit intent via Scout or Decision Card.",
-      reasonCode: 'ENDPOINT_DEPRECATED'
-    });
-    
-    /* ORIGINAL IMPLEMENTATION ARCHIVED
+  app.post(
+    "/api/social/friends/:userId/add",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      console.warn(
+        "[DEPRECATED] POST /api/social/friends/:userId/add called - endpoint is deprecated"
+      );
+      return res.status(410).json({
+        message:
+          "Social graph actions are deprecated. Contact requires explicit intent via Scout or Decision Card.",
+        reasonCode: "ENDPOINT_DEPRECATED",
+      });
+
+      /* ORIGINAL IMPLEMENTATION ARCHIVED
     try {
       const followerId = req.user?.id || req.user?.claims?.sub;
       const { userId: followingId } = req.params;
@@ -313,21 +330,28 @@ export function registerSocialFeatures(app: Express) {
       res.status(500).json({ message: "Failed to add friend" });
     }
     */
-  });
+    }
+  );
 
   /**
    * DEPRECATED: Unfriend/unfollow actions no longer supported
    * @deprecated Conversations persist for audit trail; blocking is handled separately
    * POST /api/social/friends/:userId/remove
    */
-  app.post("/api/social/friends/:userId/remove", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    console.warn('[DEPRECATED] POST /api/social/friends/:userId/remove called - endpoint is deprecated');
-    return res.status(410).json({ 
-      message: "Social graph actions are deprecated. Use blocking/reporting if needed.",
-      reasonCode: 'ENDPOINT_DEPRECATED'
-    });
-    
-    /* ORIGINAL IMPLEMENTATION ARCHIVED
+  app.post(
+    "/api/social/friends/:userId/remove",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      console.warn(
+        "[DEPRECATED] POST /api/social/friends/:userId/remove called - endpoint is deprecated"
+      );
+      return res.status(410).json({
+        message: "Social graph actions are deprecated. Use blocking/reporting if needed.",
+        reasonCode: "ENDPOINT_DEPRECATED",
+      });
+
+      /* ORIGINAL IMPLEMENTATION ARCHIVED
     try {
       const followerId = req.user?.id || req.user?.claims?.sub;
       const { userId: followingId } = req.params;
@@ -351,380 +375,638 @@ export function registerSocialFeatures(app: Express) {
       res.status(500).json({ message: "Failed to remove friend" });
     }
     */
-  });
+    }
+  );
 
   /**
    * START CONVERSATION: Create decision-scoped conversation with intent metadata
-   * 
+   *
    * ✅ MESSAGING AUTHORITY CONTRACT ENFORCER
    * - Requires explicit intent (hire, advise, collaborate, reconnect)
    * - Captures decision context and Scout assessment
    * - Validates user is verified
    * - Stores metadata for lifecycle tracking
-   * 
+   *
    * POST /api/social/conversations/start
-   * Body: { 
+   * Body: {
    *   targetUserId: string,
    *   intent: 'hire' | 'advise' | 'collaborate' | 'reconnect',
    *   initiatedFromDecisionId?: string,
    *   initiatedFromScoutRecommendationId?: string,
    * }
    */
-  app.post("/api/social/conversations/start", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.id || req.user?.claims?.sub;
-      const { 
-        targetUserId, 
-        intent,
-        initiatedFromDecisionId,
-        initiatedFromScoutRecommendationId,
-      } = req.body;
+  app.post(
+    "/api/social/conversations/start",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        const {
+          targetUserId,
+          intent,
+          initiatedFromDecisionId,
+          initiatedFromScoutRecommendationId,
+        } = req.body;
 
-      // ========================================
-      // VALIDATION CHECKPOINT 1: Required fields
-      // ========================================
-      if (!userId || !targetUserId) {
-        return res.status(400).json({ message: "User ID required" });
-      }
+        // ========================================
+        // VALIDATION CHECKPOINT 1: Required fields
+        // ========================================
+        if (!userId || !targetUserId) {
+          return res.status(400).json({ message: "User ID required" });
+        }
 
-      if (!intent || !['hire', 'advise', 'collaborate', 'reconnect'].includes(intent)) {
-        return res.status(400).json({ 
-          message: "Intent required: 'hire', 'advise', 'collaborate', or 'reconnect'"
-        });
-      }
+        if (!intent || !["hire", "advise", "collaborate", "reconnect"].includes(intent)) {
+          return res.status(400).json({
+            message: "Intent required: 'hire', 'advise', 'collaborate', or 'reconnect'",
+          });
+        }
 
-      if (userId === targetUserId) {
-        return res.status(400).json({ message: "Cannot message yourself" });
-      }
+        if (userId === targetUserId) {
+          return res.status(400).json({ message: "Cannot message yourself" });
+        }
 
-      // ========================================
-      // VALIDATION CHECKPOINT 2: User verification
-      // ========================================
-      const initiator = await storage.getUser(userId);
-      const recipient = await storage.getUser(targetUserId);
+        // ========================================
+        // VALIDATION CHECKPOINT 2: User verification
+        // ========================================
+        const initiator = await storage.getUser(userId);
+        const recipient = await storage.getUser(targetUserId);
 
-      if (!initiator || !recipient) {
-        return res.status(404).json({ message: "User not found" });
-      }
+        if (!initiator || !recipient) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
-      // ========================================
-      // VERIFICATION GATE (C2-3): Action-triggered, not upfront
-      // ========================================
-      // C2 Pattern: Check verification requirements when action is executed
-      // NOT when user navigates to messaging UI
-      
-      // Asymmetric verification (C2-4):
-      // - Sender (initiator) must verify address to send
-      // - Recipient is checked but not blocking (may not be verified yet)
-      
-      const missingInitiatorVerification = !(initiator as any).addressVerified;
-      const recipientUnverified = !(recipient as any).addressVerified;
+        // ========================================
+        // VERIFICATION GATE (C2-3): Action-triggered, not upfront
+        // ========================================
+        // C2 Pattern: Check verification requirements when action is executed
+        // NOT when user navigates to messaging UI
 
-      // If initiator (sender) is not verified, offer verification with alternate path
-      if (missingInitiatorVerification) {
-        // Import the C2-2 helper
-        const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
-        
-        const gateResponse = buildVerificationGateResponse({
-          action: 'MESSAGE_USER',
-          missingRequirements: ['address'],
-          userRole: (initiator as any).role,
-          targetUserId: targetUserId,
-          targetRole: (recipient as any).role,
-          context: { intent },
-        });
+        // Asymmetric verification (C2-4):
+        // - Sender (initiator) must verify address to send
+        // - Recipient is checked but not blocking (may not be verified yet)
 
-        // Return Scout-style response with verification option + alternate path
-        // User can either verify OR use Scout-mediated contact
-        return res.status(200).json({
-          ...gateResponse,
-          // Include context so client can retry after verification
-          verificationRequired: {
-            action: 'MESSAGE_USER',
-            retryPath: `/api/user/${targetUserId}/conversations`,
-            context: { targetUserId, intent },
-          },
-        });
-      }
+        const missingInitiatorVerification = !(initiator as any).addressVerified;
+        const recipientUnverified = !(recipient as any).addressVerified;
 
-      // If recipient (target) is not verified, WARN but don't block
-      // (They may have been recently created; messaging can still happen)
-      if (recipientUnverified) {
-        console.warn(
-          `[Messaging] Recipient ${targetUserId} is not verified. Conversation may have limited success.`
-        );
-        // Continue; don't block. Scout can explain risk in UI if needed.
-      }
+        // If initiator (sender) is not verified, offer verification with alternate path
+        if (missingInitiatorVerification) {
+          // Import the C2-2 helper
+          const { buildVerificationGateResponse } =
+            await import("./utils/explainAndOfferVerification");
 
-      // ========================================
-      // VALIDATION CHECKPOINT 3: Intent validation
-      // ========================================
-      // If intent is 'reconnect', they should have prior conversation
-      if (intent === 'reconnect') {
-        const [prior] = await db
+          const gateResponse = buildVerificationGateResponse({
+            action: "MESSAGE_USER",
+            missingRequirements: ["address"],
+            userRole: (initiator as any).role,
+            targetUserId: targetUserId,
+            targetRole: (recipient as any).role,
+            context: { intent },
+          });
+
+          // Return Scout-style response with verification option + alternate path
+          // User can either verify OR use Scout-mediated contact
+          return res.status(200).json({
+            ...gateResponse,
+            // Include context so client can retry after verification
+            verificationRequired: {
+              action: "MESSAGE_USER",
+              retryPath: `/api/user/${targetUserId}/conversations`,
+              context: { targetUserId, intent },
+            },
+          });
+        }
+
+        // If recipient (target) is not verified, WARN but don't block
+        // (They may have been recently created; messaging can still happen)
+        if (recipientUnverified) {
+          console.warn(
+            `[Messaging] Recipient ${targetUserId} is not verified. Conversation may have limited success.`
+          );
+          // Continue; don't block. Scout can explain risk in UI if needed.
+        }
+
+        // ========================================
+        // VALIDATION CHECKPOINT 3: Intent validation
+        // ========================================
+        // If intent is 'reconnect', they should have prior conversation
+        if (intent === "reconnect") {
+          const [prior] = await db
+            .select()
+            .from(marketplaceConversations)
+            .where(
+              or(
+                and(
+                  eq(marketplaceConversations.buyerId, userId),
+                  eq(marketplaceConversations.sellerId, targetUserId)
+                ),
+                and(
+                  eq(marketplaceConversations.buyerId, targetUserId),
+                  eq(marketplaceConversations.sellerId, userId)
+                )
+              )
+            )
+            .limit(1);
+
+          if (!prior) {
+            return res.status(400).json({
+              message: "No prior conversation found for reconnect intent",
+            });
+          }
+        }
+
+        // ========================================
+        // VALIDATION CHECKPOINT 4: Authority gate validation
+        // ========================================
+        const { authorityGate, sourceDecisionCardId, confidenceScore, decisionScope } = req.body;
+
+        // Validate authority gate (LOCKED: only decision_card and scout_recommendation)
+        if (!authorityGate || !["decision_card", "scout_recommendation"].includes(authorityGate)) {
+          return res.status(400).json({
+            reasonCode: "MISSING_AUTHORITY_GATE",
+            message:
+              "Authority gate required: 'decision_card' or 'scout_recommendation'. Direct search-to-message is not supported.",
+          });
+        }
+
+        // D1: If from decision_card, require sourceDecisionCardId
+        if (authorityGate === "decision_card") {
+          if (!sourceDecisionCardId) {
+            return res.status(400).json({
+              reasonCode: "MISSING_DECISION_CARD_ID",
+              message: "Decision Card ID required when authorityGate is 'decision_card'",
+            });
+          }
+          // Future: Validate decision card exists and is active
+          // const decision = await db.select().from(decisionCards).where(eq(decisionCards.id, sourceDecisionCardId)).limit(1);
+          // if (!decision || decision.status === 'expired') { return 400 }
+        }
+
+        // D2: If from scout_recommendation, require sourceScoutRecommendationId (future phase)
+        if (authorityGate === "scout_recommendation" && !initiatedFromScoutRecommendationId) {
+          return res.status(400).json({
+            reasonCode: "MISSING_SCOUT_RECOMMENDATION_ID",
+            message:
+              "Scout Recommendation ID required when authorityGate is 'scout_recommendation'",
+          });
+        }
+
+        // ========================================
+        // CHECK: Conversation already exists?
+        // ========================================
+        const [existing] = await db
           .select()
           .from(marketplaceConversations)
           .where(
             or(
               and(
                 eq(marketplaceConversations.buyerId, userId),
-                eq(marketplaceConversations.sellerId, targetUserId),
+                eq(marketplaceConversations.sellerId, targetUserId)
               ),
               and(
                 eq(marketplaceConversations.buyerId, targetUserId),
-                eq(marketplaceConversations.sellerId, userId),
-              ),
+                eq(marketplaceConversations.sellerId, userId)
+              )
             )
           )
           .limit(1);
 
-        if (!prior) {
-          return res.status(400).json({ 
-            message: "No prior conversation found for reconnect intent" 
+        if (existing) {
+          // Conversation already exists - return it without re-creating
+          // Metadata (intent, authority, etc.) is preserved from original creation
+          return res.json({
+            threadId: existing.id,
+            created: false,
+            intent: existing.intent,
+            authorityGate: existing.authorityGate,
+            message: "Existing conversation retrieved",
           });
         }
-      }
 
-      // ========================================
-      // VALIDATION CHECKPOINT 4: Authority gate validation
-      // ========================================
-      const { 
-        authorityGate, 
-        sourceDecisionCardId,
-        confidenceScore,
-        decisionScope 
-      } = req.body;
+        const requestPreviewRaw =
+          typeof req.body?.contactPreview === "string" ? req.body.contactPreview.trim() : "";
+        const requestPreview = requestPreviewRaw.slice(0, 280);
 
-      // Validate authority gate (LOCKED: only decision_card and scout_recommendation)
-      if (!authorityGate || !['decision_card', 'scout_recommendation'].includes(authorityGate)) {
-        return res.status(400).json({ 
-          reasonCode: 'MISSING_AUTHORITY_GATE',
-          message: "Authority gate required: 'decision_card' or 'scout_recommendation'. Direct search-to-message is not supported." 
-        });
-      }
-
-      // D1: If from decision_card, require sourceDecisionCardId
-      if (authorityGate === 'decision_card') {
-        if (!sourceDecisionCardId) {
-          return res.status(400).json({ 
-            reasonCode: 'MISSING_DECISION_CARD_ID',
-            message: "Decision Card ID required when authorityGate is 'decision_card'" 
-          });
-        }
-        // Future: Validate decision card exists and is active
-        // const decision = await db.select().from(decisionCards).where(eq(decisionCards.id, sourceDecisionCardId)).limit(1);
-        // if (!decision || decision.status === 'expired') { return 400 }
-      }
-
-      // D2: If from scout_recommendation, require sourceScoutRecommendationId (future phase)
-      if (authorityGate === 'scout_recommendation' && !initiatedFromScoutRecommendationId) {
-        return res.status(400).json({ 
-          reasonCode: 'MISSING_SCOUT_RECOMMENDATION_ID',
-          message: "Scout Recommendation ID required when authorityGate is 'scout_recommendation'" 
-        });
-      }
-
-      // ========================================
-      // CHECK: Conversation already exists?
-      // ========================================
-      const [existing] = await db
-        .select()
-        .from(marketplaceConversations)
-        .where(
-          or(
+        // First-time contact is request-gated: send preview to recipient for accept/decline.
+        const existingPending = await db
+          .select()
+          .from(notifications)
+          .where(
             and(
-              eq(marketplaceConversations.buyerId, userId),
-              eq(marketplaceConversations.sellerId, targetUserId),
-            ),
-            and(
-              eq(marketplaceConversations.buyerId, targetUserId),
-              eq(marketplaceConversations.sellerId, userId),
-            ),
+              eq(notifications.userId, targetUserId),
+              eq(notifications.type, "new_message"),
+              eq(notifications.isArchived, false)
+            )
           )
-        )
-        .limit(1);
+          .orderBy(desc(notifications.createdAt))
+          .limit(100);
 
-      if (existing) {
-        // Conversation already exists - return it without re-creating
-        // Metadata (intent, authority, etc.) is preserved from original creation
-        return res.json({ 
-          threadId: existing.id, 
-          created: false,
-          intent: existing.intent,
-          authorityGate: existing.authorityGate,
-          message: "Existing conversation retrieved" 
+        const duplicatePending = existingPending.find((n: any) => {
+          const md = (n.metadata || {}) as Record<string, any>;
+          return (
+            md.kind === "first_contact_request" &&
+            md.status === "pending" &&
+            md.requesterId === userId &&
+            md.targetUserId === targetUserId
+          );
         });
+
+        if (duplicatePending) {
+          return res.status(200).json({
+            created: false,
+            pending: true,
+            requestId: duplicatePending.id,
+            message: "Contact request already pending recipient approval.",
+          });
+        }
+
+        const initiatorName =
+          `${(initiator as any).firstName || ""} ${(initiator as any).lastName || ""}`.trim() ||
+          (initiator as any).email ||
+          "A community member";
+        const [requestNotification] = await db
+          .insert(notifications)
+          .values({
+            userId: targetUserId,
+            type: "new_message",
+            priority: "normal",
+            title: `${initiatorName} wants to message you`,
+            message:
+              requestPreview ||
+              `Intent: ${intent}. Review this first-contact request before opening chat.`,
+            actionUrl: "/messages",
+            actionText: "Review request",
+            iconName: "message-square",
+            iconColor: "blue",
+            deliveryMethods: ["in_app"],
+            metadata: {
+              kind: "first_contact_request",
+              status: "pending",
+              requesterId: userId,
+              requesterName: initiatorName,
+              requesterRole: (initiator as any).role || null,
+              targetUserId,
+              targetName:
+                `${(recipient as any).firstName || ""} ${(recipient as any).lastName || ""}`.trim() ||
+                (recipient as any).email ||
+                null,
+              preview: requestPreview || null,
+              intent,
+              authorityGate,
+              sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
+              sourceScoutRecommendationId:
+                authorityGate === "scout_recommendation"
+                  ? initiatedFromScoutRecommendationId
+                  : null,
+              confidenceScore: confidenceScore ?? null,
+              decisionScope: decisionScope || null,
+              createdAt: new Date().toISOString(),
+            },
+          } as any)
+          .returning();
+
+        res.status(202).json({
+          created: false,
+          pending: true,
+          requestId: requestNotification.id,
+          message: "Contact request sent. Recipient must accept before chat opens.",
+        });
+      } catch (error: any) {
+        console.error("Start conversation error:", error);
+        res.status(500).json({ message: "Failed to start conversation" });
       }
-
-      // ========================================
-      // CREATE: Conversation with immutable metadata
-      // ========================================
-      const [newConv] = await db
-        .insert(marketplaceConversations)
-        .values({
-          listingId: `messaging:${intent}`, // Tag with intent for filtering
-          buyerId: userId,
-          sellerId: targetUserId,
-          status: "active" as any,
-          lastMessageAt: new Date(),
-          // D1: Immutable metadata fields
-          intent,
-          authorityGate,
-          sourceDecisionCardId: authorityGate === 'decision_card' ? sourceDecisionCardId : null,
-          sourceScoutRecommendationId: authorityGate === 'scout_recommendation' ? initiatedFromScoutRecommendationId : null,
-          confidenceScore: confidenceScore ? confidenceScore.toString() : null,
-          decisionScope: decisionScope || null,
-        })
-        .returning();
-
-      console.log(`[MESSAGING D1] Conversation created: intent=${intent}, gate=${authorityGate}, initiator=${userId}, recipient=${targetUserId}`);
-
-      res.status(201).json({ 
-        threadId: newConv.id, 
-        created: true,
-        intent,
-        authorityGate,
-        message: "Connection initiated. Scout has assessed this contact."
-      });
-    } catch (error: any) {
-      console.error("Start conversation error:", error);
-      res.status(500).json({ message: "Failed to start conversation" });
     }
-  });
+  );
+
+  // Incoming first-contact requests for the current user.
+  app.get(
+    "/api/social/conversations/requests/incoming",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const rows = await db
+          .select()
+          .from(notifications)
+          .where(
+            and(
+              eq(notifications.userId, userId),
+              eq(notifications.type, "new_message"),
+              eq(notifications.isArchived, false)
+            )
+          )
+          .orderBy(desc(notifications.createdAt))
+          .limit(100);
+
+        const requests = rows
+          .map((row: any) => {
+            const md = (row.metadata || {}) as Record<string, any>;
+            if (md.kind !== "first_contact_request" || md.status !== "pending") return null;
+            return {
+              id: row.id,
+              createdAt: row.createdAt,
+              fromUserId: md.requesterId || null,
+              fromName: md.requesterName || "TradeScout member",
+              fromRole: md.requesterRole || null,
+              preview: md.preview || "",
+              intent: md.intent || "collaborate",
+            };
+          })
+          .filter(Boolean);
+
+        res.json({ requests });
+      } catch (error: any) {
+        console.error("Error fetching incoming conversation requests:", error);
+        res.status(500).json({ message: "Failed to load incoming requests" });
+      }
+    }
+  );
+
+  // Accept or decline first-contact request.
+  app.post(
+    "/api/social/conversations/requests/:requestId/respond",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        const { requestId } = req.params;
+        const action = String(req.body?.action || "").toLowerCase();
+
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+        if (!["accept", "decline"].includes(action)) {
+          return res.status(400).json({ message: "Action must be 'accept' or 'decline'" });
+        }
+
+        const [requestNotification] = await db
+          .select()
+          .from(notifications)
+          .where(and(eq(notifications.id, requestId), eq(notifications.userId, userId)))
+          .limit(1);
+
+        if (!requestNotification) {
+          return res.status(404).json({ message: "Request not found" });
+        }
+
+        const metadata = ((requestNotification as any).metadata || {}) as Record<string, any>;
+        if (metadata.kind !== "first_contact_request" || metadata.status !== "pending") {
+          return res.status(400).json({ message: "Request is no longer pending" });
+        }
+
+        const requesterId = String(metadata.requesterId || "");
+        if (!requesterId) {
+          return res.status(400).json({ message: "Invalid request payload" });
+        }
+
+        await db
+          .update(notifications)
+          .set({
+            isRead: true,
+            readAt: new Date(),
+            metadata: {
+              ...metadata,
+              status: action === "accept" ? "accepted" : "declined",
+              respondedAt: new Date().toISOString(),
+              responderId: userId,
+            },
+            updatedAt: new Date(),
+          } as any)
+          .where(eq(notifications.id, requestId));
+
+        if (action === "decline") {
+          await db.insert(notifications).values({
+            userId: requesterId,
+            type: "new_message",
+            priority: "normal",
+            title: "Message request declined",
+            message: `${metadata.targetName || "Recipient"} declined your first-contact request.`,
+            actionUrl: "/messages",
+            actionText: "View messages",
+            iconName: "message-square",
+            iconColor: "gray",
+            deliveryMethods: ["in_app"],
+            metadata: {
+              kind: "first_contact_response",
+              requestId,
+              status: "declined",
+            },
+          } as any);
+
+          return res.json({ success: true, accepted: false });
+        }
+
+        const [existingConversation] = await db
+          .select()
+          .from(marketplaceConversations)
+          .where(
+            or(
+              and(
+                eq(marketplaceConversations.buyerId, requesterId),
+                eq(marketplaceConversations.sellerId, userId)
+              ),
+              and(
+                eq(marketplaceConversations.buyerId, userId),
+                eq(marketplaceConversations.sellerId, requesterId)
+              )
+            )
+          )
+          .limit(1);
+
+        let threadId = existingConversation?.id;
+        if (!threadId) {
+          const [createdConversation] = await db
+            .insert(marketplaceConversations)
+            .values({
+              listingId: `messaging:${metadata.intent || "collaborate"}`,
+              buyerId: requesterId,
+              sellerId: userId,
+              status: "active" as any,
+              lastMessageAt: new Date(),
+              intent: metadata.intent || "collaborate",
+              authorityGate: metadata.authorityGate || "scout_recommendation",
+              sourceDecisionCardId: metadata.sourceDecisionCardId || null,
+              sourceScoutRecommendationId:
+                metadata.sourceScoutRecommendationId || "first-contact-accepted",
+              confidenceScore:
+                metadata.confidenceScore != null ? String(metadata.confidenceScore) : null,
+              decisionScope: metadata.decisionScope || "Community first-contact approval",
+            })
+            .returning();
+          threadId = createdConversation.id;
+        }
+
+        await db.insert(notifications).values({
+          userId: requesterId,
+          type: "new_message",
+          priority: "normal",
+          title: "Message request accepted",
+          message: `${metadata.targetName || "Recipient"} accepted your request. You can now chat.`,
+          actionUrl: `/messages?thread=${encodeURIComponent(String(threadId))}`,
+          actionText: "Open conversation",
+          iconName: "message-square",
+          iconColor: "blue",
+          deliveryMethods: ["in_app"],
+          metadata: {
+            kind: "first_contact_response",
+            requestId,
+            status: "accepted",
+            threadId,
+          },
+        } as any);
+
+        res.json({ success: true, accepted: true, threadId });
+      } catch (error: any) {
+        console.error("Error responding to first-contact request:", error);
+        res.status(500).json({ message: "Failed to respond to request" });
+      }
+    }
+  );
 
   /**
    * SEARCH MESSAGES: Search within conversations
    * GET /api/social/messages/search?q=text&threadId=optional
    */
-  app.get("/api/social/messages/search", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.id || req.user?.claims?.sub;
-      const { q, threadId, limit = 50 } = req.query;
+  app.get(
+    "/api/social/messages/search",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        const { q, threadId, limit = 50 } = req.query;
 
-      if (!q) {
-        return res.status(400).json({ message: "Search query required" });
-      }
+        if (!q) {
+          return res.status(400).json({ message: "Search query required" });
+        }
 
-      const searchTerm = `%${q}%`;
-      const limitNum = Math.min(parseInt(limit as string) || 50, 100);
+        const searchTerm = `%${q}%`;
+        const limitNum = Math.min(parseInt(limit as string) || 50, 100);
 
-      // Build conditions - must be participant in thread
-      const conditions: any[] = [];
+        // Build conditions - must be participant in thread
+        const conditions: any[] = [];
 
-      if (threadId) {
-        // Search in specific conversation (verify access)
-        const [conv] = await db
-          .select()
-          .from(marketplaceConversations)
-          .where(
-            and(
-              eq(marketplaceConversations.id, threadId),
+        if (threadId) {
+          // Search in specific conversation (verify access)
+          const [conv] = await db
+            .select()
+            .from(marketplaceConversations)
+            .where(
+              and(
+                eq(marketplaceConversations.id, threadId),
+                or(
+                  eq(marketplaceConversations.buyerId, userId),
+                  eq(marketplaceConversations.sellerId, userId)
+                )
+              )
+            );
+
+          if (!conv) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+
+          conditions.push(eq(marketplaceMessages.conversationId, threadId));
+        } else {
+          // Search across all conversations user is in
+          const convs = await db
+            .select({ id: marketplaceConversations.id })
+            .from(marketplaceConversations)
+            .where(
               or(
                 eq(marketplaceConversations.buyerId, userId),
-                eq(marketplaceConversations.sellerId, userId),
-              ),
-            )
-          );
+                eq(marketplaceConversations.sellerId, userId)
+              )
+            );
 
-        if (!conv) {
-          return res.status(403).json({ message: "Access denied" });
+          const convIds = convs.map((c) => c.id);
+          if (convIds.length === 0) {
+            return res.json({ results: [] });
+          }
+
+          conditions.push(inArray(marketplaceMessages.conversationId, convIds));
         }
 
-        conditions.push(eq(marketplaceMessages.conversationId, threadId));
-      } else {
-        // Search across all conversations user is in
-        const convs = await db
-          .select({ id: marketplaceConversations.id })
-          .from(marketplaceConversations)
-          .where(
-            or(
-              eq(marketplaceConversations.buyerId, userId),
-              eq(marketplaceConversations.sellerId, userId),
-            )
-          );
+        // Search message content
+        conditions.push(ilike(marketplaceMessages.content, searchTerm));
 
-        const convIds = convs.map((c) => c.id);
-        if (convIds.length === 0) {
-          return res.json({ results: [] });
-        }
+        const results = await db
+          .select({
+            id: marketplaceMessages.id,
+            conversationId: marketplaceMessages.conversationId,
+            content: marketplaceMessages.content,
+            senderId: marketplaceMessages.senderId,
+            sentAt: marketplaceMessages.createdAt,
+          })
+          .from(marketplaceMessages)
+          .where(and(...conditions))
+          .orderBy(desc(marketplaceMessages.createdAt))
+          .limit(limitNum);
 
-        conditions.push(inArray(marketplaceMessages.conversationId, convIds));
+        res.json({ results });
+      } catch (error: any) {
+        console.error("Message search error:", error);
+        res.status(500).json({ message: "Search failed" });
       }
-
-      // Search message content
-      conditions.push(ilike(marketplaceMessages.content, searchTerm));
-
-      const results = await db
-        .select({
-          id: marketplaceMessages.id,
-          conversationId: marketplaceMessages.conversationId,
-          content: marketplaceMessages.content,
-          senderId: marketplaceMessages.senderId,
-          sentAt: marketplaceMessages.createdAt,
-        })
-        .from(marketplaceMessages)
-        .where(and(...conditions))
-        .orderBy(desc(marketplaceMessages.createdAt))
-        .limit(limitNum);
-
-      res.json({ results });
-    } catch (error: any) {
-      console.error("Message search error:", error);
-      res.status(500).json({ message: "Search failed" });
     }
-  });
+  );
 
   /**
    * SEARCH FRIENDS: Filter/search friends list
    * GET /api/social/friends/search?q=name
    */
-  app.get("/api/social/friends/search", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.id || req.user?.claims?.sub;
-      const { q = '', limit = 50 } = req.query;
+  app.get(
+    "/api/social/friends/search",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        const { q = "", limit = 50 } = req.query;
 
-      const searchTerm = `%${q}%`;
-      const limitNum = Math.min(parseInt(limit as string) || 50, 100);
+        const searchTerm = `%${q}%`;
+        const limitNum = Math.min(parseInt(limit as string) || 50, 100);
 
-      const results = await db
-        .select({
-          id: userFollows.followingId,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          avatar: users.profileImageUrl,
-          role: users.role,
-          verified: users.addressVerified,
-        })
-        .from(userFollows)
-        .leftJoin(users, eq(userFollows.followingId, users.id))
-        .where(
-          and(
-            eq(userFollows.followerId, userId),
-            or(
-              ilike(users.firstName, searchTerm),
-              ilike(users.lastName, searchTerm),
-              ilike(users.email, searchTerm),
-            ),
+        const results = await db
+          .select({
+            id: userFollows.followingId,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatar: users.profileImageUrl,
+            role: users.role,
+            verified: users.addressVerified,
+          })
+          .from(userFollows)
+          .leftJoin(users, eq(userFollows.followingId, users.id))
+          .where(
+            and(
+              eq(userFollows.followerId, userId),
+              or(
+                ilike(users.firstName, searchTerm),
+                ilike(users.lastName, searchTerm),
+                ilike(users.email, searchTerm)
+              )
+            )
           )
-        )
-        .orderBy(desc(users.firstName))
-        .limit(limitNum);
+          .orderBy(desc(users.firstName))
+          .limit(limitNum);
 
-      const formatted = results
-        .filter((r) => r.id)
-        .map((r) => ({
-          id: r.id,
-          name: `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'User',
-          avatar: r.avatar,
-          role: r.role,
-          verified: r.verified,
-        }));
+        const formatted = results
+          .filter((r) => r.id)
+          .map((r) => ({
+            id: r.id,
+            name: `${r.firstName || ""} ${r.lastName || ""}`.trim() || "User",
+            avatar: r.avatar,
+            role: r.role,
+            verified: r.verified,
+          }));
 
-      res.json({ results: formatted });
-    } catch (error: any) {
-      console.error("Friends search error:", error);
-      res.status(500).json({ message: "Search failed" });
+        res.json({ results: formatted });
+      } catch (error: any) {
+        console.error("Friends search error:", error);
+        res.status(500).json({ message: "Search failed" });
+      }
     }
-  });
-
+  );
 }

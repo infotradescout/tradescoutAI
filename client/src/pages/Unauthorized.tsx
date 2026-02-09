@@ -26,10 +26,10 @@ export default function UnauthorizedPage() {
               Back to Home
             </a>
             <a
-              href="/contact"
+              href="/scout?intent=access-review&source=unauthorized"
               className="flex-1 inline-flex items-center justify-center rounded-md border border-navy-600 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-navy-800 transition-colors"
             >
-              Contact Support
+              Request Access Review
             </a>
           </div>
         </CardContent>
