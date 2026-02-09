@@ -10,15 +10,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  MessageCircle, 
-  Send, 
-  Star, 
-  Calendar, 
-  DollarSign, 
+import {
+  MessageCircle,
+  Send,
+  Star,
+  Calendar,
+  DollarSign,
   ShoppingCart,
   Plus,
   FileText,
@@ -27,7 +39,7 @@ import {
   User,
   Building2,
   Phone,
-  Mail
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { MaterialListBuilder } from "@/components/MaterialListBuilder";
@@ -49,9 +61,9 @@ interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  senderType: 'homeowner' | 'contractor';
+  senderType: "homeowner" | "contractor";
   content: string;
-  messageType: 'text' | 'quote' | 'schedule' | 'materials' | 'image';
+  messageType: "text" | "quote" | "schedule" | "materials" | "image";
   metadata?: any;
   readAt?: string;
   createdAt: string;
@@ -105,7 +117,7 @@ export default function Chat() {
   const [match, params] = useRoute("/chat/:conversationId?");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [newMessage, setNewMessage] = useState("");
   const [showQuoteDialog, setShowQuoteDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
@@ -113,9 +125,9 @@ export default function Chat() {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState("");
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const conversationId = params?.conversationId;
 
   // Fetch conversations list
@@ -162,7 +174,9 @@ export default function Chat() {
       return apiRequest("POST", `/api/conversations/${conversationId}/messages`, messageData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "messages"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/conversations", conversationId, "messages"],
+      });
       setNewMessage("");
     },
     onError: (error) => {
@@ -205,7 +219,7 @@ export default function Chat() {
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-    
+
     sendMessageMutation.mutate({
       content: newMessage,
       messageType: "text",
@@ -225,25 +239,18 @@ export default function Chat() {
 
   const renderMessage = (message: Message) => {
     const isOwn = message.senderId === user?.id;
-    const senderName = message.senderType === 'homeowner' ? 'Homeowner' : 'Contractor';
-    
+    const senderName = message.senderType === "homeowner" ? "Homeowner" : "Contractor";
+
     return (
-      <div
-        key={message.id}
-        className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-4`}
-      >
+      <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-4`}>
         <div
           className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-            isOwn
-              ? "bg-orange-500 text-white"
-              : "bg-navy-700 text-white border border-navy-600"
+            isOwn ? "bg-orange-500 text-white" : "bg-navy-700 text-white border border-navy-600"
           }`}
         >
           <div className="text-sm opacity-75 mb-1">{senderName}</div>
           <div className="text-sm">{message.content}</div>
-          <div className={`text-xs mt-2 opacity-60`}>
-            {formatMessageTime(message.createdAt)}
-          </div>
+          <div className={`text-xs mt-2 opacity-60`}>{formatMessageTime(message.createdAt)}</div>
         </div>
       </div>
     );
@@ -251,7 +258,7 @@ export default function Chat() {
 
   if (!isAuthenticated) {
     return (
-    <div className="py-24 flex items-center justify-center">
+      <div className="py-24 flex items-center justify-center">
         <Card className="bg-navy-700 border-navy-600 max-w-md mx-auto">
           <CardContent className="p-8 text-center">
             <MessageCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
@@ -269,10 +276,9 @@ export default function Chat() {
   }
 
   return (
-  <div>
+    <div>
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-8rem)]">
-          
           {/* Conversations Sidebar */}
           <div className="lg:col-span-1">
             <Card className="bg-navy-700 border-navy-600 h-full">
@@ -288,15 +294,26 @@ export default function Chat() {
                     <div className="p-4 text-center">
                       <p className="text-gray-400 text-sm">No conversations yet</p>
                       <p className="text-gray-500 text-xs mt-1">
-                        Start a conversation with a contractor from their profile
+                        Start through Scout or Direct Connect to keep contact intent-gated.
                       </p>
+                      <div className="mt-3 flex flex-wrap justify-center gap-2">
+                        <Link href="/direct-connect">
+                          <Button size="sm" className="btn-primary">
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            Direct Connect
+                          </Button>
+                        </Link>
+                        <Link href="/scout">
+                          <Button size="sm" variant="outline">
+                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                            Ask Scout
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   ) : (
                     conversations.map((conversation: Conversation) => (
-                      <Link
-                        key={conversation.id}
-                        href={`/chat/${conversation.id}`}
-                      >
+                      <Link key={conversation.id} href={`/chat/${conversation.id}`}>
                         <div
                           className={`p-4 border-b border-navy-600 hover:bg-navy-600 cursor-pointer transition-colors ${
                             conversationId === conversation.id ? "bg-navy-600" : ""
@@ -334,7 +351,6 @@ export default function Chat() {
           <div className="lg:col-span-3">
             {conversationId ? (
               <div className="h-full flex flex-col">
-                
                 {/* Chat Header */}
                 <Card className="bg-navy-700 border-navy-600 mb-4">
                   <CardContent className="p-4">
@@ -471,9 +487,7 @@ export default function Chat() {
                   <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`p-1 ${
-                      star <= rating ? "text-yellow-400" : "text-gray-600"
-                    }`}
+                    className={`p-1 ${star <= rating ? "text-yellow-400" : "text-gray-600"}`}
                   >
                     <Star className="h-6 w-6 fill-current" />
                   </button>
@@ -516,9 +530,11 @@ export default function Chat() {
       <Dialog open={showMaterialsDialog} onOpenChange={setShowMaterialsDialog}>
         <DialogContent className="bg-navy-700 border-navy-600 max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Material Lists & Collaborative Shopping</DialogTitle>
+            <DialogTitle className="text-white">
+              Material Lists & Collaborative Shopping
+            </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Existing Material Lists */}
             {materialLists.length > 0 && (
@@ -531,7 +547,7 @@ export default function Chat() {
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-white">{materialList.title}</CardTitle>
                           <Badge variant="secondary" className="text-xs">
-                            {materialList.status || 'draft'}
+                            {materialList.status || "draft"}
                           </Badge>
                         </div>
                         {materialList.description && (
@@ -540,43 +556,51 @@ export default function Chat() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {Array.isArray(materialList.items) ? materialList.items.map((item: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-navy-700 rounded-lg border border-navy-500">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-medium text-white">{item.name}</span>
-                                  <Badge 
-                                    variant={
-                                      item.status === 'approved' ? 'default' : 
-                                      item.status === 'denied' ? 'error' : 
-                                      'secondary'
-                                    }
-                                    className="text-xs"
-                                  >
-                                    {item.status === 'pending' && `Suggested by ${item.suggestedBy}`}
-                                    {item.status === 'approved' && 'Approved'}
-                                    {item.status === 'denied' && 'Denied'}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-gray-400">
-                                  Qty: {item.quantity} | ${item.estimatedCost} each
-                                  {item.vendor && ` | ${item.vendor}`}
-                                </div>
-                                {item.status === 'denied' && item.denialReason && (
-                                  <div className="mt-1 text-xs text-red-400">
-                                    Denied: {item.denialReason}
+                          {Array.isArray(materialList.items)
+                            ? materialList.items.map((item: any, index: number) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center justify-between p-3 bg-navy-700 rounded-lg border border-navy-500"
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium text-white">{item.name}</span>
+                                      <Badge
+                                        variant={
+                                          item.status === "approved"
+                                            ? "default"
+                                            : item.status === "denied"
+                                              ? "error"
+                                              : "secondary"
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {item.status === "pending" &&
+                                          `Suggested by ${item.suggestedBy}`}
+                                        {item.status === "approved" && "Approved"}
+                                        {item.status === "denied" && "Denied"}
+                                      </Badge>
+                                    </div>
+                                    <div className="text-sm text-gray-400">
+                                      Qty: {item.quantity} | ${item.estimatedCost} each
+                                      {item.vendor && ` | ${item.vendor}`}
+                                    </div>
+                                    {item.status === "denied" && item.denialReason && (
+                                      <div className="mt-1 text-xs text-red-400">
+                                        Denied: {item.denialReason}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-sm font-medium text-orange-400">
-                                  ${(item.quantity * item.estimatedCost).toFixed(2)}
+                                  <div className="text-right">
+                                    <div className="text-sm font-medium text-orange-400">
+                                      ${(item.quantity * item.estimatedCost).toFixed(2)}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          )) : null}
+                              ))
+                            : null}
                         </div>
-                        
+
                         {materialList.totalEstimatedCost && (
                           <div className="mt-4 pt-4 border-t border-navy-500">
                             <div className="flex justify-between items-center">
@@ -597,12 +621,12 @@ export default function Chat() {
             {/* Create New Material List */}
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">
-                {materialLists.length === 0 ? 'Create Material List' : 'Create New List'}
+                {materialLists.length === 0 ? "Create Material List" : "Create New List"}
               </h3>
               {conversationId && (
-                <MaterialListBuilder 
-                  conversationId={conversationId} 
-                  userRole={user?.role === 'contractor_user' ? 'contractor' : 'homeowner'}
+                <MaterialListBuilder
+                  conversationId={conversationId}
+                  userRole={user?.role === "contractor_user" ? "contractor" : "homeowner"}
                   onClose={() => setShowMaterialsDialog(false)}
                 />
               )}

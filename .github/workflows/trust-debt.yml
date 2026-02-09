@@ -1,0 +1,32 @@
+name: Trust Debt Audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 4 * * *"
+
+jobs:
+  debt-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production debt markers
+        run: npm run audit:production-debt
+
+      - name: Audit secrets in git history
+        run: npm run audit:secrets-history

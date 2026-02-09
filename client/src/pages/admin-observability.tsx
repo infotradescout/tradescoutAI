@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Activity, Database, Globe, TrendingUp, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  Activity,
+  Database,
+  Globe,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
 
 interface JobMetric {
   jobName: string;
@@ -84,10 +92,22 @@ interface ScoutPolicyTelemetry {
   recent: ScoutPolicyEvent[];
 }
 
+interface ObservabilityBaselines {
+  scheduler: Record<string, { p95Duration: number; avgRows: number }>;
+  dbPool: {
+    p95AcquireLatency: number;
+  };
+  http: {
+    baseline5xxRate: number;
+    delta5xx: number;
+  };
+}
+
 export default function ObservabilityDashboard() {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
   const [scoutPolicy, setScoutPolicy] = useState<ScoutPolicyTelemetry | null>(null);
+  const [baselines, setBaselines] = useState<ObservabilityBaselines | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -127,13 +147,26 @@ export default function ObservabilityDashboard() {
       }
     };
 
+    const fetchBaselines = async () => {
+      try {
+        const response = await fetch("/api/admin/observability/baselines");
+        if (!response.ok) throw new Error("Failed to fetch baselines");
+        const data = await response.json();
+        setBaselines(data);
+      } catch (err) {
+        console.error("Failed to fetch baselines:", err);
+      }
+    };
+
     fetchMetrics();
     fetchAlerts();
     fetchScoutPolicy();
+    fetchBaselines();
     const interval = setInterval(() => {
       fetchMetrics();
       fetchAlerts();
       fetchScoutPolicy();
+      fetchBaselines();
     }, 15000);
 
     return () => clearInterval(interval);
@@ -141,28 +174,40 @@ export default function ObservabilityDashboard() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "CRITICAL": return "text-red-600 bg-red-50 border-red-200";
-      case "WARN": return "text-yellow-600 bg-yellow-50 border-yellow-200";
-      case "INFO": return "text-blue-600 bg-blue-50 border-blue-200";
-      default: return "text-gray-600 bg-gray-50 border-gray-200";
+      case "CRITICAL":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "WARN":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      case "INFO":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      default:
+        return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case "CRITICAL": return <AlertCircle className="h-4 w-4" />;
-      case "WARN": return <AlertTriangle className="h-4 w-4" />;
-      case "INFO": return <CheckCircle2 className="h-4 w-4" />;
-      default: return <Activity className="h-4 w-4" />;
+      case "CRITICAL":
+        return <AlertCircle className="h-4 w-4" />;
+      case "WARN":
+        return <AlertTriangle className="h-4 w-4" />;
+      case "INFO":
+        return <CheckCircle2 className="h-4 w-4" />;
+      default:
+        return <Activity className="h-4 w-4" />;
     }
   };
 
   const getSeverityBadgeClass = (severity: string) => {
     switch (severity) {
-      case "CRITICAL": return "bg-red-600 text-white animate-pulse";
-      case "WARN": return "bg-yellow-600 text-white";
-      case "INFO": return "bg-blue-600 text-white";
-      default: return "bg-gray-600 text-white";
+      case "CRITICAL":
+        return "bg-red-600 text-white animate-pulse";
+      case "WARN":
+        return "bg-yellow-600 text-white";
+      case "INFO":
+        return "bg-blue-600 text-white";
+      default:
+        return "bg-gray-600 text-white";
     }
   };
 
@@ -177,7 +222,7 @@ export default function ObservabilityDashboard() {
     );
   }
 
-  if (!metrics || !alerts || !scoutPolicy) {
+  if (!metrics || !alerts || !scoutPolicy || !baselines) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -197,23 +242,25 @@ export default function ObservabilityDashboard() {
             Phase 5 Live: CRITICAL Alerts (Paging) — Server faults trigger immediate pages
           </p>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Last updated: {lastUpdated}
-        </div>
+        <div className="text-sm text-muted-foreground">Last updated: {lastUpdated}</div>
       </div>
 
       {/* Active Alerts Panel */}
       {alerts.active.length > 0 && (
-        <Card className={`p-6 ${alerts.active.some(a => a.severity === "CRITICAL") ? "border-red-600 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}>
+        <Card
+          className={`p-6 ${alerts.active.some((a) => a.severity === "CRITICAL") ? "border-red-600 bg-red-50" : "border-yellow-200 bg-yellow-50"}`}
+        >
           <div className="flex items-center gap-2 mb-4">
-            {alerts.active.some(a => a.severity === "CRITICAL") ? (
+            {alerts.active.some((a) => a.severity === "CRITICAL") ? (
               <AlertCircle className="h-5 w-5 text-red-600 animate-pulse" />
             ) : (
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
             )}
-            <h2 className={`text-xl font-semibold ${alerts.active.some(a => a.severity === "CRITICAL") ? "text-red-900" : "text-yellow-900"}`}>
+            <h2
+              className={`text-xl font-semibold ${alerts.active.some((a) => a.severity === "CRITICAL") ? "text-red-900" : "text-yellow-900"}`}
+            >
               Active Alerts ({alerts.active.length})
-              {alerts.active.some(a => a.severity === "CRITICAL") && (
+              {alerts.active.some((a) => a.severity === "CRITICAL") && (
                 <span className="ml-2 text-sm font-normal text-red-700">— PAGING IN PROGRESS</span>
               )}
             </h2>
@@ -230,7 +277,9 @@ export default function ObservabilityDashboard() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{alert.name}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${getSeverityBadgeClass(alert.severity)}`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded font-medium ${getSeverityBadgeClass(alert.severity)}`}
+                        >
                           {alert.severity}
                         </span>
                       </div>
@@ -244,7 +293,8 @@ export default function ObservabilityDashboard() {
                       </div>
                       {alert.severity === "CRITICAL" && (
                         <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-900">
-                          <strong>Kill Switch:</strong> Set SCHEDULER_ENABLED=false to pause aggregations
+                          <strong>Kill Switch:</strong> Set SCHEDULER_ENABLED=false to pause
+                          aggregations
                         </div>
                       )}
                     </div>
@@ -264,10 +314,47 @@ export default function ObservabilityDashboard() {
         <Card className="p-6 border-green-200 bg-green-50">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <span className="text-green-900 font-medium">All systems nominal — No active alerts</span>
+            <span className="text-green-900 font-medium">
+              All systems nominal — No active alerts
+            </span>
           </div>
         </Card>
       )}
+
+      {/* Alert Baselines */}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-5 w-5" />
+          <h2 className="text-xl font-semibold">Alert Baselines</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-2">HTTP</div>
+            <div className="text-sm">
+              5xx baseline rate: {(baselines.http.baseline5xxRate * 100).toFixed(2)}%
+            </div>
+            <div className="text-sm">
+              5xx delta trigger: {(baselines.http.delta5xx * 100).toFixed(2)}%
+            </div>
+          </div>
+          <div className="border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-2">DB Pool</div>
+            <div className="text-sm">
+              P95 acquire latency: {baselines.dbPool.p95AcquireLatency} ms
+            </div>
+          </div>
+          <div className="border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-2">Scheduler jobs</div>
+            <div className="text-xs space-y-1">
+              {Object.entries(baselines.scheduler).map(([jobName, value]) => (
+                <div key={jobName}>
+                  {jobName}: p95 {value.p95Duration}ms, avg rows {value.avgRows}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Scout Policy Violations */}
       <Card className="p-6">
@@ -355,7 +442,9 @@ export default function ObservabilityDashboard() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Overlaps:</span>
-                  <span className={job.overlapCount > 0 ? "text-yellow-600 font-medium" : "font-medium"}>
+                  <span
+                    className={job.overlapCount > 0 ? "text-yellow-600 font-medium" : "font-medium"}
+                  >
                     {job.overlapCount}
                   </span>
                 </div>
@@ -411,7 +500,9 @@ export default function ObservabilityDashboard() {
             <div className="text-sm text-muted-foreground">Idle</div>
           </div>
           <div className="text-center">
-            <div className={`text-3xl font-bold ${metrics.dbPool.current.waiting > 0 ? 'text-yellow-600' : 'text-gray-600'}`}>
+            <div
+              className={`text-3xl font-bold ${metrics.dbPool.current.waiting > 0 ? "text-yellow-600" : "text-gray-600"}`}
+            >
               {metrics.dbPool.current.waiting}
             </div>
             <div className="text-sm text-muted-foreground">Waiting</div>
@@ -419,24 +510,38 @@ export default function ObservabilityDashboard() {
         </div>
         {metrics.dbPool.history.length > 0 && (
           <div className="mt-4 pt-4 border-t">
-            <div className="text-sm text-muted-foreground mb-2">Recent History (last {metrics.dbPool.history.length} samples)</div>
+            <div className="text-sm text-muted-foreground mb-2">
+              Recent History (last {metrics.dbPool.history.length} samples)
+            </div>
             <div className="flex gap-1 h-20 items-end">
               {metrics.dbPool.history.map((sample, i) => {
                 const total = sample.active + sample.idle + sample.waiting;
                 const activeHeight = total > 0 ? (sample.active / total) * 100 : 0;
                 const idleHeight = total > 0 ? (sample.idle / total) * 100 : 0;
                 const waitingHeight = total > 0 ? (sample.waiting / total) * 100 : 0;
-                
+
                 return (
                   <div key={i} className="flex-1 flex flex-col-reverse gap-0.5">
                     {sample.waiting > 0 && (
-                      <div className="bg-yellow-500 rounded-sm" style={{ height: `${waitingHeight}%` }} title={`Waiting: ${sample.waiting}`} />
+                      <div
+                        className="bg-yellow-500 rounded-sm"
+                        style={{ height: `${waitingHeight}%` }}
+                        title={`Waiting: ${sample.waiting}`}
+                      />
                     )}
                     {sample.active > 0 && (
-                      <div className="bg-green-500 rounded-sm" style={{ height: `${activeHeight}%` }} title={`Active: ${sample.active}`} />
+                      <div
+                        className="bg-green-500 rounded-sm"
+                        style={{ height: `${activeHeight}%` }}
+                        title={`Active: ${sample.active}`}
+                      />
                     )}
                     {sample.idle > 0 && (
-                      <div className="bg-blue-500 rounded-sm" style={{ height: `${idleHeight}%` }} title={`Idle: ${sample.idle}`} />
+                      <div
+                        className="bg-blue-500 rounded-sm"
+                        style={{ height: `${idleHeight}%` }}
+                        title={`Idle: ${sample.idle}`}
+                      />
                     )}
                   </div>
                 );
@@ -451,44 +556,64 @@ export default function ObservabilityDashboard() {
         <div className="flex items-center gap-2 mb-4">
           <Globe className="h-5 w-5" />
           <h2 className="text-xl font-semibold">HTTP Status Distribution</h2>
-          <span className="text-xs text-muted-foreground ml-auto">Phase 4: Clean 4xx/5xx Separation</span>
+          <span className="text-xs text-muted-foreground ml-auto">
+            Phase 4: Clean 4xx/5xx Separation
+          </span>
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{metrics.http.statusClasses["2xx"]}</div>
+            <div className="text-3xl font-bold text-green-600">
+              {metrics.http.statusClasses["2xx"]}
+            </div>
             <div className="text-sm text-muted-foreground">2xx Success</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {metrics.http.total > 0 ? ((metrics.http.statusClasses["2xx"] / metrics.http.total) * 100).toFixed(1) : 0}%
+              {metrics.http.total > 0
+                ? ((metrics.http.statusClasses["2xx"] / metrics.http.total) * 100).toFixed(1)
+                : 0}
+              %
             </div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">{metrics.http.statusClasses["4xx"]}</div>
+            <div className="text-3xl font-bold text-yellow-600">
+              {metrics.http.statusClasses["4xx"]}
+            </div>
             <div className="text-sm text-muted-foreground">4xx Client</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {metrics.http.total > 0 ? ((metrics.http.statusClasses["4xx"] / metrics.http.total) * 100).toFixed(1) : 0}%
+              {metrics.http.total > 0
+                ? ((metrics.http.statusClasses["4xx"] / metrics.http.total) * 100).toFixed(1)
+                : 0}
+              %
             </div>
-            <div className="text-xs text-blue-600 mt-2">
-              INFO/WARN logged (non-paging)
-            </div>
+            <div className="text-xs text-blue-600 mt-2">INFO/WARN logged (non-paging)</div>
           </div>
           <div className="text-center">
-            <div className={`text-3xl font-bold ${metrics.http.statusClasses["5xx"] > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <div
+              className={`text-3xl font-bold ${metrics.http.statusClasses["5xx"] > 0 ? "text-red-600" : "text-gray-600"}`}
+            >
               {metrics.http.statusClasses["5xx"]}
             </div>
             <div className="text-sm text-muted-foreground">5xx Server</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {metrics.http.total > 0 ? ((metrics.http.statusClasses["5xx"] / metrics.http.total) * 100).toFixed(1) : 0}%
+              {metrics.http.total > 0
+                ? ((metrics.http.statusClasses["5xx"] / metrics.http.total) * 100).toFixed(1)
+                : 0}
+              %
             </div>
             <div className="text-xs text-red-600 mt-2">
-              {metrics.http.statusClasses["5xx"] > 0 ? "ERROR/CRITICAL logged (alert candidate)" : "Zero server faults ✓"}
+              {metrics.http.statusClasses["5xx"] > 0
+                ? "ERROR/CRITICAL logged (alert candidate)"
+                : "Zero server faults ✓"}
             </div>
           </div>
         </div>
         <div className="mt-4 text-center text-sm text-muted-foreground border-t pt-4">
           <div className="font-medium">Total Requests: {metrics.http.total}</div>
           <div className="text-xs mt-1">
-            True 5xx rate: {metrics.http.total > 0 ? ((metrics.http.statusClasses["5xx"] / metrics.http.total) * 100).toFixed(3) : 0}% 
-            {metrics.http.statusClasses["5xx"] === 0 && " (target: 0%)"}
+            True 5xx rate:{" "}
+            {metrics.http.total > 0
+              ? ((metrics.http.statusClasses["5xx"] / metrics.http.total) * 100).toFixed(3)
+              : 0}
+            %{metrics.http.statusClasses["5xx"] === 0 && " (target: 0%)"}
           </div>
         </div>
       </Card>
@@ -502,13 +627,12 @@ export default function ObservabilityDashboard() {
           </div>
           <div className="space-y-2">
             {alerts.history.slice(0, 10).map((alert) => (
-              <div
-                key={alert.id}
-                className="p-3 rounded border bg-gray-50 text-sm"
-              >
+              <div key={alert.id} className="p-3 rounded border bg-gray-50 text-sm">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getSeverityColor(alert.severity)}`}>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getSeverityColor(alert.severity)}`}
+                    >
                       {alert.severity}
                     </span>
                     <span className="ml-2 font-medium">{alert.name}</span>
@@ -519,7 +643,13 @@ export default function ObservabilityDashboard() {
                       <>
                         <div>Resolved: {new Date(alert.resolvedAt).toLocaleString()}</div>
                         <div className="mt-1">
-                          Duration: {Math.round((new Date(alert.resolvedAt).getTime() - new Date(alert.startedAt).getTime()) / 1000)}s
+                          Duration:{" "}
+                          {Math.round(
+                            (new Date(alert.resolvedAt).getTime() -
+                              new Date(alert.startedAt).getTime()) /
+                              1000
+                          )}
+                          s
                         </div>
                       </>
                     ) : (

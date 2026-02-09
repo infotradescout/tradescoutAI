@@ -2,16 +2,16 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ThumbsUp, 
+import {
+  ThumbsUp,
   ThumbsDown,
-  MapPin, 
-  Calendar, 
-  Clock, 
+  MapPin,
+  Calendar,
+  Clock,
   MessageSquare,
   CheckCircle,
   Shield,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
@@ -25,20 +25,32 @@ interface ContractorCardProps {
   compact?: boolean;
 }
 
-export default function ContractorCard({ 
-  contractor, 
-  showCallToAction = true, 
-  compact = false 
+export default function ContractorCard({
+  contractor,
+  showCallToAction = true,
+  compact = false,
 }: ContractorCardProps) {
   // Generate company initials for avatar
-  const companyInitials = contractor.companyName
-    ?.split(' ')
-    .map(word => word[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'CC';
+  const companyInitials =
+    contractor.companyName
+      ?.split(" ")
+      .map((word) => word[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "CC";
 
   const serviceAreas = contractor.serviceAreas || [];
+  const rawCvs =
+    typeof (contractor as any).trustScore === "number"
+      ? (contractor as any).trustScore
+      : typeof (contractor as any).trustScore === "string"
+        ? Number((contractor as any).trustScore)
+        : typeof (contractor as any).cvsScore === "number"
+          ? (contractor as any).cvsScore
+          : typeof (contractor as any).cvsScore === "string"
+            ? Number((contractor as any).cvsScore)
+            : null;
+  const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
 
   return (
     <Card className="ts-card" data-testid={`contractor-card`}>
@@ -55,27 +67,15 @@ export default function ContractorCard({
 
           <div className="flex items-center space-x-2">
             <div className="flex items-center space-x-1">
-              <ThumbsUp
-                className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-green-400`}
-              />
-              <span
-                className={`text-green-400 font-medium ${
-                  compact ? "text-xs" : "text-sm"
-                }`}
-              >
+              <ThumbsUp className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-green-400`} />
+              <span className={`text-green-400 font-medium ${compact ? "text-xs" : "text-sm"}`}>
                 {contractor.positiveRecommendations || 0}
               </span>
             </div>
             {(contractor.negativeRecommendations || 0) > 0 && (
               <div className="flex items-center space-x-1">
-                <ThumbsDown
-                  className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-red-400`}
-                />
-                <span
-                  className={`text-red-400 font-medium ${
-                    compact ? "text-xs" : "text-sm"
-                  }`}
-                >
+                <ThumbsDown className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-red-400`} />
+                <span className={`text-red-400 font-medium ${compact ? "text-xs" : "text-sm"}`}>
                   {contractor.negativeRecommendations}
                 </span>
               </div>
@@ -133,22 +133,14 @@ export default function ContractorCard({
         </div>
 
         {/* Service Areas */}
-        <p
-          className={`text-gray-300 mb-4 flex items-center ${
-            compact ? "text-xs" : "text-sm"
-          }`}
-        >
+        <p className={`text-gray-300 mb-4 flex items-center ${compact ? "text-xs" : "text-sm"}`}>
           <MapPin
             className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
             style={{ color: "var(--theme-accent-primary)" }}
           />
           {serviceAreas.length > 0
-            ? `${serviceAreas
-                .slice(0, 2)
-                .join(", ")}${
-                serviceAreas.length > 2
-                  ? ` +${serviceAreas.length - 2} more`
-                  : ""
+            ? `${serviceAreas.slice(0, 2).join(", ")}${
+                serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ""
               }`
             : "Service area not specified"}
         </p>
@@ -182,12 +174,18 @@ export default function ContractorCard({
               className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {(contractor.totalRecommendations || 0)} recommendations
+            {contractor.totalRecommendations || 0} recommendations
           </span>
         </div>
 
         {/* Verification Badges */}
         <div className="flex items-center space-x-2 mb-4">
+          <Badge
+            variant="outline"
+            className="text-xs text-tsTextMain border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+          >
+            {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Pending"}
+          </Badge>
           {contractor.verifiedLicensed && (
             <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs">
               <CheckCircle className="h-3 w-3 mr-1" />
@@ -220,10 +218,7 @@ export default function ContractorCard({
               </Button>
             </Link>
 
-            <Link
-              href={`/contractors/${contractor.slug}`}
-              className="flex-1"
-            >
+            <Link href={`/contractors/${contractor.slug}`} className="flex-1">
               <Button
                 variant="outline"
                 className="w-full border-navy-500 text-white hover:bg-navy-500"

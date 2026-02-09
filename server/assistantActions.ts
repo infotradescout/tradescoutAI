@@ -14,7 +14,7 @@ import { webSearch } from "./services/webSearchService.js";
 
 /**
  * Assistant Actions - Backend operations the AI can perform
- * 
+ *
  * Each action is role-gated and returns structured results
  */
 
@@ -259,7 +259,6 @@ function isAdminUser(user?: User): boolean {
   return !!user && ["admin", "super_admin", "head_admin"].includes(user.role as AdminRole);
 }
 
-
 // ============================================================================
 // MARKETPLACE ACTIONS
 // ============================================================================
@@ -399,11 +398,7 @@ async function awardProjectAction(user: User | undefined, params?: Record<string
     return { success: false, error: "Authentication required" };
   }
 
-  return await projectService.awardProject(
-    params?.projectId,
-    params?.contractorId,
-    user.id
-  );
+  return await projectService.awardProject(params?.projectId, params?.contractorId, user.id);
 }
 
 // ============================================================================
@@ -494,12 +489,11 @@ async function sendMessageAction(user: User | undefined, params?: Record<string,
     return { success: false, error: "Authentication required" };
   }
 
-  return await messagingService.sendMessage({
-    senderId: user.id,
-    recipientId: params?.recipientId,
-    content: params?.content,
-    subject: params?.subject,
-  });
+  return {
+    success: false,
+    error:
+      "Direct messaging is blocked. Use intent-gated contact through Scout/Decision Card (authority gate required).",
+  };
 }
 
 async function messageContractorAction(user: User | undefined, params?: Record<string, any>) {
@@ -507,12 +501,11 @@ async function messageContractorAction(user: User | undefined, params?: Record<s
     return { success: false, error: "Authentication required" };
   }
 
-  return await messagingService.messageContractor(
-    user.id,
-    params?.contractorId,
-    params?.subject,
-    params?.description
-  );
+  return {
+    success: false,
+    error:
+      "Direct contractor messaging is blocked. Use Direct Connect or Scout-gated contact (authority gate required).",
+  };
 }
 
 async function getConversationsAction(user: User | undefined) {
@@ -573,7 +566,7 @@ async function adminCacheRefreshAction(user: User | undefined) {
   try {
     // Trigger cache refresh - implementation depends on crawler setup
     console.log("Cache refresh triggered by admin");
-    
+
     return {
       success: true,
       data: {
@@ -597,10 +590,10 @@ async function adminCacheClearAction(user: User | undefined, params?: Record<str
 
   try {
     const category = params?.category; // Optional: specific cache category to clear
-    
+
     // Implementation: delete cache files or reset in-memory cache
     console.log(`Cache cleared for category: ${category || "all"}`);
-    
+
     return {
       success: true,
       data: {
@@ -624,14 +617,14 @@ async function adminOverrideCreateAction(user: User | undefined, params?: Record
 
   try {
     const { overrideType, key, value, county, state } = params || {};
-    
+
     if (!overrideType || !key || !value) {
       return { success: false, error: "overrideType, key, and value are required" };
     }
 
     // Implementation: save override to manual cache
     // Types: "response", "fact", "county", "local_guide"
-    
+
     return {
       success: true,
       data: {
@@ -657,13 +650,13 @@ async function adminOverrideDeleteAction(user: User | undefined, params?: Record
 
   try {
     const { overrideType, key } = params || {};
-    
+
     if (!overrideType || !key) {
       return { success: false, error: "overrideType and key are required" };
     }
 
     // Implementation: delete override from manual cache
-    
+
     return {
       success: true,
       data: {
@@ -770,14 +763,14 @@ async function registerWorkerAction(user: User | undefined, params?: Record<stri
 
   try {
     const { name, skills, hourlyRate, availability, bio } = params || {};
-    
+
     if (!name || !skills || !hourlyRate) {
       return { success: false, error: "name, skills, and hourlyRate are required" };
     }
 
     // Implementation: save to database using drizzle
     // Check if database available, otherwise mock in dev
-    
+
     return {
       success: true,
       data: {
@@ -799,9 +792,9 @@ async function registerWorkerAction(user: User | undefined, params?: Record<stri
 async function searchWorkersAction(params?: Record<string, any>) {
   try {
     const { skills, county, state, verified, limit = 20 } = params || {};
-    
+
     // Implementation: query database for workers matching criteria
-    
+
     return {
       success: true,
       data: [],
@@ -818,13 +811,13 @@ async function searchWorkersAction(params?: Record<string, any>) {
 async function getWorkerProfileAction(params?: Record<string, any>) {
   try {
     const { workerId } = params || {};
-    
+
     if (!workerId) {
       return { success: false, error: "workerId is required" };
     }
 
     // Implementation: fetch from database
-    
+
     return {
       success: true,
       data: null,
@@ -845,13 +838,13 @@ async function postTaskAction(user: User | undefined, params?: Record<string, an
 
   try {
     const { title, description, budget, location, skillsNeeded, deadline } = params || {};
-    
+
     if (!title || !budget) {
       return { success: false, error: "title and budget are required" };
     }
 
     // Implementation: save task to database
-    
+
     return {
       success: true,
       data: {
@@ -877,13 +870,13 @@ async function applyToTaskAction(user: User | undefined, params?: Record<string,
 
   try {
     const { taskId, proposal, estimatedHours } = params || {};
-    
+
     if (!taskId || !proposal) {
       return { success: false, error: "taskId and proposal are required" };
     }
 
     // Implementation: save application to database
-    
+
     return {
       success: true,
       data: {
@@ -908,13 +901,13 @@ async function verifyWorkerAction(user: User | undefined, params?: Record<string
 
   try {
     const { workerId, verified, notes } = params || {};
-    
+
     if (!workerId) {
       return { success: false, error: "workerId is required" };
     }
 
     // Implementation: update worker verification in database
-    
+
     return {
       success: true,
       data: {
@@ -939,13 +932,13 @@ async function verifyWorkerAction(user: User | undefined, params?: Record<string
 async function getCountyInfoAction(params?: Record<string, any>) {
   try {
     const { county, state } = params || {};
-    
+
     if (!county || !state) {
       return { success: false, error: "county and state are required" };
     }
 
     // Implementation: fetch from database or cache
-    
+
     return {
       success: true,
       data: {
@@ -968,7 +961,7 @@ async function getCountyInfoAction(params?: Record<string, any>) {
 async function listAllCountiesAction() {
   try {
     // Implementation: fetch all counties from cache or database
-    
+
     return {
       success: true,
       data: [],
@@ -985,13 +978,13 @@ async function listAllCountiesAction() {
 async function getStateCountiesAction(params?: Record<string, any>) {
   try {
     const { state } = params || {};
-    
+
     if (!state) {
       return { success: false, error: "state is required" };
     }
 
     // Implementation: fetch counties for state from cache or database
-    
+
     return {
       success: true,
       data: [],
@@ -1009,11 +1002,7 @@ async function getStateCountiesAction(params?: Record<string, any>) {
 // AFFILIATE ANALYTICS ACTIONS
 // ============================================================================
 
-import {
-  getAffiliateStats,
-  getCommissions,
-  trackReferral,
-} from "./services/affiliateService";
+import { getAffiliateStats, getCommissions, trackReferral } from "./services/affiliateService";
 
 async function getAffiliateStatsAction(user: User | undefined) {
   if (!user) {
@@ -1052,10 +1041,10 @@ async function getAffiliateCommissionsAction(user: User | undefined) {
     const commissions = await getCommissions(String(user.id), {});
     const totalEarnings = commissions.reduce((sum, c) => sum + c.payoutAmount, 0);
     const pendingBalance = commissions
-      .filter(c => c.status === "pending")
+      .filter((c) => c.status === "pending")
       .reduce((sum, c) => sum + c.payoutAmount, 0);
     const paidBalance = commissions
-      .filter(c => c.status === "paid")
+      .filter((c) => c.status === "paid")
       .reduce((sum, c) => sum + c.payoutAmount, 0);
 
     return {
@@ -1082,8 +1071,9 @@ async function trackAffiliateReferralAction(user: User | undefined, params?: Rec
   }
 
   try {
-    const { targetUserId, shareLinkId, couponCode, conversionSource, conversionType } = params || {};
-    
+    const { targetUserId, shareLinkId, couponCode, conversionSource, conversionType } =
+      params || {};
+
     if (!targetUserId) {
       return { success: false, error: "targetUserId is required" };
     }
@@ -1128,7 +1118,9 @@ async function adminUpsertKnowledgeAction(user: User | undefined, params?: Recor
     }
 
     // Normalize filename and structure
-    const safeKey = String(key).toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+    const safeKey = String(key)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "_");
     const filename = `${safeKey}.json`;
 
     const payload = {
@@ -1155,4 +1147,3 @@ async function adminUpsertKnowledgeAction(user: User | undefined, params?: Recor
     };
   }
 }
-

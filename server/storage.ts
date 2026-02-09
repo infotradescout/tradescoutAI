@@ -10947,6 +10947,8 @@ export class DatabaseStorage implements IStorage {
         profileDraft.countyFips,
       ],
       website: profileDraft.website || null,
+      verificationStatus: user.verificationStatus,
+      addressVerified: user.addressVerified ?? undefined,
       createdAt,
       updatedAt: user.updatedAt?.toISOString() || createdAt,
       publishedAt: createdAt,

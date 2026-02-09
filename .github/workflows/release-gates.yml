@@ -1,0 +1,63 @@
+name: Release Gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  release-gates:
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
+      MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required test env
+        run: |
+          test -n "$TEST_DATABASE_URL"
+          test -n "$E2E_EMAIL"
+          test -n "$E2E_PASSWORD"
+          test -n "$MASTER_ADMIN_EMAIL"
+          test -n "$MASTER_ADMIN_PASSWORD"
+
+      - name: Push schema to test DB
+        run: npm run db:push:test
+
+      - name: Seed E2E user
+        run: npm run seed:e2e-user
+
+      - name: Build app
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run release gate tests
+        run: npm run test:release-gates
+
+      - name: Compute release gate metrics
+        run: npm run report:release-gates
+
+      - name: Upload release gate metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-metrics
+          path: artifacts/release-gate-metrics.json
+          retention-days: 14

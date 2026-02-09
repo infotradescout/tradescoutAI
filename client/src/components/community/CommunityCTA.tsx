@@ -4,6 +4,7 @@ import { MessagesSquare, Hammer, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "./DecisionCard";
+import type { ContactOutcome } from "./ContactOutcomeModal";
 
 type CommunityCTASource = "trade_deal" | "community_post";
 type CTAMode = "show" | "ask_scout" | "hide";
@@ -46,12 +47,13 @@ async function checkCTAAuthority(
     return await res.json();
   } catch (error) {
     console.error("[CTA Authority Check] Failed:", error);
-    // Fail open: allow on error
+    // Fail safe: require Scout path on authority check failures
     return {
-      allowed: true,
-      action: "COMPLY",
-      ctaMode: "show",
-      explanation: "Check failed, allowing action",
+      allowed: false,
+      action: "DEFER",
+      ctaMode: "ask_scout",
+      explanation: "Scout check unavailable. Use Ask Scout to keep contact intent-gated.",
+      label: "Ask Scout first",
     };
   }
 }
@@ -102,7 +104,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
 
   // Decision card state
   const [showDecisionCard, setShowDecisionCard] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"message" | "direct_connect" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"contact_person" | "direct_connect" | null>(
+    null
+  );
+  const [decisionCardId, setDecisionCardId] = useState<string | null>(null);
 
   const id = encodeURIComponent(String(contextId));
 
@@ -154,6 +159,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   // Show decision card before taking action
   const handleDirectConnectClick = () => {
     setPendingAction("direct_connect");
+    setDecisionCardId(null);
     setShowDecisionCard(true);
   };
 
@@ -166,7 +172,12 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
       });
       return;
     }
-    setPendingAction("message");
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `dcard_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    setDecisionCardId(id);
+    setPendingAction("contact_person");
     setShowDecisionCard(true);
   };
 
@@ -181,17 +192,9 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     setShowDecisionCard(false);
   };
 
-  const executeMessage = async () => {
-    await trackCTA("message", source);
-    navigate(`/messages?user=${encodeURIComponent(ownerUserId!)}`);
-    setShowDecisionCard(false);
-  };
-
   const handleDecisionProceed = () => {
     if (pendingAction === "direct_connect") {
       void executeDirectConnect();
-    } else if (pendingAction === "message") {
-      void executeMessage();
     }
   };
 
@@ -221,13 +224,32 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
 
   // Render DecisionCard if active
   if (showDecisionCard && pendingAction && currentAuthority) {
+    const targetName = "Community member";
+    const isTradeDeal = source === "trade_deal";
+    const contactOutcome: ContactOutcome | undefined =
+      pendingAction === "contact_person" && ownerUserId
+        ? {
+            targetUserId: ownerUserId,
+            targetUserName: targetName,
+            targetRole: isTradeDeal ? "Trade Deal Author" : "Community Post Author",
+            suggestedIntent: isTradeDeal ? "hire" : "collaborate",
+            reasonForContact: isTradeDeal
+              ? "Follow up on a trade deal to clarify scope and next steps."
+              : "Follow up on a community post to coordinate next steps.",
+            riskFlags: currentAuthority.explanation ? [currentAuthority.explanation] : [],
+            sourceDecisionCardId: decisionCardId || undefined,
+            decisionScope: scope || "community",
+            decisionTitle: isTradeDeal ? "Trade deal follow-up" : "Community post follow-up",
+          }
+        : undefined;
+
     return (
       <div className="mt-4">
         <DecisionCard
-          action={pendingAction}
+          action={pendingAction === "contact_person" ? "contact_person" : "direct_connect"}
           context={{
-            targetName: ownerUserId || "Community member",
-            targetRole: source === "trade_deal" ? "Trade Deal Author" : "Community Post Author",
+            targetName,
+            targetRole: isTradeDeal ? "Trade Deal Author" : "Community Post Author",
             communitySignal: "Active in this community",
             absenceNote: !ownerUserId ? "No prior connections yet" : undefined,
           }}
@@ -244,6 +266,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
           onProceed={handleDecisionProceed}
           onAskScout={handleAskScout}
           onCancel={handleDecisionCancel}
+          contactOutcome={contactOutcome}
         />
       </div>
     );

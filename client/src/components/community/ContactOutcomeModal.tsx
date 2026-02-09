@@ -14,7 +14,7 @@ export interface ContactOutcome {
   targetLocation?: string;
   suggestedIntent: Intent;
   reasonForContact: string;
-  confidenceScore: number; // 0.0-1.0
+  confidenceScore?: number; // 0.0-1.0 (optional when policy-only)
   riskFlags: string[];
   sourceDecisionCardId?: string; // Optional: only if from Decision Card
   sourceScoutRecommendationId?: string; // Optional: only if from Scout rec
@@ -27,10 +27,7 @@ interface ContactOutcomeModalProps {
   onClose: () => void;
 }
 
-export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
-  outcome,
-  onClose,
-}) => {
+export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcome, onClose }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -98,39 +95,40 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
     createConversation.mutate();
   };
 
+  const hasConfidenceScore = typeof outcome.confidenceScore === "number";
+  const policyScore: number = hasConfidenceScore ? outcome.confidenceScore! : 0.7;
+
   // Determine confidence level styling
   const getConfidenceColor = () => {
-    if (outcome.confidenceScore >= 0.85) return "text-emerald-600";
-    if (outcome.confidenceScore >= 0.70) return "text-blue-600";
-    if (outcome.confidenceScore >= 0.50) return "text-amber-600";
+    if (policyScore >= 0.85) return "text-emerald-600";
+    if (policyScore >= 0.7) return "text-blue-600";
+    if (policyScore >= 0.5) return "text-amber-600";
     return "text-slate-600";
   };
 
   const getConfidenceIcon = () => {
-    if (outcome.confidenceScore >= 0.70) {
+    if (policyScore >= 0.7) {
       return <CheckCircle2 className="w-5 h-5 text-emerald-600" />;
     }
     return <AlertCircle className="w-5 h-5 text-amber-600" />;
   };
 
   const getConfidenceText = () => {
-    if (outcome.confidenceScore >= 0.85) return "High confidence match";
-    if (outcome.confidenceScore >= 0.70) return "Good match";
-    if (outcome.confidenceScore >= 0.50) return "Proceed with caution";
+    if (policyScore >= 0.85) return "High confidence match";
+    if (policyScore >= 0.7) return "Good match";
+    if (policyScore >= 0.5) return "Proceed with caution";
     return "Consider alternatives";
   };
 
   // Block if confidence too low
-  if (outcome.confidenceScore < 0.30) {
+  if (hasConfidenceScore && policyScore < 0.3) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-6 h-6 text-slate-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Contact blocked by policy
-              </h2>
+              <h2 className="text-lg font-semibold text-slate-900">Contact blocked by policy</h2>
               <p className="text-sm text-slate-600">
                 Scout policy indicates this contact is not a good match for your decision right now.
               </p>
@@ -141,16 +139,13 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
             <h3 className="text-sm font-medium text-slate-900">Why policy blocked this</h3>
             <ul className="space-y-1 text-sm text-slate-600">
               {outcome.riskFlags.map((flag, i) => (
-                <li key={i}>• {flag}</li>
+                <li key={i}>* {flag}</li>
               ))}
             </ul>
           </div>
 
           <div className="pt-4 flex gap-2">
-            <Button
-              onClick={onClose}
-              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white"
-            >
+            <Button onClick={onClose} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white">
               Understood
             </Button>
           </div>
@@ -167,8 +162,9 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
           <h2 className="text-lg font-semibold text-slate-900">
             Ready to contact {outcome.targetUserName}?
           </h2>
-          <p className="text-sm text-slate-600">
-            Decision: {outcome.decisionTitle}
+          <p className="text-sm text-slate-600">Decision: {outcome.decisionTitle}</p>
+          <p className="text-xs text-slate-500">
+            Contact remains intent-gated until this authority-confirmed step is completed.
           </p>
         </div>
 
@@ -215,22 +211,24 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
           <div className="flex items-start gap-3">
             {getConfidenceIcon()}
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium text-slate-900">
-                {getConfidenceText()}
-              </p>
-              <p className={`text-sm font-mono ${getConfidenceColor()}`}>
-                Confidence: {(outcome.confidenceScore * 100).toFixed(0)}%
-              </p>
+              <p className="text-sm font-medium text-slate-900">{getConfidenceText()}</p>
+              {hasConfidenceScore ? (
+                <p className={`text-sm font-mono ${getConfidenceColor()}`}>
+                  Confidence: {(policyScore * 100).toFixed(0)}%
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">Authority verified by Scout policy.</p>
+              )}
             </div>
           </div>
 
           {/* Risk Flags (if caution level) */}
-          {outcome.confidenceScore < 0.70 && outcome.riskFlags.length > 0 && (
+          {policyScore < 0.7 && outcome.riskFlags.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1 mt-2">
               <p className="text-sm font-medium text-amber-900">Caution points</p>
               <ul className="space-y-0.5 text-sm text-amber-800">
                 {outcome.riskFlags.slice(0, 2).map((flag, i) => (
-                  <li key={i}>• {flag}</li>
+                  <li key={i}>* {flag}</li>
                 ))}
               </ul>
             </div>
@@ -248,8 +246,8 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
             />
             <span className="text-sm text-slate-700">
               I understand this contact is for <strong>{outcome.suggestedIntent}</strong> related to{" "}
-              <strong>{outcome.decisionTitle}</strong>, and Scout has assessed this match at{" "}
-              <strong>{(outcome.confidenceScore * 100).toFixed(0)}%</strong> confidence.
+              <strong>{outcome.decisionTitle}</strong>, and Scout has verified the authority for
+              this contact.
             </span>
           </label>
         </div>

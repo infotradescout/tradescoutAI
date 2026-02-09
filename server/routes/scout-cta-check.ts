@@ -1,9 +1,9 @@
 /**
  * Lightweight Scout Authority Check for Community CTAs
- * 
+ *
  * Used by CommunityCTA component to gate actions (Direct Connect, Message, Apply)
  * through Scout authority before rendering.
- * 
+ *
  * Returns: COMPLY | DEFER | BLOCK with minimal explanation
  */
 
@@ -40,22 +40,22 @@ function getCacheKey(req: CTACheckRequest, userId?: string): string {
 function getCached(key: string): CTACheckResponse | null {
   const entry = cache.get(key);
   if (!entry) return null;
-  
+
   const age = Date.now() - entry.timestamp;
   if (age > CACHE_TTL_MS) {
     cache.delete(key);
     return null;
   }
-  
+
   return entry.result;
 }
 
 function setCache(key: string, result: CTACheckResponse): void {
   cache.set(key, { result, timestamp: Date.now() });
-  
+
   // Simple cache cleanup: remove entries older than 2x TTL
   if (cache.size > 1000) {
-    const cutoff = Date.now() - (CACHE_TTL_MS * 2);
+    const cutoff = Date.now() - CACHE_TTL_MS * 2;
     for (const [k, v] of Array.from(cache.entries())) {
       if (v.timestamp < cutoff) cache.delete(k);
     }
@@ -65,23 +65,26 @@ function setCache(key: string, result: CTACheckResponse): void {
 /**
  * Check if CTA action is allowed through Scout authority
  */
-export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): Promise<CTACheckResponse> {
+export async function checkCTAAuthority(
+  req: CTACheckRequest,
+  userId?: string
+): Promise<CTACheckResponse> {
   const cacheKey = getCacheKey(req, userId);
   const cached = getCached(cacheKey);
   if (cached) return cached;
-  
+
   // Construct minimal situation for Governor
   const situation = await inferSituation({
     message: `User wants to ${req.action} on ${req.context}`,
-    user: userId ? { id: parseInt(userId), role: 'user' as const } : undefined,
+    user: userId ? { id: parseInt(userId), role: "user" as const } : undefined,
     history: [],
     countyCode: req.scope,
   });
-  
+
   const { action, authorityProof } = selectAction(situation);
-  
+
   let result: CTACheckResponse;
-  
+
   if (action === "COMPLY") {
     result = {
       allowed: true,
@@ -94,7 +97,9 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
       allowed: false,
       action: "DEFER",
       ctaMode: "ask_scout",
-      explanation: authorityProof.hasProof ? "Scout suggests gathering more context" : "Insufficient authority to proceed",
+      explanation: authorityProof.hasProof
+        ? "Scout suggests gathering more context"
+        : "Insufficient authority to proceed",
       label: "Ask Scout first",
     };
   } else if (action === "BLOCK") {
@@ -115,7 +120,7 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
       label: "Consider alternatives",
     };
   }
-  
+
   setCache(cacheKey, result);
   return result;
 }
@@ -127,30 +132,28 @@ export function setupScoutCTACheckRoutes(app: Express) {
   app.post("/api/scout/cta-check", async (req: Request, res: Response) => {
     try {
       const { action, context, contextId, scope } = req.body;
-      
+
       if (!action || !context || !contextId) {
-        return res.status(400).json({ 
-          error: "Missing required fields: action, context, contextId" 
+        return res.status(400).json({
+          error: "Missing required fields: action, context, contextId",
         });
       }
-      
+
       const userId = (req.user as any)?.id;
-      
-      const result = await checkCTAAuthority(
-        { action, context, contextId, scope },
-        userId
-      );
-      
+
+      const result = await checkCTAAuthority({ action, context, contextId, scope }, userId);
+
       return res.json(result);
     } catch (error) {
       console.error("[Scout CTA Check] Error:", error);
-      
-      // Fail open: allow action on error (safety over UX breakage)
+
+      // Fail safe: route to Scout when authority check cannot complete
       return res.json({
-        allowed: true,
-        action: "COMPLY",
-        ctaMode: "show",
-        explanation: "Check failed, allowing action",
+        allowed: false,
+        action: "DEFER",
+        ctaMode: "ask_scout",
+        explanation: "Authority check unavailable. Use Ask Scout to continue safely.",
+        label: "Ask Scout first",
       });
     }
   });

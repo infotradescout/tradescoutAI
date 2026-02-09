@@ -2457,6 +2457,8 @@ export async function registerRoutes(app: any) {
         roles: user.roles || [user.role],
         badges: computeBadgesForUser(user),
         createdAt: user.createdAt,
+        verificationStatus: user.verificationStatus,
+        addressVerified: user.addressVerified,
         preferences: {
           colorScheme: user.preferences?.colorScheme,
           badges: user.preferences?.badges,
@@ -5998,15 +6000,11 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        const { contractorId, leadId } = (req.body ?? {}) as any;
-
-        const conversation = await storage.createConversation({
-          homeownerId: userId,
-          contractorId,
-          leadId,
+        return res.status(400).json({
+          reasonCode: "MISSING_AUTHORITY_GATE",
+          message:
+            "Direct conversation creation is blocked. Use /api/social/conversations/start with authorityGate and intent.",
         });
-        res.json(conversation);
       } catch (error: any) {
         console.error("Error creating conversation:", error);
         res.status(500).json({ message: "Failed to create conversation" });
@@ -6198,30 +6196,11 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        const { content, messageType, metadata } = req.body;
-
-        const conversation = await storage.getConversation(req.params.id);
-        if (!conversation) {
-          return res.status(404).json({ message: "Conversation not found" });
-        }
-
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-          return res.status(403).json({ message: "Access denied" });
-        }
-
-        const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
-
-        const message = await storage.createMessage({
-          conversationId: req.params.id,
-          senderId: userId,
-          senderType,
-          content,
-          messageType: messageType || "text",
-          metadata,
+        return res.status(400).json({
+          reasonCode: "MISSING_AUTHORITY_GATE",
+          message:
+            "Direct conversation messaging is blocked. Use /api/social/conversations/start for intent-gated contact.",
         });
-
-        res.json(message);
       } catch (error: any) {
         console.error("Error creating message:", error);
         res.status(500).json({ message: "Failed to send message" });
@@ -7583,7 +7562,7 @@ export async function registerRoutes(app: any) {
         userId,
       };
 
-      // Store in database - for now using in-memory storage
+      // Build report payload and persist via storage layer (database-backed)
       const report = {
         id: `report_${Date.now()}`,
         ...reportData,
@@ -14447,37 +14426,11 @@ export async function registerRoutes(app: any) {
   // 2. MESSAGING API - Basic endpoints (real-time via WebSocket in WebSocketManager)
   app.post("/api/conversations", isAuthenticated, async (req: AuthedRequest, res: Response) => {
     try {
-      const userId = req.user?.id;
-      const { participantId, title } = req.body;
-
-      if (!userId || !participantId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Create or get existing conversation
-      const existingConversation = await db
-        .select()
-        .from(conversations)
-        .where(
-          sql`(${conversations.homeownerId} = ${userId} AND ${conversations.contractorId} = ${participantId}) OR
-              (${conversations.homeownerId} = ${participantId} AND ${conversations.contractorId} = ${userId})`
-        )
-        .limit(1);
-
-      if (existingConversation.length > 0) {
-        return res.json(existingConversation[0]);
-      }
-
-      // Create new conversation
-      const newConversation = await db
-        .insert(conversations)
-        .values({
-          homeownerId: userId,
-          contractorId: participantId,
-        })
-        .returning();
-
-      res.status(201).json(newConversation[0]);
+      return res.status(400).json({
+        reasonCode: "MISSING_AUTHORITY_GATE",
+        message:
+          "Direct conversation creation is blocked. Use /api/social/conversations/start with authorityGate and intent.",
+      });
     } catch (error: any) {
       console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });

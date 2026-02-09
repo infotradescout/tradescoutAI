@@ -24,6 +24,9 @@ jobs:
       - name: Forbidden-pattern guard
         run: npm run guard:forbidden
 
+      - name: HTTP semantics guard (4xx vs 5xx)
+        run: npm run audit:http-semantics
+
       - name: Build
         run: npm run build
 

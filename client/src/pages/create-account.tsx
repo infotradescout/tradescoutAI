@@ -85,6 +85,7 @@ export default function CreateAccountPortal() {
   const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [primaryFocus, setPrimaryFocus] = useState<"hire" | "offer" | "both">("hire");
   const [providers, setProviders] = useState<{ google: boolean; facebook: boolean }>({
     google: false,
     facebook: false,
@@ -94,7 +95,6 @@ export default function CreateAccountPortal() {
     control,
     handleSubmit,
     formState: { errors },
-    watch,
     setValue,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -112,9 +112,20 @@ export default function CreateAccountPortal() {
     },
   });
 
-  const stateValue = watch("state" as any);
-  const countyValue = watch("county" as any);
-  const userTypesValue = watch("userTypes");
+  useEffect(() => {
+    if (primaryFocus === "hire") {
+      setValue("userTypes", ["homeowner"]);
+      setValue("userIntent", "I need help hiring for local projects.");
+      return;
+    }
+    if (primaryFocus === "offer") {
+      setValue("userTypes", ["contractor"]);
+      setValue("userIntent", "I offer services and want verified local work.");
+      return;
+    }
+    setValue("userTypes", ["homeowner", "contractor"]);
+    setValue("userIntent", "I both hire and provide services.");
+  }, [primaryFocus, setValue]);
 
   // Fetch OAuth providers
   useEffect(() => {
@@ -224,17 +235,9 @@ export default function CreateAccountPortal() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-6 text-tsTextMain">
+    <div className="h-full min-h-[calc(100dvh-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-4 text-tsTextMain">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/community-feed")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted pl-0"
-          >
-            <span className="text-sm">Skip and browse as guest</span>
-          </Button>
-
           <div className="space-y-4">
             <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
               ACCOUNT SETUP
@@ -458,637 +461,56 @@ export default function CreateAccountPortal() {
                   <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
                 )}
               </div>
-
-              {/* User Types (Multi-select Claims) */}
+              {/* Primary Focus (Role-aware, not role-locked) */}
               <div>
-                <Label className="text-sm text-tsTextMain mb-2 block">
-                  Optional: Select anything that applies{" "}
-                  <span className="text-tsTextMuted font-normal">(you can change this later)</span>
-                </Label>
+                <Label className="text-sm text-tsTextMain mb-2 block">Primary focus</Label>
                 <p className="text-xs text-tsTextMuted mb-3">
-                  Help us show you relevant content. This doesn't lock you into a role—it's just a
-                  starting point. You can skip this and add it later.
+                  Pick one starting point. You can change this later in your profile.
                 </p>
-                <div className="space-y-3 bg-tsBg/50 rounded-lg p-4 border border-tsBorder/50 max-h-96 overflow-y-auto">
-                  <Controller
-                    name="userTypes"
-                    control={control}
-                    render={({ field }) => (
-                      <>
-                        {/* Property Owners & Managers */}
-                        <div className="mb-4">
-                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2 font-semibold">
-                            Property Owners & Managers
-                          </div>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("homeowner")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "homeowner"]
-                                    : (field.value || []).filter((v) => v !== "homeowner");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">Homeowner</div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Find contractors for home projects
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("renter")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "renter"]
-                                    : (field.value || []).filter((v) => v !== "renter");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Renter/Tenant
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Looking for services or a new place
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("landlord")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "landlord"]
-                                    : (field.value || []).filter((v) => v !== "landlord");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">Landlord</div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Manage rental properties
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("property_manager")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "property_manager"]
-                                    : (field.value || []).filter((v) => v !== "property_manager");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Property Manager
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Professional multi-property management
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Service Providers & Contractors */}
-                        <div className="mb-4">
-                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2 font-semibold">
-                            Service Providers & Contractors
-                          </div>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("contractor")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "contractor"]
-                                    : (field.value || []).filter((v) => v !== "contractor");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Licensed Contractor
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Get leads and grow your business
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("handyman")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "handyman"]
-                                    : (field.value || []).filter((v) => v !== "handyman");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">Handyman</div>
-                                <div className="text-xs text-tsTextMuted">
-                                  General repair and maintenance services
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("service_provider")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "service_provider"]
-                                    : (field.value || []).filter((v) => v !== "service_provider");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Service Provider
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Cleaning, landscaping, moving, etc.
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("specialty_tradesperson")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "specialty_tradesperson"]
-                                    : (field.value || []).filter(
-                                        (v) => v !== "specialty_tradesperson"
-                                      );
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Specialty Trades
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Plumber, electrician, HVAC, roofing, etc.
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("designer")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "designer"]
-                                    : (field.value || []).filter((v) => v !== "designer");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Designer/Architect
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Interior design, architecture
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("inspector")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "inspector"]
-                                    : (field.value || []).filter((v) => v !== "inspector");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Inspector/Appraiser
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Home inspection, property appraisal
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Business & Commercial */}
-                        <div className="mb-4">
-                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2 font-semibold">
-                            Business & Commercial
-                          </div>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("business_owner")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "business_owner"]
-                                    : (field.value || []).filter((v) => v !== "business_owner");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Business Owner
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Local business needing services
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("restaurant_owner")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "restaurant_owner"]
-                                    : (field.value || []).filter((v) => v !== "restaurant_owner");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Restaurant Owner
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Restaurant, cafe, or food business
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("food_truck_owner")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "food_truck_owner"]
-                                    : (field.value || []).filter((v) => v !== "food_truck_owner");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Food Truck Owner
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Mobile food or coffee service
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("bar_owner")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "bar_owner"]
-                                    : (field.value || []).filter((v) => v !== "bar_owner");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Bar/Lounge Owner
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Bar, lounge, nightlife venue
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("commercial_property")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "commercial_property"]
-                                    : (field.value || []).filter(
-                                        (v) => v !== "commercial_property"
-                                      );
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Commercial Property
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Commercial real estate management
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("franchise_owner")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "franchise_owner"]
-                                    : (field.value || []).filter((v) => v !== "franchise_owner");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Franchise Owner
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Operating a franchise location
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("startup_founder")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "startup_founder"]
-                                    : (field.value || []).filter((v) => v !== "startup_founder");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Startup Founder
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Building a new business
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Real Estate & Finance */}
-                        <div className="mb-4">
-                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2 font-semibold">
-                            Real Estate & Finance
-                          </div>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("realtor")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "realtor"]
-                                    : (field.value || []).filter((v) => v !== "realtor");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Real Estate Agent
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Connect with clients and contractors
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("mortgage_broker")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "mortgage_broker"]
-                                    : (field.value || []).filter((v) => v !== "mortgage_broker");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Mortgage Broker
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Mortgage and loan specialist
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("insurance_agent")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "insurance_agent"]
-                                    : (field.value || []).filter((v) => v !== "insurance_agent");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Insurance Agent
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Property and casualty insurance
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("title_company")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "title_company"]
-                                    : (field.value || []).filter((v) => v !== "title_company");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Title/Escrow
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Title insurance and escrow services
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Automotive */}
-                        <div className="mb-4">
-                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2 font-semibold">
-                            Automotive
-                          </div>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("car_dealer")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "car_dealer"]
-                                    : (field.value || []).filter((v) => v !== "car_dealer");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Car Dealer
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  List vehicles and manage sales
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("auto_service")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "auto_service"]
-                                    : (field.value || []).filter((v) => v !== "auto_service");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Auto Service
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Auto repair, detailing, maintenance
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Other */}
-                        <div className="mb-4">
-                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2 font-semibold">
-                            Other
-                          </div>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("nonprofit_org")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "nonprofit_org"]
-                                    : (field.value || []).filter((v) => v !== "nonprofit_org");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Non-Profit Organization
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Charity or non-profit work
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("affiliate")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "affiliate"]
-                                    : (field.value || []).filter((v) => v !== "affiliate");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Affiliate/Marketer
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Referral partner or affiliate
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("content_creator")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "content_creator"]
-                                    : (field.value || []).filter((v) => v !== "content_creator");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Content Creator
-                                </div>
-                                <div className="text-xs text-tsTextMuted">
-                                  Influencer, blogger, YouTuber
-                                </div>
-                              </div>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
-                              <Checkbox
-                                checked={field.value?.includes("other")}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), "other"]
-                                    : (field.value || []).filter((v) => v !== "other");
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-tsTextMain">
-                                  Other (specify later)
-                                </div>
-                                <div className="text-xs text-tsTextMuted">Not listed above</div>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryFocus("hire")}
+                    className={`rounded-lg border px-3 py-2 text-left transition ${
+                      primaryFocus === "hire"
+                        ? "border-tsAccent bg-tsAccent/10"
+                        : "border-tsBorder hover:border-tsAccent/60"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-tsTextMain">I need help</div>
+                    <div className="text-xs text-tsTextMuted">Hire verified pros for work.</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryFocus("offer")}
+                    className={`rounded-lg border px-3 py-2 text-left transition ${
+                      primaryFocus === "offer"
+                        ? "border-tsAccent bg-tsAccent/10"
+                        : "border-tsBorder hover:border-tsAccent/60"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-tsTextMain">I offer services</div>
+                    <div className="text-xs text-tsTextMuted">
+                      Find verified local opportunities.
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryFocus("both")}
+                    className={`rounded-lg border px-3 py-2 text-left transition ${
+                      primaryFocus === "both"
+                        ? "border-tsAccent bg-tsAccent/10"
+                        : "border-tsBorder hover:border-tsAccent/60"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-tsTextMain">I do both</div>
+                    <div className="text-xs text-tsTextMuted">Hire and offer services.</div>
+                  </button>
                 </div>
-                {errors.userTypes && (
-                  <p className="text-xs text-red-500 mt-1">{errors.userTypes.message}</p>
-                )}
-
-                {/* Free-form intent input */}
-                <div className="mt-3">
-                  <Label htmlFor="userIntent" className="text-sm text-tsTextMain mb-2 block">
-                    Or explain in your own words{" "}
-                    <span className="text-tsTextMuted font-normal">(optional)</span>
-                  </Label>
-                  <Controller
-                    name="userIntent"
-                    control={control}
-                    render={({ field }) => (
-                      <textarea
-                        {...field}
-                        id="userIntent"
-                        rows={3}
-                        placeholder="e.g., 'I fix HVAC systems and offer same-day service' or 'Looking for a reliable electrician for my rental properties'"
-                        className="w-full px-3 py-2 text-sm bg-tsBg border border-tsBorder rounded-lg text-tsTextMain placeholder:text-tsTextMuted focus:outline-none focus:ring-2 focus:ring-tsAccent/50"
-                      />
-                    )}
-                  />
-                  <p className="text-xs text-tsTextMuted mt-1">
-                    Scout will use this to help show you relevant content and connections.
-                  </p>
-                </div>
+                <p className="text-[11px] text-tsTextMuted mt-2">
+                  Scout uses this as your initial routing signal. Full role details can be edited
+                  later.
+                </p>
               </div>
 
               {/* Terms & Permissions */}

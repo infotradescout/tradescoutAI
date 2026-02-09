@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useMessaging } from '@/hooks/useMessaging';
-import { formatDistanceToNow } from 'date-fns';
-import { Send, MessageCircle, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMessaging } from "@/hooks/useMessaging";
+import { formatDistanceToNow } from "date-fns";
+import { Send, MessageCircle, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Link } from "wouter";
 
 interface MessagingPanelProps {
   userId: string;
@@ -14,11 +15,7 @@ interface MessagingPanelProps {
   onClose?: () => void;
 }
 
-export function MessagingPanel({
-  userId,
-  conversationId,
-  onClose,
-}: MessagingPanelProps) {
+export function MessagingPanel({ userId, conversationId, onClose }: MessagingPanelProps) {
   const {
     isConnected,
     isLoading,
@@ -36,7 +33,7 @@ export function MessagingPanel({
     setCurrentConversation,
   } = useMessaging(userId);
 
-  const [messageInput, setMessageInput] = useState('');
+  const [messageInput, setMessageInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -55,7 +52,7 @@ export function MessagingPanel({
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Mark messages as read when viewed
@@ -74,10 +71,10 @@ export function MessagingPanel({
     notifyStoppedTyping();
 
     try {
-      await sendMessage(messageInput, 'text');
-      setMessageInput('');
+      await sendMessage(messageInput, "text");
+      setMessageInput("");
     } catch (err) {
-      console.error('Error sending message:', err);
+      console.error("Error sending message:", err);
     } finally {
       setIsSending(false);
     }
@@ -144,9 +141,22 @@ export function MessagingPanel({
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-2">
             {conversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 space-y-2">
                 <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No conversations yet</p>
+                <p className="text-xs text-gray-400">
+                  Start through Scout or Direct Connect to keep contact intent-gated.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 pt-1">
+                  <Link href="/direct-connect">
+                    <Button size="sm">Direct Connect</Button>
+                  </Link>
+                  <Link href="/scout">
+                    <Button size="sm" variant="outline">
+                      Ask Scout
+                    </Button>
+                  </Link>
+                </div>
               </div>
             ) : (
               conversations.map((conversation) => (
@@ -154,17 +164,15 @@ export function MessagingPanel({
                   key={conversation.id}
                   onClick={() => handleConversationSelect(conversation.id)}
                   className={cn(
-                    'w-full text-left p-3 rounded-lg transition-colors',
+                    "w-full text-left p-3 rounded-lg transition-colors",
                     currentConversation === conversation.id
-                      ? 'bg-blue-100 border border-blue-300'
-                      : 'hover:bg-gray-100'
+                      ? "bg-blue-100 border border-blue-300"
+                      : "hover:bg-gray-100"
                   )}
                 >
-                  <div className="font-medium text-sm">
-                    {getOtherParticipant(conversation)}
-                  </div>
+                  <div className="font-medium text-sm">{getOtherParticipant(conversation)}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Last message:{' '}
+                    Last message:{" "}
                     {formatDistanceToNow(new Date(conversation.lastMessageAt), {
                       addSuffix: true,
                     })}
@@ -184,16 +192,11 @@ export function MessagingPanel({
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="font-semibold">
                 {conversations.find((c) => c.id === currentConversation)
-                  ? getOtherParticipant(
-                      conversations.find((c) => c.id === currentConversation)!
-                    )
-                  : 'Conversation'}
+                  ? getOtherParticipant(conversations.find((c) => c.id === currentConversation)!)
+                  : "Conversation"}
               </h3>
               {onClose && (
-                <button
-                  onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700"
-                >
+                <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
                   ✕
                 </button>
               )}
@@ -212,31 +215,29 @@ export function MessagingPanel({
                     <div
                       key={message.id}
                       className={cn(
-                        'flex gap-2',
-                        message.senderId === userId ? 'justify-end' : 'justify-start'
+                        "flex gap-2",
+                        message.senderId === userId ? "justify-end" : "justify-start"
                       )}
                     >
                       <div
                         className={cn(
-                          'max-w-xs px-4 py-2 rounded-lg',
+                          "max-w-xs px-4 py-2 rounded-lg",
                           message.senderId === userId
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-200 text-gray-900'
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-900"
                         )}
                       >
                         <p className="text-sm">{message.content}</p>
                         <p
                           className={cn(
-                            'text-xs mt-1',
-                            message.senderId === userId
-                              ? 'text-blue-100'
-                              : 'text-gray-600'
+                            "text-xs mt-1",
+                            message.senderId === userId ? "text-blue-100" : "text-gray-600"
                           )}
                         >
                           {formatDistanceToNow(new Date(message.createdAt), {
                             addSuffix: true,
                           })}
-                          {message.readAt && ' ✓✓'}
+                          {message.readAt && " ✓✓"}
                         </p>
                       </div>
                     </div>
@@ -251,9 +252,7 @@ export function MessagingPanel({
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
                     </div>
-                    <span className="text-xs">
-                      {Array.from(typingUsers).length} typing...
-                    </span>
+                    <span className="text-xs">{Array.from(typingUsers).length} typing...</span>
                   </div>
                 )}
 
@@ -266,7 +265,7 @@ export function MessagingPanel({
               <Input
                 value={messageInput}
                 onChange={handleMessageInputChange}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder="Type a message..."
                 disabled={isSending}
                 className="flex-1"

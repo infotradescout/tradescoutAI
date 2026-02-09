@@ -63,7 +63,6 @@ jobs:
           AGENT_SCOPE_SLUG: ${{ secrets.AGENT_SCOPE_SLUG }}
           DEBUG: false
           CI: true
-        continue-on-error: true
 
       - name: Generate Bot Army report
         if: always()
@@ -105,11 +104,11 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🤖 **Bot Army Regression Tests**\n\nSee attached artifacts for full report and Playwright details.'
+              body: 'Bot Army Regression Tests\n\nSee attached artifacts for full report and Playwright details.'
             });
 
       - name: Fail if tests failed
         if: failure()
         run: |
-          echo "❌ Bot Army tests failed. Check artifacts for details."
+          echo "Bot Army tests failed. Check artifacts for details."
           exit 1

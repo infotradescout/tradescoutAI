@@ -383,6 +383,8 @@ function DirectConnectInbox() {
                 {request?.countyFips && (
                   <Badge variant="outline">County: {request.countyFips}</Badge>
                 )}
+                <Badge variant="outline">Authority gated</Badge>
+                <Badge variant="outline">Intent required</Badge>
                 {typeof snapshot?.score === "number" && (
                   <Badge variant="outline">Score: {Math.round(snapshot.score)}</Badge>
                 )}
@@ -734,6 +736,8 @@ function MyDirectConnectRequests() {
                 {status === "open" && suggested === 0 && (
                   <WhyLink to={getHelpLink("directConnect")} />
                 )}
+                <Badge variant="outline">Authority gated</Badge>
+                <Badge variant="outline">Intent required</Badge>
                 {hasAccepted && <Badge variant="outline">Accepted by a provider</Badge>}
                 {lastEventAt && (
                   <span>

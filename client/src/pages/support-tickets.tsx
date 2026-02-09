@@ -43,6 +43,13 @@ type ErrorReport = {
   resolvedAt?: string | null;
 };
 
+const EMPTY_REPORT_STATS = {
+  total: 0,
+  open: 0,
+  inProgress: 0,
+  resolved: 0,
+};
+
 const SupportTickets = memo(function SupportTickets() {
   const [activeTab, setActiveTab] = useState("open");
   const [selectedTicket, setSelectedTicket] = useState<ErrorReport | null>(null);
@@ -54,7 +61,7 @@ const SupportTickets = memo(function SupportTickets() {
     queryFn: () => apiRequest("GET", "/api/admin/error-reports"),
   });
 
-  const { data: reportStats = {} } = useQuery<{
+  const { data: reportStats = EMPTY_REPORT_STATS } = useQuery<{
     total: number;
     open: number;
     inProgress: number;
@@ -134,8 +141,8 @@ const SupportTickets = memo(function SupportTickets() {
     );
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (status?: string | null) => {
+    switch (status ?? "open") {
       case "open":
         return <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />;
       case "in_progress":

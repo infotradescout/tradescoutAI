@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "wouter";
 
 type Thread = {
   id: string;
@@ -57,8 +58,7 @@ export default function MessagesPanel() {
   const threadsQuery = useQuery<{ threads: ApiThread[] }>({
     queryKey: ["/api/messages/threads"],
     enabled: Boolean(user),
-    queryFn: () =>
-      apiRequest("GET", "/api/messages/threads?limit=50&offset=0"),
+    queryFn: () => apiRequest("GET", "/api/messages/threads?limit=50&offset=0"),
   });
 
   const threads: Thread[] = (threadsQuery.data?.threads || []).map((t) => ({
@@ -69,11 +69,7 @@ export default function MessagesPanel() {
   const messagesQuery = useQuery<{ thread: ApiThread; messages: ApiMessage[] } | null>({
     queryKey: ["/api/messages/threads", activeThreadId],
     enabled: Boolean(activeThreadId && user),
-    queryFn: () =>
-      apiRequest(
-        "GET",
-        `/api/messages/threads/${activeThreadId}`,
-      ),
+    queryFn: () => apiRequest("GET", `/api/messages/threads/${activeThreadId}`),
   });
 
   const mappedMessages: Message[] =
@@ -120,8 +116,21 @@ export default function MessagesPanel() {
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-2">
             {threads.length === 0 ? (
-              <div className="text-center text-slate-400 py-8">
-                No conversations yet.
+              <div className="text-center text-slate-400 py-8 space-y-3">
+                <p>No conversations yet.</p>
+                <p className="text-xs text-slate-500">
+                  Start through Scout or Direct Connect to keep contact intent-gated.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link href="/direct-connect">
+                    <Button size="sm">Direct Connect</Button>
+                  </Link>
+                  <Link href="/scout">
+                    <Button size="sm" variant="outline">
+                      Ask Scout
+                    </Button>
+                  </Link>
+                </div>
               </div>
             ) : (
               threads.map((thread) => (
@@ -173,9 +182,7 @@ export default function MessagesPanel() {
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-3">
             {mappedMessages.length === 0 ? (
-              <div className="text-center text-slate-400 py-12">
-                No messages yet.
-              </div>
+              <div className="text-center text-slate-400 py-12">No messages yet.</div>
             ) : (
               mappedMessages.map((m) => (
                 <div
@@ -190,9 +197,7 @@ export default function MessagesPanel() {
                         : "bg-slate-800 text-slate-100 border border-slate-700"
                     }`}
                   >
-                    <div className="text-[11px] opacity-70 mb-0.5">
-                      {m.authorName}
-                    </div>
+                    <div className="text-[11px] opacity-70 mb-0.5">{m.authorName}</div>
                     <div>{m.content}</div>
                     <div className="mt-1 text-[10px] opacity-60">
                       {formatDistanceToNow(new Date(m.createdAt), {

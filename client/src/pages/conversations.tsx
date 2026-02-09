@@ -12,11 +12,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  MessageCircle, 
-  Send, 
-  Eye, 
-  User, 
+import {
+  MessageCircle,
+  Send,
+  Eye,
+  User,
   Calendar,
   DollarSign,
   CheckCircle,
@@ -24,14 +24,18 @@ import {
   Star,
   Package,
   ArrowLeft,
-  Plus
+  Plus,
 } from "lucide-react";
-import type { MarketplaceConversation, MarketplaceMessage, MarketplaceListing } from "@shared/schema";
+import type {
+  MarketplaceConversation,
+  MarketplaceMessage,
+  MarketplaceListing,
+} from "@shared/schema";
 
 interface ConversationWithDetails extends MarketplaceConversation {
   listing: MarketplaceListing;
-  buyer: { id: string; firstName?: string; lastName?: string; profileImageUrl?: string; };
-  seller: { id: string; firstName?: string; lastName?: string; profileImageUrl?: string; };
+  buyer: { id: string; firstName?: string; lastName?: string; profileImageUrl?: string };
+  seller: { id: string; firstName?: string; lastName?: string; profileImageUrl?: string };
   lastMessage?: MarketplaceMessage;
   unreadCount: number;
 }
@@ -44,7 +48,9 @@ export default function Conversations() {
   const [newMessage, setNewMessage] = useState("");
 
   // Fetch user's conversations
-  const { data: conversations = [], isLoading: loadingConversations } = useQuery<ConversationWithDetails[]>({
+  const { data: conversations = [], isLoading: loadingConversations } = useQuery<
+    ConversationWithDetails[]
+  >({
     queryKey: ["/api/marketplace/conversations"],
     enabled: isAuthenticated,
   });
@@ -62,8 +68,8 @@ export default function Conversations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/conversations"] });
       if (selectedConversation) {
-        queryClient.invalidateQueries({ 
-          queryKey: ["/api/marketplace/conversations", selectedConversation, "messages"] 
+        queryClient.invalidateQueries({
+          queryKey: ["/api/marketplace/conversations", selectedConversation, "messages"],
         });
       }
       setNewMessage("");
@@ -97,7 +103,7 @@ export default function Conversations() {
     sendMessageMutation.mutate({
       conversationId: selectedConversation,
       content: newMessage.trim(),
-      messageType: "text"
+      messageType: "text",
     });
   };
 
@@ -116,12 +122,12 @@ export default function Conversations() {
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 24) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
     return date.toLocaleDateString();
   };
 
-  const selectedConversationData = conversations.find(c => c.id === selectedConversation);
+  const selectedConversationData = conversations.find((c) => c.id === selectedConversation);
 
   if (!isAuthenticated) {
     return (
@@ -146,15 +152,10 @@ export default function Conversations() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "var(--surface-app-bg)" }}
-    >
+    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-app-bg)" }}>
       <div className="max-w-7xl mx-auto p-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">
-            Your Conversations
-          </h1>
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">Your Conversations</h1>
           <p className="text-gray-600 dark:text-gray-400">
             Connect with other TradeScout members about marketplace items
           </p>
@@ -192,46 +193,61 @@ export default function Conversations() {
                   ) : conversations.length === 0 ? (
                     <div className="p-6 text-center">
                       <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                      <h3 className="font-medium text-orange-500 mb-2">
-                        No conversations yet
-                      </h3>
+                      <h3 className="font-medium text-orange-500 mb-2">No conversations yet</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Start browsing the Exchange to connect with other members
+                        Start through Scout or Direct Connect to keep contact intent-gated.
                       </p>
-                      <Link href="/exchange">
-                        <Button size="sm">
-                          <Package className="h-4 w-4 mr-2" />
-                          Browse Exchange
-                        </Button>
-                      </Link>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        <Link href="/direct-connect">
+                          <Button size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Direct Connect
+                          </Button>
+                        </Link>
+                        <Link href="/scout">
+                          <Button size="sm" variant="outline">
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Ask Scout
+                          </Button>
+                        </Link>
+                        <Link href="/exchange">
+                          <Button size="sm" variant="outline">
+                            <Package className="h-4 w-4 mr-2" />
+                            Browse Exchange
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-1">
                       {conversations.map((conversation) => {
                         const otherParticipant = getOtherParticipant(conversation);
                         const isUnread = conversation.unreadCount > 0;
-                        
+
                         return (
                           <div
                             key={conversation.id}
                             onClick={() => handleSelectConversation(conversation.id)}
                             className={`p-4 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 hover:bg-slate-900 dark:hover:bg-navy-800 ${
-                              selectedConversation === conversation.id 
-                                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' 
-                                : ''
+                              selectedConversation === conversation.id
+                                ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+                                : ""
                             }`}
                           >
                             <div className="flex items-start gap-3">
                               <Avatar className="w-12 h-12">
                                 <AvatarImage src={otherParticipant.profileImageUrl} />
                                 <AvatarFallback>
-                                  {(otherParticipant.firstName?.[0] || '') + (otherParticipant.lastName?.[0] || '')}
+                                  {(otherParticipant.firstName?.[0] || "") +
+                                    (otherParticipant.lastName?.[0] || "")}
                                 </AvatarFallback>
                               </Avatar>
-                              
+
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-1">
-                                  <h4 className={`font-medium truncate ${isUnread ? 'text-orange-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                  <h4
+                                    className={`font-medium truncate ${isUnread ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}
+                                  >
                                     {otherParticipant.firstName} {otherParticipant.lastName}
                                   </h4>
                                   {isUnread && (
@@ -240,20 +256,26 @@ export default function Conversations() {
                                     </Badge>
                                   )}
                                 </div>
-                                
+
                                 <p className="text-sm text-gray-600 dark:text-gray-400 truncate mb-1">
                                   {conversation.listing.title}
                                 </p>
-                                
+
                                 {conversation.lastMessage && (
-                                  <p className={`text-xs truncate ${isUnread ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-500'}`}>
+                                  <p
+                                    className={`text-xs truncate ${isUnread ? "font-medium text-gray-700 dark:text-gray-300" : "text-gray-500 dark:text-gray-500"}`}
+                                  >
                                     {conversation.lastMessage.content}
                                   </p>
                                 )}
-                                
+
                                 <div className="flex items-center justify-between mt-2">
                                   <span className="text-xs text-gray-500">
-                                    {formatMessageTime(conversation.lastMessageAt?.toString() || conversation.createdAt?.toString() || '')}
+                                    {formatMessageTime(
+                                      conversation.lastMessageAt?.toString() ||
+                                        conversation.createdAt?.toString() ||
+                                        ""
+                                    )}
                                   </span>
                                   <Badge variant="outline" className="text-xs">
                                     ${conversation.listing.price}
@@ -277,32 +299,35 @@ export default function Conversations() {
               <Card className="h-full flex flex-col">
                 <CardHeader className="border-b border-slate-700">
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={() => setSelectedConversation(null)}
                       className="lg:hidden"
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    
+
                     <Avatar className="w-10 h-10">
-                      <AvatarImage src={getOtherParticipant(selectedConversationData).profileImageUrl} />
+                      <AvatarImage
+                        src={getOtherParticipant(selectedConversationData).profileImageUrl}
+                      />
                       <AvatarFallback>
-                        {(getOtherParticipant(selectedConversationData).firstName?.[0] || '') + 
-                         (getOtherParticipant(selectedConversationData).lastName?.[0] || '')}
+                        {(getOtherParticipant(selectedConversationData).firstName?.[0] || "") +
+                          (getOtherParticipant(selectedConversationData).lastName?.[0] || "")}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
                       <h3 className="font-semibold text-orange-500">
-                        {getOtherParticipant(selectedConversationData).firstName} {getOtherParticipant(selectedConversationData).lastName}
+                        {getOtherParticipant(selectedConversationData).firstName}{" "}
+                        {getOtherParticipant(selectedConversationData).lastName}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         About: {selectedConversationData.listing.title}
                       </p>
                     </div>
-                    
+
                     <Link href={`/marketplace/listing/${selectedConversationData.listing.id}`}>
                       <Button variant="outline" size="sm">
                         <Eye className="h-4 w-4 mr-2" />
@@ -333,38 +358,45 @@ export default function Conversations() {
                       <div className="space-y-4">
                         {messages.map((message) => {
                           const isOwn = message.senderId === user?.id;
-                          
+
                           return (
                             <div
                               key={message.id}
-                              className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
+                              className={`flex items-start gap-3 ${isOwn ? "flex-row-reverse" : ""}`}
                             >
                               <Avatar className="w-8 h-8">
-                                <AvatarImage 
-                                  src={isOwn 
-                                    ? user?.profileImageUrl 
-                                    : getOtherParticipant(selectedConversationData).profileImageUrl
-                                  } 
+                                <AvatarImage
+                                  src={
+                                    isOwn
+                                      ? user?.profileImageUrl
+                                      : getOtherParticipant(selectedConversationData)
+                                          .profileImageUrl
+                                  }
                                 />
                                 <AvatarFallback className="text-xs">
-                                  {isOwn 
-                                    ? (user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')
-                                    : (getOtherParticipant(selectedConversationData).firstName?.[0] || '') + 
-                                      (getOtherParticipant(selectedConversationData).lastName?.[0] || '')
-                                  }
+                                  {isOwn
+                                    ? (user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")
+                                    : (getOtherParticipant(selectedConversationData)
+                                        .firstName?.[0] || "") +
+                                      (getOtherParticipant(selectedConversationData)
+                                        .lastName?.[0] || "")}
                                 </AvatarFallback>
                               </Avatar>
-                              
-                              <div className={`flex-1 max-w-xs lg:max-w-md ${isOwn ? 'text-right' : ''}`}>
-                                <div className={`inline-block p-3 rounded-lg ${
-                                  isOwn 
-                                    ? 'bg-orange-600 text-white' 
-                                    : 'bg-[color:var(--surface-card)] text-orange-500'
-                                }`}>
+
+                              <div
+                                className={`flex-1 max-w-xs lg:max-w-md ${isOwn ? "text-right" : ""}`}
+                              >
+                                <div
+                                  className={`inline-block p-3 rounded-lg ${
+                                    isOwn
+                                      ? "bg-orange-600 text-white"
+                                      : "bg-[color:var(--surface-card)] text-orange-500"
+                                  }`}
+                                >
                                   <p className="text-sm">{message.content}</p>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                  {formatMessageTime(message.createdAt?.toString() || '')}
+                                  {formatMessageTime(message.createdAt?.toString() || "")}
                                 </p>
                               </div>
                             </div>
@@ -385,8 +417,8 @@ export default function Conversations() {
                       className="flex-1"
                       disabled={sendMessageMutation.isPending}
                     />
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
                       className="bg-orange-600 hover:bg-orange-700"
                     >

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { StateCountySelector } from "@/components/state-county-selector";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -128,7 +127,7 @@ export default function PreScoutSetup() {
 
           <div className="space-y-4">
             <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-              Step 1 of 2
+              Step 2 of 2
             </div>
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
               Set your local setup before Scout takes over.
@@ -219,63 +218,26 @@ export default function PreScoutSetup() {
                     setCountyName(county?.name);
                   }}
                 />
-                <Input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="City (optional)"
-                  className="mt-3"
-                />
                 <p className="text-[11px] text-tsTextMuted">
-                  County is required so Scout can keep results local. City helps narrow things
-                  further.
+                  County is required so Scout can keep results local.
                 </p>
               </div>
 
               {presenceType === "represent_business" && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-sm">Business name</Label>
-                      <Input
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        placeholder="e.g., Northside Builders"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Category (optional)</Label>
-                      <Input
-                        value={businessCategory}
-                        onChange={(e) => setBusinessCategory(e.target.value)}
-                        placeholder="e.g., Roofing, HVAC, Restaurant"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-sm">Website (optional)</Label>
-                      <Input
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
-                        placeholder="https://"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Short blurb (optional)</Label>
-                      <Textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="One sentence on what you do or offer."
-                        rows={3}
-                      />
-                    </div>
+                  <div>
+                    <Label className="text-sm">Business name</Label>
+                    <Input
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="e.g., Northside Builders"
+                      required
+                    />
                   </div>
 
                   <div className="rounded-lg border border-dashed border-tsBorder/80 bg-black/20 p-3 text-xs text-tsTextMuted">
-                    Service area defaults to this county. You can expand it later after Scout
-                    suggests the right tools.
+                    Service area defaults to this county. Add category, website, and description
+                    later in profile settings.
                   </div>
                 </div>
               )}

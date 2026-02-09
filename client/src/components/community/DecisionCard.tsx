@@ -44,6 +44,15 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
 
   // D1: Contact outcome modal state
   const [showContactModal, setShowContactModal] = useState(false);
+  const canUseContactModal = action === "contact_person" && contactOutcome;
+
+  const openContactModal = () => {
+    if (canUseContactModal) {
+      setShowContactModal(true);
+      return;
+    }
+    onProceed();
+  };
 
   // Track card exposure (metric: card exposure rate)
   useEffect(() => {
@@ -145,11 +154,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                   },
                 });
                 // D1: If contact_person outcome, show modal; otherwise proceed directly
-                if (action === "contact_person" && contactOutcome) {
-                  setShowContactModal(true);
-                } else {
-                  onProceed();
-                }
+                openContactModal();
               }}
               className="bg-slate-900 hover:bg-slate-800 text-white"
             >
@@ -192,7 +197,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                     choice: "proceed_anyway",
                   },
                 });
-                onProceed();
+                openContactModal();
               }}
               variant="outline"
               className="border-slate-300 text-slate-700 hover:bg-slate-50"
@@ -217,7 +222,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                       choice: "understand_risk",
                     },
                   });
-                  onProceed();
+                  openContactModal();
                 }
               }}
               variant="outline"

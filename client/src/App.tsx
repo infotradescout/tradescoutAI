@@ -89,9 +89,15 @@ const RootLanding = memo(function RootLanding() {
       : [];
     const isAdmin = user?.isAdmin === true || roles.some((r) => r.includes("admin"));
 
+    const profileVersion: number =
+      typeof user?.profileVersion === "number" ? user.profileVersion : 0;
+    const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
+
     if (!isAuthenticated) {
       // Non-authenticated users go to create account/login page
       navigate("/create-account");
+    } else if (needsPreScoutSetup) {
+      navigate("/pre-scout-setup");
     } else if (isSuperAdmin) {
       navigate("/admin");
     } else if (isAdmin) {
@@ -404,23 +410,36 @@ const AppLayout = memo(function AppLayout() {
   }, [location, isLoading, user, isAuthenticated]);
 
   // Profile reset gate: if a signed-in user has an older profileVersion,
-  // softly but consistently route them through the updated profile basics
-  // before allowing normal navigation.
+  // consistently route them through pre-Scout setup before normal navigation.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    // Don't interfere with auth entry points.
+    const roles: string[] = Array.isArray(user.roles)
+      ? user.roles.filter((r): r is string => typeof r === "string")
+      : [];
+    const isAdminLike =
+      user?.isAdmin === true ||
+      user?.role === "super_admin" ||
+      user?.role === "head_admin" ||
+      roles.some((r) => r.includes("admin"));
+    if (isAdminLike) return;
+
+    const profileVersion: number =
+      typeof user?.profileVersion === "number" ? user.profileVersion : 0;
+    if (profileVersion > 0) return;
+
+    // Don't interfere with auth/setup entry points.
     if (
       location.startsWith("/login") ||
       location.startsWith("/register") ||
       location.startsWith("/signup") ||
-      location.startsWith("/create-account")
+      location.startsWith("/create-account") ||
+      location.startsWith("/pre-scout-setup")
     ) {
       return;
     }
 
-    // DEPRECATED: Profile version gate removed (Claim-First handles onboarding via Scout)
-    // Old redirect to /onboarding/profile has been removed
+    setLocation("/pre-scout-setup");
   }, [isAuthenticated, user, location, setLocation]);
 
   // Back-compat: older Scout links were encoded as '/?prompt=...'
