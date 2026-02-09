@@ -566,29 +566,29 @@ export default function Exchange() {
 
   return (
     <CountyRequiredGate locationOverride={locationCtx as any}>
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-7 py-5 sm:py-7">
-        <div className="mb-5 rounded-2xl border border-tsBorder bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-7 py-4 sm:py-6">
+        <div className="mb-4 rounded-2xl border border-tsBorder bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-3 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-orange-300">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-orange-300">
                 Local Marketplace
               </p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mt-1">Exchange</h1>
-              <p className="text-slate-300 mt-2 max-w-2xl text-sm sm:text-base">
+              <h1 className="text-xl sm:text-2xl font-bold text-white mt-1">Exchange</h1>
+              <p className="text-slate-300 mt-2 max-w-2xl text-xs sm:text-sm">
                 Buy and sell locally with clear listings, real prices, and direct messaging.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
-              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">Listings</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-2.5 py-1.5">
+                <p className="text-[9px] uppercase tracking-wide text-slate-400">Listings</p>
                 <p className="text-white font-semibold">{items?.length ?? 0}</p>
               </div>
-              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">County</p>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-2.5 py-1.5">
+                <p className="text-[9px] uppercase tracking-wide text-slate-400">County</p>
                 <p className="text-white font-semibold">{county || "Not set"}</p>
               </div>
-              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">Mode</p>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-2.5 py-1.5">
+                <p className="text-[9px] uppercase tracking-wide text-slate-400">Mode</p>
                 <p className="text-white font-semibold">Local-first</p>
               </div>
             </div>
@@ -596,23 +596,23 @@ export default function Exchange() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-5 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[11px] sm:text-xs">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-4 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[10px] sm:text-[11px]">
             <TabsTrigger
               value="browse"
-              className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+              className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
             >
               Browse Items
             </TabsTrigger>
             <TabsTrigger
               value="promotions"
-              className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+              className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
             >
               <Megaphone className="h-3 w-3 mr-1" />
               <span>Promotions</span>
             </TabsTrigger>
             <TabsTrigger
               value="sales"
-              className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative"
+              className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative"
             >
               <Tag className="h-3 w-3 mr-1" />
               <span>Store Sales</span>
@@ -622,40 +622,40 @@ export default function Exchange() {
             </TabsTrigger>
             <TabsTrigger
               value="categories"
-              className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+              className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
             >
               Categories
             </TabsTrigger>
             <TabsTrigger
               value="sell"
-              className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+              className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
             >
               Sell Item
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="browse" className="space-y-4">
-            <div className="grid grid-cols-1 xl:grid-cols-[280px,1fr] gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-[260px,1fr] gap-4">
               <Card className="bg-tsCard border-tsBorder h-fit xl:sticky xl:top-20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-white text-base flex items-center gap-2">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-white text-sm flex items-center gap-2">
                     <Filter className="h-4 w-4 text-orange-400" />
                     Filters
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search items"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 bg-slate-800 border-slate-700 text-white"
+                      className="h-9 pl-10 bg-slate-800 border-slate-700 text-white text-sm"
                     />
                   </div>
 
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -669,7 +669,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
                       <SelectValue placeholder="Price Range" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -683,7 +683,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
                       <SelectValue placeholder="Condition" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -696,7 +696,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
                       <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -711,13 +711,13 @@ export default function Exchange() {
                     placeholder="City or pickup area"
                     value={locationFilter}
                     onChange={(e) => setLocationFilter(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className="h-9 bg-slate-800 border-slate-700 text-white text-sm"
                   />
 
                   <div className="flex gap-2 pt-1">
                     <Button
                       variant="outline"
-                      className="flex-1 border-slate-600 text-slate-200"
+                      className="flex-1 h-9 border-slate-600 text-slate-200 text-sm"
                       onClick={() => {
                         setSearchQuery("");
                         setSelectedCategory("");
@@ -730,7 +730,7 @@ export default function Exchange() {
                       Reset
                     </Button>
                     <Button
-                      className="flex-1 bg-orange-500 hover:bg-orange-600"
+                      className="flex-1 h-9 bg-orange-500 hover:bg-orange-600 text-sm"
                       onClick={() => setActiveTab("sell")}
                     >
                       Sell
