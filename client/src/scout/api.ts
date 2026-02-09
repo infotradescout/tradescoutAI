@@ -136,6 +136,27 @@ export interface ScoutBackendResponse {
   };
 }
 
+async function postScoutWithTimeout(
+  url: string,
+  payload: unknown,
+  timeoutMs = 15000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutMode {
   const lower = message.toLowerCase();
   const roleSet = new Set((roles ?? []).map((r) => r.toLowerCase()));
@@ -209,12 +230,28 @@ export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBac
     }),
   };
 
-  const res = await fetch(`${apiBase}/scout`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await postScoutWithTimeout(`${apiBase}/scout`, payload, 15000);
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      throw new Error("Scout timed out. Please try again.");
+    }
+    throw error;
+  }
+
+  // One fast retry on transient backend errors to reduce false "not answering" reports.
+  if (res.status === 429 || res.status >= 500) {
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    try {
+      res = await postScoutWithTimeout(`${apiBase}/scout`, payload, 15000);
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        throw new Error("Scout timed out. Please try again.");
+      }
+      throw error;
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");

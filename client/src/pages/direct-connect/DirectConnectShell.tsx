@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+﻿import { ReactNode, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import TasksHub from "../tasks";
@@ -142,6 +142,7 @@ type DirectConnectInboxItem = {
     countyFips?: string | null;
     createdAt?: string | null;
   } | null;
+  conversationThreadId?: string | null;
 };
 
 type DirectConnectRequest = {
@@ -156,6 +157,7 @@ type DirectConnectRequest = {
   createdAt?: string | null;
   dcSuggestedCount?: number | null;
   dcAcceptedAssignmentId?: string | null;
+  dcConversationThreadId?: string | null;
   dcLastEventAt?: string | null;
 };
 
@@ -382,8 +384,7 @@ function DirectConnectInbox() {
                 {request?.countyFips && (
                   <Badge variant="outline">County: {request.countyFips}</Badge>
                 )}
-                <Badge variant="outline">Authority gated</Badge>
-                <Badge variant="outline">Intent required</Badge>
+                <Badge variant="outline">Protected contact flow</Badge>
                 {typeof snapshot?.score === "number" && (
                   <Badge variant="outline">Score: {Math.round(snapshot.score)}</Badge>
                 )}
@@ -412,7 +413,7 @@ function DirectConnectInbox() {
                       Full details
                     </Button>
                   </div>
-                  <p>{primaryReasons.join(" · ")}</p>
+                  <p>{primaryReasons.join(" Â· ")}</p>
                 </div>
               )}
 
@@ -422,7 +423,10 @@ function DirectConnectInbox() {
                   variant="outline"
                   disabled={status !== "accepted"}
                   onClick={() => {
-                    window.location.href = "/messages";
+                    const threadId = item.conversationThreadId;
+                    window.location.href = threadId
+                      ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                      : "/messages";
                   }}
                 >
                   Open thread
@@ -601,16 +605,53 @@ function MyDirectConnectRequests() {
     mutationFn: async (requestId: string) => {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route?expand=true`, {});
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] });
+      const assignments = Array.isArray(data?.assignments) ? data.assignments : [];
+      if (assignments.length > 0) {
+        toast({
+          title: "Reach expanded",
+          description: `Sent to ${assignments.length} additional provider${assignments.length === 1 ? "" : "s"}.`,
+        });
+      } else {
+        toast({
+          title: "No additional providers found",
+          description: "Try adjusting your request details and expanding again.",
+        });
+      }
+    },
   });
 
   const routeMutation = useMutation({
     mutationFn: async (requestId: string) => {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route`, {});
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] });
+      const assignments = Array.isArray(data?.assignments) ? data.assignments : [];
+      const routed = data?.routed === true;
+
+      if (routed && assignments.length > 0) {
+        toast({
+          title: "Request sent",
+          description: `Sent to ${assignments.length} local provider${assignments.length === 1 ? "" : "s"}.`,
+        });
+        return;
+      }
+
+      if (!routed && assignments.length > 0) {
+        toast({
+          title: "Already sent",
+          description: "This request was already sent to providers.",
+        });
+        return;
+      }
+
+      toast({
+        title: "No local provider match yet",
+        description: "Try adding clearer trade/category details, then send again.",
+      });
+    },
     onError: (err: any) => {
       toast({
         title: "Couldn't send request",
@@ -624,16 +665,26 @@ function MyDirectConnectRequests() {
     mutationFn: async (requestId: string) => {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/cancel`, {});
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] });
+      toast({
+        title: "Request cancelled",
+        description: "This request is now closed and no longer active.",
+      });
+    },
   });
 
   const reopenMutation = useMutation({
     mutationFn: async (requestId: string) => {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/reopen`, {});
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] });
+      toast({
+        title: "Request reopened",
+        description: "You can now send this request to providers again.",
+      });
+    },
   });
 
   if (!isAuthenticated) {
@@ -671,7 +722,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No requests yet. Start with “Post Request” to post your first Direct Connect job.
+          No requests yet. Start with "Post Request" to post your first Direct Connect job.
         </CardContent>
       </Card>
     );
@@ -755,8 +806,7 @@ function MyDirectConnectRequests() {
                 {status === "open" && suggested === 0 && (
                   <WhyLink to={getHelpLink("directConnect")} />
                 )}
-                <Badge variant="outline">Authority gated</Badge>
-                <Badge variant="outline">Intent required</Badge>
+                <Badge variant="outline">Protected contact flow</Badge>
                 {hasAccepted && <Badge variant="outline">Accepted by a provider</Badge>}
                 {lastEventAt && (
                   <span>
@@ -770,7 +820,10 @@ function MyDirectConnectRequests() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    window.location.href = "/messages";
+                    const threadId = r.dcConversationThreadId;
+                    window.location.href = threadId
+                      ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                      : "/messages";
                   }}
                   disabled={!hasAccepted}
                 >
@@ -912,8 +965,7 @@ export default function DirectConnectShell() {
                   Direct Connect
                 </h1>
                 <p className="max-w-2xl text-sm text-[color:var(--text-secondary)]">
-                  Direct Connect is where local coordination happens. Capture what you need done and
-                  keep everything in one place until it is resolved.
+                  Post work requests, discover local providers, and manage everything in one place.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">

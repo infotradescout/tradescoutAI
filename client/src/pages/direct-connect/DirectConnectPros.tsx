@@ -41,7 +41,7 @@ export default function DirectConnectPros() {
 
   const { data: contractors = [], isLoading } = useQuery({
     queryKey: ["/api/contractors/search", countyFips, tradeSlug, searchQuery],
-    enabled: countyCommitted && (!!tradeSlug || !!searchQuery),
+    enabled: countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (countyFips) params.set("county", countyFips);
@@ -76,7 +76,9 @@ export default function DirectConnectPros() {
 
   const hintText = useMemo(() => {
     if (!countyCommitted) return "Choose a county to see local pros.";
-    if (!tradeSlug && !searchQuery) return "Pick a trade or search to see available pros.";
+    if (!tradeSlug && !searchQuery) {
+      return "Showing all local pros. Add a trade or search to narrow results.";
+    }
     return "Tap a pro to start a Direct Connect request.";
   }, [countyCommitted, tradeSlug, searchQuery]);
 

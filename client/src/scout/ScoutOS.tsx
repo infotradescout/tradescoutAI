@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
@@ -104,7 +104,7 @@ function sanitizeSuggestionLabel(label: string) {
 
   // Keep chips readable on mobile
   if (out.length > 80) {
-    out = `${out.slice(0, 77)}…`;
+    out = `${out.slice(0, 77)}â€¦`;
   }
 
   return out;
@@ -201,7 +201,7 @@ function tryRecordCountyExplanationFollowup(
 /**
  * CRITICAL: Strip internal reasoning from Scout responses before rendering.
  * Internal fields like intent, thought_flow, reasoning must NEVER be visible to users.
- * This is a response sanitation contract—Scout output must be user-facing only.
+ * This is a response sanitation contractâ€”Scout output must be user-facing only.
  */
 function sanitizeScoutMessage(raw: unknown): string {
   if (typeof raw !== "string") return "";
@@ -278,7 +278,7 @@ function enforceShortIntentDiscipline(
   const trimmed = content.trim();
   if (!trimmed) return trimmed;
 
-  // Keep only the first 1–3 sentences to match the
+  // Keep only the first 1â€“3 sentences to match the
   // short-intent contract without changing the core answer.
   const sentences = trimmed
     .split(/(?<=[.!?])\s+/)
@@ -288,7 +288,7 @@ function enforceShortIntentDiscipline(
   if (sentences.length <= 3) return trimmed;
 
   const kept = sentences.slice(0, 3).join(" ");
-  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}…`;
+  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}â€¦`;
 }
 
 export default function ScoutOS() {
@@ -537,7 +537,7 @@ export default function ScoutOS() {
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
 
-  // PHASE 3d-B: Scout Mode State Machine (onboarding → post_onboarding → freeform)
+  // PHASE 3d-B: Scout Mode State Machine (onboarding â†’ post_onboarding â†’ freeform)
   const provisional = (user as any)?.preferences?.provisional;
   const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
   const scoutModeHook = useScoutMode({
@@ -702,7 +702,7 @@ export default function ScoutOS() {
   ): string[] => {
     const base: string[] = [];
     const trimmed = userMessage.trim();
-    const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed;
+    const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}â€¦` : trimmed;
 
     switch (mode) {
       case "admin":
@@ -793,7 +793,7 @@ export default function ScoutOS() {
         const blocked: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
-          content: "That prompt isn’t allowed. Please keep it respectful.",
+          content: "That prompt isnâ€™t allowed. Please keep it respectful.",
           timestamp: new Date().toISOString(),
         };
 
@@ -969,7 +969,7 @@ export default function ScoutOS() {
         if (!hasLoggedConfusionRef.current) {
           const looksConfused =
             /why[^\n]*\b(see|locked|show)\b/.test(normalized) ||
-            /can['’]?t[^\n]*\bsee\b/.test(normalized);
+            /can['â€™]?t[^\n]*\bsee\b/.test(normalized);
 
           if (looksConfused) {
             recordActivity({
@@ -984,9 +984,8 @@ export default function ScoutOS() {
         }
 
         // ------------------------------------------------------------------
-        // EXPLANATION: "Why can't I route yet?"
-        // Pure explanation + navigation. Does not change routing behavior;
-        // it explains the Direct Connect workflow and links to the guide.
+        // EXPLANATION: "Why isn't this moving yet?"
+        // Pure explanation + navigation. Does not change workflow behavior.
         // ------------------------------------------------------------------
         const mentionsRoute = /\b(route|routing|routed)\b/.test(normalized);
         const mentionsOpen = /\bopen request\b/.test(normalized);
@@ -1002,25 +1001,25 @@ export default function ScoutOS() {
           const helpLink = getHelpLink("directConnect");
 
           const bodyLines: string[] = [
-            "Principle: Direct Connect only routes jobs when they’re properly scoped so providers don’t get spammed with half-baked requests.",
+            "Direct Connect waits until your request details are complete so local pros get clear, serious requests.",
             "",
-            "Current state: You’re still in the discovery step. Your request is open on your Direct Connect board, but it hasn’t been routed out to providers yet.",
+            "Right now your request is still in setup. It is saved on your board, but not shared with providers yet.",
             "",
-            "Available actions:",
-            "- From My requests, route this job once you’ve set the basics (what, where, rough budget).",
-            "- If routing is blocked, make sure the request has a trade and county set so Scout knows who to reach.",
-            "- If the job is no longer relevant, cancel it instead of retry-routing it.",
+            "What to do next:",
+            "- Open My requests and finish the basics (job type, location, budget).",
+            "- If sharing is blocked, add a trade and county so Scout can match local providers.",
+            "- If this request is no longer needed, cancel it and start fresh later.",
           ];
 
           const routingClusters: ScoutCluster[] = [
             {
               id: "direct-connect-routing-explainer",
-              title: "How Direct Connect routing works",
+              title: "How Direct Connect works",
               kind: "generic",
               body: bodyLines.join("\n"),
               primaryAction: {
                 type: "NAVIGATE",
-                label: "See routing rules",
+                label: "See how matching works",
                 to: helpLink,
               },
             },
@@ -1030,7 +1029,7 @@ export default function ScoutOS() {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
             content:
-              "Direct Connect routes jobs when they are ready and scoped, so providers only see high-intent requests.",
+              "Direct Connect shares your request after the key details are in place, so the right providers can respond.",
             timestamp: new Date().toISOString(),
             clusters: routingClusters,
             navTarget: helpLink,
@@ -1055,13 +1054,13 @@ export default function ScoutOS() {
         }
 
         // ------------------------------------------------------------------
-        // EXPLANATION: "Why can’t I message yet?"
+        // EXPLANATION: "Why canâ€™t I message yet?"
         // This is a pure explanation + navigation branch. It does not
         // change any Direct Connect or messaging behavior; it only
         // explains the rule and links to the canonical guide.
         // ------------------------------------------------------------------
         const mentionsMessage = /\b(message|messaging)\b/.test(normalized);
-        const hasCant = /\b(can['’]?t|cant|cannot)\b/.test(normalized);
+        const hasCant = /\b(can['â€™]?t|cant|cannot)\b/.test(normalized);
         const mentionsLocked = /\b(locked|disabled|closed)\b/.test(normalized);
         const asksWhy = /\bwhy\b/.test(normalized);
 
@@ -1074,14 +1073,14 @@ export default function ScoutOS() {
           const helpLink = getHelpLink("messaging");
 
           const bodyLines: string[] = [
-            "Principle: TradeScout keeps messaging locked until a provider has accepted your Direct Connect job. This avoids spam, pressure, and side conversations before there’s a clear match.",
+            "TradeScout keeps messaging locked until a provider accepts the request. This prevents spam and keeps communication tied to a real match.",
             "",
-            "Current state: You’re still in the discovery step. Your request has been sent, but providers haven’t accepted yet, so messaging stays closed by design.",
+            "Right now no provider has accepted this request yet, so messaging stays closed.",
             "",
-            "Available actions:",
-            "- Wait for a provider to accept this job. When they do, messaging opens automatically on that job thread.",
-            "- Adjust the details or routing on your request if you’re not getting the right responses.",
-            "- Cancel this request and start a new one if it’s no longer needed.",
+            "What to do next:",
+            "- Wait for a provider acceptance. Messaging opens automatically on that request.",
+            "- Improve request details if responses are slow or off-target.",
+            "- Cancel and replace the request if your needs changed.",
           ];
 
           const messagingClusters: ScoutCluster[] = [
@@ -1268,7 +1267,7 @@ export default function ScoutOS() {
                   type: "PREFILL_INPUT",
                   label: "Just looking around",
                   payload: {
-                    text: "I am just looking around—suggest a quick tour of TradeScout.",
+                    text: "I am just looking aroundâ€”suggest a quick tour of TradeScout.",
                   },
                 },
               ],
@@ -1558,7 +1557,7 @@ export default function ScoutOS() {
           const singleLine = value.replace(/\s+/g, " ").trim();
           let title = "Local services promotion";
           if (singleLine.length > 0) {
-            title = singleLine.length > 80 ? `${singleLine.slice(0, 77)}…` : singleLine;
+            title = singleLine.length > 80 ? `${singleLine.slice(0, 77)}â€¦` : singleLine;
           }
 
           // Heuristic discount extraction (percentage or fixed amount).
@@ -1619,7 +1618,7 @@ export default function ScoutOS() {
                 : `$${discountValueForForm} off`;
             summaryLines.push(`Discount: ${discountLabel}`);
           }
-          summaryLines.push(`Window: ${startDateStr} → ${endDateStr}`);
+          summaryLines.push(`Window: ${startDateStr} â†’ ${endDateStr}`);
 
           const clusters: ScoutCluster[] = [
             {
@@ -1853,9 +1852,9 @@ export default function ScoutOS() {
 
             const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
               id: `contractor-${c.id}`,
-              title: `${c.name} • ${c.trade}`,
+              title: `${c.name} â€¢ ${c.trade}`,
               kind: "generic",
-              body: `${c.rating ? `⭐ ${c.rating} (${c.reviewCount} reviews)` : "Not yet rated"}\n${c.location}\n${c.availability || "Availability unknown"}`,
+              body: `${c.rating ? `â­ ${c.rating} (${c.reviewCount} reviews)` : "Not yet rated"}\n${c.location}\n${c.availability || "Availability unknown"}`,
               primaryAction: {
                 type: "NAVIGATE",
                 label: "View profile",
@@ -1889,7 +1888,7 @@ export default function ScoutOS() {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content: nameQuery
-                ? `I searched ${trade} contractors near ${locality.county}, ${locality.state} for “${nameQuery}”. Here are the closest matches:`
+                ? `I searched ${trade} contractors near ${locality.county}, ${locality.state} for â€œ${nameQuery}â€. Here are the closest matches:`
                 : `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
               timestamp: new Date().toISOString(),
               clusters: contractorClustersWithCtas,
@@ -2064,7 +2063,7 @@ export default function ScoutOS() {
               id: `listing-${l.id}`,
               title: l.title,
               kind: "generic",
-              body: `$${l.price}${l.condition ? ` • ${l.condition}` : ""}\n${l.location}\n${l.sellerName}${l.verified ? " ✓" : ""}`,
+              body: `$${l.price}${l.condition ? ` â€¢ ${l.condition}` : ""}\n${l.location}\n${l.sellerName}${l.verified ? " âœ“" : ""}`,
               primaryAction: {
                 type: "NAVIGATE",
                 label: "View listing",
@@ -2243,19 +2242,19 @@ export default function ScoutOS() {
                 type: "CALL_TOOL",
                 name: "ads.feedback",
                 args: { adId: res.sponsored.id, rating: "helpful", source: "scout" },
-                label: "👍 Helpful",
+                label: "ðŸ‘ Helpful",
               },
               {
                 type: "CALL_TOOL",
                 name: "ads.feedback",
                 args: { adId: res.sponsored.id, rating: "not_relevant", source: "scout" },
-                label: "👎 Not relevant",
+                label: "ðŸ‘Ž Not relevant",
               },
               {
                 type: "CALL_TOOL",
                 name: "ads.feedback",
                 args: { adId: res.sponsored.id, rating: "spam", source: "scout" },
-                label: "🚫 Spam",
+                label: "ðŸš« Spam",
               },
             ],
           } as any);
@@ -2355,20 +2354,20 @@ export default function ScoutOS() {
 
         const enrichedContent =
           prefilledDraft && typeof disciplined === "string"
-            ? `${disciplined}\n\nHere’s your pre-filled request (ready to send):\n${prefilledDraft}`
+            ? `${disciplined}\n\nHereâ€™s your pre-filled request (ready to send):\n${prefilledDraft}`
             : disciplined;
 
         const finalContent =
           isFirstAnswer &&
           typeof enrichedContent === "string" &&
           enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
-            ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
+            ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}â€¦`
             : enrichedContent;
 
         const resolvedContent =
           typeof finalContent === "string" && finalContent.trim().length > 0
             ? finalContent
-            : "I’m here and ready. Choose a route below or ask me for the next step.";
+            : "Iâ€™m here and ready. Choose an action below or ask me for the next step.";
 
         // Attach CTA hints from server (community posts, trade deals, etc.)
         if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
@@ -2425,7 +2424,7 @@ export default function ScoutOS() {
               to: navTo,
               label: nav?.label || "Next step",
               confidence,
-              why: "Scout provided a high-confidence route",
+              why: "Scout identified a high-confidence next step",
             });
           }
         }
@@ -2449,7 +2448,7 @@ export default function ScoutOS() {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content:
-                "Behind the scenes, TradeScout uses your saved home county as the single source of truth for what counts as local. That same county powers your community feed, marketplace, HOA tools, and leaderboards, and changing it later in Settings → Your Home County updates everything; your device location alone does not.",
+                "Behind the scenes, TradeScout uses your saved home county as the single source of truth for what counts as local. That same county powers your community feed, marketplace, HOA tools, and leaderboards, and changing it later in Settings â†’ Your Home County updates everything; your device location alone does not.",
               timestamp: new Date().toISOString(),
             };
 
@@ -2488,7 +2487,9 @@ export default function ScoutOS() {
           {
             contractorsRoute: ROUTES.CONTRACTORS ?? "/contractors",
             communityRoute: ROUTES.COMMUNITY ?? "/community",
+            exchangeRoute: ROUTES.EXCHANGE ?? "/exchange",
           },
+          value,
           { contextRoles: getContextRoles(value) }
         );
 
@@ -3298,7 +3299,7 @@ export default function ScoutOS() {
                         Controller
                       </p>
                       <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
-                        Pick one route to start, or ask Scout directly.
+                        Pick one action to start, or ask Scout directly.
                       </p>
                     </div>
 
@@ -3334,7 +3335,7 @@ export default function ScoutOS() {
                               </span>
                             )}
                             <span className="mt-2 text-[10px] text-orange-300/90 font-medium">
-                              Open route
+                              Open
                             </span>
                           </button>
                         ))}
@@ -3408,15 +3409,15 @@ export default function ScoutOS() {
                     <div className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-tsTextMain">
-                          Auto-route {autoRouteEnabled ? "armed" : "off"} •{" "}
+                          Smart navigation {autoRouteEnabled ? "on" : "off"} •{" "}
                           {Math.round(autoRoutePending.confidence * 100)}%
                         </div>
                         <div className="text-xs text-tsTextMuted mt-0.5">
                           {autoRouteEnabled &&
                           autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
-                            ? `Taking you to ${autoRoutePending.label}…`
+                            ? `Opening ${autoRoutePending.label}...`
                             : `Suggested: ${autoRoutePending.label}`}
-                          {autoRoutePending.why ? ` — ${autoRoutePending.why}` : ""}
+                          {autoRoutePending.why ? ` - ${autoRoutePending.why}` : ""}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">

@@ -71,7 +71,7 @@ export default function TasksHub({
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   const [activeTab, setActiveTab] = useState<"browse" | "post">(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
@@ -218,7 +218,7 @@ export default function TasksHub({
       if (!response.ok) throw new Error("Failed to fetch recommended providers");
       return response.json();
     },
-    enabled: isAuthenticated && !!selectedCountyFips && !!tradeSlugForCategory,
+    enabled: isAuthenticated && !!selectedCountyFips && !!resolvedTradeSlug,
   });
 
   const createTaskMutation = useMutation({
@@ -243,7 +243,19 @@ export default function TasksHub({
         targetContractorIds: selectedProviderIds.length ? selectedProviderIds : undefined,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      if (data?.verificationRequired) {
+        toast({
+          title: "Address verification required",
+          description:
+            data?.message ||
+            "Complete verification to send contractor requests through Direct Connect.",
+          variant: "destructive",
+        });
+        navigate("/verification");
+        return;
+      }
+
       toast({
         title: "Direct Connect request posted",
         description: "This is now on your Direct Connect board.",
@@ -294,8 +306,7 @@ export default function TasksHub({
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
             <p className="text-lg text-gray-300 max-w-3xl">
-              Direct Connect is where local coordination happens. Capture what you need done and
-              keep everything in one place until it is resolved.
+              Post work requests, find local providers, and track progress in one place.
             </p>
           </div>
         )}
@@ -309,7 +320,7 @@ export default function TasksHub({
             <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
               <TabsTrigger value="browse" className="data-[state=active]:bg-orange-500">
                 <Briefcase className="h-4 w-4 mr-2" />
-                Active coordination
+                Live requests
               </TabsTrigger>
               <TabsTrigger value="post" className="data-[state=active]:bg-orange-500">
                 Start a Direct Connect request
@@ -322,10 +333,9 @@ export default function TasksHub({
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-white">Active coordination</h2>
+                    <h2 className="text-lg font-semibold text-white">Live requests</h2>
                     <p className="text-sm text-gray-300 max-w-xl mt-1">
-                      These are the things you're currently trying to get done. Scout, your
-                      community, and local providers all coordinate from here.
+                      Track what you've posted and move each request forward.
                     </p>
                   </div>
                   {selectedCountyFips && (
@@ -369,13 +379,20 @@ export default function TasksHub({
                     </SelectContent>
                   </Select>
 
-                  <div className="hidden md:flex items-center justify-end">
+                  <div className="hidden md:flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+                      onClick={() => navigate("/direct-connect/pros")}
+                    >
+                      Browse local pros
+                    </Button>
                     {isAuthenticated && (
                       <Button
                         className="bg-orange-500 hover:bg-orange-600"
                         onClick={() => setActiveTab("post")}
                       >
-                        Start a Direct Connect request
+                        Create request
                       </Button>
                     )}
                   </div>
@@ -447,12 +464,9 @@ export default function TasksHub({
                     <Card className="bg-navy-700 border-navy-600">
                       <CardContent className="p-8 text-center">
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-white mb-2">
-                          Nothing in coordination yet
-                        </h3>
+                        <h3 className="text-lg font-semibold text-white mb-2">No requests yet</h3>
                         <p className="text-gray-300">
-                          When you post a new request, it will show up here so you can track it from
-                          first post to completion.
+                          Post your first request to start tracking responses and progress.
                         </p>
                       </CardContent>
                     </Card>
@@ -465,12 +479,10 @@ export default function TasksHub({
           <TabsContent value="post" className={contentSpacing}>
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader className="pb-4">
-                <h2 className="text-lg font-semibold text-white mb-1">
-                  Create a new Direct Connect request
-                </h2>
+                <h2 className="text-lg font-semibold text-white mb-1">Create request</h2>
                 <p className="text-sm text-gray-300">
-                  Describe the work you need help with. Your request is posted to your Direct
-                  Connect board so you can manage replies and next steps.
+                  Describe the work once. Your request will appear in Direct Connect so you can
+                  review responses and choose next steps.
                 </p>
               </CardHeader>
               <CardContent>

@@ -1,6 +1,6 @@
 /**
  * Scout Action Tiles
- * 
+ *
  * Defines the 4 core action tiles that replace prompt-based entry.
  * Tiles may have contextual variants based on deterministic user state.
  */
@@ -11,7 +11,13 @@ export type ScoutTileContext = {
   /** Active jobs/projects from API or cache */
   activeJobs: Array<{ id: string; name: string; status: string; updatedAt?: string | Date | null }>;
   /** Active invoices from API or cache */
-  activeInvoices: Array<{ id: string; jobName?: string; status: string; amount?: number; updatedAt?: string | Date | null }>;
+  activeInvoices: Array<{
+    id: string;
+    jobName?: string;
+    status: string;
+    amount?: number;
+    updatedAt?: string | Date | null;
+  }>;
   /** Saved contractors from localStorage or API */
   savedContractors: Array<{ id: string; name: string; trade?: string }>;
   /** User's location label (e.g., "Pensacola, FL") */
@@ -45,7 +51,7 @@ export type ScoutActionTile = {
 /**
  * Core action tiles (4 capability-aligned entry points).
  * Variants adapt labels based on deterministic user state.
- * 
+ *
  * PROVENANCE RULE:
  * Every variant MUST document its data source with a comment.
  * No variant may trigger on heuristics, LLM output, or "probably."
@@ -54,7 +60,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
     label: "Start a Direct Connect request",
-    description: "Describe what you need done and let Direct Connect coordinate local help",
+    description: "Describe the work once and open a trusted local request",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
@@ -82,7 +88,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "find_pros",
     label: "Find the right local pros",
-    description: "Open Direct Connect and match with providers who fit your request",
+    description: "Browse local providers and start a request when you are ready",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
@@ -90,9 +96,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
         label: "Find pros near me",
         description: (ctx) =>
-          `Open Direct Connect and match with local providers${
-            ctx.location ? ` around ${ctx.location}` : ""
-          }`,
+          `Browse local providers${ctx.location ? ` around ${ctx.location}` : ""}`,
       },
       {
         // Proven by: GET /api/saved-contractors (when array.length > 0)
@@ -106,7 +110,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "nearby",
     label: "See what's happening nearby",
-    description: "Browse community posts, events, and marketplace in your county",
+    description: "View local posts, events, and marketplace activity",
     action: { type: "NAVIGATE", to: "/community" },
     variants: [
       {
@@ -120,8 +124,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "manage",
     label: "Browse Exchange marketplace",
-    description:
-      "Buy or sell property, vehicles, equipment, or other big-ticket items in Exchange",
+    description: "Buy or sell property, vehicles, equipment, or other big-ticket items in Exchange",
     action: { type: "NAVIGATE", to: "/exchange" },
     variants: [
       {

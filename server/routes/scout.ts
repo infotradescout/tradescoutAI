@@ -482,7 +482,7 @@ function buildWelcomeIntroDraft(
     const lowerRole = normalized.toLowerCase();
 
     if (lowerRole === "homeowner") {
-      rolePhrase = "a homeowner";
+      rolePhrase = "a local resident";
     } else if (lowerRole === "contractor") {
       rolePhrase = "a local contractor";
     } else if (lowerRole === "business owner") {
@@ -4171,15 +4171,56 @@ router.post("/", async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (!isTestRun && scoutInteractionLog) {
-      scoutInteractionLog.outcome = "abandoned";
+      scoutInteractionLog.outcome = "handed_off";
       scoutInteractionLog.failureReason = ensureFailureReason(
-        scoutInteractionLog.failureReason || "ui_dead_end"
+        scoutInteractionLog.failureReason || "no_route"
       );
     }
     console.error("Scout API error:", error);
-    res.status(500).json({
-      error: "Failed to process Scout request",
-      details: error instanceof Error ? error.message : "Unknown error",
+    const fallbackMessage =
+      "Scout hit a temporary issue, but you can keep moving. Open Direct Connect to post work, browse local pros, or continue in Community.";
+
+    const fallbackActions = [
+      {
+        type: "NAVIGATE",
+        label: "Open Direct Connect",
+        to: "/direct-connect",
+      },
+      {
+        type: "NAVIGATE",
+        label: "Browse local pros",
+        to: "/direct-connect/pros",
+      },
+      {
+        type: "NAVIGATE",
+        label: "Open Community",
+        to: "/community",
+      },
+    ];
+
+    res.json({
+      message: fallbackMessage,
+      suggestedActions: ["Open Direct Connect", "Browse local pros", "Open Community"],
+      actions: fallbackActions,
+      actionResults: [],
+      sponsored: null,
+      publicEntities: [],
+      ctaHints: [],
+      metadata: {
+        intent: "fallback_recovery",
+      },
+      guardContext: {
+        canRetry: true,
+        recoveryAvailable: true,
+      },
+      knowledge: {
+        layer: 0,
+        sources: ["Fallback recovery response"],
+        confidence: "medium",
+      },
+      llmProvider: "fallback",
+      promptVersion: loadSystemPrompt().version,
+      timestamp: new Date().toISOString(),
     });
   }
 });

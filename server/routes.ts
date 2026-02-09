@@ -4531,8 +4531,28 @@ export async function registerRoutes(app: any) {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
+      const reqUser = (req.user || {}) as any;
+      const reqRoles = Array.isArray(reqUser.roles) ? reqUser.roles.map((r: any) => String(r)) : [];
+      const reqRole = typeof reqUser.role === "string" ? reqUser.role : "";
+      const reqActiveRole = typeof reqUser.activeRole === "string" ? reqUser.activeRole : "";
+      const dbRoles = Array.isArray((user as any)?.roles)
+        ? (user as any).roles.map((r: any) => String(r))
+        : [];
+      const dbRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
+      const dbActiveRole =
+        typeof (user as any)?.activeRole === "string" ? String((user as any).activeRole) : "";
+      const adminRoles = new Set(["head_admin", "super_admin", "moderator", "ops_admin"]);
+      const hasAdminAccess =
+        reqUser.isSuperAdmin === true ||
+        reqUser.isAdmin === true ||
+        adminRoles.has(reqRole) ||
+        adminRoles.has(reqActiveRole) ||
+        reqRoles.some((role: string) => adminRoles.has(role)) ||
+        adminRoles.has(dbRole) ||
+        adminRoles.has(dbActiveRole) ||
+        dbRoles.some((role: string) => adminRoles.has(role));
 
-      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
+      if (!hasAdminAccess) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -6408,7 +6428,21 @@ export async function registerRoutes(app: any) {
 
   // Admin panel routes (require admin access)
   const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user || req.user.isAdmin !== true) {
+    if (!req.user) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    const activeRole = typeof req.user.activeRole === "string" ? req.user.activeRole : "";
+    const primaryRole = typeof req.user.role === "string" ? req.user.role : "";
+    const roles = Array.isArray(req.user.roles) ? req.user.roles.map((r: any) => String(r)) : [];
+    const adminRoles = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+    const hasAdmin =
+      req.user.isAdmin === true ||
+      adminRoles.has(activeRole) ||
+      adminRoles.has(primaryRole) ||
+      roles.some((role: string) => adminRoles.has(role));
+
+    if (!hasAdmin) {
       return res.status(403).json({ message: "Admin access required" });
     }
     next();
@@ -9782,9 +9816,7 @@ export async function registerRoutes(app: any) {
       const formatRoleLabel = (role: string) =>
         role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-      const rolesLabel = rolesRaw.length
-        ? rolesRaw.map((r) => formatRoleLabel(r)).join(", ")
-        : "neighbor";
+      const rolesLabel = rolesRaw.length ? rolesRaw.map((r) => formatRoleLabel(r)).join(", ") : "";
 
       const firstName = (user.firstName as string | undefined) || "A neighbor";
       const lastName = (user.lastName as string | undefined) || "";
@@ -9794,10 +9826,23 @@ export async function registerRoutes(app: any) {
           ? `${countyLabel} County, ${resolvedStateCode}`
           : resolvedStateCode || "your area";
 
-      const welcomeTitle = `Welcome ${firstName} to the community`;
+      const roleContext = (() => {
+        if (!rolesLabel) return "";
+        const lowerRoles = rolesRaw.map((r) => String(r).toLowerCase());
+        if (lowerRoles.some((r) => r.includes("contractor") || r.includes("builder"))) {
+          return " They offer local services and project support.";
+        }
+        if (lowerRoles.some((r) => r.includes("homeowner"))) {
+          return " They are here to connect with trusted local services and neighbors.";
+        }
+        return " They are joining to stay connected and contribute locally.";
+      })();
+
+      const welcomeTitle = `Welcome ${firstName}`;
       const welcomeContent =
-        `Please welcome ${firstName}${lastName ? " " + lastName[0] + "." : ""} in ${locationLabel} to the TradeScout community. ` +
-        `They're joining as ${rolesLabel}. Say hi, share a recommendation, or invite them into your next project.`;
+        `Say hello to ${firstName}${lastName ? " " + lastName[0] + "." : ""} in ${locationLabel}. ` +
+        `Share helpful tips, local recommendations, or groups worth following.` +
+        roleContext;
 
       const welcomeTags = deriveCommunityTagsFromContent(welcomeTitle, welcomeContent, "welcome");
 
@@ -9817,31 +9862,8 @@ export async function registerRoutes(app: any) {
         tags: welcomeTags.length ? welcomeTags : undefined,
       });
 
-      if (options?.createdViaScout) {
-        const introTitle = `Hi neighbors, I'm ${firstName}`;
-        const introContent =
-          `Hi neighbors, I'm ${firstName}${lastName ? " " + lastName[0] + "." : ""}. ` +
-          `I just joined TradeScout as ${rolesLabel}. ` +
-          `I'm here to connect with neighbors, share recommendations, and keep up with trusted local pros in ${locationLabel}.`;
-
-        const introTags = deriveCommunityTagsFromContent(introTitle, introContent, "introduction");
-
-        await storage.createCommunityPost({
-          title: introTitle,
-          content: introContent,
-          category: "announcements",
-          scope: "county",
-          stateCode: resolvedStateCode,
-          countyFips: resolvedCountyFips,
-          imageUrls: undefined,
-          authorId: user.id,
-          isPublished: true,
-          isHidden: false,
-          likeCount: 0,
-          commentCount: 0,
-          tags: introTags.length ? introTags : undefined,
-        });
-      }
+      // Keep automatic onboarding feed content to a single welcome post.
+      // Additional autogenerated intro posts made the feed feel repetitive.
     } catch (err) {
       console.error("[Community] Failed to create automatic welcome/intro posts for user", {
         userId: (user as any)?.id,

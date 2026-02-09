@@ -1,11 +1,11 @@
-import { Router, Request, Response } from 'express';
-import { storage } from '../storage';
-import { requireAuth } from '../auth';
-import Stripe from 'stripe';
+import { Router, Request, Response } from "express";
+import { storage } from "../storage";
+import { requireAuth } from "../auth";
+import Stripe from "stripe";
 
 const router = Router();
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
   : null;
 
 // ==================== COMMUNITY BUILDER ROUTES ====================
@@ -14,25 +14,25 @@ const stripe = process.env.STRIPE_SECRET_KEY
  * GET /api/community-builder/profile
  * Get current user's Community Builder settings
  */
-router.get('/profile', requireAuth, async (req: Request, res: Response) => {
+router.get("/profile", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    
+
     if (!profile) {
-      return res.status(404).json({ error: 'Community Builder settings not found' });
+      return res.json(null);
     }
 
     // Calculate live stats
     const stats = await storage.calculateBuilderStats(profile.id);
-    
+
     res.json({
       ...profile,
       stats,
     });
   } catch (error) {
-    console.error('Error fetching Community Builder settings:', error);
-    res.status(500).json({ error: 'Failed to fetch Community Builder settings' });
+    console.error("Error fetching Community Builder settings:", error);
+    res.status(500).json({ error: "Failed to fetch Community Builder settings" });
   }
 });
 
@@ -40,25 +40,19 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
  * POST /api/community-builder/profile
  * Create or update Community Builder settings
  */
-router.post('/profile', requireAuth, async (req: Request, res: Response) => {
+router.post("/profile", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const user = await storage.getUser(userId);
-    
+
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: "User not found" });
     }
 
-    const {
-      businessName,
-      description,
-      profileImageUrl,
-      website,
-      payoutEmail,
-    } = req.body;
+    const { businessName, description, profileImageUrl, website, payoutEmail } = req.body;
 
     const existingProfile = await storage.getBuilderProfile(userId);
-    
+
     if (existingProfile) {
       // Update existing Community Builder settings
       const updated = await storage.updateBuilderProfile(existingProfile.id, {
@@ -72,7 +66,7 @@ router.post('/profile', requireAuth, async (req: Request, res: Response) => {
     }
 
     // Create new Community Builder record
-    const profile = await storage.createBuilderProfile(userId, user.county || '', {
+    const profile = await storage.createBuilderProfile(userId, user.county || "", {
       businessName,
       description,
       profileImageUrl,
@@ -83,17 +77,17 @@ router.post('/profile', requireAuth, async (req: Request, res: Response) => {
     // Send welcome notification
     await storage.sendBuilderNotification(
       profile.id,
-      'profile_created',
-      'Welcome to Community Builder!',
-      'Your Community Builder badge is active. Start proposing contributions to your county vault.',
+      "profile_created",
+      "Welcome to Community Builder!",
+      "Your Community Builder badge is active. Start proposing contributions to your county vault.",
       undefined,
-      '/community-builder/dashboard'
+      "/community-builder/dashboard"
     );
 
     res.json(profile);
   } catch (error) {
-    console.error('Error saving Community Builder settings:', error);
-    res.status(500).json({ error: 'Failed to save Community Builder settings' });
+    console.error("Error saving Community Builder settings:", error);
+    res.status(500).json({ error: "Failed to save Community Builder settings" });
   }
 });
 
@@ -101,25 +95,25 @@ router.post('/profile', requireAuth, async (req: Request, res: Response) => {
  * GET /api/community-builder/profile/:builderId
  * Get a specific builder's public Community Builder info
  */
-router.get('/profile/:builderId', async (req: Request, res: Response) => {
+router.get("/profile/:builderId", async (req: Request, res: Response) => {
   try {
     const { builderId } = req.params;
     const profile = await storage.getBuilderById(builderId);
-    
+
     if (!profile) {
-      return res.status(404).json({ error: 'Builder not found' });
+      return res.status(404).json({ error: "Builder not found" });
     }
 
     // Calculate stats
     const stats = await storage.calculateBuilderStats(builderId);
-    
+
     res.json({
       ...profile,
       stats,
     });
   } catch (error) {
-    console.error('Error fetching builder info:', error);
-    res.status(500).json({ error: 'Failed to fetch builder info' });
+    console.error("Error fetching builder info:", error);
+    res.status(500).json({ error: "Failed to fetch builder info" });
   }
 });
 
@@ -129,13 +123,13 @@ router.get('/profile/:builderId', async (req: Request, res: Response) => {
  * POST /api/community-builder/contributions
  * Propose a new contribution
  */
-router.post('/contributions', requireAuth, async (req: Request, res: Response) => {
+router.post("/contributions", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    
+
     if (!profile) {
-      return res.status(403).json({ error: 'Not a registered builder' });
+      return res.status(403).json({ error: "Not a registered builder" });
     }
 
     const {
@@ -152,7 +146,7 @@ router.post('/contributions', requireAuth, async (req: Request, res: Response) =
 
     // Validate required fields
     if (!title || !description || !type || !estimatedValue) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
     const contribution = await storage.proposeContribution(profile.id, {
@@ -171,8 +165,8 @@ router.post('/contributions', requireAuth, async (req: Request, res: Response) =
     // Notify admins about new contribution
     await storage.sendBuilderNotification(
       profile.id,
-      'contribution_proposed',
-      'Contribution Proposed',
+      "contribution_proposed",
+      "Contribution Proposed",
       `Your contribution "${title}" has been submitted for review.`,
       contribution.id,
       `/community-builder/contributions/${contribution.id}`
@@ -180,8 +174,8 @@ router.post('/contributions', requireAuth, async (req: Request, res: Response) =
 
     res.status(201).json(contribution);
   } catch (error) {
-    console.error('Error creating contribution:', error);
-    res.status(500).json({ error: 'Failed to create contribution' });
+    console.error("Error creating contribution:", error);
+    res.status(500).json({ error: "Failed to create contribution" });
   }
 });
 
@@ -189,20 +183,20 @@ router.post('/contributions', requireAuth, async (req: Request, res: Response) =
  * GET /api/community-builder/contributions
  * Get authenticated builder's contributions
  */
-router.get('/contributions', requireAuth, async (req: Request, res: Response) => {
+router.get("/contributions", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    
+
     if (!profile) {
-      return res.status(403).json({ error: 'Not a registered builder' });
+      return res.status(403).json({ error: "Not a registered builder" });
     }
 
     const contributions = await storage.getBuilderContributions(profile.id);
     res.json(contributions);
   } catch (error) {
-    console.error('Error fetching contributions:', error);
-    res.status(500).json({ error: 'Failed to fetch contributions' });
+    console.error("Error fetching contributions:", error);
+    res.status(500).json({ error: "Failed to fetch contributions" });
   }
 });
 
@@ -210,25 +204,25 @@ router.get('/contributions', requireAuth, async (req: Request, res: Response) =>
  * GET /api/community-builder/contributions/:contributionId
  * Get a specific contribution
  */
-router.get('/contributions/:contributionId', async (req: Request, res: Response) => {
+router.get("/contributions/:contributionId", async (req: Request, res: Response) => {
   try {
     const { contributionId } = req.params;
     const contribution = await storage.getContribution(contributionId);
-    
+
     if (!contribution) {
-      return res.status(404).json({ error: 'Contribution not found' });
+      return res.status(404).json({ error: "Contribution not found" });
     }
 
     // Get audit logs
     const auditLogs = await storage.getAuditLogs(contributionId);
-    
+
     res.json({
       ...contribution,
       auditLogs,
     });
   } catch (error) {
-    console.error('Error fetching contribution:', error);
-    res.status(500).json({ error: 'Failed to fetch contribution' });
+    console.error("Error fetching contribution:", error);
+    res.status(500).json({ error: "Failed to fetch contribution" });
   }
 });
 
@@ -236,25 +230,25 @@ router.get('/contributions/:contributionId', async (req: Request, res: Response)
  * PUT /api/community-builder/contributions/:contributionId
  * Update a contribution (builder can edit until approved)
  */
-router.put('/contributions/:contributionId', requireAuth, async (req: Request, res: Response) => {
+router.put("/contributions/:contributionId", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const { contributionId } = req.params;
-    
+
     const contribution = await storage.getContribution(contributionId);
     if (!contribution) {
-      return res.status(404).json({ error: 'Contribution not found' });
+      return res.status(404).json({ error: "Contribution not found" });
     }
 
     // Check ownership
     const profile = await storage.getBuilderById(contribution.builderId);
     if (!profile || profile.userId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized' });
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
     // Can only edit if status is 'proposed'
-    if (contribution.status !== 'proposed') {
-      return res.status(400).json({ error: 'Can only edit proposed contributions' });
+    if (contribution.status !== "proposed") {
+      return res.status(400).json({ error: "Can only edit proposed contributions" });
     }
 
     const {
@@ -269,13 +263,15 @@ router.put('/contributions/:contributionId', requireAuth, async (req: Request, r
       impact,
     } = req.body;
 
-    const updated = await storage.updateContributionStatus(contributionId, 'proposed', {
+    const updated = await storage.updateContributionStatus(contributionId, "proposed", {
       title: title || contribution.title,
       description: description || contribution.description,
       type: type || contribution.type,
       estimatedValue: estimatedValue?.toString(),
       estimatedHours: estimatedHours?.toString(),
-      proposedStartDate: proposedStartDate ? new Date(proposedStartDate) : contribution.proposedStartDate,
+      proposedStartDate: proposedStartDate
+        ? new Date(proposedStartDate)
+        : contribution.proposedStartDate,
       proposedEndDate: proposedEndDate ? new Date(proposedEndDate) : contribution.proposedEndDate,
       tags,
       impact,
@@ -283,8 +279,8 @@ router.put('/contributions/:contributionId', requireAuth, async (req: Request, r
 
     res.json(updated);
   } catch (error) {
-    console.error('Error updating contribution:', error);
-    res.status(500).json({ error: 'Failed to update contribution' });
+    console.error("Error updating contribution:", error);
+    res.status(500).json({ error: "Failed to update contribution" });
   }
 });
 
@@ -292,41 +288,45 @@ router.put('/contributions/:contributionId', requireAuth, async (req: Request, r
  * POST /api/community-builder/contributions/:contributionId/evidence
  * Add evidence to a contribution
  */
-router.post('/contributions/:contributionId/evidence', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const userId = (req.user as any).id;
-    const { contributionId } = req.params;
-    const { type, url, description } = (req.body ?? {}) as any;
+router.post(
+  "/contributions/:contributionId/evidence",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).id;
+      const { contributionId } = req.params;
+      const { type, url, description } = (req.body ?? {}) as any;
 
-    const contribution = await storage.getContribution(contributionId);
-    if (!contribution) {
-      return res.status(404).json({ error: 'Contribution not found' });
+      const contribution = await storage.getContribution(contributionId);
+      if (!contribution) {
+        return res.status(404).json({ error: "Contribution not found" });
+      }
+
+      // Check ownership
+      const profile = await storage.getBuilderById(contribution.builderId);
+      if (!profile || profile.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const evidence = contribution.evidence || [];
+      evidence.push({
+        type,
+        url,
+        description,
+        uploadedAt: new Date().toISOString(),
+      });
+
+      const updated = await storage.updateContributionStatus(contributionId, contribution.status, {
+        evidence,
+      } as any);
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error adding evidence:", error);
+      res.status(500).json({ error: "Failed to add evidence" });
     }
-
-    // Check ownership
-    const profile = await storage.getBuilderById(contribution.builderId);
-    if (!profile || profile.userId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    const evidence = contribution.evidence || [];
-    evidence.push({
-      type,
-      url,
-      description,
-      uploadedAt: new Date().toISOString(),
-    });
-
-    const updated = await storage.updateContributionStatus(contributionId, contribution.status, {
-      evidence,
-    } as any);
-
-    res.json(updated);
-  } catch (error) {
-    console.error('Error adding evidence:', error);
-    res.status(500).json({ error: 'Failed to add evidence' });
   }
-});
+);
 
 // ==================== COUNTY CONTRIBUTIONS (PUBLIC) ====================
 
@@ -334,15 +334,15 @@ router.post('/contributions/:contributionId/evidence', requireAuth, async (req: 
  * GET /api/community-builder/county/:countyId/contributions
  * Get all verified contributions for a county
  */
-router.get('/county/:countyId/contributions', async (req: Request, res: Response) => {
+router.get("/county/:countyId/contributions", async (req: Request, res: Response) => {
   try {
     const { countyId } = req.params;
-    const contributions = await storage.getCountyContributions(countyId, 'verified');
-    
+    const contributions = await storage.getCountyContributions(countyId, "verified");
+
     res.json(contributions);
   } catch (error) {
-    console.error('Error fetching county contributions:', error);
-    res.status(500).json({ error: 'Failed to fetch contributions' });
+    console.error("Error fetching county contributions:", error);
+    res.status(500).json({ error: "Failed to fetch contributions" });
   }
 });
 
@@ -350,15 +350,15 @@ router.get('/county/:countyId/contributions', async (req: Request, res: Response
  * GET /api/community-builder/county/:countyId/leaderboard
  * Get builder leaderboard for a county
  */
-router.get('/county/:countyId/leaderboard', async (req: Request, res: Response) => {
+router.get("/county/:countyId/leaderboard", async (req: Request, res: Response) => {
   try {
     const { countyId } = req.params;
     const leaderboard = await storage.getLeaderboard(countyId);
-    
+
     res.json(leaderboard);
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    console.error("Error fetching leaderboard:", error);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
 
@@ -368,25 +368,22 @@ router.get('/county/:countyId/leaderboard', async (req: Request, res: Response) 
  * GET /api/community-builder/notifications
  * Get builder notifications
  */
-router.get('/notifications', requireAuth, async (req: Request, res: Response) => {
+router.get("/notifications", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    
+
     if (!profile) {
-      return res.status(403).json({ error: 'Not a registered builder' });
+      return res.status(403).json({ error: "Not a registered builder" });
     }
 
     const { unreadOnly } = req.query;
-    const notifications = await storage.getBuilderNotifications(
-      profile.id,
-      unreadOnly === 'true'
-    );
-    
+    const notifications = await storage.getBuilderNotifications(profile.id, unreadOnly === "true");
+
     res.json(notifications);
   } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ error: "Failed to fetch notifications" });
   }
 });
 
@@ -394,16 +391,20 @@ router.get('/notifications', requireAuth, async (req: Request, res: Response) =>
  * POST /api/community-builder/notifications/:notificationId/read
  * Mark notification as read
  */
-router.post('/notifications/:notificationId/read', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { notificationId } = req.params;
-    const updated = await storage.markBuilderNotificationAsRead(notificationId);
-    res.json(updated);
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Failed to mark notification as read' });
+router.post(
+  "/notifications/:notificationId/read",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { notificationId } = req.params;
+      const updated = await storage.markBuilderNotificationAsRead(notificationId);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
   }
-});
+);
 
 // ==================== PAYOUT ROUTES ====================
 
@@ -411,19 +412,19 @@ router.post('/notifications/:notificationId/read', requireAuth, async (req: Requ
  * POST /api/community-builder/connect/onboard
  * Create or resume Stripe Connect onboarding for a builder (Express).
  */
-router.post('/connect/onboard', requireAuth, async (req: Request, res: Response) => {
+router.post("/connect/onboard", requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!stripe) return res.status(400).json({ error: 'Stripe not configured' });
+    if (!stripe) return res.status(400).json({ error: "Stripe not configured" });
 
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    if (!profile) return res.status(403).json({ error: 'Not a registered builder' });
+    if (!profile) return res.status(403).json({ error: "Not a registered builder" });
 
     // Create connected account if none exists; reuse bankAccountId as connected account id slot
     let accountId = profile.bankAccountId;
     if (!accountId) {
       const account = await stripe.accounts.create({
-        type: 'express',
+        type: "express",
         email: profile.payoutEmail || undefined,
         metadata: {
           builderId: profile.id,
@@ -439,20 +440,20 @@ router.post('/connect/onboard', requireAuth, async (req: Request, res: Response)
     const returnUrl = req.body.returnUrl || req.body.redirectUrl;
 
     if (!refreshUrl || !returnUrl) {
-      return res.status(400).json({ error: 'refreshUrl and returnUrl are required' });
+      return res.status(400).json({ error: "refreshUrl and returnUrl are required" });
     }
 
     const link = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: refreshUrl,
       return_url: returnUrl,
-      type: 'account_onboarding',
+      type: "account_onboarding",
     });
 
     res.json({ url: link.url, accountId });
   } catch (error) {
-    console.error('Error creating connect onboarding link:', error);
-    res.status(500).json({ error: 'Failed to start onboarding' });
+    console.error("Error creating connect onboarding link:", error);
+    res.status(500).json({ error: "Failed to start onboarding" });
   }
 });
 
@@ -460,29 +461,25 @@ router.post('/connect/onboard', requireAuth, async (req: Request, res: Response)
  * POST /api/community-builder/checkout-session
  * Create a Stripe Checkout Session with required metadata guarantees.
  */
-router.post('/checkout-session', requireAuth, async (req: Request, res: Response) => {
+router.post("/checkout-session", requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!stripe) return res.status(400).json({ error: 'Stripe not configured' });
+    if (!stripe) return res.status(400).json({ error: "Stripe not configured" });
 
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    if (!profile) return res.status(403).json({ error: 'Not a registered builder' });
+    if (!profile) return res.status(403).json({ error: "Not a registered builder" });
 
-    const {
-      contributionId,
-      amount,
-      payoutToVault = true,
-      successUrl,
-      cancelUrl,
-    } = req.body;
+    const { contributionId, amount, payoutToVault = true, successUrl, cancelUrl } = req.body;
 
     if (!contributionId || !amount || !successUrl || !cancelUrl) {
-      return res.status(400).json({ error: 'Missing contributionId, amount, successUrl, or cancelUrl' });
+      return res
+        .status(400)
+        .json({ error: "Missing contributionId, amount, successUrl, or cancelUrl" });
     }
 
     const contribution = await storage.getContribution(contributionId);
     if (!contribution || contribution.builderId !== profile.id) {
-      return res.status(404).json({ error: 'Contribution not found or not owned by builder' });
+      return res.status(404).json({ error: "Contribution not found or not owned by builder" });
     }
 
     // Enforce required metadata for webhook processing
@@ -491,21 +488,22 @@ router.post('/checkout-session', requireAuth, async (req: Request, res: Response
       builderId: profile.id,
       countyId: profile.countyId,
       amount: amount.toString(),
-      payoutToVault: payoutToVault ? 'true' : 'false',
+      payoutToVault: payoutToVault ? "true" : "false",
     };
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
-      currency: 'usd',
+      currency: "usd",
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: "usd",
             product_data: {
               name: contribution.title,
-              description: contribution.description?.slice(0, 120) || 'Community Builder contribution',
+              description:
+                contribution.description?.slice(0, 120) || "Community Builder contribution",
             },
             unit_amount: Math.round(parseFloat(amount) * 100),
           },
@@ -517,8 +515,8 @@ router.post('/checkout-session', requireAuth, async (req: Request, res: Response
 
     res.json({ url: session.url, id: session.id });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    console.error("Error creating checkout session:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
 
@@ -526,20 +524,20 @@ router.post('/checkout-session', requireAuth, async (req: Request, res: Response
  * GET /api/community-builder/payouts
  * Get builder's payouts
  */
-router.get('/payouts', requireAuth, async (req: Request, res: Response) => {
+router.get("/payouts", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const profile = await storage.getBuilderProfile(userId);
-    
+
     if (!profile) {
-      return res.status(403).json({ error: 'Not a registered builder' });
+      return res.status(403).json({ error: "Not a registered builder" });
     }
 
     const payouts = await storage.getBuilderPayouts(profile.id);
     res.json(payouts);
   } catch (error) {
-    console.error('Error fetching payouts:', error);
-    res.status(500).json({ error: 'Failed to fetch payouts' });
+    console.error("Error fetching payouts:", error);
+    res.status(500).json({ error: "Failed to fetch payouts" });
   }
 });
 
@@ -549,23 +547,23 @@ router.get('/payouts', requireAuth, async (req: Request, res: Response) => {
  * GET /api/community-builder/county/:countyId/vault
  * Get public county vault information (transparency)
  */
-router.get('/county/:countyId/vault', async (req: Request, res: Response) => {
+router.get("/county/:countyId/vault", async (req: Request, res: Response) => {
   try {
     const { countyId } = req.params;
-    
+
     const vaultSnapshot = await storage.getCountyVaultSnapshot({ countyId });
-    
+
     res.json({
       countyId,
-      currentBalance: vaultSnapshot.vault?.currentBalance || '0',
-      totalInflow: vaultSnapshot.vault?.lifetimeInflow || '0',
-      totalOutflow: vaultSnapshot.vault?.lifetimeOutflow || '0',
+      currentBalance: vaultSnapshot.vault?.currentBalance || "0",
+      totalInflow: vaultSnapshot.vault?.lifetimeInflow || "0",
+      totalOutflow: vaultSnapshot.vault?.lifetimeOutflow || "0",
       createdAt: vaultSnapshot.vault?.createdAt || new Date(),
       updatedAt: vaultSnapshot.vault?.updatedAt || new Date(),
     });
   } catch (error) {
-    console.error('Error fetching county vault:', error);
-    res.status(500).json({ error: 'Failed to fetch county vault' });
+    console.error("Error fetching county vault:", error);
+    res.status(500).json({ error: "Failed to fetch county vault" });
   }
 });
 
@@ -573,24 +571,24 @@ router.get('/county/:countyId/vault', async (req: Request, res: Response) => {
  * GET /api/community-builder/county/:countyId/ledger
  * Get public county ledger entries (transparency)
  */
-router.get('/county/:countyId/ledger', async (req: Request, res: Response) => {
+router.get("/county/:countyId/ledger", async (req: Request, res: Response) => {
   try {
     const { countyId } = req.params;
     const limit = parseInt(req.query.limit as string) || 20;
-    
+
     // Get vault for this county
     const vaultSnapshot = await storage.getCountyVaultSnapshot({ countyId });
-    
+
     // Get ledger entries
     if (!vaultSnapshot.vault) {
-      return res.status(404).json({ error: 'County vault not found' });
+      return res.status(404).json({ error: "County vault not found" });
     }
     const entries = await storage.getVaultLedgerEntries(vaultSnapshot.vault.id, limit);
-    
+
     res.json(entries);
   } catch (error) {
-    console.error('Error fetching county ledger:', error);
-    res.status(500).json({ error: 'Failed to fetch county ledger' });
+    console.error("Error fetching county ledger:", error);
+    res.status(500).json({ error: "Failed to fetch county ledger" });
   }
 });
 
@@ -598,35 +596,35 @@ router.get('/county/:countyId/ledger', async (req: Request, res: Response) => {
  * GET /api/community-builder/county/:countyId/top-contributions
  * Get top verified contributions for a county (transparency)
  */
-router.get('/county/:countyId/top-contributions', async (req: Request, res: Response) => {
+router.get("/county/:countyId/top-contributions", async (req: Request, res: Response) => {
   try {
     const { countyId } = req.params;
     const limit = parseInt(req.query.limit as string) || 10;
-    
-    const allContributions = await storage.getCountyContributions(countyId, 'verified');
-    
+
+    const allContributions = await storage.getCountyContributions(countyId, "verified");
+
     // Sort by actual value (highest first)
     const sorted = allContributions
-      .filter(c => c.actualValue)
+      .filter((c) => c.actualValue)
       .sort((a, b) => parseFloat(b.actualValue!) - parseFloat(a.actualValue!))
       .slice(0, limit);
-    
+
     // Enrich with builder info
     const enriched = await Promise.all(
       sorted.map(async (contribution) => {
         const builder = await storage.getBuilderById(contribution.builderId);
         return {
           ...contribution,
-          builderName: builder?.businessName || 'Unknown',
-          builderRank: builder?.currentRank || 'unranked',
+          builderName: builder?.businessName || "Unknown",
+          builderRank: builder?.currentRank || "unranked",
         };
       })
     );
-    
+
     res.json(enriched);
   } catch (error) {
-    console.error('Error fetching top contributions:', error);
-    res.status(500).json({ error: 'Failed to fetch top contributions' });
+    console.error("Error fetching top contributions:", error);
+    res.status(500).json({ error: "Failed to fetch top contributions" });
   }
 });
 

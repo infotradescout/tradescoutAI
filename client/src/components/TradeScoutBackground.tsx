@@ -318,6 +318,7 @@ export default function TradeScoutBackground({ children }: TradeScoutBackgroundP
               <path
                 key={`${sketch.id}-${index}`}
                 d={path}
+                pathLength={1}
                 style={{ ["--path-index" as string]: index.toString() }}
               />
             ))}
@@ -466,7 +467,7 @@ const css = `
   mix-blend-mode: normal;
 }
 
-/* SKETCHES: larger technical blueprint sheets that drift and redraw */
+/* SKETCHES: larger technical blueprint sheets that draw themselves */
 .ts-bg__sketches{
   z-index: 7;
   opacity: 0.11;
@@ -480,16 +481,14 @@ const css = `
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: blur(0.1px);
-  opacity: 0;
-  animation: tsSketchFade 34s ease-in-out infinite;
-  animation-delay: var(--sketch-delay, 0s);
+  opacity: 0.5;
 }
 
 .ts-bg__sketch path{
-  stroke-dasharray: 320;
-  stroke-dashoffset: 320;
-  animation: tsSketchTrace 34s ease-in-out infinite;
-  animation-delay: calc(var(--sketch-delay, 0s) + (var(--path-index, 0) * 120ms));
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tsSketchDraw 14s cubic-bezier(.2,.65,.25,1) infinite;
+  animation-delay: calc(var(--sketch-delay, 0s) + (var(--path-index, 0) * 110ms));
 }
 
 /* Subtle reveal on interaction: blueprint becomes a touch more visible */
@@ -515,53 +514,10 @@ const css = `
     radial-gradient(1200px 760px at 50% 80%, transparent 55%, rgba(0,0,0,.62) 90%);
 }
 
-@keyframes tsTopoDrift{
-  0%{ background-position: 0px 0px; }
-  100%{ background-position: 520px 240px; }
-}
-
-@keyframes tsCommunityPlanDrift{
-  0%{ background-position: 0px 0px; }
-  100%{ background-position: 360px 180px; }
-}
-
-@keyframes tsDimensionDrift{
-  0%{ background-position: 0px 0px; }
-  100%{ background-position: 260px 140px; }
-}
-
-@keyframes tsSheetDrift{
-  0%{ background-position: 0px 0px; }
-  100%{ background-position: 320px 200px; }
-}
-
-@keyframes tsCalloutFloat{
-  0%,100%{ background-position: 0px 0px; }
-  50%{ background-position: -120px 80px; }
-}
-
-@keyframes tsSignalFloat{
-  0%,100%{ background-position: 0px 0px; filter: blur(0px); }
-  50%{ background-position: 80px -40px; filter: blur(.15px); }
-}
-
-@keyframes tsFlowDrift{
-  0%{ background-position: 0px 0px; }
-  100%{ background-position: 320px 240px; }
-}
-
-@keyframes tsSketchFade{
-  0%, 10%{ opacity: 0; }
-  18%, 44%{ opacity: 0.66; }
-  56%{ opacity: 0.24; }
-  70%, 100%{ opacity: 0; }
-}
-
-@keyframes tsSketchTrace{
-  0%, 10%{ stroke-dashoffset: 320; }
-  32%{ stroke-dashoffset: 0; }
-  60%{ stroke-dashoffset: 0; }
-  100%{ stroke-dashoffset: 320; }
+@keyframes tsSketchDraw{
+  0%, 10%{ stroke-dashoffset: 1; }
+  46%, 88%{ stroke-dashoffset: 0; }
+  100%{ stroke-dashoffset: 1; }
 }
 
 @media (prefers-reduced-motion: reduce){

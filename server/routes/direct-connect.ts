@@ -309,9 +309,18 @@ export function registerDirectConnectRoutes(app: Express) {
           .where(eq(workRequests.id, requestId));
 
         try {
+          const insertedContractorIds = new Set(
+            insertedAssignments
+              .map((a: any) => a.contractorId)
+              .filter((id: any): id is string => Boolean(id))
+          );
+          const contractorsToNotify = topRanked.filter(
+            (candidate) => candidate.id && insertedContractorIds.has(candidate.id)
+          );
+
           // Notify each contractor that they have a new Direct Connect opportunity
           await Promise.all(
-            topRanked.map(async (candidate) => {
+            contractorsToNotify.map(async (candidate) => {
               if (!candidate.userId) return;
 
               try {
@@ -383,6 +392,38 @@ export function registerDirectConnectRoutes(app: Express) {
           .from(workRequestAssignments)
           .where(inArray(workRequestAssignments.workRequestId, requestIds));
 
+        const acceptedAssignments = (assignments as any[]).filter(
+          (x: any) => x.status === "accepted" && x.contractorId
+        );
+        const acceptedContractorIds = Array.from(
+          new Set(
+            acceptedAssignments
+              .map((x: any) => String(x.contractorId))
+              .filter((id: string) => id.length > 0)
+          )
+        );
+
+        const conversationsForAccepted =
+          acceptedContractorIds.length > 0
+            ? await db
+                .select()
+                .from(conversations)
+                .where(
+                  and(
+                    eq(conversations.homeownerId, String(userId)),
+                    inArray(conversations.contractorId, acceptedContractorIds)
+                  )
+                )
+                .orderBy(desc(conversations.createdAt))
+            : [];
+
+        const conversationByContractorId = new Map<string, string>();
+        for (const convo of conversationsForAccepted as any[]) {
+          const contractorId = String((convo as any).contractorId || "");
+          if (!contractorId || conversationByContractorId.has(contractorId)) continue;
+          conversationByContractorId.set(contractorId, String((convo as any).id));
+        }
+
         const events = await db
           .select()
           .from(workRequestEvents)
@@ -413,11 +454,18 @@ export function registerDirectConnectRoutes(app: Express) {
             (x: any) => x.status === "suggested" || x.status === "invited"
           ).length;
           const accepted = a.find((x: any) => x.status === "accepted");
+          const acceptedContractorId = accepted?.contractorId
+            ? String(accepted.contractorId)
+            : null;
+          const conversationThreadId = acceptedContractorId
+            ? conversationByContractorId.get(acceptedContractorId) || null
+            : null;
 
           return {
             ...r,
             dcSuggestedCount: suggestedCount,
             dcAcceptedAssignmentId: accepted?.id ?? null,
+            dcConversationThreadId: conversationThreadId,
             dcLastEventAt: lastEventByRequest.get(String(r.id))?.toISOString() ?? null,
           };
         });
@@ -812,9 +860,43 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const requestById = new Map(requests.map((r: any) => [r.id, r]));
 
+        const homeownerIds = Array.from(
+          new Set(
+            (requests as any[])
+              .map((r: any) => String(r.createdByUserId || ""))
+              .filter((id: string) => id.length > 0)
+          )
+        );
+
+        const candidateConversations =
+          homeownerIds.length > 0
+            ? await db
+                .select()
+                .from(conversations)
+                .where(
+                  and(
+                    eq(conversations.contractorId, contractor.id),
+                    inArray(conversations.homeownerId, homeownerIds)
+                  )
+                )
+                .orderBy(desc(conversations.createdAt))
+            : [];
+
+        const conversationByHomeowner = new Map<string, string>();
+        for (const convo of candidateConversations as any[]) {
+          const homeownerId = String((convo as any).homeownerId || "");
+          if (!homeownerId || conversationByHomeowner.has(homeownerId)) continue;
+          conversationByHomeowner.set(homeownerId, String((convo as any).id));
+        }
+
         const enriched = assignments.map((a: any) => ({
           assignment: a,
           request: requestById.get(a.workRequestId) || null,
+          conversationThreadId: (() => {
+            const reqRow = requestById.get(a.workRequestId) as any;
+            if (!reqRow?.createdByUserId) return null;
+            return conversationByHomeowner.get(String(reqRow.createdByUserId)) || null;
+          })(),
         }));
 
         res.json(enriched);
@@ -867,29 +949,63 @@ export function registerDirectConnectRoutes(app: Express) {
             return { status: 404 as const, body: { message: "Work request not found" } };
           }
 
-          // Guard against double-accept races: only allow accept while request is routed
-          if (decision === "accept" && requestRow.status === "in_progress") {
+          const assignmentStatus = String(assignment.status || "");
+          const canRespond = assignmentStatus === "suggested" || assignmentStatus === "invited";
+          if (!canRespond) {
+            if (decision === "accept" && assignmentStatus === "accepted") {
+              return {
+                status: 409 as const,
+                body: {
+                  message: "You have already accepted this request.",
+                },
+              };
+            }
             return {
               status: 409 as const,
               body: {
-                message:
-                  "This Direct Connect request has already been accepted by another provider.",
+                message: "This request is no longer available for response.",
               },
             };
           }
 
-          const [updatedAssignment] = await tx
-            .update(workRequestAssignments)
-            .set({
-              status: decision === "accept" ? "accepted" : "declined",
-              updatedAt: new Date(),
-            })
-            .where(eq(workRequestAssignments.id, assignment.id))
-            .returning();
+          if (decision === "accept" && requestRow.status !== "routed") {
+            return {
+              status: 409 as const,
+              body: {
+                message: "This Direct Connect request is no longer accepting new responses.",
+              },
+            };
+          }
+
+          const now = new Date();
+          let updatedAssignment: any;
 
           let conversationId: string | null = null;
 
           if (decision === "accept") {
+            await tx
+              .update(workRequestAssignments)
+              .set({ status: "withdrawn", updatedAt: now })
+              .where(
+                and(
+                  eq(workRequestAssignments.workRequestId, requestRow.id),
+                  inArray(workRequestAssignments.status, [
+                    "suggested",
+                    "invited",
+                    "accepted",
+                  ] as any)
+                )
+              );
+
+            [updatedAssignment] = await tx
+              .update(workRequestAssignments)
+              .set({
+                status: "accepted",
+                updatedAt: now,
+              })
+              .where(eq(workRequestAssignments.id, assignment.id))
+              .returning();
+
             try {
               // Ensure there is exactly one conversation between homeowner and contractor for this engagement
               const homeownerId = String(requestRow.createdByUserId);
@@ -920,7 +1036,7 @@ export function registerDirectConnectRoutes(app: Express) {
               // Promote the work request to in_progress once at least one contractor accepts
               await tx
                 .update(workRequests)
-                .set({ status: "in_progress", updatedAt: new Date() })
+                .set({ status: "in_progress", updatedAt: now })
                 .where(eq(workRequests.id, requestRow.id));
 
               await tx.insert(workRequestEvents).values({
@@ -936,6 +1052,15 @@ export function registerDirectConnectRoutes(app: Express) {
               );
             }
           } else {
+            [updatedAssignment] = await tx
+              .update(workRequestAssignments)
+              .set({
+                status: "declined",
+                updatedAt: now,
+              })
+              .where(eq(workRequestAssignments.id, assignment.id))
+              .returning();
+
             try {
               await tx.insert(workRequestEvents).values({
                 workRequestId: requestRow.id,
