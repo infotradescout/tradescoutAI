@@ -5988,7 +5988,80 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Exchange contractor promotions
+  // Exchange promotions (business-neutral, marketplace placement)
+  app.get("/api/exchange/promotions", async (req: any, res: any) => {
+    try {
+      const search = String(req.query.search || "")
+        .trim()
+        .toLowerCase();
+      const sort = String(req.query.sort || "newest")
+        .trim()
+        .toLowerCase();
+      const county = String(req.query.county || "").trim();
+
+      const now = new Date();
+      let rows = await storage.listPromotions({
+        status: "active",
+        countyFips: county || undefined,
+        limit: 200,
+      });
+
+      rows = rows.filter((promo: any) => {
+        const startsAt = promo?.startsAt ? new Date(promo.startsAt) : null;
+        const endsAt = promo?.endsAt ? new Date(promo.endsAt) : null;
+
+        if (startsAt && startsAt.getTime() > now.getTime()) return false;
+        if (endsAt && endsAt.getTime() < now.getTime()) return false;
+
+        // Exchange should only surface marketplace-targeted campaigns.
+        return promo?.placementMarketplace === true;
+      });
+
+      if (search) {
+        rows = rows.filter((promo: any) => {
+          const haystack = `${promo?.title || ""} ${promo?.shortDescription || ""}`.toLowerCase();
+          return haystack.includes(search);
+        });
+      }
+
+      if (sort === "ending_soon") {
+        rows = rows.sort((a: any, b: any) => {
+          const aTs = a?.endsAt ? new Date(a.endsAt).getTime() : Number.POSITIVE_INFINITY;
+          const bTs = b?.endsAt ? new Date(b.endsAt).getTime() : Number.POSITIVE_INFINITY;
+          return aTs - bTs;
+        });
+      } else {
+        rows = rows.sort((a: any, b: any) => {
+          const aTs = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTs = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTs - aTs;
+        });
+      }
+
+      const mapped = rows.map((promo: any) => ({
+        id: promo.id,
+        slug: promo.id,
+        title: promo.title,
+        description: promo.shortDescription,
+        offerDetails: promo.ctaLabel || "Limited-time promotion",
+        businessName: promo.type === "affiliate" ? "Partner business" : "Local business",
+        promoCode: null,
+        expiresAt: promo.endsAt || null,
+        viewCount: 0,
+        leadCount: 0,
+        ctaUrl: promo.ctaUrl || null,
+        ctaLabel: promo.ctaLabel || null,
+        isFeatured: promo.tier === "paid_campaign",
+      }));
+
+      res.json(mapped);
+    } catch (error: any) {
+      console.error("Error fetching exchange promotions:", error);
+      res.status(500).json({ message: "Failed to fetch promotions" });
+    }
+  });
+
+  // Exchange contractor promotions (legacy)
   app.get("/api/exchange/contractor-promos", async (req: any, res: any) => {
     try {
       const { search, category, sort } = req.query;

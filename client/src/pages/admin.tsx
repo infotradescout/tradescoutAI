@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,14 +27,13 @@ import { AdminPanelContent } from "@/pages/admin-panel";
 import { AdminWorkspaceContent } from "@/pages/admin-workspace";
 import AdminGeoCoverageConsole from "@/pages/admin-geo-coverage";
 import AdminUserManagement from "@/pages/AdminUserManagement";
-import AdminTestingControls from "@/pages/admin-testing-controls";
 import AdminProfessionalVerification from "@/pages/admin-professional-verification";
 import AdminCreateAccount from "@/pages/admin-create-account";
 import AdminPromotions from "@/pages/admin-promotions";
 import AdminControl from "@/pages/admin-control";
-import AdminAuthorityDiagnostics from "@/pages/admin-authority-diagnostics";
 import PlatformAnalytics from "@/pages/platform-analytics";
 import ContentModeration from "@/pages/content-moderation";
+import AdminObservability from "@/pages/admin-observability";
 
 type AdminHealthResponse = {
   ok: boolean;
@@ -65,8 +64,8 @@ export default function AdminShell() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-slate-400">
-              If you believe this is an error, check your assigned role or contact the
-              platform owner.
+              If you believe this is an error, check your assigned role or contact the platform
+              owner.
             </p>
             <div className="flex justify-between items-center text-xs text-slate-500">
               <span>Requested: /admin</span>
@@ -164,6 +163,10 @@ function AdminContentRouter() {
     return <UIMonitoringDashboard />;
   }
 
+  if (subPath === "/observability") {
+    return <AdminObservability />;
+  }
+
   if (subPath === "/ai-fixes") {
     return <AICodeFixingDashboard />;
   }
@@ -201,7 +204,7 @@ function AdminContentRouter() {
   }
 
   if (subPath === "/testing" || subPath === "/testing-controls") {
-    return <AdminTestingControls />;
+    return <AdminControl />;
   }
 
   if (subPath === "/system-prompt") {
@@ -216,27 +219,27 @@ function AdminContentRouter() {
     return <AdminListings />;
   }
 
-   if (subPath === "/promotions") {
-     return <AdminPromotions />;
-   }
+  if (subPath === "/promotions") {
+    return <AdminPromotions />;
+  }
 
   if (subPath === "/control") {
     return <AdminControl />;
   }
 
   if (subPath === "/authority-diagnostics") {
-    return <AdminAuthorityDiagnostics />;
+    return <AdminControl />;
   }
 
   if (subPath === "/platform-analytics") {
     return <PlatformAnalytics />;
   }
 
-   // Intelligence & Automation: LLM admin / knowledge upload
-   // still live inside the Admin Panel as a dedicated tab.
-   if (subPath === "/llm" || subPath === "/knowledge") {
-     return <AdminPanelTabRedirect tab="llm-admin" />;
-   }
+  // Intelligence & Automation: LLM admin / knowledge upload
+  // still live inside the Admin Panel as a dedicated tab.
+  if (subPath === "/llm" || subPath === "/knowledge") {
+    return <AdminPanelTabRedirect tab="llm-admin" />;
+  }
 
   if (subPath === "/moderation") {
     return <ContentModeration />;
@@ -289,14 +292,23 @@ function SuperAdminDashboard() {
             Admin Operations Overview
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-            One control surface for coverage, readiness, and high-safety operations. Use the
-            map and coverage console below to drive assignments and repairs.
+            One control surface for coverage, readiness, and high-safety operations. Use the map and
+            coverage console below to drive assignments and repairs.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] text-slate-400">
-          <span className="inline-flex items-center gap-1"><MapIcon className="w-3 h-3 text-sky-400" />Map</span>
-          <span className="inline-flex items-center gap-1"><UsersIcon className="w-3 h-3 text-emerald-400" />Coverage</span>
-          <span className="inline-flex items-center gap-1"><Activity className="w-3 h-3 text-orange-400" />Queues</span>
+          <span className="inline-flex items-center gap-1">
+            <MapIcon className="w-3 h-3 text-sky-400" />
+            Map
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <UsersIcon className="w-3 h-3 text-emerald-400" />
+            Coverage
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Activity className="w-3 h-3 text-orange-400" />
+            Queues
+          </span>
         </div>
       </div>
 
@@ -331,14 +343,12 @@ function SuperAdminDashboard() {
               Coverage & Risk Queues
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              High-signal slices from the coverage console: focus on where we are not ready
-              or recently changed.
+              High-signal slices from the coverage console: focus on where we are not ready or
+              recently changed.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0 text-xs text-slate-400 space-y-3">
-            {!coverage && (
-              <p className="text-slate-500">Loading coverage queues hellip;</p>
-            )}
+            {!coverage && <p className="text-slate-500">Loading coverage queues hellip;</p>}
             {coverage && (
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
@@ -357,8 +367,8 @@ function SuperAdminDashboard() {
                 </div>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>
-                    Focus first on <span className="font-semibold text-red-300">unassigned</span> counties to
-                    prevent demand from landing with no TM or affiliate.
+                    Focus first on <span className="font-semibold text-red-300">unassigned</span>{" "}
+                    counties to prevent demand from landing with no TM or affiliate.
                   </li>
                   <li>
                     Use the Coverage Console filters for quick slices like
@@ -378,8 +388,8 @@ function SuperAdminDashboard() {
           <div>
             <CardTitle className="text-sm text-slate-100">County Coverage Console</CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              Full county list with readiness filters. Use this table to assign TMs and
-              affiliates, then jump into map view for spatial context.
+              Full county list with readiness filters. Use this table to assign TMs and affiliates,
+              then jump into map view for spatial context.
             </CardDescription>
           </div>
           <Link href="/admin/geo/coverage">
@@ -390,7 +400,8 @@ function SuperAdminDashboard() {
         </CardHeader>
         <CardContent className="pt-0 text-xs text-slate-400">
           <p className="mb-2">
-            The dedicated Coverage Console remains available at <span className="font-mono text-[11px]">/admin/geo/coverage</span>.
+            The dedicated Coverage Console remains available at{" "}
+            <span className="font-mono text-[11px]">/admin/geo/coverage</span>.
           </p>
         </CardContent>
       </Card>

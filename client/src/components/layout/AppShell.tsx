@@ -132,6 +132,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const isScoutSurface = location === "/" || location.startsWith("/scout");
+  const showMobileScoutHero = location === "/";
   const isAuthSurface =
     location.startsWith("/create-account") ||
     location.startsWith("/login") ||
@@ -439,7 +440,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         }}
       >
         <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
-          {isMobile && isScoutSurface && renderMobileHero()}
+          {isMobile && isScoutSurface && showMobileScoutHero && renderMobileHero()}
           {children}
         </div>
       </main>

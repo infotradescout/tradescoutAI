@@ -52,10 +52,8 @@ import { TradeScoutIcon } from "@/components/TradeScoutIcons";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { useLocation } from "wouter";
-import { COMMUNITY_TONE } from "../../../shared/communityLanguage";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
-import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
 
 interface Post {
   id: string;
@@ -628,127 +626,15 @@ const CommunityFeed = memo(function CommunityFeed() {
   }, [route]);
 
   const seededPrompts: string[] = [
-    "Who's the best electrician in the county?",
-    "Any contractors to avoid right now?",
-    "Has anyone used TradeScout invoices yet?",
-    "What's the biggest issue in our HOA right now?",
-    "Who would you recommend for a small remodel?",
-  ];
-
-  const systemPosts: Post[] = [
-    {
-      id: "system-question-model",
-      title: "Who do you actually trust?",
-      content:
-        "Who do you actually trust to do good work around here?\n\n" +
-        "Not the biggest company. Not the loudest ad.\n" +
-        "The people your neighbors would recommend without being asked.\n\n" +
-        "Ask real questions here. Share real experiences.\n" +
-        "This feed works because it reflects what’s actually happening in your community — not paid placements.",
-      author: {
-        id: "system-scout",
-        name: "Scout",
-        avatar: undefined,
-        email: null,
-        role: "System",
-        verified: false,
-      },
-      category: "system",
-      location: "Your county",
-      createdAt: new Date().toISOString(),
-      tags: ["system-update", "question-model"],
-      upvotes: 0,
-      downvotes: 0,
-      comments: 0,
-      pinned: true,
-      trending: false,
-      imageUrls: [],
-    },
-    {
-      id: "system-recommendation-model",
-      title: "How recommendations work here",
-      content:
-        "Recommendations here aren’t stars — they’re accountability.\n\n" +
-        `When someone is recommended on TradeScout, that endorsement is ${COMMUNITY_TONE.accountability}, and attached to real people in your community. Scout does not endorse people — Scout governs weighting, decay, and enforcement.\n\n` +
-        "Good work gets repeated. Bad work doesn’t hide.\n" +
-        "That’s how communities used to work — we just made it transparent again.",
-      author: {
-        id: "system-scout",
-        name: "Scout",
-        avatar: undefined,
-        email: null,
-        role: "System",
-        verified: false,
-      },
-      category: "system",
-      location: "Your county",
-      createdAt: new Date().toISOString(),
-      tags: ["system-update", "recommendation-model"],
-      upvotes: 0,
-      downvotes: 0,
-      comments: 0,
-      pinned: false,
-      trending: false,
-      imageUrls: [],
-    },
-    {
-      id: "system-project-model",
-      title: "How projects stay local",
-      content:
-        "Every project here stays local by default.\n\n" +
-        "Whether it’s a repair, a remodel, or a service request, TradeScout routes opportunity through your community first — contractors, suppliers, and partners who already operate here.\n\n" +
-        "Fewer middlemen. Less leakage.\n" +
-        "More money circulating where the work actually happens.",
-      author: {
-        id: "system-scout",
-        name: "Scout",
-        avatar: undefined,
-        email: null,
-        role: "System",
-        verified: false,
-      },
-      category: "system",
-      location: "Your county",
-      createdAt: new Date().toISOString(),
-      tags: ["system-update", "project-model"],
-      upvotes: 0,
-      downvotes: 0,
-      comments: 0,
-      pinned: false,
-      trending: false,
-      imageUrls: [],
-    },
-    {
-      id: "system-governance-model",
-      title: "What transparency makes possible",
-      content:
-        "Some things shouldn’t happen behind closed doors.\n\n" +
-        "TradeScout gives neighborhoods real tools to manage projects, shared spaces, funds, and decisions — with visibility for everyone involved.\n\n" +
-        "That transparency applies whether it’s a neighborhood group, a community builder, or a local initiative.\n\n" +
-        "When everyone can see what’s happening, trust becomes the default.",
-      author: {
-        id: "system-scout",
-        name: "Scout",
-        avatar: undefined,
-        email: null,
-        role: "System",
-        verified: false,
-      },
-      category: "system",
-      location: "Your county",
-      createdAt: new Date().toISOString(),
-      tags: ["system-update", "governance-model"],
-      upvotes: 0,
-      downvotes: 0,
-      comments: 0,
-      pinned: false,
-      trending: false,
-      imageUrls: [],
-    },
+    "Who is a reliable electrician nearby?",
+    "Looking for a fence repair recommendation.",
+    "Any trusted HVAC pros in this area?",
+    "Best local supplier for deck materials?",
+    "Who has done great work for a bathroom refresh?",
   ];
 
   const hasUserPosts = Array.isArray(posts) && posts.length > 0;
-  const displayPosts: any[] = hasUserPosts ? posts : systemPosts;
+  const displayPosts: any[] = posts;
   const tabSortedPosts = useMemo(() => {
     const list = [...displayPosts];
     if (activeTab === "recent" || activeTab === "nearby") {
@@ -812,6 +698,15 @@ const CommunityFeed = memo(function CommunityFeed() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           <p className="text-gray-400 mt-4">Loading posts...</p>
         </div>
+      ) : tabSortedPosts.length === 0 ? (
+        <Card className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="p-6 md:p-8 text-center">
+            <h3 className="text-lg md:text-xl font-semibold text-white">Community feed is live</h3>
+            <p className="mt-2 text-sm text-[color:var(--text-secondary)]">
+              No posts yet for this view. Start with a question, recommendation, or local update.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {tabSortedPosts.map((post: any) => {
@@ -864,7 +759,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           </span>
                           {locationLabel && (
                             <>
-                              <span>•</span>
+                              <span>-</span>
                               <div className="flex items-center gap-1">
                                 <Compass className="h-3 w-3" />
                                 {locationLabel}
@@ -1029,7 +924,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     }
 
                     return (
-                      <div className="mt-2 text-[11px] text-slate-400">{parts.join(" · ")}</div>
+                      <div className="mt-2 text-[11px] text-slate-400">{parts.join(" | ")}</div>
                     );
                   })()}
 
@@ -1250,25 +1145,8 @@ const CommunityFeed = memo(function CommunityFeed() {
 
     // Add poll template to post content
     const pollTemplate = newPostContent ? newPostContent + "\n\n" : "";
-    setNewPostContent(pollTemplate + "📊 Poll:\n- Option 1\n- Option 2\n- Option 3");
+    setNewPostContent(pollTemplate + "Poll:\n- Option 1\n- Option 2\n- Option 3");
     composerRef.current?.focus();
-  };
-
-  const snapshotProps = useMemo(
-    () => ({
-      membersCount: communityStats.totalMembers,
-      activeToday: communityStats.activeToday,
-      postsToday: communityStats.postsToday,
-      countiesActive: communityStats.countiesActive,
-      trendingTags: trendingTopics.map((t) => t.tag).slice(0, 3),
-    }),
-    [communityStats, trendingTopics]
-  );
-
-  const handleSnapshotFilterChange = (filter: string) => {
-    const next = normalizeFeed(filter);
-    if (!next) return;
-    handleTabChange(next);
   };
 
   return (
@@ -1276,21 +1154,55 @@ const CommunityFeed = memo(function CommunityFeed() {
       <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
         <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
           <CommunityTopNav />
-          {/* 
-          CommunitySnapshotRail owns populated + empty states.
-          Do not add fallback Snapshot UI elsewhere.
-          This is the single authority for Community Snapshot—data, layout, and CTAs.
-        */}
-          {countyFips && !isGlobalView && (
-            <CommunitySnapshotRail
-              countyFips={countyFips}
-              limit={10}
-              communityStats={communityStats}
-              activeFilter={activeTab}
-              onFilterChange={handleSnapshotFilterChange}
-            />
-          )}
-
+          <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+            <CardContent className="p-4 md:p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-orange-300">
+                    Community
+                  </p>
+                  <h1 className="mt-1 text-lg md:text-2xl font-semibold text-white">
+                    Local conversation, clean and useful
+                  </h1>
+                  <p className="mt-1 text-xs md:text-sm text-[color:var(--text-secondary)]">
+                    Ask, recommend, and coordinate with people in your area.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center min-w-[240px]">
+                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Members</p>
+                    <p className="text-sm md:text-base font-semibold text-white">
+                      {communityStats.totalMembers}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Active</p>
+                    <p className="text-sm md:text-base font-semibold text-white">
+                      {communityStats.activeToday}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Posts</p>
+                    <p className="text-sm md:text-base font-semibold text-white">
+                      {communityStats.postsToday}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {trendingTopics.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {trendingTopics.slice(0, 5).map((topic) => (
+                    <span
+                      key={topic.tag}
+                      className="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[11px] text-orange-200"
+                    >
+                      #{topic.tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
           {/* Phase 1: Global Community Toggle (read-only visibility) */}
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-full p-1">
@@ -1436,11 +1348,11 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                         {/* Category selection - Maps human intent to system routing
                           PHILOSOPHY: Users think in outcomes, not systems
-                          - "I need help" → Scout + Direct Connect (invisible)
-                          - "What's for sale?" → Marketplace integration (transparent)
-                          - "What's happening?" → Community feed (default)
+                          - "I need help" -> Scout + Direct Connect (invisible)
+                          - "What's for sale?" -> Marketplace integration (transparent)
+                          - "What's happening?" -> Community feed (default)
                           Categories route information WITHOUT exposing internal system names
-                      */}
+                        */}
                         <div className="flex flex-wrap gap-1.5">
                           {[
                             {
@@ -1523,7 +1435,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   onClick={() => handleRemoveImage(index)}
                                   className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                  <span className="text-xs">×</span>
+                                  <span className="text-xs">x</span>
                                 </button>
                               </div>
                             ))}
@@ -1646,4 +1558,3 @@ const CommunityFeed = memo(function CommunityFeed() {
 });
 
 export default CommunityFeed;
-

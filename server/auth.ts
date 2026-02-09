@@ -29,7 +29,9 @@ export function getSession() {
     if (process.env.NODE_ENV === "production") {
       throw new Error("SESSION_SECRET is missing");
     }
-    console.warn("[Auth] SESSION_SECRET missing in dev; using insecure fallback. DO NOT USE THIS CONFIGURATION IN PRODUCTION.");
+    console.warn(
+      "[Auth] SESSION_SECRET missing in dev; using insecure fallback. DO NOT USE THIS CONFIGURATION IN PRODUCTION."
+    );
     sessionSecret = "dev-insecure-session-secret";
   }
 
@@ -62,30 +64,29 @@ export async function setupAuth(app: Express) {
   app.use(passport.session());
 
   // Local strategy for email/password authentication
-  passport.use(new LocalStrategy(
-    { usernameField: 'email' },
-    async (email, password, done) => {
+  passport.use(
+    new LocalStrategy({ usernameField: "email" }, async (email, password, done) => {
       try {
         const user = await storage.getUserByEmail(email);
         if (!user) {
-          return done(null, false, { message: 'Invalid email or password' });
+          return done(null, false, { message: "Invalid email or password" });
         }
 
         if (!user.password) {
-          return done(null, false, { message: 'No password set for this account' });
+          return done(null, false, { message: "No password set for this account" });
         }
 
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-          return done(null, false, { message: 'Invalid email or password' });
+          return done(null, false, { message: "Invalid email or password" });
         }
 
         return done(null, user);
       } catch (error) {
         return done(error);
       }
-    }
-  ));
+    })
+  );
 
   // Facebook strategy for social authentication
   const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
@@ -113,55 +114,63 @@ export async function setupAuth(app: Express) {
     }
 
     console.log("[AUTH] Using Facebook callback URL:", facebookCallbackURL);
-    console.log('Registering Facebook strategy with App ID:', facebookAppId.substring(0, 4) + '...');
+    console.log(
+      "Registering Facebook strategy with App ID:",
+      facebookAppId.substring(0, 4) + "..."
+    );
     try {
-      passport.use('facebook', new FacebookStrategy({
-        clientID: facebookAppId,
-        clientSecret: facebookAppSecret,
-        callbackURL: facebookCallbackURL,
-        profileFields: ['id', 'displayName', 'photos', 'email', 'first_name', 'last_name']
-      },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        let user = await storage.getUserByFacebookId(profile.id);
-        
-        if (user) {
-          return done(null, user);
-        }
+      passport.use(
+        "facebook",
+        new FacebookStrategy(
+          {
+            clientID: facebookAppId,
+            clientSecret: facebookAppSecret,
+            callbackURL: facebookCallbackURL,
+            profileFields: ["id", "displayName", "photos", "email", "first_name", "last_name"],
+          },
+          async (accessToken, refreshToken, profile, done) => {
+            try {
+              let user = await storage.getUserByFacebookId(profile.id);
 
-        const email = profile.emails?.[0]?.value;
-        if (email) {
-          user = await storage.getUserByEmail(email);
-          if (user) {
-            await storage.updateUser(user.id, {
-              facebookId: profile.id,
-              profileImageUrl: profile.photos?.[0]?.value
-            });
-            return done(null, user);
+              if (user) {
+                return done(null, user);
+              }
+
+              const email = profile.emails?.[0]?.value;
+              if (email) {
+                user = await storage.getUserByEmail(email);
+                if (user) {
+                  await storage.updateUser(user.id, {
+                    facebookId: profile.id,
+                    profileImageUrl: profile.photos?.[0]?.value,
+                  });
+                  return done(null, user);
+                }
+              }
+
+              const newUser = await storage.createUser({
+                email: email || `${profile.id}@facebook.local`,
+                firstName: profile.name?.givenName || profile.displayName,
+                lastName: profile.name?.familyName || "",
+                profileImageUrl: profile.photos?.[0]?.value,
+                facebookId: profile.id,
+                role: null,
+                emailVerified: !!email,
+                onboardingCompleted: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
+
+              return done(null, newUser);
+            } catch (error) {
+              return done(error);
+            }
           }
-        }
-
-        const newUser = await storage.createUser({
-          email: email || `${profile.id}@facebook.local`,
-          firstName: profile.name?.givenName || profile.displayName,
-          lastName: profile.name?.familyName || '',
-          profileImageUrl: profile.photos?.[0]?.value,
-          facebookId: profile.id,
-          role: null,
-          emailVerified: !!email,
-          onboardingCompleted: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-
-        return done(null, newUser);
-      } catch (error) {
-        return done(error);
-      }
-      }));
-      console.log('Facebook strategy successfully registered');
+        )
+      );
+      console.log("Facebook strategy successfully registered");
     } catch (error) {
-      console.error('Error registering Facebook strategy:', error);
+      console.error("Error registering Facebook strategy:", error);
     }
   }
 
@@ -190,13 +199,14 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
       const todayKey = new Date().toISOString().slice(0, 10);
 
       if (userId) {
-        if (!anySession?.lastSessionStartedDayKey || anySession.lastSessionStartedDayKey !== todayKey) {
+        if (
+          !anySession?.lastSessionStartedDayKey ||
+          anySession.lastSessionStartedDayKey !== todayKey
+        ) {
           anySession.lastSessionStartedDayKey = todayKey;
-          storage
-            .logEvent("user.session_started", { userId })
-            .catch((err: any) => {
-              console.error("Failed to log user.session_started", err);
-            });
+          storage.logEvent("user.session_started", { userId }).catch((err: any) => {
+            console.error("Failed to log user.session_started", err);
+          });
         }
       }
     } catch (err) {
@@ -215,7 +225,8 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
   const user = req.user as User | undefined;
 
   const anyUser: any = user || {};
-  const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+  const profileVersion: number =
+    typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
   // Super admins and head admins always bypass onboarding gates.
   if (anyUser.role === "super_admin" || anyUser.role === "head_admin") {
@@ -241,13 +252,13 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
 
     const user = req.user as User;
     const userRole = user.role as UserRole;
-    
+
     if (!userRole) {
       return res.status(403).json({ message: "No role assigned" });
     }
 
     const userLevel = getRoleHierarchyLevel(userRole);
-    const hasPermission = allowedRoles.some(role => {
+    const hasPermission = allowedRoles.some((role) => {
       const requiredLevel = getRoleHierarchyLevel(role);
       return userLevel >= requiredLevel;
     });
@@ -261,7 +272,9 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
 };
 
 // Permission-based authorization middleware
-export const requirePermission = (permission: keyof ReturnType<typeof getRolePermissions>): RequestHandler => {
+export const requirePermission = (
+  permission: keyof ReturnType<typeof getRolePermissions>
+): RequestHandler => {
   return (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
@@ -269,7 +282,7 @@ export const requirePermission = (permission: keyof ReturnType<typeof getRolePer
 
     const user = req.user as User;
     const userRole = user.role as UserRole;
-    
+
     if (!userRole) {
       return res.status(403).json({ message: "No role assigned" });
     }
@@ -284,13 +297,42 @@ export const requirePermission = (permission: keyof ReturnType<typeof getRolePer
 };
 
 // Specific role middleware with hierarchy
-export const isAdmin: RequestHandler = requireRole(['moderator', 'ops_admin', 'super_admin', 'head_admin']);
-export const isHeadAdmin: RequestHandler = requireRole(['head_admin']);
-export const isSuperAdmin: RequestHandler = requireRole(['super_admin', 'head_admin']);
-export const isModerator: RequestHandler = requireRole(['moderator', 'ops_admin', 'super_admin', 'head_admin']);
-export const isStaff: RequestHandler = requireRole(['support_agent', 'content_moderator', 'territory_manager', 'contractor_success', 'content_seo', 'analytics_specialist', 'marketing_specialist', 'moderator', 'ops_admin', 'super_admin', 'head_admin']);
-export const isContractor: RequestHandler = requireRole(['contractor_user', 'accelerator_member']);
-export const isCommunityModerator: RequestHandler = requireRole(['community_moderator', 'community_leader', 'moderator', 'ops_admin', 'super_admin', 'head_admin']);
+export const isAdmin: RequestHandler = requireRole([
+  "moderator",
+  "ops_admin",
+  "super_admin",
+  "head_admin",
+]);
+export const isHeadAdmin: RequestHandler = requireRole(["head_admin"]);
+export const isSuperAdmin: RequestHandler = requireRole(["super_admin", "head_admin"]);
+export const isModerator: RequestHandler = requireRole([
+  "moderator",
+  "ops_admin",
+  "super_admin",
+  "head_admin",
+]);
+export const isStaff: RequestHandler = requireRole([
+  "support_agent",
+  "content_moderator",
+  "territory_manager",
+  "contractor_success",
+  "content_seo",
+  "analytics_specialist",
+  "marketing_specialist",
+  "moderator",
+  "ops_admin",
+  "super_admin",
+  "head_admin",
+]);
+export const isContractor: RequestHandler = requireRole(["contractor_user", "accelerator_member"]);
+export const isCommunityModerator: RequestHandler = requireRole([
+  "community_moderator",
+  "community_leader",
+  "moderator",
+  "ops_admin",
+  "super_admin",
+  "head_admin",
+]);
 
 // Password hashing utilities
 export async function hashPassword(password: string): Promise<string> {
@@ -308,26 +350,48 @@ export const requireAuth = (req: any, res: any, next: any) => {
   if (req.isAuthenticated()) {
     return next();
   }
-  res.status(401).json({ error: 'Authentication required' });
+  res.status(401).json({ error: "Authentication required" });
 };
 
 // Middleware to require admin role
 export const requireAdmin = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated() && req.user?.role === 'admin') {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const user = req.user || {};
+  const activeRole = typeof user.activeRole === "string" ? user.activeRole : "";
+  const primaryRole = typeof user.role === "string" ? user.role : "";
+  const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
+  const isAdminFlag = user.isAdmin === true;
+
+  const adminRoles = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+  const hasAdminRole =
+    adminRoles.has(activeRole) ||
+    adminRoles.has(primaryRole) ||
+    roles.some((role: string) => adminRoles.has(role));
+
+  if (isAdminFlag || hasAdminRole) {
     return next();
   }
-  res.status(403).json({ error: 'Admin access required' });
+
+  return res.status(403).json({ error: "Admin access required" });
 };
 
-export async function createMasterAdmin(email: string, password: string, firstName: string, lastName: string): Promise<User> {
+export async function createMasterAdmin(
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string
+): Promise<User> {
   const passwordHash = await hashPassword(password);
-  
+
   return storage.createUser({
     email,
     password: passwordHash,
     firstName,
     lastName,
-    role: 'head_admin',
+    role: "head_admin",
     emailVerified: true,
     addressVerified: true, // Master admin bypasses verification
     onboardingCompleted: true,

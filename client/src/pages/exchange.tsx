@@ -27,6 +27,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarClock,
+  Megaphone,
   Car,
   CheckCircle2,
   ChevronDown,
@@ -98,35 +99,20 @@ interface ExchangeItem {
   favorites: number;
 }
 
-interface ContractorPromo {
+interface ExchangePromotion {
   id: string;
-  contractorId: string;
+  slug: string;
   title: string;
   description: string;
   offerDetails: string;
-  discountType: "percentage" | "fixed_amount" | "free_service" | "bundle_deal";
-  discountValue: number;
-  minimumJobValue?: number;
-  promoCode?: string;
-  isActive: boolean;
-  maxUses?: number;
-  currentUses: number;
-  serviceAreas: string[];
-  tradeCategories: string[];
-  startsAt: string;
-  expiresAt?: string;
-  slug: string;
+  businessName: string;
+  promoCode?: string | null;
+  expiresAt?: string | null;
+  ctaUrl?: string | null;
+  ctaLabel?: string | null;
+  isFeatured?: boolean;
   viewCount: number;
-  clickCount: number;
   leadCount: number;
-  contractor: {
-    id: string;
-    name: string;
-    businessName: string;
-    rating: number;
-    verified: boolean;
-    phone: string;
-  };
 }
 
 interface CompanyPromotion {
@@ -260,6 +246,10 @@ export default function Exchange() {
   const [priceRange, setPriceRange] = useState("");
   const [conditionFilter, setConditionFilter] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [contactItem, setContactItem] = useState<ExchangeItem | null>(null);
+  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquiryOffer, setInquiryOffer] = useState("");
 
   // Sales section filters
   const [salesSearchQuery, setSalesSearchQuery] = useState("");
@@ -375,22 +365,89 @@ export default function Exchange() {
     },
   });
 
-  // Fetch contractor promotions
-  const { data: contractorPromos, isLoading: contractorPromosLoading } = useQuery<
-    ContractorPromo[]
+  // Fetch Exchange promotions (all business types)
+  const { data: exchangePromotions, isLoading: exchangePromotionsLoading } = useQuery<
+    ExchangePromotion[]
   >({
-    queryKey: ["/api/exchange/contractor-promos", salesSearchQuery, salesCategory, salesSortBy],
+    queryKey: ["/api/exchange/promotions", salesSearchQuery, salesSortBy, county],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (salesSearchQuery) params.append("search", salesSearchQuery);
-      if (salesCategory) params.append("category", salesCategory);
       if (salesSortBy) params.append("sort", salesSortBy);
+      if (county) params.append("county", county);
 
-      const response = await fetch(`/api/exchange/contractor-promos?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch contractor promotions");
+      const response = await fetch(`/api/exchange/promotions?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch promotions");
       return response.json();
     },
-    enabled: activeTab === "sales",
+    enabled: activeTab === "promotions",
+  });
+
+  // Favorites / watchlist
+  const { data: favorites = [] } = useQuery<any[]>({
+    queryKey: ["/api/marketplace/favorites"],
+    queryFn: async () => apiRequest("GET", "/api/marketplace/favorites"),
+    enabled: isAuthenticated,
+  });
+
+  const favoriteListingIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const favorite of favorites || []) {
+      const idCandidate =
+        favorite?.listingId ??
+        favorite?.listing_id ??
+        favorite?.marketplaceListingId ??
+        favorite?.marketplace_listing_id;
+      if (idCandidate) ids.add(String(idCandidate));
+    }
+    return ids;
+  }, [favorites]);
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async (payload: { listingId: string; wasSaved: boolean }) => {
+      if (payload.wasSaved) {
+        return apiRequest("DELETE", `/api/marketplace/favorites/${payload.listingId}`);
+      }
+      return apiRequest("POST", "/api/marketplace/favorites", { listingId: payload.listingId });
+    },
+    onSuccess: (_res, payload) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace/favorites"] });
+      toast({
+        title: payload.wasSaved ? "Removed from saved" : "Saved listing",
+        description: payload.wasSaved
+          ? "Listing removed from your watchlist."
+          : "Listing added to your watchlist.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not update saved listings",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const inquiryMutation = useMutation({
+    mutationFn: async (payload: { listingId: string; message: string; offerAmount?: number }) => {
+      return apiRequest("POST", "/api/marketplace/inquiries", payload);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Message sent",
+        description: "Your message was sent to the seller.",
+      });
+      setContactItem(null);
+      setInquiryMessage("");
+      setInquiryOffer("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not send message",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Fetch company promotions
@@ -420,10 +477,11 @@ export default function Exchange() {
         !searchQuery ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchesSearch;
+      const isSaved = favoriteListingIds.has(String(item.id));
+      const matchesSaved = !savedOnly || isSaved;
+      return matchesSearch && matchesSaved;
     });
-  }, [items, searchQuery]);
+  }, [items, searchQuery, savedOnly, favoriteListingIds]);
 
   const getCategoryIcon = (categoryId: string) => {
     const category = EXCHANGE_CATEGORIES.find((cat) => cat.id === categoryId);
@@ -493,21 +551,52 @@ export default function Exchange() {
   }, [route]);
 
   const hasLocationContext = countyCommitted;
+  const activeCategoryMeta = EXCHANGE_CATEGORIES.find((cat) => cat.id === selectedCategory);
+
+  const formatListedTime = (dateLike: string) => {
+    const ts = new Date(dateLike).getTime();
+    if (!Number.isFinite(ts)) return "";
+    const diffHours = Math.floor((Date.now() - ts) / (1000 * 60 * 60));
+    if (diffHours < 1) return "Just listed";
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays}d ago`;
+    return new Date(dateLike).toLocaleDateString();
+  };
 
   return (
     <CountyRequiredGate locationOverride={locationCtx as any}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Exchange</h1>
-          <p className="text-gray-300">
-            Local marketplace for properties, vehicles, businesses, equipment, and other big-ticket
-            deals. Use Direct Connect when you need to hire people or coordinate work; use Exchange
-            when you&apos;re buying or selling things.
-          </p>
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-7 py-5 sm:py-7">
+        <div className="mb-5 rounded-2xl border border-tsBorder bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 sm:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-orange-300">
+                Local Marketplace
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mt-1">Exchange</h1>
+              <p className="text-slate-300 mt-2 max-w-2xl text-sm sm:text-base">
+                Buy and sell locally with clear listings, real prices, and direct messaging.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400">Listings</p>
+                <p className="text-white font-semibold">{items?.length ?? 0}</p>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400">County</p>
+                <p className="text-white font-semibold">{county || "Not set"}</p>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400">Mode</p>
+                <p className="text-white font-semibold">Local-first</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-5 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[11px] sm:text-xs">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-5 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[11px] sm:text-xs">
             <TabsTrigger
               value="browse"
               className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
@@ -515,11 +604,18 @@ export default function Exchange() {
               Browse Items
             </TabsTrigger>
             <TabsTrigger
+              value="promotions"
+              className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            >
+              <Megaphone className="h-3 w-3 mr-1" />
+              <span>Promotions</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="sales"
               className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative"
             >
               <Tag className="h-3 w-3 mr-1" />
-              <span>Sales &amp; Deals</span>
+              <span>Store Sales</span>
               <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5">
                 HOT
               </Badge>
@@ -538,23 +634,28 @@ export default function Exchange() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="browse" className="space-y-6">
-            {/* Search and Filters */}
-            <Card className="bg-tsCard border-tsBorder">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <TabsContent value="browse" className="space-y-4">
+            <div className="grid grid-cols-1 xl:grid-cols-[280px,1fr] gap-4">
+              <Card className="bg-tsCard border-tsBorder h-fit xl:sticky xl:top-20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white text-base flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-orange-400" />
+                    Filters
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search local properties, vehicles, equipment, and more..."
+                      placeholder="Search items"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
+                      className="pl-10 bg-slate-800 border-slate-700 text-white"
                     />
                   </div>
 
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -568,7 +669,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                       <SelectValue placeholder="Price Range" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -582,7 +683,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                       <SelectValue placeholder="Condition" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -595,7 +696,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                       <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-tsBorder">
@@ -605,173 +706,248 @@ export default function Exchange() {
                       <SelectItem value="popular">Most Popular</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Items Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {isLoading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
-                    <div className="h-48 bg-slate-700 rounded-t-lg"></div>
-                    <CardContent className="p-4">
-                      <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                      <div className="h-6 bg-slate-700 rounded mb-2"></div>
-                      <div className="h-4 bg-slate-700 rounded w-1/2"></div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : filteredItems?.length > 0 ? (
-                filteredItems.map((item) => {
-                  const IconComponent = getCategoryIcon(item.category);
-                  return (
-                    <Card
-                      key={item.id}
-                      className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer"
+                  <Input
+                    placeholder="City or pickup area"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-slate-600 text-slate-200"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategory("");
+                        setPriceRange("");
+                        setConditionFilter("");
+                        setSortBy("newest");
+                        setLocationFilter("");
+                      }}
                     >
-                      <div className="relative">
-                        {item.images && item.images.length > 0 ? (
-                          <div className="h-48 bg-slate-900 rounded-t-lg overflow-hidden">
-                            <img
-                              src={item.images[0]}
-                              alt={item.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-48 bg-slate-700 rounded-t-lg flex items-center justify-center">
-                            <IconComponent className="h-12 w-12 text-slate-500" />
-                          </div>
-                        )}
-                        {item.featured && (
-                          <Badge className="absolute top-2 right-2 bg-orange-500">Featured</Badge>
-                        )}
-                        <Badge
-                          className={`absolute top-2 left-2 ${getConditionBadge(item.condition)}`}
+                      Reset
+                    </Button>
+                    <Button
+                      className="flex-1 bg-orange-500 hover:bg-orange-600"
+                      onClick={() => setActiveTab("sell")}
+                    >
+                      Sell
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-tsBorder bg-tsCard px-3 py-2">
+                  <div className="text-sm text-slate-200">
+                    <span className="font-semibold text-white">{filteredItems?.length ?? 0}</span>{" "}
+                    results
+                    {activeCategoryMeta ? (
+                      <span className="text-slate-400"> in {activeCategoryMeta.name}</span>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={savedOnly ? "default" : "outline"}
+                      className={
+                        savedOnly
+                          ? "h-7 bg-orange-500 hover:bg-orange-600 text-white"
+                          : "h-7 border-slate-600 text-slate-200"
+                      }
+                      onClick={() => setSavedOnly((prev) => !prev)}
+                    >
+                      <Heart className="h-3 w-3 mr-1" />
+                      {savedOnly ? "Saved only" : "All listings"}
+                    </Button>
+                    <div className="text-xs text-slate-400">Marketplace-style local board</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {isLoading ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
+                        <div className="aspect-square bg-slate-700 rounded-t-lg"></div>
+                        <CardContent className="p-3">
+                          <div className="h-4 bg-slate-700 rounded mb-2"></div>
+                          <div className="h-4 bg-slate-700 rounded mb-2"></div>
+                          <div className="h-3 bg-slate-700 rounded w-2/3"></div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : filteredItems?.length > 0 ? (
+                    filteredItems.map((item) => {
+                      const IconComponent = getCategoryIcon(item.category);
+                      return (
+                        <Card
+                          key={item.id}
+                          className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors overflow-hidden"
                         >
-                          {item.condition}
-                        </Badge>
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold text-white mb-1 line-clamp-1">{item.title}</h3>
-                        <p className="text-2xl font-bold text-orange-500 mb-2">
-                          {formatPrice(item.price)}
-                        </p>
-                        <p className="text-gray-300 text-sm mb-3 line-clamp-2">
-                          {item.description}
-                        </p>
-
-                        <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
-                          <div className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {item.location}
+                          <div className="relative">
+                            {item.images && item.images.length > 0 ? (
+                              <div className="aspect-square bg-slate-900 overflow-hidden">
+                                <img
+                                  src={item.images[0]}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                                />
+                              </div>
+                            ) : (
+                              <div className="aspect-square bg-slate-800 flex items-center justify-center">
+                                <IconComponent className="h-12 w-12 text-slate-500" />
+                              </div>
+                            )}
+                            {item.featured && (
+                              <Badge className="absolute top-2 right-2 bg-orange-500">
+                                Featured
+                              </Badge>
+                            )}
+                            <Badge
+                              className={`absolute top-2 left-2 ${getConditionBadge(item.condition)}`}
+                            >
+                              {item.condition}
+                            </Badge>
                           </div>
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center">
-                              <Eye className="h-3 w-3 mr-1" />
-                              {item.views}
-                            </div>
-                            <div className="flex items-center">
-                              <Heart className="h-3 w-3 mr-1" />
-                              {item.favorites}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-6 h-6 bg-slate-600 rounded-full flex items-center justify-center mr-2">
-                              <span className="text-xs text-white">{item.seller.name[0]}</span>
-                            </div>
-                            <div>
-                              <p className="text-xs text-white">{item.seller.name}</p>
+                          <CardContent className="p-3">
+                            <p className="text-lg sm:text-xl font-bold text-white mb-1">
+                              {formatPrice(item.price)}
+                            </p>
+                            <h3 className="font-semibold text-slate-100 mb-1 line-clamp-2 leading-tight text-sm">
+                              {item.title}
+                            </h3>
+                            <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                               <div className="flex items-center">
-                                <Star className="h-3 w-3 text-yellow-500 mr-1" />
-                                <span className="text-xs text-gray-400">{item.seller.rating}</span>
+                                <MapPin className="h-3 w-3 mr-1" />
+                                <span className="line-clamp-1">{item.location}</span>
+                              </div>
+                              <span>{formatListedTime(item.createdAt)}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex items-center">
+                                <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center mr-2">
+                                  <span className="text-[11px] text-white">
+                                    {item.seller.name[0]}
+                                  </span>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] text-slate-200 truncate">
+                                    {item.seller.name}
+                                  </p>
+                                  <div className="flex items-center text-[10px] text-slate-400">
+                                    <Star className="h-3 w-3 text-yellow-500 mr-1" />
+                                    <span>{item.seller.rating}</span>
+                                    {item.seller.verified ? (
+                                      <span className="ml-1 text-emerald-400">• verified</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className={`h-8 w-8 p-0 ${
+                                    favoriteListingIds.has(String(item.id))
+                                      ? "text-rose-400 hover:text-rose-300"
+                                      : "text-slate-300 hover:text-white"
+                                  }`}
+                                  onClick={() => {
+                                    if (!isAuthenticated) {
+                                      navigate("/login");
+                                      return;
+                                    }
+                                    const wasSaved = favoriteListingIds.has(String(item.id));
+                                    toggleFavoriteMutation.mutate({
+                                      listingId: String(item.id),
+                                      wasSaved,
+                                    });
+                                  }}
+                                >
+                                  <Heart
+                                    className={`h-3 w-3 ${
+                                      favoriteListingIds.has(String(item.id)) ? "fill-current" : ""
+                                    }`}
+                                  />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-slate-300 hover:text-white"
+                                  onClick={() =>
+                                    shareLink(
+                                      `/exchange?item=${encodeURIComponent(item.id)}`,
+                                      item.title || "Exchange listing",
+                                      item.description
+                                    )
+                                  }
+                                >
+                                  <Share2 className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-2.5 bg-orange-500 hover:bg-orange-600 text-xs"
+                                  onClick={() => {
+                                    if (!isAuthenticated) {
+                                      navigate("/login");
+                                      return;
+                                    }
+                                    setContactItem(item);
+                                    setInquiryMessage(
+                                      `Hi, is "${item.title}" still available? I'm interested.`
+                                    );
+                                  }}
+                                >
+                                  Message
+                                </Button>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-gray-300 hover:text-white"
-                              onClick={() =>
-                                shareLink(
-                                  `/exchange?item=${encodeURIComponent(item.id)}`,
-                                  item.title || "Exchange listing",
-                                  item.description
-                                )
-                              }
-                            >
-                              <Share2 className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              Contact
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              ) : (
-                <div className="col-span-full">
-                  <EmptyState
-                  icon={<Search />}
-                  title="No Items Found"
-                  description="Try adjusting your filters or check back later for new listings."
-                />
+
+                            <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-3">
+                              <span className="inline-flex items-center gap-1">
+                                <Eye className="h-3 w-3" />
+                                {item.views}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <Heart className="h-3 w-3" />
+                                {item.favorites}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full">
+                      <EmptyState
+                        icon={<Search />}
+                        title="No items found"
+                        description="Try broader filters or switch categories."
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="sales" className="space-y-6">
-            {/* Sales and Deals Search */}
+          <TabsContent value="promotions" className="space-y-6">
+            {/* Promotions Search */}
             <Card className="bg-tsCard border-tsBorder">
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search contractor promos and deals..."
+                      placeholder="Search promotions..."
                       value={salesSearchQuery}
                       onChange={(e) => setSalesSearchQuery(e.target.value)}
                       className="pl-10 bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
-
-                  <Select value={salesCategory} onValueChange={setSalesCategory}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-tsCard border-tsBorder">
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="tools">Tools & Hardware</SelectItem>
-                      <SelectItem value="lumber">Lumber & Materials</SelectItem>
-                      <SelectItem value="equipment">Equipment & Machinery</SelectItem>
-                      <SelectItem value="electrical">Electrical Supplies</SelectItem>
-                      <SelectItem value="plumbing">Plumbing Supplies</SelectItem>
-                      <SelectItem value="paint">Paint & Finishing</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={dealType} onValueChange={setDealType}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue placeholder="Deal Type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-tsCard border-tsBorder">
-                      <SelectItem value="all">All Deals</SelectItem>
-                      <SelectItem value="percentage_off">Percentage Off</SelectItem>
-                      <SelectItem value="dollar_off">Dollar Amount Off</SelectItem>
-                      <SelectItem value="bogo">Buy One Get One</SelectItem>
-                      <SelectItem value="clearance">Clearance</SelectItem>
-                      <SelectItem value="contractor_special">Contractor Special</SelectItem>
-                    </SelectContent>
-                  </Select>
 
                   <Select value={salesSortBy} onValueChange={setSalesSortBy}>
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
@@ -780,26 +956,29 @@ export default function Exchange() {
                     <SelectContent className="bg-tsCard border-tsBorder">
                       <SelectItem value="newest">Newest First</SelectItem>
                       <SelectItem value="ending_soon">Ending Soon</SelectItem>
-                      <SelectItem value="biggest_savings">Biggest Savings</SelectItem>
-                      <SelectItem value="most_popular">Most Popular</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Contractor Promotions Section */}
+            {/* Promotions Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-white flex items-center">
-                  <Wrench className="h-6 w-6 mr-2 text-orange-500" />
-                  Contractor Promotions
+                  <Megaphone className="h-6 w-6 mr-2 text-orange-500" />
+                  Promotions
                 </h2>
-                <Button className="bg-orange-500 hover:bg-orange-600">Post Your Promotion</Button>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={() => navigate("/promotions")}
+                >
+                  Create Promotion
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {contractorPromosLoading ? (
+                {exchangePromotionsLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
                       <CardContent className="p-6">
@@ -810,8 +989,8 @@ export default function Exchange() {
                       </CardContent>
                     </Card>
                   ))
-                ) : contractorPromos && contractorPromos.length > 0 ? (
-                  contractorPromos.map((promo) => (
+                ) : exchangePromotions && exchangePromotions.length > 0 ? (
+                  exchangePromotions.map((promo) => (
                     <Card
                       key={promo.id}
                       className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors"
@@ -820,23 +999,15 @@ export default function Exchange() {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center">
                             <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
-                              <Wrench className="h-6 w-6 text-white" />
+                              <Megaphone className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-white">
-                                {promo.contractor.businessName}
-                              </h3>
-                              <div className="flex items-center">
-                                <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                                <span className="text-sm text-gray-300">
-                                  {promo.contractor.rating}
-                                </span>
-                                {promo.contractor.verified && (
-                                  <Badge className="ml-2 bg-green-500/20 text-green-400 border-green-500/50 text-xs">
-                                    Verified
-                                  </Badge>
-                                )}
-                              </div>
+                              <h3 className="font-semibold text-white">{promo.businessName}</h3>
+                              {promo.isFeatured ? (
+                                <Badge className="mt-1 bg-orange-500/20 text-orange-300 border-orange-500/50 text-xs">
+                                  Featured
+                                </Badge>
+                              ) : null}
                             </div>
                           </div>
                           {promo.expiresAt && (
@@ -886,7 +1057,7 @@ export default function Exchange() {
                               className="text-gray-400 hover:text-white"
                               onClick={() =>
                                 shareLink(
-                                  `/exchange?tab=sales&promo=${encodeURIComponent(promo.slug || promo.id)}`,
+                                  `/exchange?tab=promotions&promo=${encodeURIComponent(promo.slug || promo.id)}`,
                                   promo.title,
                                   promo.description
                                 )
@@ -894,8 +1065,18 @@ export default function Exchange() {
                             >
                               <Share2 className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                              Contact Contractor
+                            <Button
+                              size="sm"
+                              className="bg-orange-500 hover:bg-orange-600"
+                              onClick={() => {
+                                if (promo.ctaUrl) {
+                                  window.open(promo.ctaUrl, "_blank", "noopener,noreferrer");
+                                  return;
+                                }
+                                navigate("/messages");
+                              }}
+                            >
+                              {promo.ctaLabel || "Contact Business"}
                             </Button>
                           </div>
                         </div>
@@ -904,22 +1085,82 @@ export default function Exchange() {
                   ))
                 ) : (
                   <div className="col-span-3 text-center py-12">
-                    <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400 mb-4">No contractor promotions found.</p>
+                    <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-400 mb-4">No promotions found.</p>
                     <Button className="bg-orange-500 hover:bg-orange-600">
-                      Post the First Promotion
+                      Create the first promotion
                     </Button>
                   </div>
                 )}
               </div>
             </div>
+          </TabsContent>
 
-            {/* Company Promotions Section */}
+          <TabsContent value="sales" className="space-y-6">
+            {/* Store Sales Search */}
+            <Card className="bg-tsCard border-tsBorder">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search store sales and deals..."
+                      value={salesSearchQuery}
+                      onChange={(e) => setSalesSearchQuery(e.target.value)}
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+
+                  <Select value={salesCategory} onValueChange={setSalesCategory}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-tsCard border-tsBorder">
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="tools">Tools & Hardware</SelectItem>
+                      <SelectItem value="lumber">Lumber & Materials</SelectItem>
+                      <SelectItem value="equipment">Equipment & Machinery</SelectItem>
+                      <SelectItem value="electrical">Electrical Supplies</SelectItem>
+                      <SelectItem value="plumbing">Plumbing Supplies</SelectItem>
+                      <SelectItem value="paint">Paint & Finishing</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={dealType} onValueChange={setDealType}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Deal Type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-tsCard border-tsBorder">
+                      <SelectItem value="all">All Deals</SelectItem>
+                      <SelectItem value="percentage_off">Percentage Off</SelectItem>
+                      <SelectItem value="dollar_off">Dollar Amount Off</SelectItem>
+                      <SelectItem value="bogo">Buy One Get One</SelectItem>
+                      <SelectItem value="clearance">Clearance</SelectItem>
+                      <SelectItem value="contractor_special">Business Special</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={salesSortBy} onValueChange={setSalesSortBy}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Sort By" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-tsCard border-tsBorder">
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="ending_soon">Ending Soon</SelectItem>
+                      <SelectItem value="biggest_savings">Biggest Savings</SelectItem>
+                      <SelectItem value="most_popular">Most Popular</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Store Sales Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-white flex items-center">
                   <Building className="h-6 w-6 mr-2 text-blue-500" />
-                  Store Sales & Promotions
+                  Store Sales & Deals
                 </h2>
                 <Button
                   variant="outline"
@@ -1398,6 +1639,86 @@ export default function Exchange() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog
+          open={Boolean(contactItem)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setContactItem(null);
+              setInquiryMessage("");
+              setInquiryOffer("");
+            }
+          }}
+        >
+          <DialogContent className="bg-tsCard border-tsBorder">
+            <DialogHeader>
+              <DialogTitle className="text-white">Message Seller</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
+                <p className="text-xs text-slate-400">Listing</p>
+                <p className="text-sm font-semibold text-white">{contactItem?.title || "Item"}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white">Message</Label>
+                <Textarea
+                  value={inquiryMessage}
+                  onChange={(e) => setInquiryMessage(e.target.value)}
+                  className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="Ask about condition, pickup time, payment, or availability..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white">Offer amount (optional)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={inquiryOffer}
+                  onChange={(e) => setInquiryOffer(e.target.value)}
+                  className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="Example: 2200"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="border-slate-600 text-slate-200"
+                  onClick={() => {
+                    setContactItem(null);
+                    setInquiryMessage("");
+                    setInquiryOffer("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  disabled={
+                    inquiryMutation.isPending ||
+                    !contactItem?.id ||
+                    inquiryMessage.trim().length < 4
+                  }
+                  onClick={() => {
+                    if (!contactItem?.id) return;
+                    const offerValue = Number(inquiryOffer);
+                    inquiryMutation.mutate({
+                      listingId: String(contactItem.id),
+                      message: inquiryMessage.trim(),
+                      offerAmount:
+                        Number.isFinite(offerValue) && offerValue > 0 ? offerValue : undefined,
+                    });
+                  }}
+                >
+                  {inquiryMutation.isPending ? "Sending..." : "Send Message"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </CountyRequiredGate>
   );

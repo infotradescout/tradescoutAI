@@ -1001,25 +1001,25 @@ export default function ScoutOS() {
           const helpLink = getHelpLink("directConnect");
 
           const bodyLines: string[] = [
-            "Direct Connect waits until your request details are complete so local pros get clear, serious requests.",
+            "Direct Connect only shares requests when the core details are complete so local pros get clear, serious work posts.",
             "",
-            "Right now your request is still in setup. It is saved on your board, but not shared with providers yet.",
+            "Your request is currently saved as a draft and has not been shared yet.",
             "",
             "What to do next:",
             "- Open My requests and finish the basics (job type, location, budget).",
-            "- If sharing is blocked, add a trade and county so Scout can match local providers.",
-            "- If this request is no longer needed, cancel it and start fresh later.",
+            "- If sharing is blocked, add a trade and county so Scout can find local matches.",
+            "- If you no longer need it, cancel it and reopen later when ready.",
           ];
 
           const routingClusters: ScoutCluster[] = [
             {
               id: "direct-connect-routing-explainer",
-              title: "How Direct Connect works",
+              title: "Why your request is still in draft",
               kind: "generic",
               body: bodyLines.join("\n"),
               primaryAction: {
                 type: "NAVIGATE",
-                label: "See how matching works",
+                label: "Open Direct Connect guide",
                 to: helpLink,
               },
             },
@@ -1029,7 +1029,7 @@ export default function ScoutOS() {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
             content:
-              "Direct Connect shares your request after the key details are in place, so the right providers can respond.",
+              "Your request will be shared once the key details are complete so the right local providers can respond.",
             timestamp: new Date().toISOString(),
             clusters: routingClusters,
             navTarget: helpLink,

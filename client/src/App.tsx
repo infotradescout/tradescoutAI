@@ -134,7 +134,6 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
-const AdminObservability = React.lazy(() => import("./pages/admin-observability"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
 
 // Marketplace & Social
@@ -821,7 +820,7 @@ const AppLayout = memo(function AppLayout() {
                   {/* Admin Observability Dashboard (Phase 2) */}
                   <Route path="/admin-observability">
                     <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminObservability} />
+                      <RedirectTo to="/admin/observability" />
                     </ProtectedRoute>
                   </Route>
 
@@ -1108,7 +1107,9 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={ApplicationTracker} />
                   </Route>
                   <Route path="/administrative-dashboard">
-                    <LazyPage Component={AdministrativeDashboard} />
+                    <ProtectedRoute adminOnly>
+                      <RedirectTo to="/admin" />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/advanced-search">
                     <RedirectTo to="/direct-connect" />
