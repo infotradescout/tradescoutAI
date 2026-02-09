@@ -4,21 +4,11 @@ import type { ScoutMessage, ScoutAction } from "./state";
 import type { RecentActivityEvent } from "../agent/activity";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 
-const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE as
-  | string
-  | undefined;
+const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE as string | undefined;
 
-function isLocalHost() {
-  if (typeof window === "undefined") return false;
-  const hn = window.location.hostname;
-  return hn === "localhost" || hn === "127.0.0.1" || hn === "0.0.0.0";
-}
-
-export const apiBase =
-  apiBaseEnv ||
-  (isLocalHost()
-    ? "/api"
-    : "https://www.thetradescout.com/api");
+// Default to same-origin API so auth/session cookies always line up with the current host.
+// Set VITE_SCOUT_API_BASE only when intentionally targeting a different API origin.
+export const apiBase = apiBaseEnv || "/api";
 
 export interface ScoutLocality {
   county?: string;
@@ -28,12 +18,7 @@ export interface ScoutLocality {
   lng?: number;
 }
 
-export type ScoutMode =
-  | "default"
-  | "mealscout"
-  | "marketplace"
-  | "contractors"
-  | "admin";
+export type ScoutMode = "default" | "mealscout" | "marketplace" | "contractors" | "admin";
 
 export type KnowledgeMode = "local-first" | "kb-only" | "web-fallback";
 
@@ -52,7 +37,7 @@ export interface SendToScoutOptions {
   onboarding?: boolean;
   sessionId?: string;
   onboardingAnswer?: string;
-  onboardingQuestionKey?: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  onboardingQuestionKey?: "Q1" | "Q2" | "Q3" | "Q4";
 }
 
 export interface SponsoredResult {
@@ -108,8 +93,8 @@ export interface ScoutBackendResponse {
     contextType?: string;
     contextId?: string | null;
   };
-   frame?: ScoutResponseFrame;
-   workingContext?: ScoutWorkingContext;
+  frame?: ScoutResponseFrame;
+  workingContext?: ScoutWorkingContext;
   sponsored?: SponsoredResult | null;
   publicEntities?: Array<{
     type: "trade_deal" | "community_post";
@@ -172,9 +157,7 @@ function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutM
   if (
     rolesArray.some(
       (r) =>
-        r.startsWith("contractor") ||
-        r === "service_provider" ||
-        r === "specialty_tradesperson"
+        r.startsWith("contractor") || r === "service_provider" || r === "specialty_tradesperson"
     )
   ) {
     return "contractors";
@@ -190,9 +173,7 @@ function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutM
 }
 
 // Aligns with server/routes/scout.ts -> interface ScoutRequest
-export async function sendToScout(
-  options: SendToScoutOptions
-): Promise<ScoutBackendResponse> {
+export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBackendResponse> {
   const mode: ScoutMode =
     options.mode ?? inferModeFromMessageAndRoles(options.message, options.roles);
 
@@ -200,8 +181,8 @@ export async function sendToScout(
     options.locality?.county && options.locality?.state
       ? `${sanitizeAreaLabel(options.locality.county)}, ${options.locality.state}`
       : options.locality?.county
-      ? sanitizeAreaLabel(options.locality.county)
-      : undefined;
+        ? sanitizeAreaLabel(options.locality.county)
+        : undefined;
 
   const stateCode = options.locality?.state;
 
@@ -223,7 +204,9 @@ export async function sendToScout(
     ...(options.onboarding !== undefined && { onboarding: options.onboarding }),
     ...(options.sessionId !== undefined && { sessionId: options.sessionId }),
     ...(options.onboardingAnswer !== undefined && { onboardingAnswer: options.onboardingAnswer }),
-    ...(options.onboardingQuestionKey !== undefined && { onboardingQuestionKey: options.onboardingQuestionKey }),
+    ...(options.onboardingQuestionKey !== undefined && {
+      onboardingQuestionKey: options.onboardingQuestionKey,
+    }),
   };
 
   const res = await fetch(`${apiBase}/scout`, {
@@ -259,7 +242,7 @@ export async function fetchTrending(locality?: ScoutLocality) {
   // grounded in real community posts.
   params.set("limit", "12");
 
-  const res = await fetch(`${apiBase}/community/trending?${params.toString()}` , {
+  const res = await fetch(`${apiBase}/community/trending?${params.toString()}`, {
     cache: "no-store",
   });
 
@@ -339,7 +322,8 @@ export async function searchMarketplace(params: MarketplaceSearchParams) {
   if (params.condition) u.searchParams.set("condition", params.condition);
   if (params.verifiedOnly != null) u.searchParams.set("verifiedOnly", String(params.verifiedOnly));
   if (params.freeShipping != null) u.searchParams.set("freeShipping", String(params.freeShipping));
-  if (params.buyerProtection != null) u.searchParams.set("buyerProtection", String(params.buyerProtection));
+  if (params.buyerProtection != null)
+    u.searchParams.set("buyerProtection", String(params.buyerProtection));
   if (params.sortBy) u.searchParams.set("sortBy", params.sortBy);
 
   const res = await fetch(u.toString(), { credentials: "include" });
@@ -374,4 +358,3 @@ export async function logScoutInsight(payload: ScoutInsightPayload) {
     // Logging failures should never break the UI
   }
 }
-
