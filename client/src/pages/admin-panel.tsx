@@ -382,60 +382,6 @@ export default function AdminPanel() {
   return (
     <div className="space-y-6">
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList
-          className="grid w-full grid-cols-12"
-          style={{ backgroundColor: "var(--surface-frame)" }}
-        >
-          <TabsTrigger value="heatmap" className="flex items-center gap-2">
-            <Map className="w-4 h-4" />
-            User Heatmap
-          </TabsTrigger>
-          <TabsTrigger value="prizes" className="flex items-center gap-2">
-            <Gift className="w-4 h-4" />
-            Prizes
-          </TabsTrigger>
-          <TabsTrigger value="advertisements" className="flex items-center gap-2">
-            <Megaphone className="w-4 h-4" />
-            Ads
-          </TabsTrigger>
-          <TabsTrigger value="site-settings" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Site Settings
-          </TabsTrigger>
-          <TabsTrigger value="contractor-settings" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Contractor Settings
-          </TabsTrigger>
-          <TabsTrigger value="monitoring" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            AI Monitoring
-          </TabsTrigger>
-          <TabsTrigger value="notification-ops" className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Notification Ops
-          </TabsTrigger>
-          <TabsTrigger value="error-reports" className="flex items-center gap-2">
-            <Bug className="w-4 h-4" />
-            Error Reports
-          </TabsTrigger>
-          <TabsTrigger value="ai-fixes" className="flex items-center gap-2">
-            <Bot className="w-4 h-4" />
-            AI Fixes
-          </TabsTrigger>
-          <TabsTrigger value="pricing" className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
-            Pricing Analytics
-          </TabsTrigger>
-          <TabsTrigger value="finance" className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
-            Finance
-          </TabsTrigger>
-          <TabsTrigger value="llm-admin" className="flex items-center gap-2">
-            <Upload className="w-4 h-4" />
-            LLM Admin
-          </TabsTrigger>
-        </TabsList>
-
         <TabsContent value="heatmap" className="space-y-4">
           <UserHeatmap />
         </TabsContent>

@@ -24,7 +24,6 @@ import { FinanceLedgerPanel } from "@/components/admin/FinanceLedgerPanel";
 import { UIMonitoringDashboard } from "@/components/admin/UIMonitoringDashboard";
 import { AICodeFixingDashboard } from "@/components/admin/AICodeFixingDashboard";
 import { AdminPanelContent } from "@/pages/admin-panel";
-import { AdminWorkspaceContent } from "@/pages/admin-workspace";
 import AdminGeoCoverageConsole from "@/pages/admin-geo-coverage";
 import AdminUserManagement from "@/pages/AdminUserManagement";
 import AdminProfessionalVerification from "@/pages/admin-professional-verification";
@@ -34,6 +33,7 @@ import AdminControl from "@/pages/admin-control";
 import PlatformAnalytics from "@/pages/platform-analytics";
 import ContentModeration from "@/pages/content-moderation";
 import AdminObservability from "@/pages/admin-observability";
+import { RoleImpersonation } from "@/components/admin/RoleImpersonation";
 
 type AdminHealthResponse = {
   ok: boolean;
@@ -121,11 +121,7 @@ function AdminContentRouter() {
   }
 
   if (subPath === "/impersonate") {
-    // Deep-link into the admin workspace, which already hosts
-    // the RoleImpersonation tool. We keep all logic in the
-    // existing workspace component and only route from the
-    // Super Admin OS shell.
-    return <AdminWorkspaceContent />;
+    return <AdminImpersonationHub />;
   }
 
   if (subPath === "/errors" || subPath === "/error-reports") {
@@ -176,7 +172,7 @@ function AdminContentRouter() {
   }
 
   if (subPath === "/workspace") {
-    return <AdminWorkspaceContent />;
+    return <AdminControl />;
   }
 
   if (subPath === "/attachments") {
@@ -427,6 +423,25 @@ function UnknownAdminRoute() {
             Go to Super Admin dashboard
           </Button>
         </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AdminImpersonationHub() {
+  return (
+    <Card className="bg-slate-950/60 border-slate-800">
+      <CardHeader>
+        <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
+          <UsersIcon className="h-4 w-4 text-scout-500" />
+          Role Impersonation
+        </CardTitle>
+        <CardDescription className="text-xs text-slate-400">
+          Test user-facing experiences safely from a single admin control surface.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <RoleImpersonation />
       </CardContent>
     </Card>
   );

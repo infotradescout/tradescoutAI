@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, TestTube2, ToggleLeft, Layers } from "lucide-react";
@@ -124,33 +123,35 @@ export default function AdminControl() {
         </Card>
       </div>
 
-      <Tabs defaultValue="governance" className="space-y-4">
-        <TabsList className="bg-slate-800 border border-slate-700">
-          <TabsTrigger value="governance">Governance</TabsTrigger>
-          <TabsTrigger value="testing">Testing</TabsTrigger>
-          <TabsTrigger value="features">Feature Flags</TabsTrigger>
-        </TabsList>
+      <Card className="bg-slate-900 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-slate-100">Authority Governance</CardTitle>
+          <CardDescription>Canonical authority controls and diagnostics.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AuthorityOperations />
+        </CardContent>
+      </Card>
 
-        <TabsContent value="governance" className="space-y-4">
-          <Card className="bg-slate-900 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-slate-100">Authority Governance</CardTitle>
-              <CardDescription>Canonical authority controls and diagnostics.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AuthorityOperations />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="testing" className="space-y-4">
+      <Card className="bg-slate-900 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-slate-100">Testing Controls</CardTitle>
+          <CardDescription>System diagnostics and test-mode controls.</CardDescription>
+        </CardHeader>
+        <CardContent>
           <AdminTestingControls />
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="features" className="space-y-4">
+      <Card className="bg-slate-900 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-slate-100">Feature Flags</CardTitle>
+          <CardDescription>Platform capability toggles and rollout controls.</CardDescription>
+        </CardHeader>
+        <CardContent>
           <FeatureTogglePanel />
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

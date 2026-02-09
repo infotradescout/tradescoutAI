@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   User,
@@ -12,17 +12,9 @@ import {
   LogOut,
   StickyNote,
   Shield,
-  Users,
-  FileText,
-  ListChecks,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { openFloatingNote } from "@/lib/floatingNotes";
-import {
-  buildAdminTools,
-  SUPER_ADMIN_ROLES,
-  type AdminToolLink,
-} from "@/components/admin/AdminPageToolsBar";
 
 type NavLinkProps = {
   href: string;
@@ -76,70 +68,10 @@ type RightToolsPanelProps = {
   onNavigate?: () => void;
 };
 
-const ActionButton = ({
-  icon,
-  label,
-  description,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  description?: string;
-  onClick: () => void;
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="w-full text-left flex flex-col gap-1 rounded-xl transition-colors focus:outline-none focus-visible:outline-none"
-    style={{
-      borderColor: "var(--border-primary)",
-      backgroundColor: "var(--surface-intermediate)",
-    }}
-    onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
-    }}
-    onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
-    }}
-  >
-    <div className="px-3 py-2 flex items-center gap-2">
-      <span
-        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border"
-        style={{
-          backgroundColor: "var(--surface-intermediate)",
-          borderColor: "var(--border-primary)",
-          color: "var(--text-primary)",
-        }}
-      >
-        {icon}
-      </span>
-      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-        {label}
-      </span>
-    </div>
-    {description && (
-      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: "var(--text-secondary)" }}>
-        {description}
-      </p>
-    )}
-  </button>
-);
-
 export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
   const { user, isAuthenticated } = useAuth();
   const logout = useLogout();
-  const [path, navigate] = useLocation();
-
-  const isSuperAdmin = !!(
-    isAuthenticated &&
-    ((user as any)?.isSuperAdmin === true ||
-      (user?.role && SUPER_ADMIN_ROLES.includes(user.role as (typeof SUPER_ADMIN_ROLES)[number])))
-  );
-
-  const adminTools = useMemo<AdminToolLink[]>(() => {
-    if (!isSuperAdmin) return [];
-    return buildAdminTools(path || "");
-  }, [isSuperAdmin, path]);
+  const [, navigate] = useLocation();
 
   const displayName = (user as any)?.firstName || (user as any)?.name || "Guest";
 
@@ -306,81 +238,6 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             />
           </div>
         </section>
-
-        {/* Admin tools (super admin only) */}
-        {isSuperAdmin && adminTools.length > 0 && (
-          <section>
-            <div
-              className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              Admin tools
-            </div>
-            <div className="space-y-2">
-              {adminTools.map((tool) => {
-                const icon = (
-                  <>
-                    {tool.id === "messages" && (
-                      <MessageCircle
-                        className="h-3.5 w-3.5"
-                        style={{ color: "var(--theme-accent-primary)" }}
-                      />
-                    )}
-                    {tool.id === "admin-dashboard" && (
-                      <LayoutDashboard
-                        className="h-3.5 w-3.5"
-                        style={{ color: "var(--theme-accent-primary)" }}
-                      />
-                    )}
-                    {tool.id === "admin-panel" && (
-                      <Settings
-                        className="h-3.5 w-3.5"
-                        style={{ color: "var(--theme-accent-primary)" }}
-                      />
-                    )}
-                    {tool.id === "admin-users" && (
-                      <Users
-                        className="h-3.5 w-3.5"
-                        style={{ color: "var(--theme-accent-primary)" }}
-                      />
-                    )}
-                    {tool.id === "listings-admin" && (
-                      <ListChecks
-                        className="h-3.5 w-3.5"
-                        style={{ color: "var(--theme-accent-primary)" }}
-                      />
-                    )}
-                    {![
-                      "messages",
-                      "admin-dashboard",
-                      "admin-panel",
-                      "admin-users",
-                      "listings-admin",
-                    ].includes(tool.id) && (
-                      <Shield
-                        className="h-3.5 w-3.5"
-                        style={{ color: "var(--theme-accent-primary)" }}
-                      />
-                    )}
-                  </>
-                );
-
-                return (
-                  <ActionButton
-                    key={tool.id}
-                    icon={icon}
-                    label={tool.label}
-                    description={tool.description}
-                    onClick={() => {
-                      onNavigate?.();
-                      navigate(tool.href);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         {/* Notes */}
         <section>
