@@ -497,7 +497,7 @@ export default function PaymentHistory() {
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   Select a date range to generate and download receipts for your transactions.
                 </p>
-                <Button disabled>Coming Soon</Button>
+                <Button disabled>Receipt export not enabled yet</Button>
               </div>
             </CardContent>
           </Card>

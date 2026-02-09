@@ -305,7 +305,8 @@ export default function RealtorAppointments() {
                 <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Calendar View</h3>
                 <p className="text-muted-foreground mb-6">
-                  Full calendar view with Google Calendar and Outlook sync coming soon
+                  Calendar sync is not enabled yet. Use the appointment list to track status, dates,
+                  and next actions.
                 </p>
                 <Button variant="outline" data-testid="button-setup-calendar">
                   <Calendar className="h-4 w-4 mr-2" />

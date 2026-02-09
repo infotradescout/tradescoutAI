@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -27,6 +29,24 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: HTTP semantics guard (4xx vs 5xx)
+        run: npm run audit:http-semantics
+
+      - name: Authority gate guard (intent-gated contact only)
+        run: npm run audit:authority-gates
+
+      - name: Observability baseline guard
+        run: npm run audit:observability-baselines
+
+      - name: Trust leak guard (no stub copy in live UI)
+        run: npm run audit:trust-leaks
+
+      - name: Production debt guard
+        run: npm run audit:production-debt
+
+      - name: Secrets history guard
+        run: npm run audit:secrets-history
 
       - name: Validate required test env
         run: |

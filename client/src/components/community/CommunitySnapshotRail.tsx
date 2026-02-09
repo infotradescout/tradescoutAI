@@ -156,15 +156,15 @@ export const CommunitySnapshotRail: React.FC<{
         // Add TradeDeal cards first
         composedCards.push(...dealCards);
 
-        // If no deals, add placeholder cards indicating deals are coming soon
+        // If no deals, add fallback cards that reflect the real current state.
         if (dealCards.length === 0) {
           composedCards.push(
             {
               id: "deals-coming-soon-1",
               type: "starter_invitation",
-              title: "TradeDeals Coming Soon",
-              description: "Exclusive offers from verified partners will appear here",
-              label: "Coming Soon",
+              title: "No active TradeDeals yet",
+              description: "This county has no active verified TradeDeals right now",
+              label: "No Active Deals",
               icon: "sparkles",
               gradient: "from-orange-950 via-slate-900 to-slate-950",
               href: "/trade-deals",
@@ -172,9 +172,9 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "deals-coming-soon-2",
               type: "starter_invitation",
-              title: "Partner Network Growing",
-              description: "We're building relationships with local suppliers and manufacturers",
-              label: "In Progress",
+              title: "Invite local suppliers",
+              description: "Use Scout to nominate verified suppliers you want to see here",
+              label: "Take Action",
               icon: "zap",
               gradient: "from-slate-900 via-slate-900 to-slate-950",
               href: "/trade-deals",

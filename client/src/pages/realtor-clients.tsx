@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Users, 
-  Search, 
-  Phone, 
+import {
+  Users,
+  Search,
+  Phone,
   Mail,
   MapPin,
   Home,
@@ -15,7 +15,7 @@ import {
   Calendar,
   Plus,
   Eye,
-  Edit
+  Edit,
 } from "lucide-react";
 
 export default function RealtorClients() {
@@ -32,41 +32,46 @@ export default function RealtorClients() {
       location: "Downtown Area",
       status: "Active Search",
       properties: 8,
-      lastContact: "2 days ago"
+      lastContact: "2 days ago",
     },
     {
       id: 2,
       name: "David Chen",
-      email: "dchen@email.com", 
+      email: "dchen@email.com",
       phone: "(555) 234-5678",
       type: "Seller",
       listingPrice: "$725,000",
       location: "Riverside District",
       status: "Market Ready",
       properties: 1,
-      lastContact: "1 day ago"
+      lastContact: "1 day ago",
     },
     {
       id: 3,
       name: "Amanda Foster",
       email: "afoster@email.com",
-      phone: "(555) 345-6789", 
+      phone: "(555) 345-6789",
       type: "Buyer",
       budget: "$300,000 - $400,000",
       location: "Suburban Area",
       status: "Under Contract",
       properties: 12,
-      lastContact: "3 hours ago"
-    }
+      lastContact: "3 hours ago",
+    },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Active Search": return "bg-blue-600";
-      case "Market Ready": return "bg-green-600";
-      case "Under Contract": return "bg-orange-600";
-      case "Closed": return "bg-gray-600";
-      default: return "bg-gray-600";
+      case "Active Search":
+        return "bg-blue-600";
+      case "Market Ready":
+        return "bg-green-600";
+      case "Under Contract":
+        return "bg-orange-600";
+      case "Closed":
+        return "bg-gray-600";
+      default:
+        return "bg-gray-600";
     }
   };
 
@@ -88,7 +93,7 @@ export default function RealtorClients() {
                 <p className="text-gray-400">Manage your buyers, sellers, and prospects</p>
               </div>
             </div>
-            
+
             <Button className="bg-green-600 hover:bg-green-700" data-testid="button-add-client">
               <Plus className="h-4 w-4 mr-2" />
               Add New Client
@@ -107,7 +112,11 @@ export default function RealtorClients() {
                 data-testid="input-search-clients"
               />
             </div>
-            <Button variant="outline" className="border-navy-600" data-testid="button-filter-clients">
+            <Button
+              variant="outline"
+              className="border-navy-600"
+              data-testid="button-filter-clients"
+            >
               Filter
             </Button>
           </div>
@@ -128,16 +137,14 @@ export default function RealtorClients() {
                         <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
                           {getTypeIcon(client.type)}
                         </div>
-                        
+
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-lg">{client.name}</h3>
                             <Badge className="bg-blue-600">{client.type}</Badge>
-                            <Badge className={getStatusColor(client.status)}>
-                              {client.status}
-                            </Badge>
+                            <Badge className={getStatusColor(client.status)}>{client.status}</Badge>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                             <div className="flex items-center gap-2 text-gray-400">
                               <Mail className="h-4 w-4" />
@@ -179,11 +186,24 @@ export default function RealtorClients() {
                           <Eye className="h-4 w-4 mr-2" />
                           View
                         </Button>
-                        <Button size="sm" variant="outline" data-testid="button-contact-client">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          data-testid="button-start-direct-connect-client"
+                          onClick={() => {
+                            window.location.href = `/direct-connect?intent=follow_up&source=realtor_clients&target=${encodeURIComponent(
+                              client.name
+                            )}`;
+                          }}
+                        >
                           <Phone className="h-4 w-4 mr-2" />
-                          Contact
+                          Start Direct Connect
                         </Button>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700" data-testid="button-schedule-showing">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          data-testid="button-schedule-showing"
+                        >
                           <Calendar className="h-4 w-4 mr-2" />
                           Schedule
                         </Button>
@@ -200,7 +220,10 @@ export default function RealtorClients() {
                   <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Prospects Yet</h3>
                   <p className="text-gray-400 mb-6">Potential clients will appear here</p>
-                  <Button className="bg-green-600 hover:bg-green-700" data-testid="button-add-prospect">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    data-testid="button-add-prospect"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Prospect
                   </Button>

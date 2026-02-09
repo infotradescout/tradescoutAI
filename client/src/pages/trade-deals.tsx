@@ -87,7 +87,7 @@ export default function TradeDealsPage() {
           </Card>
         </section>
 
-        {/* Featured & project-based sections – static placeholders wired for future data */}
+        {/* Featured and project sections use static examples until county deal ingestion is live. */}
         <section className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
             <div>

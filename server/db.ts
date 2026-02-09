@@ -1,18 +1,15 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import * as schema from "@shared/schema";
 import { emitPoolMetrics } from "./observability/metrics";
+import { recomputeBaselinesFromObservedData } from "./observability/alerts";
 
 neonConfig.webSocketConstructor = ws;
 
-const isTestEnv =
-  process.env.NODE_ENV === "test" ||
-  Boolean(process.env.VITEST_WORKER_ID);
+const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
 
-const connectionString = isTestEnv
-  ? process.env.TEST_DATABASE_URL
-  : process.env.DATABASE_URL;
+const connectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
 
 type DbType = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -60,6 +57,17 @@ if (!connectionString) {
       console.error("Failed to emit pool metrics:", error);
     }
   }, 60_000); // Every 60 seconds
+
+  const OBS_BASELINE_RECOMPUTE_MS = Number(process.env.OBS_BASELINE_RECOMPUTE_MS || 15 * 60 * 1000);
+  // Recompute observability baselines on a fixed cadence from real observed metrics.
+  setInterval(() => {
+    try {
+      recomputeBaselinesFromObservedData();
+    } catch (error) {
+      // Silent failure: never crash on baseline recompute
+      console.error("Failed to recompute observability baselines:", error);
+    }
+  }, OBS_BASELINE_RECOMPUTE_MS);
 
   // Evaluate alerts every 15 seconds (Phase 3)
   const { evaluateAlerts } = await import("./observability/alerts");

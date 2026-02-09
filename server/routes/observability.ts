@@ -18,6 +18,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { events } from "../../shared/schema";
 import { storage } from "../storage";
+import { isAuthenticated, isAdmin } from "../auth";
 import {
   getJobMetrics,
   getPoolMetrics,
@@ -29,10 +30,13 @@ import {
   getAlertHistory,
   BASELINES,
   updateBaselines,
+  getBaselinesSnapshot,
+  recomputeBaselinesFromObservedData,
 } from "../observability/alerts";
 import { sendInternalServerError } from "../utils/httpErrors";
 
 export const observabilityRouter = Router();
+observabilityRouter.use(isAuthenticated, isAdmin);
 
 /**
  * GET /api/admin/observability/summary
@@ -47,15 +51,14 @@ observabilityRouter.get("/summary", (req, res) => {
       const totalRuns = metrics.length;
       const errorCount = metrics.filter((m) => m.error).length;
       const overlapCount = metrics.filter((m) => m.overlap).length;
-      
+
       const rowsWritten = metrics
         .filter((m) => m.rowsWritten !== undefined)
         .map((m) => m.rowsWritten!);
-      
-      const avgRows = rowsWritten.length > 0
-        ? rowsWritten.reduce((a, b) => a + b, 0) / rowsWritten.length
-        : 0;
-      
+
+      const avgRows =
+        rowsWritten.length > 0 ? rowsWritten.reduce((a, b) => a + b, 0) / rowsWritten.length : 0;
+
       const minRows = rowsWritten.length > 0 ? Math.min(...rowsWritten) : 0;
       const maxRows = rowsWritten.length > 0 ? Math.max(...rowsWritten) : 0;
 
@@ -129,7 +132,7 @@ observabilityRouter.get("/jobs/:jobName", (req, res) => {
 observabilityRouter.get("/pool", (req, res) => {
   try {
     const poolMetrics = getPoolMetrics();
-    
+
     res.json({
       current: poolMetrics[poolMetrics.length - 1] || null,
       history: poolMetrics.slice(-100), // Last 100 snapshots
@@ -202,7 +205,7 @@ observabilityRouter.get("/alerts", (req, res) => {
  */
 observabilityRouter.get("/baselines", (req, res) => {
   try {
-    res.json(BASELINES);
+    res.json(getBaselinesSnapshot());
   } catch (error) {
     console.error("Baseline query failed:", error);
     sendInternalServerError(res, "Failed to fetch baselines", { error: String(error) });
@@ -221,6 +224,23 @@ observabilityRouter.post("/baselines", (req, res) => {
   } catch (error) {
     console.error("Baseline update failed:", error);
     sendInternalServerError(res, "Failed to update baselines", { error: String(error) });
+  }
+});
+
+/**
+ * POST /api/admin/observability/baselines/recompute
+ * Recompute baselines from observed in-memory metrics.
+ */
+observabilityRouter.post("/baselines/recompute", (req, res) => {
+  try {
+    const snapshot = recomputeBaselinesFromObservedData();
+    res.json({
+      message: "Baselines recomputed from observed data",
+      ...snapshot,
+    });
+  } catch (error) {
+    console.error("Baseline recompute failed:", error);
+    sendInternalServerError(res, "Failed to recompute baselines", { error: String(error) });
   }
 });
 
@@ -263,6 +283,8 @@ observabilityRouter.get("/scout-policy", async (req, res) => {
     });
   } catch (error) {
     console.error("Scout policy telemetry query failed:", error);
-    sendInternalServerError(res, "Failed to fetch scout policy telemetry", { error: String(error) });
+    sendInternalServerError(res, "Failed to fetch scout policy telemetry", {
+      error: String(error),
+    });
   }
 });

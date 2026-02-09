@@ -4,18 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Users, 
-  Search, 
-  Phone, 
-  Mail, 
+import {
+  Users,
+  Search,
+  Phone,
+  Mail,
   Star,
   Calendar,
   DollarSign,
   Car,
   Filter,
   Plus,
-  Eye
+  Eye,
 } from "lucide-react";
 
 export default function CarSalesCustomers() {
@@ -32,19 +32,19 @@ export default function CarSalesCustomers() {
       budget: "$25,000 - $30,000",
       lastContact: "2 days ago",
       rating: 4.5,
-      notes: "Very interested, needs financing options"
+      notes: "Very interested, needs financing options",
     },
     {
       id: 2,
       name: "Mike Chen",
-      email: "mchen@email.com", 
+      email: "mchen@email.com",
       phone: "(555) 234-5678",
       status: "Hot Lead",
       interest: "2024 Toyota Camry",
       budget: "$35,000+",
       lastContact: "1 hour ago",
       rating: 5.0,
-      notes: "Ready to purchase this week"
+      notes: "Ready to purchase this week",
     },
     {
       id: 3,
@@ -54,10 +54,10 @@ export default function CarSalesCustomers() {
       status: "Follow Up",
       interest: "Used SUV",
       budget: "$20,000 - $25,000",
-      lastContact: "1 week ago", 
+      lastContact: "1 week ago",
       rating: 3.5,
-      notes: "Needs more time to decide"
-    }
+      notes: "Needs more time to decide",
+    },
   ];
 
   const prospects = [
@@ -68,7 +68,7 @@ export default function CarSalesCustomers() {
       phone: "(555) 456-7890",
       source: "Website Inquiry",
       interest: "Electric Vehicles",
-      date: "Today"
+      date: "Today",
     },
     {
       id: 5,
@@ -77,8 +77,8 @@ export default function CarSalesCustomers() {
       phone: "(555) 567-8901",
       source: "Referral",
       interest: "Luxury Sedan",
-      date: "Yesterday"
-    }
+      date: "Yesterday",
+    },
   ];
 
   return (
@@ -95,7 +95,7 @@ export default function CarSalesCustomers() {
                 <p className="text-gray-400">Track leads, customers, and sales opportunities</p>
               </div>
             </div>
-            
+
             <Button className="bg-blue-600 hover:bg-blue-700" data-testid="button-add-customer">
               <Plus className="h-4 w-4 mr-2" />
               Add Customer
@@ -135,7 +135,7 @@ export default function CarSalesCustomers() {
                         <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
                           <Users className="h-6 w-6 text-blue-400" />
                         </div>
-                        
+
                         <div>
                           <h3 className="font-semibold text-lg">{customer.name}</h3>
                           <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
@@ -152,7 +152,7 @@ export default function CarSalesCustomers() {
                       </div>
 
                       <div className="text-right">
-                        <Badge 
+                        <Badge
                           variant={customer.status === "Hot Lead" ? "default" : "secondary"}
                           className={customer.status === "Hot Lead" ? "bg-green-600" : ""}
                         >
@@ -173,7 +173,7 @@ export default function CarSalesCustomers() {
                           {customer.interest}
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Budget Range</p>
                         <p className="font-medium flex items-center gap-2">
@@ -181,7 +181,7 @@ export default function CarSalesCustomers() {
                           {customer.budget}
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Last Contact</p>
                         <p className="font-medium flex items-center gap-2">
@@ -202,11 +202,24 @@ export default function CarSalesCustomers() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
-                      <Button size="sm" variant="outline" data-testid="button-contact-customer">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        data-testid="button-start-direct-connect-customer"
+                        onClick={() => {
+                          window.location.href = `/direct-connect?intent=follow_up&source=car_sales_customers&target=${encodeURIComponent(
+                            customer.name
+                          )}`;
+                        }}
+                      >
                         <Phone className="h-4 w-4 mr-2" />
-                        Contact
+                        Start Direct Connect
                       </Button>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-schedule-appointment">
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        data-testid="button-schedule-appointment"
+                      >
                         <Calendar className="h-4 w-4 mr-2" />
                         Schedule
                       </Button>
@@ -225,7 +238,7 @@ export default function CarSalesCustomers() {
                         <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
                           <Users className="h-6 w-6 text-orange-400" />
                         </div>
-                        
+
                         <div>
                           <h3 className="font-semibold text-lg">{prospect.name}</h3>
                           <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
@@ -241,9 +254,7 @@ export default function CarSalesCustomers() {
                         </div>
                       </div>
 
-                      <Badge variant="secondary">
-                        New Prospect
-                      </Badge>
+                      <Badge variant="secondary">New Prospect</Badge>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-navy-700">
@@ -251,12 +262,12 @@ export default function CarSalesCustomers() {
                         <p className="text-sm text-gray-400">Source</p>
                         <p className="font-medium">{prospect.source}</p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Interest</p>
                         <p className="font-medium">{prospect.interest}</p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Received</p>
                         <p className="font-medium">{prospect.date}</p>
@@ -264,9 +275,18 @@ export default function CarSalesCustomers() {
                     </div>
 
                     <div className="flex gap-2 mt-4">
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700" data-testid="button-contact-prospect">
+                      <Button
+                        size="sm"
+                        className="bg-orange-600 hover:bg-orange-700"
+                        data-testid="button-start-direct-connect-prospect"
+                        onClick={() => {
+                          window.location.href = `/direct-connect?intent=introduction&source=car_sales_prospects&target=${encodeURIComponent(
+                            prospect.name
+                          )}`;
+                        }}
+                      >
                         <Phone className="h-4 w-4 mr-2" />
-                        Make First Contact
+                        Start Direct Connect
                       </Button>
                       <Button size="sm" variant="outline" data-testid="button-qualify-prospect">
                         Qualify Lead

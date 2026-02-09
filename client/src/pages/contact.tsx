@@ -115,8 +115,8 @@ const Contact = memo(function Contact() {
                       Contact Now
                     </Button>
                   ) : (
-                    <Button size="sm" variant="outline" disabled className="w-full">
-                      Coming Soon
+                    <Button size="sm" variant="outline" className="w-full">
+                      Use Message Form
                     </Button>
                   )}
                 </CardContent>

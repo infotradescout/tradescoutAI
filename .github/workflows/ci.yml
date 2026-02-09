@@ -27,6 +27,12 @@ jobs:
       - name: HTTP semantics guard (4xx vs 5xx)
         run: npm run audit:http-semantics
 
+      - name: Authority gate guard (intent-gated contact only)
+        run: npm run audit:authority-gates
+
+      - name: Observability baseline guard
+        run: npm run audit:observability-baselines
+
       - name: Build
         run: npm run build
 

@@ -53,9 +53,9 @@ export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-   const [selectedPeriodType, setSelectedPeriodType] = useState<"year" | "quarter">("year");
-   const [selectedQuarter, setSelectedQuarter] = useState<number | undefined>(undefined);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedPeriodType, setSelectedPeriodType] = useState<"year" | "quarter">("year");
+  const [selectedQuarter, setSelectedQuarter] = useState<number | undefined>(undefined);
 
   const [toUserId, setToUserId] = useState("");
   const [amount, setAmount] = useState("");
@@ -80,14 +80,13 @@ export default function WalletPage() {
     },
   });
 
-  const { data: txData, isLoading: txLoading } = useQuery<{ transactions: WalletTransactionDto[] } | null>({
+  const { data: txData, isLoading: txLoading } = useQuery<{
+    transactions: WalletTransactionDto[];
+  } | null>({
     queryKey: ["/api/wallet/transactions"],
     queryFn: async () => {
       try {
-        return await apiRequest(
-          "GET",
-          "/api/wallet/transactions?limit=25"
-        );
+        return await apiRequest("GET", "/api/wallet/transactions?limit=25");
       } catch (error: any) {
         const message = (error?.message as string | undefined) ?? "";
         if (
@@ -116,10 +115,7 @@ export default function WalletPage() {
       if (selectedPeriodType === "quarter" && selectedQuarter) {
         params.set("quarter", String(selectedQuarter));
       }
-      return await apiRequest(
-        "GET",
-        `/api/wallet/tax-statement?${params.toString()}`
-      );
+      return await apiRequest("GET", `/api/wallet/tax-statement?${params.toString()}`);
     },
   });
 
@@ -152,14 +148,17 @@ export default function WalletPage() {
         <div className="container mx-auto max-w-3xl">
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-foreground">TradeScout Wallet</CardTitle>
+              <CardTitle className="text-2xl font-bold text-foreground">
+                TradeScout Wallet
+              </CardTitle>
               <CardDescription className="text-muted-foreground">
                 Sign in to view and use your TradeScout balance.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Your wallet is tied to your TradeScout account. Please log in to see your balance and send funds.
+                Your wallet is tied to your TradeScout account. Please log in to see your balance
+                and send funds.
               </p>
             </CardContent>
           </Card>
@@ -210,7 +209,8 @@ export default function WalletPage() {
               TradeScout Wallet
             </h1>
             <p className="text-muted-foreground mt-1 text-sm md:text-base">
-              Use your on-platform earnings to pay for marketplace items or send funds to other members.
+              Use your on-platform earnings to pay for marketplace items or send funds to other
+              members.
             </p>
           </div>
         </div>
@@ -223,7 +223,8 @@ export default function WalletPage() {
                 Current Balance
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                This is your spendable TradeScout balance from affiliate earnings and other on-platform sources.
+                This is your spendable TradeScout balance from affiliate earnings and other
+                on-platform sources.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -233,9 +234,7 @@ export default function WalletPage() {
                     {isLoading ? (
                       <span className="inline-block animate-pulse bg-muted rounded-md h-8 w-32" />
                     ) : (
-                      <>
-                        ${balanceValue.toFixed(2)}
-                      </>
+                      <>${balanceValue.toFixed(2)}</>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -251,7 +250,8 @@ export default function WalletPage() {
                     {user.id}
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Share this ID with people who want to send you funds. A richer lookup (by name or email) is coming soon.
+                    Share this ID with people who want to send you funds. Transfers currently use
+                    TradeScout user ID only.
                   </p>
                 </div>
               )}
@@ -325,8 +325,8 @@ export default function WalletPage() {
                 </Button>
 
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Transfers move balance instantly inside TradeScout. We handle bank routing behind the scenes as part of
-                  your overall wallet reconciliation.
+                  Transfers move balance instantly inside TradeScout. We handle bank routing behind
+                  the scenes as part of your overall wallet reconciliation.
                 </p>
               </form>
             </CardContent>
@@ -347,15 +347,13 @@ export default function WalletPage() {
             {txLoading ? (
               <div className="space-y-2">
                 {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-10 bg-muted rounded-md animate-pulse"
-                  />
+                  <div key={i} className="h-10 bg-muted rounded-md animate-pulse" />
                 ))}
               </div>
             ) : !txData || !txData.transactions || txData.transactions.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No wallet activity yet. As you earn affiliate commissions or move funds, they will appear here.
+                No wallet activity yet. As you earn affiliate commissions or move funds, they will
+                appear here.
               </p>
             ) : (
               <div className="space-y-2">
@@ -368,7 +366,8 @@ export default function WalletPage() {
 
                   let friendlyType = "Wallet activity";
                   if (rawType === "affiliate_commission") friendlyType = "Affiliate commission";
-                  else if (rawType === "marketplace_purchase") friendlyType = "Marketplace purchase";
+                  else if (rawType === "marketplace_purchase")
+                    friendlyType = "Marketplace purchase";
                   else if (rawType === "marketplace_sale") friendlyType = "Marketplace sale";
                   else if (rawType === "p2p_send") friendlyType = "Sent to member";
                   else if (rawType === "p2p_receive") friendlyType = "Received from member";
@@ -395,7 +394,9 @@ export default function WalletPage() {
                             {friendlyType}
                           </div>
                           {tx.memo && (
-                            <div className="text-[11px] text-muted-foreground truncate">{tx.memo}</div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {tx.memo}
+                            </div>
                           )}
                           {created && (
                             <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
@@ -424,8 +425,8 @@ export default function WalletPage() {
             <div>
               <CardTitle className="text-sm font-medium text-foreground">Tax Statements</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Download yearly or quarterly wallet movement snapshots to share with your accountant or for your
-                Finances workspace records.
+                Download yearly or quarterly wallet movement snapshots to share with your accountant
+                or for your Finances workspace records.
               </CardDescription>
             </div>
           </CardHeader>
@@ -434,7 +435,9 @@ export default function WalletPage() {
               <select
                 className="bg-background border border-input rounded px-2 py-1 text-xs"
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
+                onChange={(e) =>
+                  setSelectedYear(Number(e.target.value) || new Date().getFullYear())
+                }
               >
                 {Array.from({ length: 5 }).map((_, idx) => {
                   const y = new Date().getFullYear() - idx;
@@ -515,9 +518,9 @@ export default function WalletPage() {
                   </div>
                 )}
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  *This estimate currently includes only obvious income-like wallet credits (affiliate
-                  commissions and marketplace sales). Your tax professional or accounting system is
-                  responsible for determining your actual taxable income.
+                  *This estimate currently includes only obvious income-like wallet credits
+                  (affiliate commissions and marketplace sales). Your tax professional or accounting
+                  system is responsible for determining your actual taxable income.
                 </p>
               </div>
             )}

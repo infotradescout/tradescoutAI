@@ -1,16 +1,22 @@
-import { memo, useMemo } from 'react';
-import { useParams, Link } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { SEOHelmet, createPlaceStructuredData, createAdministrativeAreaStructuredData, createFAQStructuredData, createBreadcrumbStructuredData } from '@/components/SEOHelmet';
-import { US_STATES_COUNTIES, getStateByCode, getCountiesByState } from '@shared/states-counties';
-import { ChevronRight, MapPin, Users, AlertCircle } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { memo, useMemo } from "react";
+import { useParams, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import {
+  SEOHelmet,
+  createPlaceStructuredData,
+  createAdministrativeAreaStructuredData,
+  createFAQStructuredData,
+  createBreadcrumbStructuredData,
+} from "@/components/SEOHelmet";
+import { US_STATES_COUNTIES, getStateByCode, getCountiesByState } from "@shared/states-counties";
+import { ChevronRight, MapPin, Users, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface CountyCoverageData {
   countyFips: string;
   countyName: string;
   stateCode: string;
-  coverageStatus: 'unassigned' | 'partial' | 'full';
+  coverageStatus: "unassigned" | "partial" | "full";
   territoryManagerCount: number;
   affiliateCount: number;
   lastEntityChangeAt: string | null;
@@ -20,41 +26,45 @@ interface CountyCoverageData {
 function nameToSlug(name: string): string {
   return name
     .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]/g, '');
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]/g, "");
 }
 
 // Utility: Find county by slug
 function findCountyBySlug(state: any, slug: string): any {
   if (!state) return null;
   const counties = getCountiesByState(state.code);
-  return counties.find(c => nameToSlug(c.name) === slug.toLowerCase());
+  return counties.find((c) => nameToSlug(c.name) === slug.toLowerCase());
 }
 
 // Build FAQ content based on coverage status
-function buildCountyFAQs(countyName: string, stateName: string, coverage: CountyCoverageData | null): Array<{ question: string; answer: string }> {
+function buildCountyFAQs(
+  countyName: string,
+  stateName: string,
+  coverage: CountyCoverageData | null
+): Array<{ question: string; answer: string }> {
   if (!coverage) {
     return [
       {
         question: `How do I find contractors in ${countyName}?`,
-        answer: `Use Direct Connect to search verified local contractors. Match on trust and relevance, not cost per lead.`
+        answer: `Use Direct Connect to search verified local contractors. Match on trust and relevance, not cost per lead.`,
       },
       {
         question: `Is ${countyName} covered by TradeScout?`,
-        answer: `Coverage information is loading. Please check back.`
+        answer: `Coverage information is loading. Please check back.`,
       },
       {
         question: `What services are available in ${countyName}?`,
-        answer: `Common services include roofing, plumbing, electrical, HVAC, and general contracting. Availability varies by county.`
+        answer: `Common services include roofing, plumbing, electrical, HVAC, and general contracting. Availability varies by county.`,
       },
       {
         question: `How is TradeScout different from Angi/HomeAdvisor?`,
-        answer: `No lead spam. No bidding wars. Trust-first matching using Community Verification Score (CVS). We match on relevance and trust, not price competition.`
+        answer: `No lead spam. No bidding wars. Trust-first matching using Community Verification Score (CVS). We match on relevance and trust, not price competition.`,
       },
       {
         question: `What is the Community Verification Score (CVS)?`,
-        answer: `A public trust metric based on verified identity, license/insurance status, work history, and community recommendations. Payment cannot override trust.`
-      }
+        answer: `A public trust metric based on verified identity, license/insurance status, work history, and community recommendations. Payment cannot override trust.`,
+      },
     ];
   }
 
@@ -63,63 +73,73 @@ function buildCountyFAQs(countyName: string, stateName: string, coverage: County
   return [
     {
       question: `How do I find contractors in ${countyName}?`,
-      answer: coverageStatus === 'full'
-        ? `Use Direct Connect to search ${affiliateCount} verified contractors. Match on trust and relevance, not cost per lead. ${countyName} is fully covered with dedicated support.`
-        : coverageStatus === 'partial'
-        ? `Use Direct Connect to search ${affiliateCount} verified contractors currently serving ${countyName}. Coverage is growing.`
-        : `${countyName} is on our expansion roadmap. Request coverage to prioritize your county.`
+      answer:
+        coverageStatus === "full"
+          ? `Use Direct Connect to search ${affiliateCount} verified contractors. Match on trust and relevance, not cost per lead. ${countyName} is fully covered with dedicated support.`
+          : coverageStatus === "partial"
+            ? `Use Direct Connect to search ${affiliateCount} verified contractors currently serving ${countyName}. Coverage is growing.`
+            : `${countyName} is on our expansion roadmap. Request coverage to prioritize your county.`,
     },
     {
       question: `Is ${countyName} fully covered?`,
-      answer: coverageStatus === 'full'
-        ? `Yes. ${affiliateCount} verified contractors + ${territoryManagerCount} territory manager serve ${countyName}. We maintain continuous support.`
-        : coverageStatus === 'partial'
-        ? `Partially. ${affiliateCount} contractors are active in ${countyName}, and we're adding more. Growth is ongoing.`
-        : `Not yet. ${countyName} is in our coverage roadmap. We prioritize based on demand.`
+      answer:
+        coverageStatus === "full"
+          ? `Yes. ${affiliateCount} verified contractors + ${territoryManagerCount} territory manager serve ${countyName}. We maintain continuous support.`
+          : coverageStatus === "partial"
+            ? `Partially. ${affiliateCount} contractors are active in ${countyName}, and we're adding more. Growth is ongoing.`
+            : `Not yet. ${countyName} is in our coverage roadmap. We prioritize based on demand.`,
     },
     {
       question: `What services are available in ${countyName}?`,
-      answer: `Common services include roofing, plumbing, electrical, HVAC, and general home improvement. Contractor specializations vary by county. Use Direct Connect to filter by trade.`
+      answer: `Common services include roofing, plumbing, electrical, HVAC, and general home improvement. Contractor specializations vary by county. Use Direct Connect to filter by trade.`,
     },
     {
       question: `How is TradeScout different from Angi/HomeAdvisor in ${countyName}?`,
-      answer: `No lead spam. No bidding wars. Trust-first matching using Community Verification Score (CVS). We match on trust and relevance, not price competition. ${countyName} contractors benefit from context-aware routing and no excessive request flooding.`
+      answer: `No lead spam. No bidding wars. Trust-first matching using Community Verification Score (CVS). We match on trust and relevance, not price competition. ${countyName} contractors benefit from context-aware routing and no excessive request flooding.`,
     },
     {
       question: `What is the Community Verification Score (CVS)?`,
-      answer: `A public, auditable trust metric based on verified identity, license/insurance, work history, and community recommendations. Payment cannot override it. It's the foundation of ${countyName} contractor credibility on TradeScout.`
-    }
+      answer: `A public, auditable trust metric based on verified identity, license/insurance, work history, and community recommendations. Payment cannot override it. It's the foundation of ${countyName} contractor credibility on TradeScout.`,
+    },
   ];
 }
 
 // Build SEO description
-function buildCountyDescription(countyName: string, stateName: string, coverage: CountyCoverageData | null): string {
+function buildCountyDescription(
+  countyName: string,
+  stateName: string,
+  coverage: CountyCoverageData | null
+): string {
   if (!coverage) {
     return `Find verified contractors in ${countyName}, ${stateName}. Trust-first matching with no lead spam or bidding wars.`;
   }
 
   const { coverageStatus, affiliateCount } = coverage;
-  if (coverageStatus === 'full') {
+  if (coverageStatus === "full") {
     return `Find ${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching with Community Verification Score (CVS). No lead spam, no bidding wars.`;
   }
-  if (coverageStatus === 'partial') {
+  if (coverageStatus === "partial") {
     return `${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching. Growing coverage. No lead spam.`;
   }
-  return `${countyName}, ${stateName} is coming soon to TradeScout. Request coverage to be notified when contractors are available.`;
+  return `Find verified contractors in ${countyName}, ${stateName}. Coverage is still building; request county coverage and use Scout to route verified intent.`;
 }
 
 // Build keywords
 function buildCountyKeywords(countyName: string, stateName: string): string {
-  return `${countyName} contractors, ${stateName} contractors, verified contractors, trusted contractors, home improvement, roofing, plumbing, electrical, HVAC, free quotes, ${countyName.toLowerCase().replace(/\s+/g, '-')} ${stateName.toLowerCase().replace(/\s+/g, '-')}`;
+  return `${countyName} contractors, ${stateName} contractors, verified contractors, trusted contractors, home improvement, roofing, plumbing, electrical, HVAC, free quotes, ${countyName.toLowerCase().replace(/\s+/g, "-")} ${stateName.toLowerCase().replace(/\s+/g, "-")}`;
 }
 
 // Build breadcrumbs
-function buildBreadcrumbs(stateCode: string, stateName: string, countyName: string): Array<{ name: string; url: string }> {
+function buildBreadcrumbs(
+  stateCode: string,
+  stateName: string,
+  countyName: string
+): Array<{ name: string; url: string }> {
   return [
-    { name: 'Home', url: '/' },
-    { name: 'Counties', url: '/county-directory' },
+    { name: "Home", url: "/" },
+    { name: "Counties", url: "/county-directory" },
     { name: stateName, url: `/states/${stateCode.toLowerCase()}` },
-    { name: countyName, url: '' }
+    { name: countyName, url: "" },
   ];
 }
 
@@ -127,8 +147,11 @@ const CountyPage = memo(function CountyPage() {
   const { stateCode, countySlug } = useParams<{ stateCode: string; countySlug: string }>();
 
   // Resolve state and county
-  const state = useMemo(() => stateCode ? getStateByCode(stateCode.toUpperCase()) : null, [stateCode]);
-  const county = useMemo(() => findCountyBySlug(state, countySlug || ''), [state, countySlug]);
+  const state = useMemo(
+    () => (stateCode ? getStateByCode(stateCode.toUpperCase()) : null),
+    [stateCode]
+  );
+  const county = useMemo(() => findCountyBySlug(state, countySlug || ""), [state, countySlug]);
 
   // Fetch coverage data
   const { data: coverage, isLoading: coverageLoading } = useQuery<CountyCoverageData | null>({
@@ -147,7 +170,7 @@ const CountyPage = memo(function CountyPage() {
             <p className="text-red-700 mb-4">
               {countySlug && stateCode
                 ? `${countySlug} in ${stateCode} could not be resolved.`
-                : 'Invalid county or state.'}
+                : "Invalid county or state."}
             </p>
             <Link href="/county-directory">
               <a className="inline-block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
@@ -176,7 +199,7 @@ const CountyPage = memo(function CountyPage() {
 
   const adminAreaSchema = createAdministrativeAreaStructuredData({
     name: county.name,
-    areaType: 'County',
+    areaType: "County",
     state: state.name,
   });
 
@@ -234,22 +257,25 @@ const CountyPage = memo(function CountyPage() {
             </CardContent>
           </Card>
         ) : coverage ? (
-          <Card className={`mb-8 ${
-            coverage.coverageStatus === 'full'
-              ? 'bg-green-50 border-green-200'
-              : coverage.coverageStatus === 'partial'
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-gray-50 border-gray-200'
-          }`}>
+          <Card
+            className={`mb-8 ${
+              coverage.coverageStatus === "full"
+                ? "bg-green-50 border-green-200"
+                : coverage.coverageStatus === "partial"
+                  ? "bg-blue-50 border-blue-200"
+                  : "bg-gray-50 border-gray-200"
+            }`}
+          >
             <CardContent className="p-6">
-              {coverage.coverageStatus === 'full' && (
+              {coverage.coverageStatus === "full" && (
                 <div className="flex items-start gap-3">
                   <div className="text-green-600 mt-1">✓</div>
                   <div>
                     <h3 className="font-semibold text-green-900 mb-1">Fully Covered</h3>
                     <p className="text-green-800 mb-3">
-                      <strong>{coverage.affiliateCount}</strong> verified contractors + <strong>{coverage.territoryManagerCount}</strong> territory manager
-                      {coverage.territoryManagerCount !== 1 ? 's' : ''} serve {county.name}.
+                      <strong>{coverage.affiliateCount}</strong> verified contractors +{" "}
+                      <strong>{coverage.territoryManagerCount}</strong> territory manager
+                      {coverage.territoryManagerCount !== 1 ? "s" : ""} serve {county.name}.
                     </p>
                     <Link href={`/direct-connect?county=${county.fipsCode}`}>
                       <a className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -259,13 +285,14 @@ const CountyPage = memo(function CountyPage() {
                   </div>
                 </div>
               )}
-              {coverage.coverageStatus === 'partial' && (
+              {coverage.coverageStatus === "partial" && (
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-1" />
                   <div>
                     <h3 className="font-semibold text-blue-900 mb-1">Partial Coverage</h3>
                     <p className="text-blue-800 mb-3">
-                      <strong>{coverage.affiliateCount}</strong> verified contractors currently serve {county.name}. Coverage is growing.
+                      <strong>{coverage.affiliateCount}</strong> verified contractors currently
+                      serve {county.name}. Coverage is growing.
                     </p>
                     <Link href={`/direct-connect?county=${county.fipsCode}`}>
                       <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -275,14 +302,12 @@ const CountyPage = memo(function CountyPage() {
                   </div>
                 </div>
               )}
-              {coverage.coverageStatus === 'unassigned' && (
+              {coverage.coverageStatus === "unassigned" && (
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-gray-600 mt-1" />
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">Not Yet Covered</h3>
-                    <p className="text-gray-700 mb-3">
-                      {county.name} is on our expansion roadmap.
-                    </p>
+                    <p className="text-gray-700 mb-3">{county.name} is on our expansion roadmap.</p>
                     <Link href="/contact">
                       <a className="inline-block px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
                         Request Coverage →
@@ -318,7 +343,8 @@ const CountyPage = memo(function CountyPage() {
               Community in {county.name}
             </h2>
             <p className="text-gray-700 mb-6">
-              Join neighbors, contractors, and professionals. Share trusted local signals, post projects, and discover what's happening locally.
+              Join neighbors, contractors, and professionals. Share trusted local signals, post
+              projects, and discover what's happening locally.
             </p>
             <Link href={`/community?county=${county.fipsCode}`}>
               <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
