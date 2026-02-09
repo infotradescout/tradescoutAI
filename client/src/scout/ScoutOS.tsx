@@ -3562,29 +3562,16 @@ export default function ScoutOS() {
               >
                 {!hasUserMessages && (
                   <div className="flex flex-col gap-3 py-3 px-1">
-                    <div className="space-y-1 flex items-start justify-between gap-3">
-                      <div>
+                    <div className="space-y-1">
                       <p
                         className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        Get Started
+                        Controller
                       </p>
                       <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
-                        Pick a route or send a focused prompt.
+                        Pick one route to start, or ask Scout directly.
                       </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {scoutControlLinks.map((item) => (
-                          <Link
-                            key={item.id}
-                            href={item.href}
-                            className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-slate-200 hover:border-orange-400/70 hover:text-orange-200 transition-colors"
-                          >
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
                     </div>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
@@ -3645,35 +3632,6 @@ export default function ScoutOS() {
                         </div>
                       </div>
                     )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                      {suggestedPromptCards.map((card) => {
-                        const Icon = card.icon;
-                        return (
-                          <button
-                            key={card.id}
-                            type="button"
-                            onClick={() => {
-                              setHasGuestInteracted(true);
-                              void handleSend(card.body);
-                            }}
-                            className="group rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-left transition-colors hover:border-orange-400/70 hover:bg-slate-900"
-                          >
-                            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
-                              <Icon className="h-3 w-3 text-orange-300" />
-                              Prompt
-                            </div>
-                            <p className="text-sm font-semibold text-slate-100">{card.title}</p>
-                            <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">
-                              {card.body}
-                            </p>
-                            <p className="mt-2 text-[10px] text-orange-300/90 font-medium">
-                              Send to Scout
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
                 )}
 
@@ -4026,111 +3984,13 @@ export default function ScoutOS() {
             </div>
 
             {/* Right-side coordination panel on larger screens; stacks below chat on mobile. */}
-            {isMobile ? (
-              <div className="mt-4 space-y-3">
-                <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
-                <ScoutHasDonePanel />
-              </div>
-            ) : (
+            {!isMobile && (
               <div className="hidden md:flex w-80 flex-shrink-0 flex-col gap-3">
                 <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
                 <ScoutHasDonePanel />
               </div>
             )}
           </div>
-
-          {/* Unified dashboard lives under Scout so the assistant stays primary. */}
-          <section className="mx-auto mt-3 w-full max-w-5xl">
-            <div className="rounded-2xl border border-[color:var(--border-active)] bg-[color:var(--surface-card)]/90 p-4 shadow-xl sm:p-5">
-              <div className="mb-4 rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-500/10 px-2 py-0.5 text-[11px] font-semibold text-orange-300">
-                      <LayoutDashboard className="h-3.5 w-3.5" />
-                      Your Workspace
-                    </div>
-                    <h2 className="mt-2 text-base sm:text-lg font-semibold text-[color:var(--text-primary)]">
-                      Everything in one place
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[color:var(--text-secondary)]">
-                      Manage requests, conversations, and progress without jumping around.
-                    </p>
-                  </div>
-                  {showScoutDashboard && (
-                    <Link href="/direct-connect">
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
-                        Open Direct Connect
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-                {showScoutDashboard && (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {dashboardMetrics.map((metric) => (
-                      <div
-                        key={metric.id}
-                        className="rounded-lg border border-[color:var(--border-primary)] bg-[color:var(--surface-card)] px-2 py-2 text-center"
-                      >
-                        <div className="text-base font-semibold text-[color:var(--text-primary)]">
-                          {metric.value}
-                        </div>
-                        <div className="text-[11px] text-[color:var(--text-secondary)]">
-                          {metric.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {showScoutDashboard ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    {roleActionRows.map((action) => (
-                      <Link key={action.id} href={action.href}>
-                        <div className="h-full cursor-pointer rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] px-3 py-3 transition hover:border-orange-500/60 hover:bg-[color:var(--surface-card)]">
-                          <div className="flex items-center gap-2">
-                            <action.Icon className="h-4 w-4 text-orange-400" />
-                            <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                              {action.title}
-                            </p>
-                          </div>
-                          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                            {action.subtitle}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <QuickActionsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                    <RecentProjectsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                    <SavedContractorsWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                    <CommunityBuilderImpactWidget className="bg-[color:var(--surface-intermediate)] border border-[color:var(--border-primary)]" />
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-[color:var(--border-primary)] bg-[color:var(--surface-intermediate)] p-4">
-                  <p className="text-sm text-[color:var(--text-secondary)]">
-                    Create a free account to unlock your full Scout dashboard, Direct Connect
-                    history, and spam-protected contact flow.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Link href="/create-account">
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
-                        Create free account
-                      </Button>
-                    </Link>
-                    <Link href="/login">
-                      <Button size="sm" variant="outline">
-                        Sign in
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
         </div>
       </div>
 

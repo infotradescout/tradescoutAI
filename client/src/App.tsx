@@ -1211,10 +1211,14 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={SupportTickets} />
                   </Route>
                   <Route path="/platform-analytics">
-                    <LazyPage Component={PlatformAnalytics} />
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={PlatformAnalytics} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/manage-users">
-                    <LazyPage Component={ManageUsers} />
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={ManageUsers} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/payment-processing">
                     <LazyPage Component={PaymentProcessing} />

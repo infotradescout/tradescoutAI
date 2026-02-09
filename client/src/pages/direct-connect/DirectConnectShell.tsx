@@ -2,7 +2,7 @@ import { ReactNode, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import TasksHub from "../tasks";
-import WorkerMarketplacePage from "../worker-marketplace";
+import DirectConnectPros from "./DirectConnectPros";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,17 +14,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { WhyThisJobModal } from "./WhyThisJobModal";
 import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
+import { useToast } from "@/hooks/use-toast";
 import {
   ClipboardPlus,
   LayoutList,
   Inbox,
   Users,
   BriefcaseBusiness,
-  ArrowRight,
   ShieldCheck,
-  Sparkles,
-  MessageSquareText,
-  CircleSlash,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "inbox", "pros", "engagements"] as const;
@@ -50,36 +47,36 @@ const SECTION_META: Record<
 > = {
   post: {
     title: "Post a request",
-    description: "Describe the job once. Direct Connect routes it by fit and trust policy.",
+    description: "Share what you need done once, then track it in one place.",
     hint: "Best for: new work requests",
     actionLabel: "Go to My Requests",
     actionTarget: "engagements",
   },
   board: {
     title: "Job board",
-    description: "Review open opportunities and route from a board-style view.",
+    description: "Browse open local requests and see what needs attention.",
     hint: "Best for: browsing active demand",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
   },
   inbox: {
     title: "Provider inbox",
-    description: "Evaluate routed opportunities and respond quickly.",
-    hint: "Best for: accepted/declined decisioning",
+    description: "Review incoming opportunities and respond quickly.",
+    hint: "Best for: accept/decline decisions",
     actionLabel: "View My Requests",
     actionTarget: "engagements",
   },
   pros: {
     title: "Pro directory",
-    description: "Explore providers and compare fit before opening engagement.",
-    hint: "Best for: pre-routing research",
+    description: "Browse local pros and reach out when you find a good fit.",
+    hint: "Best for: pre-request research",
     actionLabel: "Post Request",
     actionTarget: "post",
   },
   engagements: {
     title: "My requests",
-    description: "Track routing progress, accepted matches, and lifecycle state.",
-    hint: "Best for: managing active engagements",
+    description: "Track progress from first post to completed work.",
+    hint: "Best for: managing active requests",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
   },
@@ -152,6 +149,8 @@ type DirectConnectRequest = {
   title: string;
   description: string;
   status: string;
+  tradeId?: string | null;
+  countyFips?: string | null;
   budgetMin?: string | null;
   budgetMax?: string | null;
   createdAt?: string | null;
@@ -264,7 +263,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in with a contractor profile to view Direct Connect opportunities routed to you.
+          Sign in with a contractor profile to view Direct Connect opportunities sent to you.
         </CardContent>
       </Card>
     );
@@ -291,7 +290,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No opportunities yet. When homeowners route jobs to you through Direct Connect, they will
+          No opportunities yet. When homeowners send jobs to you through Direct Connect, they will
           appear here.
         </CardContent>
       </Card>
@@ -364,7 +363,7 @@ function DirectConnectInbox() {
                   </h3>
                   <p className="line-clamp-2 text-xs text-[color:var(--text-secondary)]">
                     {request?.description ||
-                      "A homeowner routed this opportunity through Direct Connect."}
+                      "A homeowner sent this opportunity through Direct Connect."}
                   </p>
                   <p className="text-[11px] text-[color:var(--text-secondary)]">
                     {getSlaCopy(snapshot)}
@@ -402,7 +401,7 @@ function DirectConnectInbox() {
                 <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-[color:var(--text-secondary)]">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="font-medium text-[color:var(--text-primary)]">
-                      Why routed to you
+                      Why this came to you
                     </span>
                     <Button
                       size="sm"
@@ -535,7 +534,7 @@ function DirectConnectInbox() {
           </SheetHeader>
           <div className="space-y-2 text-sm text-[color:var(--text-secondary)]">
             <p className="text-xs">
-              Your answer is private and used only to improve future routing. Homeowners will not
+              Your answer is private and used only to improve future matching. Homeowners will not
               see this.
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -582,6 +581,7 @@ function DirectConnectInbox() {
 
 function MyDirectConnectRequests() {
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [requestFilter, setRequestFilter] = useState<"all" | "active" | "cancelled" | "accepted">(
     "all"
@@ -605,6 +605,21 @@ function MyDirectConnectRequests() {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] }),
   });
 
+  const routeMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route`, {});
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] }),
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't send request",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const cancelMutation = useMutation({
     mutationFn: async (requestId: string) => {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/cancel`, {});
@@ -625,7 +640,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to see your Direct Connect requests and routing progress.
+          Sign in to see your Direct Connect requests and progress.
         </CardContent>
       </Card>
     );
@@ -656,7 +671,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No requests yet. Start with “Post Request” to route your first Direct Connect job.
+          No requests yet. Start with “Post Request” to post your first Direct Connect job.
         </CardContent>
       </Card>
     );
@@ -701,6 +716,7 @@ function MyDirectConnectRequests() {
         const suggested = r.dcSuggestedCount ?? 0;
         const hasAccepted = Boolean(r.dcAcceptedAssignmentId);
         const lastEventAt = r.dcLastEventAt || r.createdAt || null;
+        const canSend = status === "open" && Boolean(r.tradeId) && Boolean(r.countyFips);
 
         return (
           <Card
@@ -728,11 +744,14 @@ function MyDirectConnectRequests() {
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
                 <span>
                   {suggested > 0
-                    ? `Routed to ${suggested} provider${suggested === 1 ? "" : "s"}`
+                    ? `Sent to ${suggested} provider${suggested === 1 ? "" : "s"}`
                     : status === "open"
-                      ? "Not routed yet"
+                      ? "Not sent yet"
                       : "No providers suggested yet"}
                 </span>
+                {status === "open" && !canSend && (
+                  <span>Pick a county and trade to send this to local pros.</span>
+                )}
                 {status === "open" && suggested === 0 && (
                   <WhyLink to={getHelpLink("directConnect")} />
                 )}
@@ -758,6 +777,14 @@ function MyDirectConnectRequests() {
                   Open conversation
                 </Button>
                 {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
+                <Button
+                  size="sm"
+                  className="bg-orange-500 text-white hover:bg-orange-600"
+                  disabled={!canSend || routeMutation.isPending}
+                  onClick={() => routeMutation.mutate(r.id)}
+                >
+                  Send to local pros
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -852,16 +879,18 @@ export default function DirectConnectShell() {
   let centerContent: ReactNode = null;
   switch (activeSection) {
     case "post":
-      centerContent = <TasksHub defaultCountyFips={defaultCountyFips} />;
+      centerContent = <TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="post" />;
       break;
     case "board":
-      centerContent = <TasksHub defaultCountyFips={defaultCountyFips} />;
+      centerContent = (
+        <TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="browse" />
+      );
       break;
     case "inbox":
       centerContent = <DirectConnectInbox />;
       break;
     case "pros":
-      centerContent = <WorkerMarketplacePage />;
+      centerContent = <DirectConnectPros />;
       break;
     case "engagements":
       centerContent = <MyDirectConnectRequests />;
@@ -877,14 +906,14 @@ export default function DirectConnectShell() {
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] px-3 py-1 text-[11px] uppercase tracking-wide text-[color:var(--text-secondary)]">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Contact workflow
+                  Get work done
                 </div>
                 <h1 className="text-2xl font-semibold text-[color:var(--text-primary)] md:text-3xl">
                   Direct Connect
                 </h1>
                 <p className="max-w-2xl text-sm text-[color:var(--text-secondary)]">
-                  Route real work, track engagement states, and keep conversations protected inside
-                  TradeScout.
+                  Direct Connect is where local coordination happens. Capture what you need done and
+                  keep everything in one place until it is resolved.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -938,9 +967,6 @@ export default function DirectConnectShell() {
                   <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
                     {sectionMeta.description}
                   </p>
-                  <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
-                    {sectionMeta.hint}
-                  </p>
                 </div>
                 {sectionMeta.actionTarget !== activeSection && (
                   <Button
@@ -955,44 +981,6 @@ export default function DirectConnectShell() {
             </Card>
             {centerContent}
           </div>
-
-          <Card className="h-fit border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Workflow guide</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs text-[color:var(--text-secondary)]">
-              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
-                <div className="mb-1 flex items-center gap-2 text-[color:var(--text-primary)]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span className="font-medium">1. Post and route</span>
-                </div>
-                <p>Start in Post Request, then monitor provider responses in My Requests.</p>
-              </div>
-              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
-                <div className="mb-1 flex items-center gap-2 text-[color:var(--text-primary)]">
-                  <MessageSquareText className="h-3.5 w-3.5" />
-                  <span className="font-medium">2. Move to conversation</span>
-                </div>
-                <p>Only accepted matches unlock thread actions and invoice handoff.</p>
-              </div>
-              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
-                <div className="mb-1 flex items-center gap-2 text-[color:var(--text-primary)]">
-                  <CircleSlash className="h-3.5 w-3.5" />
-                  <span className="font-medium">3. Cancel or reopen cleanly</span>
-                </div>
-                <p>Use lifecycle controls in My Requests to keep routing state accurate.</p>
-              </div>
-              <div className="pt-1">
-                <a
-                  href={getHelpLink("directConnect")}
-                  className="inline-flex items-center gap-1 text-orange-300 hover:text-orange-200"
-                >
-                  Direct Connect policy and workflow
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </a>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

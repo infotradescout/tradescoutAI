@@ -29,6 +29,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const { user } = useAuth();
+  const adminRolesAllowed =
+    !!user && ["moderator", "ops_admin", "super_admin", "head_admin"].includes(user.role || "");
 
   type ScoutDraftArtifactSummary = {
     draftKind: "promo" | "community";
@@ -80,6 +82,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   }>({
     queryKey: ["/api/admin/money-movements/daily"],
     queryFn: () => apiRequest("GET", "/api/admin/money-movements/daily"),
+    enabled: adminRolesAllowed,
     staleTime: 60 * 1000,
   });
 
@@ -160,26 +163,47 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   const { data: adminStats } = useQuery<AdminStatsResponse>({
     queryKey: ["/api/admin/stats"],
     queryFn: () => apiRequest("GET", "/api/admin/stats"),
+    enabled: adminRolesAllowed,
     staleTime: 60 * 1000,
   });
 
   const { data: adminUsers = [] } = useQuery<AdminUserSummary[]>({
     queryKey: ["/api/admin/users"],
     queryFn: () => apiRequest("GET", "/api/admin/users"),
+    enabled: adminRolesAllowed,
     staleTime: 60 * 1000,
   });
 
   const { data: coverageSummary } = useQuery<CoverageSummary>({
     queryKey: ["/api/admin/geo/coverage", "analytics"],
     queryFn: () => apiRequest("GET", "/api/admin/geo/coverage"),
+    enabled: adminRolesAllowed,
     staleTime: 60 * 1000,
   });
 
   const { data: observabilitySummary } = useQuery<ObservabilitySummary>({
     queryKey: ["/api/admin/observability/summary"],
     queryFn: () => apiRequest("GET", "/api/admin/observability/summary"),
+    enabled: adminRolesAllowed,
     staleTime: 30 * 1000,
   });
+
+  if (!adminRolesAllowed) {
+    return (
+      <div className="h-full bg-background text-foreground">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-white">Admin Access Required</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-300">This page is restricted to admin roles.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const totalUsers = adminStats?.totalUsers ?? adminUsers.length;
   const totalContractors =

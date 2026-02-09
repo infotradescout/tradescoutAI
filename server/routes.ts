@@ -4139,7 +4139,10 @@ export async function registerRoutes(app: any) {
       }
 
       const user = await storage.getUser(userId);
-      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
+      if (
+        !user ||
+        !["head_admin", "super_admin", "moderator", "ops_admin"].includes(user.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
       }
 

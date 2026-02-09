@@ -42,7 +42,13 @@ type User = {
   firstName?: string;
   lastName?: string;
   role: string;
-  verificationStatus?: 'pending' | 'under_review' | 'approved' | 'rejected' | 'expired' | 'suspended';
+  verificationStatus?:
+    | "pending"
+    | "under_review"
+    | "approved"
+    | "rejected"
+    | "expired"
+    | "suspended";
   addressVerified?: boolean;
   onboardingCompleted: boolean;
   createdAt: string;
@@ -61,12 +67,48 @@ type SavedView = {
 };
 
 const roleHierarchy = {
-  super_admin: { level: 100, label: "Super Admin", icon: Crown, color: "bg-primary text-primary-foreground" },
-  moderator: { level: 80, label: "Moderator", icon: Shield, color: "bg-primary/90 text-primary-foreground" },
-  ops_admin: { level: 70, label: "Operations Admin", icon: UserCog, color: "bg-primary/80 text-primary-foreground" },
-  contractor_user: { level: 20, label: "Contractor", icon: Users, color: "bg-secondary text-secondary-foreground" },
-  accelerator_member: { level: 15, label: "Accelerator Member", icon: Users, color: "bg-accent text-accent-foreground" },
-  homeowner: { level: 10, label: "Homeowner", icon: Users, color: "bg-muted text-muted-foreground" },
+  head_admin: {
+    level: 110,
+    label: "Head Admin",
+    icon: Crown,
+    color: "bg-primary text-primary-foreground",
+  },
+  super_admin: {
+    level: 100,
+    label: "Super Admin",
+    icon: Crown,
+    color: "bg-primary text-primary-foreground",
+  },
+  moderator: {
+    level: 80,
+    label: "Moderator",
+    icon: Shield,
+    color: "bg-primary/90 text-primary-foreground",
+  },
+  ops_admin: {
+    level: 70,
+    label: "Operations Admin",
+    icon: UserCog,
+    color: "bg-primary/80 text-primary-foreground",
+  },
+  contractor_user: {
+    level: 20,
+    label: "Contractor",
+    icon: Users,
+    color: "bg-secondary text-secondary-foreground",
+  },
+  accelerator_member: {
+    level: 15,
+    label: "Accelerator Member",
+    icon: Users,
+    color: "bg-accent text-accent-foreground",
+  },
+  homeowner: {
+    level: 10,
+    label: "Homeowner",
+    icon: Users,
+    color: "bg-muted text-muted-foreground",
+  },
 };
 
 export default function AdminUsers() {
@@ -74,8 +116,12 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "contractor" | "homeowner" | "business">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending" | "suspended">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "contractor" | "homeowner" | "business">(
+    "all"
+  );
+  const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending" | "suspended">(
+    "all"
+  );
   const [addressFilter, setAddressFilter] = useState<"all" | "verified" | "not_verified">("all");
   const [onboardingFilter, setOnboardingFilter] = useState<"all" | "complete" | "pending">("all");
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
@@ -88,7 +134,7 @@ export default function AdminUsers() {
   const [pendingAction, setPendingAction] = useState<{ [key: string]: boolean }>({});
 
   // Super Admin is the highest role
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "head_admin";
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
 
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -98,7 +144,9 @@ export default function AdminUsers() {
 
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: string }) => {
-      const response = await apiRequest("PUT", `/api/admin/users/${userId}/role`, { role: newRole });
+      const response = await apiRequest("PUT", `/api/admin/users/${userId}/role`, {
+        role: newRole,
+      });
       return response;
     },
     onSuccess: () => {
@@ -140,29 +188,47 @@ export default function AdminUsers() {
   });
 
   const handleUserControl = async (action: string, userId: string, newRole?: string) => {
-    const key = action === 'role' && newRole ? `${userId}:role:${newRole}` : `${userId}:${action}`;
+    const key = action === "role" && newRole ? `${userId}:role:${newRole}` : `${userId}:${action}`;
     setPendingAction((prev) => ({ ...prev, [key]: true }));
-    let url = '';
+    let url = "";
     let body: any = undefined;
-    let successMsg = '';
+    let successMsg = "";
     switch (action) {
-      case 'suspend': url = `/api/admin/user-controls/suspend/${userId}`; successMsg = 'User suspended'; break;
-      case 'unsuspend': url = `/api/admin/user-controls/unsuspend/${userId}`; successMsg = 'User unsuspended'; break;
-      case 'verify': url = `/api/admin/user-controls/verify/${userId}`; successMsg = 'User verified'; break;
-      case 'revoke_verify': url = `/api/admin/user-controls/revoke-verify/${userId}`; successMsg = 'Verification revoked'; break;
-      case 'role': url = `/api/admin/user-controls/role/${userId}`; body = JSON.stringify({ newRole }); successMsg = `Role updated to ${newRole?.replace('_', ' ')}`; break;
-      default: setPendingAction((prev) => ({ ...prev, [key]: false })); return;
+      case "suspend":
+        url = `/api/admin/user-controls/suspend/${userId}`;
+        successMsg = "User suspended";
+        break;
+      case "unsuspend":
+        url = `/api/admin/user-controls/unsuspend/${userId}`;
+        successMsg = "User unsuspended";
+        break;
+      case "verify":
+        url = `/api/admin/user-controls/verify/${userId}`;
+        successMsg = "User verified";
+        break;
+      case "revoke_verify":
+        url = `/api/admin/user-controls/revoke-verify/${userId}`;
+        successMsg = "Verification revoked";
+        break;
+      case "role":
+        url = `/api/admin/user-controls/role/${userId}`;
+        body = JSON.stringify({ newRole });
+        successMsg = `Role updated to ${newRole?.replace("_", " ")}`;
+        break;
+      default:
+        setPendingAction((prev) => ({ ...prev, [key]: false }));
+        return;
     }
     try {
       const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        method: "POST",
+        credentials: "include",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
         body,
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Action failed');
+        throw new Error(err.message || "Action failed");
       }
       toast({ title: successMsg });
       // Refresh users list reactively instead of full page reload
@@ -170,9 +236,9 @@ export default function AdminUsers() {
       setPendingAction((prev) => ({ ...prev, [key]: false }));
     } catch (err: any) {
       toast({
-        title: 'Error',
-        description: err.message || 'Action failed',
-        variant: 'destructive',
+        title: "Error",
+        description: err.message || "Action failed",
+        variant: "destructive",
       });
       setPendingAction((prev) => ({ ...prev, [key]: false }));
     }
@@ -181,9 +247,9 @@ export default function AdminUsers() {
   const handleUpdateRole = () => {
     if (userToEdit && newRole) {
       const targetLevel = roleHierarchy[newRole as keyof typeof roleHierarchy]?.level || 0;
-      
+
       // Prevent elevation to super_admin unless current user is super_admin
-      if (newRole === 'super_admin' && !isSuperAdmin) {
+      if (newRole === "super_admin" && !isSuperAdmin) {
         toast({
           title: "Access Denied",
           description: "Only the head admin can promote users to head admin status.",
@@ -193,7 +259,7 @@ export default function AdminUsers() {
       }
 
       // Prevent modification of super_admin by non-super_admin
-      if (userToEdit.role === 'super_admin' && !isSuperAdmin) {
+      if (userToEdit.role === "super_admin" && !isSuperAdmin) {
         toast({
           title: "Access Denied",
           description: "Only the head admin can modify other head admin accounts.",
@@ -208,7 +274,7 @@ export default function AdminUsers() {
 
   const handleDeleteUser = (userId: string, userRole: string) => {
     // Prevent deletion of super_admin by non-super_admin
-    if (userRole === 'super_admin' && !isSuperAdmin) {
+    if (userRole === "super_admin" && !isSuperAdmin) {
       toast({
         title: "Access Denied",
         description: "Only the head admin can delete other head admin accounts.",
@@ -223,12 +289,14 @@ export default function AdminUsers() {
   };
 
   const getRoleInfo = (role: string) => {
-    return roleHierarchy[role as keyof typeof roleHierarchy] || {
-      level: 0,
-      label: role,
-      icon: Users,
-      color: 'bg-muted text-muted-foreground'
-    };
+    return (
+      roleHierarchy[role as keyof typeof roleHierarchy] || {
+        level: 0,
+        label: role,
+        icon: Users,
+        color: "bg-muted text-muted-foreground",
+      }
+    );
   };
 
   const getAvailableRoles = () => {
@@ -237,9 +305,10 @@ export default function AdminUsers() {
       return Object.keys(roleHierarchy);
     } else if (currentUserLevel >= 80) {
       // Moderators can assign roles below their level, but not super_admin
-      return Object.keys(roleHierarchy).filter(role => 
-        roleHierarchy[role as keyof typeof roleHierarchy].level < currentUserLevel &&
-        role !== 'super_admin'
+      return Object.keys(roleHierarchy).filter(
+        (role) =>
+          roleHierarchy[role as keyof typeof roleHierarchy].level < currentUserLevel &&
+          role !== "super_admin"
       );
     }
     return [];
@@ -324,7 +393,7 @@ export default function AdminUsers() {
       prev.map((v) => ({
         ...v,
         pinned: v.id === viewId,
-      })),
+      }))
     );
     setActiveViewId(viewId);
     const view = savedViews.find((v) => v.id === viewId);
@@ -375,7 +444,7 @@ export default function AdminUsers() {
       u.email.toLowerCase().includes(searchLower) ||
       name.toLowerCase().includes(searchLower);
 
-    const status = u.verificationStatus || 'pending';
+    const status = u.verificationStatus || "pending";
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "verified" && status === "approved") ||
@@ -418,12 +487,23 @@ export default function AdminUsers() {
       }
     }
 
-    return matchesSearch && matchesStatus && matchesAddress && matchesRole && matchesOnboarding && matchesTime;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesAddress &&
+      matchesRole &&
+      matchesOnboarding &&
+      matchesTime
+    );
   });
 
   const exportFilteredToCsv = () => {
     if (!filteredUsers.length) {
-      toast({ title: "No users to export", description: "Adjust filters to include at least one user.", variant: "destructive" });
+      toast({
+        title: "No users to export",
+        description: "Adjust filters to include at least one user.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -442,23 +522,25 @@ export default function AdminUsers() {
     const escape = (val: unknown) => {
       if (val === null || val === undefined) return "";
       const str = String(val);
-      if (str.includes("\"") || str.includes(",") || str.includes("\n")) {
+      if (str.includes('"') || str.includes(",") || str.includes("\n")) {
         return '"' + str.replace(/"/g, '""') + '"';
       }
       return str;
     };
 
-    const rows = filteredUsers.map((u) => [
-      escape(u.id),
-      escape(u.email),
-      escape(u.firstName || ""),
-      escape(u.lastName || ""),
-      escape(u.role),
-      escape(u.verificationStatus || ""),
-      escape(u.addressVerified ? "true" : "false"),
-      escape(u.onboardingCompleted ? "true" : "false"),
-      escape(u.createdAt),
-    ].join(","));
+    const rows = filteredUsers.map((u) =>
+      [
+        escape(u.id),
+        escape(u.email),
+        escape(u.firstName || ""),
+        escape(u.lastName || ""),
+        escape(u.role),
+        escape(u.verificationStatus || ""),
+        escape(u.addressVerified ? "true" : "false"),
+        escape(u.onboardingCompleted ? "true" : "false"),
+        escape(u.createdAt),
+      ].join(",")
+    );
 
     const csv = [header.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -472,7 +554,10 @@ export default function AdminUsers() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast({ title: "Export started", description: `Exported ${filteredUsers.length} users to CSV.` });
+    toast({
+      title: "Export started",
+      description: `Exported ${filteredUsers.length} users to CSV.`,
+    });
   };
 
   if (!user || currentUserLevel < 70) {
@@ -481,7 +566,9 @@ export default function AdminUsers() {
         <div className="text-center">
           <Shield className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have permission to access user management.</p>
+          <p className="text-muted-foreground">
+            You don't have permission to access user management.
+          </p>
         </div>
       </div>
     );
@@ -499,10 +586,10 @@ export default function AdminUsers() {
             {isSuperAdmin && (
               <Badge className="bg-primary text-primary-foreground">
                 <Crown className="w-3 h-3 mr-1" />
-                Super Admin
+                {user?.role === "head_admin" ? "Head Admin" : "Super Admin"}
               </Badge>
             )}
-            {user.role === 'moderator' && (
+            {user.role === "moderator" && (
               <Badge className="bg-primary/90 text-primary-foreground">
                 <Shield className="w-3 h-3 mr-1" />
                 Moderator
@@ -538,7 +625,9 @@ export default function AdminUsers() {
                       }}
                     >
                       <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
-                        <SelectValue placeholder={savedViews.length ? "Choose view" : "No views yet"} />
+                        <SelectValue
+                          placeholder={savedViews.length ? "Choose view" : "No views yet"}
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border text-xs">
                         {savedViews.length === 0 && (
@@ -648,7 +737,8 @@ export default function AdminUsers() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-foreground">
-                  Users ({filteredUsers.length}{users.length !== filteredUsers.length ? ` of ${users.length}` : ""})
+                  Users ({filteredUsers.length}
+                  {users.length !== filteredUsers.length ? ` of ${users.length}` : ""})
                 </CardTitle>
                 <Button
                   size="sm"
@@ -661,11 +751,26 @@ export default function AdminUsers() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-3 text-xs text-gray-400">
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />Verified</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Pending</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Suspended</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-emerald-700" />Address verified</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-slate-600" />Address not verified</span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                  Verified
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />
+                  Pending
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                  Suspended
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-700" />
+                  Address verified
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-slate-600" />
+                  Address not verified
+                </span>
               </div>
             </div>
           </CardHeader>
@@ -690,16 +795,15 @@ export default function AdminUsers() {
                   {filteredUsers.map((user: User) => {
                     const roleInfo = getRoleInfo(user.role);
                     const RoleIcon = roleInfo.icon;
-                    
+
                     return (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="text-foreground">
                             <div className="font-medium">
-                              {user.firstName && user.lastName 
+                              {user.firstName && user.lastName
                                 ? `${user.firstName} ${user.lastName}`
-                                : user.email
-                              }
+                                : user.email}
                             </div>
                             <div className="text-sm text-muted-foreground">{user.email}</div>
                             <div className="mt-1 text-xs">
@@ -724,27 +828,27 @@ export default function AdminUsers() {
                           <div className="flex flex-col gap-1">
                             <Badge
                               className={
-                                user.verificationStatus === 'approved'
-                                  ? 'bg-primary text-primary-foreground'
-                                  : user.verificationStatus === 'suspended'
-                                  ? 'bg-destructive text-destructive-foreground'
-                                  : 'bg-secondary text-secondary-foreground'
+                                user.verificationStatus === "approved"
+                                  ? "bg-primary text-primary-foreground"
+                                  : user.verificationStatus === "suspended"
+                                    ? "bg-destructive text-destructive-foreground"
+                                    : "bg-secondary text-secondary-foreground"
                               }
                             >
-                              {user.verificationStatus === 'approved'
-                                ? 'Verified'
-                                : user.verificationStatus === 'suspended'
-                                ? 'Suspended'
-                                : 'Pending verification'}
+                              {user.verificationStatus === "approved"
+                                ? "Verified"
+                                : user.verificationStatus === "suspended"
+                                  ? "Suspended"
+                                  : "Pending verification"}
                             </Badge>
                             <Badge
                               className={
                                 user.addressVerified
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted text-muted-foreground'
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
                               }
                             >
-                              {user.addressVerified ? 'Address verified' : 'Address not verified'}
+                              {user.addressVerified ? "Address verified" : "Address not verified"}
                             </Badge>
                             <Badge variant={user.onboardingCompleted ? "outline" : "secondary"}>
                               {user.onboardingCompleted ? "Onboarding complete" : "Setup pending"}
@@ -756,8 +860,9 @@ export default function AdminUsers() {
                         </TableCell>
                         <TableCell>
                           {/* Admin Controls: Grouped and with dropdown for less common actions */}
-                          {(currentUserLevel > roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 
-                            (isSuperAdmin && user.role === 'super_admin')) && (
+                          {(currentUserLevel >
+                            roleHierarchy[user.role as keyof typeof roleHierarchy]?.level ||
+                            (isSuperAdmin && user.role === "super_admin")) && (
                             <div className="flex flex-wrap gap-2 items-center">
                               {/* Primary Actions */}
                               <Button
@@ -772,101 +877,153 @@ export default function AdminUsers() {
                               >
                                 Edit Role
                               </Button>
-                              {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={async () => {
-                                    const key = `${user.id}:impersonate`;
-                                    setPendingAction((prev) => ({ ...prev, [key]: true }));
-                                    try {
-                                      const res = await fetch(`/api/admin/impersonate/start/${user.id}`, {
-                                        method: "POST",
-                                        credentials: "include",
-                                      });
-                                      if (!res.ok) {
-                                        const err = await res.json().catch(() => ({}));
-                                        throw new Error(err.message || 'Impersonation failed');
+                              {isSuperAdmin &&
+                                user.id !== (userToEdit?.id || "") &&
+                                user.role !== "super_admin" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                      const key = `${user.id}:impersonate`;
+                                      setPendingAction((prev) => ({ ...prev, [key]: true }));
+                                      try {
+                                        const res = await fetch(
+                                          `/api/admin/impersonate/start/${user.id}`,
+                                          {
+                                            method: "POST",
+                                            credentials: "include",
+                                          }
+                                        );
+                                        if (!res.ok) {
+                                          const err = await res.json().catch(() => ({}));
+                                          throw new Error(err.message || "Impersonation failed");
+                                        }
+                                        toast({ title: "Impersonation started" });
+                                        window.location.reload();
+                                      } catch (err: any) {
+                                        toast({
+                                          title: "Error",
+                                          description: err.message || "Impersonation failed",
+                                          variant: "destructive",
+                                        });
+                                        setPendingAction((prev) => ({ ...prev, [key]: false }));
                                       }
-                                      toast({ title: 'Impersonation started' });
-                                      window.location.reload();
-                                    } catch (err: any) {
-                                      toast({
-                                        title: 'Error',
-                                        description: err.message || 'Impersonation failed',
-                                        variant: 'destructive',
-                                      });
-                                      setPendingAction((prev) => ({ ...prev, [key]: false }));
-                                    }
-                                  }}
-                                  className="border-accent text-accent-foreground hover:bg-accent/10"
-                                  title="Impersonate user"
-                                  disabled={pendingAction[`${user.id}:impersonate`]}
-                                >
-                                  {pendingAction[`${user.id}:impersonate`] ? 'Working…' : 'Impersonate'}
-                                </Button>
-                              )}
+                                    }}
+                                    className="border-accent text-accent-foreground hover:bg-accent/10"
+                                    title="Impersonate user"
+                                    disabled={pendingAction[`${user.id}:impersonate`]}
+                                  >
+                                    {pendingAction[`${user.id}:impersonate`]
+                                      ? "Working…"
+                                      : "Impersonate"}
+                                  </Button>
+                                )}
                               {/* Status Controls */}
-                              {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUserControl('suspend', user.id)}
-                                    className="border-destructive text-destructive hover:bg-destructive/10"
-                                    title={user.verificationStatus === 'suspended' ? 'User is already suspended' : 'Suspend user'}
-                                    disabled={
-                                      pendingAction[`${user.id}:suspend`] || user.verificationStatus === 'suspended'
-                                    }
-                                  >
-                                    {pendingAction[`${user.id}:suspend`] ? 'Working…' : 'Suspend'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUserControl('unsuspend', user.id)}
-                                    className="border-primary text-primary hover:bg-primary/10"
-                                    title="Unsuspend user"
-                                    disabled={pendingAction[`${user.id}:unsuspend`]}
-                                  >
-                                    {pendingAction[`${user.id}:unsuspend`] ? 'Working…' : 'Unsuspend'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUserControl('verify', user.id)}
-                                    className="border-primary text-primary hover:bg-primary/10"
-                                    title={user.verificationStatus === 'approved' ? 'User is already verified' : 'Verify user'}
-                                    disabled={
-                                      pendingAction[`${user.id}:verify`] || user.verificationStatus === 'approved'
-                                    }
-                                  >
-                                    {pendingAction[`${user.id}:verify`] ? 'Working…' : 'Verify'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUserControl('revoke_verify', user.id)}
-                                    className="border-muted text-muted-foreground hover:bg-muted/10"
-                                    title="Revoke verification"
-                                    disabled={pendingAction[`${user.id}:revoke_verify`]}
-                                  >
-                                    {pendingAction[`${user.id}:revoke_verify`] ? 'Working…' : 'Revoke Verify'}
-                                  </Button>
-                                </div>
-                              )}
-                              {/* Role Quick Set Dropdown */}
-                              {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
-                                <div className="relative group">
-                                  <Button size="sm" variant="outline" className="border-secondary text-secondary-foreground group-hover:bg-secondary/10" title="Quick set role">
-                                    More
-                                  </Button>
-                                  <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[160px]">
-                                    <button onClick={() => handleUserControl('role', user.id, 'contractor_user')} className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted" disabled={pendingAction[`${user.id}:role:contractor_user`]}> {pendingAction[`${user.id}:role:contractor_user`] ? 'Working…' : 'Set Contractor'} </button>
-                                    <button onClick={() => handleUserControl('role', user.id, 'homeowner')} className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted" disabled={pendingAction[`${user.id}:role:homeowner`]}> {pendingAction[`${user.id}:role:homeowner`] ? 'Working…' : 'Set Homeowner'} </button>
+                              {isSuperAdmin &&
+                                user.id !== (userToEdit?.id || "") &&
+                                user.role !== "super_admin" && (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUserControl("suspend", user.id)}
+                                      className="border-destructive text-destructive hover:bg-destructive/10"
+                                      title={
+                                        user.verificationStatus === "suspended"
+                                          ? "User is already suspended"
+                                          : "Suspend user"
+                                      }
+                                      disabled={
+                                        pendingAction[`${user.id}:suspend`] ||
+                                        user.verificationStatus === "suspended"
+                                      }
+                                    >
+                                      {pendingAction[`${user.id}:suspend`] ? "Working…" : "Suspend"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUserControl("unsuspend", user.id)}
+                                      className="border-primary text-primary hover:bg-primary/10"
+                                      title="Unsuspend user"
+                                      disabled={pendingAction[`${user.id}:unsuspend`]}
+                                    >
+                                      {pendingAction[`${user.id}:unsuspend`]
+                                        ? "Working…"
+                                        : "Unsuspend"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUserControl("verify", user.id)}
+                                      className="border-primary text-primary hover:bg-primary/10"
+                                      title={
+                                        user.verificationStatus === "approved"
+                                          ? "User is already verified"
+                                          : "Verify user"
+                                      }
+                                      disabled={
+                                        pendingAction[`${user.id}:verify`] ||
+                                        user.verificationStatus === "approved"
+                                      }
+                                    >
+                                      {pendingAction[`${user.id}:verify`] ? "Working…" : "Verify"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUserControl("revoke_verify", user.id)}
+                                      className="border-muted text-muted-foreground hover:bg-muted/10"
+                                      title="Revoke verification"
+                                      disabled={pendingAction[`${user.id}:revoke_verify`]}
+                                    >
+                                      {pendingAction[`${user.id}:revoke_verify`]
+                                        ? "Working…"
+                                        : "Revoke Verify"}
+                                    </Button>
                                   </div>
-                                </div>
-                              )}
+                                )}
+                              {/* Role Quick Set Dropdown */}
+                              {isSuperAdmin &&
+                                user.id !== (userToEdit?.id || "") &&
+                                user.role !== "super_admin" && (
+                                  <div className="relative group">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-secondary text-secondary-foreground group-hover:bg-secondary/10"
+                                      title="Quick set role"
+                                    >
+                                      More
+                                    </Button>
+                                    <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[160px]">
+                                      <button
+                                        onClick={() =>
+                                          handleUserControl("role", user.id, "contractor_user")
+                                        }
+                                        className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
+                                        disabled={pendingAction[`${user.id}:role:contractor_user`]}
+                                      >
+                                        {" "}
+                                        {pendingAction[`${user.id}:role:contractor_user`]
+                                          ? "Working…"
+                                          : "Set Contractor"}{" "}
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleUserControl("role", user.id, "homeowner")
+                                        }
+                                        className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
+                                        disabled={pendingAction[`${user.id}:role:homeowner`]}
+                                      >
+                                        {" "}
+                                        {pendingAction[`${user.id}:role:homeowner`]
+                                          ? "Working…"
+                                          : "Set Homeowner"}{" "}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               {/* (Optional) Delete user button, if ever enabled */}
                               {/* {user.id !== user.id && (
                                 <Button
@@ -897,18 +1054,18 @@ export default function AdminUsers() {
             <DialogHeader>
               <DialogTitle className="text-foreground">Edit User Role</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Change the role for {userToEdit?.firstName && userToEdit?.lastName 
+                Change the role for{" "}
+                {userToEdit?.firstName && userToEdit?.lastName
                   ? `${userToEdit.firstName} ${userToEdit.lastName}`
-                  : userToEdit?.email
-                }
+                  : userToEdit?.email}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label className="text-muted-foreground">Current Role</Label>
                 <div className="mt-1">
-                  <Badge className={`${getRoleInfo(userToEdit?.role || '').color}`}>
-                    {getRoleInfo(userToEdit?.role || '').label}
+                  <Badge className={`${getRoleInfo(userToEdit?.role || "").color}`}>
+                    {getRoleInfo(userToEdit?.role || "").label}
                   </Badge>
                 </div>
               </div>
@@ -941,7 +1098,7 @@ export default function AdminUsers() {
                 disabled={updateUserRoleMutation.isPending || !newRole}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
-                {updateUserRoleMutation.isPending ? 'Updating...' : 'Update Role'}
+                {updateUserRoleMutation.isPending ? "Updating..." : "Update Role"}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -22,6 +22,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { recordActivity } from "@/agent/activity";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useLocation } from "wouter";
 
 type TopContractor = {
   id: string;
@@ -57,13 +58,22 @@ function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): stri
   return mapping[categoryId] ?? null;
 }
 
-export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: string }) {
+export default function TasksHub({
+  defaultCountyFips,
+  embedded = false,
+  defaultTab = "browse",
+}: {
+  defaultCountyFips?: string;
+  embedded?: boolean;
+  defaultTab?: "browse" | "post";
+}) {
   const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location] = useLocation();
 
-  const [activeTab, setActiveTab] = useState("browse");
+  const [activeTab, setActiveTab] = useState<"browse" | "post">(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -76,6 +86,7 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskCategoryId, setTaskCategoryId] = useState<string>("");
+  const [selectedTradeSlug, setSelectedTradeSlug] = useState<string>("");
   const [taskPayType, setTaskPayType] = useState<"fixed" | "hourly" | "per_task">("fixed");
   const [taskPayAmount, setTaskPayAmount] = useState<string>("");
   const [taskTaskType, setTaskTaskType] = useState<"one_time" | "recurring" | "project_based">(
@@ -86,6 +97,48 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
   );
 
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
+  const [prefillProviderId, setPrefillProviderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (embedded) {
+      setActiveTab(defaultTab);
+    }
+  }, [embedded, defaultTab]);
+
+  const searchParams = useMemo(() => {
+    const parts = String(location || "").split("?");
+    return new URLSearchParams(parts[1] || "");
+  }, [location]);
+
+  const intent = searchParams.get("intent");
+  const contractorSlug = searchParams.get("contractor");
+  const contractorId = searchParams.get("contractorId");
+
+  const { data: contractorPrefill } = useQuery({
+    queryKey: ["/api/contractors/prefill", contractorSlug],
+    enabled: Boolean(contractorSlug),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/contractors/${contractorSlug}`);
+      return response?.contractor ?? null;
+    },
+  });
+
+  useEffect(() => {
+    if (intent === "hire" || contractorSlug || contractorId) {
+      setActiveTab("post");
+    }
+  }, [intent, contractorSlug, contractorId]);
+
+  useEffect(() => {
+    const idFromSlug = contractorPrefill?.id as string | undefined;
+    const idFromQuery = contractorId || idFromSlug;
+    if (!idFromQuery) return;
+    setPrefillProviderId(idFromQuery);
+    setSelectedProviderIds((prev) => {
+      if (prev.includes(idFromQuery)) return prev;
+      return [...prev, idFromQuery];
+    });
+  }, [contractorId, contractorPrefill]);
 
   // Telemetry: Track when county defaults are applied from URL params (Phase 1)
   useEffect(() => {
@@ -132,21 +185,28 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
     queryKey: ["/api/task-categories"],
   });
 
+  const { data: trades = [] } = useQuery({
+    queryKey: ["/api/trades"],
+    queryFn: async () => apiRequest("GET", "/api/trades"),
+  });
+
   const tradeSlugForCategory = useMemo(
     () => mapTaskCategoryToTradeSlug(taskCategoryId || null),
     [taskCategoryId]
   );
+  const resolvedTradeSlug = selectedTradeSlug || tradeSlugForCategory || "";
 
   useEffect(() => {
     // Reset provider picks when the shape of the request changes
     setSelectedProviderIds([]);
-  }, [taskCategoryId]);
+    setPrefillProviderId(null);
+  }, [taskCategoryId, selectedTradeSlug]);
 
   const { data: recommendedProviders, isLoading: providersLoading } = useQuery<TopContractor[]>({
-    queryKey: ["/api/contractors/top", selectedCountyFips || null, tradeSlugForCategory || null],
+    queryKey: ["/api/contractors/top", selectedCountyFips || null, resolvedTradeSlug || null],
     queryFn: async () => {
       const county = selectedCountyFips;
-      const trade = tradeSlugForCategory;
+      const trade = resolvedTradeSlug;
       if (!county || !trade) return [];
 
       const params = new URLSearchParams({
@@ -163,19 +223,22 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
 
   const createTaskMutation = useMutation({
     mutationFn: async () => {
-      const payAmount = Number(taskPayAmount);
       if (!taskTitle.trim()) throw new Error("Title is required");
       if (!taskDescription.trim()) throw new Error("Description is required");
-      if (!Number.isFinite(payAmount) || payAmount <= 0)
+      const hasPayAmount = taskPayAmount.trim().length > 0;
+      const payAmount = hasPayAmount ? Number(taskPayAmount) : NaN;
+      if (hasPayAmount && (!Number.isFinite(payAmount) || payAmount <= 0)) {
         throw new Error("Pay amount must be a positive number");
+      }
       if (!selectedCountyFips) throw new Error("County is required");
 
       return apiRequest("POST", "/api/direct-connect/requests", {
         title: taskTitle.trim(),
         description: taskDescription.trim(),
         category: taskCategoryId || undefined,
-        budgetMin: payAmount,
-        budgetMax: payAmount,
+        tradeId: resolvedTradeSlug || undefined,
+        budgetMin: hasPayAmount ? payAmount : undefined,
+        budgetMax: hasPayAmount ? payAmount : undefined,
         countyFips: selectedCountyFips,
         targetContractorIds: selectedProviderIds.length ? selectedProviderIds : undefined,
       });
@@ -219,30 +282,42 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
     });
   }, [workRequests, searchQuery, selectedCategory]);
 
+  const shellClass = embedded
+    ? "space-y-4"
+    : "max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20";
+  const contentSpacing = embedded ? "mt-0" : "mt-6";
+
   return (
     <div className="">
-      <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
-          <p className="text-lg text-gray-300 max-w-3xl">
-            Direct Connect is where local coordination happens. Capture what you need done, and
-            Scout plus your community help route it to the right people over time until it's
-            resolved.
-          </p>
-        </div>
+      <div className={shellClass}>
+        {!embedded && (
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
+            <p className="text-lg text-gray-300 max-w-3xl">
+              Direct Connect is where local coordination happens. Capture what you need done and
+              keep everything in one place until it is resolved.
+            </p>
+          </div>
+        )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
-            <TabsTrigger value="browse" className="data-[state=active]:bg-orange-500">
-              <Briefcase className="h-4 w-4 mr-2" />
-              Active coordination
-            </TabsTrigger>
-            <TabsTrigger value="post" className="data-[state=active]:bg-orange-500">
-              Start a Direct Connect request
-            </TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as "browse" | "post")}
+          className={embedded ? "" : "mb-8"}
+        >
+          {!embedded && (
+            <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
+              <TabsTrigger value="browse" className="data-[state=active]:bg-orange-500">
+                <Briefcase className="h-4 w-4 mr-2" />
+                Active coordination
+              </TabsTrigger>
+              <TabsTrigger value="post" className="data-[state=active]:bg-orange-500">
+                Start a Direct Connect request
+              </TabsTrigger>
+            </TabsList>
+          )}
 
-          <TabsContent value="browse" className="mt-6">
+          <TabsContent value="browse" className={contentSpacing}>
             <Card className="bg-navy-800 border-navy-700 mb-6">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -316,8 +391,8 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                     Sign in to use Direct Connect
                   </h3>
                   <p className="text-gray-300">
-                    Direct Connect is your command center for getting things done locally. Once you
-                    sign in, Scout and your community can help coordinate what you need from here.
+                    Direct Connect helps you organize local work in one place. Once you sign in, you
+                    can post requests, browse pros, and track progress here.
                   </p>
                 </CardContent>
               </Card>
@@ -376,8 +451,8 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                           Nothing in coordination yet
                         </h3>
                         <p className="text-gray-300">
-                          When you want to get something done  something big, a service, or help  it
-                          will appear here while Scout and your community work on it.
+                          When you post a new request, it will show up here so you can track it from
+                          first post to completion.
                         </p>
                       </CardContent>
                     </Card>
@@ -387,15 +462,15 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
             )}
           </TabsContent>
 
-          <TabsContent value="post" className="mt-6">
+          <TabsContent value="post" className={contentSpacing}>
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader className="pb-4">
                 <h2 className="text-lg font-semibold text-white mb-1">
                   Create a new Direct Connect request
                 </h2>
                 <p className="text-sm text-gray-300">
-                  Describe the work you need help with. Scout and your community can use this Direct
-                  Connect request to help you route it to the right people over time.
+                  Describe the work you need help with. Your request is posted to your Direct
+                  Connect board so you can manage replies and next steps.
                 </p>
               </CardHeader>
               <CardContent>
@@ -441,6 +516,26 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                             {categories?.map((c) => (
                               <SelectItem key={c.id} value={c.id}>
                                 {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Trade / Service</Label>
+                        <Select
+                          value={selectedTradeSlug || "none"}
+                          onValueChange={(v) => setSelectedTradeSlug(v === "none" ? "" : v)}
+                        >
+                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                            <SelectValue placeholder="Select a trade" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                            <SelectItem value="none">No trade</SelectItem>
+                            {(trades as any[]).map((trade) => (
+                              <SelectItem key={trade.slug} value={trade.slug}>
+                                {trade.name || trade.slug}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -515,6 +610,52 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                       <Label>
                         Optional: send this Direct Connect request directly to recommended providers
                       </Label>
+                      {prefillProviderId && contractorPrefill && (
+                        <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
+                          <div className="text-xs text-gray-400">Direct invite</div>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <span className="font-medium text-white">
+                              {contractorPrefill.companyName ||
+                                contractorPrefill.name ||
+                                "Selected provider"}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-gray-500 text-gray-300"
+                              onClick={() => {
+                                setSelectedProviderIds((prev) =>
+                                  prev.filter((id) => id !== prefillProviderId)
+                                );
+                                setPrefillProviderId(null);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {prefillProviderId && !contractorPrefill && (
+                        <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
+                          <div className="text-xs text-gray-400">Direct invite</div>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <span className="font-medium text-white">Selected provider</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-gray-500 text-gray-300"
+                              onClick={() => {
+                                setSelectedProviderIds((prev) =>
+                                  prev.filter((id) => id !== prefillProviderId)
+                                );
+                                setPrefillProviderId(null);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                       {!isAuthenticated || !user?.countyFips ? (
                         <p className="text-sm text-gray-300">
                           We'll post this on your Direct Connect board. Sign in with a saved home
@@ -607,7 +748,9 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                         onClick={() => createTaskMutation.mutate()}
                         disabled={createTaskMutation.isPending}
                       >
-                        {createTaskMutation.isPending ? "Posting" : "Post Direct Connect request"}
+                        {createTaskMutation.isPending
+                          ? "Posting..."
+                          : "Post Direct Connect request"}
                       </Button>
                     </div>
                   </div>
