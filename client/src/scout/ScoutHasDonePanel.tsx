@@ -1,49 +1,63 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
+import { Bot, Radar, Send, ShieldCheck } from "lucide-react";
 
 export const ScoutHasDonePanel: React.FC = () => {
   return (
-    <Card className="bg-slate-900/80 border-slate-800 p-3 md:p-4 h-full flex flex-col">
-      <div className="mb-2">
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          What Scout Has Already Done
-        </h2>
+    <Card className="bg-slate-900/80 border-slate-800 p-3 md:p-4 h-full flex flex-col gap-3">
+      <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-orange-300">
+          <Bot className="h-3.5 w-3.5" />
+          Automation Layer
+        </div>
         <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-          When you start coordination in Direct Connect, Scout quietly does a few things for you by default.
+          What Scout handles in the background once you post a Direct Connect request.
         </p>
       </div>
 
-      <div className="mt-2 space-y-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+      <div className="space-y-2 text-xs" style={{ color: "var(--text-secondary)" }}>
         <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-2">
-          <div className="font-medium" style={{ color: "var(--text-primary)" }}>
-            Added to Direct Connect
+          <div
+            className="inline-flex items-center gap-1.5 font-medium"
+            style={{ color: "var(--text-primary)" }}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-orange-300" />
+            Request staged
           </div>
           <p className="mt-0.5 text-[11px]">
-            Each request you start lives on your Direct Connect board while coordination happens.
+            Every request is anchored to your Direct Connect board so status never gets lost.
           </p>
         </div>
 
         <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-2">
-          <div className="font-medium" style={{ color: "var(--text-primary)" }}>
-            Routed through your community
+          <div
+            className="inline-flex items-center gap-1.5 font-medium"
+            style={{ color: "var(--text-primary)" }}
+          >
+            <Radar className="h-3.5 w-3.5 text-orange-300" />
+            Local signal pass
           </div>
           <p className="mt-0.5 text-[11px]">
-            Scout can surface your requests to people in your community where that&apos;s enabled, so more of the right eyes see it.
+            Where enabled, Scout surfaces the request to relevant local signals.
           </p>
         </div>
 
         <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-2">
-          <div className="font-medium" style={{ color: "var(--text-primary)" }}>
-            Notified local providers (where available)
+          <div
+            className="inline-flex items-center gap-1.5 font-medium"
+            style={{ color: "var(--text-primary)" }}
+          >
+            <Send className="h-3.5 w-3.5 text-orange-300" />
+            Provider notifications
           </div>
           <p className="mt-0.5 text-[11px]">
-            When available, Scout notifies local providers that your request needs attention so they can decide whether to respond.
+            Eligible local providers are notified so they can choose whether to respond.
           </p>
         </div>
       </div>
 
-      <p className="mt-3 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-        Scout explains what&apos;s happening, but Direct Connect stays in charge of the actual coordination.
+      <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+        Scout provides context and automation. Direct Connect remains the source of truth.
       </p>
     </Card>
   );
