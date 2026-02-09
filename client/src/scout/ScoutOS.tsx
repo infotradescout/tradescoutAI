@@ -29,21 +29,7 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  ArrowRight,
-  MessageCircle,
-  Sparkles,
-  Activity,
-  ThumbsUp,
-  ThumbsDown,
-  Ban,
-  LayoutDashboard,
-  ClipboardList,
-  Users2,
-  Wrench,
-  Home,
-  Shield,
-} from "lucide-react";
+import { Sparkles, ClipboardList, Users2, Wrench } from "lucide-react";
 import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
@@ -85,12 +71,8 @@ import { useScoutMode } from "./useScoutMode";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import type { ScoutMode as ScoutModeType } from "./scoutModeTypes";
-import {
-  QuickActionsWidget,
-  RecentProjectsWidget,
-  SavedContractorsWidget,
-  CommunityBuilderImpactWidget,
-} from "@/components/dashboard/DashboardWidgets";
+import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
+import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -178,52 +160,6 @@ function tokenOverlapScore(query: string, candidate: string): number {
   // Penalize very short / generic queries
   const lengthBoost = Math.min(1, q.length / 12);
   return Math.max(0, Math.min(0.95, jaccard * 0.9 + lengthBoost * 0.1));
-}
-
-function extractExplicitNavIntent(
-  message: string
-): { to: string; label: string; confidence: number } | null {
-  const lower = normalizeForMatch(message);
-  const isExplicit =
-    /^(go to|take me to|open|show me|navigate to)\b/.test(lower) ||
-    /\b(take me|send me|route me)\b/.test(lower);
-  if (!isExplicit) return null;
-
-  if (lower.includes("direct connect"))
-    return { to: "/direct-connect", label: "Direct Connect", confidence: 0.95 };
-  if (lower.includes("community"))
-    return { to: ROUTES.COMMUNITY ?? "/community", label: "Community", confidence: 0.95 };
-  if (lower.includes("exchange") || lower.includes("marketplace"))
-    return { to: ROUTES.EXCHANGE ?? "/exchange", label: "Exchange", confidence: 0.95 };
-  if (lower.includes("message") || lower.includes("inbox") || lower.includes("conversations"))
-    return { to: "/conversations", label: "Messages", confidence: 0.95 };
-  if (lower.includes("settings"))
-    return { to: ROUTES.SETTINGS ?? "/settings", label: "Settings", confidence: 0.95 };
-  if (
-    lower.includes("profile settings") ||
-    lower.includes("profile colors") ||
-    lower.includes("palette")
-  )
-    return { to: "/profile-settings", label: "Profile Settings", confidence: 0.92 };
-  if (
-    lower.includes("contractor") ||
-    lower.includes("contractors") ||
-    lower.includes("contractor board")
-  ) {
-    return {
-      to: ROUTES.CONTRACTORS ?? "/contractors/board",
-      label: "Contractors",
-      confidence: 0.9,
-    };
-  }
-  if (lower.includes("notes"))
-    return { to: ROUTES.NOTES ?? "/notes", label: "Notes", confidence: 0.9 };
-  if (lower.includes("leaderboard"))
-    return { to: "/leaderboard", label: "Leaderboard", confidence: 0.9 };
-  if (lower.includes("sign up") || lower.includes("create account") || lower.includes("register"))
-    return { to: ROUTES.REGISTER ?? "/create-account", label: "Create Account", confidence: 0.95 };
-
-  return null;
 }
 
 function tryRecordCountyExplanationFollowup(
@@ -489,7 +425,6 @@ export default function ScoutOS() {
   ]);
 
   const hasMessages = state.messages.length > 0;
-  const showScoutDashboard = Boolean(isAuthenticated);
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -920,31 +855,14 @@ export default function ScoutOS() {
         // ------------------------------------------------------------------
         // EXPLICIT NAV INTENT (high confidence; user asked to be routed)
         // ------------------------------------------------------------------
-        const explicitNav = extractExplicitNavIntent(value);
+        const explicitNav = resolveExplicitNavigationIntent(value);
         if (explicitNav) {
           setStatus("ready");
 
-          const msg: ScoutMessage = {
-            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-            role: "assistant",
-            content: `Got it — opening ${explicitNav.label}.`,
-            timestamp: new Date().toISOString(),
-            clusters: [
-              {
-                id: "auto-route-explicit",
-                title: `Open ${explicitNav.label}`,
-                kind: "generic",
-                primaryAction: {
-                  type: "NAVIGATE",
-                  label: "Open",
-                  to: explicitNav.to,
-                },
-              },
-            ],
-            navTarget: explicitNav.to,
-            memoryDelta: { lastIntent: "explicit_navigation" },
-            contextRoles,
-          };
+          const msg = buildExplicitNavigationMessage(
+            { to: explicitNav.to, label: explicitNav.label },
+            { contextRoles }
+          );
 
           applyServerResponse(msg, []);
           queueAutoRoute({
@@ -1112,7 +1030,7 @@ export default function ScoutOS() {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
             content:
-              "Direct Connect routes jobs when they’re ready and scoped, so providers only see high-intent requests.",
+              "Direct Connect routes jobs when they are ready and scoped, so providers only see high-intent requests.",
             timestamp: new Date().toISOString(),
             clusters: routingClusters,
             navTarget: helpLink,
@@ -1183,12 +1101,13 @@ export default function ScoutOS() {
           const msg: ScoutMessage = {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
-            content: "Messaging stays locked until a provider accepts your Direct Connect job.",
+            content:
+              "Messaging opens after a provider accepts your Direct Connect request. Until then, it stays locked to prevent spam and misalignment.",
             timestamp: new Date().toISOString(),
             clusters: messagingClusters,
             navTarget: helpLink,
             memoryDelta: {
-              lastIntent: "messaging_rules_explainer",
+              lastIntent: "messaging_locked_explainer",
             },
             contextRoles,
           };
@@ -1359,12 +1278,10 @@ export default function ScoutOS() {
           const msg: ScoutMessage = {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
-            content: "Let’s get you a quick win.",
+            content: "Let's pick your fastest next step.",
             timestamp: new Date().toISOString(),
             clusters: onboardingClusters,
-            memoryDelta: {
-              lastIntent: "onboarding_intent",
-            },
+            memoryDelta: { lastIntent: "scout_onboarding_prompt" },
             contextRoles,
           };
 
@@ -1493,37 +1410,16 @@ export default function ScoutOS() {
           const msg: ScoutMessage = {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
-            content:
-              selectedTrade && countyName && stateCode
-                ? `I drafted a setup to offer ${selectedTrade.name.toLowerCase()} services in ${countyName}, ${stateCode}. Review and confirm it before we start promoting you.`
-                : "I drafted a setup for your services in this area. Review and confirm it before saving.",
+            content: "I drafted your provider setup path. Review it before saving.",
             timestamp: new Date().toISOString(),
             clusters,
             navTarget: "/offer-services?review=1",
-            memoryDelta: {
-              lastIntent: "provider_offer_here",
-            },
+            memoryDelta: { lastIntent: "provider_offer_services" },
             contextRoles,
-            toolResult: proposal
-              ? {
-                  tool: "provider_profile_proposal",
-                  success: true,
-                  data: proposal,
-                }
-              : undefined,
           };
 
           applyServerResponse(msg, []);
           setStatus("idle");
-
-          const latencyMs = performance.now() - start;
-          logScoutInsight({
-            message: value,
-            mode,
-            locality,
-            success: true,
-            latencyMs,
-          });
           return;
         }
 
@@ -1535,28 +1431,28 @@ export default function ScoutOS() {
 
           const countyFips = (locationCtx as any).countyFips as string | undefined;
           const countyName = (locationCtx as any).countyName || (locationCtx as any).county;
-          const stateCode = (locationCtx as any).stateCode;
+          const stateCode = (locationCtx as any).stateCode as string | undefined;
 
           let standing: ProviderStanding | null = null;
-          try {
-            if (countyFips) {
+          if (countyFips) {
+            try {
               standing = await getProviderStanding({ countyFips });
+            } catch {
+              standing = null;
             }
-          } catch {
-            standing = null;
           }
 
-          if (!standing || !countyFips) {
+          if (!standing) {
             const msg: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content:
-                "I couldn't read your presence for this county yet. Let's open your provider setup so you can review and adjust it.",
+                "I couldn't load your local standing right now. Open your provider setup to review your current status.",
               timestamp: new Date().toISOString(),
               clusters: [
                 {
-                  id: "provider-standing-fallback",
-                  title: "Review provider setup",
+                  id: "provider-standing-unavailable",
+                  title: "Provider setup",
                   kind: "generic",
                   primaryAction: {
                     type: "NAVIGATE",
@@ -1565,10 +1461,6 @@ export default function ScoutOS() {
                   },
                 },
               ],
-              navTarget: "/offer-services",
-              memoryDelta: {
-                lastIntent: "provider_standing_here",
-              },
               contextRoles,
             };
 
@@ -1631,16 +1523,11 @@ export default function ScoutOS() {
           const msg: ScoutMessage = {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
-            content:
-              countyName && stateCode
-                ? `Here's how you're currently set up for ${countyName}, ${stateCode}.`
-                : "Here's how you're currently set up for this area.",
+            content: "Here is your current provider standing for this county.",
             timestamp: new Date().toISOString(),
             clusters,
             navTarget: "/offer-services",
-            memoryDelta: {
-              lastIntent: "provider_standing_here",
-            },
+            memoryDelta: { lastIntent: "provider_standing" },
             contextRoles,
           };
 
@@ -2478,6 +2365,11 @@ export default function ScoutOS() {
             ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
             : enrichedContent;
 
+        const resolvedContent =
+          typeof finalContent === "string" && finalContent.trim().length > 0
+            ? finalContent
+            : "I’m here and ready. Choose a route below or ask me for the next step.";
+
         // Attach CTA hints from server (community posts, trade deals, etc.)
         if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
           clusters =
@@ -2497,7 +2389,7 @@ export default function ScoutOS() {
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
-          content: finalContent,
+          content: resolvedContent,
           timestamp: res.timestamp || new Date().toISOString(),
           suggestedActions: smartSuggestions,
           overrideOption: res.overrideOption,
@@ -2592,7 +2484,15 @@ export default function ScoutOS() {
         });
       } catch (err: any) {
         const latencyMs = performance.now() - start;
-        setError(err.message || "Unknown error");
+        const { message: fallback, actions: fallbackActions } = buildConnectionFallback(
+          {
+            contractorsRoute: ROUTES.CONTRACTORS ?? "/contractors",
+            communityRoute: ROUTES.COMMUNITY ?? "/community",
+          },
+          { contextRoles: getContextRoles(value) }
+        );
+
+        applyServerResponse(fallback, fallbackActions);
         logScoutInsight({
           message: value,
           mode,
@@ -2617,7 +2517,6 @@ export default function ScoutOS() {
       recordUserMessage,
       sessionRole,
       setPrefillKey,
-      setError,
       state.messages,
       queueAutoRoute,
       userRoles,
@@ -2973,166 +2872,6 @@ export default function ScoutOS() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const anyUser = user as any;
-  const userRole = String(anyUser?.role || "").toLowerCase();
-  const accountRoles = Array.isArray(anyUser?.roles)
-    ? anyUser.roles.map((r: unknown) => String(r).toLowerCase())
-    : [];
-  const projectCount = dashboardData?.myProjects?.length ?? 0;
-  const savedCount = savedContractorsData?.length ?? 0;
-  const invoiceCount = invoicesData?.length ?? 0;
-
-  const dashboardMetrics = useMemo(
-    () => [
-      { id: "projects", label: "Active projects", value: projectCount },
-      { id: "saved", label: "Saved providers", value: savedCount },
-      { id: "invoices", label: "Invoices", value: invoiceCount },
-    ],
-    [invoiceCount, projectCount, savedCount]
-  );
-
-  const roleActionRows = useMemo(() => {
-    const isContractor =
-      userRole === "contractor_user" ||
-      userRole === "accelerator_member" ||
-      accountRoles.includes("contractor_user");
-    const isRealtor = userRole === "realtor" || accountRoles.includes("realtor");
-    const isDealer = userRole === "car_salesman" || accountRoles.includes("car_salesman");
-    const isAdminLike =
-      anyUser?.isAdmin === true ||
-      anyUser?.isSuperAdmin === true ||
-      userRole.includes("admin") ||
-      accountRoles.some((r: string) => r.includes("admin"));
-
-    if (isAdminLike) {
-      return [
-        {
-          id: "admin-os",
-          title: "Admin operations",
-          subtitle: "Platform controls, users, and automation health.",
-          href: "/admin",
-          Icon: Shield,
-        },
-        {
-          id: "admin-observability",
-          title: "Observability",
-          subtitle: "Monitor platform reliability and service signals.",
-          href: "/admin-observability",
-          Icon: LayoutDashboard,
-        },
-        {
-          id: "admin-direct-connect",
-          title: "Direct Connect surface",
-          subtitle: "Review coordination behavior from the same hub users see.",
-          href: "/direct-connect",
-          Icon: ClipboardList,
-        },
-      ];
-    }
-
-    if (isContractor) {
-      return [
-        {
-          id: "contractor-leads",
-          title: "Contractor leads",
-          subtitle: "Respond to local requests matched for your trade.",
-          href: "/contractor-leads",
-          Icon: Wrench,
-        },
-        {
-          id: "contractor-finances",
-          title: "Finances workspace",
-          subtitle: "Track invoices, payouts, and payment events.",
-          href: "/finances",
-          Icon: LayoutDashboard,
-        },
-        {
-          id: "contractor-community",
-          title: "Community visibility",
-          subtitle: "Build trust through local activity and responses.",
-          href: "/community-feed",
-          Icon: Users2,
-        },
-      ];
-    }
-
-    if (isRealtor) {
-      return [
-        {
-          id: "realtor-marketplace",
-          title: "Real estate workspace",
-          subtitle: "Manage listings and local connections.",
-          href: "/real-estate-marketplace",
-          Icon: Home,
-        },
-        {
-          id: "realtor-connect",
-          title: "Direct Connect",
-          subtitle: "Coordinate project requests and referrals.",
-          href: "/direct-connect",
-          Icon: ClipboardList,
-        },
-        {
-          id: "realtor-community",
-          title: "Community feed",
-          subtitle: "Stay visible and relevant in county conversations.",
-          href: "/community-feed",
-          Icon: Users2,
-        },
-      ];
-    }
-
-    if (isDealer) {
-      return [
-        {
-          id: "dealer-market",
-          title: "Vehicle marketplace",
-          subtitle: "Publish inventory and reach local buyers.",
-          href: "/vehicle-marketplace",
-          Icon: Home,
-        },
-        {
-          id: "dealer-connect",
-          title: "Direct Connect",
-          subtitle: "Handle high-intent buyer and service coordination.",
-          href: "/direct-connect",
-          Icon: ClipboardList,
-        },
-        {
-          id: "dealer-exchange",
-          title: "Exchange",
-          subtitle: "Cross-promote inventory and offers.",
-          href: "/exchange",
-          Icon: Sparkles,
-        },
-      ];
-    }
-
-    return [
-      {
-        id: "homeowner-direct-connect",
-        title: "Start a request",
-        subtitle: "Open Direct Connect and route your next project.",
-        href: "/direct-connect",
-        Icon: ClipboardList,
-      },
-      {
-        id: "homeowner-community",
-        title: "Community signal",
-        subtitle: "See local trust signals before you hire.",
-        href: "/community-feed",
-        Icon: Users2,
-      },
-      {
-        id: "homeowner-exchange",
-        title: "Exchange",
-        subtitle: "Find local goods, services, and opportunities.",
-        href: "/exchange",
-        Icon: Sparkles,
-      },
-    ];
-  }, [accountRoles, anyUser?.isAdmin, anyUser?.isSuperAdmin, userRole]);
-
   // Build tile context from deterministic user state (no guessing, only real data)
   const tileContext: ScoutTileContext = useMemo(() => {
     const saved = savedContractorsData ?? [];
@@ -3231,33 +2970,6 @@ export default function ScoutOS() {
     nearby: { icon: Users2, eyebrow: "Community" },
     manage: { icon: Sparkles, eyebrow: "Exchange" },
   };
-
-  const suggestedPromptCards = useMemo(
-    () => [
-      {
-        id: "scope-project",
-        title: "Write my request clearly",
-        body: "Turn my idea into a clean Direct Connect request I can post now.",
-        icon: ClipboardList,
-      },
-      {
-        id: "local-opportunities",
-        title: "What should I check first?",
-        body: "Give me the top local jobs, offers, and community activity this week.",
-        icon: Activity,
-      },
-    ],
-    []
-  );
-
-  const scoutControlLinks = useMemo(
-    () => [
-      { id: "control-profile", href: "/profile-settings", label: "Profile Settings" },
-      { id: "control-verify", href: "/verification", label: "Verification" },
-      { id: "control-direct", href: "/direct-connect", label: "Direct Connect" },
-    ],
-    []
-  );
 
   const handleActionTile = useCallback(
     (tile: (typeof scoutActionTiles)[0]) => {
@@ -3549,6 +3261,22 @@ export default function ScoutOS() {
                     to save, post, or message.
                   </div>
                 )}
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {resolvedTiles.slice(0, 4).map((tile) => (
+                    <button
+                      key={`dock-${tile.id}`}
+                      type="button"
+                      onClick={() => {
+                        setHasGuestInteracted(true);
+                        handleActionTile(tile);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-slate-200 transition-colors hover:border-orange-400/70 hover:text-orange-200"
+                    >
+                      <span className="text-orange-300">{tile.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Thread + input in a single chat container that stretches toward
@@ -3645,228 +3373,22 @@ export default function ScoutOS() {
                   onSendMessage={handleOnboardingMessage}
                   onQuickAction={(text) => {
                     const trimmed = text.trim();
-
-                    // Mark that the user has interacted so we don't keep showing
-                    // first-visit-only affordances.
                     setHasGuestInteracted(true);
+                    const localAction = resolveQuickActionIntent(trimmed);
 
-                    // Certain smart suggestions should behave as direct actions
-                    // instead of just re-asking Scout with the same text.
-                    if (trimmed === "Start a Direct Connect request for this") {
+                    if (localAction?.kind === "navigate") {
                       recordActivity({
                         type: "navigate",
                         ts: new Date().toISOString(),
                         path: location,
-                        to: "/direct-connect",
+                        to: localAction.to,
                         label: trimmed,
                       });
-                      navigate("/direct-connect");
+                      navigate(localAction.to);
                       return;
                     }
 
-                    if (trimmed === "Open my community feed in TradeScout") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: ROUTES.COMMUNITY,
-                        label: trimmed,
-                      });
-                      navigate(ROUTES.COMMUNITY);
-                      return;
-                    }
-
-                    if (trimmed === "Show Exchange listings that match this need near me") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/exchange",
-                        label: trimmed,
-                      });
-                      navigate("/exchange");
-                      return;
-                    }
-
-                    if (trimmed === "Post a listing") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/exchange?new=1",
-                        label: trimmed,
-                      });
-                      navigate("/exchange?new=1");
-                      return;
-                    }
-
-                    if (trimmed === "Manage my listings") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/exchange?tab=my-listings",
-                        label: trimmed,
-                      });
-                      navigate("/exchange?tab=my-listings");
-                      return;
-                    }
-
-                    if (trimmed === "View offers") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/exchange?tab=offers",
-                        label: trimmed,
-                      });
-                      navigate("/exchange?tab=offers");
-                      return;
-                    }
-
-                    if (trimmed === "Find a Contractor") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: ROUTES.CONTRACTORS,
-                        label: trimmed,
-                      });
-                      navigate(ROUTES.CONTRACTORS);
-                      return;
-                    }
-
-                    if (trimmed === "Open my Notes" || trimmed === "Open Notes") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: ROUTES.NOTES,
-                        label: trimmed,
-                      });
-                      navigate(ROUTES.NOTES);
-                      return;
-                    }
-
-                    if (trimmed === "Create Account") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: ROUTES.REGISTER,
-                        label: trimmed,
-                      });
-                      navigate(ROUTES.REGISTER);
-                      return;
-                    }
-
-                    if (trimmed === "Leaderboard") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/leaderboard",
-                        label: trimmed,
-                      });
-                      navigate("/leaderboard");
-                      return;
-                    }
-
-                    if (
-                      trimmed === "Open MealScout" ||
-                      trimmed === "Open MealScout to browse local food and drink deals" ||
-                      trimmed === "Open MealScout so I can manage or post deals for this" ||
-                      trimmed === "Open MealScout to see my current deals and subscriptions"
-                    ) {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/mealscout",
-                        label: trimmed,
-                      });
-                      navigate("/mealscout");
-                      return;
-                    }
-
-                    if (trimmed === "Show local groups, HOAs, and boards I can join or follow") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/hoa-management",
-                        label: trimmed,
-                      });
-                      navigate("/hoa-management");
-                      return;
-                    }
-
-                    if (trimmed === "Open my Admin Panel and monitoring tools") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/admin/panel",
-                        label: trimmed,
-                      });
-                      navigate("/admin/panel");
-                      return;
-                    }
-
-                    if (trimmed === "Show recent Finance / Invoicing ledger activity") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/admin/panel?tab=finance",
-                        label: trimmed,
-                      });
-                      navigate("/admin/panel?tab=finance");
-                      return;
-                    }
-
-                    if (trimmed === "Open my deal room") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/lead-management",
-                        label: trimmed,
-                      });
-                      navigate("/lead-management");
-                      return;
-                    }
-
-                    if (trimmed === "View invoices and payments") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/finances",
-                        label: trimmed,
-                      });
-                      navigate("/finances");
-                      return;
-                    }
-
-                    if (trimmed === "Post a new job") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/lead-management?new=1",
-                        label: trimmed,
-                      });
-                      navigate("/lead-management?new=1");
-                      return;
-                    }
-
-                    if (
-                      trimmed === "Open a floating note" ||
-                      trimmed === "Open floating note" ||
-                      trimmed === "Open a quick note" ||
-                      trimmed === "Open quick note"
-                    ) {
+                    if (localAction?.kind === "open_note") {
                       recordActivity({
                         type: "open_note",
                         ts: new Date().toISOString(),
@@ -3877,60 +3399,6 @@ export default function ScoutOS() {
                       return;
                     }
 
-                    if (
-                      trimmed ===
-                      "Help me send a targeted broadcast announcement from Notification Ops"
-                    ) {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/admin/panel?tab=notification-ops",
-                        label: trimmed,
-                      });
-                      navigate("/admin/panel?tab=notification-ops");
-                      return;
-                    }
-
-                    // HOA-focused quick actions
-                    if (trimmed === "Open HOA dashboard") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/hoa-dashboard",
-                        label: trimmed,
-                      });
-                      navigate("/hoa-dashboard");
-                      return;
-                    }
-
-                    if (trimmed === "Post HOA notice") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/hoa-management?tab=notices",
-                        label: trimmed,
-                      });
-                      navigate("/hoa-management?tab=notices");
-                      return;
-                    }
-
-                    if (trimmed === "Review dues and payments") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: "/hoa-dashboard?tab=dues",
-                        label: trimmed,
-                      });
-                      navigate("/hoa-dashboard?tab=dues");
-                      return;
-                    }
-
-                    // Fallback: treat as a normal prompt to Scout so it can
-                    // reason about next steps.
                     handleSend(trimmed);
                   }}
                 />
