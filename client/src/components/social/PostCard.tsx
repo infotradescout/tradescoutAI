@@ -27,7 +27,7 @@ import {
   Calendar,
   MapPin,
   Users,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react";
 
 interface PostCardProps {
@@ -38,7 +38,7 @@ export function PostCard({ post }: PostCardProps) {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -53,10 +53,7 @@ export function PostCard({ post }: PostCardProps) {
   const likeMutation = useMutation({
     mutationFn: () => {
       if (isLiked) {
-        return apiRequest(
-          "DELETE",
-          `/api/social/posts/${post.id}/reactions`
-        );
+        return apiRequest("DELETE", `/api/social/posts/${post.id}/reactions`);
       }
       return apiRequest("POST", `/api/social/posts/${post.id}/reactions`, {
         reactionType: "like",
@@ -78,7 +75,7 @@ export function PostCard({ post }: PostCardProps) {
 
   // Save/bookmark mutation
   const saveMutation = useMutation({
-    mutationFn: () => apiRequest('POST', `/api/social/posts/${post.id}/save`),
+    mutationFn: () => apiRequest("POST", `/api/social/posts/${post.id}/save`),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -138,7 +135,7 @@ export function PostCard({ post }: PostCardProps) {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return "Just now";
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
@@ -176,22 +173,31 @@ export function PostCard({ post }: PostCardProps) {
             <Avatar className="h-10 w-10">
               <AvatarImage src={post.author.profileImageUrl} />
               <AvatarFallback className="bg-primary/10 text-primary">
-                {post.author.firstName?.[0]}{post.author.lastName?.[0]}
+                {post.author.firstName?.[0]}
+                {post.author.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
-            
+
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h4 className="font-semibold text-sm">
                   {post.author.firstName} {post.author.lastName}
                 </h4>
-                {post.author.isVerified && (
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                    Verified
-                  </Badge>
-                )}
+                <Badge
+                  variant="secondary"
+                  className={`text-xs px-1.5 py-0.5 ${
+                    post.author.isVerified ? "text-green-300" : "text-slate-300"
+                  }`}
+                  title={
+                    post.author.isVerified
+                      ? "Verified profile"
+                      : "Unverified profile. Verified members are more likely to be accepted."
+                  }
+                >
+                  {post.author.isVerified ? "Verified" : "Unverified"}
+                </Badge>
               </div>
-              
+
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{formatDate(post.createdAt)}</span>
                 {post.location && (
@@ -211,7 +217,7 @@ export function PostCard({ post }: PostCardProps) {
             <Badge className={`text-xs ${getPostTypeColor(post.postType)}`}>
               <div className="flex items-center gap-1">
                 {getPostTypeIcon(post.postType)}
-                <span className="capitalize">{post.postType.replace('_', ' ')}</span>
+                <span className="capitalize">{post.postType.replace("_", " ")}</span>
               </div>
             </Badge>
 
@@ -238,20 +244,18 @@ export function PostCard({ post }: PostCardProps) {
 
       <CardContent className="space-y-4">
         {/* Post Title */}
-        {post.title && (
-          <h3 className="text-lg font-semibold leading-tight">{post.title}</h3>
-        )}
+        {post.title && <h3 className="text-lg font-semibold leading-tight">{post.title}</h3>}
 
         {/* Post Content */}
         <div className="prose prose-sm max-w-none">
-          <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-            {post.content}
-          </p>
+          <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{post.content}</p>
         </div>
 
         {/* Post Images */}
         {post.imageUrls && post.imageUrls.length > 0 && (
-          <div className={`grid gap-2 ${post.imageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          <div
+            className={`grid gap-2 ${post.imageUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+          >
             {post.imageUrls.slice(0, 4).map((url: string, index: number) => (
               <div key={index} className="relative">
                 <img
@@ -291,11 +295,13 @@ export function PostCard({ post }: PostCardProps) {
               size="sm"
               onClick={handleLike}
               className={`flex items-center space-x-2 ${
-                isLiked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'
+                isLiked
+                  ? "text-red-500 hover:text-red-600"
+                  : "text-muted-foreground hover:text-red-500"
               }`}
               disabled={likeMutation.isPending}
             >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+              <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
               <span>{likeCount}</span>
             </Button>
 
@@ -349,11 +355,7 @@ export function PostCard({ post }: PostCardProps) {
       </CardContent>
 
       {/* Share Modal */}
-      <ShareModal
-        open={showShareModal}
-        onOpenChange={setShowShareModal}
-        post={post}
-      />
+      <ShareModal open={showShareModal} onOpenChange={setShowShareModal} post={post} />
 
       {/* Report Modal */}
       <ReportModal

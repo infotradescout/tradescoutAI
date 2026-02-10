@@ -101,6 +101,7 @@ interface CommunityComment {
     id: string;
     name?: string | null;
     avatar?: string | null;
+    verified?: boolean;
   };
   createdAt: string;
 }
@@ -140,14 +141,24 @@ function CommunityComments({ postId }: { postId: string }) {
         },
         body: JSON.stringify({ content: trimmed }),
       });
+      if (res.status === 202) {
+        return res.json();
+      }
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(text || `Failed to post comment (${res.status})`);
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setContent("");
+      if (data?.pending) {
+        toast({
+          title: "Contact request sent",
+          description: "Your comment will post after the author accepts.",
+        });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts", postId, "comments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
     },
@@ -230,9 +241,26 @@ function CommunityComments({ postId }: { postId: string }) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
-                <p className="font-medium text-slate-100 mb-0.5 text-[11px] md:text-xs">
-                  {comment.author?.name || "Neighbor"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-slate-100 mb-0.5 text-[11px] md:text-xs">
+                    {comment.author?.name || "Neighbor"}
+                  </p>
+                  {comment.author?.verified !== undefined && (
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] px-1.5 py-0.5 ${
+                        comment.author?.verified ? "text-green-300" : "text-slate-300"
+                      }`}
+                      title={
+                        comment.author?.verified
+                          ? "Verified profile"
+                          : "Unverified profile. Verified members are more likely to be accepted."
+                      }
+                    >
+                      {comment.author?.verified ? "Verified" : "Unverified"}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-slate-200 text-[11px] md:text-xs whitespace-pre-line">
                   {comment.content}
                 </p>
@@ -743,12 +771,21 @@ const CommunityFeed = memo(function CommunityFeed() {
                           <h3 className="text-white font-semibold text-sm md:text-base">
                             {isSystemPost ? "Scout" : getAuthorName(post)}
                           </h3>
-                          {!isSystemPost && post.author?.verified && (
+                          {!isSystemPost && post.author?.verified !== undefined && (
                             <Badge
                               variant="outline"
-                              className="h-5 px-1.5 text-[10px] border-emerald-500/50 text-emerald-300"
+                              className={`h-5 px-1.5 text-[10px] ${
+                                post.author?.verified
+                                  ? "border-emerald-500/50 text-emerald-300"
+                                  : "border-slate-500/50 text-slate-300"
+                              }`}
+                              title={
+                                post.author?.verified
+                                  ? "Verified profile"
+                                  : "Unverified profile. Verified members are more likely to be accepted."
+                              }
                             >
-                              Verified
+                              {post.author?.verified ? "Verified" : "Unverified"}
                             </Badge>
                           )}
                         </div>

@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 import {
   index,
   uniqueIndex,
@@ -27,206 +27,210 @@ export const sessions = pgTable(
     sess: jsonb("sess").notNull(),
     expire: timestamp("expire").notNull(),
   },
-  (table) => [index("IDX_session_expire").on(table.expire)],
+  (table) => [index("IDX_session_expire").on(table.expire)]
 );
 
 // User roles enum - 27 comprehensive user types
-export const userRoleEnum = pgEnum('user_role', [
+export const userRoleEnum = pgEnum("user_role", [
   // Property Owners & Managers (5)
-  'homeowner',              // 1. Single-family homeowner
-  'renter',                 // 2. Tenant/Renter
-  'landlord',               // 3. Property owner who rents out
-  'property_manager',       // 4. Professional property manager
-  'hoa_member',             // 5. HOA community member
-  
+  "homeowner", // 1. Single-family homeowner
+  "renter", // 2. Tenant/Renter
+  "landlord", // 3. Property owner who rents out
+  "property_manager", // 4. Professional property manager
+  "hoa_member", // 5. HOA community member
+
   // Business & Commercial (4)
-  'business_owner',         // 6. Local business owner
-  'commercial_property',    // 7. Commercial property owner/manager
-  'franchise_owner',        // 8. Franchise business owner
-  'startup_founder',        // 9. Startup/Entrepreneur
-  
+  "business_owner", // 6. Local business owner
+  "commercial_property", // 7. Commercial property owner/manager
+  "franchise_owner", // 8. Franchise business owner
+  "startup_founder", // 9. Startup/Entrepreneur
+
   // Service Providers & Contractors (6)
-  'contractor',             // 10. Licensed contractor
-  'handyman',               // 11. General handyman/helper
-  'service_provider',       // 12. Service professional (cleaner, landscaper, etc.)
-  'specialty_tradesperson', // 13. Plumber, electrician, HVAC, etc.
-  'designer',               // 14. Interior designer, architect
-  'inspector',              // 15. Home inspector, appraiser
-  
+  "contractor", // 10. Licensed contractor
+  "handyman", // 11. General handyman/helper
+  "service_provider", // 12. Service professional (cleaner, landscaper, etc.)
+  "specialty_tradesperson", // 13. Plumber, electrician, HVAC, etc.
+  "designer", // 14. Interior designer, architect
+  "inspector", // 15. Home inspector, appraiser
+
   // Real Estate & Finance (4)
-  'realtor',                // 16. Real estate agent
-  'mortgage_broker',        // 17. Mortgage/loan specialist
-  'insurance_agent',        // 18. Insurance professional
-  'title_company',          // 19. Title/escrow services
-  
+  "realtor", // 16. Real estate agent
+  "mortgage_broker", // 17. Mortgage/loan specialist
+  "insurance_agent", // 18. Insurance professional
+  "title_company", // 19. Title/escrow services
+
   // Automotive (2)
-  'car_dealer',             // 20. Vehicle dealer/salesperson
-  'auto_service',           // 21. Auto repair, detailing, etc.
-  
+  "car_dealer", // 20. Vehicle dealer/salesperson
+  "auto_service", // 21. Auto repair, detailing, etc.
+
   // Community & Admin (3)
-  'hoa_board',              // 22. HOA board member/administrator
-  'community_builder',      // 23. Community builder program participant
-  'nonprofit_org',          // 24. Non-profit organization
-  
+  "hoa_board", // 22. HOA board member/administrator
+  "community_builder", // 23. Community builder program participant
+  "nonprofit_org", // 24. Non-profit organization
+
   // Platform & Special (3)
-  'affiliate',              // 25. Affiliate marketer
-  'content_creator',        // 26. Blogger, influencer, reviewer
-  'admin',                  // 27. Platform administrator
-  'content_seo',
-  'analytics_specialist',
-  'marketing_specialist',
-  
+  "affiliate", // 25. Affiliate marketer
+  "content_creator", // 26. Blogger, influencer, reviewer
+  "admin", // 27. Platform administrator
+  "content_seo",
+  "analytics_specialist",
+  "marketing_specialist",
+
   // Admin roles (ascending hierarchy)
-  'moderator',           // Basic moderation powers
-  'ops_admin',          // Operations and platform management
-  'super_admin',        // Full platform control except user management
-  'head_admin'          // Ultimate authority - can manage all users and admins
+  "moderator", // Basic moderation powers
+  "ops_admin", // Operations and platform management
+  "super_admin", // Full platform control except user management
+  "head_admin", // Ultimate authority - can manage all users and admins
 ]);
 
 // Story template categories for professional story generation
-export const storyTemplateCategoryEnum = pgEnum('story_template_category', [
-  'background',
-  'skills', 
-  'values',
-  'approach',
-  'innovation',
-  'impact'
+export const storyTemplateCategoryEnum = pgEnum("story_template_category", [
+  "background",
+  "skills",
+  "values",
+  "approach",
+  "innovation",
+  "impact",
 ]);
 
 // Story tone enum for narrative style
-export const storyToneEnum = pgEnum('story_tone', [
-  'professional',
-  'friendly', 
-  'inspiring',
-  'authoritative'
+export const storyToneEnum = pgEnum("story_tone", [
+  "professional",
+  "friendly",
+  "inspiring",
+  "authoritative",
 ]);
 
 // Story length enum
-export const storyLengthEnum = pgEnum('story_length', [
-  'short',
-  'medium',
-  'long'
-]);
+export const storyLengthEnum = pgEnum("story_length", ["short", "medium", "long"]);
 
 // Trade categories enum for contractor specializations
-export const tradeCategoryEnum = pgEnum('trade_category', [
+export const tradeCategoryEnum = pgEnum("trade_category", [
   // Construction & General
-  'general_contractor',
-  'construction_manager',
-  'project_manager',
-  
+  "general_contractor",
+  "construction_manager",
+  "project_manager",
+
   // Structural & Foundation
-  'concrete_contractor',
-  'foundation_specialist',
-  'masonry_contractor',
-  'structural_engineer',
-  
+  "concrete_contractor",
+  "foundation_specialist",
+  "masonry_contractor",
+  "structural_engineer",
+
   // Building Envelope
-  'roofing_contractor',
-  'siding_contractor',
-  'window_installer',
-  'door_installer',
-  'insulation_contractor',
-  
+  "roofing_contractor",
+  "siding_contractor",
+  "window_installer",
+  "door_installer",
+  "insulation_contractor",
+
   // Electrical & Technology
-  'electrician',
-  'low_voltage_technician',
-  'solar_installer',
-  'security_system_installer',
-  'smart_home_specialist',
-  
+  "electrician",
+  "low_voltage_technician",
+  "solar_installer",
+  "security_system_installer",
+  "smart_home_specialist",
+
   // Plumbing & HVAC
-  'plumber',
-  'hvac_contractor',
-  'refrigeration_technician',
-  'water_heater_specialist',
-  'septic_contractor',
-  
+  "plumber",
+  "hvac_contractor",
+  "refrigeration_technician",
+  "water_heater_specialist",
+  "septic_contractor",
+
   // Interior Finishing
-  'flooring_contractor',
-  'tile_contractor',
-  'carpet_installer',
-  'painter',
-  'drywall_contractor',
-  'cabinet_maker',
-  'countertop_installer',
-  
+  "flooring_contractor",
+  "tile_contractor",
+  "carpet_installer",
+  "painter",
+  "drywall_contractor",
+  "cabinet_maker",
+  "countertop_installer",
+
   // Kitchen & Bath
-  'kitchen_remodeler',
-  'bathroom_remodeler',
-  'appliance_installer',
-  
+  "kitchen_remodeler",
+  "bathroom_remodeler",
+  "appliance_installer",
+
   // Outdoor & Landscaping
-  'landscaper',
-  'hardscape_contractor',
-  'pool_contractor',
-  'fence_contractor',
-  'deck_builder',
-  'outdoor_lighting',
-  
+  "landscaper",
+  "hardscape_contractor",
+  "pool_contractor",
+  "fence_contractor",
+  "deck_builder",
+  "outdoor_lighting",
+
   // Specialty Services
-  'home_inspector',
-  'mold_remediation',
-  'water_damage_restoration',
-  'pest_control',
-  'cleaning_service',
-  'handyman',
-  'maintenance_contractor'
+  "home_inspector",
+  "mold_remediation",
+  "water_damage_restoration",
+  "pest_control",
+  "cleaning_service",
+  "handyman",
+  "maintenance_contractor",
 ]);
 
 // Permission levels enum
-export const permissionLevelEnum = pgEnum('permission_level', [
-  'none',
-  'read',
-  'write', 
-  'admin',
-  'owner'
+export const permissionLevelEnum = pgEnum("permission_level", [
+  "none",
+  "read",
+  "write",
+  "admin",
+  "owner",
 ]);
 
 // Social post types enum
-export const postTypeEnum = pgEnum('post_type', [
-  'general',
-  'announcement',
-  'question',
-  'recommendation',
-  'for_sale',
-  'lost_found',
-  'safety_alert',
-  'event',
-  'service_request',
-  'neighborhood_news'
+export const postTypeEnum = pgEnum("post_type", [
+  "general",
+  "announcement",
+  "question",
+  "recommendation",
+  "for_sale",
+  "lost_found",
+  "safety_alert",
+  "event",
+  "service_request",
+  "neighborhood_news",
 ]);
 
 // Reaction types enum
-export const reactionTypeEnum = pgEnum('reaction_type', [
-  'like',
-  'love',
-  'laugh',
-  'wow',
-  'sad',
-  'angry',
-  'helpful',
-  'thanks'
+export const reactionTypeEnum = pgEnum("reaction_type", [
+  "like",
+  "love",
+  "laugh",
+  "wow",
+  "sad",
+  "angry",
+  "helpful",
+  "thanks",
 ]);
 
 // Privacy levels enum
-export const privacyLevelEnum = pgEnum('privacy_level', [
-  'public',
-  'neighborhood',
-  'friends',
-  'private'
+export const privacyLevelEnum = pgEnum("privacy_level", [
+  "public",
+  "neighborhood",
+  "friends",
+  "private",
 ]);
 
 // Report reasons enum
-export const reportReasonEnum = pgEnum('report_reason', [
-  'spam',
-  'harassment',
-  'hate_speech',
-  'violence',
-  'misinformation',
-  'inappropriate_content',
-  'scam',
-  'other'
+export const reportReasonEnum = pgEnum("report_reason", [
+  "spam",
+  "harassment",
+  "hate_speech",
+  "violence",
+  "misinformation",
+  "inappropriate_content",
+  "scam",
+  "other",
+]);
+
+// Contact permission status enum
+export const contactPermissionStatusEnum = pgEnum("contact_permission_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "blocked",
 ]);
 
 // County-level entity and note categories for geographic storage layer
@@ -308,62 +312,57 @@ export const missionControlDecisionActionEnum = pgEnum("mission_control_decision
 ]);
 
 // Invitation status enum
-export const invitationStatusEnum = pgEnum('invitation_status', [
-  'pending',
-  'accepted',
-  'declined',
-  'expired'
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "expired",
 ]);
 
 // Invitation type enum
-export const invitationTypeEnum = pgEnum('invitation_type', [
-  'email',
-  'referral_code',
-  'direct_link'
+export const invitationTypeEnum = pgEnum("invitation_type", [
+  "email",
+  "referral_code",
+  "direct_link",
 ]);
 
 // Address verification status enum
-export const addressVerificationStatusEnum = pgEnum('address_verification_status', [
-  'pending',
-  'submitted',
-  'approved',
-  'rejected',
-  'expired'
+export const addressVerificationStatusEnum = pgEnum("address_verification_status", [
+  "pending",
+  "submitted",
+  "approved",
+  "rejected",
+  "expired",
 ]);
 
 // Professional verification status enum
-export const verificationStatusEnum = pgEnum('verification_status', [
-  'pending',
-  'under_review',
-  'approved',
-  'rejected',
-  'expired',
-  'suspended'
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "pending",
+  "under_review",
+  "approved",
+  "rejected",
+  "expired",
+  "suspended",
 ]);
 
 // Business entity enums
-export const businessTypeEnum = pgEnum('business_type', [
-  'contractor',
-  'community',
-  'vendor',
-  'other'
+export const businessTypeEnum = pgEnum("business_type", [
+  "contractor",
+  "community",
+  "vendor",
+  "other",
 ]);
 
-export const businessStatusEnum = pgEnum('business_status', [
-  'draft',
-  'active',
-  'suspended'
-]);
+export const businessStatusEnum = pgEnum("business_status", ["draft", "active", "suspended"]);
 
 // Profile website layer enums
-export const profileStatusEnum = pgEnum('profile_status', [
-  'draft',
-  'published'
-]);
+export const profileStatusEnum = pgEnum("profile_status", ["draft", "published"]);
 
 // Users table
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   email: varchar("email").unique().notNull(),
   password: varchar("password_hash"), // for local auth
   firstName: varchar("first_name"),
@@ -382,23 +381,25 @@ export const users = pgTable("users", {
   countyName: varchar("county_name"),
   latitude: decimal("latitude", { precision: 9, scale: 6 }),
   longitude: decimal("longitude", { precision: 9, scale: 6 }),
-  role: userRoleEnum("role").default('homeowner'), // Primary role for backward compatibility
+  role: userRoleEnum("role").default("homeowner"), // Primary role for backward compatibility
   roles: text("roles").array().default([]), // Multi-role support - array of role strings
-  activeRole: varchar("active_role").default('homeowner'), // Currently active role for dashboard switching
+  activeRole: varchar("active_role").default("homeowner"), // Currently active role for dashboard switching
   activeBusinessId: varchar("active_business_id"), // Currently active business profile for the active role
   businessSlug: varchar("business_slug").unique(), // Public URL slug for business profile
   activeProfileId: varchar("active_profile_id"), // Currently active Profile (public website) for the active role
   capabilityBundles: text("capability_bundles").array().default([]), // Capability bundles derived from onboarding
   participationModes: text("participation_modes").array().default([]), // Self vs business/organization participation
-  provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
+  provider: varchar("provider").default("local"), // 'local', 'facebook', 'google'
   providerId: varchar("provider_id"), // social login ID
   facebookId: varchar("facebook_id"), // Add facebookId field
   googleId: varchar("google_id"), // Add googleId field
-  badges: jsonb("badges").$type<string[]>().default(sql`'[]'::jsonb`), // Manual + automatic badges
+  badges: jsonb("badges")
+    .$type<string[]>()
+    .default(sql`'[]'::jsonb`), // Manual + automatic badges
   emailVerified: boolean("email_verified").default(false),
   addressVerified: boolean("address_verified").default(false),
   addressVerificationDeadline: timestamp("address_verification_deadline"),
-  verificationStatus: verificationStatusEnum("verification_status").default('pending'), // Add verificationStatus
+  verificationStatus: verificationStatusEnum("verification_status").default("pending"), // Add verificationStatus
   onboardingCompleted: boolean("onboarding_completed").default(false),
   profileVersion: integer("profile_version").default(0),
   referralCode: varchar("referral_code"),
@@ -413,14 +414,20 @@ export const users = pgTable("users", {
       hiddenFromSwipe?: string[]; // Navigation items to hide from swipe navigation
       enableSwipeNavigation?: boolean; // Whether swipe navigation is enabled
     };
-    defaultHomePage?: 'llm' | 'marketplace' | 'contractor-board' | 'dashboard' | 'profile' | 'community'; // User's preferred landing page
-    profileVisibility?: 'public' | 'private'; // Public profiles are crawlable by LLM
+    defaultHomePage?:
+      | "llm"
+      | "marketplace"
+      | "contractor-board"
+      | "dashboard"
+      | "profile"
+      | "community"; // User's preferred landing page
+    profileVisibility?: "public" | "private"; // Public profiles are crawlable by LLM
     colorScheme?: {
       primary?: string; // Main brand color (hex)
       secondary?: string; // Secondary accent color (hex)
       background?: string; // Background color (hex)
       text?: string; // Text color (hex)
-      preset?: 'default' | 'warm' | 'cool' | 'vibrant' | 'minimal' | 'custom'; // Color preset or custom
+      preset?: "default" | "warm" | "cool" | "vibrant" | "minimal" | "custom"; // Color preset or custom
     };
     badges?: {
       show?: boolean; // Toggle badge visibility
@@ -433,7 +440,7 @@ export const users = pgTable("users", {
     dashboard?: {
       enabledWidgets?: string[]; // Which widgets to show on dashboard
       widgetOrder?: string[]; // Order of widgets
-      layout?: 'single' | 'two-column' | 'three-column'; // Dashboard layout
+      layout?: "single" | "two-column" | "three-column"; // Dashboard layout
     };
 
     communication?: {
@@ -453,7 +460,7 @@ export const users = pgTable("users", {
       // Enable/disable hyper-local alerts at the user level
       enableNearbyDeals?: boolean;
       // Which content types should be considered for nearby alerts
-      includeTypes?: Array<'marketplace' | 'trade' | 'mealscout'>;
+      includeTypes?: Array<"marketplace" | "trade" | "mealscout">;
     };
 
     // Profile site builder settings - which sections appear on the public profile
@@ -472,155 +479,215 @@ export const users = pgTable("users", {
     // to better match this user with the right jobs and connections.
     servicesDescription?: string;
   }>(),
-  themePreference: varchar("theme_preference").default('default'), // Selected theme ID
+  themePreference: varchar("theme_preference").default("default"), // Selected theme ID
   customThemeColors: text("custom_theme_colors"), // JSON string of custom colors
-  
+
   // Preferred Source Prompt: Earned organic Google gravity (5th action moment)
   preferredSourcePromptShownAt: timestamp("preferred_source_prompt_shown_at"),
   preferredSourcePromptAcceptedAt: timestamp("preferred_source_prompt_accepted_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Businesses (first-class public profiles, decoupled from the user)
-export const businesses = pgTable("businesses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull(),
-  slug: varchar("slug").notNull().unique(),
-  type: businessTypeEnum("type").notNull().default('other'),
-  ownerUserId: varchar("owner_user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  roleContext: userRoleEnum("role_context").notNull(),
-  profileData: jsonb("profile_data").$type<{
-    tagline?: string;
-    description?: string;
-    category?: string;
-    services?: string[];
-    website?: string;
-    phone?: string;
-    email?: string;
-    contactPreference?: 'call' | 'email' | 'message';
-  }>().default(sql`'{}'::jsonb`),
-  status: businessStatusEnum("status").notNull().default('draft'),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("business_owner_idx").on(table.ownerUserId),
-  index("business_role_ctx_idx").on(table.roleContext),
-  index("business_status_idx").on(table.status),
-]);
+export const businesses = pgTable(
+  "businesses",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    name: varchar("name").notNull(),
+    slug: varchar("slug").notNull().unique(),
+    type: businessTypeEnum("type").notNull().default("other"),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    roleContext: userRoleEnum("role_context").notNull(),
+    profileData: jsonb("profile_data")
+      .$type<{
+        tagline?: string;
+        description?: string;
+        category?: string;
+        services?: string[];
+        website?: string;
+        phone?: string;
+        email?: string;
+        contactPreference?: "call" | "email" | "message";
+      }>()
+      .default(sql`'{}'::jsonb`),
+    status: businessStatusEnum("status").notNull().default("draft"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("business_owner_idx").on(table.ownerUserId),
+    index("business_role_ctx_idx").on(table.roleContext),
+    index("business_status_idx").on(table.status),
+  ]
+);
 
 // Trusted devices table for master admin persistent sessions
-export const trustedDevices = pgTable("trusted_devices", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  deviceFingerprint: varchar("device_fingerprint").notNull(),
-  deviceName: varchar("device_name"), // User-friendly name like "Chrome on Windows"
-  userAgent: text("user_agent"),
-  ipAddress: varchar("ip_address"),
-  lastUsed: timestamp("last_used").defaultNow(),
-  lastUsedAt: timestamp("last_used_at").defaultNow(), // Alias for lastUsed for backward compatibility
-  isActive: boolean("is_active").default(true),
-  status: varchar("status").default('pending'), // 'pending', 'approved', 'revoked'
-  approvedAt: timestamp("approved_at"),
-  sessionToken: varchar("session_token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_trusted_devices_user").on(table.userId),
-  index("idx_trusted_devices_fingerprint").on(table.deviceFingerprint),
-  index("idx_trusted_devices_session").on(table.sessionToken),
-]);
+export const trustedDevices = pgTable(
+  "trusted_devices",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceFingerprint: varchar("device_fingerprint").notNull(),
+    deviceName: varchar("device_name"), // User-friendly name like "Chrome on Windows"
+    userAgent: text("user_agent"),
+    ipAddress: varchar("ip_address"),
+    lastUsed: timestamp("last_used").defaultNow(),
+    lastUsedAt: timestamp("last_used_at").defaultNow(), // Alias for lastUsed for backward compatibility
+    isActive: boolean("is_active").default(true),
+    status: varchar("status").default("pending"), // 'pending', 'approved', 'revoked'
+    approvedAt: timestamp("approved_at"),
+    sessionToken: varchar("session_token").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_trusted_devices_user").on(table.userId),
+    index("idx_trusted_devices_fingerprint").on(table.deviceFingerprint),
+    index("idx_trusted_devices_session").on(table.sessionToken),
+  ]
+);
 
 // Affiliate program core tables
-export const affiliateAccounts = pgTable("affiliate_accounts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateId: varchar("affiliate_id").notNull().references(() => users.id),
-  status: varchar("status").default('active'),
-  lifetimeEarned: decimal("lifetime_earned").default('0'),
-  available: decimal("available").default('0'),
-  pending: decimal("pending").default('0'),
-  lastPayoutAmount: decimal("last_payout_amount").default('0'),
-  lastPayoutAt: timestamp("last_payout_at"),
-  referralCode: varchar("referral_code"),
-  customDomain: varchar("custom_domain"),
-  couponCode: varchar("coupon_code"),
-  // Optional override for default 5% commission on platform fees
-  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }), // e.g. 0.0500 = 5%
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_affiliate_accounts_affiliate").on(table.affiliateId),
-  index("idx_affiliate_accounts_referral_code").on(table.referralCode),
-]);
+export const affiliateAccounts = pgTable(
+  "affiliate_accounts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    affiliateId: varchar("affiliate_id")
+      .notNull()
+      .references(() => users.id),
+    status: varchar("status").default("active"),
+    lifetimeEarned: decimal("lifetime_earned").default("0"),
+    available: decimal("available").default("0"),
+    pending: decimal("pending").default("0"),
+    lastPayoutAmount: decimal("last_payout_amount").default("0"),
+    lastPayoutAt: timestamp("last_payout_at"),
+    referralCode: varchar("referral_code"),
+    customDomain: varchar("custom_domain"),
+    couponCode: varchar("coupon_code"),
+    // Optional override for default 5% commission on platform fees
+    commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }), // e.g. 0.0500 = 5%
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_affiliate_accounts_affiliate").on(table.affiliateId),
+    index("idx_affiliate_accounts_referral_code").on(table.referralCode),
+  ]
+);
 
-export const affiliatePayouts = pgTable("affiliate_payouts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
-  status: varchar("status").default('pending'),
-  payoutAmount: decimal("payout_amount").default('0'),
-  method: varchar("method").default('stripe'),
-  note: text("note"),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_affiliate_payouts_affiliate").on(table.affiliateId),
-]);
+export const affiliatePayouts = pgTable(
+  "affiliate_payouts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    affiliateId: varchar("affiliate_id")
+      .notNull()
+      .references(() => affiliateAccounts.id),
+    status: varchar("status").default("pending"),
+    payoutAmount: decimal("payout_amount").default("0"),
+    method: varchar("method").default("stripe"),
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [index("idx_affiliate_payouts_affiliate").on(table.affiliateId)]
+);
 
-export const affiliateShareLinks = pgTable("affiliate_share_links", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
-  userId: varchar("user_id").references(() => users.id),
-  fullUrl: varchar("full_url").notNull(),
-  friendlySlug: varchar("friendly_slug"),
-  description: text("description"),
-  views: integer("views").default(0),
-  shares: integer("shares").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_affiliate_share_links_affiliate").on(table.affiliateId),
-  index("idx_affiliate_share_links_user").on(table.userId),
-  index("idx_affiliate_share_links_slug").on(table.friendlySlug),
-]);
+export const affiliateShareLinks = pgTable(
+  "affiliate_share_links",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    affiliateId: varchar("affiliate_id")
+      .notNull()
+      .references(() => affiliateAccounts.id),
+    userId: varchar("user_id").references(() => users.id),
+    fullUrl: varchar("full_url").notNull(),
+    friendlySlug: varchar("friendly_slug"),
+    description: text("description"),
+    views: integer("views").default(0),
+    shares: integer("shares").default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_affiliate_share_links_affiliate").on(table.affiliateId),
+    index("idx_affiliate_share_links_user").on(table.userId),
+    index("idx_affiliate_share_links_slug").on(table.friendlySlug),
+  ]
+);
 
-export const affiliateTrafficEvents = pgTable("affiliate_traffic_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  shareLinkId: varchar("share_link_id").notNull().references(() => affiliateShareLinks.id),
-  ipAddress: varchar("ip_address"),
-  userAgent: text("user_agent"),
-  deviceType: varchar("device_type"),
-  conversionSource: varchar("conversion_source"),
-  conversionType: varchar("conversion_type"),
-  conversionsCount: integer("conversions_count").default(0),
-  computedConversion: boolean("computed_conversion").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_affiliate_traffic_share_link").on(table.shareLinkId),
-  index("idx_affiliate_traffic_conversion").on(table.conversionType),
-]);
+export const affiliateTrafficEvents = pgTable(
+  "affiliate_traffic_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    shareLinkId: varchar("share_link_id")
+      .notNull()
+      .references(() => affiliateShareLinks.id),
+    ipAddress: varchar("ip_address"),
+    userAgent: text("user_agent"),
+    deviceType: varchar("device_type"),
+    conversionSource: varchar("conversion_source"),
+    conversionType: varchar("conversion_type"),
+    conversionsCount: integer("conversions_count").default(0),
+    computedConversion: boolean("computed_conversion").default(false),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_affiliate_traffic_share_link").on(table.shareLinkId),
+    index("idx_affiliate_traffic_conversion").on(table.conversionType),
+  ]
+);
 
 // Core affiliate referrals table used by the MVP affiliate system
-export const affiliateReferrals = pgTable("affiliate_referrals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
-  referredUserId: varchar("referred_user_id").references(() => users.id),
-  shareLinkId: varchar("share_link_id").references(() => affiliateShareLinks.id),
-  customLink: varchar("custom_link"),
-  commissionAmount: decimal("commission_amount").default('0'),
-  discountAmount: decimal("discount_amount").default('0'),
-  conversionSource: varchar("conversion_source"),
-  conversionType: varchar("conversion_type").default('lead'),
-  couponCode: varchar("coupon_code"),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_affiliate_referrals_affiliate").on(table.affiliateId),
-  index("idx_affiliate_referrals_user").on(table.referredUserId),
-  index("idx_affiliate_referrals_share_link").on(table.shareLinkId),
-]);
+export const affiliateReferrals = pgTable(
+  "affiliate_referrals",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    affiliateId: varchar("affiliate_id")
+      .notNull()
+      .references(() => affiliateAccounts.id),
+    referredUserId: varchar("referred_user_id").references(() => users.id),
+    shareLinkId: varchar("share_link_id").references(() => affiliateShareLinks.id),
+    customLink: varchar("custom_link"),
+    commissionAmount: decimal("commission_amount").default("0"),
+    discountAmount: decimal("discount_amount").default("0"),
+    conversionSource: varchar("conversion_source"),
+    conversionType: varchar("conversion_type").default("lead"),
+    couponCode: varchar("coupon_code"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_affiliate_referrals_affiliate").on(table.affiliateId),
+    index("idx_affiliate_referrals_user").on(table.referredUserId),
+    index("idx_affiliate_referrals_share_link").on(table.shareLinkId),
+  ]
+);
 
 // Realtor profiles
 export const realtorProfiles = pgTable("realtor_profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   licenseNumber: varchar("license_number").notNull(),
   brokerageName: varchar("brokerage_name").notNull(),
   mlsId: varchar("mls_id"),
@@ -635,7 +702,7 @@ export const realtorProfiles = pgTable("realtor_profiles", {
   }>(),
   licenseState: varchar("license_state").notNull(),
   licenseExpiration: timestamp("license_expiration"),
-  verificationStatus: verificationStatusEnum("verification_status").default('pending'),
+  verificationStatus: verificationStatusEnum("verification_status").default("pending"),
   verificationDocuments: jsonb("verification_documents").$type<{
     licenseDocument?: string;
     brokerageAffiliation?: string;
@@ -648,41 +715,61 @@ export const realtorProfiles = pgTable("realtor_profiles", {
 });
 
 // Profiles (public-facing website pages; may link to a Business)
-export const profiles = pgTable("profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  ownerUserId: varchar("owner_user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  businessId: varchar("business_id").references(() => businesses.id, { onDelete: 'set null' }),
-  roleContext: userRoleEnum("role_context").notNull(),
-  slug: varchar("slug").notNull().unique(),
-  displayName: varchar("display_name").notNull(),
-  headline: varchar("headline"),
-  contentBlocks: jsonb("content_blocks").$type<Array<{
-    type: 'hero' | 'about' | 'services' | 'gallery' | 'faq' | 'reviews' | 'cta' | 'custom';
-    data: Record<string, any>;
-  }>>().default(sql`'[]'::jsonb`),
-  ctaConfig: jsonb("cta_config").$type<{
-    primary?: { label: string; kind: 'call' | 'email' | 'message' | 'link'; value: string };
-    secondary?: { label: string; kind: 'call' | 'email' | 'message' | 'link'; value: string };
-  }>().default(sql`'{}'::jsonb`),
-  seoMeta: jsonb("seo_meta").$type<{
-    title?: string;
-    description?: string;
-    imageUrl?: string;
-  }>().default(sql`'{}'::jsonb`),
-  status: profileStatusEnum("status").notNull().default('draft'),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("profile_owner_idx").on(table.ownerUserId),
-  index("profile_business_idx").on(table.businessId),
-  index("profile_role_ctx_idx").on(table.roleContext),
-  index("profile_status_idx").on(table.status),
-]);
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id").references(() => businesses.id, { onDelete: "set null" }),
+    roleContext: userRoleEnum("role_context").notNull(),
+    slug: varchar("slug").notNull().unique(),
+    displayName: varchar("display_name").notNull(),
+    headline: varchar("headline"),
+    contentBlocks: jsonb("content_blocks")
+      .$type<
+        Array<{
+          type: "hero" | "about" | "services" | "gallery" | "faq" | "reviews" | "cta" | "custom";
+          data: Record<string, any>;
+        }>
+      >()
+      .default(sql`'[]'::jsonb`),
+    ctaConfig: jsonb("cta_config")
+      .$type<{
+        primary?: { label: string; kind: "call" | "email" | "message" | "link"; value: string };
+        secondary?: { label: string; kind: "call" | "email" | "message" | "link"; value: string };
+      }>()
+      .default(sql`'{}'::jsonb`),
+    seoMeta: jsonb("seo_meta")
+      .$type<{
+        title?: string;
+        description?: string;
+        imageUrl?: string;
+      }>()
+      .default(sql`'{}'::jsonb`),
+    status: profileStatusEnum("status").notNull().default("draft"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("profile_owner_idx").on(table.ownerUserId),
+    index("profile_business_idx").on(table.businessId),
+    index("profile_role_ctx_idx").on(table.roleContext),
+    index("profile_status_idx").on(table.status),
+  ]
+);
 
 // Car salesman profiles
 export const carSalesmanProfiles = pgTable("car_salesman_profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   dealershipName: varchar("dealership_name").notNull(),
   dealerLicense: varchar("dealer_license").notNull(),
   salesmanLicense: varchar("salesman_license"),
@@ -698,7 +785,7 @@ export const carSalesmanProfiles = pgTable("car_salesman_profiles", {
   }>(),
   licenseState: varchar("license_state").notNull(),
   licenseExpiration: timestamp("license_expiration"),
-  verificationStatus: verificationStatusEnum("verification_status").default('pending'),
+  verificationStatus: verificationStatusEnum("verification_status").default("pending"),
   verificationDocuments: jsonb("verification_documents").$type<{
     dealerLicense?: string;
     salesmanLicense?: string;
@@ -720,10 +807,14 @@ export const states = pgTable("states", {
 
 // Counties table with FIPS codes
 export const counties = pgTable("counties", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   fips: varchar("fips", { length: 5 }).notNull().unique(),
-  stateCode: varchar("state_code", { length: 2 }).notNull().references(() => states.code),
+  stateCode: varchar("state_code", { length: 2 })
+    .notNull()
+    .references(() => states.code),
   population: integer("population"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -733,9 +824,13 @@ export const counties = pgTable("counties", {
 export const countyNotes = pgTable(
   "county_notes",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     countyFips: varchar("county_fips", { length: 5 }).notNull(),
-    authorUserId: varchar("author_user_id").notNull().references(() => users.id),
+    authorUserId: varchar("author_user_id")
+      .notNull()
+      .references(() => users.id),
     category: countyNoteCategoryEnum("category").notNull().default("general"),
     content: text("content").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
@@ -744,14 +839,16 @@ export const countyNotes = pgTable(
   (table) => [
     index("county_notes_fips_idx").on(table.countyFips),
     index("county_notes_author_idx").on(table.authorUserId),
-  ],
+  ]
 );
 
 // County metrics: computed, replaceable numeric aggregates per FIPS
 export const countyMetrics = pgTable(
   "county_metrics",
   {
-    countyFips: varchar("county_fips", { length: 5 }).notNull().references(() => counties.fips),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
     metricKey: varchar("metric_key", { length: 64 }).notNull(),
     metricValue: numeric("metric_value", { precision: 20, scale: 4 }).notNull().default("0"),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -759,15 +856,19 @@ export const countyMetrics = pgTable(
   (table) => [
     primaryKey({ columns: [table.countyFips, table.metricKey] }),
     index("county_metrics_fips_idx").on(table.countyFips),
-  ],
+  ]
 );
 
 // County entities: affiliates, employees, partners and other assets mapped to counties
 export const countyEntities = pgTable(
   "county_entities",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    countyFips: varchar("county_fips", { length: 5 }).notNull().references(() => counties.fips),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
     entityType: countyEntityTypeEnum("entity_type").notNull(),
     entityId: varchar("entity_id"),
     label: varchar("label", { length: 255 }),
@@ -779,24 +880,36 @@ export const countyEntities = pgTable(
   (table) => [
     index("county_entities_fips_idx").on(table.countyFips),
     index("county_entities_type_idx").on(table.entityType),
-  ],
+  ]
 );
 
 // Business service areas (many-to-many with counties)
-export const businessCounties = pgTable("business_counties", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  businessId: varchar("business_id").notNull().references(() => businesses.id, { onDelete: 'cascade' }),
-  countyId: varchar("county_id").notNull().references(() => counties.id),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  uniqueIndex("business_county_unique").on(table.businessId, table.countyId),
-  index("business_counties_business_idx").on(table.businessId),
-  index("business_counties_county_idx").on(table.countyId),
-]);
+export const businessCounties = pgTable(
+  "business_counties",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    countyId: varchar("county_id")
+      .notNull()
+      .references(() => counties.id),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("business_county_unique").on(table.businessId, table.countyId),
+    index("business_counties_business_idx").on(table.businessId),
+    index("business_counties_county_idx").on(table.countyId),
+  ]
+);
 
 // Trade categories (hierarchical)
 export const trades = pgTable("trades", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   slug: varchar("slug").notNull().unique(),
   parentId: varchar("parent_id"),
@@ -806,8 +919,12 @@ export const trades = pgTable("trades", {
 
 // Trade-level compliance requirements (used for regulated/promoted flows)
 export const tradeRequirements = pgTable("trade_requirements", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tradeId: varchar("trade_id").notNull().references(() => trades.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tradeId: varchar("trade_id")
+    .notNull()
+    .references(() => trades.id),
 
   // Compliance gates
   requiresLicense: boolean("requires_license").default(false),
@@ -823,46 +940,58 @@ export const tradeRequirements = pgTable("trade_requirements", {
 // Scout Snapshots — Dynamic user identity inference
 // Replaces hard-coded roles with signal-inferred identity snapshots
 // B1/B2: Snapshot model implementation
-export const snapshots = pgTable("snapshots", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  snapshotId: varchar("snapshot_id").unique().notNull(), // Unique per computation
-  computedAt: timestamp("computed_at").notNull().defaultNow(),
-  
-  // Inferred identity
-  primaryRole: varchar("primary_role").notNull(), // homeowner, contractor, vendor, admin, unknown
-  secondaryRoles: text("secondary_roles").array().default([]),
-  
-  // Confidence scores
-  primaryRoleConfidence: numeric("primary_role_confidence", { precision: 3, scale: 2 }).notNull(), // 0.00-1.00
-  secondaryRoleConfidences: jsonb("secondary_role_confidences").$type<Record<string, number>>(),
-  
-  // Decision confidence
-  decisionConfidence: varchar("decision_confidence").notNull(), // low, medium, high
-  
-  // Signals that contributed
-  signals: jsonb("signals").$type<any>().notNull(),
-  
-  // Validity & decay
-  validUntil: timestamp("valid_until").notNull(),
-  confidenceDecayRate: numeric("confidence_decay_rate", { precision: 3, scale: 2 }).default("0.05"),
-  
-  // Metadata
-  version: varchar("version").default("1.0"),
-  experimental: boolean("experimental").default(false),
-  tags: text("tags").array().default([]),
-  
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => [
-  index("idx_snapshots_user_id").on(table.userId),
-  index("idx_snapshots_validity").on(table.userId, table.validUntil),
-  uniqueIndex("idx_snapshots_unique_per_user").on(table.userId, table.snapshotId),
-]);
+export const snapshots = pgTable(
+  "snapshots",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    snapshotId: varchar("snapshot_id").unique().notNull(), // Unique per computation
+    computedAt: timestamp("computed_at").notNull().defaultNow(),
+
+    // Inferred identity
+    primaryRole: varchar("primary_role").notNull(), // homeowner, contractor, vendor, admin, unknown
+    secondaryRoles: text("secondary_roles").array().default([]),
+
+    // Confidence scores
+    primaryRoleConfidence: numeric("primary_role_confidence", { precision: 3, scale: 2 }).notNull(), // 0.00-1.00
+    secondaryRoleConfidences: jsonb("secondary_role_confidences").$type<Record<string, number>>(),
+
+    // Decision confidence
+    decisionConfidence: varchar("decision_confidence").notNull(), // low, medium, high
+
+    // Signals that contributed
+    signals: jsonb("signals").$type<any>().notNull(),
+
+    // Validity & decay
+    validUntil: timestamp("valid_until").notNull(),
+    confidenceDecayRate: numeric("confidence_decay_rate", { precision: 3, scale: 2 }).default(
+      "0.05"
+    ),
+
+    // Metadata
+    version: varchar("version").default("1.0"),
+    experimental: boolean("experimental").default(false),
+    tags: text("tags").array().default([]),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_snapshots_user_id").on(table.userId),
+    index("idx_snapshots_validity").on(table.userId, table.validUntil),
+    uniqueIndex("idx_snapshots_unique_per_user").on(table.userId, table.snapshotId),
+  ]
+);
 
 // Contractors table
 export const contractors = pgTable("contractors", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id"),
   businessId: varchar("business_id"),
   companyName: varchar("company_name").notNull(),
@@ -889,7 +1018,10 @@ export const contractors = pgTable("contractors", {
   negativeRecommendations: integer("negative_recommendations").default(0),
   totalRecommendations: integer("total_recommendations").default(0),
   recommendationScore: decimal("recommendation_score", { precision: 5, scale: 2 }).default("0.00"), // positive minus negative
-  recommendationPercentage: decimal("recommendation_percentage", { precision: 5, scale: 2 }).default("0.00"), // (positive/total)*100
+  recommendationPercentage: decimal("recommendation_percentage", {
+    precision: 5,
+    scale: 2,
+  }).default("0.00"), // (positive/total)*100
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -897,15 +1029,21 @@ export const contractors = pgTable("contractors", {
 
 // Provider declarations for service areas and categories (eligibility only)
 export const providerDeclarations = pgTable("provider_declarations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
 
   // Provider is always a user; can represent contractors, realtors, marketplace sellers, etc.
-  providerUserId: varchar("provider_user_id").notNull().references(() => users.id),
+  providerUserId: varchar("provider_user_id")
+    .notNull()
+    .references(() => users.id),
 
   // Service area and categories are explicit declarations, not ranking signals
-  serviceAreas: jsonb("service_areas").$type<{
-    countyFips: string;
-  }[]>(),
+  serviceAreas: jsonb("service_areas").$type<
+    {
+      countyFips: string;
+    }[]
+  >(),
   tradeIds: jsonb("trade_ids").$type<string[]>(),
   availabilityFlags: jsonb("availability_flags").$type<{
     emergency?: boolean;
@@ -919,8 +1057,12 @@ export const providerDeclarations = pgTable("provider_declarations", {
 
 // Per-county behavioral rollup for providers (derived from events)
 export const providerLocalStats = pgTable("provider_local_stats", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  providerUserId: varchar("provider_user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  providerUserId: varchar("provider_user_id")
+    .notNull()
+    .references(() => users.id),
   countyFips: varchar("county_fips", { length: 5 }).notNull(),
 
   jobsCompleted: integer("jobs_completed").default(0),
@@ -941,8 +1083,12 @@ export type CountyEntity = typeof countyEntities.$inferSelect;
 
 // Business-level verification records (append-only)
 export const businessVerifications = pgTable("business_verifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  providerUserId: varchar("provider_user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  providerUserId: varchar("provider_user_id")
+    .notNull()
+    .references(() => users.id),
 
   // 'license' | 'insurance' | 'ein' | 'other'
   verificationType: varchar("verification_type").notNull(),
@@ -969,7 +1115,9 @@ export type Profile = typeof profiles.$inferSelect;
 
 // Contractor-Trade relationships (many-to-many)
 export const contractorTrades = pgTable("contractor_trades", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
   tradeId: varchar("trade_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -977,7 +1125,9 @@ export const contractorTrades = pgTable("contractor_trades", {
 
 // Contractor service areas (many-to-many with counties)
 export const contractorCounties = pgTable("contractor_counties", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
   countyId: varchar("county_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -985,7 +1135,9 @@ export const contractorCounties = pgTable("contractor_counties", {
 
 // Recommendations/Reviews
 export const recommendations = pgTable("recommendations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
   userId: varchar("user_id").notNull(),
   recommendationType: varchar("recommendation_type").notNull(), // 'positive' or 'negative'
@@ -997,20 +1149,20 @@ export const recommendations = pgTable("recommendations", {
   communication: varchar("communication"), // excellent, good, fair, poor
   wouldHireAgain: boolean("would_hire_again"),
   photoUrl: varchar("photo_url"),
-  
+
   // Anti-abuse measures
   customerName: varchar("customer_name").notNull(),
   customerEmail: varchar("customer_email").notNull(),
   customerPhone: varchar("customer_phone"),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
-  
+
   // Verification and moderation
   isVerified: boolean("is_verified").default(false),
   verificationMethod: varchar("verification_method"), // 'email', 'phone', 'admin'
   verifiedAt: timestamp("verified_at"),
   isPublic: boolean("is_public").default(false), // Default to private until verified
-  moderationStatus: varchar("moderation_status").default('pending'), // pending, approved, rejected
+  moderationStatus: varchar("moderation_status").default("pending"), // pending, approved, rejected
   moderatedAt: timestamp("moderated_at"),
   moderatedBy: varchar("moderated_by"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -1018,32 +1170,55 @@ export const recommendations = pgTable("recommendations", {
 });
 
 // Contractor leaderboard statistics tracking
-export const contractorLeaderboardStats = pgTable("contractor_leaderboard_stats", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
-  month: integer("month").notNull(), // 1-12
-  year: integer("year").notNull(),
-  monthlyPositiveRecommendations: integer("monthly_positive_recommendations").default(0),
-  monthlyNegativeRecommendations: integer("monthly_negative_recommendations").default(0),
-  monthlyTotalRecommendations: integer("monthly_total_recommendations").default(0),
-  lifetimePositiveRecommendations: integer("lifetime_positive_recommendations").default(0),
-  lifetimeNegativeRecommendations: integer("lifetime_negative_recommendations").default(0),
-  lifetimeTotalRecommendations: integer("lifetime_total_recommendations").default(0),
-  monthlyRecommendationScore: decimal("monthly_recommendation_score", { precision: 5, scale: 2 }), // Monthly (positive - negative)
-  lifetimeRecommendationScore: decimal("lifetime_recommendation_score", { precision: 5, scale: 2 }), // Lifetime (positive - negative)
-  monthlyRecommendationPercentage: decimal("monthly_recommendation_percentage", { precision: 5, scale: 2 }), // Monthly percentage
-  lifetimeRecommendationPercentage: decimal("lifetime_recommendation_percentage", { precision: 5, scale: 2 }), // Lifetime percentage
-  lastUpdated: timestamp("last_updated").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("contractor_leaderboard_month_year_idx").on(table.contractorId, table.month, table.year),
-  index("leaderboard_monthly_ranking_idx").on(table.month, table.year, table.monthlyTotalRecommendations),
-  index("leaderboard_lifetime_ranking_idx").on(table.lifetimeTotalRecommendations),
-]);
+export const contractorLeaderboardStats = pgTable(
+  "contractor_leaderboard_stats",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    contractorId: varchar("contractor_id")
+      .notNull()
+      .references(() => contractors.id),
+    month: integer("month").notNull(), // 1-12
+    year: integer("year").notNull(),
+    monthlyPositiveRecommendations: integer("monthly_positive_recommendations").default(0),
+    monthlyNegativeRecommendations: integer("monthly_negative_recommendations").default(0),
+    monthlyTotalRecommendations: integer("monthly_total_recommendations").default(0),
+    lifetimePositiveRecommendations: integer("lifetime_positive_recommendations").default(0),
+    lifetimeNegativeRecommendations: integer("lifetime_negative_recommendations").default(0),
+    lifetimeTotalRecommendations: integer("lifetime_total_recommendations").default(0),
+    monthlyRecommendationScore: decimal("monthly_recommendation_score", { precision: 5, scale: 2 }), // Monthly (positive - negative)
+    lifetimeRecommendationScore: decimal("lifetime_recommendation_score", {
+      precision: 5,
+      scale: 2,
+    }), // Lifetime (positive - negative)
+    monthlyRecommendationPercentage: decimal("monthly_recommendation_percentage", {
+      precision: 5,
+      scale: 2,
+    }), // Monthly percentage
+    lifetimeRecommendationPercentage: decimal("lifetime_recommendation_percentage", {
+      precision: 5,
+      scale: 2,
+    }), // Lifetime percentage
+    lastUpdated: timestamp("last_updated").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("contractor_leaderboard_month_year_idx").on(table.contractorId, table.month, table.year),
+    index("leaderboard_monthly_ranking_idx").on(
+      table.month,
+      table.year,
+      table.monthlyTotalRecommendations
+    ),
+    index("leaderboard_lifetime_ranking_idx").on(table.lifetimeTotalRecommendations),
+  ]
+);
 
 // Leads management
 export const leads = pgTable("leads", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id"), // homeowner
   contractorId: varchar("contractor_id"), // assigned contractor
   projectType: varchar("project_type").notNull(),
@@ -1053,7 +1228,7 @@ export const leads = pgTable("leads", {
   estimatedValue: decimal("estimated_value"),
   urgency: varchar("urgency"), // immediate, week, month, planning
   contactPreference: varchar("contact_preference"), // phone, email, text
-  status: varchar("status").default('new'), // new, contacted, qualified, matched, closed
+  status: varchar("status").default("new"), // new, contacted, qualified, matched, closed
   routingType: varchar("routing_type"), // direct, top3, call_now
   calculatorData: jsonb("calculator_data"),
   utmData: jsonb("utm_data"),
@@ -1063,10 +1238,12 @@ export const leads = pgTable("leads", {
 
 // Lead routing and assignment
 export const leadAssignments = pgTable("lead_assignments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   leadId: varchar("lead_id").notNull(),
   contractorId: varchar("contractor_id").notNull(),
-  status: varchar("status").default('pending'), // pending, accepted, declined, expired
+  status: varchar("status").default("pending"), // pending, accepted, declined, expired
   assignedAt: timestamp("assigned_at").defaultNow(),
   respondedAt: timestamp("responded_at"),
   expiresAt: timestamp("expires_at"),
@@ -1074,12 +1251,14 @@ export const leadAssignments = pgTable("lead_assignments", {
 
 // Contractor verification documents
 export const verificationDocuments = pgTable("verification_documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
   type: varchar("type").notNull(), // license, insurance, id
   fileName: varchar("file_name").notNull(),
   fileUrl: varchar("file_url").notNull(),
-  status: varchar("status").default('pending'), // pending, approved, rejected
+  status: varchar("status").default("pending"), // pending, approved, rejected
   reviewNotes: text("review_notes"),
   reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
@@ -1089,7 +1268,9 @@ export const verificationDocuments = pgTable("verification_documents", {
 
 // Growth Pack downloads
 export const growthPackDownloads = pgTable("growth_pack_downloads", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   email: varchar("email").notNull(),
   companyName: varchar("company_name"),
   primaryTrade: varchar("primary_trade"),
@@ -1103,11 +1284,13 @@ export const growthPackDownloads = pgTable("growth_pack_downloads", {
 
 // Accelerator memberships (one-time purchase, not subscription)
 export const acceleratorMemberships = pgTable("accelerator_memberships", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
   purchaseAmount: decimal("purchase_amount").notNull(),
   paymentIntentId: varchar("payment_intent_id"),
-  status: varchar("status").default('active'), // active, paused, cancelled
+  status: varchar("status").default("active"), // active, paused, cancelled
   features: jsonb("features").$type<string[]>(),
   purchasedAt: timestamp("purchased_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // if applicable
@@ -1115,7 +1298,9 @@ export const acceleratorMemberships = pgTable("accelerator_memberships", {
 
 // Pricing data for quote calculators
 export const pricingData = pgTable("pricing_data", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   service: varchar("service").notNull(), // painting, roofing, etc
   fips: varchar("fips").notNull(),
   serviceCode: varchar("service_code"),
@@ -1129,7 +1314,9 @@ export const pricingData = pgTable("pricing_data", {
 
 // System events and analytics
 export const events = pgTable("events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   eventType: varchar("event_type").notNull(),
   userId: varchar("user_id"),
   contractorId: varchar("contractor_id"),
@@ -1141,7 +1328,9 @@ export const events = pgTable("events", {
 
 // Team member territories
 export const territories = pgTable("territories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   stateIds: jsonb("state_ids").$type<string[]>(),
   countyIds: jsonb("county_ids").$type<string[]>(),
@@ -1184,12 +1373,15 @@ export const contractorsRelations = relations(contractors, ({ one, many }) => ({
   leaderboardStats: many(contractorLeaderboardStats),
 }));
 
-export const contractorLeaderboardStatsRelations = relations(contractorLeaderboardStats, ({ one }) => ({
-  contractor: one(contractors, {
-    fields: [contractorLeaderboardStats.contractorId],
-    references: [contractors.id],
-  }),
-}));
+export const contractorLeaderboardStatsRelations = relations(
+  contractorLeaderboardStats,
+  ({ one }) => ({
+    contractor: one(contractors, {
+      fields: [contractorLeaderboardStats.contractorId],
+      references: [contractors.id],
+    }),
+  })
+);
 
 export const countiesRelations = relations(counties, ({ many }) => ({
   contractors: many(contractorCounties),
@@ -1246,11 +1438,15 @@ export type InsertTrustedDevice = typeof trustedDevices.$inferInsert;
 
 // Social Posts table
 export const socialPosts = pgTable("social_posts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  authorId: varchar("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
-  postType: postTypeEnum("post_type").default('general'),
-  privacyLevel: privacyLevelEnum("privacy_level").default('neighborhood'),
+  postType: postTypeEnum("post_type").default("general"),
+  privacyLevel: privacyLevelEnum("privacy_level").default("neighborhood"),
   images: jsonb("images").$type<string[]>(),
   location: varchar("location"), // neighborhood/area reference
   county: varchar("county"),
@@ -1268,177 +1464,301 @@ export const socialPosts = pgTable("social_posts", {
 });
 
 // Saved social posts (bookmarks)
-export const socialPostSaves = pgTable("social_post_saves", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  uniqueIndex("social_post_saves_user_post_uidx").on(table.userId, table.postId),
-  index("idx_social_post_saves_user").on(table.userId),
-  index("idx_social_post_saves_post").on(table.postId),
-]);
+export const socialPostSaves = pgTable(
+  "social_post_saves",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    postId: varchar("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("social_post_saves_user_post_uidx").on(table.userId, table.postId),
+    index("idx_social_post_saves_user").on(table.userId),
+    index("idx_social_post_saves_post").on(table.postId),
+  ]
+);
 
 // Post reactions table
-export const postReactions = pgTable("post_reactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  reactionType: reactionTypeEnum("reaction_type").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_post_reactions_post").on(table.postId),
-  index("idx_post_reactions_user").on(table.userId),
-]);
+export const postReactions = pgTable(
+  "post_reactions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    postId: varchar("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reactionType: reactionTypeEnum("reaction_type").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_post_reactions_post").on(table.postId),
+    index("idx_post_reactions_user").on(table.userId),
+  ]
+);
 
 // Post comments table
-export const postComments = pgTable("post_comments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
-  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  parentCommentId: varchar("parent_comment_id"), // for reply threads
-  content: text("content").notNull(),
-  images: jsonb("images").$type<string[]>(),
-  mentionedUsers: jsonb("mentioned_users").$type<string[]>(),
-  isEdited: boolean("is_edited").default(false),
-  editedAt: timestamp("edited_at"),
-  likeCount: integer("like_count").default(0),
-  replyCount: integer("reply_count").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_post_comments_post").on(table.postId),
-  index("idx_post_comments_parent").on(table.parentCommentId),
-]);
+export const postComments = pgTable(
+  "post_comments",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    postId: varchar("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    authorId: varchar("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentCommentId: varchar("parent_comment_id"), // for reply threads
+    content: text("content").notNull(),
+    images: jsonb("images").$type<string[]>(),
+    mentionedUsers: jsonb("mentioned_users").$type<string[]>(),
+    isEdited: boolean("is_edited").default(false),
+    editedAt: timestamp("edited_at"),
+    likeCount: integer("like_count").default(0),
+    replyCount: integer("reply_count").default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_post_comments_post").on(table.postId),
+    index("idx_post_comments_parent").on(table.parentCommentId),
+  ]
+);
 
 // Comment reactions table
-export const commentReactions = pgTable("comment_reactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  commentId: varchar("comment_id").notNull().references(() => postComments.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  reactionType: reactionTypeEnum("reaction_type").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_comment_reactions_comment").on(table.commentId),
-  index("idx_comment_reactions_user").on(table.userId),
-]);
+export const commentReactions = pgTable(
+  "comment_reactions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    commentId: varchar("comment_id")
+      .notNull()
+      .references(() => postComments.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reactionType: reactionTypeEnum("reaction_type").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_comment_reactions_comment").on(table.commentId),
+    index("idx_comment_reactions_user").on(table.userId),
+  ]
+);
 
 // Post shares table
-export const postShares = pgTable("post_shares", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  shareMessage: text("share_message"),
-  privacyLevel: privacyLevelEnum("privacy_level").default('neighborhood'),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_post_shares_post").on(table.postId),
-  index("idx_post_shares_user").on(table.userId),
-]);
+export const postShares = pgTable(
+  "post_shares",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    postId: varchar("post_id")
+      .notNull()
+      .references(() => socialPosts.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    shareMessage: text("share_message"),
+    privacyLevel: privacyLevelEnum("privacy_level").default("neighborhood"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_post_shares_post").on(table.postId),
+    index("idx_post_shares_user").on(table.userId),
+  ]
+);
 
 // Following relationships table
-export const userFollows = pgTable("user_follows", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  followerId: varchar("follower_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  followingId: varchar("following_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_user_follows_follower").on(table.followerId),
-  index("idx_user_follows_following").on(table.followingId),
-]);
+export const userFollows = pgTable(
+  "user_follows",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    followerId: varchar("follower_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    followingId: varchar("following_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_user_follows_follower").on(table.followerId),
+    index("idx_user_follows_following").on(table.followingId),
+  ]
+);
+
+// Contact permissions (one-time approval for first contact)
+export const contactPermissions = pgTable(
+  "contact_permissions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    requesterId: varchar("requester_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetUserId: varchar("target_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: contactPermissionStatusEnum("status").default("pending"),
+    lastRequestType: varchar("last_request_type"),
+    lastRequestPreview: text("last_request_preview"),
+    lastRequestNotificationId: varchar("last_request_notification_id"),
+    respondedAt: timestamp("responded_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uidx_contact_permissions_pair").on(table.requesterId, table.targetUserId),
+    index("idx_contact_permissions_target").on(table.targetUserId),
+    index("idx_contact_permissions_requester").on(table.requesterId),
+  ]
+);
 
 // Content reports table
-export const contentReports = pgTable("content_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  reporterId: varchar("reporter_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  reportedUserId: varchar("reported_user_id").references(() => users.id, { onDelete: 'cascade' }),
-  postId: varchar("post_id").references(() => socialPosts.id, { onDelete: 'cascade' }),
-  commentId: varchar("comment_id").references(() => postComments.id, { onDelete: 'cascade' }),
-  reason: reportReasonEnum("reason").notNull(),
-  description: text("description"),
-  status: varchar("status").default('pending'), // pending, reviewed, resolved, dismissed
-  reviewedBy: varchar("reviewed_by").references(() => users.id),
-  reviewedAt: timestamp("reviewed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_content_reports_reporter").on(table.reporterId),
-  index("idx_content_reports_status").on(table.status),
-]);
+export const contentReports = pgTable(
+  "content_reports",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    reporterId: varchar("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reportedUserId: varchar("reported_user_id").references(() => users.id, { onDelete: "cascade" }),
+    postId: varchar("post_id").references(() => socialPosts.id, { onDelete: "cascade" }),
+    commentId: varchar("comment_id").references(() => postComments.id, { onDelete: "cascade" }),
+    reason: reportReasonEnum("reason").notNull(),
+    description: text("description"),
+    status: varchar("status").default("pending"), // pending, reviewed, resolved, dismissed
+    reviewedBy: varchar("reviewed_by").references(() => users.id),
+    reviewedAt: timestamp("reviewed_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_content_reports_reporter").on(table.reporterId),
+    index("idx_content_reports_status").on(table.status),
+  ]
+);
 
 // Community moderation votes - for upvoting/downvoting posts and comments
-export const moderationVotes = pgTable("moderation_votes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  voterId: varchar("voter_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  targetType: varchar("target_type").notNull(), // 'post', 'comment', 'report'
-  targetId: varchar("target_id").notNull(), // ID of the post, comment, or report
-  voteType: varchar("vote_type").notNull(), // 'upvote', 'downvote', 'flag', 'hide'
-  reason: varchar("reason"), // optional reason for moderation action
-  weight: integer("weight").default(1), // vote weight (based on user reputation)
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_moderation_votes_target").on(table.targetType, table.targetId),
-  index("idx_moderation_votes_voter").on(table.voterId),
-]);
+export const moderationVotes = pgTable(
+  "moderation_votes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    voterId: varchar("voter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetType: varchar("target_type").notNull(), // 'post', 'comment', 'report'
+    targetId: varchar("target_id").notNull(), // ID of the post, comment, or report
+    voteType: varchar("vote_type").notNull(), // 'upvote', 'downvote', 'flag', 'hide'
+    reason: varchar("reason"), // optional reason for moderation action
+    weight: integer("weight").default(1), // vote weight (based on user reputation)
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_moderation_votes_target").on(table.targetType, table.targetId),
+    index("idx_moderation_votes_voter").on(table.voterId),
+  ]
+);
 
 // Community moderation thresholds and scores
-export const moderationScores = pgTable("moderation_scores", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  targetType: varchar("target_type").notNull(), // 'post', 'comment'
-  targetId: varchar("target_id").notNull(),
-  upvoteCount: integer("upvote_count").default(0),
-  downvoteCount: integer("downvote_count").default(0),
-  flagCount: integer("flag_count").default(0),
-  hideCount: integer("hide_count").default(0),
-  communityScore: integer("community_score").default(0), // calculated score
-  isHidden: boolean("is_hidden").default(false), // hidden by community votes
-  isFlagged: boolean("is_flagged").default(false), // flagged for review
-  lastCalculated: timestamp("last_calculated").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_moderation_scores_target").on(table.targetType, table.targetId),
-  index("idx_moderation_scores_score").on(table.communityScore),
-  index("idx_moderation_scores_flagged").on(table.isFlagged),
-]);
+export const moderationScores = pgTable(
+  "moderation_scores",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    targetType: varchar("target_type").notNull(), // 'post', 'comment'
+    targetId: varchar("target_id").notNull(),
+    upvoteCount: integer("upvote_count").default(0),
+    downvoteCount: integer("downvote_count").default(0),
+    flagCount: integer("flag_count").default(0),
+    hideCount: integer("hide_count").default(0),
+    communityScore: integer("community_score").default(0), // calculated score
+    isHidden: boolean("is_hidden").default(false), // hidden by community votes
+    isFlagged: boolean("is_flagged").default(false), // flagged for review
+    lastCalculated: timestamp("last_calculated").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_moderation_scores_target").on(table.targetType, table.targetId),
+    index("idx_moderation_scores_score").on(table.communityScore),
+    index("idx_moderation_scores_flagged").on(table.isFlagged),
+  ]
+);
 
 // User reputation for voting weight
-export const userReputation = pgTable("user_reputation", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  reputationScore: integer("reputation_score").default(100), // starting reputation
-  helpfulVotes: integer("helpful_votes").default(0), // votes marked as helpful
-  harmfulVotes: integer("harmful_votes").default(0), // votes marked as harmful
-  moderationAccuracy: decimal("moderation_accuracy", { precision: 5, scale: 4 }).default("0.5000"), // 50% default
-  voteWeight: decimal("vote_weight", { precision: 3, scale: 2 }).default("1.00"), // calculated weight
-  isTrustedModerator: boolean("is_trusted_moderator").default(false),
-  lastUpdated: timestamp("last_updated").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_user_reputation_user").on(table.userId),
-  index("idx_user_reputation_score").on(table.reputationScore),
-]);
+export const userReputation = pgTable(
+  "user_reputation",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reputationScore: integer("reputation_score").default(100), // starting reputation
+    helpfulVotes: integer("helpful_votes").default(0), // votes marked as helpful
+    harmfulVotes: integer("harmful_votes").default(0), // votes marked as harmful
+    moderationAccuracy: decimal("moderation_accuracy", { precision: 5, scale: 4 }).default(
+      "0.5000"
+    ), // 50% default
+    voteWeight: decimal("vote_weight", { precision: 3, scale: 2 }).default("1.00"), // calculated weight
+    isTrustedModerator: boolean("is_trusted_moderator").default(false),
+    lastUpdated: timestamp("last_updated").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_user_reputation_user").on(table.userId),
+    index("idx_user_reputation_score").on(table.reputationScore),
+  ]
+);
 
 // Neighborhood boundaries table
-export const neighborhoods = pgTable("neighborhoods", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull(),
-  county: varchar("county").notNull(),
-  state: varchar("state").notNull(),
-  zipCodes: jsonb("zip_codes").$type<string[]>(),
-  boundaries: jsonb("boundaries"), // GeoJSON polygon data
-  centerLat: decimal("center_lat"),
-  centerLng: decimal("center_lng"),
-  memberCount: integer("member_count").default(0),
-  moderatorIds: jsonb("moderator_ids").$type<string[]>(),
-  description: text("description"),
-  guidelines: text("guidelines"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_neighborhoods_county_state").on(table.county, table.state),
-]);
+export const neighborhoods = pgTable(
+  "neighborhoods",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    name: varchar("name").notNull(),
+    county: varchar("county").notNull(),
+    state: varchar("state").notNull(),
+    zipCodes: jsonb("zip_codes").$type<string[]>(),
+    boundaries: jsonb("boundaries"), // GeoJSON polygon data
+    centerLat: decimal("center_lat"),
+    centerLng: decimal("center_lng"),
+    memberCount: integer("member_count").default(0),
+    moderatorIds: jsonb("moderator_ids").$type<string[]>(),
+    description: text("description"),
+    guidelines: text("guidelines"),
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [index("idx_neighborhoods_county_state").on(table.county, table.state)]
+);
 
 // Relations for social features
 export const socialPostsRelations = relations(socialPosts, ({ one, many }) => ({
@@ -1467,14 +1787,20 @@ export const postReactionsRelations = relations(postReactions, ({ one }) => ({
 export const postCommentsRelations = relations(postComments, ({ one, many }) => ({
   post: one(socialPosts, { fields: [postComments.postId], references: [socialPosts.id] }),
   author: one(users, { fields: [postComments.authorId], references: [users.id] }),
-  parentComment: one(postComments, { fields: [postComments.parentCommentId], references: [postComments.id] }),
+  parentComment: one(postComments, {
+    fields: [postComments.parentCommentId],
+    references: [postComments.id],
+  }),
   replies: many(postComments),
   reactions: many(commentReactions),
   reports: many(contentReports),
 }));
 
 export const commentReactionsRelations = relations(commentReactions, ({ one }) => ({
-  comment: one(postComments, { fields: [commentReactions.commentId], references: [postComments.id] }),
+  comment: one(postComments, {
+    fields: [commentReactions.commentId],
+    references: [postComments.id],
+  }),
   user: one(users, { fields: [commentReactions.userId], references: [users.id] }),
 }));
 
@@ -1514,41 +1840,47 @@ export const userReputationRelations = relations(userReputation, ({ one }) => ({
 }));
 
 // Contractor applications table
-export const contractorApplications = pgTable("contractor_applications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id"),
-  companyName: varchar("company_name").notNull(),
-  email: varchar("email").notNull(),
-  phone: varchar("phone").notNull(),
-  website: varchar("website"),
-  primaryState: varchar("primary_state").notNull(),
-  primaryCounty: varchar("primary_county").notNull(),
-  serviceRadius: varchar("service_radius").notNull(),
-  yearsInBusiness: integer("years_in_business").notNull(),
-  licenseNumber: varchar("license_number").notNull(),
-  insuranceProvider: varchar("insurance_provider").notNull(),
-  primaryTrade: varchar("primary_trade").notNull(),
-  specialties: jsonb("specialties").$type<string[]>().notNull(),
-  about: text("about").notNull(),
-  preferredContact: varchar("preferred_contact").notNull(), // phone, email, both
-  agreeToTerms: boolean("agree_to_terms").notNull(),
-  agreeToVerification: boolean("agree_to_verification").notNull(),
-  status: varchar("status").default("pending"), // pending, under_review, approved, rejected
-  starterPath: boolean("starter_path").default(true).notNull(),
-  verificationStatus: varchar("verification_status").default("pending"), // pending, verified, rejected
-  reviewNotes: text("review_notes"),
-  reviewedBy: varchar("reviewed_by"),
-  reviewedAt: timestamp("reviewed_at"),
-  contractorId: varchar("contractor_id"), // Set when approved and contractor created
-  submittedAt: timestamp("submitted_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_contractor_applications_user").on(table.userId),
-  index("idx_contractor_applications_email").on(table.email),
-  index("idx_contractor_applications_status").on(table.status),
-  index("idx_contractor_applications_submitted").on(table.submittedAt),
-]);
+export const contractorApplications = pgTable(
+  "contractor_applications",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id"),
+    companyName: varchar("company_name").notNull(),
+    email: varchar("email").notNull(),
+    phone: varchar("phone").notNull(),
+    website: varchar("website"),
+    primaryState: varchar("primary_state").notNull(),
+    primaryCounty: varchar("primary_county").notNull(),
+    serviceRadius: varchar("service_radius").notNull(),
+    yearsInBusiness: integer("years_in_business").notNull(),
+    licenseNumber: varchar("license_number").notNull(),
+    insuranceProvider: varchar("insurance_provider").notNull(),
+    primaryTrade: varchar("primary_trade").notNull(),
+    specialties: jsonb("specialties").$type<string[]>().notNull(),
+    about: text("about").notNull(),
+    preferredContact: varchar("preferred_contact").notNull(), // phone, email, both
+    agreeToTerms: boolean("agree_to_terms").notNull(),
+    agreeToVerification: boolean("agree_to_verification").notNull(),
+    status: varchar("status").default("pending"), // pending, under_review, approved, rejected
+    starterPath: boolean("starter_path").default(true).notNull(),
+    verificationStatus: varchar("verification_status").default("pending"), // pending, verified, rejected
+    reviewNotes: text("review_notes"),
+    reviewedBy: varchar("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at"),
+    contractorId: varchar("contractor_id"), // Set when approved and contractor created
+    submittedAt: timestamp("submitted_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_contractor_applications_user").on(table.userId),
+    index("idx_contractor_applications_email").on(table.email),
+    index("idx_contractor_applications_status").on(table.status),
+    index("idx_contractor_applications_submitted").on(table.submittedAt),
+  ]
+);
 
 // Insert schemas for forms
 export const insertContractorApplicationSchema = createInsertSchema(contractorApplications).omit({
@@ -1566,72 +1898,78 @@ export const insertContractorApplicationSchema = createInsertSchema(contractorAp
   updatedAt: true,
 });
 
-export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({ 
-  id: true, 
-  createdAt: true, 
+export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
   viewCount: true,
   shareCount: true,
   isEdited: true,
   editedAt: true,
   isPinned: true,
-  isArchived: true
+  isArchived: true,
 });
 
-export const insertPostCommentSchema = createInsertSchema(postComments).omit({ 
-  id: true, 
-  createdAt: true, 
+export const insertPostCommentSchema = createInsertSchema(postComments).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
   likeCount: true,
   replyCount: true,
   isEdited: true,
-  editedAt: true
+  editedAt: true,
 });
 
-export const insertPostReactionSchema = createInsertSchema(postReactions).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertPostReactionSchema = createInsertSchema(postReactions).omit({
+  id: true,
+  createdAt: true,
 });
 
-export const insertPostShareSchema = createInsertSchema(postShares).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertPostShareSchema = createInsertSchema(postShares).omit({
+  id: true,
+  createdAt: true,
 });
 
-export const insertContentReportSchema = createInsertSchema(contentReports).omit({ 
-  id: true, 
+export const insertContentReportSchema = createInsertSchema(contentReports).omit({
+  id: true,
   createdAt: true,
   status: true,
   reviewedBy: true,
-  reviewedAt: true
+  reviewedAt: true,
 });
 
 // Smart Recommendation Generator tables
 export const recommendationInsights = pgTable("recommendation_insights", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
-  
+
   // Performance metrics
   totalRecommendations: integer("total_recommendations").default(0),
   positiveRecommendations: integer("positive_recommendations").default(0),
   negativeRecommendations: integer("negative_recommendations").default(0),
   averageRating: decimal("average_rating", { precision: 3, scale: 2 }),
-  
+
   // Analysis insights
   topStrengths: jsonb("top_strengths").$type<string[]>().default([]),
   improvementAreas: jsonb("improvement_areas").$type<string[]>().default([]),
-  suggestedActions: jsonb("suggested_actions").$type<{
-    action: string;
-    priority: 'high' | 'medium' | 'low';
-    impact: string;
-    difficulty: string;
-  }[]>().default([]),
-  
+  suggestedActions: jsonb("suggested_actions")
+    .$type<
+      {
+        action: string;
+        priority: "high" | "medium" | "low";
+        impact: string;
+        difficulty: string;
+      }[]
+    >()
+    .default([]),
+
   // Visibility metrics
   profileViews: integer("profile_views").default(0),
-  inquiryRate: decimal("inquiry_rate", { precision: 5, scale: 2 }).default('0'),
-  responseRate: decimal("response_rate", { precision: 5, scale: 2 }).default('0'),
-  
+  inquiryRate: decimal("inquiry_rate", { precision: 5, scale: 2 }).default("0"),
+  responseRate: decimal("response_rate", { precision: 5, scale: 2 }).default("0"),
+
   // Competitive analysis
   marketPosition: varchar("market_position"), // 'top_performer', 'above_average', 'average', 'below_average'
   competitorComparison: jsonb("competitor_comparison").$type<{
@@ -1639,79 +1977,95 @@ export const recommendationInsights = pgTable("recommendation_insights", {
     betterThan: number;
     percentile: number;
   }>(),
-  
+
   // AI recommendations
-  aiRecommendations: jsonb("ai_recommendations").$type<{
-    category: string;
-    suggestion: string;
-    impact: 'high' | 'medium' | 'low';
-    timeframe: string;
-  }[]>().default([]),
-  
+  aiRecommendations: jsonb("ai_recommendations")
+    .$type<
+      {
+        category: string;
+        suggestion: string;
+        impact: "high" | "medium" | "low";
+        timeframe: string;
+      }[]
+    >()
+    .default([]),
+
   lastAnalyzedAt: timestamp("last_analyzed_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const recommendationGoals = pgTable("recommendation_goals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
-  
+
   // Goal targets
   targetRecommendations: integer("target_recommendations").notNull(),
   targetRating: decimal("target_rating", { precision: 3, scale: 2 }).notNull(),
   targetTimeframe: varchar("target_timeframe").notNull(), // '30_days', '90_days', '6_months', '1_year'
-  
+
   // Progress tracking
   startingRecommendations: integer("starting_recommendations").default(0),
-  currentProgress: decimal("current_progress", { precision: 5, scale: 2 }).default('0'),
+  currentProgress: decimal("current_progress", { precision: 5, scale: 2 }).default("0"),
   isActive: boolean("is_active").default(true),
-  
+
   // Milestone tracking
-  milestones: jsonb("milestones").$type<{
-    target: number;
-    achievedAt?: string;
-    reward?: string;
-  }[]>().default([]),
-  
+  milestones: jsonb("milestones")
+    .$type<
+      {
+        target: number;
+        achievedAt?: string;
+        reward?: string;
+      }[]
+    >()
+    .default([]),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const recommendationCampaigns = pgTable("recommendation_campaigns", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
-  
+
   // Campaign details
   name: varchar("name").notNull(),
   description: text("description"),
   campaignType: varchar("campaign_type").notNull(), // 'email_followup', 'text_reminder', 'personal_ask', 'incentive_offer'
-  
+
   // Target audience
-  targetCustomers: jsonb("target_customers").$type<{
-    projectType?: string;
-    projectValue?: number;
-    completionDate?: string;
-    email?: string;
-    phone?: string;
-  }[]>().default([]),
-  
+  targetCustomers: jsonb("target_customers")
+    .$type<
+      {
+        projectType?: string;
+        projectValue?: number;
+        completionDate?: string;
+        email?: string;
+        phone?: string;
+      }[]
+    >()
+    .default([]),
+
   // Campaign settings
   isActive: boolean("is_active").default(true),
   sendAt: timestamp("send_at"),
   frequency: varchar("frequency"), // 'once', 'weekly', 'monthly'
-  
+
   // Templates
   emailTemplate: text("email_template"),
   textTemplate: text("text_template"),
   incentiveOffer: text("incentive_offer"),
-  
+
   // Results tracking
   totalSent: integer("total_sent").default(0),
   totalOpened: integer("total_opened").default(0),
   totalResponded: integer("total_responded").default(0),
   totalRecommendations: integer("total_recommendations").default(0),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1777,6 +2131,7 @@ export type PostComment = typeof postComments.$inferSelect;
 export type PostReaction = typeof postReactions.$inferSelect;
 export type PostShare = typeof postShares.$inferSelect;
 export type UserFollow = typeof userFollows.$inferSelect;
+export type ContactPermission = typeof contactPermissions.$inferSelect;
 export type ContentReport = typeof contentReports.$inferSelect;
 export type Neighborhood = typeof neighborhoods.$inferSelect;
 
@@ -1790,27 +2145,27 @@ export type InsertPostShare = z.infer<typeof insertPostShareSchema>;
 export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
 
 // Moderation schemas
-export const insertModerationVoteSchema = createInsertSchema(moderationVotes).omit({ 
-  id: true, 
+export const insertModerationVoteSchema = createInsertSchema(moderationVotes).omit({
+  id: true,
   createdAt: true,
   isActive: true,
-  weight: true 
+  weight: true,
 });
 
-export const insertModerationScoreSchema = createInsertSchema(moderationScores).omit({ 
-  id: true, 
-  createdAt: true, 
+export const insertModerationScoreSchema = createInsertSchema(moderationScores).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
   lastCalculated: true,
-  communityScore: true 
+  communityScore: true,
 });
 
-export const insertUserReputationSchema = createInsertSchema(userReputation).omit({ 
-  id: true, 
+export const insertUserReputationSchema = createInsertSchema(userReputation).omit({
+  id: true,
   createdAt: true,
   lastUpdated: true,
   voteWeight: true,
-  moderationAccuracy: true 
+  moderationAccuracy: true,
 });
 
 // Moderation types
@@ -1853,7 +2208,9 @@ export type InsertRegion = typeof regions.$inferInsert;
 
 // Admin configuration tables for dynamic content management
 export const siteSettings = pgTable("site_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   category: varchar("category").notNull(), // 'prizes', 'ads', 'features', 'content'
   key: varchar("key").notNull(),
   value: jsonb("value").notNull(),
@@ -1864,7 +2221,9 @@ export const siteSettings = pgTable("site_settings", {
 });
 
 export const prizeConfigurations = pgTable("prize_configurations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
   prizeType: varchar("prize_type").notNull(), // 'gift_card', 'discount', 'premium_features'
@@ -1879,7 +2238,9 @@ export const prizeConfigurations = pgTable("prize_configurations", {
 });
 
 export const advertisements = pgTable("advertisements", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   content: text("content").notNull(),
   imageUrl: varchar("image_url"),
@@ -1901,7 +2262,9 @@ export const advertisements = pgTable("advertisements", {
 });
 
 export const contractorSettings = pgTable("contractor_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   category: varchar("category").notNull(), // 'verification', 'pricing', 'project_routing'
   setting: varchar("setting").notNull(),
   value: jsonb("value").notNull(),
@@ -1922,9 +2285,15 @@ export type InsertContractorSetting = typeof contractorSettings.$inferInsert;
 
 // Saved ads for users
 export const savedAds = pgTable("saved_ads", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  adId: varchar("ad_id").notNull().references(() => advertisements.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  adId: varchar("ad_id")
+    .notNull()
+    .references(() => advertisements.id),
   savedAt: timestamp("saved_at").defaultNow(),
   lastReminderSent: timestamp("last_reminder_sent"),
   reminderCount: integer("reminder_count").default(0),
@@ -1935,26 +2304,40 @@ export type SavedAd = typeof savedAds.$inferSelect;
 export type InsertSavedAd = typeof savedAds.$inferInsert;
 
 // Per-ad feedback to drive Community Value Score (CVS)
-export const adFeedback = pgTable("ad_feedback", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  adId: varchar("ad_id").notNull().references(() => advertisements.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  rating: varchar("rating", { length: 32 }).notNull(), // 'helpful' | 'not_relevant' | 'spam'
-  source: varchar("source", { length: 32 }).notNull(), // 'scout' | 'site_visit' | 'saved'
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  // One feedback per user per ad
-  index("idx_ad_feedback_ad").on(table.adId),
-  index("idx_ad_feedback_user").on(table.userId),
-]);
+export const adFeedback = pgTable(
+  "ad_feedback",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    adId: varchar("ad_id")
+      .notNull()
+      .references(() => advertisements.id),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    rating: varchar("rating", { length: 32 }).notNull(), // 'helpful' | 'not_relevant' | 'spam'
+    source: varchar("source", { length: 32 }).notNull(), // 'scout' | 'site_visit' | 'saved'
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    // One feedback per user per ad
+    index("idx_ad_feedback_ad").on(table.adId),
+    index("idx_ad_feedback_user").on(table.userId),
+  ]
+);
 
 export type AdFeedback = typeof adFeedback.$inferSelect;
 export type InsertAdFeedback = typeof adFeedback.$inferInsert;
 
 // Per-user ad event log (surface-level performance tracking)
 export const adEvents = pgTable("ad_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  adId: varchar("ad_id").notNull().references(() => advertisements.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  adId: varchar("ad_id")
+    .notNull()
+    .references(() => advertisements.id),
   eventType: varchar("event_type", { length: 50 }).notNull(), // 'impression' | 'click'
   source: varchar("source", { length: 50 }).notNull(), // 'site_visit' | 'scout' | 'saved' | 'unknown'
   userId: varchar("user_id").references(() => users.id),
@@ -2002,7 +2385,9 @@ export type GrowthPackDownload = typeof growthPackDownloads.$inferSelect;
 
 // Worker marketplace system for task-based work
 export const workers = pgTable("workers", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
@@ -2023,7 +2408,7 @@ export const workers = pgTable("workers", {
   }>(),
   transportationMethod: varchar("transportation_method"),
   maxTravelDistance: integer("max_travel_distance"), // in miles
-  
+
   // Verification status
   isIdVerified: boolean("is_id_verified").default(false),
   isBackgroundChecked: boolean("is_background_checked").default(false),
@@ -2033,61 +2418,71 @@ export const workers = pgTable("workers", {
     backgroundCheck?: string;
     references?: string[];
   }>(),
-  verificationStatus: varchar("verification_status", { 
-    enum: ['pending', 'in_review', 'approved', 'rejected'] 
-  }).default('pending'),
+  verificationStatus: varchar("verification_status", {
+    enum: ["pending", "in_review", "approved", "rejected"],
+  }).default("pending"),
   verifiedAt: timestamp("verified_at"),
-  
+
   // Work history and ratings
   totalJobsCompleted: integer("total_jobs_completed").default(0),
   averageRating: decimal("average_rating"),
   totalEarnings: decimal("total_earnings").default("0"),
-  
+
   // Resume information
-  workExperience: jsonb("work_experience").$type<Array<{
-    jobTitle: string;
-    company: string;
-    startDate: string;
-    endDate?: string;
-    description: string;
-    isCurrentJob: boolean;
-    fromPlatform: boolean; // If this job was obtained through TradeScout
-    taskId?: string; // Reference to platform task if applicable
-  }>>(),
-  education: jsonb("education").$type<Array<{
-    degree: string;
-    school: string;
-    graduationYear?: number;
-    fieldOfStudy?: string;
-  }>>(),
-  certifications: jsonb("certifications").$type<Array<{
-    name: string;
-    issuer: string;
-    issueDate: string;
-    expirationDate?: string;
-    credentialId?: string;
-  }>>(),
-  portfolioItems: jsonb("portfolio_items").$type<Array<{
-    title: string;
-    description: string;
-    imageUrl?: string;
-    completionDate: string;
-    skills: string[];
-    fromPlatform: boolean;
-    taskId?: string;
-  }>>(),
-  
+  workExperience: jsonb("work_experience").$type<
+    Array<{
+      jobTitle: string;
+      company: string;
+      startDate: string;
+      endDate?: string;
+      description: string;
+      isCurrentJob: boolean;
+      fromPlatform: boolean; // If this job was obtained through TradeScout
+      taskId?: string; // Reference to platform task if applicable
+    }>
+  >(),
+  education: jsonb("education").$type<
+    Array<{
+      degree: string;
+      school: string;
+      graduationYear?: number;
+      fieldOfStudy?: string;
+    }>
+  >(),
+  certifications: jsonb("certifications").$type<
+    Array<{
+      name: string;
+      issuer: string;
+      issueDate: string;
+      expirationDate?: string;
+      credentialId?: string;
+    }>
+  >(),
+  portfolioItems: jsonb("portfolio_items").$type<
+    Array<{
+      title: string;
+      description: string;
+      imageUrl?: string;
+      completionDate: string;
+      skills: string[];
+      fromPlatform: boolean;
+      taskId?: string;
+    }>
+  >(),
+
   // Account status
   isActive: boolean("is_active").default(true),
   isAvailable: boolean("is_available").default(true),
   lastActiveAt: timestamp("last_active_at").defaultNow(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const taskCategories = pgTable("task_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   slug: varchar("slug").notNull().unique(),
   description: text("description"),
@@ -2097,45 +2492,47 @@ export const taskCategories = pgTable("task_categories", {
 });
 
 export const tasks = pgTable("tasks", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   posterId: varchar("poster_id").notNull(), // user who posted the task
-  posterType: varchar("poster_type", { enum: ['contractor', 'homeowner'] }).notNull(),
-  
+  posterType: varchar("poster_type", { enum: ["contractor", "homeowner"] }).notNull(),
+
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   categoryId: varchar("category_id"),
-  
+
   // Location
   address: varchar("address"),
   city: varchar("city"),
   stateCode: varchar("state_code", { length: 2 }),
   zipCode: varchar("zip_code"),
   countyFips: varchar("county_fips"),
-  
+
   // Task details
-  taskType: varchar("task_type", { 
-    enum: ['one_time', 'recurring', 'project_based'] 
+  taskType: varchar("task_type", {
+    enum: ["one_time", "recurring", "project_based"],
   }).notNull(),
   estimatedHours: decimal("estimated_hours"),
-  payType: varchar("pay_type", { 
-    enum: ['hourly', 'fixed', 'per_task'] 
+  payType: varchar("pay_type", {
+    enum: ["hourly", "fixed", "per_task"],
   }).notNull(),
   payAmount: decimal("pay_amount").notNull(),
   payMin: decimal("pay_min"),
   payMax: decimal("pay_max"),
-  
+
   // Requirements
   requiredSkills: jsonb("required_skills").$type<string[]>(),
   requiresTransportation: boolean("requires_transportation").default(false),
   requiresTools: boolean("requires_tools").default(false),
   toolsProvided: boolean("tools_provided").default(false),
-  physicalDemands: varchar("physical_demands", { 
-    enum: ['light', 'moderate', 'heavy'] 
+  physicalDemands: varchar("physical_demands", {
+    enum: ["light", "moderate", "heavy"],
   }),
-  
+
   // Scheduling
-  schedulingType: varchar("scheduling_type", { 
-    enum: ['asap', 'scheduled', 'flexible'] 
+  schedulingType: varchar("scheduling_type", {
+    enum: ["asap", "scheduled", "flexible"],
   }).notNull(),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
@@ -2146,96 +2543,106 @@ export const tasks = pgTable("tasks", {
     afternoons?: boolean;
     evenings?: boolean;
   }>(),
-  
+
   // Verification requirements
   requiresIdVerification: boolean("requires_id_verification").default(true),
   requiresBackgroundCheck: boolean("requires_background_check").default(false),
   minimumRating: decimal("minimum_rating"),
   minimumJobsCompleted: integer("minimum_jobs_completed"),
-  
+
   // Task status
-  status: varchar("status", { 
-    enum: ['open', 'assigned', 'in_progress', 'completed', 'cancelled'] 
-  }).default('open'),
+  status: varchar("status", {
+    enum: ["open", "assigned", "in_progress", "completed", "cancelled"],
+  }).default("open"),
   assignedWorkerId: varchar("assigned_worker_id"),
   assignedAt: timestamp("assigned_at"),
   completedAt: timestamp("completed_at"),
-  
+
   // Attachments
   attachments: jsonb("attachments").$type<string[]>(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const taskApplications = pgTable("task_applications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   taskId: varchar("task_id").notNull(),
   workerId: varchar("worker_id").notNull(),
-  
+
   message: text("message"),
   proposedRate: decimal("proposed_rate"),
   estimatedDuration: varchar("estimated_duration"),
   availableStartDate: timestamp("available_start_date"),
-  
-  status: varchar("status", { 
-    enum: ['pending', 'accepted', 'rejected', 'withdrawn'] 
-  }).default('pending'),
-  
+
+  status: varchar("status", {
+    enum: ["pending", "accepted", "rejected", "withdrawn"],
+  }).default("pending"),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const workerReviews = pgTable("worker_reviews", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   taskId: varchar("task_id").notNull(),
   workerId: varchar("worker_id").notNull(),
   reviewerId: varchar("reviewer_id").notNull(), // poster who hired the worker
-  
+
   rating: integer("rating").notNull(), // 1-5 stars
   reviewText: text("review_text"),
-  
+
   // Specific rating categories
   qualityRating: integer("quality_rating"),
   timelinessRating: integer("timeliness_rating"),
   communicationRating: integer("communication_rating"),
   professionalismRating: integer("professionalism_rating"),
-  
+
   wouldHireAgain: boolean("would_hire_again"),
   isPublic: boolean("is_public").default(true),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const verificationRequests = pgTable("verification_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   workerId: varchar("worker_id").notNull(),
-  requestType: varchar("request_type", { 
-    enum: ['id_verification', 'background_check', 'reference_check'] 
+  requestType: varchar("request_type", {
+    enum: ["id_verification", "background_check", "reference_check"],
   }).notNull(),
-  
-  status: varchar("status", { 
-    enum: ['pending', 'in_review', 'approved', 'rejected', 'expired'] 
-  }).default('pending'),
-  
-  submittedDocuments: jsonb("submitted_documents").$type<{
-    documentType: string;
-    documentUrl: string;
-    uploadedAt: string;
-  }[]>(),
-  
+
+  status: varchar("status", {
+    enum: ["pending", "in_review", "approved", "rejected", "expired"],
+  }).default("pending"),
+
+  submittedDocuments: jsonb("submitted_documents").$type<
+    {
+      documentType: string;
+      documentUrl: string;
+      uploadedAt: string;
+    }[]
+  >(),
+
   reviewNotes: text("review_notes"),
   reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
   expiresAt: timestamp("expires_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Work Requests spine (single canonical object for homeowner/provider work)
 export const workRequests = pgTable("work_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
 
   // Who created the request
   createdByUserId: varchar("created_by_user_id").notNull(),
@@ -2292,7 +2699,9 @@ export const workRequests = pgTable("work_requests", {
 
 // Event log for each work request (append-only history)
 export const workRequestEvents = pgTable("work_request_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   workRequestId: varchar("work_request_id").notNull(),
 
   type: varchar("type", {
@@ -2325,7 +2734,9 @@ export const workRequestEvents = pgTable("work_request_events", {
 
 // Provider assignments per work request
 export const workRequestAssignments = pgTable("work_request_assignments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   workRequestId: varchar("work_request_id").notNull(),
 
   // Linked provider (contractor profile today)
@@ -2351,83 +2762,89 @@ export const workRequestAssignments = pgTable("work_request_assignments", {
 
 // Professional Partnerships (Dealer-Contractor connections)
 export const professionalPartnerships = pgTable("professional_partnerships", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   // Partnership members
   initiatorId: varchar("initiator_id").notNull(), // User who sent partnership request
-  partnerId: varchar("partner_id").notNull(),     // User who received request
-  
+  partnerId: varchar("partner_id").notNull(), // User who received request
+
   // Partnership type and details
   partnershipType: varchar("partnership_type", {
-    enum: ['dealer_contractor', 'contractor_realtor', 'realtor_dealer']
+    enum: ["dealer_contractor", "contractor_realtor", "realtor_dealer"],
   }).notNull(),
-  
+
   status: varchar("status", {
-    enum: ['pending', 'active', 'paused', 'ended']
-  }).default('pending'),
-  
+    enum: ["pending", "active", "paused", "ended"],
+  }).default("pending"),
+
   // Terms and agreements
-  commissionRate: decimal("commission_rate").default('10.00'), // 10% default
+  commissionRate: decimal("commission_rate").default("10.00"), // 10% default
   referralTerms: text("referral_terms"),
   partnershipDescription: text("partnership_description"),
-  
+
   // Success metrics
   totalReferrals: integer("total_referrals").default(0),
   successfulReferrals: integer("successful_referrals").default(0),
-  totalCommissionEarned: decimal("total_commission_earned").default('0'),
-  
+  totalCommissionEarned: decimal("total_commission_earned").default("0"),
+
   // Timestamps
   requestedAt: timestamp("requested_at").defaultNow(),
   approvedAt: timestamp("approved_at"),
   lastReferralAt: timestamp("last_referral_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const partnershipReferrals = pgTable("partnership_referrals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   partnershipId: varchar("partnership_id").notNull(),
-  referrerId: varchar("referrer_id").notNull(),    // Who made the referral
-  customerId: varchar("customer_id").notNull(),     // Who was referred
-  
+  referrerId: varchar("referrer_id").notNull(), // Who made the referral
+  customerId: varchar("customer_id").notNull(), // Who was referred
+
   referralType: varchar("referral_type", {
-    enum: ['vehicle_purchase', 'home_project', 'financing', 'insurance']
+    enum: ["vehicle_purchase", "home_project", "financing", "insurance"],
   }).notNull(),
-  
+
   status: varchar("status", {
-    enum: ['sent', 'contacted', 'meeting_scheduled', 'deal_closed', 'no_sale']
-  }).default('sent'),
-  
+    enum: ["sent", "contacted", "meeting_scheduled", "deal_closed", "no_sale"],
+  }).default("sent"),
+
   // Deal details
   estimatedValue: decimal("estimated_value"),
   actualValue: decimal("actual_value"),
   commissionAmount: decimal("commission_amount"),
-  
+
   // Notes and communication
   referralNotes: text("referral_notes"),
   customerMessage: text("customer_message"),
   partnerResponse: text("partner_response"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const errorReports = pgTable("error_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   // User information
   userId: varchar("user_id"), // nullable for anonymous reports
   userEmail: varchar("user_email"),
-  
+
   // Error details
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
   errorType: varchar("error_type", {
-    enum: ['bug', 'ui_issue', 'performance', 'feature_request', 'other']
-  }).default('bug'),
-  
+    enum: ["bug", "ui_issue", "performance", "feature_request", "other"],
+  }).default("bug"),
+
   // Technical details
   currentUrl: text("current_url"),
   userAgent: text("user_agent"),
@@ -2437,23 +2854,23 @@ export const errorReports = pgTable("error_reports", {
     platform?: string;
     mobile?: boolean;
   }>(),
-  
+
   // Screenshots/attachments
   attachments: jsonb("attachments").$type<string[]>(),
-  
+
   // Admin management
   status: varchar("status", {
-    enum: ['open', 'in_progress', 'resolved', 'closed', 'duplicate']
-  }).default('open'),
+    enum: ["open", "in_progress", "resolved", "closed", "duplicate"],
+  }).default("open"),
   priority: varchar("priority", {
-    enum: ['low', 'medium', 'high', 'critical']
-  }).default('medium'),
-  
+    enum: ["low", "medium", "high", "critical"],
+  }).default("medium"),
+
   assignedTo: varchar("assigned_to"),
   adminNotes: text("admin_notes"),
   resolution: text("resolution"),
   resolvedAt: timestamp("resolved_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2462,7 +2879,9 @@ export const errorReports = pgTable("error_reports", {
 export const botUiFindings = pgTable(
   "bot_ui_findings",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     botName: varchar("bot_name", { length: 120 }).notNull(),
     route: varchar("route", { length: 512 }).notNull(),
     actionAttempted: text("action_attempted"),
@@ -2476,14 +2895,16 @@ export const botUiFindings = pgTable(
   (table) => [
     index("bot_ui_findings_route_idx").on(table.route),
     index("bot_ui_findings_created_idx").on(table.createdAt),
-  ],
+  ]
 );
 
 // Scout interactions: real user intent/resolution log (bots excluded)
 export const scoutInteractions = pgTable(
   "scout_interactions",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     userRole: scoutInteractionUserRoleEnum("user_role").notNull(),
     countyFips: varchar("county_fips", { length: 5 }),
     intent: scoutInteractionIntentEnum("intent").notNull().default("unknown"),
@@ -2497,14 +2918,16 @@ export const scoutInteractions = pgTable(
     index("scout_interactions_created_idx").on(table.createdAt),
     index("scout_interactions_intent_idx").on(table.intent),
     index("scout_interactions_role_idx").on(table.userRole),
-  ],
+  ]
 );
 
 // Mission Control action log: one-fix decisions
 export const missionControlActions = pgTable(
   "mission_control_actions",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     sourceType: missionControlSourceEnum("source_type").notNull(),
     sourceId: varchar("source_id", { length: 128 }).notNull(),
     status: missionControlActionStatusEnum("status").notNull().default("open"),
@@ -2519,19 +2942,18 @@ export const missionControlActions = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => [
-    uniqueIndex("mission_control_action_source_unique").on(
-      table.sourceType,
-      table.sourceId,
-    ),
+    uniqueIndex("mission_control_action_source_unique").on(table.sourceType, table.sourceId),
     index("mission_control_action_status_idx").on(table.status),
-  ],
+  ]
 );
 
 // Mission Control decision tracking: daily operating loop
 export const missionControlDecisions = pgTable(
   "mission_control_decisions",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     decisionDate: date("decision_date").notNull(),
     recommendedFixSourceType: missionControlSourceEnum("recommended_fix_source_type").notNull(),
     recommendedFixSourceId: varchar("recommended_fix_source_id", { length: 128 }).notNull(),
@@ -2544,11 +2966,11 @@ export const missionControlDecisions = pgTable(
     uniqueIndex("mission_control_decision_unique").on(
       table.decisionDate,
       table.recommendedFixSourceType,
-      table.recommendedFixSourceId,
+      table.recommendedFixSourceId
     ),
     index("mission_control_decisions_date_idx").on(table.decisionDate),
     index("mission_control_decisions_action_idx").on(table.action),
-  ],
+  ]
 );
 
 // User completed actions log: Append-only record of real outcome-based actions
@@ -2556,8 +2978,12 @@ export const missionControlDecisions = pgTable(
 export const userCompletedActions = pgTable(
   "user_completed_actions",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    userId: varchar("user_id").notNull().references(() => users.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
     actionType: varchar("action_type", { length: 120 }).notNull(),
     source: varchar("source", { length: 20 }).notNull(),
     createdAt: timestamp("created_at").defaultNow(),
@@ -2565,168 +2991,182 @@ export const userCompletedActions = pgTable(
   (table) => [
     index("user_completed_actions_user_idx").on(table.userId),
     index("user_completed_actions_created_idx").on(table.createdAt),
-  ],
+  ]
 );
 
 // Contractor promotional campaigns
 export const contractorPromos = pgTable("contractor_promos", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  contractorId: varchar("contractor_id")
+    .notNull()
+    .references(() => contractors.id),
+
   // Promo details
   title: varchar("title", { length: 100 }).notNull(),
   description: text("description").notNull(),
   offerDetails: text("offer_details").notNull(), // "20% off all roofing jobs", "Free estimate + 10% discount"
-  
+
   // Discount structure
   discountType: varchar("discount_type", {
-    enum: ['percentage', 'fixed_amount', 'free_service', 'bundle_deal']
+    enum: ["percentage", "fixed_amount", "free_service", "bundle_deal"],
   }).notNull(),
   discountValue: decimal("discount_value", { precision: 10, scale: 2 }), // 20 for 20%, 500 for $500 off
   minimumJobValue: decimal("minimum_job_value", { precision: 10, scale: 2 }), // Minimum job size to qualify
-  
+
   // Promo settings
   promoCode: varchar("promo_code", { length: 20 }), // Optional promo code
   isActive: boolean("is_active").default(true),
   maxUses: integer("max_uses"), // null = unlimited
   currentUses: integer("current_uses").default(0),
-  
+
   // Targeting
   serviceAreas: jsonb("service_areas").$type<string[]>(), // County FIPS codes
   tradeCategories: jsonb("trade_categories").$type<string[]>(), // Trade IDs this promo applies to
-  
+
   // Timing
   startsAt: timestamp("starts_at").defaultNow(),
   expiresAt: timestamp("expires_at"),
-  
+
   // Tracking
   slug: varchar("slug").notNull().unique(), // For shareable URLs
   viewCount: integer("view_count").default(0),
   clickCount: integer("click_count").default(0),
   projectRequestCount: integer("project_request_count").default(0), // Project requests from this promo
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Track promo interactions for analytics
 export const promoInteractions = pgTable("promo_interactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  promoId: varchar("promo_id").notNull().references(() => contractorPromos.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  promoId: varchar("promo_id")
+    .notNull()
+    .references(() => contractorPromos.id),
+
   // Interaction details
   interactionType: varchar("interaction_type", {
-    enum: ['view', 'click', 'share', 'project_request', 'contact_made']
+    enum: ["view", "click", "share", "project_request", "contact_made"],
   }).notNull(),
-  
+
   // User/visitor info
   userId: varchar("user_id"), // nullable for anonymous visitors
   sessionId: varchar("session_id"),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
   referrer: text("referrer"),
-  
+
   // Location data
   county: varchar("county"),
   state: varchar("state"),
   city: varchar("city"),
-  
+
   // Metadata
   metadata: jsonb("metadata").$type<{
     source?: string; // 'facebook', 'google', 'direct', 'referral'
     campaign?: string;
     medium?: string;
   }>(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Company promotional deals (Harbor Freight, Home Depot, etc.)
 export const companyPromotions = pgTable("company_promotions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   // Company details
   companyName: varchar("company_name", { length: 100 }).notNull(),
   companyLogo: varchar("company_logo"),
   companyWebsite: varchar("company_website"),
-  
+
   // Promotion details
   title: varchar("title", { length: 150 }).notNull(),
   description: text("description").notNull(),
   dealDetails: text("deal_details").notNull(), // "20% off all power tools", "Buy 2 get 1 free"
-  
+
   // Deal structure
   dealType: varchar("deal_type", {
-    enum: ['percentage_off', 'dollar_off', 'bogo', 'free_shipping', 'bundle_deal', 'clearance']
+    enum: ["percentage_off", "dollar_off", "bogo", "free_shipping", "bundle_deal", "clearance"],
   }).notNull(),
   discountValue: decimal("discount_value", { precision: 10, scale: 2 }), // 20 for 20%, 50 for $50 off
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   salePrice: decimal("sale_price", { precision: 10, scale: 2 }),
-  
+
   // Promotion settings
   promoCode: varchar("promo_code", { length: 30 }), // Coupon code if needed
   minimumPurchase: decimal("minimum_purchase", { precision: 10, scale: 2 }), // Min purchase requirement
   maxDiscount: decimal("max_discount", { precision: 10, scale: 2 }), // Max discount cap
-  
+
   // Targeting and categories
   productCategories: jsonb("product_categories").$type<string[]>(), // tools, lumber, hardware, etc.
   targetAudience: jsonb("target_audience").$type<string[]>(), // contractors, homeowners, DIY
   excludedItems: jsonb("excluded_items").$type<string[]>(), // SKUs or categories to exclude
-  
+
   // Timing and availability
   startsAt: timestamp("starts_at").defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false), // Premium placement
-  
+
   // Geographic targeting
   availableStates: jsonb("available_states").$type<string[]>(), // State codes
   availableZipCodes: jsonb("available_zip_codes").$type<string[]>(), // Specific zip codes
   storeLocationsOnly: boolean("store_locations_only").default(false), // In-store only deals
-  
+
   // Tracking and payment
   slug: varchar("slug").notNull().unique(), // For shareable URLs
   paymentStatus: varchar("payment_status", {
-    enum: ['pending', 'paid', 'overdue', 'cancelled']
-  }).default('pending'),
+    enum: ["pending", "paid", "overdue", "cancelled"],
+  }).default("pending"),
   promotionFee: decimal("promotion_fee", { precision: 10, scale: 2 }), // What company pays TradeScout
-  
+
   // Analytics
   viewCount: integer("view_count").default(0),
   clickCount: integer("click_count").default(0),
   redemptionCount: integer("redemption_count").default(0),
-  
+
   // Terms and conditions
   terms: text("terms"), // Full terms and conditions
   restrictions: text("restrictions"), // Usage restrictions
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Track company promotion interactions
 export const companyPromotionInteractions = pgTable("company_promotion_interactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  promotionId: varchar("promotion_id").notNull().references(() => companyPromotions.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  promotionId: varchar("promotion_id")
+    .notNull()
+    .references(() => companyPromotions.id),
+
   // Interaction details
   interactionType: varchar("interaction_type", {
-    enum: ['view', 'click', 'share', 'coupon_copy', 'store_locator', 'website_visit']
+    enum: ["view", "click", "share", "coupon_copy", "store_locator", "website_visit"],
   }).notNull(),
-  
+
   // User/visitor info
   userId: varchar("user_id"), // nullable for anonymous visitors
   sessionId: varchar("session_id"),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
   referrer: text("referrer"),
-  
+
   // Location data
   county: varchar("county"),
   state: varchar("state"),
   city: varchar("city"),
   zipCode: varchar("zip_code"),
-  
+
   // Metadata
   metadata: jsonb("metadata").$type<{
     deviceType?: string; // mobile, desktop, tablet
@@ -2734,12 +3174,14 @@ export const companyPromotionInteractions = pgTable("company_promotion_interacti
     timeSpent?: number; // seconds spent viewing promotion
     source?: string; // how they found this promotion
   }>(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const workerServiceAreas = pgTable("worker_service_areas", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   workerId: varchar("worker_id").notNull(),
   countyFips: varchar("county_fips").notNull(),
   maxTravelTime: integer("max_travel_time"), // in minutes
@@ -2773,12 +3215,17 @@ export type InsertCompanyPromotion = typeof companyPromotions.$inferInsert;
 export type CompanyPromotionInteraction = typeof companyPromotionInteractions.$inferSelect;
 export type InsertCompanyPromotionInteraction = typeof companyPromotionInteractions.$inferInsert;
 
-
 // Chat system tables
 export const conversations = pgTable("conversations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  homeownerId: varchar("homeowner_id").notNull().references(() => users.id),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  homeownerId: varchar("homeowner_id")
+    .notNull()
+    .references(() => users.id),
+  contractorId: varchar("contractor_id")
+    .notNull()
+    .references(() => contractors.id),
   leadId: varchar("lead_id").references(() => leads.id),
   status: varchar("status", { enum: ["active", "closed", "archived"] }).default("active"),
   lastMessageAt: timestamp("last_message_at").defaultNow(),
@@ -2791,12 +3238,20 @@ export const conversations = pgTable("conversations", {
 });
 
 export const messages = pgTable("messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  senderId: varchar("sender_id")
+    .notNull()
+    .references(() => users.id),
   senderType: varchar("sender_type", { enum: ["homeowner", "contractor"] }).notNull(),
   content: text("content").notNull(),
-  messageType: varchar("message_type", { enum: ["text", "quote", "schedule", "materials", "image"] }).default("text"),
+  messageType: varchar("message_type", {
+    enum: ["text", "quote", "schedule", "materials", "image"],
+  }).default("text"),
   metadata: jsonb("metadata"), // For quotes, schedules, material lists
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -2804,10 +3259,18 @@ export const messages = pgTable("messages", {
 
 // Marketplace conversations between buyers and sellers
 export const marketplaceConversations = pgTable("marketplace_conversations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
-  buyerId: varchar("buyer_id").notNull().references(() => users.id),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id")
+    .notNull()
+    .references(() => marketplaceListings.id),
+  buyerId: varchar("buyer_id")
+    .notNull()
+    .references(() => users.id),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
   status: varchar("status", { enum: ["active", "closed", "archived"] }).default("active"),
   lastMessageAt: timestamp("last_message_at").defaultNow(),
   buyerRating: integer("buyer_rating"), // 1-5 stars
@@ -2818,7 +3281,9 @@ export const marketplaceConversations = pgTable("marketplace_conversations", {
   isReadBySeller: boolean("is_read_by_seller").default(false),
   // D1: Messaging Authority Contract metadata (immutable after creation)
   intent: varchar("intent", { enum: ["hire", "advise", "collaborate", "reconnect"] }), // Why contact was made
-  authorityGate: varchar("authority_gate", { enum: ["decision_card", "scout_recommendation", "user_search"] }), // How contact was authorized
+  authorityGate: varchar("authority_gate", {
+    enum: ["decision_card", "scout_recommendation", "user_search"],
+  }), // How contact was authorized
   sourceDecisionCardId: varchar("source_decision_card_id"), // If from Decision Card outcome
   sourceScoutRecommendationId: varchar("source_scout_recommendation_id"), // If from Scout recommendation
   confidenceScore: decimal("confidence_score", { precision: 3, scale: 2 }), // Scout's confidence (0.00-1.00)
@@ -2829,42 +3294,66 @@ export const marketplaceConversations = pgTable("marketplace_conversations", {
 
 // Messages for marketplace conversations
 export const marketplaceMessages = pgTable("marketplace_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => marketplaceConversations.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id")
+    .notNull()
+    .references(() => marketplaceConversations.id),
+  senderId: varchar("sender_id")
+    .notNull()
+    .references(() => users.id),
   senderType: varchar("sender_type", { enum: ["buyer", "seller"] }).notNull(),
   content: text("content").notNull(),
-  messageType: varchar("message_type", { enum: ["text", "offer", "counter_offer", "acceptance", "image", "meeting_request"] }).default("text"),
+  messageType: varchar("message_type", {
+    enum: ["text", "offer", "counter_offer", "acceptance", "image", "meeting_request"],
+  }).default("text"),
   metadata: jsonb("metadata"), // For offers, meeting details, etc.
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const quotes = pgTable("quotes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  contractorId: varchar("contractor_id")
+    .notNull()
+    .references(() => contractors.id),
   title: varchar("title").notNull(),
   description: text("description"),
   laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
   materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
   totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull(),
   validUntil: timestamp("valid_until"),
-  status: varchar("status", { enum: ["draft", "sent", "accepted", "declined", "expired"] }).default("draft"),
+  status: varchar("status", { enum: ["draft", "sent", "accepted", "declined", "expired"] }).default(
+    "draft"
+  ),
   terms: text("terms"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const schedules = pgTable("schedules", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  contractorId: varchar("contractor_id")
+    .notNull()
+    .references(() => contractors.id),
   title: varchar("title").notNull(),
   description: text("description"),
   proposedDate: timestamp("proposed_date").notNull(),
   duration: integer("duration_hours"), // Duration in hours
-  status: varchar("status", { enum: ["proposed", "accepted", "declined", "completed"] }).default("proposed"),
+  status: varchar("status", { enum: ["proposed", "accepted", "declined", "completed"] }).default(
+    "proposed"
+  ),
   location: varchar("location"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -2872,23 +3361,34 @@ export const schedules = pgTable("schedules", {
 });
 
 export const materialLists = pgTable("material_lists", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  contractorId: varchar("contractor_id")
+    .notNull()
+    .references(() => contractors.id),
   title: varchar("title").notNull(),
   description: text("description"),
-  items: jsonb("items").$type<Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    estimatedCost: number;
-    vendor?: string;
-    sku?: string;
-    suggestedBy: 'homeowner' | 'contractor';
-    status: 'pending' | 'approved' | 'denied';
-    denialReason?: string;
-    notes?: string;
-  }>>().notNull().default([]),
+  items: jsonb("items")
+    .$type<
+      Array<{
+        id: string;
+        name: string;
+        quantity: number;
+        estimatedCost: number;
+        vendor?: string;
+        sku?: string;
+        suggestedBy: "homeowner" | "contractor";
+        status: "pending" | "approved" | "denied";
+        denialReason?: string;
+        notes?: string;
+      }>
+    >()
+    .notNull()
+    .default([]),
   totalEstimatedCost: decimal("total_estimated_cost", { precision: 10, scale: 2 }),
   vendorInfo: jsonb("vendor_info"), // Store vendor details like Home Depot cart links
   status: varchar("status", { enum: ["draft", "sent", "approved", "ordered"] }).default("draft"),
@@ -2978,7 +3478,6 @@ export type AcceleratorMembership = typeof acceleratorMemberships.$inferSelect;
 export type InsertPricingData = typeof pricingData.$inferInsert;
 export type PricingData = typeof pricingData.$inferSelect;
 
-
 export type InsertPromoInteraction = typeof promoInteractions.$inferInsert;
 export type PromoInteraction = typeof promoInteractions.$inferSelect;
 
@@ -3004,8 +3503,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
 });
-
-
 
 export const insertContractorSchema = createInsertSchema(contractors).omit({
   id: true,
@@ -3111,7 +3608,9 @@ export type UserPrivacySettings = typeof userPrivacySettings.$inferSelect;
 
 // Buy/Sell Marketplace System for high-value items
 export const marketplaceCategories = pgTable("marketplace_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull().unique(),
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name
@@ -3132,71 +3631,77 @@ export const marketplaceCategories = pgTable("marketplace_categories", {
 });
 
 export const marketplaceListings = pgTable("marketplace_listings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
-  categoryId: varchar("category_id").notNull().references(() => marketplaceCategories.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+  categoryId: varchar("category_id")
+    .notNull()
+    .references(() => marketplaceCategories.id),
+
   // Basic listing info
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
-  
+
   // Pricing
   price: decimal("price", { precision: 12, scale: 2 }).notNull(),
   priceType: varchar("price_type", {
-    enum: ['fixed', 'negotiable', 'auction', 'best_offer']
-  }).default('fixed'),
+    enum: ["fixed", "negotiable", "auction", "best_offer"],
+  }).default("fixed"),
   originalPrice: decimal("original_price", { precision: 12, scale: 2 }), // For showing savings
-  
+
   // Location
   county: varchar("county").notNull(),
   state: varchar("state").notNull(),
   city: varchar("city"),
   zipCode: varchar("zip_code"),
   locationVisibility: varchar("location_visibility", {
-    enum: ['exact', 'meetup_only'],
-  }).default('exact'),
+    enum: ["exact", "meetup_only"],
+  }).default("exact"),
   latitude: decimal("latitude", { precision: 9, scale: 6 }),
   longitude: decimal("longitude", { precision: 9, scale: 6 }),
   isLocalPickupOnly: boolean("is_local_pickup_only").default(false),
   willShip: boolean("will_ship").default(false),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),
-  
+
   // Item details
   condition: varchar("condition", {
-    enum: ['new', 'like_new', 'excellent', 'good', 'fair', 'poor', 'parts_only']
+    enum: ["new", "like_new", "excellent", "good", "fair", "poor", "parts_only"],
   }).notNull(),
   brand: varchar("brand", { length: 100 }),
   model: varchar("model", { length: 100 }),
   year: integer("year"),
   mileage: integer("mileage"), // For vehicles
   hours: integer("hours"), // For equipment
-  
+
   // Specifications (flexible JSON for different item types)
   specifications: jsonb("specifications").$type<{
     // Common fields
     color?: string;
     weight?: string;
     dimensions?: string;
-    
+
     // Vehicle specific
     make?: string;
     engine?: string;
     transmission?: string;
     fuelType?: string;
     vin?: string;
-    
+
     // Equipment specific
     powerSource?: string;
     capacity?: string;
     attachments?: string[];
-    
+
     // Real estate specific
     bedrooms?: number;
     bathrooms?: number;
     squareFeet?: number;
     lotSize?: string;
     propertyType?: string;
-    
+
     // Animal specific
     breed?: string;
     age?: string;
@@ -3204,7 +3709,7 @@ export const marketplaceListings = pgTable("marketplace_listings", {
     animalWeight?: string;
     vaccinated?: boolean;
     registered?: boolean;
-    
+
     // Food & Artisan specific
     ingredients?: string[];
     allergens?: string[];
@@ -3216,32 +3721,41 @@ export const marketplaceListings = pgTable("marketplace_listings", {
     preparationMethod?: string;
     storageInstructions?: string;
     servingSize?: string;
-    
+
     // General custom fields
     [key: string]: any;
   }>(),
-  
+
   // Media
   images: jsonb("images").$type<string[]>().default([]),
   primaryImageIndex: integer("primary_image_index").default(0),
   videoUrl: varchar("video_url"),
-  
+
   // Verification (for regulated items like food)
   requiresBuyerVerification: boolean("requires_buyer_verification").default(false),
   isSellerVerified: boolean("is_seller_verified").default(false),
   verificationStatus: varchar("verification_status", {
-    enum: ['none_required', 'pending', 'approved', 'rejected']
-  }).default('none_required'),
+    enum: ["none_required", "pending", "approved", "rejected"],
+  }).default("none_required"),
   verificationNotes: text("verification_notes"),
   verifiedAt: timestamp("verified_at"),
-  
+
   // Listing management
   status: varchar("status", {
-    enum: ['draft', 'pending_approval', 'active', 'sold', 'expired', 'removed', 'flagged', 'rejected']
-  }).default('draft'),
+    enum: [
+      "draft",
+      "pending_approval",
+      "active",
+      "sold",
+      "expired",
+      "removed",
+      "flagged",
+      "rejected",
+    ],
+  }).default("draft"),
   isPromoted: boolean("is_promoted").default(false),
   promotedUntil: timestamp("promoted_until"),
-  
+
   // Approval workflow
   approvedBy: varchar("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
@@ -3249,17 +3763,17 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   rejectedAt: timestamp("rejected_at"),
   rejectionReason: text("rejection_reason"),
   moderationNotes: text("moderation_notes"),
-  
+
   // Interaction tracking
   viewCount: integer("view_count").default(0),
   favoriteCount: integer("favorite_count").default(0),
   contactCount: integer("contact_count").default(0),
-  
+
   // SEO
   slug: varchar("slug").unique(), // Generated from title
   metaDescription: text("meta_description"),
   tags: jsonb("tags").$type<string[]>().default([]),
-  
+
   // Timestamps
   expiresAt: timestamp("expires_at"), // Auto-expire after X days
   createdAt: timestamp("created_at").defaultNow(),
@@ -3267,81 +3781,113 @@ export const marketplaceListings = pgTable("marketplace_listings", {
 });
 
 export const marketplaceInquiries = pgTable("marketplace_inquiries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
-  buyerId: varchar("buyer_id").notNull().references(() => users.id),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id")
+    .notNull()
+    .references(() => marketplaceListings.id),
+  buyerId: varchar("buyer_id")
+    .notNull()
+    .references(() => users.id),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+
   // Inquiry details
   message: text("message").notNull(),
   offerAmount: decimal("offer_amount", { precision: 12, scale: 2 }),
-  
+
   // Contact info (from buyer)
   buyerPhone: varchar("buyer_phone"),
   buyerEmail: varchar("buyer_email"),
   preferredContactMethod: varchar("preferred_contact_method", {
-    enum: ['phone', 'email', 'message']
-  }).default('message'),
-  
+    enum: ["phone", "email", "message"],
+  }).default("message"),
+
   // Status tracking
   status: varchar("status", {
-    enum: ['pending', 'replied', 'accepted', 'declined', 'completed']
-  }).default('pending'),
-  
+    enum: ["pending", "replied", "accepted", "declined", "completed"],
+  }).default("pending"),
+
   sellerResponse: text("seller_response"),
   respondedAt: timestamp("responded_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const marketplaceFavorites = pgTable("marketplace_favorites", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  listingId: varchar("listing_id")
+    .notNull()
+    .references(() => marketplaceListings.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const marketplaceReports = pgTable("marketplace_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id")
+    .notNull()
+    .references(() => marketplaceListings.id),
   reporterId: varchar("reporter_id").references(() => users.id),
-  
+
   reason: varchar("reason", {
-    enum: ['spam', 'fraud', 'inappropriate_content', 'wrong_category', 'duplicate', 'overpriced', 'other']
+    enum: [
+      "spam",
+      "fraud",
+      "inappropriate_content",
+      "wrong_category",
+      "duplicate",
+      "overpriced",
+      "other",
+    ],
   }).notNull(),
   description: text("description"),
-  
+
   status: varchar("status", {
-    enum: ['pending', 'investigating', 'resolved', 'dismissed']
-  }).default('pending'),
-  
+    enum: ["pending", "investigating", "resolved", "dismissed"],
+  }).default("pending"),
+
   adminNotes: text("admin_notes"),
   resolvedBy: varchar("resolved_by"),
   resolvedAt: timestamp("resolved_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Vendor verification for food marketplace and other regulated categories
 export const vendorVerifications = pgTable("vendor_verifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  categoryId: varchar("category_id").notNull().references(() => marketplaceCategories.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  categoryId: varchar("category_id")
+    .notNull()
+    .references(() => marketplaceCategories.id),
+
   // Identity verification (required for all)
   identityDocumentType: varchar("identity_document_type", {
-    enum: ['drivers_license', 'passport', 'state_id']
+    enum: ["drivers_license", "passport", "state_id"],
   }),
   identityDocumentUrl: varchar("identity_document_url"),
   identityVerified: boolean("identity_verified").default(false),
-  
+
   // Business verification (for commercial sellers)
   businessName: varchar("business_name"),
   businessLicenseUrl: varchar("business_license_url"),
   businessLicenseNumber: varchar("business_license_number"),
   businessLicenseExpiry: timestamp("business_license_expiry"),
-  
+
   // Food-specific certifications
   foodHandlersPermitUrl: varchar("food_handlers_permit_url"),
   foodHandlersPermitExpiry: timestamp("food_handlers_permit_expiry"),
@@ -3349,124 +3895,143 @@ export const vendorVerifications = pgTable("vendor_verifications", {
   kitchenInspectionExpiry: timestamp("kitchen_inspection_expiry"),
   insuranceCertificateUrl: varchar("insurance_certificate_url"),
   insuranceExpiry: timestamp("insurance_expiry"),
-  
+
   // Legal compliance attestation
   legalComplianceAttestation: text("legal_compliance_attestation"),
   hasAttestedCompliance: boolean("has_attested_compliance").default(false),
   attestationDate: timestamp("attestation_date"),
-  
+
   // Verification status
   status: varchar("status", {
-    enum: ['pending', 'in_review', 'approved', 'rejected', 'expired']
-  }).default('pending'),
+    enum: ["pending", "in_review", "approved", "rejected", "expired"],
+  }).default("pending"),
   reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
   rejectionReason: text("rejection_reason"),
   adminNotes: text("admin_notes"),
-  
+
   // Approval tracking
   approvedUntil: timestamp("approved_until"),
   requiresRenewal: boolean("requires_renewal").default(false),
   renewalReminderSent: boolean("renewal_reminder_sent").default(false),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Buyer verification for restricted purchases
 export const buyerVerifications = pgTable("buyer_verifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
   // Identity verification
   identityDocumentType: varchar("identity_document_type", {
-    enum: ['drivers_license', 'passport', 'state_id']
+    enum: ["drivers_license", "passport", "state_id"],
   }),
   identityDocumentUrl: varchar("identity_document_url"),
   identityVerified: boolean("identity_verified").default(false),
-  
+
   // Age verification (for certain purchases)
   isOver18: boolean("is_over_18").default(false),
   isOver21: boolean("is_over_21").default(false),
-  
+
   // Address verification
   addressVerified: boolean("address_verified").default(false),
-  
+
   // Verification status
   status: varchar("status", {
-    enum: ['pending', 'in_review', 'approved', 'rejected']
-  }).default('pending'),
+    enum: ["pending", "in_review", "approved", "rejected"],
+  }).default("pending"),
   reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
   rejectionReason: text("rejection_reason"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Address verification for all users (similar to Nextdoor)
 export const addressVerifications = pgTable("address_verifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
   // Address details to verify
   fullAddress: text("full_address").notNull(),
   city: varchar("city").notNull(),
   state: varchar("state").notNull(),
   zipCode: varchar("zip_code").notNull(),
-  
+
   // Verification methods
   verificationMethod: varchar("verification_method", {
-    enum: ['utility_bill', 'bank_statement', 'lease_agreement', 'property_deed', 'postcard', 'phone_verification']
+    enum: [
+      "utility_bill",
+      "bank_statement",
+      "lease_agreement",
+      "property_deed",
+      "postcard",
+      "phone_verification",
+    ],
   }),
-  
+
   // Document uploads for verification
   documentUrl: varchar("document_url"),
   documentType: varchar("document_type"),
-  
+
   // Postcard verification (like Nextdoor)
   postcardCode: varchar("postcard_code", { length: 6 }),
   postcardSentAt: timestamp("postcard_sent_at"),
   postcardVerifiedAt: timestamp("postcard_verified_at"),
-  
+
   // Phone verification
   phoneNumber: varchar("phone_number"),
   phoneVerificationCode: varchar("phone_verification_code", { length: 6 }),
   phoneVerifiedAt: timestamp("phone_verified_at"),
-  
+
   // Verification status and timeline
-  status: addressVerificationStatusEnum("status").default('pending'),
+  status: addressVerificationStatusEnum("status").default("pending"),
   submittedAt: timestamp("submitted_at"),
   reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
   adminNotes: text("admin_notes"),
-  
+
   // Deadline tracking (14 days from account creation)
   deadline: timestamp("deadline").notNull(),
   remindersSent: integer("reminders_sent").default(0),
   lastReminderSent: timestamp("last_reminder_sent"),
-  
+
   // Address validation
   addressValidated: boolean("address_validated").default(false),
   addressValidationProvider: varchar("address_validation_provider"), // USPS, Google, etc.
   addressValidationResponse: jsonb("address_validation_response"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Data Privacy and Security Management Tables
 export const userDataRequests = pgTable("user_data_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  requestType: varchar("request_type", { 
-    enum: ['data_export', 'data_deletion', 'privacy_report', 'account_closure'] 
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  requestType: varchar("request_type", {
+    enum: ["data_export", "data_deletion", "privacy_report", "account_closure"],
   }).notNull(),
-  status: varchar("status", { 
-    enum: ['pending', 'processing', 'completed', 'failed', 'rejected'] 
-  }).default('pending'),
+  status: varchar("status", {
+    enum: ["pending", "processing", "completed", "failed", "rejected"],
+  }).default("pending"),
   requestedBy: varchar("requested_by").notNull(), // Who made the request (user or admin)
   reason: text("reason"),
   adminNotes: text("admin_notes"),
@@ -3481,15 +4046,17 @@ export const userDataRequests = pgTable("user_data_requests", {
 });
 
 export const dataAccessLogs = pgTable("data_access_logs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id"), // User whose data was accessed
   accessorId: varchar("accessor_id").notNull(), // Who accessed the data
   accessorRole: varchar("accessor_role").notNull(),
   actionType: varchar("action_type", {
-    enum: ['view', 'edit', 'delete', 'export', 'login_attempt', 'password_reset', 'profile_update']
+    enum: ["view", "edit", "delete", "export", "login_attempt", "password_reset", "profile_update"],
   }).notNull(),
   resourceType: varchar("resource_type", {
-    enum: ['profile', 'messages', 'leads', 'recommendations', 'payments', 'documents', 'analytics']
+    enum: ["profile", "messages", "leads", "recommendations", "payments", "documents", "analytics"],
   }),
   resourceId: varchar("resource_id"),
   ipAddress: varchar("ip_address"),
@@ -3506,13 +4073,24 @@ export const dataAccessLogs = pgTable("data_access_logs", {
 });
 
 export const securityIncidents = pgTable("security_incidents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id"), // Affected user (if applicable)
   incidentType: varchar("incident_type", {
-    enum: ['unauthorized_access', 'data_breach', 'failed_login_attempts', 'suspicious_activity', 'phishing_attempt', 'malware_detection']
+    enum: [
+      "unauthorized_access",
+      "data_breach",
+      "failed_login_attempts",
+      "suspicious_activity",
+      "phishing_attempt",
+      "malware_detection",
+    ],
   }).notNull(),
-  severity: varchar("severity", { enum: ['low', 'medium', 'high', 'critical'] }).notNull(),
-  status: varchar("status", { enum: ['open', 'investigating', 'resolved', 'false_positive'] }).default('open'),
+  severity: varchar("severity", { enum: ["low", "medium", "high", "critical"] }).notNull(),
+  status: varchar("status", {
+    enum: ["open", "investigating", "resolved", "false_positive"],
+  }).default("open"),
   description: text("description").notNull(),
   affectedData: jsonb("affected_data").$type<{
     userIds?: string[];
@@ -3530,11 +4108,15 @@ export const securityIncidents = pgTable("security_incidents", {
 });
 
 export const userPrivacySettings = pgTable("user_privacy_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  profileVisibility: varchar("profile_visibility", { 
-    enum: ['public', 'contractors_only', 'private'] 
-  }).default('public'),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  profileVisibility: varchar("profile_visibility", {
+    enum: ["public", "contractors_only", "private"],
+  }).default("public"),
   showContactInfo: boolean("show_contact_info").default(true),
   allowDirectMessages: boolean("allow_direct_messages").default(true),
   shareActivityStatus: boolean("share_activity_status").default(true),
@@ -3558,36 +4140,48 @@ export const userPrivacySettings = pgTable("user_privacy_settings", {
 
 // Social Feed and Community Features
 export const communityPosts = pgTable("community_posts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  authorId: varchar("author_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  authorId: varchar("author_id")
+    .notNull()
+    .references(() => users.id),
+
   // Post content
   title: varchar("title", { length: 200 }),
   content: text("content").notNull(),
   imageUrls: text("image_urls").array(),
   attachmentUrls: text("attachment_urls").array(),
-  
+
   // Geographic targeting
   scope: varchar("scope", {
-    enum: ['national', 'state', 'region', 'county', 'city']
-  }).default('county'),
+    enum: ["national", "state", "region", "county", "city"],
+  }).default("county"),
   stateCode: varchar("state_code", { length: 2 }),
   countyFips: varchar("county_fips", { length: 5 }),
   cityName: varchar("city_name"),
   regionName: varchar("region_name"), // Custom regions like "Bay Area", "Northeast", etc.
-  
+
   // Post categorization
   category: varchar("category", {
-    enum: ['general', 'projects', 'recommendations', 'questions', 'marketplace', 'events', 'announcements']
-  }).default('general'),
+    enum: [
+      "general",
+      "projects",
+      "recommendations",
+      "questions",
+      "marketplace",
+      "events",
+      "announcements",
+    ],
+  }).default("general"),
   tags: text("tags").array(),
-  
+
   // Engagement metrics
   viewCount: integer("view_count").default(0),
   likeCount: integer("like_count").default(0),
   commentCount: integer("comment_count").default(0),
   shareCount: integer("share_count").default(0),
-  
+
   // Moderation
   isPublished: boolean("is_published").default(true),
   isPinned: boolean("is_pinned").default(false),
@@ -3595,143 +4189,175 @@ export const communityPosts = pgTable("community_posts", {
   moderatorNotes: text("moderator_notes"),
   moderatedBy: varchar("moderated_by"),
   moderatedAt: timestamp("moderated_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const postLikes = pgTable("post_likes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").notNull().references(() => communityPosts.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  postId: varchar("post_id")
+    .notNull()
+    .references(() => communityPosts.id),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
-
 
 export const commentLikes = pgTable("comment_likes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  commentId: varchar("comment_id").notNull().references(() => postComments.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  commentId: varchar("comment_id")
+    .notNull()
+    .references(() => postComments.id),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-
-
 // Invitations table for tracking user invitations
-export const invitations = pgTable("invitations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  inviterId: varchar("inviter_id").notNull().references(() => users.id),
-  inviteeEmail: varchar("invitee_email").notNull(),
-  inviteeId: varchar("invitee_id").references(() => users.id), // Set when invitation is accepted
-  
-  // Invitation details
-  type: invitationTypeEnum("type").notNull().default('email'),
-  status: invitationStatusEnum("status").notNull().default('pending'),
-  targetRole: userRoleEnum("target_role").notNull(), // What role the invitee should have
-  
-  // Invitation content
-  personalMessage: text("personal_message"),
-  invitationCode: varchar("invitation_code").unique().notNull(),
-  
-  // Tracking
-  sentAt: timestamp("sent_at").defaultNow(),
-  acceptedAt: timestamp("accepted_at"),
-  expiresAt: timestamp("expires_at").notNull(),
-  
-  // Location context (for location-based matching)
-  inviterCity: varchar("inviter_city"),
-  inviterState: varchar("inviter_state"),
-  inviterCounty: varchar("inviter_county"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("invitations_inviter_id_idx").on(table.inviterId),
-  index("invitations_email_idx").on(table.inviteeEmail),
-  index("invitations_code_idx").on(table.invitationCode),
-  index("invitations_status_idx").on(table.status),
-]);
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    inviterId: varchar("inviter_id")
+      .notNull()
+      .references(() => users.id),
+    inviteeEmail: varchar("invitee_email").notNull(),
+    inviteeId: varchar("invitee_id").references(() => users.id), // Set when invitation is accepted
+
+    // Invitation details
+    type: invitationTypeEnum("type").notNull().default("email"),
+    status: invitationStatusEnum("status").notNull().default("pending"),
+    targetRole: userRoleEnum("target_role").notNull(), // What role the invitee should have
+
+    // Invitation content
+    personalMessage: text("personal_message"),
+    invitationCode: varchar("invitation_code").unique().notNull(),
+
+    // Tracking
+    sentAt: timestamp("sent_at").defaultNow(),
+    acceptedAt: timestamp("accepted_at"),
+    expiresAt: timestamp("expires_at").notNull(),
+
+    // Location context (for location-based matching)
+    inviterCity: varchar("inviter_city"),
+    inviterState: varchar("inviter_state"),
+    inviterCounty: varchar("inviter_county"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("invitations_inviter_id_idx").on(table.inviterId),
+    index("invitations_email_idx").on(table.inviteeEmail),
+    index("invitations_code_idx").on(table.invitationCode),
+    index("invitations_status_idx").on(table.status),
+  ]
+);
 
 // Referral tracking and rewards
-export const referralStats = pgTable("referral_stats", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
-  // Statistics
-  totalInvitationsSent: integer("total_invitations_sent").default(0),
-  totalInvitationsAccepted: integer("total_invitations_accepted").default(0),
-  homeownersReferred: integer("homeowners_referred").default(0),
-  contractorsReferred: integer("contractors_referred").default(0),
-  
-  // Rewards tracking
-  rewardPointsEarned: integer("reward_points_earned").default(0),
-  rewardPointsRedeemed: integer("reward_points_redeemed").default(0),
-  
-  // Monthly tracking
-  currentMonthInvitations: integer("current_month_invitations").default(0),
-  lastMonthReset: timestamp("last_month_reset").defaultNow(),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("referral_stats_user_id_idx").on(table.userId),
-]);
+export const referralStats = pgTable(
+  "referral_stats",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+
+    // Statistics
+    totalInvitationsSent: integer("total_invitations_sent").default(0),
+    totalInvitationsAccepted: integer("total_invitations_accepted").default(0),
+    homeownersReferred: integer("homeowners_referred").default(0),
+    contractorsReferred: integer("contractors_referred").default(0),
+
+    // Rewards tracking
+    rewardPointsEarned: integer("reward_points_earned").default(0),
+    rewardPointsRedeemed: integer("reward_points_redeemed").default(0),
+
+    // Monthly tracking
+    currentMonthInvitations: integer("current_month_invitations").default(0),
+    lastMonthReset: timestamp("last_month_reset").defaultNow(),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [index("referral_stats_user_id_idx").on(table.userId)]
+);
 
 export const communityGroups = pgTable("community_groups", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
   slug: varchar("slug").notNull().unique(),
   imageUrl: varchar("image_url"),
   bannerUrl: varchar("banner_url"),
-  
+
   // Group type
   groupType: varchar("group_type", {
-    enum: ['auto_county', 'custom', 'trade', 'business', 'interest', 'neighborhood']
-  }).default('custom').notNull(),
+    enum: ["auto_county", "custom", "trade", "business", "interest", "neighborhood"],
+  })
+    .default("custom")
+    .notNull(),
   autoCreated: boolean("auto_created").default(false), // System-created county groups
-  
+
   // Geographic scope
   scope: varchar("scope", {
-    enum: ['national', 'state', 'region', 'county', 'city', 'trade_specific']
-  }).default('county'),
+    enum: ["national", "state", "region", "county", "city", "trade_specific"],
+  }).default("county"),
   stateCode: varchar("state_code", { length: 2 }),
   countyFips: varchar("county_fips", { length: 5 }),
   cityName: varchar("city_name"),
   regionName: varchar("region_name"),
-  
+
   // Group settings
   isPrivate: boolean("is_private").default(false),
   requiresApproval: boolean("requires_approval").default(false),
   allowPostApproval: boolean("allow_post_approval").default(false),
   allowCrossCounty: boolean("allow_cross_county").default(false), // For custom groups spanning multiple counties
-  
+
   // Stats
   memberCount: integer("member_count").default(0),
   postCount: integer("post_count").default(0),
-  
+
   // Management
   createdBy: varchar("created_by").references(() => users.id), // Nullable for auto-created
   isActive: boolean("is_active").default(true),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const groupMembers = pgTable("group_members", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  groupId: varchar("group_id").notNull().references(() => communityGroups.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id")
+    .notNull()
+    .references(() => communityGroups.id),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
   role: varchar("role", {
-    enum: ['member', 'moderator', 'admin', 'owner']
-  }).default('member'),
-  
+    enum: ["member", "moderator", "admin", "owner"],
+  }).default("member"),
+
   joinedAt: timestamp("joined_at").defaultNow(),
   approvedBy: varchar("approved_by"),
   approvedAt: timestamp("approved_at"),
-  
+
   isActive: boolean("is_active").default(true),
   isBanned: boolean("is_banned").default(false),
   bannedReason: text("banned_reason"),
@@ -3740,82 +4366,100 @@ export const groupMembers = pgTable("group_members", {
 });
 
 // Links custom groups to multiple counties
-export const groupCountyLinks = pgTable("group_county_links", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  groupId: varchar("group_id").notNull().references(() => communityGroups.id),
-  countyFips: varchar("county_fips", { length: 5 }).notNull(),
-  stateCode: varchar("state_code", { length: 2 }).notNull(),
-  
-  // For display purposes
-  countyName: varchar("county_name"),
-  
-  isActive: boolean("is_active").default(true),
-  addedBy: varchar("added_by").references(() => users.id),
-  addedAt: timestamp("added_at").defaultNow(),
-}, (table) => [
-  index("group_county_links_group_idx").on(table.groupId),
-  index("group_county_links_county_idx").on(table.countyFips),
-]);
+export const groupCountyLinks = pgTable(
+  "group_county_links",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    groupId: varchar("group_id")
+      .notNull()
+      .references(() => communityGroups.id),
+    countyFips: varchar("county_fips", { length: 5 }).notNull(),
+    stateCode: varchar("state_code", { length: 2 }).notNull(),
+
+    // For display purposes
+    countyName: varchar("county_name"),
+
+    isActive: boolean("is_active").default(true),
+    addedBy: varchar("added_by").references(() => users.id),
+    addedAt: timestamp("added_at").defaultNow(),
+  },
+  (table) => [
+    index("group_county_links_group_idx").on(table.groupId),
+    index("group_county_links_county_idx").on(table.countyFips),
+  ]
+);
 
 export const regions = pgTable("regions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(), // e.g., "Bay Area", "Northeast", "Southern California"
   slug: varchar("slug").notNull().unique(),
   description: text("description"),
-  
+
   // Geographic bounds
   statesCovered: text("states_covered").array(), // State codes
   countiesCovered: text("counties_covered").array(), // FIPS codes
   citiesCovered: text("cities_covered").array(),
-  
+
   // Metadata
   population: integer("population"),
   isOfficial: boolean("is_official").default(false), // Admin-created vs user-created
   createdBy: varchar("created_by").references(() => users.id),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // HOA (Homeowner Association) Management - Phase 4
 export const homeownerAssociations = pgTable("homeowner_associations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   address: text("address").notNull(),
   city: varchar("city").notNull(),
   state: varchar("state").notNull(),
   countyFips: varchar("county_fips").notNull(),
   zipCode: varchar("zip_code"),
-  
+
   // HOA Details
   establishedYear: integer("established_year"),
   totalUnits: integer("total_units").notNull(),
   monthlyFees: decimal("monthly_fees", { precision: 10, scale: 2 }),
   reserves: decimal("reserves", { precision: 12, scale: 2 }),
   managementCompany: varchar("management_company"),
-  
+
   // Board Information
-  boardMembers: jsonb("board_members").$type<Array<{
-    name: string;
-    position: string;
-    term: string;
-  }>>(),
-  
+  boardMembers: jsonb("board_members").$type<
+    Array<{
+      name: string;
+      position: string;
+      term: string;
+    }>
+  >(),
+
   // Amenities and Features
   amenities: text("amenities").array(),
   nextMeeting: timestamp("next_meeting"),
-  
+
   // Status
   isActive: boolean("is_active").default(true),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const hoaFinancialRecords = pgTable("hoa_financial_records", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id")
+    .notNull()
+    .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+
   // Financial Summary
   year: integer("year").notNull(),
   month: integer("month").notNull(), // 1-12
@@ -3824,154 +4468,200 @@ export const hoaFinancialRecords = pgTable("hoa_financial_records", {
   netIncome: decimal("net_income", { precision: 12, scale: 2 }),
   reserves: decimal("reserves", { precision: 12, scale: 2 }),
   outstandingFees: decimal("outstanding_fees", { precision: 12, scale: 2 }),
-  
+
   // Expense Breakdown
-  expenseCategories: jsonb("expense_categories").$type<Array<{
-    category: string;
-    amount: string;
-    percentage: number;
-  }>>(),
-  
+  expenseCategories: jsonb("expense_categories").$type<
+    Array<{
+      category: string;
+      amount: string;
+      percentage: number;
+    }>
+  >(),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const hoaVendors = pgTable("hoa_vendors", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id")
+    .notNull()
+    .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+
   // Vendor Details
   name: varchar("name").notNull(),
   category: varchar("category").notNull(), // Landscaping, Pool Maintenance, etc.
   contactPerson: varchar("contact_person"),
   phone: varchar("phone"),
   email: varchar("email"),
-  
+
   // Contract Information
   monthlyContract: decimal("monthly_contract", { precision: 10, scale: 2 }),
   contractStart: timestamp("contract_start"),
   contractEnd: timestamp("contract_end"),
-  
+
   // Performance
   rating: decimal("rating", { precision: 3, scale: 2 }),
-  status: varchar("status").default('active'), // active, inactive, pending
+  status: varchar("status").default("active"), // active, inactive, pending
   services: text("services").array(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const hoaVotes = pgTable("hoa_votes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id")
+    .notNull()
+    .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+
   // Vote Details
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   voteType: varchar("vote_type").notNull(), // capital_improvement, rule_change, board_election, etc.
-  createdBy: varchar("created_by").notNull().references(() => users.id),
-  
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => users.id),
+
   // Voting Period
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
-  
+
   // Quorum and Results
   requiredQuorum: integer("required_quorum").notNull(),
   currentVotes: integer("current_votes").default(0),
   votesFor: integer("votes_for").default(0),
   votesAgainst: integer("votes_against").default(0),
   votesAbstain: integer("votes_abstain").default(0),
-  
+
   // Additional Info
   estimatedCost: decimal("estimated_cost", { precision: 12, scale: 2 }),
-  status: varchar("status").default('active'), // active, passed, failed, cancelled
-  
+  status: varchar("status").default("active"), // active, passed, failed, cancelled
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const hoaVoteResponses = pgTable("hoa_vote_responses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  voteId: varchar("vote_id").notNull().references(() => hoaVotes.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
-  decision: varchar("decision").notNull(), // for, against, abstain
-  submittedAt: timestamp("submitted_at").defaultNow(),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_hoa_vote_responses_vote").on(table.voteId),
-  index("idx_hoa_vote_responses_user").on(table.userId),
-]);
+export const hoaVoteResponses = pgTable(
+  "hoa_vote_responses",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    voteId: varchar("vote_id")
+      .notNull()
+      .references(() => hoaVotes.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    decision: varchar("decision").notNull(), // for, against, abstain
+    submittedAt: timestamp("submitted_at").defaultNow(),
+
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_hoa_vote_responses_vote").on(table.voteId),
+    index("idx_hoa_vote_responses_user").on(table.userId),
+  ]
+);
 
 export const hoaServiceRequests = pgTable("hoa_service_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
-  vendorId: varchar("vendor_id").notNull().references(() => hoaVendors.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id")
+    .notNull()
+    .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+  vendorId: varchar("vendor_id")
+    .notNull()
+    .references(() => hoaVendors.id, { onDelete: "cascade" }),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
   // Request Details
   serviceType: varchar("service_type").notNull(),
   description: text("description").notNull(),
-  urgency: varchar("urgency").default('normal'), // low, normal, high, emergency
-  contactPreference: varchar("contact_preference").default('email'), // email, phone, both
-  
+  urgency: varchar("urgency").default("normal"), // low, normal, high, emergency
+  contactPreference: varchar("contact_preference").default("email"), // email, phone, both
+
   // Status Tracking
-  status: varchar("status").default('submitted'), // submitted, assigned, in_progress, completed, cancelled
+  status: varchar("status").default("submitted"), // submitted, assigned, in_progress, completed, cancelled
   assignedTo: varchar("assigned_to"),
   completedAt: timestamp("completed_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const hoaDocuments = pgTable("hoa_documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id")
+    .notNull()
+    .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+
   name: varchar("name").notNull(),
   documentType: varchar("document_type").notNull(), // governing, financial, minutes, notice, other
   fileUrl: varchar("file_url").notNull(),
   fileSize: integer("file_size"), // in bytes
-  uploadedBy: varchar("uploaded_by").notNull().references(() => users.id),
-  
+  uploadedBy: varchar("uploaded_by")
+    .notNull()
+    .references(() => users.id),
+
   isPublic: boolean("is_public").default(false),
   lastUpdated: timestamp("last_updated").defaultNow(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // HOA Membership and Roles
-export const hoaMembers = pgTable("hoa_members", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
-  // Membership Details
-  unitNumber: varchar("unit_number"),
-  role: varchar("role").notNull().default('member'), // member, board_member, president, vice_president, treasurer, secretary
-  joinedAt: timestamp("joined_at").defaultNow(),
-  termStart: timestamp("term_start"), // For board members
-  termEnd: timestamp("term_end"), // For board members
-  
-  // Contact & Status
-  isPrimary: boolean("is_primary").default(true), // Primary owner of unit
-  votingRights: boolean("voting_rights").default(true),
-  inGoodStanding: boolean("in_good_standing").default(true),
-  
-  // Permissions
-  canViewFinances: boolean("can_view_finances").default(false),
-  canEditDocuments: boolean("can_edit_documents").default(false),
-  canManageVendors: boolean("can_manage_vendors").default(false),
-  canCreateVotes: boolean("can_create_votes").default(false),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_hoa_members_hoa").on(table.hoaId),
-  index("idx_hoa_members_user").on(table.userId),
-  index("idx_hoa_members_role").on(table.role),
-]);
+export const hoaMembers = pgTable(
+  "hoa_members",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    hoaId: varchar("hoa_id")
+      .notNull()
+      .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Membership Details
+    unitNumber: varchar("unit_number"),
+    role: varchar("role").notNull().default("member"), // member, board_member, president, vice_president, treasurer, secretary
+    joinedAt: timestamp("joined_at").defaultNow(),
+    termStart: timestamp("term_start"), // For board members
+    termEnd: timestamp("term_end"), // For board members
+
+    // Contact & Status
+    isPrimary: boolean("is_primary").default(true), // Primary owner of unit
+    votingRights: boolean("voting_rights").default(true),
+    inGoodStanding: boolean("in_good_standing").default(true),
+
+    // Permissions
+    canViewFinances: boolean("can_view_finances").default(false),
+    canEditDocuments: boolean("can_edit_documents").default(false),
+    canManageVendors: boolean("can_manage_vendors").default(false),
+    canCreateVotes: boolean("can_create_votes").default(false),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_hoa_members_hoa").on(table.hoaId),
+    index("idx_hoa_members_user").on(table.userId),
+    index("idx_hoa_members_role").on(table.role),
+  ]
+);
 
 // Relations for social features
 export const communityPostsRelations = relations(communityPosts, ({ one, many }) => ({
@@ -3994,8 +4684,6 @@ export const postLikesRelations = relations(postLikes, ({ one }) => ({
   }),
 }));
 
-
-
 export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
   comment: one(postComments, {
     fields: [commentLikes.commentId],
@@ -4006,8 +4694,6 @@ export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
     references: [users.id],
   }),
 }));
-
-
 
 export const communityGroupsRelations = relations(communityGroups, ({ one, many }) => ({
   creator: one(users, {
@@ -4046,8 +4732,6 @@ export const regionsRelations = relations(regions, ({ one }) => ({
     references: [users.id],
   }),
 }));
-
-
 
 // Relations for marketplace
 export const marketplaceCategoriesRelations = relations(marketplaceCategories, ({ one, many }) => ({
@@ -4205,7 +4889,7 @@ export type InsertRealtorProfile = z.infer<typeof insertRealtorProfileSchema>;
 export type CarSalesmanProfile = typeof carSalesmanProfiles.$inferSelect;
 export type InsertCarSalesmanProfile = z.infer<typeof insertCarSalesmanProfileSchema>;
 
-// Verification schemas  
+// Verification schemas
 export const insertVendorVerificationSchema = createInsertSchema(vendorVerifications).omit({
   id: true,
   identityVerified: true,
@@ -4270,7 +4954,9 @@ export type InsertAddressVerification = z.infer<typeof insertAddressVerification
 
 // Handmade Products Marketplace Tables
 export const handmadeCategories = pgTable("handmade_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   slug: varchar("slug").notNull().unique(),
   description: text("description"),
@@ -4283,20 +4969,26 @@ export const handmadeCategories = pgTable("handmade_categories", {
 });
 
 export const handmadeProducts = pgTable("handmade_products", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+
   // Product details
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
-  categoryId: varchar("category_id").notNull().references(() => handmadeCategories.id),
+  categoryId: varchar("category_id")
+    .notNull()
+    .references(() => handmadeCategories.id),
   tags: jsonb("tags").$type<string[]>(),
-  
+
   // Pricing
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }), // Original price for discounts
   currency: varchar("currency", { length: 3 }).default("USD"),
-  
+
   // Product details
   materials: jsonb("materials").$type<string[]>(), // Wood, fabric, metal, etc.
   dimensions: jsonb("dimensions").$type<{
@@ -4309,59 +5001,73 @@ export const handmadeProducts = pgTable("handmade_products", {
   colors: jsonb("colors").$type<string[]>(),
   customizable: boolean("customizable").default(false),
   customizationOptions: text("customization_options"),
-  
+
   // Inventory
   inStock: boolean("in_stock").default(true),
   quantityAvailable: integer("quantity_available").default(1),
   madeToOrder: boolean("made_to_order").default(false),
   processingTime: varchar("processing_time"), // "1-2 weeks", "3-5 business days"
-  
+
   // Images
   primaryImageUrl: varchar("primary_image_url"),
   images: jsonb("images").$type<string[]>(),
-  
+
   // Location
   city: varchar("city"),
   stateCode: varchar("state_code", { length: 2 }),
   countyFips: varchar("county_fips"),
   shippingFrom: varchar("shipping_from"),
-  
+
   // Shipping
   freeShipping: boolean("free_shipping").default(false),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),
   localPickupAvailable: boolean("local_pickup_available").default(false),
   shipsNationwide: boolean("ships_nationwide").default(true),
   shippingRegions: jsonb("shipping_regions").$type<string[]>(), // States/regions they ship to
-  
+
   // Status and metrics
-  status: varchar("status", { 
-    enum: ['draft', 'active', 'paused', 'sold', 'archived'] 
-  }).default('draft'),
+  status: varchar("status", {
+    enum: ["draft", "active", "paused", "sold", "archived"],
+  }).default("draft"),
   featured: boolean("featured").default(false),
   viewCount: integer("view_count").default(0),
   favoriteCount: integer("favorite_count").default(0),
-  
+
   // SEO
   seoTitle: varchar("seo_title"),
   seoDescription: text("seo_description"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const productFavorites = pgTable("product_favorites", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  productId: varchar("product_id").notNull().references(() => handmadeProducts.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  productId: varchar("product_id")
+    .notNull()
+    .references(() => handmadeProducts.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const productOrders = pgTable("product_orders", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  buyerId: varchar("buyer_id").notNull().references(() => users.id),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
-  productId: varchar("product_id").notNull().references(() => handmadeProducts.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  buyerId: varchar("buyer_id")
+    .notNull()
+    .references(() => users.id),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+  productId: varchar("product_id")
+    .notNull()
+    .references(() => handmadeProducts.id),
+
   // Order details
   quantity: integer("quantity").default(1),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
@@ -4369,16 +5075,26 @@ export const productOrders = pgTable("product_orders", {
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0"),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
   finalTotal: decimal("final_total", { precision: 10, scale: 2 }).notNull(),
-  
+
   // Customization
   customizationRequest: text("customization_request"),
   customizationNotes: text("customization_notes"),
-  
+
   // Status tracking
   status: varchar("status", {
-    enum: ['pending', 'confirmed', 'in_progress', 'ready_to_ship', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded']
-  }).default('pending'),
-  
+    enum: [
+      "pending",
+      "confirmed",
+      "in_progress",
+      "ready_to_ship",
+      "shipped",
+      "delivered",
+      "completed",
+      "cancelled",
+      "refunded",
+    ],
+  }).default("pending"),
+
   // Shipping
   shippingMethod: varchar("shipping_method"),
   trackingNumber: varchar("tracking_number"),
@@ -4392,68 +5108,82 @@ export const productOrders = pgTable("product_orders", {
     country: string;
     phone?: string;
   }>(),
-  
+
   // Timeline
   confirmedAt: timestamp("confirmed_at"),
   shippedAt: timestamp("shipped_at"),
   deliveredAt: timestamp("delivered_at"),
   completedAt: timestamp("completed_at"),
-  
+
   // Payment
   paymentIntentId: varchar("payment_intent_id"),
   paymentStatus: varchar("payment_status", {
-    enum: ['pending', 'paid', 'failed', 'refunded']
-  }).default('pending'),
-  
+    enum: ["pending", "paid", "failed", "refunded"],
+  }).default("pending"),
+
   // Communication
   buyerNotes: text("buyer_notes"),
   sellerNotes: text("seller_notes"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const productReviews = pgTable("product_reviews", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  productId: varchar("product_id").notNull().references(() => handmadeProducts.id),
-  orderId: varchar("order_id").notNull().references(() => productOrders.id),
-  buyerId: varchar("buyer_id").notNull().references(() => users.id),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  productId: varchar("product_id")
+    .notNull()
+    .references(() => handmadeProducts.id),
+  orderId: varchar("order_id")
+    .notNull()
+    .references(() => productOrders.id),
+  buyerId: varchar("buyer_id")
+    .notNull()
+    .references(() => users.id),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+
   // Review content
   rating: integer("rating").notNull(), // 1-5 stars
   title: varchar("title"),
   reviewText: text("review_text"),
   images: jsonb("images").$type<string[]>(),
-  
+
   // Detailed ratings
   qualityRating: integer("quality_rating"), // 1-5
   shippingRating: integer("shipping_rating"), // 1-5
   serviceRating: integer("service_rating"), // 1-5
-  
+
   // Review metadata
   isVerifiedPurchase: boolean("is_verified_purchase").default(true),
   isPublic: boolean("is_public").default(true),
   wouldRecommend: boolean("would_recommend"),
-  
+
   // Admin moderation
   isModerated: boolean("is_moderated").default(false),
   moderationNotes: text("moderation_notes"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const sellerProfiles = pgTable("seller_profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
   // Business details
   businessName: varchar("business_name"),
   bio: text("bio"),
   specialty: varchar("specialty"), // Woodworking, jewelry, art, etc.
   yearsOfExperience: integer("years_of_experience"),
-  
+
   // Contact & location
   website: varchar("website"),
   socialMediaLinks: jsonb("social_media_links").$type<{
@@ -4462,22 +5192,22 @@ export const sellerProfiles = pgTable("seller_profiles", {
     etsy?: string;
     website?: string;
   }>(),
-  
+
   // Seller metrics (calculated)
   averageRating: decimal("average_rating", { precision: 3, scale: 2 }),
   totalReviews: integer("total_reviews").default(0),
   totalSales: integer("total_sales").default(0),
-  
+
   // Seller settings
   acceptsCustomOrders: boolean("accepts_custom_orders").default(true),
   minimumOrderAmount: decimal("minimum_order_amount", { precision: 10, scale: 2 }),
   returnsPolicy: text("returns_policy"),
   processingTime: varchar("processing_time").default("1-2 weeks"),
-  
+
   // Verification
   isVerified: boolean("is_verified").default(false),
   verificationBadges: jsonb("verification_badges").$type<string[]>(), // handmade, eco-friendly, local
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -4624,331 +5354,435 @@ export type InsertProductReviewType = z.infer<typeof insertProductReviewSchema>;
 export type InsertSellerProfileType = z.infer<typeof insertSellerProfileSchema>;
 
 // CRM System Tables
-export const crmContactStatusEnum = pgEnum('crm_contact_status', [
-  'new',
-  'contacted',
-  'qualified',
-  'opportunity',
-  'customer',
-  'inactive',
-  'churned'
+export const crmContactStatusEnum = pgEnum("crm_contact_status", [
+  "new",
+  "contacted",
+  "qualified",
+  "opportunity",
+  "customer",
+  "inactive",
+  "churned",
 ]);
 
-export const crmLeadSourceEnum = pgEnum('crm_lead_source', [
-  'website',
-  'direct_message',
-  'email',
-  'phone',
-  'referral',
-  'social_media',
-  'advertising',
-  'event',
-  'other'
+export const crmLeadSourceEnum = pgEnum("crm_lead_source", [
+  "website",
+  "direct_message",
+  "email",
+  "phone",
+  "referral",
+  "social_media",
+  "advertising",
+  "event",
+  "other",
 ]);
 
-export const crmActivityTypeEnum = pgEnum('crm_activity_type', [
-  'email',
-  'call',
-  'meeting',
-  'note',
-  'task',
-  'demo',
-  'proposal',
-  'follow_up',
-  'internal_message'
+export const crmActivityTypeEnum = pgEnum("crm_activity_type", [
+  "email",
+  "call",
+  "meeting",
+  "note",
+  "task",
+  "demo",
+  "proposal",
+  "follow_up",
+  "internal_message",
 ]);
 
-export const crmDealStageEnum = pgEnum('crm_deal_stage', [
-  'prospecting',
-  'negotiation',
-  'closed_won',
-  'closed_lost'
+export const crmDealStageEnum = pgEnum("crm_deal_stage", [
+  "prospecting",
+  "negotiation",
+  "closed_won",
+  "closed_lost",
 ]);
 
 // County vault ledger sources (transparent breakdown of inflows/outflows)
-export const vaultSourceEnum = pgEnum('vault_source_type', [
-  'foundation_donation',
-  'marketplace_fee_share',
-  'contractor_fee_share',
-  'subscription_share',
-  'sponsorship',
-  'corporate_match',
-  'manual_adjustment',
-  'other'
+export const vaultSourceEnum = pgEnum("vault_source_type", [
+  "foundation_donation",
+  "marketplace_fee_share",
+  "contractor_fee_share",
+  "subscription_share",
+  "sponsorship",
+  "corporate_match",
+  "manual_adjustment",
+  "other",
 ]);
 
 // County community vaults (aggregate balances per county)
-export const countyVaults = pgTable("county_vaults", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  countyId: varchar("county_id").notNull().references(() => counties.id),
-  currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default('0'),
-  lifetimeInflow: decimal("lifetime_inflow", { precision: 14, scale: 2 }).notNull().default('0'),
-  lifetimeOutflow: decimal("lifetime_outflow", { precision: 14, scale: 2 }).notNull().default('0'),
-  lastContributionAt: timestamp("last_contribution_at"),
-  lastUpdated: timestamp("last_updated").defaultNow(),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  uniqueIndex("county_vaults_county_uidx").on(table.countyId),
-  index("county_vaults_county_idx").on(table.countyId),
-]);
+export const countyVaults = pgTable(
+  "county_vaults",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    countyId: varchar("county_id")
+      .notNull()
+      .references(() => counties.id),
+    currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default("0"),
+    lifetimeInflow: decimal("lifetime_inflow", { precision: 14, scale: 2 }).notNull().default("0"),
+    lifetimeOutflow: decimal("lifetime_outflow", { precision: 14, scale: 2 })
+      .notNull()
+      .default("0"),
+    lastContributionAt: timestamp("last_contribution_at"),
+    lastUpdated: timestamp("last_updated").defaultNow(),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("county_vaults_county_uidx").on(table.countyId),
+    index("county_vaults_county_idx").on(table.countyId),
+  ]
+);
 
 // Immutable ledger of vault movements
-export const vaultLedgerEntries = pgTable("vault_ledger_entries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vaultId: varchar("vault_id").notNull().references(() => countyVaults.id),
-  sourceType: vaultSourceEnum("source_type").notNull(),
-  sourceId: varchar("source_id"), // e.g. donation id, transaction id
-  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(), // positive for inflow, negative for outflow
-  memo: text("memo"),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("vault_ledger_vault_idx").on(table.vaultId),
-  index("vault_ledger_created_idx").on(table.createdAt),
-]);
+export const vaultLedgerEntries = pgTable(
+  "vault_ledger_entries",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    vaultId: varchar("vault_id")
+      .notNull()
+      .references(() => countyVaults.id),
+    sourceType: vaultSourceEnum("source_type").notNull(),
+    sourceId: varchar("source_id"), // e.g. donation id, transaction id
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(), // positive for inflow, negative for outflow
+    memo: text("memo"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("vault_ledger_vault_idx").on(table.vaultId),
+    index("vault_ledger_created_idx").on(table.createdAt),
+  ]
+);
 
 // ==================== COMMUNITY PROFILE VAULT (MVP) ====================
 
-export const communityVaultSourceEnum = pgEnum('community_vault_source_type', [
-  'platform_support_share',
-  'direct_donation',
-  'manual_adjustment',
-  'other'
+export const communityVaultSourceEnum = pgEnum("community_vault_source_type", [
+  "platform_support_share",
+  "direct_donation",
+  "manual_adjustment",
+  "other",
 ]);
 
 // Community vaults (aggregate balances per community Profile)
-export const communityVaults = pgTable("community_vaults", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-  currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default('0'),
-  lifetimeInflow: decimal("lifetime_inflow", { precision: 14, scale: 2 }).notNull().default('0'),
-  lifetimeOutflow: decimal("lifetime_outflow", { precision: 14, scale: 2 }).notNull().default('0'),
-  lastContributionAt: timestamp("last_contribution_at"),
-  lastUpdated: timestamp("last_updated").defaultNow(),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  uniqueIndex("community_vaults_profile_uidx").on(table.profileId),
-  index("community_vaults_profile_idx").on(table.profileId),
-]);
+export const communityVaults = pgTable(
+  "community_vaults",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default("0"),
+    lifetimeInflow: decimal("lifetime_inflow", { precision: 14, scale: 2 }).notNull().default("0"),
+    lifetimeOutflow: decimal("lifetime_outflow", { precision: 14, scale: 2 })
+      .notNull()
+      .default("0"),
+    lastContributionAt: timestamp("last_contribution_at"),
+    lastUpdated: timestamp("last_updated").defaultNow(),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("community_vaults_profile_uidx").on(table.profileId),
+    index("community_vaults_profile_idx").on(table.profileId),
+  ]
+);
 
 // Immutable ledger of community vault movements
-export const communityVaultLedgerEntries = pgTable("community_vault_ledger_entries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vaultId: varchar("vault_id").notNull().references(() => communityVaults.id, { onDelete: 'cascade' }),
-  externalKey: varchar("external_key").unique(),
-  sourceType: communityVaultSourceEnum("source_type").notNull(),
-  sourceId: varchar("source_id"), // e.g. stripe invoice id, checkout session id
-  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(), // positive for inflow, negative for outflow
-  memo: text("memo"),
-  causeId: varchar("cause_id"), // optional tag for cause intent (no payouts)
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("community_vault_ledger_vault_idx").on(table.vaultId),
-  index("community_vault_ledger_created_idx").on(table.createdAt),
-]);
+export const communityVaultLedgerEntries = pgTable(
+  "community_vault_ledger_entries",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    vaultId: varchar("vault_id")
+      .notNull()
+      .references(() => communityVaults.id, { onDelete: "cascade" }),
+    externalKey: varchar("external_key").unique(),
+    sourceType: communityVaultSourceEnum("source_type").notNull(),
+    sourceId: varchar("source_id"), // e.g. stripe invoice id, checkout session id
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(), // positive for inflow, negative for outflow
+    memo: text("memo"),
+    causeId: varchar("cause_id"), // optional tag for cause intent (no payouts)
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("community_vault_ledger_vault_idx").on(table.vaultId),
+    index("community_vault_ledger_created_idx").on(table.createdAt),
+  ]
+);
 
 // ==================== COMMUNITY CAUSES + VOTING INTENT (MVP) ====================
 
-export const communityCauseStatusEnum = pgEnum('community_cause_status', [
-  'open',
-  'closed'
-]);
+export const communityCauseStatusEnum = pgEnum("community_cause_status", ["open", "closed"]);
 
-export const communityCauses = pgTable('community_causes', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  profileId: varchar('profile_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-  title: varchar('title').notNull(),
-  description: text('description'),
-  status: communityCauseStatusEnum('status').notNull().default('open'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-}, (table) => [
-  index('community_causes_profile_idx').on(table.profileId),
-  index('community_causes_status_idx').on(table.status),
-]);
+export const communityCauses = pgTable(
+  "community_causes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    title: varchar("title").notNull(),
+    description: text("description"),
+    status: communityCauseStatusEnum("status").notNull().default("open"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("community_causes_profile_idx").on(table.profileId),
+    index("community_causes_status_idx").on(table.status),
+  ]
+);
 
-export const communityCauseVotes = pgTable('community_cause_votes', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  causeId: varchar('cause_id').notNull().references(() => communityCauses.id, { onDelete: 'cascade' }),
-  userId: varchar('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => [
-  uniqueIndex('community_cause_votes_unique').on(table.causeId, table.userId),
-  index('community_cause_votes_cause_idx').on(table.causeId),
-  index('community_cause_votes_user_idx').on(table.userId),
-]);
+export const communityCauseVotes = pgTable(
+  "community_cause_votes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    causeId: varchar("cause_id")
+      .notNull()
+      .references(() => communityCauses.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("community_cause_votes_unique").on(table.causeId, table.userId),
+    index("community_cause_votes_cause_idx").on(table.causeId),
+    index("community_cause_votes_user_idx").on(table.userId),
+  ]
+);
 
 // ==================== PLATFORM SUPPORT LEDGER (MVP) ====================
 
-export const platformSupportAllocationEnum = pgEnum('platform_support_allocation', [
-  'platform',
-  'community'
+export const platformSupportAllocationEnum = pgEnum("platform_support_allocation", [
+  "platform",
+  "community",
 ]);
 
-export const platformSupportModeEnum = pgEnum('platform_support_mode', [
-  'one_time',
-  'subscription'
+export const platformSupportModeEnum = pgEnum("platform_support_mode", [
+  "one_time",
+  "subscription",
 ]);
 
 // Ledger of platform support payments.
 // For community-context support, each payment creates TWO rows: one for platform and one for community.
-export const platformSupportLedgerEntries = pgTable('platform_support_ledger_entries', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  externalKey: varchar('external_key').notNull().unique(),
-  allocation: platformSupportAllocationEnum('allocation').notNull(),
-  originatingProfileId: varchar('originating_profile_id').references(() => profiles.id, { onDelete: 'set null' }),
-  mode: platformSupportModeEnum('mode').notNull(),
-  amount: decimal('amount', { precision: 14, scale: 2 }).notNull(),
-  currency: varchar('currency').notNull().default('USD'),
-  stripeCheckoutSessionId: varchar('stripe_checkout_session_id'),
-  stripeInvoiceId: varchar('stripe_invoice_id'),
-  stripeSubscriptionId: varchar('stripe_subscription_id'),
-  stripePaymentIntentId: varchar('stripe_payment_intent_id'),
-  stripeChargeId: varchar('stripe_charge_id'),
-  memo: text('memo'),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => [
-  index('platform_support_origin_profile_idx').on(table.originatingProfileId),
-  index('platform_support_stripe_invoice_idx').on(table.stripeInvoiceId),
-  index('platform_support_created_idx').on(table.createdAt),
-]);
+export const platformSupportLedgerEntries = pgTable(
+  "platform_support_ledger_entries",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    externalKey: varchar("external_key").notNull().unique(),
+    allocation: platformSupportAllocationEnum("allocation").notNull(),
+    originatingProfileId: varchar("originating_profile_id").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    mode: platformSupportModeEnum("mode").notNull(),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: varchar("currency").notNull().default("USD"),
+    stripeCheckoutSessionId: varchar("stripe_checkout_session_id"),
+    stripeInvoiceId: varchar("stripe_invoice_id"),
+    stripeSubscriptionId: varchar("stripe_subscription_id"),
+    stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+    stripeChargeId: varchar("stripe_charge_id"),
+    memo: text("memo"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("platform_support_origin_profile_idx").on(table.originatingProfileId),
+    index("platform_support_stripe_invoice_idx").on(table.stripeInvoiceId),
+    index("platform_support_created_idx").on(table.createdAt),
+  ]
+);
 
 // TradeDeals: off-site partner offers that pay TradeScout recurring affiliate revenue
-export const tradeDeals = pgTable('trade_deals', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  slug: varchar('slug', { length: 120 }).unique(),
-  name: varchar('name', { length: 255 }).notNull(),
-  partnerName: varchar('partner_name', { length: 255 }).notNull(),
-  description: text('description'),
-  landingUrl: varchar('landing_url', { length: 1024 }).notNull(),
-  defaultCommissionRate: decimal('default_commission_rate', { precision: 5, scale: 4 }),
-  isRecurring: boolean('is_recurring').default(true),
-  isActive: boolean('is_active').default(true),
-  category: varchar('category', { length: 100 }),
-  createdBy: varchar('created_by').references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-}, (table) => [
-  index('trade_deals_slug_idx').on(table.slug),
-  index('trade_deals_active_idx').on(table.isActive),
-]);
+export const tradeDeals = pgTable(
+  "trade_deals",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    slug: varchar("slug", { length: 120 }).unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    partnerName: varchar("partner_name", { length: 255 }).notNull(),
+    description: text("description"),
+    landingUrl: varchar("landing_url", { length: 1024 }).notNull(),
+    defaultCommissionRate: decimal("default_commission_rate", { precision: 5, scale: 4 }),
+    isRecurring: boolean("is_recurring").default(true),
+    isActive: boolean("is_active").default(true),
+    category: varchar("category", { length: 100 }),
+    createdBy: varchar("created_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("trade_deals_slug_idx").on(table.slug),
+    index("trade_deals_active_idx").on(table.isActive),
+  ]
+);
 
 // When a user (optionally via an affiliate account) lands on a TradeDeal offer link
-export const tradeDealClicks = pgTable('trade_deal_clicks', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  tradeDealId: varchar('trade_deal_id').notNull().references(() => tradeDeals.id),
-  userId: varchar('user_id').references(() => users.id),
-  affiliateAccountId: varchar('affiliate_account_id').references(() => affiliateAccounts.id),
-  source: varchar('source', { length: 100 }),
-  landingPath: varchar('landing_path', { length: 1024 }),
-  externalTrackingId: varchar('external_tracking_id', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => [
-  index('trade_deal_clicks_deal_idx').on(table.tradeDealId),
-  index('trade_deal_clicks_user_idx').on(table.userId),
-  index('trade_deal_clicks_affiliate_idx').on(table.affiliateAccountId),
-]);
+export const tradeDealClicks = pgTable(
+  "trade_deal_clicks",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    tradeDealId: varchar("trade_deal_id")
+      .notNull()
+      .references(() => tradeDeals.id),
+    userId: varchar("user_id").references(() => users.id),
+    affiliateAccountId: varchar("affiliate_account_id").references(() => affiliateAccounts.id),
+    source: varchar("source", { length: 100 }),
+    landingPath: varchar("landing_path", { length: 1024 }),
+    externalTrackingId: varchar("external_tracking_id", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("trade_deal_clicks_deal_idx").on(table.tradeDealId),
+    index("trade_deal_clicks_user_idx").on(table.userId),
+    index("trade_deal_clicks_affiliate_idx").on(table.affiliateAccountId),
+  ]
+);
 
 // Earnings that TradeScout attributes to specific users/affiliates from TradeDeals
-export const tradeDealEarnings = pgTable('trade_deal_earnings', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  tradeDealId: varchar('trade_deal_id').notNull().references(() => tradeDeals.id),
-  // Either an affiliate account or a direct user can receive the earning
-  affiliateAccountId: varchar('affiliate_account_id').references(() => affiliateAccounts.id),
-  userId: varchar('user_id').references(() => users.id),
-  amount: decimal('amount', { precision: 14, scale: 2 }).notNull(),
-  currency: varchar('currency', { length: 10 }).notNull().default('USD'),
-  periodLabel: varchar('period_label', { length: 32 }),
-  sourceType: varchar('source_type', { length: 50 }).default('partner_report'),
-  externalReference: varchar('external_reference', { length: 255 }),
-  notes: text('notes'),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => [
-  index('trade_deal_earnings_deal_idx').on(table.tradeDealId),
-  index('trade_deal_earnings_affiliate_idx').on(table.affiliateAccountId),
-  index('trade_deal_earnings_user_idx').on(table.userId),
-  index('trade_deal_earnings_period_idx').on(table.periodLabel),
-]);
+export const tradeDealEarnings = pgTable(
+  "trade_deal_earnings",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    tradeDealId: varchar("trade_deal_id")
+      .notNull()
+      .references(() => tradeDeals.id),
+    // Either an affiliate account or a direct user can receive the earning
+    affiliateAccountId: varchar("affiliate_account_id").references(() => affiliateAccounts.id),
+    userId: varchar("user_id").references(() => users.id),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 10 }).notNull().default("USD"),
+    periodLabel: varchar("period_label", { length: 32 }),
+    sourceType: varchar("source_type", { length: 50 }).default("partner_report"),
+    externalReference: varchar("external_reference", { length: 255 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("trade_deal_earnings_deal_idx").on(table.tradeDealId),
+    index("trade_deal_earnings_affiliate_idx").on(table.affiliateAccountId),
+    index("trade_deal_earnings_user_idx").on(table.userId),
+    index("trade_deal_earnings_period_idx").on(table.periodLabel),
+  ]
+);
 
 // Points system for non-monetary rewards (future TradeCoin dividends)
-export const userPointsTypeEnum = pgEnum('user_points_type', [
-  'site_interaction',
-  'affiliate_signup',
-  'social_impact',
-  'trade_deal_referral',
-  'admin_adjustment',
+export const userPointsTypeEnum = pgEnum("user_points_type", [
+  "site_interaction",
+  "affiliate_signup",
+  "social_impact",
+  "trade_deal_referral",
+  "admin_adjustment",
 ]);
 
-export const userPointsLedger = pgTable('user_points_ledger', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar('user_id').notNull().references(() => users.id),
-  points: integer('points').notNull(),
-  type: userPointsTypeEnum('type').notNull(),
-  reason: varchar('reason', { length: 255 }),
-  sourceId: varchar('source_id', { length: 255 }),
-  metadata: jsonb('metadata'),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => [
-  index('user_points_user_idx').on(table.userId),
-  index('user_points_type_idx').on(table.type),
-]);
+export const userPointsLedger = pgTable(
+  "user_points_ledger",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    points: integer("points").notNull(),
+    type: userPointsTypeEnum("type").notNull(),
+    reason: varchar("reason", { length: 255 }),
+    sourceId: varchar("source_id", { length: 255 }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("user_points_user_idx").on(table.userId),
+    index("user_points_type_idx").on(table.type),
+  ]
+);
 
 // User wallet accounts for spendable on-platform balance (funded by affiliate earnings etc.)
-export const walletAccounts = pgTable('wallet_accounts', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar('user_id').notNull().references(() => users.id),
-  currentBalance: decimal('current_balance', { precision: 14, scale: 2 }).notNull().default('0'),
-  status: varchar('status', { length: 32 }).default('active'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-}, (table) => [
-  index('wallet_accounts_user_idx').on(table.userId),
-  uniqueIndex('wallet_accounts_user_unique').on(table.userId),
+export const walletAccounts = pgTable(
+  "wallet_accounts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default("0"),
+    status: varchar("status", { length: 32 }).default("active"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("wallet_accounts_user_idx").on(table.userId),
+    uniqueIndex("wallet_accounts_user_unique").on(table.userId),
+  ]
+);
+
+export const walletTransactionTypeEnum = pgEnum("wallet_tx_type", [
+  "affiliate_commission",
+  "marketplace_purchase",
+  "marketplace_sale",
+  "p2p_send",
+  "p2p_receive",
+  "admin_adjustment",
+  "withdrawal",
+  "deposit",
 ]);
 
-export const walletTransactionTypeEnum = pgEnum('wallet_tx_type', [
-  'affiliate_commission',
-  'marketplace_purchase',
-  'marketplace_sale',
-  'p2p_send',
-  'p2p_receive',
-  'admin_adjustment',
-  'withdrawal',
-  'deposit',
-]);
+export const walletTransactions = pgTable(
+  "wallet_transactions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    walletAccountId: varchar("wallet_account_id")
+      .notNull()
+      .references(() => walletAccounts.id),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    counterpartyUserId: varchar("counterparty_user_id").references(() => users.id),
+    transactionType: walletTransactionTypeEnum("transaction_type").notNull(),
+    direction: varchar("direction", { length: 10 }).notNull(), // 'credit' or 'debit'
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    referenceType: varchar("reference_type", { length: 50 }),
+    referenceId: varchar("reference_id", { length: 255 }),
+    memo: text("memo"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("wallet_tx_wallet_idx").on(table.walletAccountId),
+    index("wallet_tx_user_idx").on(table.userId),
+    index("wallet_tx_counterparty_idx").on(table.counterpartyUserId),
+    index("wallet_tx_type_idx").on(table.transactionType),
+  ]
+);
 
-export const walletTransactions = pgTable('wallet_transactions', {
-  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
-  walletAccountId: varchar('wallet_account_id').notNull().references(() => walletAccounts.id),
-  userId: varchar('user_id').notNull().references(() => users.id),
-  counterpartyUserId: varchar('counterparty_user_id').references(() => users.id),
-  transactionType: walletTransactionTypeEnum('transaction_type').notNull(),
-  direction: varchar('direction', { length: 10 }).notNull(), // 'credit' or 'debit'
-  amount: decimal('amount', { precision: 14, scale: 2 }).notNull(),
-  referenceType: varchar('reference_type', { length: 50 }),
-  referenceId: varchar('reference_id', { length: 255 }),
-  memo: text('memo'),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (table) => [
-  index('wallet_tx_wallet_idx').on(table.walletAccountId),
-  index('wallet_tx_user_idx').on(table.userId),
-  index('wallet_tx_counterparty_idx').on(table.counterpartyUserId),
-  index('wallet_tx_type_idx').on(table.transactionType),
-]);
-
-export const crmPriorityEnum = pgEnum('crm_priority', [
-  'low',
-  'medium',
-  'high',
-  'urgent'
-]);
+export const crmPriorityEnum = pgEnum("crm_priority", ["low", "medium", "high", "urgent"]);
 
 // CRM Contacts table
 export const crmContacts = pgTable("crm_contacts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   email: varchar("email").unique(),
@@ -4960,21 +5794,21 @@ export const crmContacts = pgTable("crm_contacts", {
   state: varchar("state"),
   zipCode: varchar("zip_code"),
   country: varchar("country").default("US"),
-  
+
   // CRM specific fields
   status: crmContactStatusEnum("status").default("new").notNull(),
   leadSource: crmLeadSourceEnum("lead_source").default("website").notNull(),
   assignedToUserId: varchar("assigned_to_user_id").references(() => users.id),
-  
+
   // Linked to existing user if they are a platform user
   linkedUserId: varchar("linked_user_id").references(() => users.id),
-  
+
   // Social and web presence
   website: varchar("website"),
   linkedinUrl: varchar("linkedin_url"),
   notes: text("notes"),
   tags: text("tags").array(),
-  
+
   // Tracking
   lastContactedAt: timestamp("last_contacted_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -4983,25 +5817,29 @@ export const crmContacts = pgTable("crm_contacts", {
 
 // CRM Deals/Opportunities table
 export const crmDeals = pgTable("crm_deals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   description: text("description"),
-  contactId: varchar("contact_id").references(() => crmContacts.id).notNull(),
+  contactId: varchar("contact_id")
+    .references(() => crmContacts.id)
+    .notNull(),
   assignedToUserId: varchar("assigned_to_user_id").references(() => users.id),
-  
+
   value: decimal("value", { precision: 10, scale: 2 }),
   currency: varchar("currency").default("USD"),
   stage: crmDealStageEnum("stage").default("prospecting").notNull(),
   priority: crmPriorityEnum("priority").default("medium"),
-  
+
   probability: integer("probability").default(0), // 0-100%
   expectedCloseDate: timestamp("expected_close_date"),
   actualCloseDate: timestamp("actual_close_date"),
-  
+
   // Project details
   projectType: varchar("project_type"),
   tradeCategory: tradeCategoryEnum("trade_category"),
-  
+
   // Tracking
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -5009,39 +5847,43 @@ export const crmDeals = pgTable("crm_deals", {
 
 // CRM Activities table (emails, calls, meetings, notes)
 export const crmActivities = pgTable("crm_activities", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   type: crmActivityTypeEnum("type").notNull(),
   subject: varchar("subject").notNull(),
   description: text("description"),
-  
+
   // Relationships
   contactId: varchar("contact_id").references(() => crmContacts.id),
   dealId: varchar("deal_id").references(() => crmDeals.id),
-  createdByUserId: varchar("created_by_user_id").references(() => users.id).notNull(),
-  
+  createdByUserId: varchar("created_by_user_id")
+    .references(() => users.id)
+    .notNull(),
+
   // Email specific fields
   fromEmail: varchar("from_email"),
   toEmail: varchar("to_email"),
   ccEmails: text("cc_emails").array(),
   bccEmails: text("bcc_emails").array(),
   emailThreadId: varchar("email_thread_id"),
-  
+
   // Meeting/Call specific fields
   duration: integer("duration"), // in minutes
   attendees: text("attendees").array(),
-  
+
   // Task specific fields
   dueDate: timestamp("due_date"),
   isCompleted: boolean("is_completed").default(false),
   completedAt: timestamp("completed_at"),
-  
+
   // Internal message specific fields
   isInternal: boolean("is_internal").default(false),
   internalRecipients: text("internal_recipients").array(),
-  
+
   // File attachments
   attachments: jsonb("attachments"), // Array of file URLs and metadata
-  
+
   // Tracking
   scheduledAt: timestamp("scheduled_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -5050,31 +5892,39 @@ export const crmActivities = pgTable("crm_activities", {
 
 // CRM Email Templates table
 export const crmEmailTemplates = pgTable("crm_email_templates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   subject: varchar("subject").notNull(),
   body: text("body").notNull(),
   category: varchar("category"), // welcome, follow_up, proposal, etc.
   isActive: boolean("is_active").default(true),
-  
+
   // Template variables for personalization
   variables: jsonb("variables"), // {firstName: "Contact's first name", company: "Contact's company"}
-  
-  createdByUserId: varchar("created_by_user_id").references(() => users.id).notNull(),
+
+  createdByUserId: varchar("created_by_user_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // CRM Pipeline Configuration table
 export const crmPipelines = pgTable("crm_pipelines", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
   stages: jsonb("stages").notNull(), // Array of stage objects with names, colors, and probabilities
   isDefault: boolean("is_default").default(false),
   isActive: boolean("is_active").default(true),
-  
-  createdByUserId: varchar("created_by_user_id").references(() => users.id).notNull(),
+
+  createdByUserId: varchar("created_by_user_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -5156,36 +6006,34 @@ export type InsertCrmPipeline = z.infer<typeof insertCrmPipelineSchema>;
 // ===== COMMUNITY MODERATION SYSTEM =====
 
 // Content types that can be reported
-export const contentTypeEnum = pgEnum('content_type', [
-  'marketplace_listing',
-  'handmade_product', 
-  'community_post',
-  'post_comment',
-  'product_review',
-  'user_profile',
-  'seller_profile',
-  'conversation_message'
+export const contentTypeEnum = pgEnum("content_type", [
+  "marketplace_listing",
+  "handmade_product",
+  "community_post",
+  "post_comment",
+  "product_review",
+  "user_profile",
+  "seller_profile",
+  "conversation_message",
 ]);
 
 // Using the reportReasonEnum defined earlier in the file
 
 // Vote types for community moderation
-export const voteTypeEnum = pgEnum('vote_type', [
-  'remove',
-  'keep',
-  'needs_review'
-]);
+export const voteTypeEnum = pgEnum("vote_type", ["remove", "keep", "needs_review"]);
 
 // Community moderation reports
 export const moderationReports = pgTable("moderation_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   reporterId: varchar("reporter_id").references(() => users.id),
-  
+
   // Content being reported
   contentType: contentTypeEnum("content_type").notNull(),
   contentId: varchar("content_id").notNull(), // ID of the reported content
   contentOwnerId: varchar("content_owner_id").references(() => users.id),
-  
+
   // Report details
   reason: reportReasonEnum("reason").notNull(),
   description: text("description"),
@@ -5194,41 +6042,48 @@ export const moderationReports = pgTable("moderation_reports", {
     relatedUrls?: string[];
     previousReports?: string[];
   }>(),
-  
+
   // Geographic context for local moderation
   reporterCounty: varchar("reporter_county"),
   reporterState: varchar("reporter_state"),
-  contentCounty: varchar("content_county"), 
+  contentCounty: varchar("content_county"),
   contentState: varchar("content_state"),
-  
+
   // Status tracking
   status: varchar("status", {
-    enum: ['pending', 'under_review', 'resolved', 'dismissed', 'escalated']
-  }).default('pending'),
-  
+    enum: ["pending", "under_review", "resolved", "dismissed", "escalated"],
+  }).default("pending"),
+
   // Community voting results
   totalVotes: integer("total_votes").default(0),
   removeVotes: integer("remove_votes").default(0),
   keepVotes: integer("keep_votes").default(0),
   reviewVotes: integer("review_votes").default(0),
-  
+
   // Voting thresholds (configurable per content type/region)
   votesRequired: integer("votes_required").default(5),
   removalThreshold: decimal("removal_threshold", { precision: 3, scale: 2 }).default("0.60"), // 60% to remove
-  
+
   // Resolution
   finalAction: varchar("final_action", {
-    enum: ['content_removed', 'content_hidden', 'content_flagged', 'warning_issued', 'no_action', 'user_suspended']
+    enum: [
+      "content_removed",
+      "content_hidden",
+      "content_flagged",
+      "warning_issued",
+      "no_action",
+      "user_suspended",
+    ],
   }),
   actionTakenBy: varchar("action_taken_by"), // 'community_vote', 'moderator', 'admin'
   actionReason: text("action_reason"),
   resolvedAt: timestamp("resolved_at"),
-  
+
   // Moderator override
   moderatorId: varchar("moderator_id").references(() => users.id),
   moderatorNotes: text("moderator_notes"),
   isModeratorOverride: boolean("is_moderator_override").default(false),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -5237,76 +6092,88 @@ export const moderationReports = pgTable("moderation_reports", {
 
 // User voting eligibility and reputation
 export const userModerationReputation = pgTable("user_moderation_reputation", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
   // Voting eligibility
   canVote: boolean("can_vote").default(true),
   votingPower: decimal("voting_power", { precision: 3, scale: 2 }).default("1.0"),
-  
+
   // Reputation metrics
   accurateVotes: integer("accurate_votes").default(0),
   totalVotes: integer("total_votes").default(0),
   accuracyRate: decimal("accuracy_rate", { precision: 3, scale: 2 }),
-  
+
   // Geographic voting areas
   primaryCounty: varchar("primary_county"),
   primaryState: varchar("primary_state"),
   additionalCounties: jsonb("additional_counties").$type<string[]>(),
-  
+
   // Suspension/penalties
   isSuspended: boolean("is_suspended").default(false),
   suspendedUntil: timestamp("suspended_until"),
   suspensionReason: text("suspension_reason"),
-  
+
   // Activity tracking
   lastVoteAt: timestamp("last_vote_at"),
   joinedModerationAt: timestamp("joined_moderation_at").defaultNow(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Content moderation actions taken
 export const moderationActions = pgTable("moderation_actions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   reportId: varchar("report_id").references(() => moderationReports.id),
-  
+
   // Content being acted upon
   contentType: contentTypeEnum("content_type").notNull(),
   contentId: varchar("content_id").notNull(),
   contentOwnerId: varchar("content_owner_id").references(() => users.id),
-  
+
   // Action details
   action: varchar("action", {
-    enum: ['removed', 'hidden', 'flagged', 'warning', 'no_action', 'user_suspended', 'user_banned']
+    enum: ["removed", "hidden", "flagged", "warning", "no_action", "user_suspended", "user_banned"],
   }).notNull(),
-  
+
   // Who took the action
   actionBy: varchar("action_by", {
-    enum: ['community_vote', 'moderator', 'admin', 'automated']
+    enum: ["community_vote", "moderator", "admin", "automated"],
   }).notNull(),
   actionUserId: varchar("action_user_id").references(() => users.id), // If taken by specific user
-  
+
   // Action context
   reason: text("reason"),
   isReversible: boolean("is_reversible").default(true),
   expiresAt: timestamp("expires_at"), // For temporary actions
-  
+
   // Appeal process
   canAppeal: boolean("can_appeal").default(true),
   appealDeadline: timestamp("appeal_deadline"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Appeals against moderation actions
 export const moderationAppeals = pgTable("moderation_appeals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  actionId: varchar("action_id").notNull().references(() => moderationActions.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  actionId: varchar("action_id")
+    .notNull()
+    .references(() => moderationActions.id),
   reportId: varchar("report_id").references(() => moderationReports.id),
-  appellantId: varchar("appellant_id").notNull().references(() => users.id),
-  
+  appellantId: varchar("appellant_id")
+    .notNull()
+    .references(() => users.id),
+
   // Appeal details
   reason: text("reason").notNull(),
   additionalEvidence: jsonb("additional_evidence").$type<{
@@ -5314,38 +6181,40 @@ export const moderationAppeals = pgTable("moderation_appeals", {
     screenshots?: string[];
     witnessStatements?: string[];
   }>(),
-  
+
   // Status
   status: varchar("status", {
-    enum: ['pending', 'under_review', 'approved', 'denied', 'escalated']
-  }).default('pending'),
-  
+    enum: ["pending", "under_review", "approved", "denied", "escalated"],
+  }).default("pending"),
+
   // Review
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewNotes: text("review_notes"),
   decision: varchar("decision", {
-    enum: ['appeal_granted', 'appeal_denied', 'action_modified', 'no_change']
+    enum: ["appeal_granted", "appeal_denied", "action_modified", "no_change"],
   }),
   newAction: varchar("new_action"),
-  
+
   reviewedAt: timestamp("reviewed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Moderation settings per geographic region
 export const moderationSettings = pgTable("moderation_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   // Geographic scope (null values allow global settings)
   county: varchar("county"),
   state: varchar("state"),
   isStatewide: boolean("is_statewide").default(false),
-  
+
   // Voting thresholds
   minVotesRequired: integer("min_votes_required").default(5),
   removalThreshold: decimal("removal_threshold", { precision: 3, scale: 2 }).default("0.60"),
   localVoterWeight: decimal("local_voter_weight", { precision: 3, scale: 2 }).default("1.5"),
-  
+
   // Content-specific settings
   contentTypeSettings: jsonb("content_type_settings").$type<{
     [contentType: string]: {
@@ -5355,15 +6224,15 @@ export const moderationSettings = pgTable("moderation_settings", {
       requiresHumanReview?: boolean;
     };
   }>(),
-  
+
   // User eligibility
   minAccountAge: integer("min_account_age_days").default(30), // Days
   minLocalActivity: integer("min_local_activity_days").default(7), // Days active in area
   requiresAddressVerification: boolean("requires_address_verification").default(true),
-  
+
   // Active/inactive
   isActive: boolean("is_active").default(true),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -5511,96 +6380,132 @@ export type InsertReferralStatsType = z.infer<typeof insertReferralStatsSchema>;
 // Payment system types will be added later after table definitions
 
 // Marketplace transaction tables
-export const transactionStatusEnum = pgEnum('transaction_status', [
-  'pending',
-  'payment_processing', 
-  'payment_confirmed',
-  'in_escrow',
-  'shipped',
-  'delivered',
-  'completed',
-  'cancelled',
-  'disputed',
-  'refunded'
+export const transactionStatusEnum = pgEnum("transaction_status", [
+  "pending",
+  "payment_processing",
+  "payment_confirmed",
+  "in_escrow",
+  "shipped",
+  "delivered",
+  "completed",
+  "cancelled",
+  "disputed",
+  "refunded",
 ]);
 
 // Enhanced marketplace transactions with flexible payment options
 export const marketplaceTransactions = pgTable("marketplace_transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
-  buyerId: varchar("buyer_id").notNull().references(() => users.id),
-  sellerId: varchar("seller_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id")
+    .notNull()
+    .references(() => marketplaceListings.id),
+  buyerId: varchar("buyer_id")
+    .notNull()
+    .references(() => users.id),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+
   // Payment amounts
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default('0'),
-  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default('0'),
-  buyerFeeShare: decimal("buyer_fee_share", { precision: 10, scale: 2 }).default('0'),
-  sellerFeeShare: decimal("seller_fee_share", { precision: 10, scale: 2 }).default('0'),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0"),
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default("0"),
+  buyerFeeShare: decimal("buyer_fee_share", { precision: 10, scale: 2 }).default("0"),
+  sellerFeeShare: decimal("seller_fee_share", { precision: 10, scale: 2 }).default("0"),
   sellerAmount: decimal("seller_amount", { precision: 10, scale: 2 }).notNull(),
-  
+
   // Payment method and processing
-  paymentMethod: varchar("payment_method", { 
-    enum: ['on_platform_stripe', 'on_platform_wallet', 'off_platform_direct', 'off_platform_cash', 'off_platform_check', 'off_platform_venmo', 'off_platform_other'] 
+  paymentMethod: varchar("payment_method", {
+    enum: [
+      "on_platform_stripe",
+      "on_platform_wallet",
+      "off_platform_direct",
+      "off_platform_cash",
+      "off_platform_check",
+      "off_platform_venmo",
+      "off_platform_other",
+    ],
   }).notNull(),
   isOffPlatform: boolean("is_off_platform").default(false),
   offPlatformMethod: varchar("off_platform_method"), // "Venmo", "Cash", "Check", etc.
   offPlatformNotes: text("off_platform_notes"),
   offPlatformConfirmedBy: varchar("off_platform_confirmed_by"),
   offPlatformConfirmedAt: timestamp("off_platform_confirmed_at"),
-  
+
   // Stripe integration
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
   stripeTransferId: varchar("stripe_transfer_id"),
-  
+
   // Escrow and delivery
   escrowReleaseDate: timestamp("escrow_release_date"),
   trackingNumber: varchar("tracking_number"),
   deliveryConfirmedAt: timestamp("delivery_confirmed_at"),
-  
+
   // Transaction status and management
-  status: transactionStatusEnum("status").notNull().default('pending'),
+  status: transactionStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
   internalNotes: text("internal_notes"), // Admin notes
-  
+
   // Communication preferences
   buyerPreferredContact: varchar("buyer_preferred_contact", {
-    enum: ['platform_messages', 'email', 'phone', 'text']
-  }).default('platform_messages'),
+    enum: ["platform_messages", "email", "phone", "text"],
+  }).default("platform_messages"),
   sellerPreferredContact: varchar("seller_preferred_contact", {
-    enum: ['platform_messages', 'email', 'phone', 'text']
-  }).default('platform_messages'),
-  
+    enum: ["platform_messages", "email", "phone", "text"],
+  }).default("platform_messages"),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const listingBoosts = pgTable("listing_boosts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id, { onDelete: "cascade" }),
-  sellerId: varchar("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  transactionId: varchar("transaction_id").notNull().references(() => marketplaceTransactions.id, { onDelete: "cascade" }),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  status: varchar("status", {
-    enum: ["pending_payment", "active", "expired", "cancelled"],
-  }).notNull().default("pending_payment"),
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("listing_boost_listing_idx").on(table.listingId),
-  index("listing_boost_seller_idx").on(table.sellerId),
-  uniqueIndex("listing_boost_transaction_unique").on(table.transactionId),
-]);
+export const listingBoosts = pgTable(
+  "listing_boosts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    listingId: varchar("listing_id")
+      .notNull()
+      .references(() => marketplaceListings.id, { onDelete: "cascade" }),
+    sellerId: varchar("seller_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    transactionId: varchar("transaction_id")
+      .notNull()
+      .references(() => marketplaceTransactions.id, { onDelete: "cascade" }),
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+    status: varchar("status", {
+      enum: ["pending_payment", "active", "expired", "cancelled"],
+    })
+      .notNull()
+      .default("pending_payment"),
+    startDate: timestamp("start_date"),
+    endDate: timestamp("end_date"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("listing_boost_listing_idx").on(table.listingId),
+    index("listing_boost_seller_idx").on(table.sellerId),
+    uniqueIndex("listing_boost_transaction_unique").on(table.transactionId),
+  ]
+);
 
 export const transactionDisputes = pgTable("transaction_disputes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  transactionId: varchar("transaction_id").notNull().references(() => marketplaceTransactions.id),
-  initiatorId: varchar("initiator_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  transactionId: varchar("transaction_id")
+    .notNull()
+    .references(() => marketplaceTransactions.id),
+  initiatorId: varchar("initiator_id")
+    .notNull()
+    .references(() => users.id),
   reason: varchar("reason").notNull(),
   description: text("description").notNull(),
-  status: varchar("status").notNull().default('open'), // open, investigating, resolved, escalated
+  status: varchar("status").notNull().default("open"), // open, investigating, resolved, escalated
   resolution: text("resolution"),
   resolvedBy: varchar("resolved_by").references(() => users.id),
   resolvedAt: timestamp("resolved_at"),
@@ -5609,10 +6514,16 @@ export const transactionDisputes = pgTable("transaction_disputes", {
 
 // User reviews and ratings
 export const userReviews = pgTable("user_reviews", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   transactionId: varchar("transaction_id").references(() => marketplaceTransactions.id),
-  reviewerId: varchar("reviewer_id").notNull().references(() => users.id),
-  revieweeId: varchar("reviewee_id").notNull().references(() => users.id),
+  reviewerId: varchar("reviewer_id")
+    .notNull()
+    .references(() => users.id),
+  revieweeId: varchar("reviewee_id")
+    .notNull()
+    .references(() => users.id),
   rating: integer("rating").notNull(), // 1-5 stars
   title: varchar("title"),
   content: text("content"),
@@ -5624,8 +6535,12 @@ export const userReviews = pgTable("user_reviews", {
 
 // Real-time notifications
 export const realTimeNotifications = pgTable("real_time_notifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   type: varchar("type").notNull(), // message, transaction, listing, review
   title: varchar("title").notNull(),
   message: text("message").notNull(),
@@ -5637,8 +6552,12 @@ export const realTimeNotifications = pgTable("real_time_notifications", {
 
 // Search and discovery
 export const savedSearches = pgTable("saved_searches", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   searchType: varchar("search_type").notNull(), // marketplace, contractors
   searchQuery: varchar("search_query"),
   filters: jsonb("filters"), // JSON object of search filters
@@ -5648,7 +6567,9 @@ export const savedSearches = pgTable("saved_searches", {
 });
 
 export const searchAnalytics = pgTable("search_analytics", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
   sessionId: varchar("session_id"),
   searchQuery: varchar("search_query"),
@@ -5661,103 +6582,125 @@ export const searchAnalytics = pgTable("search_analytics", {
 
 // Payment configuration and fee structures
 export const paymentConfigurations = pgTable("payment_configurations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   // Configuration type
-  configType: varchar("config_type", { 
-    enum: ['marketplace_transaction', 'contractor_service', 'premium_subscription'] 
+  configType: varchar("config_type", {
+    enum: ["marketplace_transaction", "contractor_service", "premium_subscription"],
   }).notNull(),
-  
+
   // Platform fees (TradeScout's revenue)
-  platformFeeType: varchar("platform_fee_type", { 
-    enum: ['percentage', 'fixed', 'tiered'] 
-  }).default('percentage'),
-  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default('0.025'), // 2.5% default
-  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default('0.50'),
-  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default('25.00'),
-  
+  platformFeeType: varchar("platform_fee_type", {
+    enum: ["percentage", "fixed", "tiered"],
+  }).default("percentage"),
+  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default("0.025"), // 2.5% default
+  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default("0.50"),
+  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default("25.00"),
+
   // Processing fee split (how Stripe fees are divided)
-  processingFeeSplitType: varchar("processing_fee_split_type", { 
-    enum: ['50_50', 'buyer_pays_all', 'seller_pays_all', 'platform_absorbs'] 
-  }).default('50_50'),
-  
+  processingFeeSplitType: varchar("processing_fee_split_type", {
+    enum: ["50_50", "buyer_pays_all", "seller_pays_all", "platform_absorbs"],
+  }).default("50_50"),
+
   // Transaction limits
-  minTransactionAmount: decimal("min_transaction_amount", { precision: 10, scale: 2 }).default('1.00'),
-  maxTransactionAmount: decimal("max_transaction_amount", { precision: 10, scale: 2 }).default('50000.00'),
-  
+  minTransactionAmount: decimal("min_transaction_amount", { precision: 10, scale: 2 }).default(
+    "1.00"
+  ),
+  maxTransactionAmount: decimal("max_transaction_amount", { precision: 10, scale: 2 }).default(
+    "50000.00"
+  ),
+
   // Off-platform payment settings
   allowOffPlatformPayments: boolean("allow_off_platform_payments").default(true),
-  offPlatformPaymentMethods: jsonb("off_platform_payment_methods").$type<string[]>().default(['cash', 'check', 'venmo', 'zelle', 'direct']),
-  
+  offPlatformPaymentMethods: jsonb("off_platform_payment_methods")
+    .$type<string[]>()
+    .default(["cash", "check", "venmo", "zelle", "direct"]),
+
   // Configuration metadata
   isActive: boolean("is_active").default(true),
   description: text("description"),
   lastModifiedBy: varchar("last_modified_by").references(() => users.id),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Comprehensive contractor payment system
 export const contractorPayments = pgTable("contractor_payments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
   // Participants
-  homeownerId: varchar("homeowner_id").notNull().references(() => users.id),
-  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  homeownerId: varchar("homeowner_id")
+    .notNull()
+    .references(() => users.id),
+  contractorId: varchar("contractor_id")
+    .notNull()
+    .references(() => contractors.id),
   leadId: varchar("lead_id").references(() => leads.id),
   quoteId: varchar("quote_id"),
-  
+
   // Payment details
   serviceDescription: text("service_description").notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency", { length: 3 }).default('USD'),
-  
+  currency: varchar("currency", { length: 3 }).default("USD"),
+
   // Payment method and processing
-  paymentMethod: varchar("payment_method", { 
-    enum: ['on_platform_stripe', 'off_platform_cash', 'off_platform_check', 'off_platform_bank_transfer', 'off_platform_other'] 
+  paymentMethod: varchar("payment_method", {
+    enum: [
+      "on_platform_stripe",
+      "off_platform_cash",
+      "off_platform_check",
+      "off_platform_bank_transfer",
+      "off_platform_other",
+    ],
   }).notNull(),
   isOffPlatform: boolean("is_off_platform").default(false),
   offPlatformMethod: varchar("off_platform_method"),
   offPlatformNotes: text("off_platform_notes"),
-  
+
   // Fee structure (only for on-platform payments)
-  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).default('0'),
-  processingFeeAmount: decimal("processing_fee_amount", { precision: 10, scale: 2 }).default('0'),
-  homeownerFeeShare: decimal("homeowner_fee_share", { precision: 10, scale: 2 }).default('0'),
-  contractorFeeShare: decimal("contractor_fee_share", { precision: 10, scale: 2 }).default('0'),
+  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).default("0"),
+  processingFeeAmount: decimal("processing_fee_amount", { precision: 10, scale: 2 }).default("0"),
+  homeownerFeeShare: decimal("homeowner_fee_share", { precision: 10, scale: 2 }).default("0"),
+  contractorFeeShare: decimal("contractor_fee_share", { precision: 10, scale: 2 }).default("0"),
   netAmountToContractor: decimal("net_amount_to_contractor", { precision: 10, scale: 2 }),
-  
+
   // Stripe integration
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
   stripeTransferId: varchar("stripe_transfer_id"),
-  
+
   // Payment status and timeline
-  status: varchar("status", { 
-    enum: ['pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled', 'disputed'] 
-  }).default('pending'),
-  
+  status: varchar("status", {
+    enum: ["pending", "processing", "completed", "failed", "refunded", "cancelled", "disputed"],
+  }).default("pending"),
+
   // Milestones and escrow (for larger jobs)
   hasEscrow: boolean("has_escrow").default(false),
   escrowReleaseConditions: text("escrow_release_conditions"),
-  milestones: jsonb("milestones").$type<{
-    description: string;
-    amount: number;
-    dueDate?: string;
-    completed?: boolean;
-    completedAt?: string;
-  }[]>(),
-  
+  milestones: jsonb("milestones").$type<
+    {
+      description: string;
+      amount: number;
+      dueDate?: string;
+      completed?: boolean;
+      completedAt?: string;
+    }[]
+  >(),
+
   // Confirmation and verification
   serviceCompletedAt: timestamp("service_completed_at"),
   homeownerConfirmedAt: timestamp("homeowner_confirmed_at"),
   contractorConfirmedAt: timestamp("contractor_confirmed_at"),
-  
+
   // Documentation
   invoiceNumber: varchar("invoice_number"),
   receiptUrl: varchar("receipt_url"),
   workPhotos: jsonb("work_photos").$type<string[]>(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   completedAt: timestamp("completed_at"),
@@ -5765,16 +6708,18 @@ export const contractorPayments = pgTable("contractor_payments", {
 
 // Business analytics
 export const platformAnalytics = pgTable("platform_analytics", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   date: timestamp("date").notNull(),
   activeUsers: integer("active_users").default(0),
   newUsers: integer("new_users").default(0),
   listingsCreated: integer("listings_created").default(0),
   transactionsCompleted: integer("transactions_completed").default(0),
-  revenue: decimal("revenue", { precision: 12, scale: 2 }).default('0'),
+  revenue: decimal("revenue", { precision: 12, scale: 2 }).default("0"),
   onPlatformPayments: integer("on_platform_payments").default(0),
   offPlatformPayments: integer("off_platform_payments").default(0),
-  onPlatformRevenue: decimal("on_platform_revenue", { precision: 12, scale: 2 }).default('0'),
+  onPlatformRevenue: decimal("on_platform_revenue", { precision: 12, scale: 2 }).default("0"),
   topCategories: jsonb("top_categories"),
   topLocations: jsonb("top_locations"),
 });
@@ -5799,22 +6744,25 @@ export type PlatformAnalytics = typeof platformAnalytics.$inferSelect;
 export type InsertPlatformAnalytics = typeof platformAnalytics.$inferInsert;
 
 // Relations for new tables
-export const marketplaceTransactionsRelations = relations(marketplaceTransactions, ({ one, many }) => ({
-  listing: one(marketplaceListings, {
-    fields: [marketplaceTransactions.listingId],
-    references: [marketplaceListings.id],
-  }),
-  buyer: one(users, {
-    fields: [marketplaceTransactions.buyerId],
-    references: [users.id],
-  }),
-  seller: one(users, {
-    fields: [marketplaceTransactions.sellerId],
-    references: [users.id],
-  }),
-  disputes: many(transactionDisputes),
-  reviews: many(userReviews),
-}));
+export const marketplaceTransactionsRelations = relations(
+  marketplaceTransactions,
+  ({ one, many }) => ({
+    listing: one(marketplaceListings, {
+      fields: [marketplaceTransactions.listingId],
+      references: [marketplaceListings.id],
+    }),
+    buyer: one(users, {
+      fields: [marketplaceTransactions.buyerId],
+      references: [users.id],
+    }),
+    seller: one(users, {
+      fields: [marketplaceTransactions.sellerId],
+      references: [users.id],
+    }),
+    disputes: many(transactionDisputes),
+    reviews: many(userReviews),
+  })
+);
 
 export const listingBoostsRelations = relations(listingBoosts, ({ one }) => ({
   listing: one(marketplaceListings, {
@@ -5861,8 +6809,6 @@ export const userReviewsRelations = relations(userReviews, ({ one }) => ({
   }),
 }));
 
-
-
 export const realTimeNotificationsRelations = relations(realTimeNotifications, ({ one }) => ({
   user: one(users, {
     fields: [realTimeNotifications.userId],
@@ -5897,8 +6843,6 @@ export const insertTransactionDisputeSchema = createInsertSchema(transactionDisp
   resolvedAt: true,
   resolvedBy: true,
 });
-
-
 
 export const insertRealTimeNotificationSchema = createInsertSchema(realTimeNotifications).omit({
   id: true,
@@ -5952,31 +6896,29 @@ export type InsertPlatformAnalyticsType = z.infer<typeof insertPlatformAnalytics
 // ==================== TRADESCOUT FOUNDATION SYSTEM ====================
 
 // Donation status enum
-export const donationStatusEnum = pgEnum('donation_status', [
-  'pending',
-  'processing',
-  'completed',
-  'failed',
-  'refunded'
+export const donationStatusEnum = pgEnum("donation_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "refunded",
 ]);
 
 // Donation type enum
-export const donationTypeEnum = pgEnum('donation_type', [
-  'one_time',
-  'roundup',
-  'recurring'
-]);
+export const donationTypeEnum = pgEnum("donation_type", ["one_time", "roundup", "recurring"]);
 
 // Foundation causes (county-level charitable causes)
 export const foundationCauses = pgTable("foundation_causes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description").notNull(),
   category: varchar("category", { length: 100 }).notNull(), // education, environment, health, etc.
   countyId: varchar("county_id").references(() => counties.id),
   isActive: boolean("is_active").default(true),
   targetAmount: decimal("target_amount", { precision: 10, scale: 2 }),
-  raisedAmount: decimal("raised_amount", { precision: 10, scale: 2 }).default('0'),
+  raisedAmount: decimal("raised_amount", { precision: 10, scale: 2 }).default("0"),
   imageUrl: varchar("image_url", { length: 500 }),
   websiteUrl: varchar("website_url", { length: 500 }),
   contactEmail: varchar("contact_email", { length: 255 }),
@@ -5989,40 +6931,46 @@ export const foundationCauses = pgTable("foundation_causes", {
 
 // User donations to foundation causes
 export const foundationDonations = pgTable("foundation_donations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  causeId: varchar("cause_id").notNull().references(() => foundationCauses.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+  causeId: varchar("cause_id")
+    .notNull()
+    .references(() => foundationCauses.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  type: donationTypeEnum("type").notNull().default('one_time'),
-  status: donationStatusEnum("status").notNull().default('pending'),
-  
+  type: donationTypeEnum("type").notNull().default("one_time"),
+  status: donationStatusEnum("status").notNull().default("pending"),
+
   // Payment processing
   stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
   stripeChargeId: varchar("stripe_charge_id", { length: 255 }),
   paymentMethod: varchar("payment_method", { length: 50 }), // card, bank_transfer, etc.
-  
+
   // Transaction reference (for roundup donations)
   relatedTransactionId: varchar("related_transaction_id"), // contractor payment or marketplace transaction
   relatedTransactionType: varchar("related_transaction_type"), // 'contractor' or 'marketplace'
   isRoundupDonation: boolean("is_roundup_donation").default(false),
   originalAmount: decimal("original_amount", { precision: 10, scale: 2 }), // original transaction amount
-  
+
   // Recurring donations
   isRecurring: boolean("is_recurring").default(false),
   recurringFrequency: varchar("recurring_frequency", { length: 20 }), // monthly, weekly, etc.
   nextDonationDate: timestamp("next_donation_date"),
-  
+
   // Tax and receipt information
   isAnonymous: boolean("is_anonymous").default(false),
   taxDeductible: boolean("tax_deductible").default(true),
   receiptSent: boolean("receipt_sent").default(false),
   receiptUrl: varchar("receipt_url", { length: 500 }),
-  
+
   // Processing metadata
-  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default('0'),
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default("0"),
   netAmount: decimal("net_amount", { precision: 10, scale: 2 }), // amount after fees
   donorMessage: text("donor_message"), // optional message from donor
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   completedAt: timestamp("completed_at"),
@@ -6030,8 +6978,12 @@ export const foundationDonations = pgTable("foundation_donations", {
 
 // Foundation donation matching (corporate or admin matching programs)
 export const donationMatching = pgTable("donation_matching", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  donationId: varchar("donation_id").notNull().references(() => foundationDonations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  donationId: varchar("donation_id")
+    .notNull()
+    .references(() => foundationDonations.id),
   matchingAmount: decimal("matching_amount", { precision: 10, scale: 2 }).notNull(),
   matchingRatio: decimal("matching_ratio", { precision: 3, scale: 2 }), // 1.00 = 100% match
   sponsorName: varchar("sponsor_name", { length: 255 }), // company or individual matching
@@ -6043,46 +6995,54 @@ export const donationMatching = pgTable("donation_matching", {
 
 // User donation preferences (for roundup and recurring)
 export const userDonationPreferences = pgTable("user_donation_preferences", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
   // Roundup preferences
   enableRoundupDonations: boolean("enable_roundup_donations").default(false),
-  roundupThreshold: decimal("roundup_threshold", { precision: 5, scale: 2 }).default('1.00'), // max roundup amount
+  roundupThreshold: decimal("roundup_threshold", { precision: 5, scale: 2 }).default("1.00"), // max roundup amount
   defaultCauseId: varchar("default_cause_id").references(() => foundationCauses.id),
-  
+
   // Notification preferences
   emailReceipts: boolean("email_receipts").default(true),
   monthlyReports: boolean("monthly_reports").default(true),
   impactUpdates: boolean("impact_updates").default(true),
-  
+
   // Geographic preferences
   preferLocalCauses: boolean("prefer_local_causes").default(true),
   maxDistanceFromUser: integer("max_distance_from_user").default(50), // miles
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Foundation impact reporting
 export const foundationImpactReports = pgTable("foundation_impact_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  causeId: varchar("cause_id").notNull().references(() => foundationCauses.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  causeId: varchar("cause_id")
+    .notNull()
+    .references(() => foundationCauses.id),
   reportingPeriod: varchar("reporting_period", { length: 50 }), // monthly, quarterly, annual
   totalDonationsReceived: decimal("total_donations_received", { precision: 12, scale: 2 }),
   totalDonorsCount: integer("total_donors_count"),
   totalBeneficiaries: integer("total_beneficiaries"),
-  
+
   // Impact metrics (flexible JSON for different cause types)
   impactMetrics: jsonb("impact_metrics"), // { "meals_provided": 1000, "trees_planted": 50, etc. }
   storytelling: text("storytelling"), // narrative impact report
   mediaUrls: jsonb("media_urls"), // photos, videos of impact
-  
+
   // Financial transparency
   adminCosts: decimal("admin_costs", { precision: 10, scale: 2 }),
   programCosts: decimal("program_costs", { precision: 10, scale: 2 }),
   fundraisingCosts: decimal("fundraising_costs", { precision: 10, scale: 2 }),
-  
+
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -6231,11 +7191,13 @@ export const insertFoundationDonationSchema = createInsertSchema(foundationDonat
   updatedAt: true,
 });
 
-export const insertUserDonationPreferencesSchema = createInsertSchema(userDonationPreferences).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertUserDonationPreferencesSchema = createInsertSchema(userDonationPreferences).omit(
+  {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }
+);
 
 export const insertFoundationImpactReportSchema = createInsertSchema(foundationImpactReports).omit({
   id: true,
@@ -6282,311 +7244,378 @@ export * from "./tutorial-schema";
 // ===========================================
 
 // Notification types enum
-export const notificationTypeEnum = pgEnum('notification_type', [
+export const notificationTypeEnum = pgEnum("notification_type", [
   // Personal notifications
-  'birthday',
-  'anniversary',
-  'milestone',
-  'welcome',
-  'reminder',
-  
+  "birthday",
+  "anniversary",
+  "milestone",
+  "welcome",
+  "reminder",
+
   // Activity notifications
-  'new_message',
-  'new_project_request',
-  'new_application',
-  'project_update',
-  'payment_received',
-  'review_received',
-  'favorite_added',
-  
+  "new_message",
+  "new_project_request",
+  "new_application",
+  "project_update",
+  "payment_received",
+  "review_received",
+  "favorite_added",
+
   // System notifications
-  'system_update',
-  'maintenance',
-  'security_alert',
-  'verification_required',
-  'document_expiring',
-  'subscription_reminder',
-  
+  "system_update",
+  "maintenance",
+  "security_alert",
+  "verification_required",
+  "document_expiring",
+  "subscription_reminder",
+
   // Social notifications
-  'new_follower',
-  'post_liked',
-  'comment_received',
-  'mention',
-  'community_invitation',
-  
+  "new_follower",
+  "post_liked",
+  "comment_received",
+  "mention",
+  "community_invitation",
+
   // Marketing notifications
-  'promotional',
-  'feature_announcement',
-  'tips_and_advice',
-  'market_update',
-  'seasonal_promotion',
+  "promotional",
+  "feature_announcement",
+  "tips_and_advice",
+  "market_update",
+  "seasonal_promotion",
 ]);
 
 // Notification priority enum
-export const notificationPriorityEnum = pgEnum('notification_priority', [
-  'low',
-  'normal', 
-  'high',
-  'urgent',
-  'critical'
+export const notificationPriorityEnum = pgEnum("notification_priority", [
+  "low",
+  "normal",
+  "high",
+  "urgent",
+  "critical",
 ]);
 
 // Notification delivery method enum
-export const deliveryMethodEnum = pgEnum('delivery_method', [
-  'in_app',
-  'email',
-  'sms',
-  'push',
-  'webhook'
+export const deliveryMethodEnum = pgEnum("delivery_method", [
+  "in_app",
+  "email",
+  "sms",
+  "push",
+  "webhook",
 ]);
 
 // Main notifications table
-export const notifications = pgTable("notifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: notificationTypeEnum("type").notNull(),
-  priority: notificationPriorityEnum("priority").default('normal'),
-  
-  // Content
-  title: varchar("title").notNull(),
-  message: text("message").notNull(),
-  actionUrl: varchar("action_url"), // URL to navigate to when clicked
-  actionText: varchar("action_text"), // Button text for action
-  
-  // Rich content
-  iconName: varchar("icon_name"), // Lucide icon name
-  iconColor: varchar("icon_color").default('blue'), // Icon color theme
-  imageUrl: varchar("image_url"),
-  metadata: jsonb("metadata").$type<Record<string, any>>(), // Additional data
-  
-  // Delivery and status
-  deliveryMethods: jsonb("delivery_methods").$type<string[]>().default(sql`'["in_app"]'`),
-  isRead: boolean("is_read").default(false),
-  readAt: timestamp("read_at"),
-  isArchived: boolean("is_archived").default(false),
-  archivedAt: timestamp("archived_at"),
-  
-  // Scheduling
-  scheduledFor: timestamp("scheduled_for"), // For delayed notifications
-  expiresAt: timestamp("expires_at"), // When notification becomes irrelevant
-  
-  // Grouping and batching
-  groupId: varchar("group_id"), // For grouping similar notifications
-  batchId: varchar("batch_id"), // For batch sending
-  
-  // Tracking
-  sentAt: timestamp("sent_at"),
-  deliveredAt: timestamp("delivered_at"),
-  clickedAt: timestamp("clicked_at"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_notifications_user").on(table.userId),
-  index("idx_notifications_type").on(table.type),
-  index("idx_notifications_scheduled").on(table.scheduledFor),
-  index("idx_notifications_unread").on(table.userId, table.isRead),
-  index("idx_notifications_group").on(table.groupId),
-]);
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    priority: notificationPriorityEnum("priority").default("normal"),
+
+    // Content
+    title: varchar("title").notNull(),
+    message: text("message").notNull(),
+    actionUrl: varchar("action_url"), // URL to navigate to when clicked
+    actionText: varchar("action_text"), // Button text for action
+
+    // Rich content
+    iconName: varchar("icon_name"), // Lucide icon name
+    iconColor: varchar("icon_color").default("blue"), // Icon color theme
+    imageUrl: varchar("image_url"),
+    metadata: jsonb("metadata").$type<Record<string, any>>(), // Additional data
+
+    // Delivery and status
+    deliveryMethods: jsonb("delivery_methods")
+      .$type<string[]>()
+      .default(sql`'["in_app"]'`),
+    isRead: boolean("is_read").default(false),
+    readAt: timestamp("read_at"),
+    isArchived: boolean("is_archived").default(false),
+    archivedAt: timestamp("archived_at"),
+
+    // Scheduling
+    scheduledFor: timestamp("scheduled_for"), // For delayed notifications
+    expiresAt: timestamp("expires_at"), // When notification becomes irrelevant
+
+    // Grouping and batching
+    groupId: varchar("group_id"), // For grouping similar notifications
+    batchId: varchar("batch_id"), // For batch sending
+
+    // Tracking
+    sentAt: timestamp("sent_at"),
+    deliveredAt: timestamp("delivered_at"),
+    clickedAt: timestamp("clicked_at"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_notifications_user").on(table.userId),
+    index("idx_notifications_type").on(table.type),
+    index("idx_notifications_scheduled").on(table.scheduledFor),
+    index("idx_notifications_unread").on(table.userId, table.isRead),
+    index("idx_notifications_group").on(table.groupId),
+  ]
+);
 
 // User notification preferences
-export const notificationPreferences = pgTable("notification_preferences", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
-  // General preferences
-  enableNotifications: boolean("enable_notifications").default(true),
-  enableEmailNotifications: boolean("enable_email_notifications").default(true),
-  enableSmsNotifications: boolean("enable_sms_notifications").default(false),
-  enablePushNotifications: boolean("enable_push_notifications").default(true),
-  
-  // Notification type preferences (jsonb for flexibility)
-  typePreferences: jsonb("type_preferences").$type<Record<string, {
-    enabled: boolean;
-    delivery_methods: string[];
-    frequency?: 'instant' | 'hourly' | 'daily' | 'weekly';
-  }>>().default(sql`'{}'`),
-  
-  // Time preferences
-  quietHoursStart: varchar("quiet_hours_start").default('22:00'), // 10 PM
-  quietHoursEnd: varchar("quiet_hours_end").default('08:00'), // 8 AM
-  timezone: varchar("timezone").default('America/New_York'),
-  
-  // Batching preferences
-  batchDailyDigest: boolean("batch_daily_digest").default(false),
-  batchWeeklyDigest: boolean("batch_weekly_digest").default(false),
-  digestTime: varchar("digest_time").default('09:00'), // 9 AM
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_notification_preferences_user").on(table.userId),
-]);
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // General preferences
+    enableNotifications: boolean("enable_notifications").default(true),
+    enableEmailNotifications: boolean("enable_email_notifications").default(true),
+    enableSmsNotifications: boolean("enable_sms_notifications").default(false),
+    enablePushNotifications: boolean("enable_push_notifications").default(true),
+
+    // Notification type preferences (jsonb for flexibility)
+    typePreferences: jsonb("type_preferences")
+      .$type<
+        Record<
+          string,
+          {
+            enabled: boolean;
+            delivery_methods: string[];
+            frequency?: "instant" | "hourly" | "daily" | "weekly";
+          }
+        >
+      >()
+      .default(sql`'{}'`),
+
+    // Time preferences
+    quietHoursStart: varchar("quiet_hours_start").default("22:00"), // 10 PM
+    quietHoursEnd: varchar("quiet_hours_end").default("08:00"), // 8 AM
+    timezone: varchar("timezone").default("America/New_York"),
+
+    // Batching preferences
+    batchDailyDigest: boolean("batch_daily_digest").default(false),
+    batchWeeklyDigest: boolean("batch_weekly_digest").default(false),
+    digestTime: varchar("digest_time").default("09:00"), // 9 AM
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [index("idx_notification_preferences_user").on(table.userId)]
+);
 
 // Web push subscriptions for browser/device notifications
-export const pushSubscriptions = pgTable("push_subscriptions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  endpoint: text("endpoint").notNull(),
-  keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_push_subscriptions_user").on(table.userId),
-  uniqueIndex("uidx_push_subscriptions_endpoint").on(table.endpoint),
-]);
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_push_subscriptions_user").on(table.userId),
+    uniqueIndex("uidx_push_subscriptions_endpoint").on(table.endpoint),
+  ]
+);
 
 // User personal events for birthday and anniversary notifications
-export const userPersonalEvents = pgTable("user_personal_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
-  // Event details
-  eventType: varchar("event_type").notNull(), // 'birthday', 'work_anniversary', 'business_anniversary', 'custom'
-  eventName: varchar("event_name"), // Custom name for the event
-  eventDate: varchar("event_date").notNull(), // MM-DD format for recurring events
-  eventYear: integer("event_year"), // Optional year for non-recurring events
-  
-  // Notification settings
-  enableNotifications: boolean("enable_notifications").default(true),
-  notifyDaysBefore: jsonb("notify_days_before").$type<number[]>().default(sql`'[0, 1, 7]'`), // Day of, 1 day before, 1 week before
-  customMessage: text("custom_message"),
-  
-  // Privacy
-  isPublic: boolean("is_public").default(false), // Whether others can see this event
-  shareWithTeam: boolean("share_with_team").default(false), // Share with team/company
-  
-  // Metadata
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_user_personal_events_user").on(table.userId),
-  index("idx_user_personal_events_date").on(table.eventDate),
-]);
+export const userPersonalEvents = pgTable(
+  "user_personal_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Event details
+    eventType: varchar("event_type").notNull(), // 'birthday', 'work_anniversary', 'business_anniversary', 'custom'
+    eventName: varchar("event_name"), // Custom name for the event
+    eventDate: varchar("event_date").notNull(), // MM-DD format for recurring events
+    eventYear: integer("event_year"), // Optional year for non-recurring events
+
+    // Notification settings
+    enableNotifications: boolean("enable_notifications").default(true),
+    notifyDaysBefore: jsonb("notify_days_before")
+      .$type<number[]>()
+      .default(sql`'[0, 1, 7]'`), // Day of, 1 day before, 1 week before
+    customMessage: text("custom_message"),
+
+    // Privacy
+    isPublic: boolean("is_public").default(false), // Whether others can see this event
+    shareWithTeam: boolean("share_with_team").default(false), // Share with team/company
+
+    // Metadata
+    metadata: jsonb("metadata").$type<Record<string, any>>(),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_user_personal_events_user").on(table.userId),
+    index("idx_user_personal_events_date").on(table.eventDate),
+  ]
+);
 
 // Notification delivery log for tracking and analytics
-export const notificationDeliveryLog = pgTable("notification_delivery_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  notificationId: varchar("notification_id").notNull().references(() => notifications.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
-  // Delivery details
-  deliveryMethod: deliveryMethodEnum("delivery_method").notNull(),
-  status: varchar("status").notNull(), // 'pending', 'sent', 'delivered', 'failed', 'bounced'
-  
-  // Contact info used
-  contactInfo: varchar("contact_info"), // Email address or phone number used
-  
-  // External service details
-  externalId: varchar("external_id"), // ID from external service (SendGrid, Twilio, etc.)
-  externalResponse: jsonb("external_response").$type<Record<string, any>>(),
-  
-  // Error tracking
-  errorCode: varchar("error_code"),
-  errorMessage: text("error_message"),
-  retryCount: integer("retry_count").default(0),
-  nextRetryAt: timestamp("next_retry_at"),
-  
-  // Timestamps
-  sentAt: timestamp("sent_at"),
-  deliveredAt: timestamp("delivered_at"),
-  failedAt: timestamp("failed_at"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_notification_delivery_notification").on(table.notificationId),
-  index("idx_notification_delivery_user").on(table.userId),
-  index("idx_notification_delivery_status").on(table.status),
-  index("idx_notification_delivery_retry").on(table.nextRetryAt),
-]);
+export const notificationDeliveryLog = pgTable(
+  "notification_delivery_log",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    notificationId: varchar("notification_id")
+      .notNull()
+      .references(() => notifications.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Delivery details
+    deliveryMethod: deliveryMethodEnum("delivery_method").notNull(),
+    status: varchar("status").notNull(), // 'pending', 'sent', 'delivered', 'failed', 'bounced'
+
+    // Contact info used
+    contactInfo: varchar("contact_info"), // Email address or phone number used
+
+    // External service details
+    externalId: varchar("external_id"), // ID from external service (SendGrid, Twilio, etc.)
+    externalResponse: jsonb("external_response").$type<Record<string, any>>(),
+
+    // Error tracking
+    errorCode: varchar("error_code"),
+    errorMessage: text("error_message"),
+    retryCount: integer("retry_count").default(0),
+    nextRetryAt: timestamp("next_retry_at"),
+
+    // Timestamps
+    sentAt: timestamp("sent_at"),
+    deliveredAt: timestamp("delivered_at"),
+    failedAt: timestamp("failed_at"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_notification_delivery_notification").on(table.notificationId),
+    index("idx_notification_delivery_user").on(table.userId),
+    index("idx_notification_delivery_status").on(table.status),
+    index("idx_notification_delivery_retry").on(table.nextRetryAt),
+  ]
+);
 
 // Notification templates for consistent messaging
-export const notificationTemplates = pgTable("notification_templates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
-  // Template identification
-  type: notificationTypeEnum("type").notNull(),
-  name: varchar("name").notNull(),
-  description: text("description"),
-  
-  // Template content
-  titleTemplate: varchar("title_template").notNull(),
-  messageTemplate: text("message_template").notNull(),
-  emailSubjectTemplate: varchar("email_subject_template"),
-  emailBodyTemplate: text("email_body_template"),
-  smsTemplate: text("sms_template"),
-  
-  // Template variables
-  templateVariables: jsonb("template_variables").$type<string[]>(), // List of available variables
-  
-  // Appearance
-  iconName: varchar("icon_name"),
-  iconColor: varchar("icon_color").default('blue'),
-  priority: notificationPriorityEnum("priority").default('normal'),
-  
-  // Settings
-  defaultDeliveryMethods: jsonb("default_delivery_methods").$type<string[]>().default(sql`'["in_app"]'`),
-  expiresAfterHours: integer("expires_after_hours").default(168), // 1 week default
-  
-  // Status
-  isActive: boolean("is_active").default(true),
-  isDefault: boolean("is_default").default(false), // Default template for this type
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_notification_templates_type").on(table.type),
-  index("idx_notification_templates_active").on(table.isActive),
-]);
+export const notificationTemplates = pgTable(
+  "notification_templates",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    // Template identification
+    type: notificationTypeEnum("type").notNull(),
+    name: varchar("name").notNull(),
+    description: text("description"),
+
+    // Template content
+    titleTemplate: varchar("title_template").notNull(),
+    messageTemplate: text("message_template").notNull(),
+    emailSubjectTemplate: varchar("email_subject_template"),
+    emailBodyTemplate: text("email_body_template"),
+    smsTemplate: text("sms_template"),
+
+    // Template variables
+    templateVariables: jsonb("template_variables").$type<string[]>(), // List of available variables
+
+    // Appearance
+    iconName: varchar("icon_name"),
+    iconColor: varchar("icon_color").default("blue"),
+    priority: notificationPriorityEnum("priority").default("normal"),
+
+    // Settings
+    defaultDeliveryMethods: jsonb("default_delivery_methods")
+      .$type<string[]>()
+      .default(sql`'["in_app"]'`),
+    expiresAfterHours: integer("expires_after_hours").default(168), // 1 week default
+
+    // Status
+    isActive: boolean("is_active").default(true),
+    isDefault: boolean("is_default").default(false), // Default template for this type
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_notification_templates_type").on(table.type),
+    index("idx_notification_templates_active").on(table.isActive),
+  ]
+);
 
 // Scheduled notification jobs for batch processing
-export const notificationJobs = pgTable("notification_jobs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
-  // Job details
-  jobType: varchar("job_type").notNull(), // 'birthday_batch', 'weekly_digest', 'reminder_batch', etc.
-  scheduledFor: timestamp("scheduled_for").notNull(),
-  
-  // Target criteria
-  targetUserIds: jsonb("target_user_ids").$type<string[]>(),
-  targetFilters: jsonb("target_filters").$type<Record<string, any>>(), // Dynamic user filtering
-  
-  // Notification details
-  notificationType: notificationTypeEnum("notification_type").notNull(),
-  templateId: varchar("template_id").references(() => notificationTemplates.id),
-  templateData: jsonb("template_data").$type<Record<string, any>>(),
-  
-  // Processing status
-  status: varchar("status").default('pending'), // 'pending', 'running', 'completed', 'failed', 'cancelled'
-  startedAt: timestamp("started_at"),
-  completedAt: timestamp("completed_at"),
-  
-  // Results
-  targetCount: integer("target_count").default(0),
-  successCount: integer("success_count").default(0),
-  failureCount: integer("failure_count").default(0),
-  errorLog: jsonb("error_log").$type<Array<{
-    userId: string;
-    error: string;
-    timestamp: string;
-  }>>(),
-  
-  // Retry logic
-  maxRetries: integer("max_retries").default(3),
-  retryCount: integer("retry_count").default(0),
-  nextRetryAt: timestamp("next_retry_at"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_notification_jobs_scheduled").on(table.scheduledFor),
-  index("idx_notification_jobs_status").on(table.status),
-  index("idx_notification_jobs_type").on(table.jobType),
-]);
+export const notificationJobs = pgTable(
+  "notification_jobs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    // Job details
+    jobType: varchar("job_type").notNull(), // 'birthday_batch', 'weekly_digest', 'reminder_batch', etc.
+    scheduledFor: timestamp("scheduled_for").notNull(),
+
+    // Target criteria
+    targetUserIds: jsonb("target_user_ids").$type<string[]>(),
+    targetFilters: jsonb("target_filters").$type<Record<string, any>>(), // Dynamic user filtering
+
+    // Notification details
+    notificationType: notificationTypeEnum("notification_type").notNull(),
+    templateId: varchar("template_id").references(() => notificationTemplates.id),
+    templateData: jsonb("template_data").$type<Record<string, any>>(),
+
+    // Processing status
+    status: varchar("status").default("pending"), // 'pending', 'running', 'completed', 'failed', 'cancelled'
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+
+    // Results
+    targetCount: integer("target_count").default(0),
+    successCount: integer("success_count").default(0),
+    failureCount: integer("failure_count").default(0),
+    errorLog: jsonb("error_log").$type<
+      Array<{
+        userId: string;
+        error: string;
+        timestamp: string;
+      }>
+    >(),
+
+    // Retry logic
+    maxRetries: integer("max_retries").default(3),
+    retryCount: integer("retry_count").default(0),
+    nextRetryAt: timestamp("next_retry_at"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_notification_jobs_scheduled").on(table.scheduledFor),
+    index("idx_notification_jobs_status").on(table.status),
+    index("idx_notification_jobs_type").on(table.jobType),
+  ]
+);
 
 // Relations for notification system
 export const notificationsRelations = relations(notifications, ({ one, many }) => ({
@@ -6643,11 +7672,13 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   updatedAt: true,
 });
 
-export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit(
+  {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }
+);
 
 export const insertUserPersonalEventSchema = createInsertSchema(userPersonalEvents).omit({
   id: true,
@@ -6679,13 +7710,17 @@ export type NotificationJob = typeof notificationJobs.$inferSelect;
 
 // Feature Flags table for admin control over platform features
 export const featureFlags = pgTable("feature_flags", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   key: varchar("key", { length: 255 }).notNull().unique(), // e.g., 'advanced_calculator'
   description: text("description"),
   enabled: boolean("enabled").default(false),
-  category: varchar("category", { length: 100 }).default('general'), // general, admin, contractor, homeowner
-  userRoles: text("user_roles").array().default(sql`ARRAY[]::text[]`), // Roles that can see this feature
+  category: varchar("category", { length: 100 }).default("general"), // general, admin, contractor, homeowner
+  userRoles: text("user_roles")
+    .array()
+    .default(sql`ARRAY[]::text[]`), // Roles that can see this feature
   config: jsonb("config"), // Additional configuration data
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -6705,48 +7740,54 @@ export type InsertFeatureFlagType = z.infer<typeof insertFeatureFlagSchema>;
 
 // Phase 1: Daily Deal Feeds (LuckyBucks 2.0) System
 export const dailyDeals = pgTable("daily_deals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description").notNull(),
   dealType: varchar("deal_type", { length: 50 }).notNull(), // 'service_discount', 'product_sale', 'material_deal'
-  
+
   // Provider info
   providerId: varchar("provider_id").notNull(),
   providerType: varchar("provider_type", { length: 50 }).notNull(), // 'contractor', 'service_provider', 'business'
-  
+
   // Deal details
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   discountPrice: decimal("discount_price", { precision: 10, scale: 2 }).notNull(),
   discountPercentage: integer("discount_percentage"),
-  
+
   // Geographic targeting
   countyFips: varchar("county_fips", { length: 5 }).notNull(),
   serviceArea: text("service_area").array(),
-  
+
   // Timing and availability
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   isActive: boolean("is_active").default(true),
   maxRedemptions: integer("max_redemptions"),
   currentRedemptions: integer("current_redemptions").default(0),
-  
+
   // Engagement metrics
   views: integer("views").default(0),
   clicks: integer("clicks").default(0),
   saves: integer("saves").default(0),
-  
+
   // Metadata
-  tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  tags: text("tags")
+    .array()
+    .default(sql`ARRAY[]::text[]`),
   featured: boolean("featured").default(false),
   priority: integer("priority").default(0),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Canonical promotions table for TradeDeals, sponsors, and announcements
 export const promotions = pgTable("promotions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
 
   // Core content
   title: varchar("title", { length: 200 }).notNull(),
@@ -6764,17 +7805,28 @@ export const promotions = pgTable("promotions", {
   // Monetization tier: free_directory (no placements) vs paid_campaign (placements allowed)
   tier: varchar("tier", {
     enum: ["free_directory", "paid_campaign"],
-  }).notNull().default("free_directory"),
+  })
+    .notNull()
+    .default("free_directory"),
 
   // Lifecycle
   status: varchar("status", {
     enum: ["draft", "active", "paused", "ended"],
-  }).notNull().default("draft"),
+  })
+    .notNull()
+    .default("draft"),
 
   // Targeting
-  countyFips: text("county_fips").array().notNull().default(sql`ARRAY[]::text[]`),
-  userTypeTags: text("user_type_tags").array().default(sql`ARRAY[]::text[]`),
-  tradeSlugs: text("trade_slugs").array().default(sql`ARRAY[]::text[]`),
+  countyFips: text("county_fips")
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
+  userTypeTags: text("user_type_tags")
+    .array()
+    .default(sql`ARRAY[]::text[]`),
+  tradeSlugs: text("trade_slugs")
+    .array()
+    .default(sql`ARRAY[]::text[]`),
 
   // Placements
   placementCommunitySnapshot: boolean("placement_community_snapshot").notNull().default(false),
@@ -6795,24 +7847,26 @@ export type InsertPromotion = typeof promotions.$inferInsert;
 
 // User affiliate system (Phase 1 requirement)
 export const userAffiliates = pgTable("user_affiliates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   affiliateCode: varchar("affiliate_code", { length: 50 }).notNull().unique(),
-  
+
   // Commission tracking
-  totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default('0'),
-  pendingEarnings: decimal("pending_earnings", { precision: 10, scale: 2 }).default('0'),
-  paidEarnings: decimal("paid_earnings", { precision: 10, scale: 2 }).default('0'),
-  
+  totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default("0"),
+  pendingEarnings: decimal("pending_earnings", { precision: 10, scale: 2 }).default("0"),
+  paidEarnings: decimal("paid_earnings", { precision: 10, scale: 2 }).default("0"),
+
   // Performance metrics
   totalReferrals: integer("total_referrals").default(0),
   successfulReferrals: integer("successful_referrals").default(0),
   clicksGenerated: integer("clicks_generated").default(0),
-  
+
   // Tier system
-  tierLevel: varchar("tier_level", { length: 20 }).default('standard'), // 'standard', 'scout', 'ambassador'
-  commissionRate: decimal("commission_rate", { precision: 4, scale: 2 }).default('10.00'), // 10% default
-  
+  tierLevel: varchar("tier_level", { length: 20 }).default("standard"), // 'standard', 'scout', 'ambassador'
+  commissionRate: decimal("commission_rate", { precision: 4, scale: 2 }).default("10.00"), // 10% default
+
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -6820,42 +7874,46 @@ export const userAffiliates = pgTable("user_affiliates", {
 
 // Affiliate tracking for clicks and conversions
 export const affiliateTracking = pgTable("affiliate_tracking", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   affiliateCode: varchar("affiliate_code", { length: 50 }).notNull(),
   visitingUserId: varchar("visiting_user_id"), // null for anonymous visitors
-  
+
   // Tracking data
   action: varchar("action", { length: 50 }).notNull(), // 'click', 'signup', 'purchase', 'conversion'
   sourceUrl: text("source_url"),
   targetUrl: text("target_url"),
-  
+
   // Attribution
   sessionId: varchar("session_id"),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
-  
+
   // Revenue tracking
   conversionValue: decimal("conversion_value", { precision: 10, scale: 2 }),
   commissionEarned: decimal("commission_earned", { precision: 10, scale: 2 }),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Daily deal engagement tracking
 export const dealEngagements = pgTable("deal_engagements", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   dealId: varchar("deal_id").notNull(),
   userId: varchar("user_id"),
   sessionId: varchar("session_id"),
-  
+
   engagementType: varchar("engagement_type", { length: 50 }).notNull(), // 'view', 'click', 'save', 'redeem'
-  
+
   // Affiliate attribution
   affiliateCode: varchar("affiliate_code", { length: 50 }),
-  
+
   // Location context
   countyFips: varchar("county_fips", { length: 5 }),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -6950,7 +8008,9 @@ export const insertDealEngagementSchema = createInsertSchema(dealEngagements).om
 
 // Professional story generation tables
 export const storyTemplates = pgTable("story_templates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   category: storyTemplateCategoryEnum("category").notNull(),
   description: text("description"),
@@ -6962,36 +8022,56 @@ export const storyTemplates = pgTable("story_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const generatedStories = pgTable("generated_stories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  templateId: varchar("template_id").references(() => storyTemplates.id, { onDelete: 'set null' }),
-  title: varchar("title").notNull(),
-  content: text("content").notNull(),
-  userInputs: jsonb("user_inputs").$type<Record<string, string>>(),
-  isPublic: boolean("is_public").default(false),
-  isPinned: boolean("is_pinned").default(false),
-  viewCount: integer("view_count").default(0),
-  shareCount: integer("share_count").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("idx_generated_stories_user").on(table.userId),
-  index("idx_generated_stories_template").on(table.templateId),
-  index("idx_generated_stories_public").on(table.isPublic),
-]);
+export const generatedStories = pgTable(
+  "generated_stories",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    templateId: varchar("template_id").references(() => storyTemplates.id, {
+      onDelete: "set null",
+    }),
+    title: varchar("title").notNull(),
+    content: text("content").notNull(),
+    userInputs: jsonb("user_inputs").$type<Record<string, string>>(),
+    isPublic: boolean("is_public").default(false),
+    isPinned: boolean("is_pinned").default(false),
+    viewCount: integer("view_count").default(0),
+    shareCount: integer("share_count").default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_generated_stories_user").on(table.userId),
+    index("idx_generated_stories_template").on(table.templateId),
+    index("idx_generated_stories_public").on(table.isPublic),
+  ]
+);
 
-export const storyInteractions = pgTable("story_interactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  storyId: varchar("story_id").notNull().references(() => generatedStories.id, { onDelete: 'cascade' }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  interactionType: varchar("interaction_type").notNull(), // 'view', 'like', 'share', 'copy'
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_story_interactions_story").on(table.storyId),
-  index("idx_story_interactions_user").on(table.userId),
-]);
+export const storyInteractions = pgTable(
+  "story_interactions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    storyId: varchar("story_id")
+      .notNull()
+      .references(() => generatedStories.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    interactionType: varchar("interaction_type").notNull(), // 'view', 'like', 'share', 'copy'
+    metadata: jsonb("metadata").$type<Record<string, any>>(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_story_interactions_story").on(table.storyId),
+    index("idx_story_interactions_user").on(table.userId),
+  ]
+);
 
 // Story generation schemas
 export const insertStoryTemplateSchema = createInsertSchema(storyTemplates).omit({
@@ -7016,260 +8096,320 @@ export const insertStoryInteractionSchema = createInsertSchema(storyInteractions
 // ==================== COMMUNITY BUILDER SYSTEM ====================
 
 // Enum for builder rank/status
-export const builderRankEnum = pgEnum('builder_rank', [
-  'prospect',           // New builders, pre-approved
-  'bronze',             // <$1k contribution
-  'silver',             // $1k-$5k contribution
-  'gold',               // $5k-$25k contribution
-  'platinum',           // $25k-$100k contribution
-  'diamond',            // $100k+ contribution
+export const builderRankEnum = pgEnum("builder_rank", [
+  "prospect", // New builders, pre-approved
+  "bronze", // <$1k contribution
+  "silver", // $1k-$5k contribution
+  "gold", // $5k-$25k contribution
+  "platinum", // $25k-$100k contribution
+  "diamond", // $100k+ contribution
 ]);
 
 // Enum for contribution types
-export const contributionTypeEnum = pgEnum('contribution_type', [
-  'service_hours',      // Hours donated
-  'materials',          // Physical materials/goods
-  'equipment_rental',   // Equipment/machinery
-  'financial',          // Direct payment/funding
-  'expertise',          // Professional consulting/skills
-  'promotion',          // Marketing/visibility assistance
-  'administration',     // Admin/coordination help
+export const contributionTypeEnum = pgEnum("contribution_type", [
+  "service_hours", // Hours donated
+  "materials", // Physical materials/goods
+  "equipment_rental", // Equipment/machinery
+  "financial", // Direct payment/funding
+  "expertise", // Professional consulting/skills
+  "promotion", // Marketing/visibility assistance
+  "administration", // Admin/coordination help
 ]);
 
 // Enum for contribution status
-export const contributionStatusEnum = pgEnum('contribution_status', [
-  'proposed',           // Builder submitted idea
-  'pending_approval',   // Under review by admin
-  'approved',           // Ready to execute
-  'in_progress',        // Currently happening
-  'completed',          // Done, pending audit
-  'verified',           // Audited & locked
-  'disputed',           // Under dispute resolution
-  'cancelled',          // Withdrawn or rejected
+export const contributionStatusEnum = pgEnum("contribution_status", [
+  "proposed", // Builder submitted idea
+  "pending_approval", // Under review by admin
+  "approved", // Ready to execute
+  "in_progress", // Currently happening
+  "completed", // Done, pending audit
+  "verified", // Audited & locked
+  "disputed", // Under dispute resolution
+  "cancelled", // Withdrawn or rejected
 ]);
 
 // Community Builder records
-export const communityBuilderProfiles = pgTable("community_builder_profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
-  countyId: varchar("county_id").notNull().references(() => counties.id),
-  
-  // Builder details
-  businessName: varchar("business_name"),
-  description: text("description"),
-  profileImageUrl: varchar("profile_image_url"),
-  website: varchar("website"),
-  
-  // Contribution Tracking
-  currentRank: builderRankEnum("current_rank").notNull().default('prospect'),
-  totalContributionValue: decimal("total_contribution_value", { precision: 14, scale: 2 }).notNull().default('0'),
-  totalHoursDonated: decimal("total_hours_donated", { precision: 12, scale: 2 }).notNull().default('0'),
-  activeContributionsCount: integer("active_contributions_count").notNull().default(0),
-  completedContributionsCount: integer("completed_contributions_count").notNull().default(0),
-  
-  // Reputation & Performance
-  ratingScore: decimal("rating_score", { precision: 3, scale: 2 }).default('0'), // 0-5 stars
-  ratingCount: integer("rating_count").notNull().default(0),
-  verificationRate: decimal("verification_rate", { precision: 5, scale: 2 }).default('100'), // 0-100%
-  
-  // Payout Info
-  bankAccountId: varchar("bank_account_id"), // Foreign reference to external payout provider
-  payoutEmail: varchar("payout_email"),
-  payoutFrequency: varchar("payout_frequency").default('monthly'), // weekly, biweekly, monthly
-  lastPayoutAt: timestamp("last_payout_at"),
-  
-  // Program Participation
-  isProgramMember: boolean("is_program_member").default(true),
-  programJoinedAt: timestamp("program_joined_at").defaultNow(),
-  isVerified: boolean("is_verified").default(false),
-  verificationSubmittedAt: timestamp("verification_submitted_at"),
-  verificationApprovedAt: timestamp("verification_approved_at"),
-  
-  // Status
-  status: varchar("status").notNull().default('active'), // active, inactive, suspended, terminated
-  suspensionReason: text("suspension_reason"),
-  suspendedAt: timestamp("suspended_at"),
-  
-  // Metadata & Settings
-  preferences: jsonb("preferences").$type<{
-    communicationChannel?: 'email' | 'sms' | 'both';
-    leaderboardVisibility?: 'public' | 'private' | 'county_only';
-    autoAcceptSmallTasks?: boolean;
-    notificationPrefs?: Record<string, boolean>;
-  }>(),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  uniqueIndex("builder_profile_user_uidx").on(table.userId),
-  index("builder_profile_county_idx").on(table.countyId),
-  index("builder_profile_rank_idx").on(table.currentRank),
-  index("builder_profile_status_idx").on(table.status),
-]);
+export const communityBuilderProfiles = pgTable(
+  "community_builder_profiles",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    countyId: varchar("county_id")
+      .notNull()
+      .references(() => counties.id),
+
+    // Builder details
+    businessName: varchar("business_name"),
+    description: text("description"),
+    profileImageUrl: varchar("profile_image_url"),
+    website: varchar("website"),
+
+    // Contribution Tracking
+    currentRank: builderRankEnum("current_rank").notNull().default("prospect"),
+    totalContributionValue: decimal("total_contribution_value", { precision: 14, scale: 2 })
+      .notNull()
+      .default("0"),
+    totalHoursDonated: decimal("total_hours_donated", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    activeContributionsCount: integer("active_contributions_count").notNull().default(0),
+    completedContributionsCount: integer("completed_contributions_count").notNull().default(0),
+
+    // Reputation & Performance
+    ratingScore: decimal("rating_score", { precision: 3, scale: 2 }).default("0"), // 0-5 stars
+    ratingCount: integer("rating_count").notNull().default(0),
+    verificationRate: decimal("verification_rate", { precision: 5, scale: 2 }).default("100"), // 0-100%
+
+    // Payout Info
+    bankAccountId: varchar("bank_account_id"), // Foreign reference to external payout provider
+    payoutEmail: varchar("payout_email"),
+    payoutFrequency: varchar("payout_frequency").default("monthly"), // weekly, biweekly, monthly
+    lastPayoutAt: timestamp("last_payout_at"),
+
+    // Program Participation
+    isProgramMember: boolean("is_program_member").default(true),
+    programJoinedAt: timestamp("program_joined_at").defaultNow(),
+    isVerified: boolean("is_verified").default(false),
+    verificationSubmittedAt: timestamp("verification_submitted_at"),
+    verificationApprovedAt: timestamp("verification_approved_at"),
+
+    // Status
+    status: varchar("status").notNull().default("active"), // active, inactive, suspended, terminated
+    suspensionReason: text("suspension_reason"),
+    suspendedAt: timestamp("suspended_at"),
+
+    // Metadata & Settings
+    preferences: jsonb("preferences").$type<{
+      communicationChannel?: "email" | "sms" | "both";
+      leaderboardVisibility?: "public" | "private" | "county_only";
+      autoAcceptSmallTasks?: boolean;
+      notificationPrefs?: Record<string, boolean>;
+    }>(),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("builder_profile_user_uidx").on(table.userId),
+    index("builder_profile_county_idx").on(table.countyId),
+    index("builder_profile_rank_idx").on(table.currentRank),
+    index("builder_profile_status_idx").on(table.status),
+  ]
+);
 
 // Proposed Contributions (Tasks/Projects)
-export const builderContributions = pgTable("builder_contributions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  builderId: varchar("builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
-  countyId: varchar("county_id").notNull().references(() => counties.id),
-  
-  // Contribution Details
-  title: varchar("title").notNull(),
-  description: text("description").notNull(),
-  type: contributionTypeEnum("type").notNull(),
-  status: contributionStatusEnum("status").notNull().default('proposed'),
-  
-  // Value & Impact
-  estimatedValue: decimal("estimated_value", { precision: 12, scale: 2 }).notNull(),
-  estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }),
-  actualValue: decimal("actual_value", { precision: 12, scale: 2 }),
-  actualHours: decimal("actual_hours", { precision: 10, scale: 2 }),
-  
-  // Timeline
-  proposedStartDate: timestamp("proposed_start_date"),
-  proposedEndDate: timestamp("proposed_end_date"),
-  actualStartDate: timestamp("actual_start_date"),
-  actualEndDate: timestamp("actual_end_date"),
-  
-  // Approval & Auditing
-  approvedBy: varchar("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  verifiedBy: varchar("verified_by").references(() => users.id),
-  verifiedAt: timestamp("verified_at"),
-  
-  // Evidence & Documentation
-  evidence: jsonb("evidence").$type<Array<{
-    type: 'photo' | 'video' | 'invoice' | 'receipt' | 'document';
-    url: string;
-    description?: string;
-    uploadedAt: string;
-  }>>(),
-  
-  // Payout Info
-  isPaidOut: boolean("is_paid_out").default(false),
-  paidOutAmount: decimal("paid_out_amount", { precision: 12, scale: 2 }),
-  paidOutAt: timestamp("paid_out_at"),
-  paidOutToVault: boolean("paid_out_to_vault").default(true), // vs. directly to builder
-  
-  // Dispute Resolution
-  isDisputed: boolean("is_disputed").default(false),
-  disputeReason: text("dispute_reason"),
-  disputeResolvedAt: timestamp("dispute_resolved_at"),
-  disputeResolution: text("dispute_resolution"),
-  
-  // Metadata
-  tags: text("tags").array(),
-  impact: text("impact"), // Description of community impact
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("builder_contrib_builder_idx").on(table.builderId),
-  index("builder_contrib_county_idx").on(table.countyId),
-  index("builder_contrib_status_idx").on(table.status),
-  index("builder_contrib_created_idx").on(table.createdAt),
-]);
+export const builderContributions = pgTable(
+  "builder_contributions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    builderId: varchar("builder_id")
+      .notNull()
+      .references(() => communityBuilderProfiles.id, { onDelete: "cascade" }),
+    countyId: varchar("county_id")
+      .notNull()
+      .references(() => counties.id),
+
+    // Contribution Details
+    title: varchar("title").notNull(),
+    description: text("description").notNull(),
+    type: contributionTypeEnum("type").notNull(),
+    status: contributionStatusEnum("status").notNull().default("proposed"),
+
+    // Value & Impact
+    estimatedValue: decimal("estimated_value", { precision: 12, scale: 2 }).notNull(),
+    estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }),
+    actualValue: decimal("actual_value", { precision: 12, scale: 2 }),
+    actualHours: decimal("actual_hours", { precision: 10, scale: 2 }),
+
+    // Timeline
+    proposedStartDate: timestamp("proposed_start_date"),
+    proposedEndDate: timestamp("proposed_end_date"),
+    actualStartDate: timestamp("actual_start_date"),
+    actualEndDate: timestamp("actual_end_date"),
+
+    // Approval & Auditing
+    approvedBy: varchar("approved_by").references(() => users.id),
+    approvedAt: timestamp("approved_at"),
+    verifiedBy: varchar("verified_by").references(() => users.id),
+    verifiedAt: timestamp("verified_at"),
+
+    // Evidence & Documentation
+    evidence: jsonb("evidence").$type<
+      Array<{
+        type: "photo" | "video" | "invoice" | "receipt" | "document";
+        url: string;
+        description?: string;
+        uploadedAt: string;
+      }>
+    >(),
+
+    // Payout Info
+    isPaidOut: boolean("is_paid_out").default(false),
+    paidOutAmount: decimal("paid_out_amount", { precision: 12, scale: 2 }),
+    paidOutAt: timestamp("paid_out_at"),
+    paidOutToVault: boolean("paid_out_to_vault").default(true), // vs. directly to builder
+
+    // Dispute Resolution
+    isDisputed: boolean("is_disputed").default(false),
+    disputeReason: text("dispute_reason"),
+    disputeResolvedAt: timestamp("dispute_resolved_at"),
+    disputeResolution: text("dispute_resolution"),
+
+    // Metadata
+    tags: text("tags").array(),
+    impact: text("impact"), // Description of community impact
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("builder_contrib_builder_idx").on(table.builderId),
+    index("builder_contrib_county_idx").on(table.countyId),
+    index("builder_contrib_status_idx").on(table.status),
+    index("builder_contrib_created_idx").on(table.createdAt),
+  ]
+);
 
 // Contribution Audits (immutable record)
-export const builderAuditLogs = pgTable("builder_audit_logs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contributionId: varchar("contribution_id").notNull().references(() => builderContributions.id, { onDelete: 'cascade' }),
-  
-  // Audit Details
-  auditorId: varchar("auditor_id").notNull().references(() => users.id),
-  action: varchar("action").notNull(), // approved, verified, rejected, disputed, resolved, adjusted
-  
-  // Value Adjustments
-  originalValue: decimal("original_value", { precision: 12, scale: 2 }),
-  adjustedValue: decimal("adjusted_value", { precision: 12, scale: 2 }),
-  adjustmentReason: text("adjustment_reason"),
-  
-  // Notes & Evidence
-  notes: text("notes"),
-  supportingDocuments: jsonb("supporting_documents").$type<Array<{
-    url: string;
-    type: string;
-    description?: string;
-  }>>(),
-  
-  // Change Tracking
-  changedFields: jsonb("changed_fields").$type<Record<string, { old: any; new: any }>>(),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("builder_audit_contribution_idx").on(table.contributionId),
-  index("builder_audit_auditor_idx").on(table.auditorId),
-  index("builder_audit_action_idx").on(table.action),
-]);
+export const builderAuditLogs = pgTable(
+  "builder_audit_logs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    contributionId: varchar("contribution_id")
+      .notNull()
+      .references(() => builderContributions.id, { onDelete: "cascade" }),
+
+    // Audit Details
+    auditorId: varchar("auditor_id")
+      .notNull()
+      .references(() => users.id),
+    action: varchar("action").notNull(), // approved, verified, rejected, disputed, resolved, adjusted
+
+    // Value Adjustments
+    originalValue: decimal("original_value", { precision: 12, scale: 2 }),
+    adjustedValue: decimal("adjusted_value", { precision: 12, scale: 2 }),
+    adjustmentReason: text("adjustment_reason"),
+
+    // Notes & Evidence
+    notes: text("notes"),
+    supportingDocuments: jsonb("supporting_documents").$type<
+      Array<{
+        url: string;
+        type: string;
+        description?: string;
+      }>
+    >(),
+
+    // Change Tracking
+    changedFields: jsonb("changed_fields").$type<Record<string, { old: any; new: any }>>(),
+
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("builder_audit_contribution_idx").on(table.contributionId),
+    index("builder_audit_auditor_idx").on(table.auditorId),
+    index("builder_audit_action_idx").on(table.action),
+  ]
+);
 
 // Builder Payouts
-export const builderPayouts = pgTable("builder_payouts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  builderId: varchar("builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
-  countyId: varchar("county_id").notNull().references(() => counties.id),
-  
-  // Payout Details
-  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
-  currency: varchar("currency").default('USD'),
-  payoutType: varchar("payout_type").notNull(), // contribution_earnings, bonus, penalty_adjustment, referral_bonus
-  
-  // Related Contribution(s)
-  relatedContributionIds: text("related_contribution_ids").array(), // JSON array of contribution IDs
-  
-  // Processing
-  status: varchar("status").notNull().default('pending'), // pending, processing, completed, failed, disputed
-  processingMethod: varchar("processing_method"), // ach, wire, check, stripe
-  
-  // Timing
-  scheduledFor: timestamp("scheduled_for"),
-  processedAt: timestamp("processed_at"),
-  
-  // External Reference
-  externalPaymentId: varchar("external_payment_id"), // From payment processor (Stripe Connect, etc.)
-  transactionId: varchar("transaction_id"),
-  
-  // Dispute/Resolution
-  failureReason: text("failure_reason"),
-  resolvedAt: timestamp("resolved_at"),
-  
-  // Audit Trail
-  createdBy: varchar("created_by").references(() => users.id),
-  approvedBy: varchar("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [
-  index("builder_payout_builder_idx").on(table.builderId),
-  index("builder_payout_county_idx").on(table.countyId),
-  index("builder_payout_status_idx").on(table.status),
-  index("builder_payout_created_idx").on(table.createdAt),
-]);
+export const builderPayouts = pgTable(
+  "builder_payouts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    builderId: varchar("builder_id")
+      .notNull()
+      .references(() => communityBuilderProfiles.id, { onDelete: "cascade" }),
+    countyId: varchar("county_id")
+      .notNull()
+      .references(() => counties.id),
+
+    // Payout Details
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: varchar("currency").default("USD"),
+    payoutType: varchar("payout_type").notNull(), // contribution_earnings, bonus, penalty_adjustment, referral_bonus
+
+    // Related Contribution(s)
+    relatedContributionIds: text("related_contribution_ids").array(), // JSON array of contribution IDs
+
+    // Processing
+    status: varchar("status").notNull().default("pending"), // pending, processing, completed, failed, disputed
+    processingMethod: varchar("processing_method"), // ach, wire, check, stripe
+
+    // Timing
+    scheduledFor: timestamp("scheduled_for"),
+    processedAt: timestamp("processed_at"),
+
+    // External Reference
+    externalPaymentId: varchar("external_payment_id"), // From payment processor (Stripe Connect, etc.)
+    transactionId: varchar("transaction_id"),
+
+    // Dispute/Resolution
+    failureReason: text("failure_reason"),
+    resolvedAt: timestamp("resolved_at"),
+
+    // Audit Trail
+    createdBy: varchar("created_by").references(() => users.id),
+    approvedBy: varchar("approved_by").references(() => users.id),
+    approvedAt: timestamp("approved_at"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("builder_payout_builder_idx").on(table.builderId),
+    index("builder_payout_county_idx").on(table.countyId),
+    index("builder_payout_status_idx").on(table.status),
+    index("builder_payout_created_idx").on(table.createdAt),
+  ]
+);
 
 // Builder Rankings/Leaderboard (denormalized for performance)
 export const builderLeaderboard = pgTable("builder_leaderboard", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  builderId: varchar("builder_id").notNull().unique().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
-  countyId: varchar("county_id").notNull().references(() => counties.id),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  builderId: varchar("builder_id")
+    .notNull()
+    .unique()
+    .references(() => communityBuilderProfiles.id, { onDelete: "cascade" }),
+  countyId: varchar("county_id")
+    .notNull()
+    .references(() => counties.id),
+
   // Metrics
-  totalContributionValue: decimal("total_contribution_value", { precision: 14, scale: 2 }).notNull().default('0'),
-  totalHoursDonated: decimal("total_hours_donated", { precision: 12, scale: 2 }).notNull().default('0'),
+  totalContributionValue: decimal("total_contribution_value", { precision: 14, scale: 2 })
+    .notNull()
+    .default("0"),
+  totalHoursDonated: decimal("total_hours_donated", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
   completedContributions: integer("completed_contributions").notNull().default(0),
-  
+
   // Rankings
   valueRank: integer("value_rank"), // 1st, 2nd, 3rd place etc. for total value
   hoursRank: integer("hours_rank"), // 1st, 2nd, 3rd place etc. for hours
   overallRank: integer("overall_rank"), // Combined ranking
-  
+
   // Monthly/Period Rankings
   monthlyRank: integer("monthly_rank"),
   yearlyRank: integer("yearly_rank"),
-  
+
   // Performance Score
-  performanceScore: decimal("performance_score", { precision: 5, scale: 2 }).default('0'), // 0-100
-  trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default('100'), // 0-100
-  
+  performanceScore: decimal("performance_score", { precision: 5, scale: 2 }).default("0"), // 0-100
+  trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default("100"), // 0-100
+
   // Last Updated
   lastUpdated: timestamp("last_updated").defaultNow(),
   periodStart: timestamp("period_start"),
@@ -7278,60 +8418,77 @@ export const builderLeaderboard = pgTable("builder_leaderboard", {
 
 // Builder Referrals (for referral bonuses)
 export const builderReferrals = pgTable("builder_referrals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  referrerId: varchar("referrer_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
-  referredBuilderId: varchar("referred_builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
-  
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id")
+    .notNull()
+    .references(() => communityBuilderProfiles.id, { onDelete: "cascade" }),
+  referredBuilderId: varchar("referred_builder_id")
+    .notNull()
+    .references(() => communityBuilderProfiles.id, { onDelete: "cascade" }),
+
   // Referral Details
   referralCode: varchar("referral_code").unique(),
-  bonusAmount: decimal("bonus_amount", { precision: 12, scale: 2 }).default('0'),
-  
+  bonusAmount: decimal("bonus_amount", { precision: 12, scale: 2 }).default("0"),
+
   // Status
-  status: varchar("status").notNull().default('pending'), // pending, earned, paid_out, cancelled
+  status: varchar("status").notNull().default("pending"), // pending, earned, paid_out, cancelled
   earnedAt: timestamp("earned_at"),
   paidOutAt: timestamp("paid_out_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Builder Notifications & Updates
-export const builderNotifications = pgTable("builder_notifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  builderId: varchar("builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
-  
-  type: varchar("type").notNull(), // contribution_approved, contribution_verified, payout_processed, rank_updated, etc.
-  title: varchar("title").notNull(),
-  message: text("message"),
-  
-  relatedId: varchar("related_id"), // Link to contribution, payout, etc.
-  
-  isRead: boolean("is_read").default(false),
-  readAt: timestamp("read_at"),
-  
-  actionUrl: varchar("action_url"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("builder_notif_builder_idx").on(table.builderId),
-  index("builder_notif_read_idx").on(table.isRead),
-]);
+export const builderNotifications = pgTable(
+  "builder_notifications",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    builderId: varchar("builder_id")
+      .notNull()
+      .references(() => communityBuilderProfiles.id, { onDelete: "cascade" }),
+
+    type: varchar("type").notNull(), // contribution_approved, contribution_verified, payout_processed, rank_updated, etc.
+    title: varchar("title").notNull(),
+    message: text("message"),
+
+    relatedId: varchar("related_id"), // Link to contribution, payout, etc.
+
+    isRead: boolean("is_read").default(false),
+    readAt: timestamp("read_at"),
+
+    actionUrl: varchar("action_url"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("builder_notif_builder_idx").on(table.builderId),
+    index("builder_notif_read_idx").on(table.isRead),
+  ]
+);
 
 // Relations for Community Builder
-export const communityBuilderProfilesRelations = relations(communityBuilderProfiles, ({ one, many }) => ({
-  user: one(users, {
-    fields: [communityBuilderProfiles.userId],
-    references: [users.id],
-  }),
-  county: one(counties, {
-    fields: [communityBuilderProfiles.countyId],
-    references: [counties.id],
-  }),
-  contributions: many(builderContributions),
-  payouts: many(builderPayouts),
-  leaderboard: one(builderLeaderboard),
-  referrals: many(builderReferrals),
-  notifications: many(builderNotifications),
-}));
+export const communityBuilderProfilesRelations = relations(
+  communityBuilderProfiles,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [communityBuilderProfiles.userId],
+      references: [users.id],
+    }),
+    county: one(counties, {
+      fields: [communityBuilderProfiles.countyId],
+      references: [counties.id],
+    }),
+    contributions: many(builderContributions),
+    payouts: many(builderPayouts),
+    leaderboard: one(builderLeaderboard),
+    referrals: many(builderReferrals),
+    notifications: many(builderNotifications),
+  })
+);
 
 export const builderContributionsRelations = relations(builderContributions, ({ one, many }) => ({
   builder: one(communityBuilderProfiles, {
@@ -7397,7 +8554,9 @@ export const builderNotificationsRelations = relations(builderNotifications, ({ 
 }));
 
 // Zod schemas for validation
-export const insertCommunityBuilderProfileSchema = createInsertSchema(communityBuilderProfiles).omit({
+export const insertCommunityBuilderProfileSchema = createInsertSchema(
+  communityBuilderProfiles
+).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -7440,71 +8599,91 @@ export type InsertStoryInteraction = typeof storyInteractions.$inferInsert;
 // ============================================================================
 
 // Tool proposal status enum
-export const toolProposalStatusEnum = pgEnum('tool_proposal_status', [
-  'proposed',
-  'approved',
-  'rejected',
-  'deferred',
-  'merged'
+export const toolProposalStatusEnum = pgEnum("tool_proposal_status", [
+  "proposed",
+  "approved",
+  "rejected",
+  "deferred",
+  "merged",
 ]);
 
 // Evidence source type enum
-export const evidenceSourceTypeEnum = pgEnum('evidence_source_type', [
-  'conversation',
-  'action',
-  'regret'
+export const evidenceSourceTypeEnum = pgEnum("evidence_source_type", [
+  "conversation",
+  "action",
+  "regret",
 ]);
 
 // Tool proposals - emitted when patterns converge
-export const toolProposals = pgTable('tool_proposals', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  fingerprint: varchar('fingerprint', { length: 255 }).notNull().unique(),
-  title: varchar('title', { length: 255 }).notNull(),
-  problemStatement: text('problem_statement').notNull(),
-  status: toolProposalStatusEnum('status').notNull().default('proposed'),
-  riskScore: integer('risk_score').notNull().default(0),
-  impactScore: integer('impact_score').notNull().default(0),
-  uniqueUserCount: integer('unique_user_count').notNull().default(0),
-  totalEventCount: integer('total_event_count').notNull().default(0),
-  approvedAt: timestamp('approved_at'), // when institutionalized
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => [
-  index('idx_tool_proposals_status').on(table.status),
-  index('idx_tool_proposals_fingerprint').on(table.fingerprint),
-  index('idx_tool_proposals_created_at').on(table.createdAt),
-]);
+export const toolProposals = pgTable(
+  "tool_proposals",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    fingerprint: varchar("fingerprint", { length: 255 }).notNull().unique(),
+    title: varchar("title", { length: 255 }).notNull(),
+    problemStatement: text("problem_statement").notNull(),
+    status: toolProposalStatusEnum("status").notNull().default("proposed"),
+    riskScore: integer("risk_score").notNull().default(0),
+    impactScore: integer("impact_score").notNull().default(0),
+    uniqueUserCount: integer("unique_user_count").notNull().default(0),
+    totalEventCount: integer("total_event_count").notNull().default(0),
+    approvedAt: timestamp("approved_at"), // when institutionalized
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_tool_proposals_status").on(table.status),
+    index("idx_tool_proposals_fingerprint").on(table.fingerprint),
+    index("idx_tool_proposals_created_at").on(table.createdAt),
+  ]
+);
 
 // Tool proposal evidence - real user interactions that led to proposal
-export const toolProposalEvidence = pgTable('tool_proposal_evidence', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  proposalId: integer('proposal_id').notNull().references(() => toolProposals.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }), // nullable for privacy
-  sourceType: evidenceSourceTypeEnum('source_type').notNull(),
-  sourceRef: varchar('source_ref', { length: 255 }), // message_id, flow_id, etc.
-  snippet: text('snippet').notNull(), // redacted conversation snippet
-  metadata: jsonb('metadata'), // additional context (risk level, primitives used, etc.)
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (table) => [
-  index('idx_tool_proposal_evidence_proposal_id').on(table.proposalId),
-  index('idx_tool_proposal_evidence_user_id').on(table.userId),
-  index('idx_tool_proposal_evidence_created_at').on(table.createdAt),
-]);
+export const toolProposalEvidence = pgTable(
+  "tool_proposal_evidence",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    proposalId: integer("proposal_id")
+      .notNull()
+      .references(() => toolProposals.id, { onDelete: "cascade" }),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }), // nullable for privacy
+    sourceType: evidenceSourceTypeEnum("source_type").notNull(),
+    sourceRef: varchar("source_ref", { length: 255 }), // message_id, flow_id, etc.
+    snippet: text("snippet").notNull(), // redacted conversation snippet
+    metadata: jsonb("metadata"), // additional context (risk level, primitives used, etc.)
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_tool_proposal_evidence_proposal_id").on(table.proposalId),
+    index("idx_tool_proposal_evidence_user_id").on(table.userId),
+    index("idx_tool_proposal_evidence_created_at").on(table.createdAt),
+  ]
+);
 
 // Tool proposal decisions - admin review outcomes
-export const toolProposalDecisions = pgTable('tool_proposal_decisions', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  proposalId: integer('proposal_id').notNull().references(() => toolProposals.id, { onDelete: 'cascade' }),
-  decidedByUserId: integer('decided_by_user_id').notNull().references(() => users.id),
-  decision: toolProposalStatusEnum('decision').notNull(), // approved, rejected, deferred, merged
-  notes: text('notes'),
-  mergedIntoId: integer('merged_into_id').references(() => toolProposals.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (table) => [
-  index('idx_tool_proposal_decisions_proposal_id').on(table.proposalId),
-  index('idx_tool_proposal_decisions_decided_by').on(table.decidedByUserId),
-  index('idx_tool_proposal_decisions_created_at').on(table.createdAt),
-]);
+export const toolProposalDecisions = pgTable(
+  "tool_proposal_decisions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    proposalId: integer("proposal_id")
+      .notNull()
+      .references(() => toolProposals.id, { onDelete: "cascade" }),
+    decidedByUserId: integer("decided_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    decision: toolProposalStatusEnum("decision").notNull(), // approved, rejected, deferred, merged
+    notes: text("notes"),
+    mergedIntoId: integer("merged_into_id").references(() => toolProposals.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_tool_proposal_decisions_proposal_id").on(table.proposalId),
+    index("idx_tool_proposal_decisions_decided_by").on(table.decidedByUserId),
+    index("idx_tool_proposal_decisions_created_at").on(table.createdAt),
+  ]
+);
 
 // Relations
 export const toolProposalsRelations = relations(toolProposals, ({ many }) => ({
@@ -7562,34 +8741,48 @@ export const scoutOutcomeActionEnum = pgEnum("scout_outcome_action", [
   "success_reported",
 ]);
 
-export const scoutOutcomeEvents = pgTable("scout_outcome_events", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  conversationId: varchar("conversation_id", { length: 255 }),
-  contextType: scoutOutcomeContextEnum("context_type").notNull(),
-  contextId: varchar("context_id", { length: 255 }),
-  scope: varchar("scope", { length: 64 }).notNull().default("global"),
-  action: scoutOutcomeActionEnum("action").notNull(),
-  value: numeric("value"),
-  confidenceDeltaHint: integer("confidence_delta_hint"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => [
-  index("idx_scout_outcome_user_id").on(table.userId),
-  index("idx_scout_outcome_context").on(table.contextType, table.contextId),
-  index("idx_scout_outcome_created_at").on(table.createdAt),
-  index("idx_scout_outcome_scope").on(table.scope),
-]);
+export const scoutOutcomeEvents = pgTable(
+  "scout_outcome_events",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    conversationId: varchar("conversation_id", { length: 255 }),
+    contextType: scoutOutcomeContextEnum("context_type").notNull(),
+    contextId: varchar("context_id", { length: 255 }),
+    scope: varchar("scope", { length: 64 }).notNull().default("global"),
+    action: scoutOutcomeActionEnum("action").notNull(),
+    value: numeric("value"),
+    confidenceDeltaHint: integer("confidence_delta_hint"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_scout_outcome_user_id").on(table.userId),
+    index("idx_scout_outcome_context").on(table.contextType, table.contextId),
+    index("idx_scout_outcome_created_at").on(table.createdAt),
+    index("idx_scout_outcome_scope").on(table.scope),
+  ]
+);
 
-export const scoutUserConfidenceState = pgTable("scout_user_confidence_state", {
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
-  scope: varchar("scope", { length: 64 }).notNull().default("global"),
-  baselineConfidence: numeric("baseline_confidence").notNull().default("0.20" as any),
-  currentConfidence: numeric("current_confidence").notNull().default("0.20" as any),
-  lastUpdatedAt: timestamp("last_updated_at").notNull().defaultNow(),
-}, (table) => [
-  primaryKey({ columns: [table.userId, table.scope] }),
-  index("idx_scout_confidence_updated_at").on(table.lastUpdatedAt),
-]);
+export const scoutUserConfidenceState = pgTable(
+  "scout_user_confidence_state",
+  {
+    userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+    scope: varchar("scope", { length: 64 }).notNull().default("global"),
+    baselineConfidence: numeric("baseline_confidence")
+      .notNull()
+      .default("0.20" as any),
+    currentConfidence: numeric("current_confidence")
+      .notNull()
+      .default("0.20" as any),
+    lastUpdatedAt: timestamp("last_updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.scope] }),
+    index("idx_scout_confidence_updated_at").on(table.lastUpdatedAt),
+  ]
+);
 
 // Zod schemas
 // export const insertToolProposalSchema = createInsertSchema(toolProposals).omit({

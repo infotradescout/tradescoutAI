@@ -36,6 +36,8 @@ type TopContractor = {
   localCredibilityScore?: number | null;
 };
 
+type PostIntent = "work_request" | "job_listing";
+
 function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): string | null {
   if (!categoryId) return null;
 
@@ -56,6 +58,47 @@ function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): stri
   };
 
   return mapping[categoryId] ?? null;
+}
+
+function inferPostIntent(title: string, description: string): PostIntent {
+  const text = `${title} ${description}`.toLowerCase();
+  if (!text.trim()) return "work_request";
+
+  const jobSignals = [
+    "hiring",
+    "job",
+    "position",
+    "role",
+    "opening",
+    "apply",
+    "application",
+    "resume",
+    "salary",
+    "hourly",
+    "full-time",
+    "full time",
+    "part-time",
+    "part time",
+    "benefits",
+    "join our team",
+    "employment",
+  ];
+
+  const workSignals = [
+    "need help",
+    "need someone",
+    "looking for a contractor",
+    "repair",
+    "install",
+    "fix",
+    "replace",
+    "estimate",
+    "quote",
+  ];
+
+  if (jobSignals.some((signal) => text.includes(signal))) return "job_listing";
+  if (workSignals.some((signal) => text.includes(signal))) return "work_request";
+  return "work_request";
 }
 
 export default function TasksHub({
@@ -96,6 +139,10 @@ export default function TasksHub({
     "asap"
   );
 
+  const [postIntent, setPostIntent] = useState<PostIntent>("work_request");
+  const [postIntentLocked, setPostIntentLocked] = useState(false);
+  const [postStep, setPostStep] = useState(0);
+
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
   const [prefillProviderId, setPrefillProviderId] = useState<string | null>(null);
 
@@ -128,6 +175,17 @@ export default function TasksHub({
       setActiveTab("post");
     }
   }, [intent, contractorSlug, contractorId]);
+
+  const inferredIntent = useMemo(
+    () => inferPostIntent(taskTitle, taskDescription),
+    [taskTitle, taskDescription]
+  );
+
+  useEffect(() => {
+    if (!postIntentLocked) {
+      setPostIntent(inferredIntent);
+    }
+  }, [inferredIntent, postIntentLocked]);
 
   useEffect(() => {
     const idFromSlug = contractorPrefill?.id as string | undefined;
@@ -202,6 +260,13 @@ export default function TasksHub({
     setPrefillProviderId(null);
   }, [taskCategoryId, selectedTradeSlug]);
 
+  useEffect(() => {
+    if (postIntent === "job_listing") {
+      setSelectedProviderIds([]);
+      setPrefillProviderId(null);
+    }
+  }, [postIntent]);
+
   const { data: recommendedProviders, isLoading: providersLoading } = useQuery<TopContractor[]>({
     queryKey: ["/api/contractors/top", selectedCountyFips || null, resolvedTradeSlug || null],
     queryFn: async () => {
@@ -240,7 +305,8 @@ export default function TasksHub({
         budgetMin: hasPayAmount ? payAmount : undefined,
         budgetMax: hasPayAmount ? payAmount : undefined,
         countyFips: selectedCountyFips,
-        targetContractorIds: selectedProviderIds.length ? selectedProviderIds : undefined,
+        targetContractorIds:
+          !isJobListing && selectedProviderIds.length ? selectedProviderIds : undefined,
       });
     },
     onSuccess: (data: any) => {
@@ -265,6 +331,8 @@ export default function TasksHub({
       setTaskCategoryId("");
       setTaskPayAmount("");
       setSelectedProviderIds([]);
+      setPostStep(0);
+      setPostIntentLocked(false);
       setActiveTab("browse");
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
     },
@@ -298,6 +366,20 @@ export default function TasksHub({
     ? "space-y-4"
     : "max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20";
   const contentSpacing = embedded ? "mt-0" : "mt-6";
+  const postSteps = ["Basics", "Details", "Routing & review"];
+  const canAdvanceBasics = taskTitle.trim().length > 0 && taskDescription.trim().length > 0;
+  const isJobListing = postIntent === "job_listing";
+  const taskTypeOptions = isJobListing
+    ? [
+        { value: "one_time", label: "Contract" },
+        { value: "recurring", label: "Ongoing / Part-time" },
+        { value: "project_based", label: "Full-time / Project" },
+      ]
+    : [
+        { value: "one_time", label: "One-time" },
+        { value: "recurring", label: "Recurring" },
+        { value: "project_based", label: "Project-based" },
+      ];
 
   return (
     <div className="">
@@ -479,11 +561,21 @@ export default function TasksHub({
           <TabsContent value="post" className={contentSpacing}>
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader className="pb-4">
-                <h2 className="text-lg font-semibold text-white mb-1">Create request</h2>
-                <p className="text-sm text-gray-300">
-                  Describe the work once. Your request will appear in Direct Connect so you can
-                  review responses and choose next steps.
-                </p>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white mb-1">
+                      {isJobListing ? "Post a job listing" : "Create request"}
+                    </h2>
+                    <p className="text-sm text-gray-300">
+                      {isJobListing
+                        ? "Share a clear role listing. TradeScout will route it through Direct Connect."
+                        : "Describe the work once. Your request will appear in Direct Connect so you can review responses and choose next steps."}
+                    </p>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Step {postStep + 1} of {postSteps.length}: {postSteps[postStep]}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {!isAuthenticated ? (
@@ -492,255 +584,354 @@ export default function TasksHub({
                     an account first.
                   </p>
                 ) : (
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label>Title</Label>
-                      <Input
-                        value={taskTitle}
-                        onChange={(e) => setTaskTitle(e.target.value)}
-                        className="bg-navy-700 border-navy-600 text-white"
-                        placeholder="e.g., Help moving a couch"
-                      />
-                    </div>
+                  <div className="grid gap-6">
+                    {postStep === 0 && (
+                      <div className="grid gap-4">
+                        <div className="grid gap-2">
+                          <Label>Title</Label>
+                          <Input
+                            value={taskTitle}
+                            onChange={(e) => setTaskTitle(e.target.value)}
+                            className="bg-navy-700 border-navy-600 text-white"
+                            placeholder={
+                              isJobListing
+                                ? "e.g., Lead Carpenter needed"
+                                : "e.g., Help moving a couch"
+                            }
+                          />
+                        </div>
 
-                    <div className="grid gap-2">
-                      <Label>Description</Label>
-                      <Textarea
-                        value={taskDescription}
-                        onChange={(e) => setTaskDescription(e.target.value)}
-                        className="bg-navy-700 border-navy-600 text-white"
-                        placeholder="What needs to be done, when, and any requirements"
-                      />
-                    </div>
+                        <div className="grid gap-2">
+                          <Label>Description</Label>
+                          <Textarea
+                            value={taskDescription}
+                            onChange={(e) => setTaskDescription(e.target.value)}
+                            className="bg-navy-700 border-navy-600 text-white"
+                            placeholder={
+                              isJobListing
+                                ? "Describe the role, experience, and how to apply"
+                                : "What needs to be done, when, and any requirements"
+                            }
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>Category</Label>
-                        <Select
-                          value={taskCategoryId || "none"}
-                          onValueChange={(v) => setTaskCategoryId(v === "none" ? "" : v)}
-                        >
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
-                            <SelectItem value="none">No category</SelectItem>
-                            {categories?.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label>Trade / Service</Label>
-                        <Select
-                          value={selectedTradeSlug || "none"}
-                          onValueChange={(v) => setSelectedTradeSlug(v === "none" ? "" : v)}
-                        >
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                            <SelectValue placeholder="Select a trade" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
-                            <SelectItem value="none">No trade</SelectItem>
-                            {(trades as any[]).map((trade) => (
-                              <SelectItem key={trade.slug} value={trade.slug}>
-                                {trade.name || trade.slug}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label>Request type</Label>
-                        <Select
-                          value={taskTaskType}
-                          onValueChange={(v) => setTaskTaskType(v as any)}
-                        >
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
-                            <SelectItem value="one_time">One-time</SelectItem>
-                            <SelectItem value="recurring">Recurring</SelectItem>
-                            <SelectItem value="project_based">Project-based</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>Pay type</Label>
-                        <Select value={taskPayType} onValueChange={(v) => setTaskPayType(v as any)}>
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
-                            <SelectItem value="fixed">Fixed</SelectItem>
-                            <SelectItem value="hourly">Hourly</SelectItem>
-                            <SelectItem value="per_task">Per job</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label>Pay amount</Label>
-                        <Input
-                          value={taskPayAmount}
-                          onChange={(e) => setTaskPayAmount(e.target.value)}
-                          className="bg-navy-700 border-navy-600 text-white"
-                          placeholder="e.g., 150"
-                          inputMode="decimal"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>Scheduling</Label>
-                        <Select
-                          value={taskSchedulingType}
-                          onValueChange={(v) => setTaskSchedulingType(v as any)}
-                        >
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
-                            <SelectItem value="asap">ASAP</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="flexible">Flexible</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>
-                        Optional: send this Direct Connect request directly to recommended providers
-                      </Label>
-                      {prefillProviderId && contractorPrefill && (
-                        <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
-                          <div className="text-xs text-gray-400">Direct invite</div>
-                          <div className="mt-1 flex items-center justify-between gap-2">
-                            <span className="font-medium text-white">
-                              {contractorPrefill.companyName ||
-                                contractorPrefill.name ||
-                                "Selected provider"}
-                            </span>
+                        <div className="rounded-md border border-navy-600 bg-navy-800/60 p-4">
+                          <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">
+                            Posting type
+                          </div>
+                          <div className="flex flex-col md:flex-row gap-2">
                             <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-gray-500 text-gray-300"
+                              type="button"
+                              variant={postIntent === "work_request" ? "default" : "outline"}
+                              className={
+                                postIntent === "work_request"
+                                  ? "bg-orange-500 hover:bg-orange-600"
+                                  : "border-gray-500 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                              }
                               onClick={() => {
-                                setSelectedProviderIds((prev) =>
-                                  prev.filter((id) => id !== prefillProviderId)
-                                );
-                                setPrefillProviderId(null);
+                                setPostIntent("work_request");
+                                setPostIntentLocked(true);
                               }}
                             >
-                              Remove
+                              I need work done
                             </Button>
-                          </div>
-                        </div>
-                      )}
-                      {prefillProviderId && !contractorPrefill && (
-                        <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
-                          <div className="text-xs text-gray-400">Direct invite</div>
-                          <div className="mt-1 flex items-center justify-between gap-2">
-                            <span className="font-medium text-white">Selected provider</span>
                             <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-gray-500 text-gray-300"
+                              type="button"
+                              variant={postIntent === "job_listing" ? "default" : "outline"}
+                              className={
+                                postIntent === "job_listing"
+                                  ? "bg-orange-500 hover:bg-orange-600"
+                                  : "border-gray-500 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                              }
                               onClick={() => {
-                                setSelectedProviderIds((prev) =>
-                                  prev.filter((id) => id !== prefillProviderId)
-                                );
-                                setPrefillProviderId(null);
+                                setPostIntent("job_listing");
+                                setPostIntentLocked(true);
                               }}
                             >
-                              Remove
+                              I am hiring
                             </Button>
                           </div>
+                          {!postIntentLocked && inferredIntent !== postIntent && (
+                            <p className="text-xs text-gray-400 mt-2">
+                              Based on your description, this looks like{" "}
+                              {inferredIntent === "job_listing"
+                                ? "a job listing"
+                                : "a work request"}
+                              .
+                            </p>
+                          )}
                         </div>
-                      )}
-                      {!isAuthenticated || !user?.countyFips ? (
-                        <p className="text-sm text-gray-300">
-                          We'll post this on your Direct Connect board. Sign in with a saved home
-                          location to see tailored provider suggestions.
-                        </p>
-                      ) : providersLoading ? (
-                        <p className="text-sm text-gray-300">Loading recommended providers…</p>
-                      ) : !tradeSlugForCategory ? (
-                        <p className="text-sm text-gray-300">
-                          We don't have a direct provider match for this category yet. Your request
-                          will go to your Direct Connect board for any eligible provider to respond.
-                        </p>
-                      ) : (recommendedProviders || []).length === 0 ? (
-                        <p className="text-sm text-gray-300">
-                          No specific providers surfaced yet for this combination of category and
-                          location. We'll post this on your Direct Connect board.
-                        </p>
-                      ) : (
-                        <div className="space-y-3">
-                          <p className="text-xs text-gray-300">
-                            Based on your category and home county, you can also send this directly
-                            to:
-                          </p>
-                          <div className="space-y-2">
-                            {recommendedProviders!.map((provider) => {
-                              const checked = selectedProviderIds.includes(provider.id);
-                              return (
-                                <label
-                                  key={provider.id}
-                                  className="flex items-start gap-3 rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 cursor-pointer"
-                                >
-                                  <Checkbox
-                                    checked={checked}
-                                    onCheckedChange={(val) => {
-                                      setSelectedProviderIds((prev) => {
-                                        if (val) {
-                                          const next = [...prev, provider.id];
-                                          return Array.from(new Set(next));
-                                        }
-                                        return prev.filter((id) => id !== provider.id);
-                                      });
+                      </div>
+                    )}
+
+                    {postStep === 1 && (
+                      <div className="grid gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label>Category</Label>
+                            <Select
+                              value={taskCategoryId || "none"}
+                              onValueChange={(v) => setTaskCategoryId(v === "none" ? "" : v)}
+                            >
+                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                                <SelectItem value="none">No category</SelectItem>
+                                {categories?.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label>{isJobListing ? "Role / Trade" : "Trade / Service"}</Label>
+                            <Select
+                              value={selectedTradeSlug || "none"}
+                              onValueChange={(v) => setSelectedTradeSlug(v === "none" ? "" : v)}
+                            >
+                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                                <SelectValue placeholder="Select a trade" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                                <SelectItem value="none">No trade</SelectItem>
+                                {(trades as any[]).map((trade) => (
+                                  <SelectItem key={trade.slug} value={trade.slug}>
+                                    {trade.name || trade.slug}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label>{isJobListing ? "Engagement type" : "Request type"}</Label>
+                            <Select
+                              value={taskTaskType}
+                              onValueChange={(v) => setTaskTaskType(v as any)}
+                            >
+                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                                {taskTypeOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {postStep === 2 && (
+                      <div className="grid gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label>Pay type</Label>
+                            <Select
+                              value={taskPayType}
+                              onValueChange={(v) => setTaskPayType(v as any)}
+                            >
+                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                                <SelectItem value="fixed">Fixed</SelectItem>
+                                <SelectItem value="hourly">Hourly</SelectItem>
+                                <SelectItem value="per_task">Per job</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label>Pay amount</Label>
+                            <Input
+                              value={taskPayAmount}
+                              onChange={(e) => setTaskPayAmount(e.target.value)}
+                              className="bg-navy-700 border-navy-600 text-white"
+                              placeholder="e.g., 150"
+                              inputMode="decimal"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label>{isJobListing ? "Start timing" : "Scheduling"}</Label>
+                            <Select
+                              value={taskSchedulingType}
+                              onValueChange={(v) => setTaskSchedulingType(v as any)}
+                            >
+                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                                <SelectItem value="asap">ASAP</SelectItem>
+                                <SelectItem value="scheduled">Scheduled</SelectItem>
+                                <SelectItem value="flexible">Flexible</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label>County</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                readOnly
+                                value={selectedCountyFips || ""}
+                                placeholder="Set county"
+                                className="bg-navy-700 border-navy-600 text-white"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+                                onClick={() => setShowCountySelector(true)}
+                              >
+                                {selectedCountyFips ? "Change" : "Set"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!isJobListing && (
+                          <div className="grid gap-2">
+                            <Label>
+                              Optional: send this Direct Connect request directly to recommended
+                              providers
+                            </Label>
+                            {prefillProviderId && contractorPrefill && (
+                              <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
+                                <div className="text-xs text-gray-400">Direct invite</div>
+                                <div className="mt-1 flex items-center justify-between gap-2">
+                                  <span className="font-medium text-white">
+                                    {contractorPrefill.companyName ||
+                                      contractorPrefill.name ||
+                                      "Selected provider"}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-gray-500 text-gray-300"
+                                    onClick={() => {
+                                      setSelectedProviderIds((prev) =>
+                                        prev.filter((id) => id !== prefillProviderId)
+                                      );
+                                      setPrefillProviderId(null);
                                     }}
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-white font-medium truncate">
-                                      {provider.businessName || "Local provider"}
-                                    </div>
-                                    <div className="text-xs text-gray-300">
-                                      {provider.presenceLabel}
-                                      {provider.county && provider.state
-                                        ? ` · ${provider.county}, ${provider.state}`
-                                        : null}
-                                    </div>
-                                    {provider.recommendationCount &&
-                                      provider.recommendationCount > 0 && (
-                                        <div className="text-[11px] text-gray-400 mt-0.5">
-                                          {provider.recommendationCount} neighbor recommendations
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            {prefillProviderId && !contractorPrefill && (
+                              <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
+                                <div className="text-xs text-gray-400">Direct invite</div>
+                                <div className="mt-1 flex items-center justify-between gap-2">
+                                  <span className="font-medium text-white">Selected provider</span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-gray-500 text-gray-300"
+                                    onClick={() => {
+                                      setSelectedProviderIds((prev) =>
+                                        prev.filter((id) => id !== prefillProviderId)
+                                      );
+                                      setPrefillProviderId(null);
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            {!isAuthenticated || !user?.countyFips ? (
+                              <p className="text-sm text-gray-300">
+                                We'll post this on your Direct Connect board. Sign in with a saved
+                                home location to see tailored provider suggestions.
+                              </p>
+                            ) : providersLoading ? (
+                              <p className="text-sm text-gray-300">
+                                Loading recommended providers...
+                              </p>
+                            ) : !tradeSlugForCategory ? (
+                              <p className="text-sm text-gray-300">
+                                We don't have a direct provider match for this category yet. Your
+                                request will go to your Direct Connect board for any eligible
+                                provider to respond.
+                              </p>
+                            ) : (recommendedProviders || []).length === 0 ? (
+                              <p className="text-sm text-gray-300">
+                                No specific providers surfaced yet for this combination of category
+                                and location. We'll post this on your Direct Connect board.
+                              </p>
+                            ) : (
+                              <div className="space-y-3">
+                                <p className="text-xs text-gray-300">
+                                  Based on your category and home county, you can also send this
+                                  directly to:
+                                </p>
+                                <div className="space-y-2">
+                                  {recommendedProviders!.map((provider) => {
+                                    const checked = selectedProviderIds.includes(provider.id);
+                                    return (
+                                      <label
+                                        key={provider.id}
+                                        className="flex items-start gap-3 rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 cursor-pointer"
+                                      >
+                                        <Checkbox
+                                          checked={checked}
+                                          onCheckedChange={(val) => {
+                                            setSelectedProviderIds((prev) => {
+                                              if (val) {
+                                                const next = [...prev, provider.id];
+                                                return Array.from(new Set(next));
+                                              }
+                                              return prev.filter((id) => id !== provider.id);
+                                            });
+                                          }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-sm text-white font-medium truncate">
+                                            {provider.businessName || "Local provider"}
+                                          </div>
+                                          <div className="text-xs text-gray-300">
+                                            {provider.presenceLabel}
+                                            {provider.county && provider.state
+                                              ? ` - ${provider.county}, ${provider.state}`
+                                              : null}
+                                          </div>
+                                          {provider.recommendationCount &&
+                                            provider.recommendationCount > 0 && (
+                                              <div className="text-[11px] text-gray-400 mt-0.5">
+                                                {provider.recommendationCount} neighbor
+                                                recommendations
+                                              </div>
+                                            )}
                                         </div>
-                                      )}
-                                  </div>
-                                </label>
-                              );
-                            })}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                <p className="text-[11px] text-gray-400">
+                                  If you don't pick anyone here, your request will just post to your
+                                  Direct Connect board and any eligible provider can respond.
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-[11px] text-gray-400">
-                            If you don't pick anyone here, your request will just post to your
-                            Direct Connect board and any eligible provider can respond.
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
 
-                    <div className="flex justify-end gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <Button
                         variant="outline"
                         className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
@@ -750,20 +941,49 @@ export default function TasksHub({
                           setTaskCategoryId("");
                           setTaskPayAmount("");
                           setSelectedProviderIds([]);
+                          setPostStep(0);
+                          setPostIntentLocked(false);
                         }}
                         disabled={createTaskMutation.isPending}
                       >
                         Clear
                       </Button>
-                      <Button
-                        className="bg-orange-500 hover:bg-orange-600"
-                        onClick={() => createTaskMutation.mutate()}
-                        disabled={createTaskMutation.isPending}
-                      >
-                        {createTaskMutation.isPending
-                          ? "Posting..."
-                          : "Post Direct Connect request"}
-                      </Button>
+
+                      <div className="flex items-center gap-2">
+                        {postStep > 0 && (
+                          <Button
+                            variant="outline"
+                            className="border-gray-500 text-gray-300"
+                            onClick={() => setPostStep((step) => Math.max(0, step - 1))}
+                            disabled={createTaskMutation.isPending}
+                          >
+                            Back
+                          </Button>
+                        )}
+                        {postStep < postSteps.length - 1 ? (
+                          <Button
+                            className="bg-orange-500 hover:bg-orange-600"
+                            onClick={() =>
+                              setPostStep((step) => Math.min(postSteps.length - 1, step + 1))
+                            }
+                            disabled={!canAdvanceBasics}
+                          >
+                            Next
+                          </Button>
+                        ) : (
+                          <Button
+                            className="bg-orange-500 hover:bg-orange-600"
+                            onClick={() => createTaskMutation.mutate()}
+                            disabled={createTaskMutation.isPending}
+                          >
+                            {createTaskMutation.isPending
+                              ? "Posting..."
+                              : isJobListing
+                                ? "Post job listing"
+                                : "Post Direct Connect request"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

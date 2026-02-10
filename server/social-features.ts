@@ -28,9 +28,15 @@ import {
   marketplaceConversations,
   marketplaceMessages,
   notifications,
+  postComments,
 } from "@shared/schema";
 import { storage } from "./storage";
 import { isAuthenticated, requireOnboardingComplete } from "./auth";
+import {
+  ensureContactRequest,
+  getContactPermission,
+  updateContactPermissionStatus,
+} from "./utils/contactRequests";
 
 export function registerSocialFeatures(app: Express) {
   /**
@@ -71,9 +77,7 @@ export function registerSocialFeatures(app: Express) {
         }
 
         // Build search conditions
-        const searchConditions = [
-          eq(users.addressVerified, true), // Only show verified users
-        ];
+        const searchConditions = [];
 
         // Exclude self
         searchConditions.push(notInArray(users.id, [userId]));
@@ -572,6 +576,15 @@ export function registerSocialFeatures(app: Express) {
           .limit(1);
 
         if (existing) {
+          try {
+            await updateContactPermissionStatus({
+              requesterId: userId,
+              targetUserId,
+              status: "accepted",
+            });
+          } catch (e) {
+            console.warn("[contact-permissions] Failed to backfill accepted status", e);
+          }
           // Conversation already exists - return it without re-creating
           // Metadata (intent, authority, etc.) is preserved from original creation
           return res.json({
@@ -583,74 +596,29 @@ export function registerSocialFeatures(app: Express) {
           });
         }
 
-        const requestPreviewRaw =
-          typeof req.body?.contactPreview === "string" ? req.body.contactPreview.trim() : "";
-        const requestPreview = requestPreviewRaw.slice(0, 280);
-
-        // First-time contact is request-gated: send preview to recipient for accept/decline.
-        const existingPending = await db
-          .select()
-          .from(notifications)
-          .where(
-            and(
-              eq(notifications.userId, targetUserId),
-              eq(notifications.type, "new_message"),
-              eq(notifications.isArchived, false)
-            )
-          )
-          .orderBy(desc(notifications.createdAt))
-          .limit(100);
-
-        const duplicatePending = existingPending.find((n: any) => {
-          const md = (n.metadata || {}) as Record<string, any>;
-          return (
-            md.kind === "first_contact_request" &&
-            md.status === "pending" &&
-            md.requesterId === userId &&
-            md.targetUserId === targetUserId
-          );
-        });
-
-        if (duplicatePending) {
-          return res.status(200).json({
+        const permission = await getContactPermission(userId, targetUserId);
+        if (permission?.status === "pending") {
+          return res.status(202).json({
             created: false,
             pending: true,
-            requestId: duplicatePending.id,
+            requestId: permission.lastRequestNotificationId || null,
             message: "Contact request already pending recipient approval.",
           });
-        }
-
-        const initiatorName =
-          `${(initiator as any).firstName || ""} ${(initiator as any).lastName || ""}`.trim() ||
-          (initiator as any).email ||
-          "A community member";
-        const [requestNotification] = await db
-          .insert(notifications)
-          .values({
-            userId: targetUserId,
-            type: "new_message",
-            priority: "normal",
-            title: `${initiatorName} wants to message you`,
-            message:
-              requestPreview ||
-              `Intent: ${intent}. Review this first-contact request before opening chat.`,
-            actionUrl: "/messages",
-            actionText: "Review request",
-            iconName: "message-square",
-            iconColor: "blue",
-            deliveryMethods: ["in_app"],
+        } else if (permission?.status === "declined" || permission?.status === "blocked") {
+          return res.status(403).json({
+            created: false,
+            message: "Recipient has declined first contact.",
+            reasonCode: "CONTACT_DECLINED",
+          });
+        } else {
+          const requestPreviewRaw =
+            typeof req.body?.contactPreview === "string" ? req.body.contactPreview.trim() : "";
+          const ensure = await ensureContactRequest({
+            requesterId: userId,
+            targetUserId,
+            preview: requestPreviewRaw,
             metadata: {
-              kind: "first_contact_request",
-              status: "pending",
-              requesterId: userId,
-              requesterName: initiatorName,
-              requesterRole: (initiator as any).role || null,
-              targetUserId,
-              targetName:
-                `${(recipient as any).firstName || ""} ${(recipient as any).lastName || ""}`.trim() ||
-                (recipient as any).email ||
-                null,
-              preview: requestPreview || null,
+              contactType: "message",
               intent,
               authorityGate,
               sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
@@ -658,18 +626,51 @@ export function registerSocialFeatures(app: Express) {
                 authorityGate === "scout_recommendation"
                   ? initiatedFromScoutRecommendationId
                   : null,
-              confidenceScore: confidenceScore ?? null,
               decisionScope: decisionScope || null,
-              createdAt: new Date().toISOString(),
             },
-          } as any)
+          });
+
+          if (ensure.status === "pending") {
+            return res.status(202).json({
+              created: false,
+              pending: true,
+              requestId: ensure.requestId || null,
+              message: "Contact request sent. Recipient must accept before chat opens.",
+            });
+          }
+        }
+
+        const [createdConversation] = await db
+          .insert(marketplaceConversations)
+          .values({
+            listingId: `messaging:${intent}`,
+            buyerId: userId,
+            sellerId: targetUserId,
+            status: "active" as any,
+            lastMessageAt: new Date(),
+            intent,
+            authorityGate,
+            sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
+            sourceScoutRecommendationId:
+              authorityGate === "scout_recommendation"
+                ? initiatedFromScoutRecommendationId
+                : "first-contact-approved",
+            confidenceScore: confidenceScore != null ? String(confidenceScore) : null,
+            decisionScope: decisionScope || "Direct contact approved",
+          })
           .returning();
 
-        res.status(202).json({
-          created: false,
-          pending: true,
-          requestId: requestNotification.id,
-          message: "Contact request sent. Recipient must accept before chat opens.",
+        await updateContactPermissionStatus({
+          requesterId: userId,
+          targetUserId,
+          status: "accepted",
+        });
+
+        res.status(200).json({
+          threadId: createdConversation.id,
+          created: true,
+          intent,
+          authorityGate,
         });
       } catch (error: any) {
         console.error("Start conversation error:", error);
@@ -704,15 +705,19 @@ export function registerSocialFeatures(app: Express) {
         const requests = rows
           .map((row: any) => {
             const md = (row.metadata || {}) as Record<string, any>;
-            if (md.kind !== "first_contact_request" || md.status !== "pending") return null;
+            if (!["first_contact_request", "contact_request"].includes(md.kind)) return null;
+            if (md.status !== "pending") return null;
             return {
               id: row.id,
               createdAt: row.createdAt,
               fromUserId: md.requesterId || null,
               fromName: md.requesterName || "TradeScout member",
               fromRole: md.requesterRole || null,
+              fromVerified: Boolean(md.requesterVerified),
               preview: md.preview || "",
               intent: md.intent || "collaborate",
+              contactType: md.contactType || "message",
+              postId: md.postId || null,
             };
           })
           .filter(Boolean);
@@ -753,13 +758,16 @@ export function registerSocialFeatures(app: Express) {
 
         const metadata = ((requestNotification as any).metadata || {}) as Record<string, any>;
         if (metadata.kind !== "first_contact_request" || metadata.status !== "pending") {
-          return res.status(400).json({ message: "Request is no longer pending" });
+          if (metadata.kind !== "contact_request" || metadata.status !== "pending") {
+            return res.status(400).json({ message: "Request is no longer pending" });
+          }
         }
 
         const requesterId = String(metadata.requesterId || "");
         if (!requesterId) {
           return res.status(400).json({ message: "Invalid request payload" });
         }
+        const contactType = (metadata.contactType || "message") as string;
 
         await db
           .update(notifications)
@@ -777,6 +785,12 @@ export function registerSocialFeatures(app: Express) {
           .where(eq(notifications.id, requestId));
 
         if (action === "decline") {
+          await updateContactPermissionStatus({
+            requesterId,
+            targetUserId: userId,
+            status: "declined",
+          });
+
           await db.insert(notifications).values({
             userId: requesterId,
             type: "new_message",
@@ -796,6 +810,72 @@ export function registerSocialFeatures(app: Express) {
           } as any);
 
           return res.json({ success: true, accepted: false });
+        }
+
+        await updateContactPermissionStatus({
+          requesterId,
+          targetUserId: userId,
+          status: "accepted",
+        });
+
+        if (contactType === "comment") {
+          const postId = metadata.postId ? String(metadata.postId) : "";
+          const commentContent = typeof metadata.content === "string" ? metadata.content : "";
+          if (!postId || !commentContent.trim()) {
+            return res.status(400).json({ message: "Invalid comment request payload" });
+          }
+
+          const source = metadata.source === "community" ? "community" : "social";
+          if (source === "community") {
+            await storage.createPostComment({
+              postId,
+              authorId: requesterId,
+              content: commentContent.trim(),
+            });
+          } else {
+            const [createdComment] = await db
+              .insert(postComments)
+              .values({
+                postId,
+                authorId: requesterId,
+                content: commentContent.trim(),
+                parentCommentId: metadata.parentCommentId || null,
+              })
+              .returning();
+            if (createdComment?.id) {
+              try {
+                await storage.logEvent("comment.created", {
+                  userId: requesterId,
+                  commentId: createdComment.id,
+                  postId,
+                });
+              } catch (e) {
+                console.error("Failed to log comment.created for request accept", e);
+              }
+            }
+          }
+
+          await db.insert(notifications).values({
+            userId: requesterId,
+            type: "comment_received",
+            priority: "normal",
+            title: "Comment request accepted",
+            message: `${metadata.targetName || "Recipient"} accepted your comment.`,
+            actionUrl: "/messages",
+            actionText: "View requests",
+            iconName: "message-square",
+            iconColor: "blue",
+            deliveryMethods: ["in_app"],
+            metadata: {
+              kind: "contact_request_response",
+              requestId,
+              status: "accepted",
+              contactType: "comment",
+              postId,
+            },
+          } as any);
+
+          return res.json({ success: true, accepted: true, contactType: "comment" });
         }
 
         const [existingConversation] = await db

@@ -10130,6 +10130,60 @@ export async function registerRoutes(app: any) {
         const { id: postId } = req.params;
         const { content } = req.body;
 
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        if (typeof content !== "string" || !content.trim()) {
+          return res.status(400).json({ message: "Comment content is required" });
+        }
+
+        const post = await storage.getCommunityPost(postId);
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+
+        if (String(post.authorId) !== String(userId)) {
+          const { getContactPermission, ensureContactRequest } =
+            await import("./utils/contactRequests");
+
+          const permission = await getContactPermission(String(userId), String(post.authorId));
+          if (permission?.status === "accepted") {
+            // proceed
+          } else if (permission?.status === "pending") {
+            return res.status(202).json({
+              pending: true,
+              requestId: permission.lastRequestNotificationId || null,
+              message: "Contact request already pending recipient approval.",
+            });
+          } else if (permission?.status === "declined" || permission?.status === "blocked") {
+            return res.status(403).json({
+              message: "Recipient has declined first contact.",
+              reasonCode: "CONTACT_DECLINED",
+            });
+          } else {
+            const ensure = await ensureContactRequest({
+              requesterId: String(userId),
+              targetUserId: String(post.authorId),
+              preview: content,
+              metadata: {
+                contactType: "comment",
+                content,
+                postId,
+                source: "community",
+              },
+            });
+
+            if (ensure.status === "pending") {
+              return res.status(202).json({
+                pending: true,
+                requestId: ensure.requestId || null,
+                message: "Contact request sent. Recipient must accept before comment posts.",
+              });
+            }
+          }
+        }
+
         const comment = await storage.createPostComment({
           postId,
           authorId: userId,
@@ -10255,8 +10309,38 @@ export async function registerRoutes(app: any) {
   app.get("/api/community/posts/:id/comments", async (req: any, res: any) => {
     try {
       const { id: postId } = req.params;
-      const comments = await storage.getPostComments(postId);
-      res.json(comments);
+      const comments = await db
+        .select({
+          comment: postComments,
+          author: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            role: users.role,
+            verified: users.addressVerified,
+          },
+        })
+        .from(postComments)
+        .leftJoin(users, eq(postComments.authorId, users.id))
+        .where(eq(postComments.postId, postId))
+        .orderBy(asc(postComments.createdAt));
+
+      const formatted = comments.map(({ comment, author }) => ({
+        ...comment,
+        author: author
+          ? {
+              id: author.id,
+              name:
+                `${author.firstName || ""} ${author.lastName || ""}`.trim() || "Community member",
+              avatar: author.profileImageUrl,
+              role: author.role,
+              verified: Boolean(author.verified),
+            }
+          : undefined,
+      }));
+
+      res.json(formatted);
     } catch (error: any) {
       console.error("Error fetching post comments:", error);
       res.status(500).json({ message: "Failed to fetch comments" });

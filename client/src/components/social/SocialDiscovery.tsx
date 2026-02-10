@@ -42,7 +42,7 @@ interface IntentModalState {
  * - Search does not initiate messaging
  * - All contact requires explicit intent selection
  * - Intent metadata captured before conversation
- * - Only verified users shown
+ * - Verified status shown for every user
  * - County-scoped for trust and relevance
  */
 export const SocialDiscovery = () => {
@@ -134,9 +134,20 @@ export const SocialDiscovery = () => {
               )}
             </div>
           </div>
-          {userProfile.verified && (
-            <Badge className="bg-green-500/20 text-green-300 text-xs">Verified</Badge>
-          )}
+          <Badge
+            className={
+              userProfile.verified
+                ? "bg-green-500/20 text-green-300 text-xs"
+                : "bg-slate-700 text-slate-300 text-xs"
+            }
+            title={
+              userProfile.verified
+                ? "Verified profile"
+                : "Unverified profile. Verified members are more likely to be accepted."
+            }
+          >
+            {userProfile.verified ? "Verified" : "Unverified"}
+          </Badge>
         </div>
 
         <Button
@@ -210,10 +221,7 @@ export const SocialDiscovery = () => {
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
             <p className="text-[color:var(--text-secondary)]">
-              No verified users found matching "{searchQuery}" in {scope}.
-            </p>
-            <p className="text-xs text-[color:var(--text-secondary)] mt-1">
-              Only verified members appear in search results.
+              No users found matching "{searchQuery}" in {scope}.
             </p>
           </div>
         )}
@@ -222,7 +230,7 @@ export const SocialDiscovery = () => {
           <div className="text-center py-12">
             <Search className="h-12 w-12 text-gray-400 mx-auto mb-3" />
             <p className="text-[color:var(--text-secondary)]">
-              Search to find verified people you could work with.
+              Search to find people you could work with.
             </p>
             <p className="text-xs text-[color:var(--text-secondary)] mt-1">
               Discovery is scoped to your county first, then state.

@@ -17,6 +17,7 @@ import { storage } from "./storage";
 import { isAuthenticated, requirePermission } from "./auth";
 import { z } from "zod";
 import type { User } from "@shared/schema";
+import { ensureContactRequest, getContactPermission } from "./utils/contactRequests";
 
 const ALLOWED_REACTIONS = [
   "like",
@@ -103,6 +104,7 @@ export function registerSocialRoutes(app: Express) {
             lastName: users.lastName,
             profileImageUrl: users.profileImageUrl,
             role: users.role,
+            isVerified: users.addressVerified,
           },
           reactionCount: sql<number>`count(distinct ${postReactions.id})`,
           commentCount: sql<number>`count(distinct ${postComments.id})`,
@@ -212,6 +214,7 @@ export function registerSocialRoutes(app: Express) {
             lastName: users.lastName,
             profileImageUrl: users.profileImageUrl,
             role: users.role,
+            isVerified: users.addressVerified,
           },
         })
         .from(socialPosts)
@@ -398,6 +401,7 @@ export function registerSocialRoutes(app: Express) {
             lastName: users.lastName,
             profileImageUrl: users.profileImageUrl,
             role: users.role,
+            isVerified: users.addressVerified,
           },
           reactionCount: sql<number>`count(distinct ${commentReactions.id})`,
         })
@@ -426,6 +430,7 @@ export function registerSocialRoutes(app: Express) {
                   lastName: users.lastName,
                   profileImageUrl: users.profileImageUrl,
                   role: users.role,
+                  isVerified: users.addressVerified,
                 },
               })
               .from(postComments)
@@ -469,6 +474,55 @@ export function registerSocialRoutes(app: Express) {
 
       if (typeof content !== "string" || !content.trim()) {
         return res.status(400).json({ message: "Comment content is required" });
+      }
+
+      const [post] = await db
+        .select({ authorId: socialPosts.authorId })
+        .from(socialPosts)
+        .where(eq(socialPosts.id, postId))
+        .limit(1);
+
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+
+      if (post.authorId && String(post.authorId) !== String(userId)) {
+        const permission = await getContactPermission(String(userId), String(post.authorId));
+        if (permission?.status === "accepted") {
+          // proceed
+        } else if (permission?.status === "pending") {
+          return res.status(202).json({
+            pending: true,
+            requestId: permission.lastRequestNotificationId || null,
+            message: "Contact request already pending recipient approval.",
+          });
+        } else if (permission?.status === "declined" || permission?.status === "blocked") {
+          return res.status(403).json({
+            message: "Recipient has declined first contact.",
+            reasonCode: "CONTACT_DECLINED",
+          });
+        } else {
+          const ensure = await ensureContactRequest({
+            requesterId: String(userId),
+            targetUserId: String(post.authorId),
+            preview: content,
+            metadata: {
+              contactType: "comment",
+              content,
+              postId,
+              parentCommentId: parentCommentId || null,
+              source: "social",
+            },
+          });
+
+          if (ensure.status === "pending") {
+            return res.status(202).json({
+              pending: true,
+              requestId: ensure.requestId || null,
+              message: "Contact request sent. Recipient must accept before comment posts.",
+            });
+          }
+        }
       }
 
       const [comment] = await db

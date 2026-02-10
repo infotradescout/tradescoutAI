@@ -4,7 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
 
@@ -38,7 +44,7 @@ export interface CommunityPostCardAuthor {
   avatar?: string;
   role?: string;
   verified?: boolean;
-   badges?: string[];
+  badges?: string[];
 }
 
 export interface CommunityPostCardData {
@@ -88,9 +94,8 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   if (normalized === "recommendations" || normalized === "recommendation") {
     return {
       label: "Trust Signal",
-      icon: <ThumbsUp className="w-3.5 h-3.5" />, 
-      className:
-        "bg-emerald-500/10 border-emerald-500/40 text-emerald-300",
+      icon: <ThumbsUp className="w-3.5 h-3.5" />,
+      className: "bg-emerald-500/10 border-emerald-500/40 text-emerald-300",
       accentClassName: "border-l-2 border-emerald-500/60 pl-4",
     } as const;
   }
@@ -98,9 +103,8 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   if (normalized === "projects" || normalized === "project") {
     return {
       label: "Project",
-      icon: <Hammer className="w-3.5 h-3.5" />, 
-      className:
-        "bg-purple-500/10 border-purple-500/40 text-purple-300",
+      icon: <Hammer className="w-3.5 h-3.5" />,
+      className: "bg-purple-500/10 border-purple-500/40 text-purple-300",
       accentClassName: "border-l-2 border-purple-500/60 pl-4",
     } as const;
   }
@@ -108,7 +112,7 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   if (normalized === "safety") {
     return {
       label: "Safety Alert",
-      icon: <Info className="w-3.5 h-3.5" />, 
+      icon: <Info className="w-3.5 h-3.5" />,
       className: "bg-red-500/10 border-red-500/40 text-red-300",
       accentClassName: "border-l-2 border-red-500/60 pl-4",
     } as const;
@@ -117,16 +121,15 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   if (normalized === "questions" || normalized === "question") {
     return {
       label: "Question",
-      icon: <HelpCircle className="w-3.5 h-3.5" />, 
-      className:
-        "bg-sky-500/10 border-sky-500/40 text-sky-300",
+      icon: <HelpCircle className="w-3.5 h-3.5" />,
+      className: "bg-sky-500/10 border-sky-500/40 text-sky-300",
       accentClassName: "border-l-2 border-sky-500/60 pl-4",
     } as const;
   }
 
   return {
     label: "Update",
-    icon: <MessageSquare className="w-3.5 h-3.5" />, 
+    icon: <MessageSquare className="w-3.5 h-3.5" />,
     className: "bg-slate-500/10 border-slate-500/40 text-slate-200",
     accentClassName: "border-l-2 border-slate-500/60 pl-4",
   } as const;
@@ -136,7 +139,8 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const isAuthor = !!user && !!post.author?.id && String(post.author.id) === String((user as any).id);
+  const isAuthor =
+    !!user && !!post.author?.id && String(post.author.id) === String((user as any).id);
   const initialWorkBoardState = (() => {
     if (post.workRequestId) {
       return { sent: true, workRequestId: String(post.workRequestId) };
@@ -147,19 +151,21 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     return { sent: false, workRequestId: undefined };
   })();
   const [workBoardInfo, setWorkBoardInfo] = useState<{ sent: boolean; workRequestId?: string }>(
-    initialWorkBoardState,
+    initialWorkBoardState
   );
   const role = (user as any)?.role as string | undefined;
-  const canModerate = !!user && (
-    (user as any)?.isAdmin === true ||
-    (role ? [
-      "community_moderator",
-      "community_leader",
-      "moderator",
-      "ops_admin",
-      "super_admin",
-    ].includes(role) : false)
-  );
+  const canModerate =
+    !!user &&
+    ((user as any)?.isAdmin === true ||
+      (role
+        ? [
+            "community_moderator",
+            "community_leader",
+            "moderator",
+            "ops_admin",
+            "super_admin",
+          ].includes(role)
+        : false));
 
   const handleLikeClick = () => {
     if (onLike) onLike(post.id);
@@ -295,7 +301,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const isContractor = (role || "").toLowerCase().includes("contractor");
 
   return (
-    <Card className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}>
+    <Card
+      className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}
+    >
       <CardContent className="p-4 sm:p-5 space-y-3">
         {(isPinned || isTrending || isAdminNotice) && (
           <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
@@ -312,8 +320,8 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               {isPinned
                 ? "Pinned · From TradeScout"
                 : isAdminNotice
-                ? `Official TradeScout Update${post.county ? ` — ${post.county}` : post.location ? ` — ${post.location}` : ""}`
-                : "Trending in your area"}
+                  ? `Official TradeScout Update${post.county ? ` — ${post.county}` : post.location ? ` — ${post.location}` : ""}`
+                  : "Trending in your area"}
             </span>
           </div>
         )}
@@ -341,6 +349,21 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         {post.author.role}
                       </span>
                     )}
+                    {post.author?.verified !== undefined && (
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] px-1.5 py-0.5 ${
+                          post.author.verified ? "text-green-300" : "text-slate-300"
+                        }`}
+                        title={
+                          post.author.verified
+                            ? "Verified profile"
+                            : "Unverified profile. Verified members are more likely to be accepted."
+                        }
+                      >
+                        {post.author.verified ? "Verified" : "Unverified"}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
@@ -355,7 +378,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         <span>•</span>
                         <MapPin className="w-3.5 h-3.5" />
                         <span>{post.location}</span>
-                        {localityLabel && <span className="ml-1 text-slate-500">· {localityLabel}</span>}
+                        {localityLabel && (
+                          <span className="ml-1 text-slate-500">· {localityLabel}</span>
+                        )}
                       </span>
                     )}
                   </div>
@@ -387,6 +412,21 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         {post.author.role}
                       </span>
                     )}
+                    {post.author?.verified !== undefined && (
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] px-1.5 py-0.5 ${
+                          post.author.verified ? "text-green-300" : "text-slate-300"
+                        }`}
+                        title={
+                          post.author.verified
+                            ? "Verified profile"
+                            : "Unverified profile. Verified members are more likely to be accepted."
+                        }
+                      >
+                        {post.author.verified ? "Verified" : "Unverified"}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
@@ -401,7 +441,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         <span>•</span>
                         <MapPin className="w-3.5 h-3.5" />
                         <span>{post.location}</span>
-                        {localityLabel && <span className="ml-1 text-slate-500">· {localityLabel}</span>}
+                        {localityLabel && (
+                          <span className="ml-1 text-slate-500">· {localityLabel}</span>
+                        )}
                       </span>
                     )}
                   </div>
@@ -433,39 +475,29 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   Open Messages with this neighbor
                 </DropdownMenuItem>
               )}
-                {canOpenMessages && <DropdownMenuSeparator />}
-                {isAuthor && (
-                  <>
-                    {!workBoardInfo.sent ? (
-                      <DropdownMenuItem onClick={handleSendToWorkBoard}>
-                        <Hammer className="w-3.5 h-3.5 mr-2" />
-                        Send to Direct Connect
+              {canOpenMessages && <DropdownMenuSeparator />}
+              {isAuthor && (
+                <>
+                  {!workBoardInfo.sent ? (
+                    <DropdownMenuItem onClick={handleSendToWorkBoard}>
+                      <Hammer className="w-3.5 h-3.5 mr-2" />
+                      Send to Direct Connect
+                    </DropdownMenuItem>
+                  ) : (
+                    <>
+                      <DropdownMenuItem disabled>
+                        <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
+                        <span className="text-emerald-300">✓ Sent to Direct Connect</span>
                       </DropdownMenuItem>
-                    ) : (
-                      <>
-                        <DropdownMenuItem disabled>
-                          <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
-                          <span className="text-emerald-300">
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                            ✓ Sent to Direct Connect
-                          </span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
-                          <Hammer className="w-3.5 h-3.5 mr-2" />
-                          View Direct Connect
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {canModerate && <DropdownMenuSeparator />}
-                  </>
-                )}
+                      <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
+                        <Hammer className="w-3.5 h-3.5 mr-2" />
+                        View Direct Connect
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {canModerate && <DropdownMenuSeparator />}
+                </>
+              )}
               {canModerate && (
                 <>
                   <DropdownMenuItem onClick={handleTogglePin}>
@@ -477,7 +509,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                     Hide from community feed
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleDeletePost} className="text-red-400 focus:text-red-500">
+                  <DropdownMenuItem
+                    onClick={handleDeletePost}
+                    className="text-red-400 focus:text-red-500"
+                  >
                     <Trash2 className="w-3.5 h-3.5 mr-2" />
                     Remove post
                   </DropdownMenuItem>
@@ -489,9 +524,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
         <div className={categoryMeta.accentClassName}>
           {post.title && (
-            <h3 className="text-base font-medium text-orange-400 mb-1">
-              {post.title}
-            </h3>
+            <h3 className="text-base font-medium text-orange-400 mb-1">{post.title}</h3>
           )}
           <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
             {post.content}
@@ -565,7 +598,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               disableDirectConnect={isContractor}
               scope={post.county} // Pass county for authority scope
             />
-            
+
             {/* Authority label - interpretive guidance from Scout */}
             {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
             {ENABLE_AUTHORITY_LABELS && post.authorityLabel && (

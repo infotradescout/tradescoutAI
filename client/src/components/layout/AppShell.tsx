@@ -30,6 +30,8 @@ import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { useLocation } from "wouter";
 import { setSessionLocationOverride } from "@/hooks/useLocationContext";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export type NavItem = {
   label: string;
@@ -138,6 +140,12 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/login") ||
     location.startsWith("/register");
   const isSuperAdmin = (user as any)?.isSuperAdmin === true;
+  const incomingRequestsQuery = useQuery<{ requests: any[] }>({
+    queryKey: ["/api/social/conversations/requests/incoming"],
+    enabled: Boolean(isAuthenticated),
+    queryFn: () => apiRequest("GET", "/api/social/conversations/requests/incoming"),
+  });
+  const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
 
@@ -385,10 +393,15 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+              className="relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Messages and helpers"
             >
               <MessageCircle className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+              {contactRequestCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white px-1">
+                  {contactRequestCount > 9 ? "9+" : contactRequestCount}
+                </span>
+              )}
             </button>
 
             {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}

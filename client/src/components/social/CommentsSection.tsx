@@ -8,13 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,18 +18,13 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Heart,
-  Reply,
-  MoreHorizontal,
-  Flag,
-  MessageCircle,
-  Send,
-  Loader2,
-} from "lucide-react";
+import { Heart, Reply, MoreHorizontal, Flag, MessageCircle, Send, Loader2 } from "lucide-react";
 
 const commentSchema = z.object({
-  content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
+  content: z
+    .string()
+    .min(1, "Comment cannot be empty")
+    .max(500, "Comment must be less than 500 characters"),
 });
 
 type CommentFormData = z.infer<typeof commentSchema>;
@@ -74,10 +63,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const likeMutation = useMutation({
     mutationFn: () => {
       if (isLiked) {
-        return apiRequest(
-          "DELETE",
-          `/api/social/comments/${comment.id}/reactions`
-        );
+        return apiRequest("DELETE", `/api/social/comments/${comment.id}/reactions`);
       }
       return apiRequest("POST", `/api/social/comments/${comment.id}/reactions`, {
         reactionType: "like",
@@ -98,8 +84,8 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
 
   // Reply to comment mutation
   const replyMutation = useMutation({
-    mutationFn: (data: CommentFormData) => 
-      apiRequest('POST', `/api/social/posts/${postId}/comments`, {
+    mutationFn: (data: CommentFormData) =>
+      apiRequest("POST", `/api/social/posts/${postId}/comments`, {
         ...data,
         parentCommentId: comment.id,
       }),
@@ -108,7 +94,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
         title: "Success",
         description: "Reply posted successfully!",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/social/comments', postId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/comments", postId] });
       replyForm.reset();
       setShowReplyForm(false);
       setShowReplies(true);
@@ -150,7 +136,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -161,13 +147,14 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const shouldIndent = level < maxNestingLevel;
 
   return (
-    <div className={`space-y-3 ${shouldIndent ? 'ml-4 pl-4 border-l-2 border-tsBorder' : ''}`}>
+    <div className={`space-y-3 ${shouldIndent ? "ml-4 pl-4 border-l-2 border-tsBorder" : ""}`}>
       {/* Comment */}
       <div className="flex items-start space-x-3">
         <Avatar className="h-8 w-8">
           <AvatarImage src={comment.author.profileImageUrl} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs">
-            {comment.author.firstName?.[0]}{comment.author.lastName?.[0]}
+            {comment.author.firstName?.[0]}
+            {comment.author.lastName?.[0]}
           </AvatarFallback>
         </Avatar>
 
@@ -179,11 +166,19 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
                 <span className="font-medium text-sm">
                   {comment.author.firstName} {comment.author.lastName}
                 </span>
-                {comment.author.isVerified && (
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                    Verified
-                  </Badge>
-                )}
+                <Badge
+                  variant="secondary"
+                  className={`text-xs px-1.5 py-0.5 ${
+                    comment.author.isVerified ? "text-green-300" : "text-slate-300"
+                  }`}
+                  title={
+                    comment.author.isVerified
+                      ? "Verified profile"
+                      : "Unverified profile. Verified members are more likely to be accepted."
+                  }
+                >
+                  {comment.author.isVerified ? "Verified" : "Unverified"}
+                </Badge>
                 <span className="text-xs text-muted-foreground">
                   {formatDate(comment.createdAt)}
                 </span>
@@ -214,11 +209,11 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
               size="sm"
               onClick={handleLike}
               className={`flex items-center space-x-1 h-7 px-2 ${
-                isLiked ? 'text-red-500' : 'text-muted-foreground'
+                isLiked ? "text-red-500" : "text-muted-foreground"
               }`}
               disabled={likeMutation.isPending}
             >
-              <Heart className={`h-3 w-3 ${isLiked ? 'fill-current' : ''}`} />
+              <Heart className={`h-3 w-3 ${isLiked ? "fill-current" : ""}`} />
               {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
             </Button>
 
@@ -243,7 +238,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
               >
                 <MessageCircle className="h-3 w-3" />
                 <span className="text-xs">
-                  {showReplies ? 'Hide' : 'Show'} {comment.replies.length} replies
+                  {showReplies ? "Hide" : "Show"} {comment.replies.length} replies
                 </span>
               </Button>
             )}
@@ -263,15 +258,12 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={user?.profileImageUrl} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                              {user?.firstName?.[0]}{user?.lastName?.[0]}
+                              {user?.firstName?.[0]}
+                              {user?.lastName?.[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <Textarea
-                              placeholder="Write a reply..."
-                              rows={2}
-                              {...field}
-                            />
+                            <Textarea placeholder="Write a reply..." rows={2} {...field} />
                           </div>
                         </div>
                       </FormControl>
@@ -291,11 +283,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={replyMutation.isPending}
-                  >
+                  <Button type="submit" size="sm" disabled={replyMutation.isPending}>
                     {replyMutation.isPending ? (
                       <Loader2 className="h-3 w-3 animate-spin mr-1" />
                     ) : (
@@ -313,14 +301,11 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
       {/* Nested Replies */}
       {showReplies && comment.replies && comment.replies.length > 0 && (
         <div className="space-y-3">
-          {Array.isArray(comment.replies) ? comment.replies.map((reply: any) => (
-            <Comment
-              key={reply.id}
-              comment={reply}
-              postId={postId}
-              level={level + 1}
-            />
-          )) : null}
+          {Array.isArray(comment.replies)
+            ? comment.replies.map((reply: any) => (
+                <Comment key={reply.id} comment={reply} postId={postId} level={level + 1} />
+              ))
+            : null}
         </div>
       )}
     </div>
@@ -339,21 +324,29 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
 
   // Fetch comments
   const { data: comments = [], isLoading } = useQuery({
-    queryKey: ['/api/social/comments', postId],
-    queryFn: () => apiRequest('GET', `/api/social/posts/${postId}/comments`),
+    queryKey: ["/api/social/comments", postId],
+    queryFn: () => apiRequest("GET", `/api/social/posts/${postId}/comments`),
   });
 
   // Create comment mutation
   const createCommentMutation = useMutation({
-    mutationFn: (data: CommentFormData) => 
-      apiRequest('POST', `/api/social/posts/${postId}/comments`, data),
-    onSuccess: () => {
+    mutationFn: (data: CommentFormData) =>
+      apiRequest("POST", `/api/social/posts/${postId}/comments`, data),
+    onSuccess: (data: any) => {
+      if (data?.pending) {
+        toast({
+          title: "Contact request sent",
+          description: "Your comment will post after the author accepts.",
+        });
+        form.reset();
+        return;
+      }
       toast({
         title: "Success",
         description: "Comment posted successfully!",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/social/comments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/social/feed'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
       form.reset();
     },
     onError: (error: any) => {
@@ -409,15 +402,12 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.profileImageUrl} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                          {user?.firstName?.[0]}
+                          {user?.lastName?.[0]}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <Textarea
-                          placeholder="Write a comment..."
-                          rows={3}
-                          {...field}
-                        />
+                        <Textarea placeholder="Write a comment..." rows={3} {...field} />
                       </div>
                     </div>
                   </FormControl>
@@ -426,11 +416,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
               )}
             />
             <div className="flex justify-end ml-11">
-              <Button
-                type="submit"
-                size="sm"
-                disabled={createCommentMutation.isPending}
-              >
+              <Button type="submit" size="sm" disabled={createCommentMutation.isPending}>
                 {createCommentMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
@@ -453,16 +439,13 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
         ) : (
           <>
             <div className="text-sm font-medium text-muted-foreground">
-              {comments.length} comment{comments.length !== 1 ? 's' : ''}
+              {comments.length} comment{comments.length !== 1 ? "s" : ""}
             </div>
-            {Array.isArray(comments) ? comments.map((comment: any) => (
-              <Comment
-                key={comment.id}
-                comment={comment}
-                postId={postId}
-                level={0}
-              />
-            )) : null}
+            {Array.isArray(comments)
+              ? comments.map((comment: any) => (
+                  <Comment key={comment.id} comment={comment} postId={postId} level={0} />
+                ))
+              : null}
           </>
         )}
       </div>
