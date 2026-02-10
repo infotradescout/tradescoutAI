@@ -21,6 +21,7 @@ import type { Express } from "express";
 import { eq, desc, and, or, like, ilike, sql, inArray, notInArray } from "drizzle-orm";
 import { db } from "../src/db/drizzle-mock";
 import {
+  decisionCards,
   users,
   userFollows,
   conversations,
@@ -541,9 +542,31 @@ export function registerSocialFeatures(app: Express) {
               message: "Decision Card ID required when authorityGate is 'decision_card'",
             });
           }
-          // Future: Validate decision card exists and is active
-          // const decision = await db.select().from(decisionCards).where(eq(decisionCards.id, sourceDecisionCardId)).limit(1);
-          // if (!decision || decision.status === 'expired') { return 400 }
+          const [decision] = await db
+            .select()
+            .from(decisionCards)
+            .where(
+              and(eq(decisionCards.id, sourceDecisionCardId), eq(decisionCards.userId, userId))
+            )
+            .limit(1);
+          if (!decision || decision.status === "archived") {
+            return res.status(400).json({
+              reasonCode: "INVALID_DECISION_CARD",
+              message: "Decision Card not found or inactive.",
+            });
+          }
+          if (decision.intent && decision.intent !== intent) {
+            return res.status(400).json({
+              reasonCode: "DECISION_INTENT_MISMATCH",
+              message: "Decision Card intent does not match request intent.",
+            });
+          }
+          if (decision.decisionScope && decisionScope && decision.decisionScope !== decisionScope) {
+            return res.status(400).json({
+              reasonCode: "DECISION_SCOPE_MISMATCH",
+              message: "Decision Card scope does not match request scope.",
+            });
+          }
         }
 
         // D2: If from scout_recommendation, require sourceScoutRecommendationId (future phase)
@@ -581,6 +604,8 @@ export function registerSocialFeatures(app: Express) {
               requesterId: userId,
               targetUserId,
               status: "accepted",
+              respondedBy: userId,
+              responseReason: "auto_accepted_existing_conversation",
             });
           } catch (e) {
             console.warn("[contact-permissions] Failed to backfill accepted status", e);
@@ -627,6 +652,11 @@ export function registerSocialFeatures(app: Express) {
                   ? initiatedFromScoutRecommendationId
                   : null,
               decisionScope: decisionScope || null,
+              confidenceScore: confidenceScore != null ? Number(confidenceScore) : null,
+              riskFlags: Array.isArray(req.body?.riskFlags)
+                ? req.body.riskFlags.map((flag: any) => String(flag))
+                : null,
+              countyFips: (initiator as any)?.countyFips || null,
             },
           });
 
@@ -664,6 +694,8 @@ export function registerSocialFeatures(app: Express) {
           requesterId: userId,
           targetUserId,
           status: "accepted",
+          respondedBy: userId,
+          responseReason: "conversation_started",
         });
 
         res.status(200).json({
@@ -789,6 +821,8 @@ export function registerSocialFeatures(app: Express) {
             requesterId,
             targetUserId: userId,
             status: "declined",
+            respondedBy: userId,
+            responseReason: "recipient_declined",
           });
 
           await db.insert(notifications).values({
@@ -816,6 +850,8 @@ export function registerSocialFeatures(app: Express) {
           requesterId,
           targetUserId: userId,
           status: "accepted",
+          respondedBy: userId,
+          responseReason: "recipient_accepted",
         });
 
         if (contactType === "comment") {

@@ -47,6 +47,8 @@
     "audit:production-debt": "node scripts/audit-production-debt.mjs",
     "audit:secrets-history": "node scripts/audit-secrets-history.mjs",
     "audit:latest-builder": "node tools/audit-latest-builder-branch.mjs",
+    "backfill:decision-cards": "node scripts/backfill-decision-cards.mjs",
+    "backfill:trust-snapshots": "node scripts/backfill-trust-snapshots.mjs",
     "guard:forbidden": "node scripts/forbidden-patterns.mjs",
     "verifier:write-backlog": "node tools/verifier-write-backlog.mjs",
     "loop:empirical": "node tools/loop-empirical.mjs",

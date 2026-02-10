@@ -1620,7 +1620,20 @@ export const contactPermissions = pgTable(
     lastRequestType: varchar("last_request_type"),
     lastRequestPreview: text("last_request_preview"),
     lastRequestNotificationId: varchar("last_request_notification_id"),
+    authorityGate: varchar("authority_gate", { length: 30 }),
+    sourceDecisionCardId: varchar("source_decision_card_id"),
+    sourceScoutRecommendationId: varchar("source_scout_recommendation_id"),
+    intent: varchar("intent"),
+    decisionScope: text("decision_scope"),
+    confidenceScore: decimal("confidence_score", { precision: 4, scale: 3 }),
+    riskFlags: text("risk_flags").array(),
+    countyFips: varchar("county_fips", { length: 5 }),
+    requesterTrustSnapshotId: varchar("requester_trust_snapshot_id"),
+    targetTrustSnapshotId: varchar("target_trust_snapshot_id"),
     respondedAt: timestamp("responded_at"),
+    respondedBy: varchar("responded_by").references(() => users.id),
+    responseReason: text("response_reason"),
+    cooldownUntil: timestamp("cooldown_until"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -1628,6 +1641,87 @@ export const contactPermissions = pgTable(
     uniqueIndex("uidx_contact_permissions_pair").on(table.requesterId, table.targetUserId),
     index("idx_contact_permissions_target").on(table.targetUserId),
     index("idx_contact_permissions_requester").on(table.requesterId),
+    index("idx_contact_permissions_status").on(table.status),
+    index("idx_contact_permissions_county").on(table.countyFips),
+  ]
+);
+
+export const decisionCards = pgTable(
+  "decision_cards",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status").notNull().default("active"), // active, completed, archived
+    intent: varchar("intent").notNull(),
+    decisionScope: text("decision_scope"),
+    title: varchar("title"),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    decidedAt: timestamp("decided_at"),
+  },
+  (table) => [index("idx_decision_cards_user").on(table.userId)]
+);
+
+export const trustSnapshots = pgTable(
+  "trust_snapshots",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    countyFips: varchar("county_fips", { length: 5 }).notNull(),
+    cvsScore: decimal("cvs_score", { precision: 5, scale: 2 }).notNull(),
+    verificationStatus: varchar("verification_status"),
+    licenseStatus: varchar("license_status"),
+    insuranceStatus: varchar("insurance_status"),
+    riskFlags: text("risk_flags").array(),
+    computedAt: timestamp("computed_at").defaultNow(),
+    version: integer("version").default(1),
+  },
+  (table) => [index("idx_trust_snapshots_user_county").on(table.userId, table.countyFips)]
+);
+
+export const contactPermissionEvents = pgTable(
+  "contact_permission_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    contactPermissionId: varchar("contact_permission_id").references(() => contactPermissions.id, {
+      onDelete: "cascade",
+    }),
+    requesterId: varchar("requester_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetUserId: varchar("target_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    actorId: varchar("actor_id").references(() => users.id),
+    eventType: varchar("event_type").notNull(),
+    fromStatus: contactPermissionStatusEnum("from_status"),
+    toStatus: contactPermissionStatusEnum("to_status"),
+    reasonCode: varchar("reason_code"),
+    metadata: jsonb("metadata"),
+    authorityGate: varchar("authority_gate", { length: 30 }),
+    sourceDecisionCardId: varchar("source_decision_card_id"),
+    sourceScoutRecommendationId: varchar("source_scout_recommendation_id"),
+    intent: varchar("intent"),
+    decisionScope: text("decision_scope"),
+    confidenceScore: decimal("confidence_score", { precision: 4, scale: 3 }),
+    riskFlags: text("risk_flags").array(),
+    countyFips: varchar("county_fips", { length: 5 }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_contact_permission_events_pair").on(table.requesterId, table.targetUserId),
+    index("idx_contact_permission_events_contact").on(table.contactPermissionId),
   ]
 );
 
@@ -2132,6 +2226,9 @@ export type PostReaction = typeof postReactions.$inferSelect;
 export type PostShare = typeof postShares.$inferSelect;
 export type UserFollow = typeof userFollows.$inferSelect;
 export type ContactPermission = typeof contactPermissions.$inferSelect;
+export type ContactPermissionEvent = typeof contactPermissionEvents.$inferSelect;
+export type DecisionCard = typeof decisionCards.$inferSelect;
+export type TrustSnapshot = typeof trustSnapshots.$inferSelect;
 export type ContentReport = typeof contentReports.$inferSelect;
 export type Neighborhood = typeof neighborhoods.$inferSelect;
 

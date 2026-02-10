@@ -10146,6 +10146,8 @@ export async function registerRoutes(app: any) {
         if (String(post.authorId) !== String(userId)) {
           const { getContactPermission, ensureContactRequest } =
             await import("./utils/contactRequests");
+          const requester = await storage.getUser(String(userId));
+          const requesterCountyFips = (requester as any)?.countyFips || null;
 
           const permission = await getContactPermission(String(userId), String(post.authorId));
           if (permission?.status === "accepted") {
@@ -10171,6 +10173,7 @@ export async function registerRoutes(app: any) {
                 content,
                 postId,
                 source: "community",
+                countyFips: requesterCountyFips,
               },
             });
 

@@ -4,11 +4,8 @@ import { runCrawler } from "../crawler/crawl";
 import { runUsersAggregationJob } from "./usersAggregationJob";
 import { runAffiliatesAggregationJob } from "./affiliatesAggregationJob";
 import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
-import {
-  emitJobStart,
-  emitJobEnd,
-  emitJobError,
-} from "../observability/metrics";
+import { runTrustSnapshotsJob } from "./trustSnapshotsJob";
+import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -20,7 +17,10 @@ import {
 let crawlerTask: any = null;
 let usersAggregationTask: any = null;
 let affiliatesAggregationTask: any = null;
-let tradeDealsAggregationTask: any = null;/**
+let tradeDealsAggregationTask: any = null;
+let trustSnapshotsTask: any = null;
+
+/**
  * Start the cron scheduler
  * Runs every 5 minutes by default (configurable via env)
  */
@@ -36,6 +36,7 @@ export function startCrawlerScheduler() {
   startUsersAggregationScheduler();
   startAffiliatesAggregationScheduler();
   startTradeDealsAggregationScheduler();
+  startTrustSnapshotsScheduler();
 }
 
 function startCrawlerJobs() {
@@ -69,15 +70,11 @@ function startUsersAggregationScheduler() {
 
   const schedule = process.env.USERS_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
 
-  console.log(
-    `\n📊 Starting users aggregation scheduler with schedule: "${schedule}"`
-  );
+  console.log(`\n📊 Starting users aggregation scheduler with schedule: "${schedule}"`);
 
   usersAggregationTask = cron.schedule(schedule, async () => {
     const jobName = "users_aggregation";
-    console.log(
-      `\n📊 [${new Date().toISOString()}] Running nightly users aggregation job...`
-    );
+    console.log(`\n📊 [${new Date().toISOString()}] Running nightly users aggregation job...`);
     emitJobStart(jobName);
     try {
       const result = await runUsersAggregationJob();
@@ -105,15 +102,11 @@ function startAffiliatesAggregationScheduler() {
 
   const schedule = process.env.AFFILIATES_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
 
-  console.log(
-    `\n📊 Starting affiliates aggregation scheduler with schedule: "${schedule}"`
-  );
+  console.log(`\n📊 Starting affiliates aggregation scheduler with schedule: "${schedule}"`);
 
   affiliatesAggregationTask = cron.schedule(schedule, async () => {
     const jobName = "affiliates_aggregation";
-    console.log(
-      `\n📊 [${new Date().toISOString()}] Running nightly affiliates aggregation job...`
-    );
+    console.log(`\n📊 [${new Date().toISOString()}] Running nightly affiliates aggregation job...`);
     emitJobStart(jobName);
     try {
       const result = await runAffiliatesAggregationJob();
@@ -141,9 +134,7 @@ function startTradeDealsAggregationScheduler() {
 
   const schedule = process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
 
-  console.log(
-    `\n📊 Starting trade deals aggregation scheduler with schedule: "${schedule}"`
-  );
+  console.log(`\n📊 Starting trade deals aggregation scheduler with schedule: "${schedule}"`);
 
   tradeDealsAggregationTask = cron.schedule(schedule, async () => {
     const jobName = "trade_deals_aggregation";
@@ -163,6 +154,37 @@ function startTradeDealsAggregationScheduler() {
   });
 
   console.log("✅ TradeDeals aggregation scheduler started\n");
+}
+
+/**
+ * Start nightly trust snapshot job
+ * Runs daily at 2 AM UTC by default (same window as other jobs)
+ */
+function startTrustSnapshotsScheduler() {
+  if (process.env.DISABLE_TRUST_SNAPSHOTS === "true") {
+    console.log("Trust snapshot job disabled via DISABLE_TRUST_SNAPSHOTS env flag");
+    return;
+  }
+
+  const schedule = process.env.TRUST_SNAPSHOTS_SCHEDULE || "0 2 * * *"; // 2 AM daily
+
+  console.log(`\n📊 Starting trust snapshots scheduler with schedule: "${schedule}"`);
+
+  trustSnapshotsTask = cron.schedule(schedule, async () => {
+    const jobName = "trust_snapshots";
+    console.log(`\n📊 [${new Date().toISOString()}] Running nightly trust snapshots job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await runTrustSnapshotsJob();
+      console.log("✅ Trust snapshots job completed", result);
+      emitJobEnd(jobName, result.inserted || 0, false);
+    } catch (error) {
+      console.error("❌ Trust snapshots job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ Trust snapshots scheduler started\n");
 }
 
 /**
@@ -196,6 +218,13 @@ export function stopCrawlerScheduler() {
     tradeDealsAggregationTask = null;
     console.log("🛑 TradeDeals aggregation scheduler stopped");
   }
+
+  if (trustSnapshotsTask) {
+    trustSnapshotsTask.stop();
+    trustSnapshotsTask.destroy();
+    trustSnapshotsTask = null;
+    console.log("🛑 Trust snapshots scheduler stopped");
+  }
 }
 
 /**
@@ -218,6 +247,10 @@ export function getCrawlerSchedulerStatus() {
     tradeDealsAggregation: {
       active: tradeDealsAggregationTask !== null,
       schedule: process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *",
+    },
+    trustSnapshots: {
+      active: trustSnapshotsTask !== null,
+      schedule: process.env.TRUST_SNAPSHOTS_SCHEDULE || "0 2 * * *",
     },
   };
 }

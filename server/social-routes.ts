@@ -487,6 +487,8 @@ export function registerSocialRoutes(app: Express) {
       }
 
       if (post.authorId && String(post.authorId) !== String(userId)) {
+        const requester = await storage.getUser(String(userId));
+        const requesterCountyFips = (requester as any)?.countyFips || null;
         const permission = await getContactPermission(String(userId), String(post.authorId));
         if (permission?.status === "accepted") {
           // proceed
@@ -512,6 +514,7 @@ export function registerSocialRoutes(app: Express) {
               postId,
               parentCommentId: parentCommentId || null,
               source: "social",
+              countyFips: requesterCountyFips,
             },
           });
 
