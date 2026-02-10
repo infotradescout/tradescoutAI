@@ -138,7 +138,6 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
-const AdminBusinessImport = React.lazy(() => import("./pages/admin-business-import"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
 
 // Marketplace & Social
@@ -816,6 +815,16 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin-panel">
                     <ProtectedRoute adminOnly>
                       <RedirectTo to="/admin/panel" />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin-dashboard">
+                    <ProtectedRoute adminOnly>
+                      <RedirectTo to="/admin/dashboard" />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin-users">
+                    <ProtectedRoute adminOnly>
+                      <RedirectTo to="/admin/users" />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/panel">

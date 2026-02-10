@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -42,6 +43,7 @@ type User = {
   firstName?: string;
   lastName?: string;
   role: string;
+  emailVerified?: boolean;
   verificationStatus?:
     | "pending"
     | "under_review"
@@ -116,6 +118,7 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [manualVerifyEmail, setManualVerifyEmail] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "contractor" | "homeowner" | "business">(
     "all"
   );
@@ -129,6 +132,28 @@ export default function AdminUsers() {
   const [timeFilter, setTimeFilter] = useState<"all" | "24h" | "7d" | "30d">("all");
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [profileForm, setProfileForm] = useState<{
+    firstName: string;
+    lastName: string;
+    phone: string;
+    city: string;
+    stateCode: string;
+    countyFips: string;
+    countyName: string;
+    profileImageUrl: string;
+    bio: string;
+  }>({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    city: "",
+    stateCode: "",
+    countyFips: "",
+    countyName: "",
+    profileImageUrl: "",
+    bio: "",
+  });
 
   // Pending state for each user action (by userId + action)
   const [pendingAction, setPendingAction] = useState<{ [key: string]: boolean }>({});
@@ -187,6 +212,67 @@ export default function AdminUsers() {
     },
   });
 
+  const saveProfileMutation = useMutation({
+    mutationFn: async () => {
+      if (!profileUser) throw new Error("No user selected");
+      const payload = {
+        firstName: profileForm.firstName.trim() || undefined,
+        lastName: profileForm.lastName.trim() || undefined,
+        phone: profileForm.phone.trim() || undefined,
+        city: profileForm.city.trim() || undefined,
+        stateCode: profileForm.stateCode.trim() || undefined,
+        countyFips: profileForm.countyFips.trim() || undefined,
+        countyName: profileForm.countyName.trim() || undefined,
+        profileImageUrl: profileForm.profileImageUrl.trim() || undefined,
+        preferencesPatch: { bio: profileForm.bio },
+      };
+      return apiRequest("PUT", `/api/admin/users/${profileUser.id}/profile`, payload);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile updated",
+        description: "Public profile fields saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setProfileUser(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed",
+        description: error?.message || "Failed to update profile.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const openProfileEditor = async (target: User) => {
+    setProfileUser(target);
+    try {
+      const resp = await apiRequest("POST", "/api/admin/users/info", { userId: target.id });
+      const u = resp?.user || {};
+      const prefs = (
+        u?.preferences && typeof u.preferences === "object" ? u.preferences : {}
+      ) as any;
+      setProfileForm({
+        firstName: String(u?.firstName || ""),
+        lastName: String(u?.lastName || ""),
+        phone: String(u?.phone || ""),
+        city: String(u?.city || ""),
+        stateCode: String((u as any)?.stateCode || u?.state || ""),
+        countyFips: String((u as any)?.countyFips || ""),
+        countyName: String((u as any)?.countyName || u?.county || ""),
+        profileImageUrl: String(u?.profileImageUrl || ""),
+        bio: typeof prefs.bio === "string" ? prefs.bio : "",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to load user profile",
+        description: error?.message || "Could not load profile details.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUserControl = async (action: string, userId: string, newRole?: string) => {
     const key = action === "role" && newRole ? `${userId}:role:${newRole}` : `${userId}:${action}`;
     setPendingAction((prev) => ({ ...prev, [key]: true }));
@@ -240,6 +326,34 @@ export default function AdminUsers() {
         description: err.message || "Action failed",
         variant: "destructive",
       });
+      setPendingAction((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleResendVerification = async (targetUser: User) => {
+    const key = `${targetUser.id}:resend-verification`;
+    setPendingAction((prev) => ({ ...prev, [key]: true }));
+    try {
+      const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
+        email: String(targetUser.email || "")
+          .trim()
+          .toLowerCase(),
+      });
+      toast({
+        title: "Verification email requested",
+        description:
+          resp?.message || "If the account exists and is unverified, a new link has been sent.",
+      });
+      if (resp?.verificationToken) {
+        console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Resend failed",
+        description: err?.message || "Failed to request verification email.",
+        variant: "destructive",
+      });
+    } finally {
       setPendingAction((prev) => ({ ...prev, [key]: false }));
     }
   };
@@ -598,6 +712,56 @@ export default function AdminUsers() {
           </div>
         </div>
 
+        <Card className="bg-card border-border mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-foreground">Email Verification</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end">
+              <div className="flex-1">
+                <Label className="text-muted-foreground text-xs">Email</Label>
+                <Input
+                  value={manualVerifyEmail}
+                  onChange={(e) => setManualVerifyEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="bg-input border-input text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+              <Button
+                onClick={async () => {
+                  const key = `manual:resend-verification`;
+                  setPendingAction((prev) => ({ ...prev, [key]: true }));
+                  try {
+                    const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
+                      email: manualVerifyEmail.trim().toLowerCase(),
+                    });
+                    toast({
+                      title: "Verification email requested",
+                      description:
+                        resp?.message ||
+                        "If the account exists and is unverified, a new link has been sent.",
+                    });
+                    if (resp?.verificationToken) {
+                      console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
+                    }
+                  } catch (err: any) {
+                    toast({
+                      title: "Resend failed",
+                      description: err?.message || "Failed to request verification email.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setPendingAction((prev) => ({ ...prev, [key]: false }));
+                  }
+                }}
+                disabled={!manualVerifyEmail.trim() || pendingAction["manual:resend-verification"]}
+              >
+                {pendingAction["manual:resend-verification"] ? "Sending..." : "Send link"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Filters */}
         <Card className="bg-card border-border mb-6">
           <CardContent className="p-4">
@@ -850,6 +1014,15 @@ export default function AdminUsers() {
                             >
                               {user.addressVerified ? "Address verified" : "Address not verified"}
                             </Badge>
+                            <Badge
+                              className={
+                                user.emailVerified
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              }
+                            >
+                              {user.emailVerified ? "Email verified" : "Email not verified"}
+                            </Badge>
                             <Badge variant={user.onboardingCompleted ? "outline" : "secondary"}>
                               {user.onboardingCompleted ? "Onboarding complete" : "Setup pending"}
                             </Badge>
@@ -876,6 +1049,15 @@ export default function AdminUsers() {
                                 title="Edit user role"
                               >
                                 Edit Role
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openProfileEditor(user)}
+                                className="border-border text-muted-foreground hover:bg-muted"
+                                title="Edit public profile fields"
+                              >
+                                Edit Profile
                               </Button>
                               {isSuperAdmin &&
                                 user.id !== (userToEdit?.id || "") &&
@@ -997,6 +1179,17 @@ export default function AdminUsers() {
                                       More
                                     </Button>
                                     <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[160px]">
+                                      {!user.emailVerified && (
+                                        <button
+                                          onClick={() => handleResendVerification(user)}
+                                          className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
+                                          disabled={pendingAction[`${user.id}:resend-verification`]}
+                                        >
+                                          {pendingAction[`${user.id}:resend-verification`]
+                                            ? "Sending..."
+                                            : "Resend verification email"}
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() =>
                                           handleUserControl("role", user.id, "contractor_user")
@@ -1099,6 +1292,113 @@ export default function AdminUsers() {
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {updateUserRoleMutation.isPending ? "Updating..." : "Update Role"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Profile Dialog */}
+        <Dialog open={!!profileUser} onOpenChange={() => setProfileUser(null)}>
+          <DialogContent className="bg-card border-border max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Edit Public Profile</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Update the public-facing profile fields for {profileUser?.email || "this user"}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-muted-foreground">First name</Label>
+                <Input
+                  value={profileForm.firstName}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, firstName: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Last name</Label>
+                <Input
+                  value={profileForm.lastName}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, lastName: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Phone</Label>
+                <Input
+                  value={profileForm.phone}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">City</Label>
+                <Input
+                  value={profileForm.city}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, city: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">State code (2 letters)</Label>
+                <Input
+                  value={profileForm.stateCode}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, stateCode: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">County FIPS (5 digits)</Label>
+                <Input
+                  value={profileForm.countyFips}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, countyFips: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-muted-foreground">County name</Label>
+                <Input
+                  value={profileForm.countyName}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, countyName: e.target.value }))}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-muted-foreground">Profile image URL</Label>
+                <Input
+                  value={profileForm.profileImageUrl}
+                  onChange={(e) =>
+                    setProfileForm((p) => ({ ...p, profileImageUrl: e.target.value }))
+                  }
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-muted-foreground">Bio</Label>
+                <Textarea
+                  value={profileForm.bio}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
+                  rows={6}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setProfileUser(null)}
+                className="border-input text-muted-foreground hover:bg-muted"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => saveProfileMutation.mutate()}
+                disabled={saveProfileMutation.isPending}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {saveProfileMutation.isPending ? "Saving..." : "Save profile"}
               </Button>
             </DialogFooter>
           </DialogContent>

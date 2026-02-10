@@ -28,8 +28,8 @@ export const ROUTES = {
 
   // Admin routes (require admin role)
   ADMIN_PANEL: "/admin",
-  ADMIN_DASHBOARD: "/admin-dashboard",
-  ADMIN_USERS: "/admin-users",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  ADMIN_USERS: "/admin/users",
 
   // Legal pages
   TERMS: "/terms",
@@ -42,6 +42,9 @@ export const ROUTES = {
     "/marketplace": "/exchange",
     "/exchange/list": "/exchange",
     "/contractors/dashboard": "/contractor-dashboard",
+    "/admin-dashboard": "/admin/dashboard",
+    "/admin-users": "/admin/users",
+    "/admin-panel": "/admin/panel",
   },
 } as const;
 

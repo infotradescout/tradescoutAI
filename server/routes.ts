@@ -7977,12 +7977,16 @@ export async function registerRoutes(app: any) {
         city: (target as any).city || null,
         county: (target as any).county || null,
         state: (target as any).state || null,
+        stateCode: (target as any).stateCode || null,
         zipCode: (target as any).zipCode || null,
+        countyFips: (target as any).countyFips || null,
+        countyName: (target as any).countyName || null,
         roles: target.roles || (target.role ? [target.role] : []),
         activeRole: target.activeRole || target.role,
         verificationStatus: target.verificationStatus,
         badges: target.badges,
         preferences: target.preferences,
+        profileImageUrl: (target as any).profileImageUrl || null,
         createdAt: target.createdAt,
         updatedAt: target.updatedAt,
         addressVerified: target.addressVerified,
@@ -8037,6 +8041,100 @@ export async function registerRoutes(app: any) {
       } catch (error: any) {
         console.error("Error resetting user password:", error);
         res.status(500).json({ error: error?.message || "Failed to reset password" });
+      }
+    }
+  );
+
+  // Admin: update a user's public profile fields (admin-targeted version of /api/user/profile)
+  app.put(
+    "/api/admin/users/:userId/profile",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const targetUserId = String((req.params as any)?.userId || "").trim();
+        if (!targetUserId) return res.status(400).json({ message: "userId is required" });
+
+        const existing = await storage.getUser(targetUserId);
+        if (!existing) return res.status(404).json({ message: "User not found" });
+
+        const body = (req.body ?? {}) as any;
+        const {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          stateCode,
+          zipCode,
+          county,
+          countyName,
+          countyFips,
+          countyId,
+          latitude,
+          longitude,
+          profileImageUrl,
+          preferencesPatch,
+        } = body;
+
+        const trimmedCountyFips = typeof countyFips === "string" ? countyFips.trim() : countyFips;
+        if (trimmedCountyFips && !/^\d{5}$/.test(trimmedCountyFips)) {
+          return res.status(400).json({
+            message: "Invalid countyFips; expected a 5-digit FIPS code.",
+          });
+        }
+
+        let normalizedProfileImageUrl = profileImageUrl;
+        if (profileImageUrl) {
+          try {
+            normalizedProfileImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(
+              profileImageUrl,
+              {
+                owner: targetUserId,
+                visibility: "public",
+              }
+            );
+          } catch (e) {
+            console.warn("Failed to set ACL for profile image", e);
+          }
+        }
+
+        const existingPreferences: any =
+          existing &&
+          typeof (existing as any).preferences === "object" &&
+          (existing as any).preferences
+            ? (existing as any).preferences
+            : {};
+        const patchPreferences: any =
+          preferencesPatch && typeof preferencesPatch === "object" ? preferencesPatch : null;
+
+        const updated = await storage.updateUser(targetUserId, {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          zipCode,
+          county,
+          stateCode: stateCode ?? state ?? undefined,
+          countyFips: trimmedCountyFips ?? undefined,
+          countyId: countyId ?? undefined,
+          countyName: countyName ?? county ?? undefined,
+          latitude: typeof latitude === "number" ? String(latitude) : undefined,
+          longitude: typeof longitude === "number" ? String(longitude) : undefined,
+          profileImageUrl: normalizedProfileImageUrl,
+          preferences: patchPreferences
+            ? { ...existingPreferences, ...patchPreferences }
+            : undefined,
+          updatedAt: new Date(),
+        } as any);
+
+        return res.json({ user: sanitizeUserForResponse(updated) });
+      } catch (error: any) {
+        console.error("Error updating admin user profile:", error);
+        return res.status(500).json({ message: "Failed to update user profile" });
       }
     }
   );
