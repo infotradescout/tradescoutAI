@@ -114,6 +114,39 @@ export default function CreateAccountPortal() {
       allowPhoneCalls: false,
     },
   });
+  const emailValue = (watch("email") || "").trim();
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+
+  const resendVerification = async () => {
+    if (!emailValue) {
+      toast({
+        title: "Enter your email",
+        description: "Type your email above, then click resend.",
+      });
+      return;
+    }
+    setIsResendingVerification(true);
+    try {
+      const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
+        email: emailValue,
+      });
+      toast({
+        title: "Verification email requested",
+        description: resp?.message || "If an account exists, a new link has been sent.",
+      });
+      if (resp?.verificationToken) {
+        console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
+      }
+    } catch (e: any) {
+      toast({
+        title: "Resend failed",
+        description: e?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
 
   useEffect(() => {
     if (primaryFocus === "hire") {
@@ -218,7 +251,8 @@ export default function CreateAccountPortal() {
               ? "Account created. Business claim needs verification."
               : "Welcome to TradeScout. Let's get you started.",
       });
-      if (resp?.emailVerificationRequired) {
+      const emailVerificationRequired = resp?.emailVerificationRequired === true;
+      if (emailVerificationRequired) {
         toast({
           title: "Verification email sent",
           description: resp?.emailVerificationSent
@@ -230,22 +264,28 @@ export default function CreateAccountPortal() {
         }
       }
 
+      const next = "/pre-scout-setup";
+      const email = (lastSignupEmailRef.current || "").trim();
+
+      if (emailVerificationRequired) {
+        const emailParam = email ? `email=${encodeURIComponent(email)}` : "";
+        const nextParam = `next=${encodeURIComponent(next)}`;
+        navigate(`/check-email?${[emailParam, nextParam].filter(Boolean).join("&")}`);
+        return;
+      }
+
       if (!authedUser) {
         // If session didn't persist, send them to login instead of bouncing back here.
         toast({
           title: "Login required",
           description: "Account created. Please log in to continue.",
         });
-        const emailParam = lastSignupEmailRef.current
-          ? `?email=${encodeURIComponent(lastSignupEmailRef.current)}`
-          : "";
+        const emailParam = email ? `?email=${encodeURIComponent(email)}` : "";
         navigate(`/login${emailParam}`);
         return;
       }
 
-      // CLAIM-FIRST: Route through the pre-Scout gate before Scout intent capture
-      // No setTimeout - immediate redirect maintains flow authority
-      navigate("/pre-scout-setup");
+      navigate(next);
     },
     onError: (error: any) => {
       console.error("[CREATE_ACCOUNT] Registration failed:", error);
@@ -824,6 +864,19 @@ export default function CreateAccountPortal() {
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="mt-4 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={resendVerification}
+                  disabled={isResendingVerification}
+                  className="text-xs text-tsAccent hover:underline disabled:opacity-60"
+                >
+                  {isResendingVerification
+                    ? "Sending verification email..."
+                    : "Resend verification email"}
+                </button>
               </div>
 
               {/* Login Link */}

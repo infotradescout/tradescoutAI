@@ -124,6 +124,7 @@ const Profile = React.lazy(() => import("./pages/ProfilePage"));
 const Login = React.lazy(() => import("./pages/login"));
 const AddressVerification = React.lazy(() => import("./pages/address-verification"));
 const VerifyEmail = React.lazy(() => import("./pages/verify-email"));
+const CheckEmail = React.lazy(() => import("./pages/check-email"));
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
@@ -583,6 +584,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/verify-email">
                     <LazyPage Component={VerifyEmail} />
                   </Route>
+                  <Route path="/check-email">
+                    <LazyPage Component={CheckEmail} />
+                  </Route>
                   <Route path="/pre-scout-setup">
                     <ProtectedRoute>
                       <LazyPage Component={PreScoutSetup} />
@@ -821,7 +825,7 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/admin/business-import">
                     <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminBusinessImport} />
+                      <LazyPage Component={AdminShell} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/geo/coverage">

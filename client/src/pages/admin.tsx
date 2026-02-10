@@ -28,6 +28,8 @@ import AdminGeoCoverageConsole from "@/pages/admin-geo-coverage";
 import AdminUserManagement from "@/pages/AdminUserManagement";
 import AdminProfessionalVerification from "@/pages/admin-professional-verification";
 import AdminCreateAccount from "@/pages/admin-create-account";
+import AdminBusinessImport from "@/pages/admin-business-import";
+import AdminProvisionUser from "@/pages/admin-provision-user";
 import AdminPromotions from "@/pages/admin-promotions";
 import AdminControl from "@/pages/admin-control";
 import PlatformAnalytics from "@/pages/platform-analytics";
@@ -48,18 +50,18 @@ export default function AdminShell() {
   });
 
   if (isLoading) {
-    return <PageLoadingSpinner message="Verifying super admin access..." />;
+    return <PageLoadingSpinner message="Verifying admin access..." />;
   }
 
-  if (error || !data?.ok || !data.isSuperAdmin) {
+  if (error || !data?.ok) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center py-24">
         <Card className="max-w-md w-full border-red-500/40 bg-slate-900">
           <CardHeader>
-            <CardTitle className="text-red-300">Super admin access required</CardTitle>
+            <CardTitle className="text-red-300">Admin access required</CardTitle>
             <CardDescription className="text-slate-300">
-              This portal is restricted to head administrators and super admins. Your current
-              session does not have access.
+              This portal is restricted to platform administrators. Your current session does not
+              have access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -85,19 +87,19 @@ export default function AdminShell() {
   }
   return (
     <SuperAdminOSLayout>
-      <AdminContentRouter />
+      <AdminContentRouter isSuperAdmin={Boolean(data?.isSuperAdmin)} />
     </SuperAdminOSLayout>
   );
 }
 
-function AdminContentRouter() {
+function AdminContentRouter({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const [location] = useLocation();
   const path = location || "/admin";
   const subPath = path.startsWith("/admin") ? path.substring("/admin".length) || "/" : path;
 
-  // Default: Mission Control v0 (Super Admin home)
+  // Default: super admins get Mission Control; other admins land on Users.
   if (subPath === "/" || subPath === "") {
-    return <MissionControlV0 />;
+    return isSuperAdmin ? <MissionControlV0 /> : <AdminUsers />;
   }
 
   if (subPath === "/mission-control") {
@@ -106,6 +108,18 @@ function AdminContentRouter() {
 
   if (subPath === "/users") {
     return <AdminUsers />;
+  }
+
+  if (subPath === "/business-import") {
+    return <AdminBusinessImport />;
+  }
+
+  if (subPath === "/create-admin") {
+    return <AdminCreateAccount />;
+  }
+
+  if (subPath === "/provision-user") {
+    return <AdminProvisionUser />;
   }
 
   if (subPath === "/user-management") {
@@ -242,11 +256,31 @@ function AdminContentRouter() {
   }
 
   if (subPath === "/dashboard") {
-    return <SuperAdminDashboard />;
+    return isSuperAdmin ? <SuperAdminDashboard /> : <AdminAccessDenied />;
   }
 
   // For now, any unmapped admin path under /admin is treated as an unknown tool.
   return <UnknownAdminRoute />;
+}
+
+function AdminAccessDenied() {
+  return (
+    <Card className="bg-slate-950/60 border-slate-800">
+      <CardHeader>
+        <CardTitle className="text-sm text-slate-100">Insufficient role</CardTitle>
+        <CardDescription className="text-xs text-slate-400">
+          This admin tool is restricted to super admins.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0 flex justify-end">
+        <Link href="/admin">
+          <Button size="sm" variant="outline">
+            Back to admin home
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
 }
 
 function AdminPanelTabRedirect({ tab }: { tab: string }) {
@@ -344,7 +378,7 @@ function SuperAdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0 text-xs text-slate-400 space-y-3">
-            {!coverage && <p className="text-slate-500">Loading coverage queues hellip;</p>}
+            {!coverage && <p className="text-slate-500">Loading coverage queueshellip;</p>}
             {coverage && (
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">

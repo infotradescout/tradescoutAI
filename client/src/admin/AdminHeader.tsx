@@ -24,12 +24,10 @@ export function AdminHeader({ currentItem, onToggleNav, isNavOpen }: AdminHeader
           <span>{isNavOpen ? "Hide tools" : "Admin tools"}</span>
         </button>
         <div>
-        <h1 className="text-2xl font-semibold text-slate-100 flex items-center gap-2">
-          <span>Super Admin OS</span>
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          {label}
-        </p>
+          <h1 className="text-2xl font-semibold text-slate-100 flex items-center gap-2">
+            <span>Admin OS</span>
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">{label}</p>
         </div>
       </div>
     </header>

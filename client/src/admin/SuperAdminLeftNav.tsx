@@ -21,11 +21,9 @@ export function SuperAdminLeftNav({ sections, onNavigate }: SuperAdminLeftNavPro
     <aside className="w-64 shrink-0">
       <div className="mb-4">
         <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-          Super Admin OS
+          Admin OS
         </div>
-        <div className="text-[11px] text-slate-500">
-          One shell for all high-authority tools.
-        </div>
+        <div className="text-[11px] text-slate-500">One shell for platform tools.</div>
       </div>
 
       <nav className="space-y-4">

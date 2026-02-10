@@ -1184,7 +1184,11 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      return res.json({ message: "Email verified successfully" });
+      return res.json({
+        message: "Email verified successfully",
+        email: (updated as any)?.email || null,
+        userId: (updated as any)?.id || userId,
+      });
     } catch (error: any) {
       console.error("[email-verification] Verification failed:", error);
       return sendAutoClassifiedError(res, error, "Failed to verify email");
@@ -2040,12 +2044,22 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response) => {
         const user = req.user as any;
         maybeSendEmailVerificationForUser(req, user).catch(() => {});
+        const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
         const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-        const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
-        res.redirect(redirectTo);
+        const redirectBase = needsProfileNormalization ? "/onboarding/profile" : "/";
+        getGeneralSetting<boolean>("email_verification_required", true)
+          .then((required) => {
+            if (required && user && user.emailVerified !== true && email) {
+              return res.redirect(
+                `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
+              );
+            }
+            return res.redirect(redirectBase);
+          })
+          .catch(() => res.redirect(redirectBase));
       }
     );
   }
@@ -2088,12 +2102,22 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response) => {
         const user = req.user as any;
         maybeSendEmailVerificationForUser(req, user).catch(() => {});
+        const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
         const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-        const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
-        res.redirect(redirectTo);
+        const redirectBase = needsProfileNormalization ? "/onboarding/profile" : "/";
+        getGeneralSetting<boolean>("email_verification_required", true)
+          .then((required) => {
+            if (required && user && user.emailVerified !== true && email) {
+              return res.redirect(
+                `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
+              );
+            }
+            return res.redirect(redirectBase);
+          })
+          .catch(() => res.redirect(redirectBase));
       }
     );
   }
@@ -8016,6 +8040,130 @@ export async function registerRoutes(app: any) {
       }
     }
   );
+
+  // Admin: provision any user account (non-admin roles only)
+  // - Creates user if missing
+  // - Optionally sends a single "account setup" email (password set + verify email)
+  app.post("/api/admin/users/provision", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const body = (req.body ?? {}) as any;
+      const rawEmail = typeof body.email === "string" ? body.email.trim() : "";
+      if (!rawEmail) return res.status(400).json({ message: "email is required" });
+
+      const email = rawEmail.toLowerCase();
+      const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+      const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
+      const role = typeof body.role === "string" ? body.role.trim() : "";
+      const password = typeof body.password === "string" ? body.password : "";
+      const sendEmail = body.sendEmail !== false;
+
+      // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
+      if (["moderator", "ops_admin", "super_admin", "head_admin"].includes(role)) {
+        return res.status(400).json({
+          message:
+            "Admin roles must be created via the dedicated admin creation flow (not user provisioning).",
+        });
+      }
+
+      let user = await storage.getUserByEmail(email);
+      const created = !user;
+
+      if (!user) {
+        const passwordHash = password ? await hashPassword(password) : undefined;
+        user = await storage.createUser({
+          email,
+          password: passwordHash,
+          firstName,
+          lastName,
+          role: (role || null) as any,
+          emailVerified: false,
+          addressVerified: false,
+        } as any);
+      } else {
+        const patch: any = {};
+        if (firstName) patch.firstName = firstName;
+        if (lastName) patch.lastName = lastName;
+        // Never mutate roles here.
+        if (password) patch.password = await hashPassword(password);
+        if (Object.keys(patch).length > 0) {
+          patch.updatedAt = new Date();
+          user = (await storage.updateUser(user.id, patch)) || user;
+        }
+      }
+
+      const emailVerificationRequired = await getGeneralSetting<boolean>(
+        "email_verification_required",
+        true
+      );
+      const publicBase = getPublicBaseUrlFromRequest(req as any).replace(/\/$/, "");
+
+      const debug: any = {};
+      let resetLink: string | null = null;
+      let verifyLink: string | null = null;
+
+      // Only include a set-password link if this account has no password set.
+      if (!user.password) {
+        const { token } = passwordResetService.createToken(user.id);
+        resetLink = `${publicBase}/reset-password?token=${token}`;
+      }
+
+      if (emailVerificationRequired && user.emailVerified !== true) {
+        const verify = emailVerificationService.createToken(user.id);
+        verifyLink = `${publicBase}/verify-email?token=${verify.token}`;
+      }
+
+      let emailSent = false;
+      if (sendEmail) {
+        const canSend = emailService.isConfigured();
+        if (canSend) {
+          const parts: string[] = [];
+          parts.push(`<p>Your TradeScout account is ready.</p>`);
+          if (resetLink) {
+            parts.push(`<p><a href="${resetLink}">Set your password</a>.</p>`);
+          }
+          if (verifyLink) {
+            parts.push(`<p><a href="${verifyLink}">Verify your email</a> (required).</p>`);
+          }
+          parts.push(`<p>If you did not request this, you can ignore this email.</p>`);
+
+          await emailService.sendEmail({
+            to: email,
+            subject: "Set up your TradeScout account",
+            html: parts.join("\n"),
+            text: [
+              resetLink ? `Set password: ${resetLink}` : null,
+              verifyLink ? `Verify email: ${verifyLink}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            purpose: "account_creation",
+          });
+          emailSent = true;
+        } else if (process.env.NODE_ENV !== "production") {
+          if (resetLink) debug.activationLink = resetLink;
+          if (verifyLink) debug.verifyLink = verifyLink;
+        }
+      }
+
+      return res.json({
+        ok: true,
+        status: created ? "created" : "existing",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+        emailSent,
+        activationLinkIncluded: Boolean(resetLink),
+        verifyLinkIncluded: Boolean(verifyLink),
+        ...debug,
+      });
+    } catch (error: any) {
+      console.error("Error provisioning user:", error);
+      return res.status(500).json({ message: error?.message || "Failed to provision user" });
+    }
+  });
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
   app.post("/api/admin/businesses/import", isAuthenticated, isAdmin, async (req: any, res: any) => {

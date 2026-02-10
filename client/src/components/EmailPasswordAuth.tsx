@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,16 +9,20 @@ import { apiRequest } from "@/lib/queryClient";
 
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const emailPrefill = (() => {
+  const params = useMemo(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      return (params.get("email") || "").trim();
+      return new URLSearchParams(window.location.search);
     } catch {
-      return "";
+      return new URLSearchParams();
     }
-  })();
+  }, []);
+  const emailPrefill = (params.get("email") || "").trim();
+  const nextParam = (params.get("next") || "").trim();
+  const safeNext = nextParam.startsWith("/") ? nextParam : "";
+  const [emailValue, setEmailValue] = useState(emailPrefill);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,6 +55,10 @@ export function EmailPasswordAuth() {
       const role: string | undefined = anyUser?.role;
       const isSuperAdmin =
         role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
+      if (safeNext) {
+        window.location.href = safeNext;
+        return;
+      }
       window.location.href = isSuperAdmin ? "/admin" : "/scout";
     } catch (error) {
       console.error("Authentication error:", error);
@@ -61,6 +69,33 @@ export function EmailPasswordAuth() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    const email = (emailValue || "").trim();
+    if (!email) {
+      toast({ title: "Email required", description: "Enter your email first." });
+      return;
+    }
+    setIsResending(true);
+    try {
+      const resp = await apiRequest("POST", "/api/auth/request-email-verification", { email });
+      toast({
+        title: "Verification email requested",
+        description: resp?.message || "If an account exists, a new link has been sent.",
+      });
+      if (resp?.verificationToken) {
+        console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Resend failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -75,7 +110,8 @@ export function EmailPasswordAuth() {
           required
           autoComplete="email"
           placeholder="you@example.com"
-          defaultValue={emailPrefill}
+          value={emailValue}
+          onChange={(e) => setEmailValue(e.target.value)}
         />
       </div>
       <div className="space-y-2">
@@ -91,6 +127,16 @@ export function EmailPasswordAuth() {
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Signing in..." : "Sign in"}
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={resendVerification}
+        disabled={isResending}
+      >
+        {isResending ? "Sending..." : "Resend verification email"}
       </Button>
 
       <div className="mt-3 space-y-1 text-center">
