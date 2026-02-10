@@ -12,14 +12,15 @@ interface FacebookSignupProps {
 
 export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSignupProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const handleFacebookSignup = async () => {
     setIsLoading(true);
     try {
       // Redirect to Facebook OAuth
-      window.location.href = '/api/auth/facebook';
+      window.location.href = `${apiBaseUrl}/api/auth/facebook`;
     } catch (error) {
-      console.error('Facebook signup failed:', error);
+      console.error("Facebook signup failed:", error);
       setIsLoading(false);
     }
   };
@@ -36,16 +37,16 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
           <p className="text-xl text-slate-300 mb-2">
             Connect with trusted residents, pros, and organizations in your community
           </p>
-          <p className="text-slate-400">
-            The faster, easier way to get started
-          </p>
+          <p className="text-slate-400">The faster, easier way to get started</p>
         </div>
 
         {/* Main Signup Card */}
         <Card className="bg-slate-800/50 border-slate-700 max-w-md mx-auto mb-8">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-2xl text-white">Get Started</CardTitle>
-            <p className="text-slate-400">Join thousands of residents, pros, and community leaders</p>
+            <p className="text-slate-400">
+              Join thousands of residents, pros, and community leaders
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Facebook Signup Button */}
@@ -57,11 +58,14 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
               data-testid="button-facebook-signup"
             >
               <Facebook className="w-5 h-5" />
-              {isLoading ? 'Connecting...' : 'Sign up with Facebook'}
+              {isLoading ? "Connecting..." : "Sign up with Facebook"}
             </Button>
-            
+
             <div className="text-center">
-              <Badge variant="secondary" className="bg-green-900/50 text-green-400 border-green-500/30">
+              <Badge
+                variant="secondary"
+                className="bg-green-900/50 text-green-400 border-green-500/30"
+              >
                 <CheckCircle className="w-3 h-3 mr-1" />
                 3x Higher Success Rate
               </Badge>
@@ -160,10 +164,14 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-slate-500 text-sm">
-            By signing up, you agree to our{' '}
-            <a href="/terms" className="text-blue-400 hover:underline">Terms of Service</a>
-            {' '}and{' '}
-            <a href="/privacy" className="text-blue-400 hover:underline">Privacy Policy</a>
+            By signing up, you agree to our{" "}
+            <a href="/terms" className="text-blue-400 hover:underline">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" className="text-blue-400 hover:underline">
+              Privacy Policy
+            </a>
           </p>
         </div>
       </div>

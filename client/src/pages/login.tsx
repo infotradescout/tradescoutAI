@@ -6,6 +6,7 @@ import { Home } from "lucide-react";
 
 export default function Login() {
   const { isAuthenticated, isLoading } = useAuth();
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -14,7 +15,7 @@ export default function Login() {
   }, [isAuthenticated]);
 
   const beginOAuth = (provider: "google" | "facebook") => {
-    window.location.assign(`/api/auth/${provider}`);
+    window.location.assign(`${apiBaseUrl}/api/auth/${provider}`);
   };
 
   return (

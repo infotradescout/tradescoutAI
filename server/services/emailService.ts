@@ -15,12 +15,25 @@ export type SendEmailParams = {
 
 class EmailService {
   private configured: boolean;
+  private provider: "sendgrid" | "brevo" | "none";
   private defaultFrom: string;
+  private brevoApiKey: string | undefined;
 
   constructor() {
     const apiKey = process.env.SENDGRID_API_KEY;
-    this.configured = Boolean(apiKey);
-    this.defaultFrom = process.env.SENDGRID_FROM_EMAIL || "noreply@tradescout.app";
+    const brevoApiKey = process.env.BREVO_API_KEY;
+
+    this.provider = apiKey ? "sendgrid" : brevoApiKey ? "brevo" : "none";
+    this.configured = this.provider !== "none";
+
+    // Shared "from" default across providers.
+    this.defaultFrom =
+      process.env.SENDGRID_FROM_EMAIL ||
+      process.env.BREVO_FROM_EMAIL ||
+      process.env.DEFAULT_FROM_EMAIL ||
+      "noreply@tradescout.app";
+
+    this.brevoApiKey = brevoApiKey;
 
     if (apiKey) {
       sgMail.setApiKey(apiKey);
@@ -41,25 +54,74 @@ class EmailService {
       throw new Error("Email requires html or text content");
     }
 
-    const content = [];
-    if (params.html) content.push({ type: "text/html", value: params.html });
-    if (params.text) content.push({ type: "text/plain", value: params.text });
+    if (this.provider === "sendgrid") {
+      const content = [];
+      if (params.html) content.push({ type: "text/html", value: params.html });
+      if (params.text) content.push({ type: "text/plain", value: params.text });
 
-    const payload: MailDataRequired = {
-      to: params.to,
-      from: params.from || this.defaultFrom,
-      subject: params.subject,
-      content: content as any,
-      cc: params.cc,
-      bcc: params.bcc,
-      replyTo: params.replyTo,
-      headers: params.headers,
-    };
+      const payload: MailDataRequired = {
+        to: params.to,
+        from: params.from || this.defaultFrom,
+        subject: params.subject,
+        content: content as any,
+        cc: params.cc,
+        bcc: params.bcc,
+        replyTo: params.replyTo,
+        headers: params.headers,
+      };
 
-    const [response] = await sgMail.send(payload);
-    const messageId = (response?.headers as any)?.["x-message-id"];
+      const [response] = await sgMail.send(payload);
+      const messageId = (response?.headers as any)?.["x-message-id"];
 
-    return { skipped: false, messageId: Array.isArray(messageId) ? messageId[0] : messageId };
+      return { skipped: false, messageId: Array.isArray(messageId) ? messageId[0] : messageId };
+    }
+
+    if (this.provider === "brevo") {
+      if (!this.brevoApiKey) {
+        console.warn("[email] Brevo selected but BREVO_API_KEY missing; skipping send");
+        return { skipped: true };
+      }
+      const fetchFn = (globalThis as any).fetch as undefined | typeof fetch;
+      if (!fetchFn) {
+        throw new Error("Brevo email requires global fetch() (Node 18+)");
+      }
+
+      const toList = Array.isArray(params.to) ? params.to : [params.to];
+      const payload = {
+        sender: { email: params.from || this.defaultFrom },
+        to: toList.map((email) => ({ email })),
+        subject: params.subject,
+        ...(params.html ? { htmlContent: params.html } : {}),
+        ...(params.text ? { textContent: params.text } : {}),
+        ...(params.cc?.length ? { cc: params.cc.map((email) => ({ email })) } : {}),
+        ...(params.bcc?.length ? { bcc: params.bcc.map((email) => ({ email })) } : {}),
+        ...(params.replyTo ? { replyTo: { email: params.replyTo } } : {}),
+        ...(params.headers ? { headers: params.headers } : {}),
+      };
+
+      const resp = await fetchFn("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          "api-key": this.brevoApiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        throw new Error(`Brevo send failed (${resp.status}): ${text || resp.statusText}`);
+      }
+
+      const json: any = await resp.json().catch(() => null);
+      const messageId = json?.messageId || json?.["messageId"];
+      return { skipped: false, messageId: typeof messageId === "string" ? messageId : undefined };
+    }
+
+    // Should never happen, but fail-soft.
+    console.warn("[email] Unknown provider; skipping send");
+    return { skipped: true };
   }
 }
 

@@ -40,6 +40,7 @@ import { sendInternalServerError, sendAutoClassifiedError } from "./utils/httpEr
 import { getMessagingService } from "./messaging-service";
 import { emailService } from "./services/emailService";
 import { passwordResetService } from "./services/passwordResetService";
+import { emailVerificationService } from "./services/emailVerificationService";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
@@ -167,6 +168,37 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
   : null;
 const dataManagementService = new DataManagementService();
+const getGeneralSetting = async <T>(key: string, fallback: T): Promise<T> => {
+  try {
+    const settings = await storage.getSiteSettings("general");
+    const match = settings.find((setting) => setting.key === key && setting.isActive !== false);
+    if (match && typeof (match as any).value !== "undefined") {
+      return (match as any).value as T;
+    }
+  } catch (error) {
+    console.warn("[settings] Failed to load site setting", { key, error });
+  }
+  return fallback;
+};
+
+const getPublicBaseUrlFromRequest = (req: Request): string => {
+  const envBase =
+    process.env.PUBLIC_WEB_URL || process.env.APP_URL || process.env.APP_BASE_URL || "";
+  if (envBase) return envBase;
+
+  // Best-effort fallback so links are not "localhost" in production when env isn't set.
+  // Note: if your API is on a different domain than your frontend, set PUBLIC_WEB_URL.
+  const protoHeader = String(req.get("x-forwarded-proto") || "")
+    .split(",")[0]
+    .trim();
+  const hostHeader = String(req.get("x-forwarded-host") || req.get("host") || "")
+    .split(",")[0]
+    .trim();
+  const proto = protoHeader || req.protocol || "https";
+  const host = hostHeader;
+  if (!host) return "https://www.thetradescout.com";
+  return `${proto}://${host}`;
+};
 // Helper function to route leads to top contractors
 interface Contractor {
   id: string;
@@ -524,6 +556,16 @@ export async function registerRoutes(app: any) {
       })
     : noopRateLimiter;
 
+  const emailVerificationLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 10,
+        message: "Too many verification requests, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    : noopRateLimiter;
+
   const aiLimiter = isProductionEnv
     ? rateLimit({
         windowMs: 60 * 60 * 1000, // 1 hour
@@ -670,6 +712,16 @@ export async function registerRoutes(app: any) {
 
   const handleRegister = async (req: Request, res: Response) => {
     try {
+      const registrationEnabled = await getGeneralSetting<boolean>("registration_enabled", true);
+      if (!registrationEnabled) {
+        return res.status(403).json({ message: "Registration is currently disabled" });
+      }
+
+      const emailVerificationRequired = await getGeneralSetting<boolean>(
+        "email_verification_required",
+        true
+      );
+
       const body = (req.body || {}) as any;
       const email = typeof body.email === "string" ? body.email.trim() : "";
       const password = typeof body.password === "string" ? body.password : "";
@@ -816,7 +868,7 @@ export async function registerRoutes(app: any) {
         role: primaryRole as any, // Primary role for backward compatibility (defaults to homeowner for routing)
         roles: userTypes || [], // Empty array allowed - provisional preferences stored separately
         activeRole: primaryRole, // Default active role for routing
-        emailVerified: false,
+        emailVerified: emailVerificationRequired ? false : true,
         addressVerified: false,
         verificationStatus: status,
         badges: Array.from(badges),
@@ -890,6 +942,31 @@ export async function registerRoutes(app: any) {
         console.error("Failed to persist ToS acceptance:", e);
       }
 
+      let emailVerificationSent = false;
+      let verificationToken: string | undefined;
+      if (emailVerificationRequired && !user.emailVerified) {
+        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const verifyBase = getPublicBaseUrlFromRequest(req);
+        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}`;
+
+        try {
+          await emailService.sendEmail({
+            to: email,
+            subject: "Verify your TradeScout email",
+            html: `<p>Thanks for joining TradeScout.</p>
+                 <p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
+            text: `Verify your TradeScout email: ${verifyLink}`,
+          });
+          emailVerificationSent = true;
+        } catch (error) {
+          console.error("[email-verification] Failed to send verification email:", error);
+        }
+
+        if (!emailService.isConfigured() && process.env.NODE_ENV !== "production") {
+          verificationToken = token;
+        }
+      }
+
       // Automatic community welcome + (optionally) Scout-authored intro post
       await createAutomaticCommunityWelcomeForUser(user, {
         createdViaScout: typeof body.source === "string" && body.source.toLowerCase() === "scout",
@@ -903,6 +980,9 @@ export async function registerRoutes(app: any) {
         res.json({
           user: sanitizeUserForResponse(userForLogin),
           message: "Registration successful",
+          emailVerificationRequired,
+          emailVerificationSent,
+          ...(verificationToken ? { verificationToken } : {}),
           ...(claim ? { claim } : {}),
         });
       });
@@ -989,6 +1069,80 @@ export async function registerRoutes(app: any) {
   // Backward compatibility: allow both /auth/register and /api/auth/register
   app.post("/auth/register", handleRegister);
   app.post("/api/auth/register", handleRegister);
+
+  app.post(
+    "/api/auth/request-email-verification",
+    emailVerificationLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const body = (req.body || {}) as any;
+        const email = typeof body.email === "string" ? body.email.trim() : "";
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
+
+        const user = await storage.getUserByEmail(email);
+        if (!user) {
+          return res.json({ message: "If an account exists, a verification link has been sent." });
+        }
+
+        if (user.emailVerified) {
+          return res.json({ message: "Email already verified." });
+        }
+
+        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const verifyBase = getPublicBaseUrlFromRequest(req);
+        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}`;
+
+        try {
+          await emailService.sendEmail({
+            to: email,
+            subject: "Verify your TradeScout email",
+            html: `<p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
+            text: `Verify your TradeScout email: ${verifyLink}`,
+          });
+        } catch (error) {
+          console.error("[email-verification] Failed to send verification email:", error);
+        }
+
+        const debug =
+          !emailService.isConfigured() && process.env.NODE_ENV !== "production"
+            ? { verificationToken: token }
+            : {};
+
+        return res.json({
+          message: "If an account exists, a verification link has been sent.",
+          ...debug,
+        });
+      } catch (error: any) {
+        console.error("[email-verification] Request failed:", error);
+        return sendAutoClassifiedError(res, error, "Failed to send verification email");
+      }
+    }
+  );
+
+  app.post("/api/auth/verify-email", async (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as any;
+      const token = typeof body.token === "string" ? body.token.trim() : "";
+      if (!token) return res.status(400).json({ message: "Token is required" });
+
+      const userId = emailVerificationService.consumeToken(token);
+      if (!userId) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      const updated = await storage.updateUser(userId, { emailVerified: true } as any);
+      if (!updated) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.json({ message: "Email verified successfully" });
+    } catch (error: any) {
+      console.error("[email-verification] Verification failed:", error);
+      return sendAutoClassifiedError(res, error, "Failed to verify email");
+    }
+  });
 
   const performLogout = (req: Request, res: Response) => {
     req.logout((err) => {

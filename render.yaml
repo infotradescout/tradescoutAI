@@ -62,6 +62,15 @@ services:
       - key: SENTRY_DSN
         sync: false
         scope: run
+      - key: PUBLIC_WEB_URL
+        sync: false
+        scope: run
+      - key: BREVO_API_KEY
+        sync: false
+        scope: run
+      - key: BREVO_FROM_EMAIL
+        sync: false
+        scope: run
       - key: STRIPE_SECRET_KEY
         sync: false
         scope: run

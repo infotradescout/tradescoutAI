@@ -123,6 +123,7 @@ const Profile = React.lazy(() => import("./pages/ProfilePage"));
 // Authentication & User Management
 const Login = React.lazy(() => import("./pages/login"));
 const AddressVerification = React.lazy(() => import("./pages/address-verification"));
+const VerifyEmail = React.lazy(() => import("./pages/verify-email"));
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
@@ -578,6 +579,9 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/reset-password">
                     <LazyPage Component={ResetPassword} />
+                  </Route>
+                  <Route path="/verify-email">
+                    <LazyPage Component={VerifyEmail} />
                   </Route>
                   <Route path="/pre-scout-setup">
                     <ProtectedRoute>
@@ -1220,7 +1224,9 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={ContentModeration} />
                   </Route>
                   <Route path="/system-settings">
-                    <LazyPage Component={SystemSettings} />
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={SystemSettings} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/support-tickets">
                     <LazyPage Component={SupportTickets} />

@@ -52,9 +52,10 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [location] = useLocation();
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const beginOAuth = (provider: "google" | "facebook") => {
-    window.location.assign(`/api/auth/${provider}`);
+    window.location.assign(`${apiBaseUrl}/api/auth/${provider}`);
   };
 
   const form = useForm<RegisterFormData>({

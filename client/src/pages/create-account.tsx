@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useForm, Controller } from "react-hook-form";
@@ -83,6 +83,7 @@ export default function CreateAccountPortal() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [primaryFocus, setPrimaryFocus] = useState<"hire" | "offer" | "both">("hire");
@@ -90,6 +91,7 @@ export default function CreateAccountPortal() {
     google: false,
     facebook: false,
   });
+  const lastSignupEmailRef = useRef<string>("");
 
   const {
     control,
@@ -131,8 +133,7 @@ export default function CreateAccountPortal() {
   // Fetch OAuth providers
   useEffect(() => {
     let alive = true;
-    fetch("/api/auth/providers")
-      .then((res) => (res.ok ? res.json() : null))
+    apiRequest("GET", "/api/auth/providers")
       .then((json) => {
         if (!alive) return;
         if (json && typeof json.google === "boolean" && typeof json.facebook === "boolean") {
@@ -190,10 +191,20 @@ export default function CreateAccountPortal() {
         claimBusinessId: data.claimBusinessId || undefined,
       });
     },
-    onSuccess: (resp: any) => {
+    onSuccess: async (resp: any) => {
       console.log("[CREATE_ACCOUNT] Registration successful");
+      const respUser = resp?.user;
+      if (respUser) {
+        queryClient.setQueryData(["/api/auth/user"], respUser);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      refetch?.();
+      let authedUser = respUser;
+      try {
+        const refetchResult = await refetch?.();
+        authedUser = authedUser || refetchResult?.data || null;
+      } catch {
+        // Fail-soft: we'll handle fallback below.
+      }
 
       // Set Scout onboarding marker
       localStorage.setItem("scout_onboarding_marker", "__SCOUT_ONBOARDING__");
@@ -207,6 +218,30 @@ export default function CreateAccountPortal() {
               ? "Account created. Business claim needs verification."
               : "Welcome to TradeScout. Let's get you started.",
       });
+      if (resp?.emailVerificationRequired) {
+        toast({
+          title: "Verification email sent",
+          description: resp?.emailVerificationSent
+            ? "Check your inbox to verify your email."
+            : "We were unable to send the verification email. Please request a new link.",
+        });
+        if (resp?.verificationToken) {
+          console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
+        }
+      }
+
+      if (!authedUser) {
+        // If session didn't persist, send them to login instead of bouncing back here.
+        toast({
+          title: "Login required",
+          description: "Account created. Please log in to continue.",
+        });
+        const emailParam = lastSignupEmailRef.current
+          ? `?email=${encodeURIComponent(lastSignupEmailRef.current)}`
+          : "";
+        navigate(`/login${emailParam}`);
+        return;
+      }
 
       // CLAIM-FIRST: Route through the pre-Scout gate before Scout intent capture
       // No setTimeout - immediate redirect maintains flow authority
@@ -238,6 +273,7 @@ export default function CreateAccountPortal() {
   });
 
   const onSubmit = (data: SignupFormData) => {
+    lastSignupEmailRef.current = data.email || "";
     signupMutation.mutate({ ...data, claimBusinessId: selectedClaimBusinessId });
   };
 
@@ -353,7 +389,7 @@ export default function CreateAccountPortal() {
               {providers.facebook && (
                 <Button
                   type="button"
-                  onClick={() => (window.location.href = "/api/auth/facebook")}
+                  onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6"
                 >
                   <Facebook className="w-5 h-5 mr-3" />
@@ -364,7 +400,7 @@ export default function CreateAccountPortal() {
               {providers.google && (
                 <Button
                   type="button"
-                  onClick={() => (window.location.href = "/api/auth/google")}
+                  onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/google`)}
                   variant="outline"
                   className="w-full border-tsBorder text-tsTextMain hover:bg-tsCard/80 font-medium py-6"
                 >

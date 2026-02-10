@@ -6,7 +6,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
@@ -28,6 +35,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -42,7 +50,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
       try {
         return await apiRequest("POST", "/api/auth/login", data);
       } catch (error) {
-        console.error('Login request failed:', error);
+        console.error("Login request failed:", error);
         throw error;
       }
     },
@@ -56,10 +64,11 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
       onSuccess?.();
     },
     onError: (error: any) => {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       toast({
         title: "Login Failed",
-        description: error.message || "Unable to sign in. Please check your credentials and try again.",
+        description:
+          error.message || "Unable to sign in. Please check your credentials and try again.",
         variant: "destructive",
       });
     },
@@ -73,9 +82,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
-        <CardDescription>
-          Welcome back to TradeScout
-        </CardDescription>
+        <CardDescription>Welcome back to TradeScout</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -87,12 +94,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="email" 
-                      placeholder="your.email@example.com" 
-                      required
-                      {...field} 
-                    />
+                    <Input type="email" placeholder="your.email@example.com" required {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,11 +135,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
               )}
             />
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loginMutation.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
               {loginMutation.isPending ? "Signing In..." : "Sign In"}
             </Button>
           </form>
@@ -149,9 +147,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
+            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
           </div>
         </div>
 
@@ -161,7 +157,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => (window.location.href = '/api/auth/google')}
+            onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/google`)}
             data-testid="button-google-login"
           >
             <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
@@ -169,12 +165,12 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
           </Button>
 
           {/* Facebook Login Button (hidden when DISABLE_FACEBOOK_AUTH=true) */}
-          {import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true' && (
+          {import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true" && (
             <Button
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => (window.location.href = '/api/auth/facebook')}
+              onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
               data-testid="button-facebook-login"
             >
               <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
@@ -187,11 +183,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Button
-                variant="link"
-                className="p-0 h-auto"
-                onClick={onSwitchToRegister}
-              >
+              <Button variant="link" className="p-0 h-auto" onClick={onSwitchToRegister}>
                 Sign up
               </Button>
             </p>

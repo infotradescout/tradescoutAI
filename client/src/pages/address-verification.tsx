@@ -6,10 +6,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +34,14 @@ const addressFormSchema = z.object({
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
   zipCode: z.string().min(5, "Valid ZIP code is required"),
-  verificationMethod: z.enum(['utility_bill', 'bank_statement', 'lease_agreement', 'property_deed', 'postcard', 'phone_verification']),
+  verificationMethod: z.enum([
+    "utility_bill",
+    "bank_statement",
+    "lease_agreement",
+    "property_deed",
+    "postcard",
+    "phone_verification",
+  ]),
   phoneNumber: z.string().optional(),
 });
 
@@ -33,13 +53,13 @@ type AddressFormData = z.infer<typeof addressFormSchema>;
 type PostcardVerificationData = z.infer<typeof postcardVerificationSchema>;
 
 export default function AddressVerification() {
-  const [step, setStep] = useState<'form' | 'postcard' | 'complete'>('form');
+  const [step, setStep] = useState<"form" | "postcard" | "complete">("form");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Get address verification status
   const { data: verificationStatus, isLoading } = useQuery({
-    queryKey: ['/api/address-verification/status'],
+    queryKey: ["/api/address-verification/status"],
   });
 
   const addressForm = useForm<AddressFormData>({
@@ -64,18 +84,18 @@ export default function AddressVerification() {
   // Submit address verification
   const submitVerificationMutation = useMutation({
     mutationFn: async (data: AddressFormData) => {
-      return await apiRequest('/api/address-verification', 'POST', data);
+      return await apiRequest("/api/address-verification", "POST", data);
     },
     onSuccess: () => {
-      if (addressForm.getValues('verificationMethod') === 'postcard') {
-        setStep('postcard');
+      if (addressForm.getValues("verificationMethod") === "postcard") {
+        setStep("postcard");
         requestPostcardMutation.mutate();
       } else {
         toast({
           title: "Verification Submitted",
           description: "Your address verification has been submitted for review.",
         });
-        queryClient.invalidateQueries({ queryKey: ['/api/address-verification/status'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/address-verification/status"] });
       }
     },
     onError: (error) => {
@@ -90,7 +110,7 @@ export default function AddressVerification() {
   // Request postcard verification
   const requestPostcardMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/address-verification/postcard/request', 'POST');
+      return await apiRequest("POST", "/api/address-verification/postcard/request");
     },
     onSuccess: (data: any) => {
       toast({
@@ -110,15 +130,15 @@ export default function AddressVerification() {
   // Verify postcard code
   const verifyPostcardMutation = useMutation({
     mutationFn: async (data: PostcardVerificationData) => {
-      return await apiRequest('/api/address-verification/postcard/verify', 'POST', data);
+      return await apiRequest("POST", "/api/address-verification/postcard/verify", data);
     },
     onSuccess: () => {
-      setStep('complete');
+      setStep("complete");
       toast({
         title: "Address Verified!",
         description: "Your address has been successfully verified.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/address-verification/status'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/address-verification/status"] });
     },
     onError: (error) => {
       toast({
@@ -183,29 +203,37 @@ export default function AddressVerification() {
           <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">
-            Address Verification Required
-          </h1>
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">Address Verification Required</h1>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            To maintain trust and security in our community, all users must verify their address within 14 days of account creation.
+            To maintain trust and security in our community, all users must verify their address
+            within 14 days of account creation.
           </p>
         </div>
 
         {/* Status Alert */}
-        <Alert className={`mb-6 ${isExpired ? 'border-red-200 bg-red-50 dark:bg-red-950' : 'border-orange-200 bg-orange-50 dark:bg-orange-950'}`}>
-          <Clock className={`h-4 w-4 ${isExpired ? 'text-red-600' : 'text-orange-600'}`} />
-          <AlertTitle className={isExpired ? 'text-red-800 dark:text-red-200' : 'text-orange-800 dark:text-orange-200'}>
-            {isExpired ? 'Verification Overdue' : `${daysRemaining} Days Remaining`}
-          </AlertTitle>
-          <AlertDescription className={isExpired ? 'text-red-700 dark:text-red-300' : 'text-orange-700 dark:text-orange-300'}>
-            {isExpired 
-              ? 'Your verification deadline has passed. Please complete verification to regain access to platform features.'
-              : `You have ${daysRemaining} days remaining to verify your address. After this period, access to platform features will be limited.`
+        <Alert
+          className={`mb-6 ${isExpired ? "border-red-200 bg-red-50 dark:bg-red-950" : "border-orange-200 bg-orange-50 dark:bg-orange-950"}`}
+        >
+          <Clock className={`h-4 w-4 ${isExpired ? "text-red-600" : "text-orange-600"}`} />
+          <AlertTitle
+            className={
+              isExpired ? "text-red-800 dark:text-red-200" : "text-orange-800 dark:text-orange-200"
             }
+          >
+            {isExpired ? "Verification Overdue" : `${daysRemaining} Days Remaining`}
+          </AlertTitle>
+          <AlertDescription
+            className={
+              isExpired ? "text-red-700 dark:text-red-300" : "text-orange-700 dark:text-orange-300"
+            }
+          >
+            {isExpired
+              ? "Your verification deadline has passed. Please complete verification to regain access to platform features."
+              : `You have ${daysRemaining} days remaining to verify your address. After this period, access to platform features will be limited.`}
           </AlertDescription>
         </Alert>
 
-        {step === 'form' && (
+        {step === "form" && (
           <div className="grid md:grid-cols-2 gap-6">
             {/* Address Form */}
             <Card>
@@ -225,10 +253,10 @@ export default function AddressVerification() {
                         <FormItem>
                           <FormLabel>Street Address</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               placeholder="123 Main Street, Apt 4B"
                               className="min-h-[80px]"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -305,12 +333,14 @@ export default function AddressVerification() {
                       )}
                     />
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full"
                       disabled={submitVerificationMutation.isPending}
                     >
-                      {submitVerificationMutation.isPending ? 'Submitting...' : 'Start Verification'}
+                      {submitVerificationMutation.isPending
+                        ? "Submitting..."
+                        : "Start Verification"}
                     </Button>
                   </form>
                 </Form>
@@ -321,20 +351,23 @@ export default function AddressVerification() {
             <Card>
               <CardHeader>
                 <CardTitle>Verification Methods</CardTitle>
-                <CardDescription>
-                  Choose the method that works best for you.
-                </CardDescription>
+                <CardDescription>Choose the method that works best for you.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                     <Mail className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
-                      <h4 className="font-medium text-blue-900 dark:text-blue-100">Postcard Verification</h4>
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                        Postcard Verification
+                      </h4>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
-                        We'll mail a postcard with a verification code to your address. Most reliable method.
+                        We'll mail a postcard with a verification code to your address. Most
+                        reliable method.
                       </p>
-                      <Badge variant="secondary" className="mt-1">Recommended</Badge>
+                      <Badge variant="secondary" className="mt-1">
+                        Recommended
+                      </Badge>
                     </div>
                   </div>
 
@@ -344,9 +377,12 @@ export default function AddressVerification() {
                   >
                     <Upload className="w-5 h-5 text-gray-600 mt-1" />
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Document Upload</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        Document Upload
+                      </h4>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Upload a document that shows your name and address (utility bill, bank statement, etc.).
+                        Upload a document that shows your name and address (utility bill, bank
+                        statement, etc.).
                       </p>
                     </div>
                   </div>
@@ -356,12 +392,13 @@ export default function AddressVerification() {
           </div>
         )}
 
-        {step === 'postcard' && (
+        {step === "postcard" && (
           <Card className="max-w-2xl mx-auto">
             <CardHeader>
               <CardTitle>Enter Postcard Code</CardTitle>
               <CardDescription>
-                We've sent a verification postcard to your address. Enter the 6-digit code from the postcard below.
+                We've sent a verification postcard to your address. Enter the 6-digit code from the
+                postcard below.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -374,11 +411,11 @@ export default function AddressVerification() {
                       <FormItem>
                         <FormLabel>Verification Code</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             placeholder="123456"
                             className="text-center text-2xl tracking-widest"
                             maxLength={6}
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -386,12 +423,12 @@ export default function AddressVerification() {
                     )}
                   />
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full"
                     disabled={verifyPostcardMutation.isPending}
                   >
-                    {verifyPostcardMutation.isPending ? 'Verifying...' : 'Verify Address'}
+                    {verifyPostcardMutation.isPending ? "Verifying..." : "Verify Address"}
                   </Button>
                 </form>
               </Form>
@@ -402,19 +439,19 @@ export default function AddressVerification() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Didn't receive the postcard? It typically arrives within 5-7 business days.
                 </p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => requestPostcardMutation.mutate()}
                   disabled={requestPostcardMutation.isPending}
                 >
-                  {requestPostcardMutation.isPending ? 'Sending...' : 'Request New Postcard'}
+                  {requestPostcardMutation.isPending ? "Sending..." : "Request New Postcard"}
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {step === 'complete' && (
+        {step === "complete" && (
           <Card className="max-w-2xl mx-auto">
             <CardHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
@@ -424,13 +461,12 @@ export default function AddressVerification() {
                 Verification Complete!
               </CardTitle>
               <CardDescription>
-                Your address has been successfully verified. You now have full access to the platform.
+                Your address has been successfully verified. You now have full access to the
+                platform.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button onClick={() => window.location.href = '/'}>
-                Continue to Platform
-              </Button>
+              <Button onClick={() => (window.location.href = "/")}>Continue to Platform</Button>
             </CardContent>
           </Card>
         )}

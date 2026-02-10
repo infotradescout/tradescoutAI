@@ -54,10 +54,12 @@ export interface User {
 export function useAuth() {
   const authQuery = useCallback(async () => {
     try {
+      const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+      const authUrl = `${apiBaseUrl}/api/auth/user`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch("/api/auth/user", {
+      const response = await fetch(authUrl, {
         credentials: "include",
         signal: controller.signal,
         headers: {

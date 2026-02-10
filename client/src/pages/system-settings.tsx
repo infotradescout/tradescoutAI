@@ -1,14 +1,32 @@
-import { memo, useState } from 'react';
-import { Settings2, Save, Shield, Bell, Globe, Database, Users2, Mail, Server, Lock } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { memo, useEffect, useState } from "react";
+import {
+  Settings2,
+  Save,
+  Shield,
+  Bell,
+  Globe,
+  Database,
+  Users2,
+  Mail,
+  Server,
+  Lock,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 const SystemSettings = memo(function SystemSettings() {
   const [activeTab, setActiveTab] = useState("general");
@@ -21,7 +39,7 @@ const SystemSettings = memo(function SystemSettings() {
     maintenanceMode: false,
     registrationEnabled: true,
     emailVerificationRequired: true,
-    addressVerificationRequired: true
+    addressVerificationRequired: true,
   });
 
   // Security Settings State
@@ -31,7 +49,7 @@ const SystemSettings = memo(function SystemSettings() {
     sessionTimeout: 24,
     maxLoginAttempts: 5,
     rateLimitEnabled: true,
-    ipWhitelistEnabled: false
+    ipWhitelistEnabled: false,
   });
 
   // Notification Settings State
@@ -41,14 +59,112 @@ const SystemSettings = memo(function SystemSettings() {
     pushNotifications: true,
     adminAlerts: true,
     systemAlerts: true,
-    userReports: true
+    userReports: true,
   });
 
-  const handleSaveSettings = (settingsType: string) => {
-    toast({
-      title: "Settings Saved",
-      description: `${settingsType} settings have been updated successfully.`,
+  const [generalSettingsLoaded, setGeneralSettingsLoaded] = useState(false);
+  const [generalSettingsSaving, setGeneralSettingsSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const loadSettings = async () => {
+      try {
+        const settings = await apiRequest("GET", "/api/admin/site-settings?category=general");
+        if (!alive) return;
+        if (Array.isArray(settings)) {
+          const lookup = new Map(settings.map((setting: any) => [setting.key, setting]));
+          setGeneralSettings((prev) => ({
+            ...prev,
+            siteName: lookup.get("site_name")?.value ?? prev.siteName,
+            siteDescription: lookup.get("site_description")?.value ?? prev.siteDescription,
+            maintenanceMode: lookup.get("maintenance_mode")?.value ?? prev.maintenanceMode,
+            registrationEnabled:
+              lookup.get("registration_enabled")?.value ?? prev.registrationEnabled,
+            emailVerificationRequired:
+              lookup.get("email_verification_required")?.value ?? prev.emailVerificationRequired,
+            addressVerificationRequired:
+              lookup.get("address_verification_required")?.value ??
+              prev.addressVerificationRequired,
+          }));
+        }
+      } catch (error: any) {
+        toast({
+          title: "Failed to load settings",
+          description: error?.message ?? "Unable to fetch system settings.",
+          variant: "destructive",
+        });
+      } finally {
+        if (alive) setGeneralSettingsLoaded(true);
+      }
+    };
+    loadSettings();
+    return () => {
+      alive = false;
+    };
+  }, [toast]);
+
+  const upsertSetting = async (key: string, value: any, description?: string) => {
+    const existing = await apiRequest("GET", "/api/admin/site-settings?category=general");
+    const match = Array.isArray(existing) ? existing.find((item: any) => item.key === key) : null;
+    if (match?.id) {
+      return await apiRequest("PUT", `/api/admin/site-settings/${match.id}`, {
+        ...match,
+        value,
+        description: description ?? match.description,
+        category: "general",
+        key,
+      });
+    }
+    return await apiRequest("POST", "/api/admin/site-settings", {
+      category: "general",
+      key,
+      value,
+      description,
+      isActive: true,
     });
+  };
+
+  const handleSaveSettings = async (settingsType: string) => {
+    if (settingsType !== "General") return;
+    setGeneralSettingsSaving(true);
+    try {
+      await Promise.all([
+        upsertSetting("site_name", generalSettings.siteName, "Public site name"),
+        upsertSetting(
+          "site_description",
+          generalSettings.siteDescription,
+          "Public site description"
+        ),
+        upsertSetting("maintenance_mode", generalSettings.maintenanceMode, "Maintenance mode"),
+        upsertSetting(
+          "registration_enabled",
+          generalSettings.registrationEnabled,
+          "Allow new user signups"
+        ),
+        upsertSetting(
+          "email_verification_required",
+          generalSettings.emailVerificationRequired,
+          "Require email verification for new accounts"
+        ),
+        upsertSetting(
+          "address_verification_required",
+          generalSettings.addressVerificationRequired,
+          "Require address verification within 14 days"
+        ),
+      ]);
+      toast({
+        title: "Settings Saved",
+        description: `${settingsType} settings have been updated successfully.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Save failed",
+        description: error?.message ?? "Unable to save system settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneralSettingsSaving(false);
+    }
   };
 
   return (
@@ -68,23 +184,38 @@ const SystemSettings = memo(function SystemSettings() {
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-muted border-border">
-            <TabsTrigger value="general" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="general"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Globe className="h-4 w-4 mr-2" />
               General
             </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="security"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Shield className="h-4 w-4 mr-2" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="notifications"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Bell className="h-4 w-4 mr-2" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="database" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="database"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Database className="h-4 w-4 mr-2" />
               Database
             </TabsTrigger>
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="integrations"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Server className="h-4 w-4 mr-2" />
               Integrations
             </TabsTrigger>
@@ -101,21 +232,29 @@ const SystemSettings = memo(function SystemSettings() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="siteName" className="text-white">Site Name</Label>
+                    <Label htmlFor="siteName" className="text-white">
+                      Site Name
+                    </Label>
                     <Input
                       id="siteName"
                       value={generalSettings.siteName}
-                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, siteName: e.target.value }))}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({ ...prev, siteName: e.target.value }))
+                      }
                       className="bg-navy-700 border-navy-600 text-white"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="siteDescription" className="text-white">Site Description</Label>
+                    <Label htmlFor="siteDescription" className="text-white">
+                      Site Description
+                    </Label>
                     <Input
                       id="siteDescription"
                       value={generalSettings.siteDescription}
-                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({ ...prev, siteDescription: e.target.value }))
+                      }
                       className="bg-navy-700 border-navy-600 text-white"
                     />
                   </div>
@@ -129,7 +268,9 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={generalSettings.maintenanceMode}
-                      onCheckedChange={(checked) => setGeneralSettings(prev => ({ ...prev, maintenanceMode: checked }))}
+                      onCheckedChange={(checked) =>
+                        setGeneralSettings((prev) => ({ ...prev, maintenanceMode: checked }))
+                      }
                     />
                   </div>
 
@@ -140,39 +281,56 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={generalSettings.registrationEnabled}
-                      onCheckedChange={(checked) => setGeneralSettings(prev => ({ ...prev, registrationEnabled: checked }))}
+                      onCheckedChange={(checked) =>
+                        setGeneralSettings((prev) => ({ ...prev, registrationEnabled: checked }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
                     <div>
                       <Label className="text-white">Email Verification Required</Label>
-                      <p className="text-gray-400 text-sm">Require email verification for new accounts</p>
+                      <p className="text-gray-400 text-sm">
+                        Require email verification for new accounts
+                      </p>
                     </div>
                     <Switch
                       checked={generalSettings.emailVerificationRequired}
-                      onCheckedChange={(checked) => setGeneralSettings(prev => ({ ...prev, emailVerificationRequired: checked }))}
+                      onCheckedChange={(checked) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          emailVerificationRequired: checked,
+                        }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
                     <div>
                       <Label className="text-white">Address Verification Required</Label>
-                      <p className="text-gray-400 text-sm">Require address verification within 14 days</p>
+                      <p className="text-gray-400 text-sm">
+                        Require address verification within 14 days
+                      </p>
                     </div>
                     <Switch
                       checked={generalSettings.addressVerificationRequired}
-                      onCheckedChange={(checked) => setGeneralSettings(prev => ({ ...prev, addressVerificationRequired: checked }))}
+                      onCheckedChange={(checked) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          addressVerificationRequired: checked,
+                        }))
+                      }
                     />
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="bg-orange-600 hover:bg-orange-700"
                   onClick={() => handleSaveSettings("General")}
+                  disabled={!generalSettingsLoaded || generalSettingsSaving}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Save General Settings
+                  {generalSettingsSaving ? "Saving..." : "Save General Settings"}
                 </Button>
               </CardContent>
             </Card>
@@ -189,34 +347,55 @@ const SystemSettings = memo(function SystemSettings() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="passwordLength" className="text-white">Minimum Password Length</Label>
+                    <Label htmlFor="passwordLength" className="text-white">
+                      Minimum Password Length
+                    </Label>
                     <Input
                       id="passwordLength"
                       type="number"
                       value={securitySettings.passwordMinLength}
-                      onChange={(e) => setSecuritySettings(prev => ({ ...prev, passwordMinLength: parseInt(e.target.value) }))}
+                      onChange={(e) =>
+                        setSecuritySettings((prev) => ({
+                          ...prev,
+                          passwordMinLength: parseInt(e.target.value),
+                        }))
+                      }
                       className="bg-navy-700 border-navy-600 text-white"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sessionTimeout" className="text-white">Session Timeout (hours)</Label>
+                    <Label htmlFor="sessionTimeout" className="text-white">
+                      Session Timeout (hours)
+                    </Label>
                     <Input
                       id="sessionTimeout"
                       type="number"
                       value={securitySettings.sessionTimeout}
-                      onChange={(e) => setSecuritySettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+                      onChange={(e) =>
+                        setSecuritySettings((prev) => ({
+                          ...prev,
+                          sessionTimeout: parseInt(e.target.value),
+                        }))
+                      }
                       className="bg-navy-700 border-navy-600 text-white"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="maxLoginAttempts" className="text-white">Max Login Attempts</Label>
+                    <Label htmlFor="maxLoginAttempts" className="text-white">
+                      Max Login Attempts
+                    </Label>
                     <Input
                       id="maxLoginAttempts"
                       type="number"
                       value={securitySettings.maxLoginAttempts}
-                      onChange={(e) => setSecuritySettings(prev => ({ ...prev, maxLoginAttempts: parseInt(e.target.value) }))}
+                      onChange={(e) =>
+                        setSecuritySettings((prev) => ({
+                          ...prev,
+                          maxLoginAttempts: parseInt(e.target.value),
+                        }))
+                      }
                       className="bg-navy-700 border-navy-600 text-white"
                     />
                   </div>
@@ -230,7 +409,9 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={securitySettings.requireTwoFactor}
-                      onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, requireTwoFactor: checked }))}
+                      onCheckedChange={(checked) =>
+                        setSecuritySettings((prev) => ({ ...prev, requireTwoFactor: checked }))
+                      }
                     />
                   </div>
 
@@ -241,7 +422,9 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={securitySettings.rateLimitEnabled}
-                      onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, rateLimitEnabled: checked }))}
+                      onCheckedChange={(checked) =>
+                        setSecuritySettings((prev) => ({ ...prev, rateLimitEnabled: checked }))
+                      }
                     />
                   </div>
 
@@ -252,12 +435,14 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={securitySettings.ipWhitelistEnabled}
-                      onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, ipWhitelistEnabled: checked }))}
+                      onCheckedChange={(checked) =>
+                        setSecuritySettings((prev) => ({ ...prev, ipWhitelistEnabled: checked }))
+                      }
                     />
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="bg-orange-600 hover:bg-orange-700"
                   onClick={() => handleSaveSettings("Security")}
                 >
@@ -285,18 +470,27 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={notificationSettings.emailNotifications}
-                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, emailNotifications: checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({
+                          ...prev,
+                          emailNotifications: checked,
+                        }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
                     <div>
                       <Label className="text-white">SMS Notifications</Label>
-                      <p className="text-gray-400 text-sm">Send SMS notifications for urgent updates</p>
+                      <p className="text-gray-400 text-sm">
+                        Send SMS notifications for urgent updates
+                      </p>
                     </div>
                     <Switch
                       checked={notificationSettings.smsNotifications}
-                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, smsNotifications: checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, smsNotifications: checked }))
+                      }
                     />
                   </div>
 
@@ -307,7 +501,9 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={notificationSettings.pushNotifications}
-                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, pushNotifications: checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, pushNotifications: checked }))
+                      }
                     />
                   </div>
 
@@ -318,7 +514,9 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={notificationSettings.adminAlerts}
-                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, adminAlerts: checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, adminAlerts: checked }))
+                      }
                     />
                   </div>
 
@@ -329,23 +527,29 @@ const SystemSettings = memo(function SystemSettings() {
                     </div>
                     <Switch
                       checked={notificationSettings.systemAlerts}
-                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, systemAlerts: checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, systemAlerts: checked }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
                     <div>
                       <Label className="text-white">User Reports</Label>
-                      <p className="text-gray-400 text-sm">Notifications for user reports and issues</p>
+                      <p className="text-gray-400 text-sm">
+                        Notifications for user reports and issues
+                      </p>
                     </div>
                     <Switch
                       checked={notificationSettings.userReports}
-                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, userReports: checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, userReports: checked }))
+                      }
                     />
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="bg-orange-600 hover:bg-orange-700"
                   onClick={() => handleSaveSettings("Notification")}
                 >
@@ -396,13 +600,19 @@ const SystemSettings = memo(function SystemSettings() {
                     <Database className="h-4 w-4 mr-2" />
                     Create Database Backup
                   </Button>
-                  
-                  <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20">
+
+                  <Button
+                    variant="outline"
+                    className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                  >
                     <Server className="h-4 w-4 mr-2" />
                     Optimize Database
                   </Button>
 
-                  <Button variant="outline" className="w-full border-gray-600 text-gray-400 hover:bg-gray-600/20">
+                  <Button
+                    variant="outline"
+                    className="w-full border-gray-600 text-gray-400 hover:bg-gray-600/20"
+                  >
                     <Database className="h-4 w-4 mr-2" />
                     View Database Logs
                   </Button>
@@ -473,7 +683,7 @@ const SystemSettings = memo(function SystemSettings() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="bg-orange-600 hover:bg-orange-700"
                   onClick={() => handleSaveSettings("Integration")}
                 >

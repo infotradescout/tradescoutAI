@@ -67,6 +67,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -105,6 +106,9 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
     },
     onSuccess: (data) => {
       console.log("[REGISTER] Success, user created");
+      if ((data as any)?.user) {
+        queryClient.setQueryData(["/api/auth/user"], (data as any).user);
+      }
       toast({
         title: "Welcome to TradeScout!",
         description: "Your account has been created successfully.",
@@ -423,7 +427,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           type="button"
           variant="outline"
           className="w-full mb-4"
-          onClick={() => (window.location.href = "/api/auth/facebook")}
+          onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
           data-testid="button-facebook-signup"
         >
           <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />

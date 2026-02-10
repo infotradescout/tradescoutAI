@@ -5,11 +5,20 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const emailPrefill = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return (params.get("email") || "").trim();
+    } catch {
+      return "";
+    }
+  })();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,22 +29,7 @@ export function EmailPasswordAuth() {
     const password = String(formData.get("password") ?? "");
 
     try {
-      const response = await fetch("/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(error?.message || "Authentication failed");
-      }
-
-      const result = await response.json();
+      const result = await apiRequest("POST", "/api/auth/login", { email, password });
 
       toast({
         title: "Signed in successfully",
@@ -81,6 +75,7 @@ export function EmailPasswordAuth() {
           required
           autoComplete="email"
           placeholder="you@example.com"
+          defaultValue={emailPrefill}
         />
       </div>
       <div className="space-y-2">
