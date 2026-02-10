@@ -52,6 +52,7 @@ import {
   communityPosts,
   postComments,
   postLikes,
+  communityPostSaves,
   commentLikes,
   userFollows,
   communityGroups,
@@ -4947,7 +4948,7 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
     // Social feed tuning
-    sort?: "recent" | "distance" | "recommended";
+    sort?: "recent" | "distance" | "recommended" | "trending";
     followingOnly?: boolean;
     excludeFollowing?: boolean;
     viewerId?: string;
@@ -4974,6 +4975,7 @@ export class DatabaseStorage implements IStorage {
         trending: boolean;
         hasWorkRequest: boolean;
         workRequestId?: string | null;
+        saved?: boolean;
       }
     >
   > {
@@ -5022,8 +5024,12 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
 
-    const sortMode: "recent" | "distance" | "recommended" =
-      (filters?.sort as any) === "recommended" ? "recommended" : "recent";
+    const sortMode: "recent" | "distance" | "recommended" | "trending" =
+      (filters?.sort as any) === "recommended"
+        ? "recommended"
+        : (filters?.sort as any) === "trending"
+          ? "trending"
+          : "recent";
 
     const baseQuery = db
       .select({
@@ -5053,9 +5059,37 @@ export class DatabaseStorage implements IStorage {
             desc(communityPosts.likeCount),
             desc(communityPosts.createdAt)
           )
-        : baseQuery.orderBy(desc(communityPosts.createdAt));
+        : sortMode === "trending"
+          ? baseQuery.orderBy(
+              desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
+              desc(communityPosts.createdAt)
+            )
+          : baseQuery.orderBy(desc(communityPosts.createdAt));
 
     const results = await orderedQuery.limit(filters?.limit ?? 20).offset(filters?.offset ?? 0);
+
+    const savedIds = new Set<string>();
+    if (filters?.viewerId && results.length) {
+      try {
+        const ids = results.map((r: any) => String(r.post?.id)).filter(Boolean);
+        if (ids.length) {
+          const rows = await db
+            .select({ postId: communityPostSaves.postId })
+            .from(communityPostSaves)
+            .where(
+              and(
+                eq(communityPostSaves.userId, filters.viewerId),
+                inArray(communityPostSaves.postId, ids)
+              )
+            );
+          for (const row of rows) {
+            if (row?.postId) savedIds.add(String(row.postId));
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load community post saves", e);
+      }
+    }
 
     // Format posts with author information
     return results.map(
@@ -5089,9 +5123,95 @@ export class DatabaseStorage implements IStorage {
         downvotes: 0,
         comments: post.commentCount ?? 0,
         pinned: post.isPinned ?? false,
-        trending: false,
+        trending:
+          sortMode === "trending" ? (post.likeCount ?? 0) + (post.commentCount ?? 0) >= 3 : false,
+        saved: savedIds.has(String(post.id)),
       })
     );
+  }
+
+  async getSavedCommunityPosts(
+    userId: string,
+    opts?: { limit?: number; offset?: number }
+  ): Promise<
+    Array<
+      CommunityPost & {
+        author: {
+          id: string;
+          name: string;
+          avatar?: string | null;
+          email?: string | null;
+          role?: string | null;
+          verified: boolean;
+          isPrivateProfile: boolean;
+          badges?: string[] | null;
+        };
+        tags: string[];
+        location: string;
+        upvotes: number;
+        downvotes: number;
+        comments: number;
+        pinned: boolean;
+        trending: boolean;
+        hasWorkRequest: boolean;
+        workRequestId?: string | null;
+        saved?: boolean;
+      }
+    >
+  > {
+    const conditions = [
+      eq(communityPostSaves.userId, userId),
+      eq(communityPosts.isPublished, true),
+      eq(communityPosts.isHidden, false),
+    ];
+
+    const results = await db
+      .select({
+        post: communityPosts,
+        user: users,
+        workRequest: workRequests,
+        savedAt: communityPostSaves.createdAt,
+      })
+      .from(communityPostSaves)
+      .innerJoin(communityPosts, eq(communityPostSaves.postId, communityPosts.id))
+      .leftJoin(users, eq(communityPosts.authorId, users.id))
+      .leftJoin(
+        workRequests,
+        and(
+          eq(workRequests.source, "community" as any),
+          eq(workRequests.sourceRefId, communityPosts.id as any)
+        )
+      )
+      .where(and(...conditions))
+      .orderBy(desc(communityPostSaves.createdAt), desc(communityPosts.createdAt))
+      .limit(opts?.limit ?? 20)
+      .offset(opts?.offset ?? 0);
+
+    return results.map(({ post, user, workRequest }) => ({
+      ...post,
+      hasWorkRequest: !!workRequest,
+      workRequestId: workRequest?.id ?? null,
+      author: {
+        id: post.authorId,
+        name: user
+          ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous"
+          : "Anonymous",
+        avatar: user?.profileImageUrl,
+        email: user?.email,
+        role: user?.role,
+        verified: user?.addressVerified || false,
+        isPrivateProfile: (user as any)?.isPrivateProfile ?? false,
+        badges: (user as any)?.badges ?? null,
+      },
+      tags: post.tags ?? [],
+      location: post.countyFips ?? "",
+      upvotes: post.likeCount ?? 0,
+      downvotes: 0,
+      comments: post.commentCount ?? 0,
+      pinned: post.isPinned ?? false,
+      trending: false,
+      saved: true,
+    }));
   }
 
   async getCommunityPost(id: string): Promise<CommunityPost | undefined> {

@@ -18,6 +18,7 @@ import {
   BarChart3,
   Share,
   Heart,
+  Bookmark,
   Send,
   Tag,
   MapPin,
@@ -79,6 +80,11 @@ interface Post {
   comments: number;
   pinned: boolean;
   trending: boolean;
+  liked?: boolean;
+  saved?: boolean;
+  likeCount?: number;
+  commentCount?: number;
+  shareCount?: number;
   imageUrls?: string[];
 }
 
@@ -107,7 +113,7 @@ interface CommunityComment {
   createdAt: string;
 }
 
-function CommunityComments({ postId }: { postId: string }) {
+function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: boolean }) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -174,6 +180,14 @@ function CommunityComments({ postId }: { postId: string }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (readOnly) {
+      toast({
+        title: "Read-only view",
+        description: "Switch back to Local to comment on posts.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!isAuthenticated) {
       toast({
         title: "Sign In Required",
@@ -279,6 +293,9 @@ type CommunityStats = {
   activeToday: number;
   postsToday: number;
   countiesActive: number;
+  helpRequests7d?: number;
+  recommendations7d?: number;
+  verifiedPros?: number;
 };
 
 type TrendingTopic = {
@@ -288,7 +305,7 @@ type TrendingTopic = {
 };
 
 const CommunityFeed = memo(function CommunityFeed() {
-  type FeedTab = "forYou" | "recent" | "nearby" | "trending";
+  type FeedTab = "forYou" | "recent" | "nearby" | "trending" | "recs" | "vault";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
@@ -352,6 +369,11 @@ const CommunityFeed = memo(function CommunityFeed() {
         return "nearby";
       case "trending":
         return "trending";
+      case "recs":
+      case "recommendations":
+        return "recs";
+      case "vault":
+        return "vault";
       default:
         return null;
     }
@@ -466,12 +488,17 @@ const CommunityFeed = memo(function CommunityFeed() {
   }, [effectiveGeoScope, countyFips, stateCode, user]);
 
   const serverScopeForFeed = useMemo(() => {
+    if (activeTab === "vault") return "saved";
     if (isGlobalView) return "global";
     switch (activeTab) {
       case "recent":
         return "recent";
       case "nearby":
         return "nearby";
+      case "trending":
+        return "trending";
+      case "recs":
+        return "recommendations";
       default:
         return "county";
     }
@@ -561,7 +588,16 @@ const CommunityFeed = memo(function CommunityFeed() {
       return apiRequest("POST", `/api/community/posts/${postId}/like`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/community/posts", stateCode, countyFips] });
+      queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
+    },
+  });
+
+  const savePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      return apiRequest("POST", `/api/community/posts/${postId}/save`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
     },
   });
 
@@ -570,6 +606,14 @@ const CommunityFeed = memo(function CommunityFeed() {
       toast({
         title: "Sign In Required",
         description: "Please sign in to create posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isGlobalView) {
+      toast({
+        title: "Read-only view",
+        description: "Switch back to Local to create a post.",
         variant: "destructive",
       });
       return;
@@ -585,7 +629,43 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   const handleLikePost = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to react to community posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isGlobalView) {
+      toast({
+        title: "Read-only view",
+        description: "Switch back to Local to like or comment on posts.",
+        variant: "destructive",
+      });
+      return;
+    }
     likePostMutation.mutate(postId);
+  };
+
+  const handleToggleSavePost = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to save posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isGlobalView) {
+      toast({
+        title: "Read-only view",
+        description: "Switch back to Local to save posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    savePostMutation.mutate(postId);
   };
 
   // Use real posts from API, with sample posts as fallback
@@ -593,9 +673,14 @@ const CommunityFeed = memo(function CommunityFeed() {
   const posts = activePostsSource || [];
 
   const { data: communityStatsData } = useQuery<CommunityStats>({
-    queryKey: ["/api/community/stats"],
+    queryKey: ["/api/community/stats", stateCode, countyFips, isGlobalView],
     queryFn: async () => {
-      const response = await fetch("/api/community/stats");
+      const params = new URLSearchParams();
+      if (!isGlobalView && countyFips) {
+        params.set("countyFips", countyFips);
+        if (stateCode) params.set("stateCode", stateCode);
+      }
+      const response = await fetch(`/api/community/stats?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch community stats");
       return response.json();
     },
@@ -621,11 +706,30 @@ const CommunityFeed = memo(function CommunityFeed() {
     activeToday: 0,
     postsToday: 0,
     countiesActive: 0,
+    helpRequests7d: 0,
+    recommendations7d: 0,
+    verifiedPros: 0,
   };
 
   const trendingTopics: TrendingTopic[] = Array.isArray(trendingTopicsData)
     ? trendingTopicsData
     : [];
+
+  const activeNeighbors = useMemo(() => {
+    const seen = new Set<string>();
+    const neighbors: Array<{ id: string; name: string; avatar?: string }> = [];
+    (posts || []).forEach((post: any) => {
+      const id = String(post?.author?.id || "");
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      neighbors.push({
+        id,
+        name: getAuthorName(post),
+        avatar: getAuthorAvatar(post),
+      });
+    });
+    return neighbors.slice(0, 6);
+  }, [posts]);
 
   // Allow Scout to prefill the composer via /community?compose=1&prefill=...
   useEffect(() => {
@@ -678,6 +782,17 @@ const CommunityFeed = memo(function CommunityFeed() {
           Number(b.commentCount || b.comments || 0) * 3 +
           Number(b.shareCount || b.shares || 0) * 4;
         if (bScore !== aScore) return bScore - aScore;
+        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
+        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
+        return bTs - aTs;
+      });
+    }
+
+    if (activeTab === "recs") {
+      return list.sort((a, b) => {
+        const aIsRec = /recommend/i.test(String(a.category || a.type || a.postType || ""));
+        const bIsRec = /recommend/i.test(String(b.category || b.type || b.postType || ""));
+        if (aIsRec !== bIsRec) return bIsRec ? 1 : -1;
         const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
         const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
         return bTs - aTs;
@@ -866,7 +981,8 @@ const CommunityFeed = memo(function CommunityFeed() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`text-gray-400 hover:text-red-400 ${post.liked ? "text-red-400" : ""}`}
+                        disabled={isGlobalView}
+                        className={`text-gray-400 hover:text-red-400 disabled:opacity-50 disabled:pointer-events-none ${post.liked ? "text-red-400" : ""}`}
                         onClick={() => handleLikePost(post.id)}
                         data-testid={`button-like-${post.id}`}
                       >
@@ -878,13 +994,22 @@ const CommunityFeed = memo(function CommunityFeed() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-gray-400 hover:text-orange-400"
+                        disabled={isGlobalView}
+                        className="text-gray-400 hover:text-orange-400 disabled:opacity-50 disabled:pointer-events-none"
                         data-testid={`button-comment-${post.id}`}
                         onClick={() => {
                           if (!isAuthenticated) {
                             toast({
                               title: "Sign In Required",
                               description: "Please sign in to discuss community posts.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          if (isGlobalView) {
+                            toast({
+                              title: "Read-only view",
+                              description: "Switch back to Local to comment on posts.",
                               variant: "destructive",
                             });
                             return;
@@ -909,6 +1034,18 @@ const CommunityFeed = memo(function CommunityFeed() {
                         <Share className="h-4 w-4 mr-1" />
                         <span className="mr-1">Share</span>
                         {post.shareCount || post.shares || 0}
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isGlobalView}
+                        className={`text-gray-400 hover:text-orange-300 disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-orange-300" : ""}`}
+                        onClick={() => handleToggleSavePost(post.id)}
+                        data-testid={`button-save-${post.id}`}
+                      >
+                        <Bookmark className={`h-4 w-4 mr-1 ${post.saved ? "fill-current" : ""}`} />
+                        <span className="mr-1">{post.saved ? "Saved" : "Save"}</span>
                       </Button>
                     </div>
 
@@ -977,7 +1114,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </button>
                   </div>
 
-                  {openCommentsForPostId === post.id && <CommunityComments postId={post.id} />}
+                  {openCommentsForPostId === post.id && (
+                    <CommunityComments postId={post.id} readOnly={isGlobalView} />
+                  )}
                 </CardContent>
               </Card>
             );
@@ -1196,35 +1335,46 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </p>
                   </div>
                   <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Active</p>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                      Active today
+                    </p>
                     <p className="text-sm md:text-base font-semibold text-white">
                       {communityStats.activeToday}
                     </p>
                   </div>
                   <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Posts</p>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                      Verified pros
+                    </p>
                     <p className="text-sm md:text-base font-semibold text-white">
-                      {communityStats.postsToday}
+                      {communityStats.verifiedPros ?? 0}
                     </p>
                   </div>
                   <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Counties</p>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Recs (7d)</p>
                     <p className="text-sm md:text-base font-semibold text-white">
-                      {communityStats.countiesActive}
+                      {communityStats.recommendations7d ?? 0}
                     </p>
                   </div>
                 </div>
               </div>
-              {trendingTopics.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {trendingTopics.slice(0, 5).map((topic) => (
-                    <span
-                      key={topic.tag}
-                      className="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[11px] text-orange-200"
-                    >
-                      #{topic.tag}
-                    </span>
-                  ))}
+              {activeNeighbors.length > 0 && (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                    Active now
+                  </div>
+                  <div className="flex -space-x-2">
+                    {activeNeighbors.map((neighbor) => (
+                      <Avatar
+                        key={neighbor.id}
+                        className="h-7 w-7 border border-[color:var(--border-subtle)]"
+                        title={neighbor.name}
+                      >
+                        <AvatarImage src={neighbor.avatar} />
+                        <AvatarFallback>{neighbor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1286,241 +1436,273 @@ const CommunityFeed = memo(function CommunityFeed() {
                 onValueChange={(value) => handleTabChange(value as FeedTab)}
                 className="w-full"
               >
-                <TabsList className="mb-3 md:mb-4 flex items-center gap-2 bg-transparent p-0 overflow-x-auto">
-                  <TabsTrigger
-                    value="forYou"
-                    className="rounded-full px-4 py-2 text-xs font-semibold"
-                  >
-                    For You
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="recent"
-                    className="rounded-full px-4 py-2 text-xs font-semibold"
-                  >
-                    Recent
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="nearby"
-                    className="rounded-full px-4 py-2 text-xs font-semibold"
-                  >
-                    Nearby
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="trending"
-                    className="rounded-full px-4 py-2 text-xs font-semibold"
-                  >
-                    Trending
-                  </TabsTrigger>
-                </TabsList>
-                {/* Inline composer always visible at top of feed */}
-                <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
-                  <CardContent className="p-3 md:p-5">
-                    <div className="flex gap-4">
-                      <Avatar className="w-10 h-10 md:w-11 md:h-11">
-                        <AvatarImage src={user?.avatar as string | undefined} />
-                        <AvatarFallback>
-                          {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-3">
-                        <Textarea
-                          ref={composerRef}
-                          placeholder={
-                            selectedCategory === "request"
-                              ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
-                              : selectedCategory === "question"
-                                ? "What do you want to know? Scout or your neighbors can help..."
-                                : selectedCategory === "forsale"
-                                  ? "What are you selling? Include price and condition..."
-                                  : selectedCategory === "alert"
-                                    ? "What should everyone know about right now?"
-                                    : selectedCategory === "event"
-                                      ? "What's happening? When and where?"
-                                      : "What's happening in your community today?"
-                          }
-                          value={newPostContent}
-                          onChange={(e) => setNewPostContent(e.target.value)}
-                          rows={3}
-                        />
+                <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2">
+                  <TabsList className="flex items-center gap-2 bg-transparent p-0 overflow-x-auto">
+                    <TabsTrigger
+                      value="forYou"
+                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                    >
+                      For You
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="recent"
+                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                    >
+                      Recent
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="nearby"
+                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                    >
+                      Nearby
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="trending"
+                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                    >
+                      Trending
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="recs"
+                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                    >
+                      Recs
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="vault"
+                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                    >
+                      Saved
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                {/* Inline composer (local-only; global view is read-only) */}
+                {!isGlobalView ? (
+                  <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
+                    <CardContent className="p-3 md:p-5">
+                      <div className="flex gap-4">
+                        <Avatar className="w-10 h-10 md:w-11 md:h-11">
+                          <AvatarImage src={user?.avatar as string | undefined} />
+                          <AvatarFallback>
+                            {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-3">
+                          <Textarea
+                            ref={composerRef}
+                            placeholder={
+                              selectedCategory === "request"
+                                ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
+                                : selectedCategory === "question"
+                                  ? "What do you want to know? Scout or your neighbors can help..."
+                                  : selectedCategory === "forsale"
+                                    ? "What are you selling? Include price and condition..."
+                                    : selectedCategory === "alert"
+                                      ? "What should everyone know about right now?"
+                                      : selectedCategory === "event"
+                                        ? "What's happening? When and where?"
+                                        : "What's happening in your community today?"
+                            }
+                            value={newPostContent}
+                            onChange={(e) => setNewPostContent(e.target.value)}
+                            rows={3}
+                          />
 
-                        {/* Hidden file inputs */}
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImagesSelected}
-                          className="hidden"
-                        />
-                        <input
-                          ref={videoInputRef}
-                          type="file"
-                          accept="video/*"
-                          onChange={handleVideoSelected}
-                          className="hidden"
-                        />
+                          {/* Hidden file inputs */}
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImagesSelected}
+                            className="hidden"
+                          />
+                          <input
+                            ref={videoInputRef}
+                            type="file"
+                            accept="video/*"
+                            onChange={handleVideoSelected}
+                            className="hidden"
+                          />
 
-                        {/* Category selection - Maps human intent to system routing
+                          {/* Category selection - Maps human intent to system routing
                           PHILOSOPHY: Users think in outcomes, not systems
                           - "I need help" -> Scout + Direct Connect (invisible)
                           - "What's for sale?" -> Marketplace integration (transparent)
                           - "What's happening?" -> Community feed (default)
                           Categories route information WITHOUT exposing internal system names
                         */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {[
-                            {
-                              key: "general",
-                              label: "General",
-                              icon: MessageSquare,
-                              intent: "Share with neighbors",
-                            },
-                            {
-                              key: "question",
-                              label: "Question",
-                              icon: HelpCircle,
-                              intent: "Get help from Scout or locals",
-                            },
-                            {
-                              key: "recommendation",
-                              label: "Recommendation",
-                              icon: Award,
-                              intent: "Recommend someone you trust",
-                            },
-                            {
-                              key: "event",
-                              label: "Event",
-                              icon: Calendar,
-                              intent: "Let people know about an event",
-                            },
-                            {
-                              key: "tip",
-                              label: "Tip",
-                              icon: Lightbulb,
-                              intent: "Share something useful",
-                            },
-                            {
-                              key: "request",
-                              label: "Need Help",
-                              icon: Wrench,
-                              intent: "Find someone to do work",
-                            },
-                            {
-                              key: "alert",
-                              label: "Alert",
-                              icon: AlertTriangle,
-                              intent: "Important: everyone should see this",
-                            },
-                            {
-                              key: "forsale",
-                              label: "For Sale",
-                              icon: DollarSign,
-                              intent: "Sell something locally",
-                            },
-                          ].map(({ key, label, icon: Icon, intent }) => (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => setSelectedCategory(key)}
-                              title={intent}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                                selectedCategory === key
-                                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
-                                  : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
-                              }`}
-                            >
-                              <Icon className="h-3 w-3" />
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Image preview grid */}
-                        {uploadedImages.length > 0 && (
-                          <div className="grid grid-cols-4 gap-2">
-                            {uploadedImages.map((url, index) => (
-                              <div key={url} className="relative group">
-                                <img
-                                  src={url}
-                                  alt={`Upload ${index + 1}`}
-                                  className="w-full h-20 object-cover rounded border border-[color:var(--border-subtle)]"
-                                />
-                                <button
-                                  onClick={() => handleRemoveImage(index)}
-                                  className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <span className="text-xs">x</span>
-                                </button>
-                              </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              {
+                                key: "general",
+                                label: "General",
+                                icon: MessageSquare,
+                                intent: "Share with neighbors",
+                              },
+                              {
+                                key: "question",
+                                label: "Question",
+                                icon: HelpCircle,
+                                intent: "Get help from Scout or locals",
+                              },
+                              {
+                                key: "recommendation",
+                                label: "Recommend",
+                                icon: Award,
+                                intent: "Recommend someone you trust",
+                              },
+                              {
+                                key: "event",
+                                label: "Event",
+                                icon: Calendar,
+                                intent: "Let people know about an event",
+                              },
+                              {
+                                key: "tip",
+                                label: "Tip",
+                                icon: Lightbulb,
+                                intent: "Share something useful",
+                              },
+                              {
+                                key: "request",
+                                label: "Need Help",
+                                icon: Wrench,
+                                intent: "Find someone to do work",
+                              },
+                              {
+                                key: "alert",
+                                label: "Alert",
+                                icon: AlertTriangle,
+                                intent: "Important: everyone should see this",
+                              },
+                              {
+                                key: "forsale",
+                                label: "For Sale",
+                                icon: DollarSign,
+                                intent: "Sell something locally",
+                              },
+                            ].map(({ key, label, icon: Icon, intent }) => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => setSelectedCategory(key)}
+                                title={intent}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                  selectedCategory === key
+                                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                                    : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
+                                }`}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {label}
+                              </button>
                             ))}
                           </div>
-                        )}
 
-                        {!hasUserPosts && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
-                              <MessageSquare className="h-3 w-3" />
-                              <span>Ask your neighbors</span>
-                            </div>
-                            <div className="grid gap-2">
-                              {seededPrompts.map((prompt) => (
-                                <button
-                                  key={prompt}
-                                  type="button"
-                                  onClick={() => handlePromptClick(prompt)}
-                                  className="w-full rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)] transition-colors"
-                                >
-                                  {prompt}
-                                </button>
+                          {/* Image preview grid */}
+                          {uploadedImages.length > 0 && (
+                            <div className="grid grid-cols-4 gap-2">
+                              {uploadedImages.map((url, index) => (
+                                <div key={url} className="relative group">
+                                  <img
+                                    src={url}
+                                    alt={`Upload ${index + 1}`}
+                                    className="w-full h-20 object-cover rounded border border-[color:var(--border-subtle)]"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveImage(index)}
+                                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <span className="text-xs">x</span>
+                                  </button>
+                                </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
-                          <div className="flex flex-wrap gap-2">
+                          {!hasUserPosts && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
+                                <MessageSquare className="h-3 w-3" />
+                                <span>Ask your neighbors</span>
+                              </div>
+                              <div className="grid gap-2">
+                                {seededPrompts.map((prompt) => (
+                                  <button
+                                    key={prompt}
+                                    type="button"
+                                    onClick={() => handlePromptClick(prompt)}
+                                    className="w-full rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)] transition-colors"
+                                  >
+                                    {prompt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handlePhotoClick}
+                                className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                              >
+                                <Image className="h-4 w-4 mr-1" />
+                                Photo
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleVideoClick}
+                                className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                              >
+                                <Video className="h-4 w-4 mr-1" />
+                                Video
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handlePollClick}
+                                className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                              >
+                                <BarChart3 className="h-4 w-4 mr-1" />
+                                Poll
+                              </Button>
+                            </div>
+
                             <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handlePhotoClick}
-                              className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                              className="bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25 w-full sm:w-auto"
+                              onClick={handleCreatePost}
+                              disabled={!newPostContent.trim() || createPostMutation.isPending}
+                              data-testid="button-submit-post"
                             >
-                              <Image className="h-4 w-4 mr-1" />
-                              Photo
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handleVideoClick}
-                              className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                            >
-                              <Video className="h-4 w-4 mr-1" />
-                              Video
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handlePollClick}
-                              className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                            >
-                              <BarChart3 className="h-4 w-4 mr-1" />
-                              Poll
+                              {createPostMutation.isPending ? "Posting..." : "Post"}
                             </Button>
                           </div>
-
-                          <Button
-                            className="bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25 w-full sm:w-auto"
-                            onClick={handleCreatePost}
-                            disabled={!newPostContent.trim() || createPostMutation.isPending}
-                            data-testid="button-submit-post"
-                          >
-                            {createPostMutation.isPending ? "Posting..." : "Post"}
-                          </Button>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Globe className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-[color:var(--text-primary)]">
+                            Global view is read-only
+                          </p>
+                          <p className="text-xs text-[color:var(--text-secondary)]">
+                            Switch back to Local to post, like, or comment.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {lastCreatedPostId && (
                   <OutcomeConfirmationCard
@@ -1545,6 +1727,14 @@ const CommunityFeed = memo(function CommunityFeed() {
                 </TabsContent>
 
                 <TabsContent value="trending" className="mt-0">
+                  {renderFeedList()}
+                </TabsContent>
+
+                <TabsContent value="recs" className="mt-0">
+                  {renderFeedList()}
+                </TabsContent>
+
+                <TabsContent value="vault" className="mt-0">
                   {renderFeedList()}
                 </TabsContent>
               </Tabs>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { CommunityCTA } from "./CommunityCTA";
 import {
@@ -92,6 +92,9 @@ export const CommunitySnapshotRail: React.FC<{
     totalMembers: number;
     activeToday: number;
     postsToday: number;
+    helpRequests7d?: number;
+    recommendations7d?: number;
+    verifiedPros?: number;
   };
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
@@ -146,7 +149,7 @@ export const CommunitySnapshotRail: React.FC<{
           authorityLabel: r.verified
             ? "Verified provider in your area"
             : r.isNew
-              ? "New listing — gather context before contact"
+              ? "New listing â€” gather context before contact"
               : undefined,
         }));
 
@@ -185,6 +188,9 @@ export const CommunitySnapshotRail: React.FC<{
         // If we have community stats and few/no deals, add a stats card
         if (communityStats && dealCards.length < 2) {
           const isNewCommunity = communityStats.totalMembers < 10;
+          const recs7d = communityStats.recommendations7d ?? 0;
+          const help7d = communityStats.helpRequests7d ?? 0;
+          const activeToday = communityStats.activeToday ?? 0;
           composedCards.push({
             id: "local-stats",
             type: "local_stats",
@@ -193,7 +199,7 @@ export const CommunitySnapshotRail: React.FC<{
               : `${communityStats.totalMembers} neighbors here`,
             description: isNewCommunity
               ? "Be among the first to shape your local network"
-              : `${communityStats.activeToday} active today • ${communityStats.postsToday} posts`,
+              : `${activeToday} active today • ${recs7d} recs • ${help7d} help requests (7d)`,
             label: "Community Pulse",
             icon: "users",
             gradient: "from-indigo-950 via-slate-900 to-slate-950",
@@ -217,7 +223,7 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "starter-community",
               type: "starter_invitation",
-              title: "New county — early access",
+              title: "New county â€” early access",
               description: "You're among the first neighbors here. Help shape this community",
               label: "Pioneer",
               icon: "sparkles",
@@ -349,7 +355,7 @@ export const CommunitySnapshotRail: React.FC<{
         {/* Minimal footer */}
         {isTradeDeal && card.canDirectConnect && (
           <div className="relative z-10 mt-2">
-            <div className="text-[10px] text-orange-400 font-medium">⚡ Quick Connect</div>
+            <div className="text-[10px] text-orange-400 font-medium">âš¡ Quick Connect</div>
           </div>
         )}
       </div>
@@ -371,7 +377,7 @@ export const CommunitySnapshotRail: React.FC<{
 
       <div className="relative">
         {loading && (
-          <div className="text-sm text-slate-400 py-8 text-center">Loading snapshot…</div>
+          <div className="text-sm text-slate-400 py-8 text-center">Loading snapshotâ€¦</div>
         )}
 
         {!loading && error && <div className="text-sm text-red-400 py-8 text-center">{error}</div>}

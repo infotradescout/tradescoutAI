@@ -55,6 +55,7 @@ import {
   foundationCauses,
   marketplaceListings,
   communityPosts,
+  communityPostSaves,
   recommendations,
   contractors,
   workers,
@@ -9566,6 +9567,18 @@ export async function registerRoutes(app: any) {
           (filters as any).sort = "recent";
           break;
 
+        case "saved": {
+          if (!authUserId) {
+            return res.status(401).json({ message: "Unauthorized" });
+          }
+          const savedPosts = await storage.getSavedCommunityPosts(String(authUserId), {
+            limit: filters.limit,
+            offset: filters.offset,
+          });
+          res.json(savedPosts);
+          return;
+        }
+
         case "nearby":
           // Nearby keeps county scoping and uses recency ordering for now.
           (filters as any).sort = "recent";
@@ -9573,6 +9586,10 @@ export async function registerRoutes(app: any) {
 
         case "recent":
           (filters as any).sort = "recent";
+          break;
+
+        case "trending":
+          (filters as any).sort = "trending";
           break;
 
         case "recommendations":
@@ -9693,43 +9710,136 @@ export async function registerRoutes(app: any) {
   // Community Stats (real values only; no placeholders)
   app.get("/api/community/stats", async (req: any, res: any) => {
     try {
+      const { countyFips, stateCode } = req.query || {};
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-      const totalMembersResult = (await db.execute(
-        sql`select count(*)::int as count from users`
-      )) as any;
-      const postsTodayResult = (await db.execute(
-        sql`select count(*)::int as count from community_posts where created_at >= ${today}`
-      )) as any;
+      const hasCountyScope = typeof countyFips === "string" && countyFips.length > 0;
+
+      const totalMembersResult = hasCountyScope
+        ? ((await db.execute(
+            sql`select count(*)::int as count from users where county_fips = ${countyFips}`
+          )) as any)
+        : ((await db.execute(sql`select count(*)::int as count from users`)) as any);
+
+      const postsTodayResult = hasCountyScope
+        ? ((await db.execute(
+            sql`select count(*)::int as count from community_posts where created_at >= ${today} and county_fips = ${countyFips}`
+          )) as any)
+        : ((await db.execute(
+            sql`select count(*)::int as count from community_posts where created_at >= ${today}`
+          )) as any);
+
+      const helpRequestsResult = hasCountyScope
+        ? ((await db.execute(sql`
+            select count(*)::int as count
+            from community_posts
+            where created_at >= ${sevenDaysAgo}
+              and county_fips = ${countyFips}
+              and category in ('questions', 'projects')
+          `)) as any)
+        : ((await db.execute(sql`
+            select count(*)::int as count
+            from community_posts
+            where created_at >= ${sevenDaysAgo}
+              and category in ('questions', 'projects')
+          `)) as any);
+
+      const recommendationsResult = hasCountyScope
+        ? ((await db.execute(sql`
+            select count(*)::int as count
+            from community_posts
+            where created_at >= ${sevenDaysAgo}
+              and county_fips = ${countyFips}
+              and category = 'recommendations'
+          `)) as any)
+        : ((await db.execute(sql`
+            select count(*)::int as count
+            from community_posts
+            where created_at >= ${sevenDaysAgo}
+              and category = 'recommendations'
+          `)) as any);
+
+      const verifiedProsResult = hasCountyScope
+        ? ((await db.execute(sql`
+            select count(distinct c.id)::int as count
+            from contractors c
+            inner join contractor_counties cc on cc.contractor_id = c.id
+            inner join counties co on co.id = cc.county_id
+            where co.fips = ${countyFips}
+              and c.is_active = true
+              and c.verified_licensed = true
+              and c.verified_insured = true
+          `)) as any)
+        : ((await db.execute(sql`
+            select count(*)::int as count
+            from contractors c
+            where c.is_active = true
+              and c.verified_licensed = true
+              and c.verified_insured = true
+          `)) as any);
+
       const countiesActiveResult = (await db.execute(
         sql`select count(distinct county_fips)::int as count from community_posts where county_fips is not null and created_at >= ${thirtyDaysAgo}`
       )) as any;
-      const activeTodayResult = (await db.execute(sql`
-        select count(distinct user_id)::int as count
-        from (
-          select author_id as user_id from community_posts where created_at >= ${today}
-          union
-          select user_id as user_id from post_likes where created_at >= ${today}
-          union
-          select author_id as user_id from post_comments where created_at >= ${today}
-        ) t
-      `)) as any;
+
+      const activeTodayResult = hasCountyScope
+        ? ((await db.execute(sql`
+            select count(distinct user_id)::int as count
+            from (
+              select author_id as user_id
+              from community_posts
+              where created_at >= ${today} and county_fips = ${countyFips}
+              union
+              select pl.user_id as user_id
+              from post_likes pl
+              inner join community_posts cp on cp.id = pl.post_id
+              where pl.created_at >= ${today} and cp.county_fips = ${countyFips}
+              union
+              select pc.author_id as user_id
+              from post_comments pc
+              inner join community_posts cp2 on cp2.id = pc.post_id
+              where pc.created_at >= ${today} and cp2.county_fips = ${countyFips}
+            ) t
+          `)) as any)
+        : ((await db.execute(sql`
+            select count(distinct user_id)::int as count
+            from (
+              select author_id as user_id from community_posts where created_at >= ${today}
+              union
+              select user_id as user_id from post_likes where created_at >= ${today}
+              union
+              select author_id as user_id from post_comments where created_at >= ${today}
+            ) t
+          `)) as any);
 
       const totalMembers = Number(totalMembersResult?.rows?.[0]?.count ?? 0);
       const postsToday = Number(postsTodayResult?.rows?.[0]?.count ?? 0);
       const countiesActive = Number(countiesActiveResult?.rows?.[0]?.count ?? 0);
       const activeToday = Number(activeTodayResult?.rows?.[0]?.count ?? 0);
+      const helpRequests7d = Number(helpRequestsResult?.rows?.[0]?.count ?? 0);
+      const recommendations7d = Number(recommendationsResult?.rows?.[0]?.count ?? 0);
+      const verifiedPros = Number(verifiedProsResult?.rows?.[0]?.count ?? 0);
 
       res.json({
         totalMembers,
         activeToday,
         postsToday,
         countiesActive,
+        helpRequests7d,
+        recommendations7d,
+        verifiedPros,
+        scope: hasCountyScope ? "local" : "global",
+        stateCode: typeof stateCode === "string" ? stateCode : null,
+        countyFips: hasCountyScope ? countyFips : null,
       });
     } catch (error: any) {
       console.error("Error fetching community stats:", error);
@@ -9738,6 +9848,9 @@ export async function registerRoutes(app: any) {
         activeToday: 0,
         postsToday: 0,
         countiesActive: 0,
+        helpRequests7d: 0,
+        recommendations7d: 0,
+        verifiedPros: 0,
       });
     }
   });
@@ -10111,11 +10224,102 @@ export async function registerRoutes(app: any) {
         const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const { id: postId } = req.params;
 
+        const viewer = userId ? await storage.getUser(String(userId)) : null;
+        const post = await storage.getCommunityPost(String(postId));
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+
+        const viewerCountyFips = (viewer as any)?.countyFips || null;
+        const postCountyFips = (post as any)?.countyFips || null;
+        if (
+          !viewerCountyFips ||
+          !postCountyFips ||
+          String(viewerCountyFips) !== String(postCountyFips)
+        ) {
+          return res.status(403).json({
+            message: "Likes are local-only. Switch to Local to interact with posts in your county.",
+            reasonCode: "GLOBAL_READ_ONLY",
+          });
+        }
+
         const result = await storage.togglePostLike(userId, postId);
         res.json(result);
       } catch (error: any) {
         console.error("Error toggling post like:", error);
         res.status(500).json({ message: "Failed to toggle like" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/community/posts/:id/save",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const { id: postId } = req.params;
+
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const viewer = await storage.getUser(String(userId));
+        const post = await storage.getCommunityPost(String(postId));
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+
+        const viewerCountyFips = (viewer as any)?.countyFips || null;
+        const postCountyFips = (post as any)?.countyFips || null;
+        if (
+          !viewerCountyFips ||
+          !postCountyFips ||
+          String(viewerCountyFips) !== String(postCountyFips)
+        ) {
+          return res.status(403).json({
+            message: "Saving is local-only. Switch to Local to interact with posts in your county.",
+            reasonCode: "GLOBAL_READ_ONLY",
+          });
+        }
+
+        const [existing] = await db
+          .select()
+          .from(communityPostSaves)
+          .where(
+            and(
+              eq(communityPostSaves.userId, String(userId)),
+              eq(communityPostSaves.postId, String(postId))
+            )
+          )
+          .limit(1);
+
+        if (existing) {
+          await db.delete(communityPostSaves).where(eq(communityPostSaves.id, existing.id));
+          return res.json({ saved: false });
+        }
+
+        await db
+          .insert(communityPostSaves)
+          .values({ userId: String(userId), postId: String(postId) })
+          .onConflictDoNothing();
+
+        try {
+          await storage.logEvent("post.saved", {
+            userId: String(userId),
+            targetUserId: String((post as any).authorId),
+            postId: String(postId),
+            source: "community",
+          });
+        } catch (e) {
+          console.error("Failed to log post.saved for XP", e);
+        }
+
+        res.json({ saved: true });
+      } catch (error: any) {
+        console.error("Error saving community post:", error);
+        res.status(500).json({ message: "Failed to save post" });
       }
     }
   );
@@ -10141,6 +10345,21 @@ export async function registerRoutes(app: any) {
         const post = await storage.getCommunityPost(postId);
         if (!post) {
           return res.status(404).json({ message: "Post not found" });
+        }
+
+        const viewer = await storage.getUser(String(userId));
+        const viewerCountyFips = (viewer as any)?.countyFips || null;
+        const postCountyFips = (post as any)?.countyFips || null;
+        if (
+          !viewerCountyFips ||
+          !postCountyFips ||
+          String(viewerCountyFips) !== String(postCountyFips)
+        ) {
+          return res.status(403).json({
+            message:
+              "Comments are local-only. Switch to Local to interact with posts in your county.",
+            reasonCode: "GLOBAL_READ_ONLY",
+          });
         }
 
         if (String(post.authorId) !== String(userId)) {

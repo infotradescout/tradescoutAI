@@ -4304,6 +4304,28 @@ export const postLikes = pgTable("post_likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Saved community posts (bookmarks)
+export const communityPostSaves = pgTable(
+  "community_post_saves",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    postId: varchar("post_id")
+      .notNull()
+      .references(() => communityPosts.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("community_post_saves_user_post_uidx").on(table.userId, table.postId),
+    index("idx_community_post_saves_user").on(table.userId),
+    index("idx_community_post_saves_post").on(table.postId),
+  ]
+);
+
 export const commentLikes = pgTable("comment_likes", {
   id: varchar("id")
     .primaryKey()
