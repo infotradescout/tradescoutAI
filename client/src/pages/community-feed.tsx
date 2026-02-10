@@ -54,6 +54,7 @@ import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { useLocation } from "wouter";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
+import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
 
 interface Post {
   id: string;
@@ -287,7 +288,7 @@ type TrendingTopic = {
 };
 
 const CommunityFeed = memo(function CommunityFeed() {
-  type FeedTab = "forYou" | "recent" | "nearby" | "trending" | "recs" | "vault";
+  type FeedTab = "forYou" | "recent" | "nearby" | "trending";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
@@ -351,11 +352,6 @@ const CommunityFeed = memo(function CommunityFeed() {
         return "nearby";
       case "trending":
         return "trending";
-      case "recs":
-      case "recommendations":
-        return "recs";
-      case "vault":
-        return "vault";
       default:
         return null;
     }
@@ -476,8 +472,6 @@ const CommunityFeed = memo(function CommunityFeed() {
         return "recent";
       case "nearby":
         return "nearby";
-      case "recs":
-        return "recommendations";
       default:
         return "county";
     }
@@ -684,17 +678,6 @@ const CommunityFeed = memo(function CommunityFeed() {
           Number(b.commentCount || b.comments || 0) * 3 +
           Number(b.shareCount || b.shares || 0) * 4;
         if (bScore !== aScore) return bScore - aScore;
-        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
-        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
-        return bTs - aTs;
-      });
-    }
-
-    if (activeTab === "recs") {
-      return list.sort((a, b) => {
-        const aIsRec = /recommend/i.test(String(a.category || a.type || a.postType || ""));
-        const bIsRec = /recommend/i.test(String(b.category || b.type || b.postType || ""));
-        if (aIsRec !== bIsRec) return bIsRec ? 1 : -1;
         const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
         const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
         return bTs - aTs;
@@ -1205,7 +1188,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Ask, recommend, and coordinate with people in your area.
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center min-w-[240px]">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center min-w-[240px]">
                   <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Members</p>
                     <p className="text-sm md:text-base font-semibold text-white">
@@ -1222,6 +1205,12 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Posts</p>
                     <p className="text-sm md:text-base font-semibold text-white">
                       {communityStats.postsToday}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Counties</p>
+                    <p className="text-sm md:text-base font-semibold text-white">
+                      {communityStats.countiesActive}
                     </p>
                   </div>
                 </div>
@@ -1297,7 +1286,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 onValueChange={(value) => handleTabChange(value as FeedTab)}
                 className="w-full"
               >
-                <TabsList className="mb-3 md:mb-4 flex flex-wrap items-center gap-2 bg-transparent p-0">
+                <TabsList className="mb-3 md:mb-4 flex items-center gap-2 bg-transparent p-0 overflow-x-auto">
                   <TabsTrigger
                     value="forYou"
                     className="rounded-full px-4 py-2 text-xs font-semibold"
@@ -1317,22 +1306,10 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Nearby
                   </TabsTrigger>
                   <TabsTrigger
-                    value="recs"
-                    className="rounded-full px-4 py-2 text-xs font-semibold"
-                  >
-                    Recommendations
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="trending"
                     className="rounded-full px-4 py-2 text-xs font-semibold"
                   >
                     Trending
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="vault"
-                    className="rounded-full px-4 py-2 text-xs font-semibold"
-                  >
-                    Vault
                   </TabsTrigger>
                 </TabsList>
                 {/* Inline composer always visible at top of feed */}
@@ -1570,23 +1547,36 @@ const CommunityFeed = memo(function CommunityFeed() {
                 <TabsContent value="trending" className="mt-0">
                   {renderFeedList()}
                 </TabsContent>
-
-                <TabsContent value="recs" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-
-                <TabsContent value="vault" className="mt-0">
-                  <div className="text-center py-12">
-                    <Trophy className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-white text-xl mb-2">Your Vault</h3>
-                    <p className="text-gray-400">Saved posts and bookmarked content</p>
-                  </div>
-                </TabsContent>
               </Tabs>
             </div>
 
-            {/* Right column intentionally kept light so feed dominates */}
-            <div className="lg:col-span-1 space-y-4" />
+            {/* Right column: community snapshot + signals */}
+            <div className="lg:col-span-1 space-y-4">
+              {countyFips ? (
+                <CommunitySnapshotRail
+                  countyFips={countyFips}
+                  communityStats={communityStats}
+                  className="sticky top-20"
+                />
+              ) : null}
+              {trendingTopics.length > 0 && (
+                <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-white">Trending Topics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-2">
+                    {trendingTopics.slice(0, 8).map((topic) => (
+                      <span
+                        key={topic.tag}
+                        className="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[11px] text-orange-200"
+                      >
+                        #{topic.tag}
+                      </span>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       </CountyRequiredGate>
