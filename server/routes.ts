@@ -1,5 +1,5 @@
 import scoutRoute from "./routes/scout";
-import { ClaimSource } from "./services/claimEventSchema";
+import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { resolveCountyFips } from "./services/regionResolver";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
@@ -45,6 +45,7 @@ import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
 import {
   users,
+  businesses,
   affiliateAccounts,
   affiliateReferrals,
   affiliatePayouts,
@@ -56,6 +57,7 @@ import {
   marketplaceListings,
   communityPosts,
   communityPostSaves,
+  postComments,
   recommendations,
   contractors,
   workers,
@@ -677,7 +679,8 @@ export async function registerRoutes(app: any) {
       const state = typeof body.state === "string" ? body.state.trim() : undefined;
       const county = typeof body.county === "string" ? body.county.trim() : undefined;
       const phone = typeof body.phone === "string" ? body.phone.trim() : "";
-      const verificationStatus = body.verificationStatus;
+      const claimBusinessId =
+        typeof body.claimBusinessId === "string" ? body.claimBusinessId.trim() : "";
       const allowPhoneCalls =
         body.allowPhoneCalls === true ||
         body.phoneCallConsent === true ||
@@ -717,6 +720,11 @@ export async function registerRoutes(app: any) {
       const userTypes = userTypesInput
         .filter((t: any) => typeof t === "string")
         .map((t: string) => normalizeRole(t));
+
+      // Claim-first: claiming a business during signup implies business-owner context.
+      if (claimBusinessId && !userTypes.includes("business_owner")) {
+        userTypes.unshift("business_owner");
+      }
 
       if (!email) return res.status(400).json({ message: "Email is required" });
       if (!password) return res.status(400).json({ message: "Password is required" });
@@ -769,19 +777,9 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      // Verified badge: if verificationStatus is approved
-      const allowedStatuses = [
-        "pending",
-        "under_review",
-        "approved",
-        "rejected",
-        "expired",
-        "suspended",
-      ];
-      const status = allowedStatuses.includes(verificationStatus) ? verificationStatus : "pending";
-      if (status === "approved" && userTypes && userTypes.length > 0) {
-        userTypes.forEach((role: string) => badges.add(`Verified ${formatRoleLabel(role)}`));
-      }
+      // Verification is never user-asserted at registration time.
+      // It must be granted by verification workflows (insurance/license/address, admin review, etc).
+      const status = "pending";
 
       // Determine primary role from user types
       // CLAIM-FIRST: Default to 'homeowner' if no types selected (neutral starting point)
@@ -824,6 +822,63 @@ export async function registerRoutes(app: any) {
         badges: Array.from(badges),
         preferences,
       });
+      let userForLogin: any = user;
+
+      // Optional: claim an admin-imported business during signup (no contact/authority bypass).
+      let claim: {
+        status: "claimed" | "not_verified" | "not_found" | "already_claimed";
+        businessId?: string;
+      } | null = null;
+      if (claimBusinessId) {
+        try {
+          const rows = await db
+            .select({
+              id: businesses.id,
+              ownerUserId: businesses.ownerUserId,
+              status: businesses.status,
+              profileData: businesses.profileData,
+            })
+            .from(businesses)
+            .where(eq(businesses.id, claimBusinessId))
+            .limit(1);
+
+          const biz = rows[0] as any;
+          if (!biz || biz.status === "suspended") {
+            claim = { status: "not_found" };
+          } else if (biz.ownerUserId) {
+            claim = { status: "already_claimed", businessId: biz.id };
+          } else {
+            const normalizePhone = (value: unknown) => String(value || "").replace(/\D/g, "");
+            const signupEmail = String(email || "")
+              .trim()
+              .toLowerCase();
+            const signupPhone = normalizePhone(phone);
+            const bizEmail = String(biz.profileData?.email || "")
+              .trim()
+              .toLowerCase();
+            const bizPhone = normalizePhone(biz.profileData?.phone);
+
+            const verifiedByEmail = Boolean(bizEmail) && bizEmail === signupEmail;
+            const verifiedByPhone =
+              Boolean(bizPhone) && bizPhone.length >= 10 && bizPhone === signupPhone;
+
+            if (!verifiedByEmail && !verifiedByPhone) {
+              claim = { status: "not_verified", businessId: biz.id };
+            } else {
+              await storage.claimUnclaimedBusinessForUser(biz.id, user.id);
+              userForLogin = await storage.updateUser(user.id, {
+                activeBusinessId: biz.id,
+                role: "business_owner" as any,
+                activeRole: "business_owner",
+                roles: Array.from(new Set([...(userTypes || []), "business_owner"])),
+              } as any);
+              claim = { status: "claimed", businessId: biz.id };
+            }
+          }
+        } catch (e) {
+          claim = { status: "not_verified", businessId: claimBusinessId };
+        }
+      }
 
       // Persist ToS acceptance timestamp
       try {
@@ -841,11 +896,15 @@ export async function registerRoutes(app: any) {
       });
 
       // Auto-login after registration
-      req.login(user, (err) => {
+      req.login(userForLogin, (err) => {
         if (err) {
           return res.status(500).json({ message: "Registration successful but login failed" });
         }
-        res.json({ user: sanitizeUserForResponse(user), message: "Registration successful" });
+        res.json({
+          user: sanitizeUserForResponse(userForLogin),
+          message: "Registration successful",
+          ...(claim ? { claim } : {}),
+        });
       });
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -7754,6 +7813,730 @@ export async function registerRoutes(app: any) {
     }
   );
 
+  // Admin: bulk import business owner accounts (CSV/TSV/text)
+  app.post("/api/admin/businesses/import", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const body = (req.body ?? {}) as any;
+      const content = typeof body.content === "string" ? body.content : "";
+      const dryRun = body.dryRun === true;
+      const sendActivationEmails = body.sendActivationEmails === true;
+      const includeActivationLinks = body.includeActivationLinks === true;
+      const defaultCountyFips =
+        typeof body.defaultCountyFips === "string" ? body.defaultCountyFips.trim() : "";
+      const defaultStateCode =
+        typeof body.defaultStateCode === "string" ? body.defaultStateCode.trim() : "";
+
+      if (!content.trim()) {
+        return res.status(400).json({ message: "content is required" });
+      }
+
+      const isProductionEnv =
+        process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+      const allowActivationLinkExport =
+        process.env.ADMIN_ALLOW_ACTIVATION_LINK_EXPORT === "true" || !isProductionEnv;
+
+      const parseDelimited = (input: string, delimiter: string): Array<Record<string, string>> => {
+        const normalizeHeaderKey = (value: unknown): string =>
+          String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .replace(/_+/g, "_");
+
+        const normalized = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        const rows: string[][] = [];
+        let row: string[] = [];
+        let field = "";
+        let inQuotes = false;
+
+        const pushField = () => {
+          row.push(field);
+          field = "";
+        };
+
+        const pushRow = () => {
+          // Trim trailing empty columns
+          while (row.length > 0 && row[row.length - 1] === "") row.pop();
+          if (row.length > 0) rows.push(row);
+          row = [];
+        };
+
+        for (let i = 0; i < normalized.length; i++) {
+          const ch = normalized[i];
+          if (inQuotes) {
+            if (ch === '"') {
+              const next = normalized[i + 1];
+              if (next === '"') {
+                field += '"';
+                i++;
+              } else {
+                inQuotes = false;
+              }
+            } else {
+              field += ch;
+            }
+            continue;
+          }
+
+          if (ch === '"') {
+            inQuotes = true;
+            continue;
+          }
+          if (ch === delimiter) {
+            pushField();
+            continue;
+          }
+          if (ch === "\n") {
+            pushField();
+            pushRow();
+            continue;
+          }
+          field += ch;
+        }
+
+        pushField();
+        pushRow();
+
+        if (!rows.length) return [];
+
+        const headerRowRaw = rows[0];
+        const headerRow = headerRowRaw.map((h) => normalizeHeaderKey(h));
+        const looksLikeHeader =
+          headerRow.length >= 2 &&
+          headerRow.some((h) =>
+            ["email", "business_name", "name", "company", "phone", "county_fips", "fips"].includes(
+              h
+            )
+          );
+
+        const headers = looksLikeHeader
+          ? headerRow
+          : [
+              "email",
+              "business_name",
+              "county_fips",
+              "state_code",
+              "phone",
+              "website",
+              "category",
+              "services",
+              "owner_first_name",
+              "owner_last_name",
+            ];
+
+        const dataRows = looksLikeHeader ? rows.slice(1) : rows;
+
+        return dataRows
+          .map((cols) => {
+            const rec: Record<string, string> = {};
+            for (let idx = 0; idx < headers.length; idx++) {
+              const key = headers[idx] || `col_${idx}`;
+              rec[key] =
+                typeof cols[idx] === "string" ? cols[idx].trim() : String(cols[idx] ?? "").trim();
+            }
+            return rec;
+          })
+          .filter((r) => Object.values(r).some((v) => String(v || "").trim().length > 0));
+      };
+
+      const detectDelimiter = (input: string): string => {
+        const sample = input.slice(0, 4000);
+        const comma = (sample.match(/,/g) || []).length;
+        const semi = (sample.match(/;/g) || []).length;
+        const tab = (sample.match(/\t/g) || []).length;
+        const pipe = (sample.match(/\|/g) || []).length;
+        if (tab >= comma && tab >= pipe && tab >= semi && tab > 0) return "\t";
+        if (pipe >= comma && pipe >= semi && pipe > 0) return "|";
+        if (semi >= comma && semi > 0) return ";";
+        return ",";
+      };
+
+      const delimiter = detectDelimiter(content);
+      const records = parseDelimited(content, delimiter);
+      if (!records.length) {
+        return res.status(400).json({ message: "No rows found to import" });
+      }
+
+      const normalizeEmail = (value: unknown) =>
+        String(value || "")
+          .trim()
+          .toLowerCase();
+
+      const getFirstNonEmpty = (rec: Record<string, string>, keys: string[]): string => {
+        for (const key of keys) {
+          const raw = rec[key];
+          if (typeof raw === "string" && raw.trim()) return raw.trim();
+        }
+        return "";
+      };
+
+      const normalizeServices = (value: unknown): string[] => {
+        const raw = String(value || "").trim();
+        if (!raw) return [];
+        return Array.from(
+          new Set(
+            raw
+              .split(/[;|]/g)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          )
+        ).slice(0, 50);
+      };
+
+      const slugify = (text: string): string =>
+        String(text || "")
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 80);
+
+      const ensureUniqueBusinessProfileSlug = async (base: string, userId: string) => {
+        const baseSlug = slugify(base) || randomUUID();
+        let candidate = baseSlug;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const existing = await storage.getBusinessProfileBySlug(candidate);
+          if (!existing || existing.userId === userId) return candidate;
+          candidate = `${baseSlug}-${attempt + 2}`;
+        }
+        return `${baseSlug}-${randomUUID().slice(0, 8)}`;
+      };
+
+      // Preload county lookups (FIPS -> county row)
+      const allFips = Array.from(
+        new Set(
+          records
+            .map((r) => String(r.county_fips || r.countyfips || r.fips || "").trim())
+            .filter(Boolean)
+            .concat(defaultCountyFips ? [defaultCountyFips] : [])
+        )
+      );
+      const countyRows = allFips.length
+        ? await db
+            .select({
+              id: counties.id,
+              fips: counties.fips,
+              name: counties.name,
+              stateCode: counties.stateCode,
+            })
+            .from(counties)
+            .where(inArray(counties.fips, allFips))
+        : [];
+      const countyByFips = new Map<string, (typeof countyRows)[number]>();
+      for (const c of countyRows) countyByFips.set(String(c.fips), c);
+
+      const adminUserId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
+      const resetBase =
+        process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
+
+      const results: any[] = [];
+      let createdUsers = 0;
+      let updatedUsers = 0;
+      let createdBusinesses = 0;
+      let updatedBusinesses = 0;
+      let createdUnclaimedBusinesses = 0;
+      let updatedUnclaimedBusinesses = 0;
+      let activationPrepared = 0;
+      let activationEmailed = 0;
+
+      for (let idx = 0; idx < records.length; idx++) {
+        const rec = records[idx] || {};
+        const email = normalizeEmail(
+          getFirstNonEmpty(rec, [
+            "email",
+            "owner_email",
+            "invitee_email",
+            "business_email",
+            "contact_email",
+          ])
+        );
+        const businessName = getFirstNonEmpty(rec, [
+          "business_name",
+          "business",
+          "name",
+          "company_name",
+          "company",
+          "trade_name",
+          "dba",
+          "legal_name",
+          "organization",
+          "org_name",
+        ]);
+        const countyFips =
+          getFirstNonEmpty(rec, ["county_fips", "countyfips", "fips", "county_fips_code"]).trim() ||
+          defaultCountyFips ||
+          "";
+        const stateCode =
+          getFirstNonEmpty(rec, ["state_code", "state", "st"]).trim() || defaultStateCode || "";
+        const phone = getFirstNonEmpty(rec, [
+          "phone",
+          "phone_number",
+          "business_phone",
+          "contact_phone",
+          "telephone",
+          "tel",
+        ]);
+        const website = getFirstNonEmpty(rec, ["website", "url", "web", "site"]);
+        const category = getFirstNonEmpty(rec, ["category", "business_category", "industry"]);
+        const services = normalizeServices(getFirstNonEmpty(rec, ["services", "service_list"]));
+        const ownerFirstName = getFirstNonEmpty(rec, [
+          "owner_first_name",
+          "first_name",
+          "contact_first_name",
+        ]);
+        const ownerLastName = getFirstNonEmpty(rec, [
+          "owner_last_name",
+          "last_name",
+          "contact_last_name",
+        ]);
+
+        const rowRef = { row: idx + 1, email, businessName, countyFips };
+
+        if (!businessName) {
+          results.push({ ...rowRef, status: "error", error: "Missing business_name" });
+          continue;
+        }
+        if (email && !email.includes("@")) {
+          results.push({ ...rowRef, status: "error", error: "Invalid email" });
+          continue;
+        }
+
+        if (countyFips && !/^[0-9]{5}$/.test(countyFips)) {
+          results.push({ ...rowRef, status: "error", error: "Invalid county_fips" });
+          continue;
+        }
+
+        const county = countyFips ? countyByFips.get(countyFips) : null;
+        if (countyFips && !county) {
+          results.push({
+            ...rowRef,
+            status: "error",
+            error: `Unknown county_fips (${countyFips})`,
+          });
+          continue;
+        }
+
+        const resolvedStateCode = stateCode || county?.stateCode || "";
+
+        try {
+          const hasOwnerEmail = Boolean(email);
+          const countyIds = county?.id ? [county.id] : [];
+
+          let userId: string | null = null;
+          let businessId: string | null = null;
+          let profileSlug: string | null = null;
+
+          const knownKeys = new Set([
+            "email",
+            "owner_email",
+            "invitee_email",
+            "business_email",
+            "contact_email",
+            "business_name",
+            "business",
+            "name",
+            "company_name",
+            "company",
+            "trade_name",
+            "dba",
+            "legal_name",
+            "organization",
+            "org_name",
+            "county_fips",
+            "countyfips",
+            "fips",
+            "county_fips_code",
+            "state_code",
+            "state",
+            "st",
+            "phone",
+            "phone_number",
+            "business_phone",
+            "contact_phone",
+            "telephone",
+            "tel",
+            "website",
+            "url",
+            "web",
+            "site",
+            "category",
+            "business_category",
+            "industry",
+            "services",
+            "service_list",
+            "owner_first_name",
+            "first_name",
+            "contact_first_name",
+            "owner_last_name",
+            "last_name",
+            "contact_last_name",
+          ]);
+          const importExtras: Record<string, string> = {};
+          for (const [key, value] of Object.entries(rec)) {
+            if (knownKeys.has(key)) continue;
+            const v = String(value || "").trim();
+            if (!v) continue;
+            // Preserve any extra indexed columns so they can be used later.
+            importExtras[key] = v;
+          }
+
+          if (hasOwnerEmail) {
+            const existingUser = await storage.getUserByEmail(email);
+            let userRecord = existingUser;
+
+            if (!existingUser) {
+              if (dryRun) {
+                userRecord = {
+                  id: "__dry_run__",
+                  email,
+                } as any;
+              } else {
+                userRecord = await storage.createUser({
+                  email,
+                  phone: phone || undefined,
+                  firstName: ownerFirstName || undefined,
+                  lastName: ownerLastName || undefined,
+                  role: "business_owner" as any,
+                  roles: ["business_owner"],
+                  activeRole: "business_owner",
+                  onboardingCompleted: false,
+                  profileVersion: 0,
+                  provider: "local",
+                } as any);
+              }
+              createdUsers++;
+            } else {
+              const currentRoles: string[] = Array.isArray((existingUser as any).roles)
+                ? ((existingUser as any).roles as string[])
+                : [];
+              const nextRoles = Array.from(new Set([...currentRoles, "business_owner"]));
+              if (!dryRun && nextRoles.length !== currentRoles.length) {
+                await storage.updateUser(existingUser.id, { roles: nextRoles } as any);
+                updatedUsers++;
+              }
+            }
+
+            userId = String((userRecord as any).id);
+
+            // Create/attach a business entity record (draft)
+            if (!dryRun && userId && userId !== "__dry_run__") {
+              const existingBiz = await db
+                .select({ id: businesses.id, name: businesses.name })
+                .from(businesses)
+                .where(
+                  and(
+                    eq(businesses.ownerUserId, userId),
+                    sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`
+                  )
+                )
+                .limit(1);
+
+              if (existingBiz.length > 0) {
+                businessId = existingBiz[0].id;
+                updatedBusinesses++;
+              } else {
+                const createdBiz = await storage.createBusinessForOwner(userId, {
+                  name: businessName,
+                  slug: businessName,
+                  type: "other" as any,
+                  roleContext: "business_owner" as any,
+                  profileData: {
+                    category: category || undefined,
+                    services: services.length ? services : undefined,
+                    website: website || undefined,
+                    phone: phone || undefined,
+                    email,
+                    importExtras: Object.keys(importExtras).length ? importExtras : undefined,
+                  },
+                  status: "draft" as any,
+                  countyIds,
+                } as any);
+                businessId = createdBiz.id;
+                createdBusinesses++;
+              }
+            }
+
+            // Ensure business profile exists (stored on the user for now)
+            if (!dryRun && userId && userId !== "__dry_run__") {
+              const baseSlug = businessName;
+              const nextSlug = await ensureUniqueBusinessProfileSlug(baseSlug, userId);
+              profileSlug = nextSlug;
+
+              await storage.saveBusinessProfile({
+                id: userId,
+                userId,
+                slug: nextSlug,
+                name: businessName,
+                headline: null as any,
+                description: null,
+                countyFips: countyFips || "",
+                countyName: county?.name || "",
+                city: null,
+                stateCode: resolvedStateCode || null,
+                serviceAreas: countyFips ? [countyFips] : [],
+                website: website || null,
+                services: services.length ? services : null,
+                verificationStatus: "pending" as any,
+                addressVerified: false,
+                cvsScore: null as any,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                publishedAt: new Date().toISOString(),
+              } as any);
+            }
+
+            // Claim-first: write claim event for representsBusiness in this county (only with county scope)
+            if (!dryRun && userId && userId !== "__dry_run__" && countyFips && county) {
+              try {
+                await writeClaimEvent({
+                  userId,
+                  claimType: ClaimType.REPRESENTS_BUSINESS,
+                  countyFips,
+                  countyName: county.name,
+                  source: ClaimSource.ADMIN,
+                  claimTimestamp: new Date(),
+                  metadata: {
+                    import: true,
+                    businessName,
+                    businessId,
+                    profileSlug,
+                  },
+                });
+              } catch (e) {
+                console.warn("[admin business import] claim write failed", e);
+              }
+            }
+          } else {
+            // Business-name-only minimum: create/attach an unclaimed directory business.
+            if (dryRun) {
+              createdUnclaimedBusinesses++;
+            } else {
+              const existingUnclaimed = await db
+                .select({ id: businesses.id })
+                .from(businesses)
+                .where(
+                  and(
+                    sql`${businesses.ownerUserId} is null`,
+                    sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`
+                  )
+                )
+                .limit(1);
+
+              if (existingUnclaimed.length > 0) {
+                businessId = existingUnclaimed[0].id;
+                updatedUnclaimedBusinesses++;
+              } else {
+                const createdBiz = await storage.createUnclaimedBusiness({
+                  name: businessName,
+                  slug: businessName,
+                  type: "other" as any,
+                  roleContext: "business_owner" as any,
+                  profileData: {
+                    category: category || undefined,
+                    services: services.length ? services : undefined,
+                    website: website || undefined,
+                    phone: phone || undefined,
+                    importExtras: Object.keys(importExtras).length ? importExtras : undefined,
+                  },
+                  status: "draft" as any,
+                  countyIds,
+                } as any);
+                businessId = createdBiz.id;
+                createdUnclaimedBusinesses++;
+              }
+            }
+          }
+
+          // Activation: generate password reset token and optionally email it (only when a user exists)
+          let activationLink: string | undefined;
+          if (!dryRun && userId && userId !== "__dry_run__") {
+            const { token, expiresAt } = passwordResetService.createToken(userId);
+            activationPrepared++;
+            const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
+
+            if (sendActivationEmails && emailService.isConfigured()) {
+              await emailService.sendEmail({
+                to: email,
+                subject: "Claim your TradeScout business account",
+                html: `<p>Your business account has been created in TradeScout.</p>
+<p><a href="${resetLink}">Set your password</a> to claim your account. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
+<p>After you sign in, you can finish your profile and complete insurance/license verification.</p>`,
+                text: `Set your password: ${resetLink}`,
+              });
+              activationEmailed++;
+            } else if (includeActivationLinks && allowActivationLinkExport) {
+              activationLink = resetLink;
+            }
+          }
+
+          results.push({
+            ...rowRef,
+            status: dryRun ? "dry_run" : "ok",
+            userId: dryRun ? null : userId,
+            businessId,
+            profileSlug,
+            activationLink,
+          });
+        } catch (e: any) {
+          results.push({
+            ...rowRef,
+            status: "error",
+            error: e?.message || "Import failed",
+          });
+        }
+      }
+
+      res.json({
+        dryRun,
+        delimiter: delimiter === "\t" ? "tab" : delimiter === "|" ? "pipe" : "comma",
+        totals: {
+          rows: records.length,
+          createdUsers,
+          updatedUsers,
+          createdBusinesses,
+          updatedBusinesses,
+          createdUnclaimedBusinesses,
+          updatedUnclaimedBusinesses,
+          activationPrepared,
+          activationEmailed,
+        },
+        activationLinkExport: {
+          requested: includeActivationLinks,
+          allowed: includeActivationLinks && allowActivationLinkExport,
+          reason:
+            includeActivationLinks && !allowActivationLinkExport
+              ? "Activation link export is disabled in production. Set ADMIN_ALLOW_ACTIVATION_LINK_EXPORT=true to allow."
+              : null,
+        },
+        results,
+      });
+    } catch (error: any) {
+      console.error("Error importing businesses:", error);
+      res.status(500).json({ message: error?.message || "Failed to import businesses" });
+    }
+  });
+
+  // Public: Claim My Business (send password set/reset link for the account behind a business slug)
+  app.get("/api/business-claim/search", async (req: Request, res: Response) => {
+    try {
+      const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+      const countyFips =
+        typeof req.query.countyFips === "string" ? req.query.countyFips.trim() : "";
+      const stateCode =
+        typeof req.query.stateCode === "string" ? req.query.stateCode.trim().toUpperCase() : "";
+      const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 10;
+      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(25, limitRaw)) : 10;
+
+      if (q.length < 2) {
+        return res.json({ items: [] });
+      }
+
+      const likeQ = `%${q.toLowerCase()}%`;
+      const rowsResult = (await db.execute(sql`
+        select
+          b.id,
+          b.name,
+          b.slug,
+          b.type,
+          b.status,
+          coalesce(
+            json_agg(distinct jsonb_build_object(
+              'fips', co.fips,
+              'stateCode', co.state_code,
+              'name', co.name
+            )) filter (where co.fips is not null),
+            '[]'::json
+          ) as counties
+        from businesses b
+        left join business_counties bc on bc.business_id = b.id
+        left join counties co on co.id = bc.county_id
+        where b.status <> 'suspended'
+          and b.owner_user_id is null
+          and (
+            lower(b.name) like ${likeQ}
+            or lower(b.slug) like ${likeQ}
+          )
+          ${countyFips ? sql`and co.fips = ${countyFips}` : sql``}
+          ${stateCode ? sql`and co.state_code = ${stateCode}` : sql``}
+        group by b.id, b.name, b.slug, b.type, b.status
+        order by b.name asc
+        limit ${limit}
+      `)) as any;
+
+      const items = Array.isArray(rowsResult?.rows) ? rowsResult.rows : [];
+      res.json({ items });
+    } catch (error: any) {
+      console.error("Error searching claimable businesses:", error);
+      res.status(500).json({ message: "Failed to search businesses" });
+    }
+  });
+
+  app.post("/api/business-claim/request", async (req: Request, res: Response) => {
+    try {
+      const { slug, email } = (req.body ?? {}) as any;
+      const normalizedSlug = typeof slug === "string" ? slug.trim() : "";
+      const normalizedEmail = typeof email === "string" ? String(email).trim().toLowerCase() : "";
+
+      if (!normalizedSlug || !normalizedEmail) {
+        return res.status(400).json({ message: "slug and email are required" });
+      }
+
+      const user = await storage.getUserByEmail(normalizedEmail);
+
+      // Generic response to avoid account enumeration
+      const generic = {
+        message: "If that email matches the business on file, a claim link has been sent.",
+      };
+
+      if (!user || !user.businessSlug || String(user.businessSlug) !== String(normalizedSlug)) {
+        return res.json(generic);
+      }
+
+      const { token, expiresAt } = passwordResetService.createToken(user.id);
+      const resetBase =
+        process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
+      const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
+
+      if (emailService.isConfigured()) {
+        await emailService.sendEmail({
+          to: user.email,
+          subject: "Claim your business on TradeScout",
+          html: `<p>Use this link to set your password and claim your business account.</p>
+<p><a href="${resetLink}">Claim my business</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
+          text: `Claim your business: ${resetLink}`,
+        });
+      } else {
+        console.warn(`[business-claim] Email not configured; token generated for ${user.email}`);
+      }
+
+      // Claim-first: record an explicit direct claim attempt (write-only)
+      try {
+        const countyFips = String((user as any).countyFips || "");
+        const countyName = String((user as any).countyName || "");
+        if (/^[0-9]{5}$/.test(countyFips) && countyName) {
+          await writeClaimEvent({
+            userId: user.id,
+            claimType: ClaimType.REPRESENTS_BUSINESS,
+            countyFips,
+            countyName,
+            source: ClaimSource.DIRECT_CLAIM,
+            claimTimestamp: new Date(),
+            metadata: { slug: normalizedSlug },
+          });
+        }
+      } catch (e) {
+        console.warn("[business-claim] claim write failed", e);
+      }
+
+      return res.json(generic);
+    } catch (error: any) {
+      console.error("Error requesting business claim:", error);
+      return res.status(500).json({ message: "Failed to request claim" });
+    }
+  });
+
   app.post("/api/error-reports", async (req: any, res: any) => {
     try {
       const userId = req.user?.claims?.sub || null;
@@ -9821,6 +10604,47 @@ export async function registerRoutes(app: any) {
             ) t
           `)) as any);
 
+      // Median time-to-first-reply (in minutes) for posts created in the last 7 days.
+      // Returns null when there are no replies.
+      const medianFirstReplyResult = hasCountyScope
+        ? ((await db.execute(sql`
+            with posts as (
+              select id, created_at
+              from community_posts
+              where created_at >= ${sevenDaysAgo}
+                and county_fips = ${countyFips}
+            ),
+            first_reply as (
+              select p.id, p.created_at, min(c.created_at) as first_reply_at
+              from posts p
+              inner join post_comments c on c.post_id = p.id
+              group by p.id, p.created_at
+            )
+            select
+              percentile_cont(0.5) within group (
+                order by extract(epoch from (first_reply_at - created_at)) / 60.0
+              ) as minutes
+            from first_reply
+          `)) as any)
+        : ((await db.execute(sql`
+            with posts as (
+              select id, created_at
+              from community_posts
+              where created_at >= ${sevenDaysAgo}
+            ),
+            first_reply as (
+              select p.id, p.created_at, min(c.created_at) as first_reply_at
+              from posts p
+              inner join post_comments c on c.post_id = p.id
+              group by p.id, p.created_at
+            )
+            select
+              percentile_cont(0.5) within group (
+                order by extract(epoch from (first_reply_at - created_at)) / 60.0
+              ) as minutes
+            from first_reply
+          `)) as any);
+
       const totalMembers = Number(totalMembersResult?.rows?.[0]?.count ?? 0);
       const postsToday = Number(postsTodayResult?.rows?.[0]?.count ?? 0);
       const countiesActive = Number(countiesActiveResult?.rows?.[0]?.count ?? 0);
@@ -9828,6 +10652,9 @@ export async function registerRoutes(app: any) {
       const helpRequests7d = Number(helpRequestsResult?.rows?.[0]?.count ?? 0);
       const recommendations7d = Number(recommendationsResult?.rows?.[0]?.count ?? 0);
       const verifiedPros = Number(verifiedProsResult?.rows?.[0]?.count ?? 0);
+      const medianFirstReplyMinutes7dRaw = (medianFirstReplyResult as any)?.rows?.[0]?.minutes;
+      const medianFirstReplyMinutes7d =
+        medianFirstReplyMinutes7dRaw == null ? null : Number(medianFirstReplyMinutes7dRaw);
 
       res.json({
         totalMembers,
@@ -9837,6 +10664,7 @@ export async function registerRoutes(app: any) {
         helpRequests7d,
         recommendations7d,
         verifiedPros,
+        medianFirstReplyMinutes7d,
         scope: hasCountyScope ? "local" : "global",
         stateCode: typeof stateCode === "string" ? stateCode : null,
         countyFips: hasCountyScope ? countyFips : null,
@@ -9851,6 +10679,7 @@ export async function registerRoutes(app: any) {
         helpRequests7d: 0,
         recommendations7d: 0,
         verifiedPros: 0,
+        medianFirstReplyMinutes7d: null,
       });
     }
   });

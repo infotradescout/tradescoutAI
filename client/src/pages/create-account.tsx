@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useForm, Controller } from "react-hook-form";
@@ -12,7 +12,7 @@ import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Facebook } from "lucide-react";
+import { Facebook, Search, Building2, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -96,6 +96,7 @@ export default function CreateAccountPortal() {
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -162,12 +163,12 @@ export default function CreateAccountPortal() {
       return;
     }
 
-    // Already normalized – send to Scout
+    // Already normalized - send to Scout
     navigate("/scout?onboarding=true");
   }, [user, isAuthenticated, navigate]);
 
   const signupMutation = useMutation({
-    mutationFn: async (data: SignupFormData) => {
+    mutationFn: async (data: SignupFormData & { claimBusinessId?: string | null }) => {
       console.log("[CREATE_ACCOUNT] Submitting payload:", {
         email: data.email,
         userTypes: data.userTypes,
@@ -186,9 +187,10 @@ export default function CreateAccountPortal() {
         userIntent: data.userIntent,
         acceptTerms: data.acceptTerms,
         allowPhoneCalls: data.allowPhoneCalls,
+        claimBusinessId: data.claimBusinessId || undefined,
       });
     },
-    onSuccess: () => {
+    onSuccess: (resp: any) => {
       console.log("[CREATE_ACCOUNT] Registration successful");
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       refetch?.();
@@ -198,7 +200,12 @@ export default function CreateAccountPortal() {
 
       toast({
         title: "Account created",
-        description: "Welcome to TradeScout. Let's get you started.",
+        description:
+          resp?.claim?.status === "claimed"
+            ? "Business claimed. Next: verify email and insurance."
+            : resp?.claim?.status === "not_verified"
+              ? "Account created. Business claim needs verification."
+              : "Welcome to TradeScout. Let's get you started.",
       });
 
       // CLAIM-FIRST: Route through the pre-Scout gate before Scout intent capture
@@ -231,8 +238,83 @@ export default function CreateAccountPortal() {
   });
 
   const onSubmit = (data: SignupFormData) => {
-    signupMutation.mutate(data);
+    signupMutation.mutate({ ...data, claimBusinessId: selectedClaimBusinessId });
   };
+
+  // Claim My Business (during signup)
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [claimQuery, setClaimQuery] = useState("");
+  const [claimCountyFips, setClaimCountyFips] = useState("");
+  const [claimStateCode, setClaimStateCode] = useState("");
+  const [claimResults, setClaimResults] = useState<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      counties?: Array<{ fips: string; stateCode: string; name: string }>;
+    }>
+  >([]);
+  const [selectedClaimBusinessId, setSelectedClaimBusinessId] = useState<string | null>(null);
+  const [selectedClaimBusinessSlug, setSelectedClaimBusinessSlug] = useState<string | null>(null);
+  const [autoClaimSlug, setAutoClaimSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search || "");
+    const claim = String(params.get("claim") || "").trim();
+    if (!claim) return;
+    setClaimOpen(true);
+    setClaimQuery(claim);
+    setAutoClaimSlug(claim);
+    setTimeout(() => searchBusinessesMutation.mutate(), 0);
+  }, []);
+
+  const searchBusinessesMutation = useMutation({
+    mutationFn: async () => {
+      const q = claimQuery.trim();
+      if (q.length < 2) {
+        return [] as any[];
+      }
+      const params = new URLSearchParams();
+      params.set("q", q);
+      if (claimCountyFips.trim()) params.set("countyFips", claimCountyFips.trim());
+      if (claimStateCode.trim()) params.set("stateCode", claimStateCode.trim().toUpperCase());
+      params.set("limit", "10");
+      const res = await fetch(`/api/business-claim/search?${params.toString()}`);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Search failed");
+      }
+      const json = await res.json().catch(() => ({}));
+      return Array.isArray(json?.items) ? json.items : [];
+    },
+    onSuccess: (items: any[]) => {
+      setClaimResults(items as any);
+      if (autoClaimSlug) {
+        const match = (items || []).find(
+          (it: any) => String(it?.slug || "").toLowerCase() === autoClaimSlug.toLowerCase()
+        );
+        if (match) {
+          setSelectedClaimBusinessId(String(match.id || ""));
+          setSelectedClaimBusinessSlug(String(match.slug || ""));
+          setAutoClaimSlug(null);
+        }
+      }
+      if (!items.length) {
+        toast({
+          title: "No matches",
+          description: "Try a shorter name, or add county FIPS for better accuracy.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Search failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="h-full min-h-[calc(100dvh-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-4 text-tsTextMain">
@@ -247,7 +329,7 @@ export default function CreateAccountPortal() {
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
               Join your local community in one step. Scout is your AI guide to everything happening
-              nearby—deals, contractors, discussions, and more.
+              nearby-deals, contractors, discussions, and more.
             </p>
           </div>
         </div>
@@ -564,6 +646,149 @@ export default function CreateAccountPortal() {
               >
                 {signupMutation.isPending ? "Creating account..." : "Create account"}
               </Button>
+
+              {/* Claim My Business (optional) */}
+              <div className="mt-4 rounded-lg border border-tsBorder/60 bg-black/30 p-4">
+                <button
+                  type="button"
+                  onClick={() => setClaimOpen((v) => !v)}
+                  className="w-full flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-tsAccent" />
+                    <div className="text-left">
+                      <div className="text-sm font-semibold text-tsTextMain">
+                        Claim an existing business (optional)
+                      </div>
+                      <div className="text-xs text-tsTextMuted">
+                        If your business was imported, claim it instead of creating a duplicate.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-tsTextMuted">{claimOpen ? "Hide" : "Show"}</div>
+                </button>
+
+                {claimOpen && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div className="md:col-span-2">
+                        <Label className="text-xs text-tsTextMuted">Business name</Label>
+                        <Input
+                          value={claimQuery}
+                          onChange={(e) => setClaimQuery(e.target.value)}
+                          placeholder="Search by business name"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-tsTextMuted">County FIPS (optional)</Label>
+                        <Input
+                          value={claimCountyFips}
+                          onChange={(e) => setClaimCountyFips(e.target.value)}
+                          placeholder="48201"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label className="text-xs text-tsTextMuted">State (optional)</Label>
+                        <Input
+                          value={claimStateCode}
+                          onChange={(e) => setClaimStateCode(e.target.value)}
+                          placeholder="TX"
+                          className="mt-1"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-tsBorder"
+                        disabled={
+                          searchBusinessesMutation.isPending || claimQuery.trim().length < 2
+                        }
+                        onClick={() => {
+                          setSelectedClaimBusinessId(null);
+                          setSelectedClaimBusinessSlug(null);
+                          searchBusinessesMutation.mutate();
+                        }}
+                      >
+                        <Search className="h-4 w-4 mr-2" />
+                        {searchBusinessesMutation.isPending ? "Searching..." : "Search"}
+                      </Button>
+                    </div>
+
+                    {claimResults.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-tsTextMuted">Select your business:</div>
+                        <div className="space-y-2">
+                          {claimResults.slice(0, 8).map((b) => {
+                            const counties = Array.isArray((b as any).counties)
+                              ? (b as any).counties
+                              : [];
+                            const countyLabel = counties
+                              .filter((c: any) => c && c.name && c.stateCode)
+                              .slice(0, 2)
+                              .map((c: any) => `${c.name}, ${c.stateCode}`)
+                              .join(" - ");
+                            return (
+                              <button
+                                key={b.id || b.slug}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedClaimBusinessId(String((b as any).id || ""));
+                                  setSelectedClaimBusinessSlug(String((b as any).slug || ""));
+                                }}
+                                className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                                  selectedClaimBusinessId === String((b as any).id || "")
+                                    ? "border-tsAccent bg-tsAccent/10"
+                                    : "border-tsBorder hover:border-tsAccent/60"
+                                }`}
+                              >
+                                <div className="text-sm font-medium text-tsTextMain">{b.name}</div>
+                                <div className="text-[11px] text-tsTextMuted">
+                                  /business/{b.slug}
+                                  {countyLabel ? ` - ${countyLabel}` : ""}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedClaimBusinessId && selectedClaimBusinessSlug && (
+                      <div className="space-y-2 rounded-lg border border-tsBorder/60 bg-black/20 p-3">
+                        <div className="flex items-center gap-2 text-xs text-tsTextMuted">
+                          <ShieldCheck className="h-4 w-4 text-tsAccent" />
+                          TradeScout will attempt to verify and attach this business during signup
+                          using your email/phone.
+                        </div>
+                        <div className="text-[11px] text-tsTextMuted">
+                          Selected: /business/{selectedClaimBusinessSlug}
+                        </div>
+                        <div className="text-[11px] text-tsTextMuted">
+                          After claiming, you'll still need to verify email and insurance.
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-tsBorder"
+                            onClick={() => {
+                              setSelectedClaimBusinessId(null);
+                              setSelectedClaimBusinessSlug(null);
+                            }}
+                          >
+                            Clear selection
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Login Link */}
               <p className="text-xs text-tsTextMuted text-center mt-4">

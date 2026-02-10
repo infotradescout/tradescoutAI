@@ -126,6 +126,8 @@ const AddressVerification = React.lazy(() => import("./pages/address-verificatio
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
+const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
+const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
@@ -134,6 +136,7 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
+const AdminBusinessImport = React.lazy(() => import("./pages/admin-business-import"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
 
 // Marketplace & Social
@@ -570,6 +573,12 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/create-account">
                     <LazyPage Component={CreateAccount} />
                   </Route>
+                  <Route path="/claim-my-business">
+                    <LazyPage Component={ClaimMyBusiness} />
+                  </Route>
+                  <Route path="/reset-password">
+                    <LazyPage Component={ResetPassword} />
+                  </Route>
                   <Route path="/pre-scout-setup">
                     <ProtectedRoute>
                       <LazyPage Component={PreScoutSetup} />
@@ -804,6 +813,11 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin/panel">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={AdminShell} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/business-import">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminBusinessImport} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/geo/coverage">

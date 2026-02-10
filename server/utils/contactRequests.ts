@@ -147,6 +147,15 @@ export async function ensureContactRequest({
     } as any)
     .returning();
 
+  const notificationId = notification?.id != null ? String(notification.id) : null;
+  const confidenceScore =
+    metadata.confidenceScore != null && String(metadata.confidenceScore).trim().length > 0
+      ? (() => {
+          const n = Number(metadata.confidenceScore);
+          return Number.isFinite(n) ? String(n) : null;
+        })()
+      : null;
+
   const now = new Date();
   const [permissionRow] = await db
     .insert(contactPermissions)
@@ -156,13 +165,13 @@ export async function ensureContactRequest({
       status: "pending",
       lastRequestType: metadata.contactType,
       lastRequestPreview: previewText || null,
-      lastRequestNotificationId: notification?.id || null,
+      lastRequestNotificationId: notificationId,
       authorityGate: metadata.authorityGate || null,
       sourceDecisionCardId: metadata.sourceDecisionCardId || null,
       sourceScoutRecommendationId: metadata.sourceScoutRecommendationId || null,
       intent: metadata.intent || null,
       decisionScope: metadata.decisionScope || null,
-      confidenceScore: metadata.confidenceScore != null ? Number(metadata.confidenceScore) : null,
+      confidenceScore,
       riskFlags: metadata.riskFlags || null,
       countyFips: resolvedCountyFips,
       requesterTrustSnapshotId,
@@ -176,13 +185,13 @@ export async function ensureContactRequest({
         status: "pending",
         lastRequestType: metadata.contactType,
         lastRequestPreview: previewText || null,
-        lastRequestNotificationId: notification?.id || null,
+        lastRequestNotificationId: notificationId,
         authorityGate: metadata.authorityGate || null,
         sourceDecisionCardId: metadata.sourceDecisionCardId || null,
         sourceScoutRecommendationId: metadata.sourceScoutRecommendationId || null,
         intent: metadata.intent || null,
         decisionScope: metadata.decisionScope || null,
-        confidenceScore: metadata.confidenceScore != null ? Number(metadata.confidenceScore) : null,
+        confidenceScore,
         riskFlags: metadata.riskFlags || null,
         countyFips: resolvedCountyFips,
         requesterTrustSnapshotId,
@@ -214,13 +223,13 @@ export async function ensureContactRequest({
       sourceScoutRecommendationId: metadata.sourceScoutRecommendationId || null,
       intent: metadata.intent || null,
       decisionScope: metadata.decisionScope || null,
-      confidenceScore: metadata.confidenceScore != null ? Number(metadata.confidenceScore) : null,
+      confidenceScore,
       riskFlags: metadata.riskFlags || null,
       countyFips: resolvedCountyFips,
     } as any);
   }
 
-  return { status: "pending", requestId: notification?.id || null };
+  return { status: "pending", requestId: notificationId };
 }
 
 export async function updateContactPermissionStatus({

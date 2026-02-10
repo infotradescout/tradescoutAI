@@ -296,6 +296,7 @@ type CommunityStats = {
   helpRequests7d?: number;
   recommendations7d?: number;
   verifiedPros?: number;
+  medianFirstReplyMinutes7d?: number | null;
 };
 
 type TrendingTopic = {
@@ -305,7 +306,7 @@ type TrendingTopic = {
 };
 
 const CommunityFeed = memo(function CommunityFeed() {
-  type FeedTab = "forYou" | "recent" | "nearby" | "trending" | "recs" | "vault";
+  type FeedTab = "forYou" | "recent" | "nearby" | "vault";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
@@ -367,11 +368,6 @@ const CommunityFeed = memo(function CommunityFeed() {
         return "recent";
       case "nearby":
         return "nearby";
-      case "trending":
-        return "trending";
-      case "recs":
-      case "recommendations":
-        return "recs";
       case "vault":
         return "vault";
       default:
@@ -495,10 +491,6 @@ const CommunityFeed = memo(function CommunityFeed() {
         return "recent";
       case "nearby":
         return "nearby";
-      case "trending":
-        return "trending";
-      case "recs":
-        return "recommendations";
       default:
         return "county";
     }
@@ -709,6 +701,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     helpRequests7d: 0,
     recommendations7d: 0,
     verifiedPros: 0,
+    medianFirstReplyMinutes7d: null,
   };
 
   const trendingTopics: TrendingTopic[] = Array.isArray(trendingTopicsData)
@@ -765,34 +758,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     const list = [...displayPosts];
     if (activeTab === "recent" || activeTab === "nearby") {
       return list.sort((a, b) => {
-        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
-        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
-        return bTs - aTs;
-      });
-    }
-
-    if (activeTab === "trending") {
-      return list.sort((a, b) => {
-        const aScore =
-          Number(a.likeCount || a.likes || 0) * 2 +
-          Number(a.commentCount || a.comments || 0) * 3 +
-          Number(a.shareCount || a.shares || 0) * 4;
-        const bScore =
-          Number(b.likeCount || b.likes || 0) * 2 +
-          Number(b.commentCount || b.comments || 0) * 3 +
-          Number(b.shareCount || b.shares || 0) * 4;
-        if (bScore !== aScore) return bScore - aScore;
-        const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
-        const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
-        return bTs - aTs;
-      });
-    }
-
-    if (activeTab === "recs") {
-      return list.sort((a, b) => {
-        const aIsRec = /recommend/i.test(String(a.category || a.type || a.postType || ""));
-        const bIsRec = /recommend/i.test(String(b.category || b.type || b.postType || ""));
-        if (aIsRec !== bIsRec) return bIsRec ? 1 : -1;
         const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
         const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
         return bTs - aTs;
@@ -1308,6 +1273,14 @@ const CommunityFeed = memo(function CommunityFeed() {
     composerRef.current?.focus();
   };
 
+  const formatMinutesCompact = (minutes: number | null | undefined) => {
+    const value = typeof minutes === "number" ? minutes : NaN;
+    if (!Number.isFinite(value) || value < 0) return "--";
+    if (value < 60) return `${Math.round(value)}m`;
+    if (value < 60 * 24) return `${Math.round(value / 60)}h`;
+    return `${Math.round(value / (60 * 24))}d`;
+  };
+
   return (
     <div className="">
       <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
@@ -1326,20 +1299,16 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <p className="mt-1 text-xs md:text-sm text-[color:var(--text-secondary)]">
                     Ask, recommend, and coordinate with people in your area.
                   </p>
+                  <p className="mt-2 text-[11px] md:text-xs text-slate-400">
+                    Active today: {communityStats.activeToday} - Posts today:{" "}
+                    {communityStats.postsToday}
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center min-w-[240px]">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center min-w-[260px]">
                   <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Members</p>
                     <p className="text-sm md:text-base font-semibold text-white">
                       {communityStats.totalMembers}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                      Active today
-                    </p>
-                    <p className="text-sm md:text-base font-semibold text-white">
-                      {communityStats.activeToday}
                     </p>
                   </div>
                   <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
@@ -1354,6 +1323,20 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Recs (7d)</p>
                     <p className="text-sm md:text-base font-semibold text-white">
                       {communityStats.recommendations7d ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Help (7d)</p>
+                    <p className="text-sm md:text-base font-semibold text-white">
+                      {communityStats.helpRequests7d ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                      Median reply (7d)
+                    </p>
+                    <p className="text-sm md:text-base font-semibold text-white">
+                      {formatMinutesCompact(communityStats.medianFirstReplyMinutes7d)}
                     </p>
                   </div>
                 </div>
@@ -1455,18 +1438,6 @@ const CommunityFeed = memo(function CommunityFeed() {
                       className="rounded-full px-4 py-2 text-xs font-semibold"
                     >
                       Nearby
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="trending"
-                      className="rounded-full px-4 py-2 text-xs font-semibold"
-                    >
-                      Trending
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="recs"
-                      className="rounded-full px-4 py-2 text-xs font-semibold"
-                    >
-                      Recs
                     </TabsTrigger>
                     <TabsTrigger
                       value="vault"
@@ -1723,14 +1694,6 @@ const CommunityFeed = memo(function CommunityFeed() {
                 </TabsContent>
 
                 <TabsContent value="nearby" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-
-                <TabsContent value="trending" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-
-                <TabsContent value="recs" className="mt-0">
                   {renderFeedList()}
                 </TabsContent>
 

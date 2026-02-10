@@ -1599,6 +1599,56 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async createUnclaimedBusiness(
+    data: Omit<InsertBusiness, "id" | "ownerUserId" | "createdAt" | "updatedAt"> & {
+      countyIds?: string[];
+    }
+  ): Promise<Business> {
+    const slug = await this.generateUniqueBusinessSlug(data.slug || data.name);
+    const countyIds = data.countyIds || [];
+
+    const created = await db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(businesses)
+        .values({
+          ...data,
+          ownerUserId: null,
+          slug,
+        } as any)
+        .returning();
+
+      const business = inserted[0];
+      if (!business) throw new Error("Failed to create business");
+
+      if (countyIds.length > 0) {
+        await tx.delete(businessCounties).where(eq(businessCounties.businessId, business.id));
+        await tx.insert(businessCounties).values(
+          Array.from(new Set(countyIds.filter(Boolean).map((c) => String(c).trim()))).map(
+            (countyId) => ({
+              businessId: business.id,
+              countyId,
+            })
+          )
+        );
+      }
+
+      return business as Business;
+    });
+
+    return created;
+  }
+
+  async claimUnclaimedBusinessForUser(businessId: string, userId: string): Promise<Business> {
+    const rows = await db
+      .update(businesses)
+      .set({ ownerUserId: userId, updatedAt: new Date() } as any)
+      .where(and(eq(businesses.id, businessId), isNull(businesses.ownerUserId)))
+      .returning();
+    const business = rows[0];
+    if (!business) throw new Error("Business is not claimable");
+    return business as Business;
+  }
+
   async updateBusinessForOwner(
     ownerUserId: string,
     businessId: string,

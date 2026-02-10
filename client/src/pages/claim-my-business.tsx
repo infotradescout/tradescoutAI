@@ -1,0 +1,58 @@
+import { useMemo } from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Building2, ArrowRight } from "lucide-react";
+
+export default function ClaimMyBusinessPage() {
+  const [location, navigate] = useLocation();
+
+  const slug = useMemo(() => {
+    try {
+      const idx = location.indexOf("?");
+      if (idx === -1) return "";
+      const params = new URLSearchParams(location.slice(idx + 1));
+      return String(params.get("slug") || "").trim();
+    } catch {
+      return "";
+    }
+  }, [location]);
+
+  return (
+    <div className="max-w-xl mx-auto px-4 py-8">
+      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Building2 className="h-5 w-5 text-orange-400" />
+            Claim My Business
+          </CardTitle>
+          <CardDescription className="text-[color:var(--text-secondary)]">
+            Claim your business during signup. You'll still need to finish your profile and complete
+            verification (insurance, license, etc).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!slug ? (
+            <div className="text-sm text-slate-300">
+              Open this page from a business profile (it needs a `slug`).
+            </div>
+          ) : null}
+
+          <Button
+            className="bg-orange-500 hover:bg-orange-600 w-full"
+            onClick={() => navigate(`/create-account?claim=${encodeURIComponent(slug)}`)}
+            disabled={!slug}
+          >
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Continue to signup
+          </Button>
+
+          <div className="text-xs text-[color:var(--text-secondary)]">
+            TradeScout will attempt to verify and attach the business using the email/phone you sign
+            up with.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

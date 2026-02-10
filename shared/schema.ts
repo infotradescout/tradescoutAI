@@ -500,9 +500,8 @@ export const businesses = pgTable(
     name: varchar("name").notNull(),
     slug: varchar("slug").notNull().unique(),
     type: businessTypeEnum("type").notNull().default("other"),
-    ownerUserId: varchar("owner_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    // Nullable to support admin-imported, unclaimed directory entries that can be claimed during signup.
+    ownerUserId: varchar("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     roleContext: userRoleEnum("role_context").notNull(),
     profileData: jsonb("profile_data")
       .$type<{
@@ -514,6 +513,7 @@ export const businesses = pgTable(
         phone?: string;
         email?: string;
         contactPreference?: "call" | "email" | "message";
+        importExtras?: Record<string, string>;
       }>()
       .default(sql`'{}'::jsonb`),
     status: businessStatusEnum("status").notNull().default("draft"),

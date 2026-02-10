@@ -222,7 +222,7 @@ export default function BusinessProfileView() {
             </div>
 
             {/* Owner-only: Edit button */}
-            {isOwner && (
+            {isOwner ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -230,6 +230,17 @@ export default function BusinessProfileView() {
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setLocation(`/claim-my-business?slug=${encodeURIComponent(profile.slug)}`)
+                }
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Claim This Business
               </Button>
             )}
           </div>
