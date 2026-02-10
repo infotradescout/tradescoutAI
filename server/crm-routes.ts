@@ -1,7 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
-import { insertCrmContactSchema, insertCrmDealSchema, insertCrmActivitySchema, insertCrmEmailTemplateSchema, insertCrmPipelineSchema } from "@shared/schema";
+import {
+  insertCrmContactSchema,
+  insertCrmDealSchema,
+  insertCrmActivitySchema,
+  insertCrmEmailTemplateSchema,
+  insertCrmPipelineSchema,
+} from "@shared/schema";
 import { isAuthenticated } from "./auth";
 import { emailService } from "./services/emailService";
 
@@ -48,14 +54,14 @@ export function registerCrmRoutes(app: Express) {
     try {
       const contactData = insertCrmContactSchema.parse(req.body);
       const contact = await storage.createCrmContact(contactData);
-      
+
       // Log CRM activity for new contact creation
       await storage.createCrmActivity({
-        type: 'note',
-        subject: 'Contact Created',
+        type: "note",
+        subject: "Contact Created",
         description: `New contact ${contactData.firstName} ${contactData.lastName} has been added to the CRM system.`,
         contactId: contact.id,
-        createdByUserId: (req.user as any)?.id || contactData.assignedToUserId || '',
+        createdByUserId: (req.user as any)?.id || contactData.assignedToUserId || "",
       });
 
       res.status(201).json(contact);
@@ -72,14 +78,14 @@ export function registerCrmRoutes(app: Express) {
     try {
       const updates = req.body;
       const contact = await storage.updateCrmContact(req.params.id, updates);
-      
+
       // Log activity for contact update
       await storage.createCrmActivity({
-        type: 'note',
-        subject: 'Contact Updated',
+        type: "note",
+        subject: "Contact Updated",
         description: `Contact information has been updated.`,
         contactId: contact.id,
-        createdByUserId: (req.user as any)?.id || '',
+        createdByUserId: (req.user as any)?.id || "",
       });
 
       res.json(contact);
@@ -132,15 +138,15 @@ export function registerCrmRoutes(app: Express) {
     try {
       const dealData = insertCrmDealSchema.parse(req.body);
       const deal = await storage.createCrmDeal(dealData);
-      
+
       // Log activity for deal creation
       await storage.createCrmActivity({
-        type: 'note',
-        subject: 'Deal Created',
+        type: "note",
+        subject: "Deal Created",
         description: `New deal "${dealData.title}" has been created with a value of $${dealData.value || 0}.`,
         contactId: dealData.contactId,
         dealId: deal.id,
-        createdByUserId: (req.user as any)?.id || dealData.assignedToUserId || '',
+        createdByUserId: (req.user as any)?.id || dealData.assignedToUserId || "",
       });
 
       res.status(201).json(deal);
@@ -157,9 +163,9 @@ export function registerCrmRoutes(app: Express) {
     try {
       const updates = req.body;
       const deal = await storage.updateCrmDeal(req.params.id, updates);
-      
+
       // Log activity for deal update
-      let description = 'Deal has been updated.';
+      let description = "Deal has been updated.";
       if (updates.stage) {
         description = `Deal stage changed to ${updates.stage}.`;
       }
@@ -168,12 +174,12 @@ export function registerCrmRoutes(app: Express) {
       }
 
       await storage.createCrmActivity({
-        type: 'note',
-        subject: 'Deal Updated',
+        type: "note",
+        subject: "Deal Updated",
         description,
         contactId: deal.contactId,
         dealId: deal.id,
-        createdByUserId: (req.user as any)?.id || '',
+        createdByUserId: (req.user as any)?.id || "",
       });
 
       res.json(deal);
@@ -232,7 +238,7 @@ export function registerCrmRoutes(app: Express) {
   app.post("/api/crm/activities", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const activityData = insertCrmActivitySchema.parse(req.body);
-      
+
       // Set the created by user if not provided
       if (!activityData.createdByUserId && (req.user as any)?.id) {
         activityData.createdByUserId = (req.user as any).id;
@@ -298,7 +304,7 @@ export function registerCrmRoutes(app: Express) {
   app.post("/api/crm/email-templates", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const templateData = insertCrmEmailTemplateSchema.parse(req.body);
-      
+
       // Set the created by user if not provided
       if (!templateData.createdByUserId && (req.user as any)?.id) {
         templateData.createdByUserId = (req.user as any).id;
@@ -376,7 +382,7 @@ export function registerCrmRoutes(app: Express) {
   app.post("/api/crm/pipelines", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const pipelineData = insertCrmPipelineSchema.parse(req.body);
-      
+
       // Set the created by user if not provided
       if (!pipelineData.createdByUserId && (req.user as any)?.id) {
         pipelineData.createdByUserId = (req.user as any).id;
@@ -417,8 +423,9 @@ export function registerCrmRoutes(app: Express) {
   // Send email endpoint (will integrate with SendGrid)
   app.post("/api/crm/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { templateId, contactId, customSubject, customBody, variables } = (req.body ?? {}) as any;
-      
+      const { templateId, contactId, customSubject, customBody, variables } = (req.body ??
+        {}) as any;
+
       // Get contact information
       const contact = await storage.getCrmContact(contactId);
       if (!contact || !contact.email) {
@@ -434,27 +441,27 @@ export function registerCrmRoutes(app: Express) {
         if (!template) {
           return res.status(404).json({ message: "Email template not found" });
         }
-        
+
         subject = template.subject;
         body = template.body;
 
         // Replace variables in template
         if (variables) {
-          Object.keys(variables).forEach(key => {
+          Object.keys(variables).forEach((key) => {
             const placeholder = `{{${key}}}`;
-            subject = subject.replace(new RegExp(placeholder, 'g'), variables[key]);
-            body = body.replace(new RegExp(placeholder, 'g'), variables[key]);
+            subject = subject.replace(new RegExp(placeholder, "g"), variables[key]);
+            body = body.replace(new RegExp(placeholder, "g"), variables[key]);
           });
         }
 
         // Replace common variables
-        subject = subject.replace(/{{firstName}}/g, contact.firstName || '');
-        subject = subject.replace(/{{lastName}}/g, contact.lastName || '');
-        subject = subject.replace(/{{company}}/g, contact.company || '');
-        
-        body = body.replace(/{{firstName}}/g, contact.firstName || '');
-        body = body.replace(/{{lastName}}/g, contact.lastName || '');
-        body = body.replace(/{{company}}/g, contact.company || '');
+        subject = subject.replace(/{{firstName}}/g, contact.firstName || "");
+        subject = subject.replace(/{{lastName}}/g, contact.lastName || "");
+        subject = subject.replace(/{{company}}/g, contact.company || "");
+
+        body = body.replace(/{{firstName}}/g, contact.firstName || "");
+        body = body.replace(/{{lastName}}/g, contact.lastName || "");
+        body = body.replace(/{{company}}/g, contact.company || "");
       }
 
       // Integrate with SendGrid for email campaigns
@@ -465,6 +472,7 @@ export function registerCrmRoutes(app: Express) {
             from: (req.user as any)?.email || "campaigns@tradescout.com",
             subject: subject,
             html: body,
+            purpose: "crm_email",
           });
 
           console.log(`Email sent via SendGrid to ${contact.email}`);
@@ -474,19 +482,19 @@ export function registerCrmRoutes(app: Express) {
       } catch (sendError) {
         console.error("SendGrid email error:", sendError);
       }
-      
+
       // Log the activity
       await storage.createCrmActivity({
-        type: 'email',
+        type: "email",
         subject: `Email: ${subject}`,
         description: body,
         contactId: contact.id,
-        createdByUserId: (req.user as any)?.id || '',
+        createdByUserId: (req.user as any)?.id || "",
         toEmail: contact.email,
-        fromEmail: (req.user as any)?.email || 'noreply@tradescout.com',
+        fromEmail: (req.user as any)?.email || "noreply@tradescout.com",
       });
 
-      res.json({ 
+      res.json({
         message: "Email logged in CRM (SendGrid integration pending)",
         emailSent: false,
         recipient: contact.email,
@@ -502,24 +510,24 @@ export function registerCrmRoutes(app: Express) {
   app.post("/api/crm/internal-message", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { recipients, subject, message, contactId, dealId } = (req.body ?? {}) as any;
-      
+
       if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
         return res.status(400).json({ message: "Recipients are required" });
       }
 
       // Create internal message activity
       await storage.createCrmActivity({
-        type: 'internal_message',
+        type: "internal_message",
         subject: `Internal: ${subject}`,
         description: message,
         contactId: contactId || null,
         dealId: dealId || null,
-        createdByUserId: (req.user as any)?.id || '',
+        createdByUserId: (req.user as any)?.id || "",
         isInternal: true,
         internalRecipients: recipients,
       });
 
-      res.json({ 
+      res.json({
         message: "Internal message sent successfully",
         recipients,
         subject,

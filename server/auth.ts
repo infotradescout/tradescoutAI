@@ -155,7 +155,9 @@ export async function setupAuth(app: Express) {
                 profileImageUrl: profile.photos?.[0]?.value,
                 facebookId: profile.id,
                 role: null,
-                emailVerified: !!email,
+                // Email verification must be completed via the in-product workflow,
+                // regardless of signup method (local or OAuth).
+                emailVerified: false,
                 onboardingCompleted: false,
                 createdAt: new Date(),
                 updatedAt: new Date(),

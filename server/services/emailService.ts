@@ -11,6 +11,8 @@ export type SendEmailParams = {
   bcc?: string[];
   replyTo?: string;
   headers?: Record<string, string>;
+  /** Optional classifier so we can selectively suppress emails by env */
+  purpose?: string;
 };
 
 class EmailService {
@@ -18,6 +20,7 @@ class EmailService {
   private provider: "sendgrid" | "brevo" | "none";
   private defaultFrom: string;
   private brevoApiKey: string | undefined;
+  private mode: "all" | "account_creation_only";
 
   constructor() {
     const apiKey = process.env.SENDGRID_API_KEY;
@@ -38,6 +41,11 @@ class EmailService {
     if (apiKey) {
       sgMail.setApiKey(apiKey);
     }
+
+    const modeRaw = String(process.env.EMAIL_MODE || "all")
+      .toLowerCase()
+      .trim();
+    this.mode = modeRaw === "account_creation_only" ? "account_creation_only" : "all";
   }
 
   isConfigured(): boolean {
@@ -46,8 +54,26 @@ class EmailService {
 
   async sendEmail(params: SendEmailParams): Promise<{ skipped: boolean; messageId?: string }> {
     if (!this.configured) {
-      console.warn("[email] SendGrid not configured; skipping send");
+      console.warn("[email] Email provider not configured; skipping send");
       return { skipped: true };
+    }
+
+    if (this.mode === "account_creation_only") {
+      const purpose = String(params.purpose || "")
+        .toLowerCase()
+        .trim();
+      const allowed =
+        purpose === "account_creation" ||
+        purpose === "email_verification" ||
+        purpose === "activation" ||
+        purpose === "claim_business";
+      if (!allowed) {
+        console.warn("[email] Suppressed by EMAIL_MODE=account_creation_only", {
+          purpose: params.purpose,
+          subject: params.subject,
+        });
+        return { skipped: true };
+      }
     }
 
     if (!params.html && !params.text) {

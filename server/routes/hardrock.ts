@@ -195,6 +195,7 @@ export function registerHardrockRoutes(app: Express) {
               }
               <p><b>Application ID</b>: ${application.id}</p>
             `,
+            purpose: "hardrock_internal",
           });
         } catch (emailErr) {
           console.error("[hardrock] Failed to email internal inbox", emailErr);
@@ -205,6 +206,7 @@ export function registerHardrockRoutes(app: Express) {
           await emailService.sendEmail({
             to: validated.email,
             subject: "We received your Hardrock commercial signup",
+            purpose: "hardrock_confirmation",
             html: `
               <p>Hi ${validated.contactName},</p>
               <p>Thanks for signing up for commercial jobs. We received your info and will follow up shortly.</p>

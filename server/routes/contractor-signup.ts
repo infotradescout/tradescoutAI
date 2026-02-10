@@ -21,28 +21,29 @@ const contractorSignupSchema = z.object({
   specialties: z.array(z.string()).min(1),
   about: z.string().min(50),
   preferredContact: z.enum(["phone", "email", "both"]),
-  agreeToTerms: z.boolean().refine(val => val === true),
-  agreeToVerification: z.boolean().refine(val => val === true)
+  agreeToTerms: z.boolean().refine((val) => val === true),
+  agreeToVerification: z.boolean().refine((val) => val === true),
 });
 
 // Handle contractor signup
-router.post('/api/contractor-signup', async (req, res) => {
+router.post("/api/contractor-signup", async (req, res) => {
   try {
-    console.log('Contractor signup request received:', req.body);
+    console.log("Contractor signup request received:", req.body);
 
     const userId = (req as any)?.user?.id || (req as any)?.user?.claims?.sub;
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required. System agents and users must identify before declaring contractor claims.',
+        message:
+          "Authentication required. System agents and users must identify before declaring contractor claims.",
       });
     }
-    
+
     const validatedData = contractorSignupSchema.parse(req.body);
-    
+
     // Import storage dynamically to avoid circular dependency
-    const { storage } = await import('../storage');
-    
+    const { storage } = await import("../storage");
+
     // Create a contractor application record
     const application = await storage.createContractorApplication({
       userId,
@@ -62,13 +63,13 @@ router.post('/api/contractor-signup', async (req, res) => {
       preferredContact: validatedData.preferredContact,
       agreeToTerms: validatedData.agreeToTerms,
       agreeToVerification: validatedData.agreeToVerification,
-      status: 'starter_pending',
+      status: "starter_pending",
       starterPath: true,
-      verificationStatus: 'pending',
+      verificationStatus: "pending",
     });
-    
-    console.log('Contractor application saved to database:', application.id);
-    
+
+    console.log("Contractor application saved to database:", application.id);
+
     // Claims-first: record intent to provide services as a starter path (no capabilities unlocked)
     const countyFips = validatedData.primaryCounty;
     if (isValidCountyFips(countyFips)) {
@@ -81,17 +82,17 @@ router.post('/api/contractor-signup', async (req, res) => {
           source: ClaimSource.SIGNUP,
           claimTimestamp: new Date(),
           metadata: {
-            path: 'contractor_starter',
-            verificationStatus: 'pending',
+            path: "contractor_starter",
+            verificationStatus: "pending",
             companyName: validatedData.companyName,
             email: validatedData.email,
           },
         });
       } catch (claimErr) {
-        console.warn('Contractor starter claim write skipped', { claimErr });
+        console.warn("Contractor starter claim write skipped", { claimErr });
       }
     } else {
-      console.warn('Contractor starter claim skipped due to invalid county fips', {
+      console.warn("Contractor starter claim skipped due to invalid county fips", {
         userId,
         countyFips,
       });
@@ -108,6 +109,7 @@ router.post('/api/contractor-signup', async (req, res) => {
                <p>Business: ${validatedData.companyName}</p>
                <p>Email: ${validatedData.email}</p>
                <p>Phone: ${validatedData.phone}</p>`,
+          purpose: "contractor_signup_admin",
         });
 
         await emailService.sendEmail({
@@ -118,6 +120,7 @@ router.post('/api/contractor-signup', async (req, res) => {
                <p>Thank you for applying to join TradeScout! We've received your application and will review it within 24-48 hours.</p>
                <p>We'll contact you at ${validatedData.email} once the review is complete.</p>
                <p>Best regards,<br>TradeScout Team</p>`,
+          purpose: "contractor_signup_confirmation",
         });
 
         console.log("Email notifications sent successfully");
@@ -127,27 +130,27 @@ router.post('/api/contractor-signup', async (req, res) => {
     } catch (emailError) {
       console.error("Error sending email notifications:", emailError);
     }
-    
-    res.json({ 
-      success: true, 
-      message: 'Contractor starter recorded. We will verify your information before any contractor capabilities are unlocked.',
-      applicationId: application.id
+
+    res.json({
+      success: true,
+      message:
+        "Contractor starter recorded. We will verify your information before any contractor capabilities are unlocked.",
+      applicationId: application.id,
     });
-    
   } catch (error) {
-    console.error('Contractor signup error:', error);
-    
+    console.error("Contractor signup error:", error);
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid form data',
-        errors: error.errors
+        message: "Invalid form data",
+        errors: error.errors,
       });
     }
-    
+
     res.status(500).json({
       success: false,
-      message: 'Application submission failed'
+      message: "Application submission failed",
     });
   }
 });

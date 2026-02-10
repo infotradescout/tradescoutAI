@@ -199,6 +199,48 @@ const getPublicBaseUrlFromRequest = (req: Request): string => {
   if (!host) return "https://www.thetradescout.com";
   return `${proto}://${host}`;
 };
+
+const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promise<void> => {
+  try {
+    const emailVerificationRequired = await getGeneralSetting<boolean>(
+      "email_verification_required",
+      true
+    );
+    if (!emailVerificationRequired) return;
+
+    const userId = String(user?.id || user?.claims?.sub || "");
+    const email = String(user?.email || "")
+      .trim()
+      .toLowerCase();
+    if (!userId || !email) return;
+    if (user?.emailVerified === true) return;
+
+    const sessionAny = req.session as any;
+    const key = `emailVerification:lastSentAt:${userId}`;
+    const now = Date.now();
+    const lastSentAt = Number(sessionAny?.[key] || 0);
+    if (Number.isFinite(lastSentAt) && lastSentAt > 0 && now - lastSentAt < 10 * 60 * 1000) {
+      return;
+    }
+
+    // Mark before sending to prevent rapid re-sends if the provider is slow/failing.
+    sessionAny[key] = now;
+
+    const { token, expiresAt } = emailVerificationService.createToken(userId);
+    const verifyBase = getPublicBaseUrlFromRequest(req);
+    const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}`;
+
+    await emailService.sendEmail({
+      to: email,
+      subject: "Verify your TradeScout email",
+      html: `<p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
+      text: `Verify your TradeScout email: ${verifyLink}`,
+      purpose: "email_verification",
+    });
+  } catch (error) {
+    console.error("[email-verification] Maybe-send failed:", error);
+  }
+};
 // Helper function to route leads to top contractors
 interface Contractor {
   id: string;
@@ -701,6 +743,9 @@ export async function registerRoutes(app: any) {
         if (loginErr) {
           return next(loginErr);
         }
+        // Best-effort: ensure unverified users receive a verification email even if
+        // their account was created via a non-standard path (imports, claims, OAuth, etc).
+        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         return res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
       });
     })(req, res, next);
@@ -956,6 +1001,7 @@ export async function registerRoutes(app: any) {
             html: `<p>Thanks for joining TradeScout.</p>
                  <p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
             text: `Verify your TradeScout email: ${verifyLink}`,
+            purpose: "account_creation",
           });
           emailVerificationSent = true;
         } catch (error) {
@@ -1100,6 +1146,7 @@ export async function registerRoutes(app: any) {
             subject: "Verify your TradeScout email",
             html: `<p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
             text: `Verify your TradeScout email: ${verifyLink}`,
+            purpose: "email_verification",
           });
         } catch (error) {
           console.error("[email-verification] Failed to send verification email:", error);
@@ -1992,6 +2039,7 @@ export async function registerRoutes(app: any) {
       passport.authenticate("facebook", { failureRedirect: "/login" }),
       (req: Request, res: Response) => {
         const user = req.user as any;
+        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const anyUser: any = user || {};
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
@@ -2039,6 +2087,7 @@ export async function registerRoutes(app: any) {
       }),
       (req: Request, res: Response) => {
         const user = req.user as any;
+        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const anyUser: any = user || {};
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
@@ -3343,6 +3392,7 @@ export async function registerRoutes(app: any) {
                  <p><a href="${resetLink}">Click here to reset your password</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
                  <p>If you did not request this, you can ignore this email.</p>`,
               text: `Reset your password: ${resetLink}`,
+              purpose: "password_reset",
             });
             console.log("[REQUEST-PASSWORD-RESET] Email send attempted");
           } else {
@@ -8511,13 +8561,26 @@ export async function registerRoutes(app: any) {
             const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
             if (sendActivationEmails && emailService.isConfigured()) {
+              const emailVerificationRequired = await getGeneralSetting<boolean>(
+                "email_verification_required",
+                true
+              );
+              let verifyLink: string | null = null;
+              if (emailVerificationRequired) {
+                const verify = emailVerificationService.createToken(userId);
+                const verifyBase = getPublicBaseUrlFromRequest(req as any);
+                verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}`;
+              }
+
               await emailService.sendEmail({
                 to: email,
                 subject: "Claim your TradeScout business account",
                 html: `<p>Your business account has been created in TradeScout.</p>
 <p><a href="${resetLink}">Set your password</a> to claim your account. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
+${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` : ""}
 <p>After you sign in, you can finish your profile and complete insurance/license verification.</p>`,
                 text: `Set your password: ${resetLink}`,
+                purpose: "activation",
               });
               activationEmailed++;
             } else if (includeActivationLinks && allowActivationLinkExport) {
@@ -8648,18 +8711,34 @@ export async function registerRoutes(app: any) {
         return res.json(generic);
       }
 
+      const emailVerificationRequired = await getGeneralSetting<boolean>(
+        "email_verification_required",
+        true
+      );
+
       const { token, expiresAt } = passwordResetService.createToken(user.id);
       const resetBase =
-        process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
+        process.env.PASSWORD_RESET_URL ||
+        process.env.APP_BASE_URL ||
+        getPublicBaseUrlFromRequest(req);
       const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
+
+      let verifyLink: string | null = null;
+      if (emailVerificationRequired && user.emailVerified !== true) {
+        const verify = emailVerificationService.createToken(user.id);
+        const verifyBase = getPublicBaseUrlFromRequest(req);
+        verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}`;
+      }
 
       if (emailService.isConfigured()) {
         await emailService.sendEmail({
           to: user.email,
           subject: "Claim your business on TradeScout",
           html: `<p>Use this link to set your password and claim your business account.</p>
-<p><a href="${resetLink}">Claim my business</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
+<p><a href="${resetLink}">Claim my business</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
+${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` : ""}`,
           text: `Claim your business: ${resetLink}`,
+          purpose: "claim_business",
         });
       } else {
         console.warn(`[business-claim] Email not configured; token generated for ${user.email}`);
@@ -16111,6 +16190,7 @@ export async function registerRoutes(app: any) {
         cc,
         bcc,
         replyTo,
+        purpose: "admin_manual",
       });
 
       res.json({ message: "Email sent successfully", messageId: result.messageId });

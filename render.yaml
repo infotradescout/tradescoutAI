@@ -38,6 +38,9 @@ services:
       - key: DISABLE_FACEBOOK_AUTH
         value: "true"
         scope: run
+      - key: EMAIL_MODE
+        value: account_creation_only
+        scope: run
       - key: GOOGLE_CLIENT_ID
         sync: false
         scope: run
