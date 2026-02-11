@@ -303,7 +303,9 @@ export default function CreateAccountPortal() {
           description: "An account with this email already exists. Redirecting to login...",
         });
         setTimeout(() => {
-          navigate("/login");
+          const email = (lastSignupEmailRef.current || "").trim();
+          const emailParam = email ? `?email=${encodeURIComponent(email)}` : "";
+          navigate(`/login${emailParam}`);
         }, 1500);
         return;
       }

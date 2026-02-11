@@ -23,10 +23,20 @@ class EmailService {
   private mode: "all" | "account_creation_only";
 
   constructor() {
+    const providerOverride = String(process.env.EMAIL_PROVIDER || "")
+      .toLowerCase()
+      .trim();
     const apiKey = process.env.SENDGRID_API_KEY;
     const brevoApiKey = process.env.BREVO_API_KEY;
 
-    this.provider = apiKey ? "sendgrid" : brevoApiKey ? "brevo" : "none";
+    if (providerOverride === "sendgrid") {
+      this.provider = apiKey ? "sendgrid" : "none";
+    } else if (providerOverride === "brevo") {
+      this.provider = brevoApiKey ? "brevo" : "none";
+    } else {
+      // Default provider preference: SendGrid if present, otherwise Brevo, otherwise none.
+      this.provider = apiKey ? "sendgrid" : brevoApiKey ? "brevo" : "none";
+    }
     this.configured = this.provider !== "none";
 
     // Shared "from" default across providers.
@@ -50,6 +60,20 @@ class EmailService {
 
   isConfigured(): boolean {
     return this.configured;
+  }
+
+  getDiagnostics(): {
+    configured: boolean;
+    provider: "sendgrid" | "brevo" | "none";
+    mode: "all" | "account_creation_only";
+    defaultFrom: string;
+  } {
+    return {
+      configured: this.configured,
+      provider: this.provider,
+      mode: this.mode,
+      defaultFrom: this.defaultFrom,
+    };
   }
 
   async sendEmail(params: SendEmailParams): Promise<{ skipped: boolean; messageId?: string }> {

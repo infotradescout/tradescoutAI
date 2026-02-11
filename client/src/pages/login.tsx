@@ -5,14 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home } from "lucide-react";
 
 export default function Login() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   useEffect(() => {
     if (isAuthenticated) {
-      window.location.href = "/";
+      const role = String((user as any)?.role || "");
+      const isSuperAdmin =
+        role === "super_admin" || role === "head_admin" || (user as any)?.isSuperAdmin === true;
+      window.location.href = isSuperAdmin ? "/admin" : "/scout";
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const beginOAuth = (provider: "google" | "facebook") => {
     window.location.assign(`${apiBaseUrl}/api/auth/${provider}`);

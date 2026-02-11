@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { useAuth, logoutUser } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { getRolePermissions, getRoleDisplayName } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import {
@@ -300,6 +302,8 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
 // User menu with role display and logout
 export function UserMenu() {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [location] = useLocation();
 
   if (!isAuthenticated || !user) {
     return null;
@@ -309,6 +313,29 @@ export function UserMenu() {
 
   const handleLogout = async () => {
     await logoutUser();
+  };
+
+  const isVerified = user.emailVerified === true;
+
+  const resendVerification = async () => {
+    const email = String(user.email || "").trim();
+    if (!email) return;
+    try {
+      const resp = await apiRequest("POST", "/api/auth/request-email-verification", { email });
+      toast({
+        title: "Verification email requested",
+        description: resp?.message || "If an account exists, a new link has been sent.",
+      });
+      if ((resp as any)?.verificationToken) {
+        console.warn("[EMAIL-VERIFY] Dev token:", (resp as any).verificationToken);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Resend failed",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -336,10 +363,33 @@ export function UserMenu() {
               {user.firstName} {user.lastName}
             </span>
             <span className="text-sm text-muted-foreground">{user.email}</span>
+            <span className="text-xs text-muted-foreground">
+              Email: {isVerified ? "Verified" : "Not verified"}
+            </span>
             <RoleBadge role={userRole} size="sm" />
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {!isVerified && (
+          <>
+            <DropdownMenuItem onClick={resendVerification} className="cursor-pointer">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Resend verification
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/check-email?email=${encodeURIComponent(String(user.email || "").trim())}&next=${encodeURIComponent(
+                  location || "/"
+                )}`}
+                className="flex items-center gap-3 cursor-pointer px-3 py-2"
+              >
+                <Settings className="h-4 w-4" />
+                Check email status
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-slate-700" />
+          </>
+        )}
         <DropdownMenuItem asChild>
           <Link
             href="/profile"

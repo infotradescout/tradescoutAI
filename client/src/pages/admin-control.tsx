@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, TestTube2, ToggleLeft, Layers } from "lucide-react";
+import { Shield, TestTube2, ToggleLeft, Layers, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthorityOperations } from "@/components/admin/AuthorityOperations";
 import FeatureTogglePanel from "@/components/admin/FeatureTogglePanel";
@@ -22,6 +22,13 @@ type TestingSettings = {
   bugReportEnabled?: boolean;
   testingModeEnabled?: boolean;
   showTestingBanner?: boolean;
+};
+
+type EmailDiagnostics = {
+  configured: boolean;
+  provider: "sendgrid" | "brevo" | "none";
+  mode: "all" | "account_creation_only";
+  defaultFrom: string;
 };
 
 export default function AdminControl() {
@@ -46,6 +53,13 @@ export default function AdminControl() {
   const { data: featureFlags } = useQuery<any[]>({
     queryKey: ["/api/admin/feature-flags"],
     queryFn: async () => apiRequest("GET", "/api/admin/feature-flags"),
+    enabled: isSuperAdmin,
+    retry: false,
+  });
+
+  const { data: emailDiagnostics } = useQuery<EmailDiagnostics>({
+    queryKey: ["/api/admin/email/diagnostics"],
+    queryFn: async () => apiRequest("GET", "/api/admin/email/diagnostics"),
     enabled: isSuperAdmin,
     retry: false,
   });
@@ -119,6 +133,30 @@ export default function AdminControl() {
             >
               bug reports: {testingSettings?.bugReportEnabled ? "on" : "off"}
             </Badge>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-orange-400" />
+              Email Status
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-400">
+              Confirms provider + mode on the backend.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Badge variant={emailDiagnostics?.configured ? "default" : "outline"}>
+              configured: {emailDiagnostics?.configured ? "yes" : "no"}
+            </Badge>
+            <Badge variant="outline" className="ml-2">
+              provider: {emailDiagnostics?.provider || "unknown"}
+            </Badge>
+            <div className="text-xs text-slate-400">
+              mode: {emailDiagnostics?.mode || "unknown"} · from:{" "}
+              {emailDiagnostics?.defaultFrom || "unknown"}
+            </div>
           </CardContent>
         </Card>
       </div>

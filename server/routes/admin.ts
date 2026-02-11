@@ -15,6 +15,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import adminToolDiscoveryRouter from "./admin-tool-discovery";
 import { refreshCountyMetrics } from "../services/geographicMetrics";
 import { getCountyCoverageSummary } from "../services/geographicCoverage";
+import { emailService } from "../services/emailService";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -54,6 +55,18 @@ export function mountAdminRoutes(app: any) {
         console.error("Error in /api/admin/health:", error);
         res.status(500).json({ message: "Failed to resolve admin health" });
       }
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // Email diagnostics (admin-only)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/email/diagnostics",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      res.json(emailService.getDiagnostics());
     }
   );
 
