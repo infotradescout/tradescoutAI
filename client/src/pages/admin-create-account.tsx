@@ -85,7 +85,8 @@ export default function AdminCreateAccount() {
   });
 
   const onSubmit = (data: CreateAdminFormData) => {
-    const { confirmPassword: _confirmPassword, ...createData } = data;
+    const { confirmPassword, ...createData } = data;
+    void confirmPassword;
     createAdminMutation.mutate(createData);
   };
 
