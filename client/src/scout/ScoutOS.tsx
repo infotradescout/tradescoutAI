@@ -2325,11 +2325,15 @@ export default function ScoutOS() {
 
         // Attach server-returned actions as explicit user-clickable chips.
         if (res.actions && res.actions.length > 0) {
+          // If the server already gave actions, avoid adding extra "first answer" blocks
+          // that repeat the same navigation intent.
+          clusters = clusters.filter(
+            (c) => c.id !== "first-nav-contractors" && c.id !== "first-account-prompt"
+          );
           clusters.push({
             id: `server-actions-${Date.now()}`,
-            title: "Next actions",
+            title: "Actions",
             kind: "generic",
-            body: "Tap to open a page or start a flow.",
             actions: res.actions.map((a) => ({
               ...a,
               label: a.label || (typeof a.type === "string" ? a.type.replace(/_/g, " ") : "Action"),

@@ -23,14 +23,11 @@ export function ScoutHeader({
           ? `What can Scout help you get done in ${communityText}?`
           : "What do you need help with today?"}
       </h1>
-      <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-        Ask Scout or choose a quick action.
-      </p>
       {!isAuthenticated && (
         <p className="text-[13px] max-w-md mx-auto" style={{ color: "var(--text-muted)" }}>
           {isFirstGuestVisit
-            ? "You can explore without an account. Sign in when you want to save or contact someone."
-            : "Sign in whenever you want to save or contact someone."}
+            ? "Explore freely. Sign in to save or contact."
+            : "Sign in to save or contact."}
         </p>
       )}
     </header>

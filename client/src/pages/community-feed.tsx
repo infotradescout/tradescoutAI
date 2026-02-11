@@ -1399,26 +1399,12 @@ const CommunityFeed = memo(function CommunityFeed() {
                 Everywhere
               </button>
             </div>
+            {isGlobalView && (
+              <span className="text-[11px] md:text-xs text-[color:var(--text-secondary)]">
+                Read-only
+              </span>
+            )}
           </div>
-
-          {/* Phase 1: Global view notice (prevents confusion) */}
-          {isGlobalView && (
-            <Card className="mb-4 bg-orange-500/10 border-orange-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Globe className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-[color:var(--text-primary)]">
-                      You're viewing posts from across the community
-                    </p>
-                    <p className="text-xs text-[color:var(--text-secondary)]">
-                      To connect with someone, Scout will help you decide if it makes sense.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
             {/* Main Feed */}
@@ -1666,23 +1652,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                       </div>
                     </CardContent>
                   </Card>
-                ) : (
-                  <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Globe className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-[color:var(--text-primary)]">
-                            Global view is read-only
-                          </p>
-                          <p className="text-xs text-[color:var(--text-secondary)]">
-                            Switch back to Local to post, like, or comment.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                ) : null}
 
                 {lastCreatedPostId && (
                   <OutcomeConfirmationCard

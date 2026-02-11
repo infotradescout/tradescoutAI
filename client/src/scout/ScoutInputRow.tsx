@@ -1,6 +1,5 @@
 import React from "react";
 import ScoutInput from "./ScoutInput";
-import { Switch } from "@/components/ui/switch";
 
 interface ScoutInputRowProps {
   isBusy: boolean;
@@ -34,9 +33,6 @@ export function ScoutInputRow({
   return (
     <div className="space-y-2">
       <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-          Tell Scout what you need and where you want to start.
-        </p>
         <div className="flex flex-wrap items-center gap-3">
           {heroLocationLabel && (
             <div className="flex items-center gap-2">
@@ -64,15 +60,6 @@ export function ScoutInputRow({
               </button>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
-              Smart navigation
-            </span>
-            <Switch
-              checked={autoRouteEnabled}
-              onCheckedChange={(checked) => onToggleAutoRoute(Boolean(checked))}
-            />
-          </div>
         </div>
       </div>
       <ScoutInput

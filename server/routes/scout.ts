@@ -4177,8 +4177,7 @@ router.post("/", async (req: Request, res: Response) => {
       );
     }
     console.error("Scout API error:", error);
-    const fallbackMessage =
-      "Scout hit a temporary issue, but you can keep moving. Open Direct Connect to post work, browse local pros, or continue in Community.";
+    const fallbackMessage = "Scout is in navigation-only mode right now. Pick an action:";
 
     const fallbackActions = [
       {
@@ -4194,7 +4193,7 @@ router.post("/", async (req: Request, res: Response) => {
       {
         type: "NAVIGATE",
         label: "Open Community",
-        to: "/community",
+        to: "/community-feed",
       },
     ];
 

@@ -128,17 +128,19 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
   // 3. Manual typing immediately stops demo
   useEffect(() => {
     if (typeof window === "undefined") return;
-    console.log("[INTRO DEMO INPUT CHECK]", {
-      enableAutoDemo,
-      autoDemoTextLen: autoDemoText ? autoDemoText.length : 0,
-      sessionPlayed: window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY),
-      currentValueLen: value ? value.length : 0,
-    });
+    if (import.meta.env.DEV) {
+      console.log("[INTRO DEMO INPUT CHECK]", {
+        enableAutoDemo,
+        autoDemoTextLen: autoDemoText ? autoDemoText.length : 0,
+        sessionPlayed: window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY),
+        currentValueLen: value ? value.length : 0,
+      });
+    }
     if (!enableAutoDemo || !autoDemoText) return;
 
     try {
       if (window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY)) {
-        console.log("[INTRO DEMO] Already played this session, skipping");
+        if (import.meta.env.DEV) console.log("[INTRO DEMO] Already played this session, skipping");
         return;
       }
     } catch {
@@ -147,7 +149,8 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
 
     if (value.trim().length > 0) return;
 
-    console.log("[INTRO DEMO] STARTING auto-demo; clearing any draft first");
+    if (import.meta.env.DEV)
+      console.log("[INTRO DEMO] STARTING auto-demo; clearing any draft first");
 
     // CRITICAL: Clear draft before demo fires
     if (prefillKey) {
@@ -172,7 +175,8 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           setIsTypingDemo(false);
 
           sendTimeoutRef.current = window.setTimeout(() => {
-            console.log("[INTRO DEMO] Sending auto-prompt and marking session as played");
+            if (import.meta.env.DEV)
+              console.log("[INTRO DEMO] Sending auto-prompt and marking session as played");
             try {
               window.sessionStorage.setItem(INTRO_DEMO_SESSION_KEY, "1");
             } catch {
