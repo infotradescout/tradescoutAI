@@ -56,13 +56,13 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     }
   };
 
-  const handleSubmit = (text?: string) => {
+  const handleSubmit = async (text?: string) => {
     const trimmed = (text ?? value).trim();
     if (!trimmed || disabled || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      onSend(trimmed);
+      await Promise.resolve(onSend(trimmed));
       setValue("");
       if (prefillKey) {
         try {
@@ -71,6 +71,9 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           // ignore storage errors
         }
       }
+    } catch (err) {
+      // handleSend should swallow and recover, but never let input throw.
+      console.error("[ScoutInput] send failed", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -182,7 +185,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
             } catch {
               // ignore storage errors
             }
-            handleSubmit(autoDemoText);
+            void handleSubmit(autoDemoText);
           }, AUTO_DEMO_SEND_DELAY_MS);
         }
       }, AUTO_DEMO_TYPE_DELAY_MS);
@@ -217,7 +220,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
       >
         <button
           type="button"
-          onClick={() => handleSubmit()}
+          onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
           className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60"
           style={{
