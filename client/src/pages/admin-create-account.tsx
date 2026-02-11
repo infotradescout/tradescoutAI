@@ -1,33 +1,41 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, User, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Shield, User, Mail, Lock, Eye, EyeOff, UserPlus } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
-const createAdminSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Valid email is required'),
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-  role: z.enum(['moderator', 'ops_admin', 'super_admin'], {
-    required_error: 'Please select a role'
-  }),
-  address: z.string().min(1, 'Address is required')
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const createAdminSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Valid email is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    role: z.enum(["moderator", "ops_admin", "super_admin"], {
+      required_error: "Please select a role",
+    }),
+    address: z.string().min(1, "Address is required"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type CreateAdminFormData = z.infer<typeof createAdminSchema>;
 
@@ -40,23 +48,23 @@ export default function AdminCreateAccount() {
   const form = useForm<CreateAdminFormData>({
     resolver: zodResolver(createAdminSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      username: '',
-      password: '',
-      confirmPassword: '',
-      role: 'moderator',
-      address: ''
-    }
+      firstName: "",
+      lastName: "",
+      email: "",
+      username: "",
+      password: "",
+      confirmPassword: "",
+      role: "moderator",
+      address: "",
+    },
   });
 
   const createAdminMutation = useMutation({
-    mutationFn: async (data: Omit<CreateAdminFormData, 'confirmPassword'>) => {
-      const response = await apiRequest('POST', '/api/admin/create-account', data);
+    mutationFn: async (data: Omit<CreateAdminFormData, "confirmPassword">) => {
+      const response = await apiRequest("POST", "/api/admin/create-account", data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Account creation failed');
+        throw new Error(error.message || "Account creation failed");
       }
       return response.json();
     },
@@ -73,7 +81,7 @@ export default function AdminCreateAccount() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
   const onSubmit = (data: CreateAdminFormData) => {
@@ -82,16 +90,18 @@ export default function AdminCreateAccount() {
   };
 
   // Check if user has permission to create admin accounts
-  const canCreateAdmins = user?.role === 'ops_admin' || user?.role === 'super_admin';
+  const canCreateAdmins = user?.role === "ops_admin" || user?.role === "super_admin";
 
   if (!canCreateAdmins) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center p-6">
-        <Card className="w-full max-w-md border-border bg-card">
-          <CardContent className="p-8 text-center">
+      <div className="max-w-2xl mx-auto p-4 md:p-6">
+        <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="p-6 text-center">
             <Shield className="mx-auto h-16 w-16 text-destructive mb-4" />
-            <h2 className="text-xl font-bold text-foreground mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">You don't have permission to create admin accounts.</p>
+            <h2 className="text-xl font-bold text-white mb-2">Access denied</h2>
+            <p className="text-sm text-[color:var(--text-secondary)]">
+              You don&apos;t have permission to create admin accounts.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -99,221 +109,230 @@ export default function AdminCreateAccount() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
-            <UserPlus className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Create Admin Account</h1>
-          <p className="text-muted-foreground">Add a new administrator to the platform</p>
-        </div>
+    <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
+      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Shield className="w-5 h-5 text-orange-300" />
+            Create Admin Account
+          </CardTitle>
+        </CardHeader>
 
-        <Card className="border-border bg-card">
-          <CardHeader className="text-center pb-8">
-            <CardTitle className="text-xl text-foreground flex items-center justify-center gap-2">
-              <Shield className="w-6 h-6 text-primary" />
-              Administrator Registration
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Personal Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-foreground flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    First Name
-                  </Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    placeholder="Enter first name"
-                    className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    {...form.register("firstName")}
-                  />
-                  {form.formState.errors.firstName && (
-                    <p className="text-destructive text-sm">{form.formState.errors.firstName.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-foreground flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Last Name
-                  </Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="Enter last name"
-                    className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    {...form.register("lastName")}
-                  />
-                  {form.formState.errors.lastName && (
-                    <p className="text-destructive text-sm">{form.formState.errors.lastName.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Account Information */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="admin@tradescout.com"
-                    className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    {...form.register("email")}
-                  />
-                  {form.formState.errors.email && (
-                    <p className="text-destructive text-sm">{form.formState.errors.email.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-foreground flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Username
-                  </Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="admin_username"
-                    className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    {...form.register("username")}
-                  />
-                  {form.formState.errors.username && (
-                    <p className="text-destructive text-sm">{form.formState.errors.username.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-foreground">
-                    Address
-                  </Label>
-                  <Input
-                    id="address"
-                    type="text"
-                    placeholder="123 Admin Street, City, State 12345"
-                    className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    {...form.register("address")}
-                  />
-                  {form.formState.errors.address && (
-                    <p className="text-destructive text-sm">{form.formState.errors.address.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Role Selection */}
+        <CardContent className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Personal Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-foreground flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Admin Role
+                <Label htmlFor="firstName" className="text-slate-200 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  First Name
                 </Label>
-                <Select onValueChange={(value) => form.setValue("role", value as any)} defaultValue="moderator">
-                  <SelectTrigger className="bg-background border-input text-foreground">
-                    <SelectValue placeholder="Select admin role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="moderator" className="text-foreground hover:bg-muted focus:bg-muted">
-                      Moderator - Content moderation and user management
-                    </SelectItem>
-                    <SelectItem value="ops_admin" className="text-foreground hover:bg-muted focus:bg-muted">
-                      Operations Admin - Platform operations and configuration
-                    </SelectItem>
-                    {user?.role === 'super_admin' && (
-                      <SelectItem value="super_admin" className="text-foreground hover:bg-muted focus:bg-muted">
-                        Super Admin - Full platform control
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.role && (
-                  <p className="text-destructive text-sm">{form.formState.errors.role.message}</p>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="Enter first name"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  {...form.register("firstName")}
+                />
+                {form.formState.errors.firstName && (
+                  <p className="text-destructive text-sm">
+                    {form.formState.errors.firstName.message}
+                  </p>
                 )}
               </div>
 
-              {/* Password Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-foreground flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter secure password"
-                      className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary pr-10"
-                      {...form.register("password")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {form.formState.errors.password && (
-                    <p className="text-destructive text-sm">{form.formState.errors.password.message}</p>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-slate-200 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Last Name
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Enter last name"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  {...form.register("lastName")}
+                />
+                {form.formState.errors.lastName && (
+                  <p className="text-destructive text-sm">
+                    {form.formState.errors.lastName.message}
+                  </p>
+                )}
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-foreground flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Confirm Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm password"
-                      className="bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary pr-10"
-                      {...form.register("confirmPassword")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {form.formState.errors.confirmPassword && (
-                    <p className="text-destructive text-sm">{form.formState.errors.confirmPassword.message}</p>
-                  )}
-                </div>
+            {/* Account Information */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-slate-200 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@tradescout.com"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  {...form.register("email")}
+                />
+                {form.formState.errors.email && (
+                  <p className="text-destructive text-sm">{form.formState.errors.email.message}</p>
+                )}
               </div>
 
-              <Button
-                type="submit"
-                disabled={createAdminMutation.isPending}
-                className="w-full"
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-slate-200 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="admin_username"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  {...form.register("username")}
+                />
+                {form.formState.errors.username && (
+                  <p className="text-destructive text-sm">
+                    {form.formState.errors.username.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-slate-200">
+                  Address
+                </Label>
+                <Input
+                  id="address"
+                  type="text"
+                  placeholder="123 Admin Street, City, State 12345"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  {...form.register("address")}
+                />
+                {form.formState.errors.address && (
+                  <p className="text-destructive text-sm">
+                    {form.formState.errors.address.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Role Selection */}
+            <div className="space-y-2">
+              <Label className="text-slate-200 flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Admin Role
+              </Label>
+              <Select
+                onValueChange={(value) => form.setValue("role", value as any)}
+                defaultValue="moderator"
               >
-                {createAdminMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Creating Account...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <UserPlus className="w-5 h-5" />
-                    Create Admin Account
-                  </div>
+                <SelectTrigger className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100">
+                  <SelectValue placeholder="Select admin role" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-950 border-[color:var(--border-subtle)]">
+                  <SelectItem value="moderator" className="text-slate-100">
+                    Moderator - Content moderation and user management
+                  </SelectItem>
+                  <SelectItem value="ops_admin" className="text-slate-100">
+                    Operations Admin - Platform operations and configuration
+                  </SelectItem>
+                  {user?.role === "super_admin" && (
+                    <SelectItem value="super_admin" className="text-slate-100">
+                      Super Admin - Full platform control
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.role && (
+                <p className="text-destructive text-sm">{form.formState.errors.role.message}</p>
+              )}
+            </div>
+
+            {/* Password Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-200 flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter secure password"
+                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500 pr-10"
+                    {...form.register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {form.formState.errors.password && (
+                  <p className="text-destructive text-sm">
+                    {form.formState.errors.password.message}
+                  </p>
                 )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-slate-200 flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm password"
+                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500 pr-10"
+                    {...form.register("confirmPassword")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {form.formState.errors.confirmPassword && (
+                  <p className="text-destructive text-sm">
+                    {form.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={createAdminMutation.isPending}
+              className="w-full bg-orange-500 hover:bg-orange-600"
+            >
+              {createAdminMutation.isPending ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Creating Account...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Create Admin Account
+                </div>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

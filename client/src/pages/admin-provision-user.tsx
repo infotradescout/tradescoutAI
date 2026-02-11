@@ -129,8 +129,8 @@ export default function AdminProvisionUser() {
           <CardHeader>
             <CardTitle className="text-white">Result</CardTitle>
             <CardDescription className="text-[color:var(--text-secondary)]">
-              {result.status} • Email sent: {String(result.emailSent)} • Includes set-password link:{" "}
-              {String(result.activationLinkIncluded)} • Includes verify link:{" "}
+              {result.status} | Email sent: {String(result.emailSent)} | Includes set-password link:{" "}
+              {String(result.activationLinkIncluded)} | Includes verify link:{" "}
               {String(result.verifyLinkIncluded)}
             </CardDescription>
           </CardHeader>
