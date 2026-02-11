@@ -1,11 +1,6 @@
 import React from "react";
 import { useLocation } from "wouter";
-import {
-  type SuperAdminNavItem,
-  getSuperAdminNavForRole,
-  type AdminRole,
-  findActiveItem,
-} from "./superAdminNav";
+import { getSuperAdminNavForRole, type AdminRole, findActiveItem } from "./superAdminNav";
 import { SuperAdminLeftNav } from "./SuperAdminLeftNav";
 import { AdminHeader } from "./AdminHeader";
 import { useAuth } from "@/hooks/useAuth";
