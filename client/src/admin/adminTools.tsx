@@ -74,6 +74,11 @@ function validateAdminToolsOnce() {
   }
 }
 
+function normalizePathname(raw: string): string {
+  // wouter locations may include ?query and/or #hash; tool matching expects just the path.
+  return raw.split(/[?#]/, 1)[0] || "/";
+}
+
 function isSuperAdminLike(role: string | null | undefined, isSuperAdminFlag?: boolean): boolean {
   return Boolean(isSuperAdminFlag === true || role === "super_admin" || role === "head_admin");
 }
@@ -103,12 +108,13 @@ export function getAllAdminTools(): AdminTool[] {
 
 export function findActiveAdminTool(pathname: string | null): AdminTool | null {
   if (!pathname) return null;
+  const normalized = normalizePathname(pathname);
   const tools = getAllAdminTools();
   for (const tool of tools) {
-    if (pathname === tool.path) return tool;
-    if ((tool.match || "exact") === "prefix" && pathname.startsWith(tool.path + "/")) return tool;
+    if (normalized === tool.path) return tool;
+    if ((tool.match || "exact") === "prefix" && normalized.startsWith(tool.path + "/")) return tool;
   }
-  if (pathname.startsWith("/admin")) {
+  if (normalized.startsWith("/admin")) {
     return tools.find((t) => t.path === "/admin") ?? null;
   }
   return null;
@@ -121,7 +127,7 @@ export function resolveAdminToolByLocation(
 ): { tool: AdminTool | null; allowed: boolean } {
   validateAdminToolsOnce();
   const tools = getAllAdminTools();
-  const pathname = location || "/admin";
+  const pathname = normalizePathname(location || "/admin");
 
   let match: AdminTool | null = null;
   for (const tool of tools) {

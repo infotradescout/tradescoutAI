@@ -67,9 +67,10 @@ export default function AdminShell() {
 
 function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAdmin: boolean }) {
   const [location] = useLocation();
+  const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
 
   // Canonical Admin OS landing: super admins go to mission control, other admins go to users.
-  if ((location || "") === "/admin") {
+  if (pathname === "/admin") {
     const MissionControlV0 = React.lazy(() => import("@/pages/MissionControlV0"));
     const AdminUsers = React.lazy(() => import("@/pages/admin-users"));
     return (
@@ -79,7 +80,7 @@ function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAd
     );
   }
 
-  const resolved = resolveAdminToolByLocation(location || "/admin", role, isSuperAdmin);
+  const resolved = resolveAdminToolByLocation(pathname || "/admin", role, isSuperAdmin);
   if (!resolved.tool) return <UnknownAdminRoute />;
   if (!resolved.allowed) return <AdminAccessDenied />;
 

@@ -24,6 +24,7 @@ export function SuperAdminLeftNav({
   density = "comfortable",
 }: SuperAdminLeftNavProps) {
   const [location, setLocation] = useLocation();
+  const normalizedLocation = (location || "/").split(/[?#]/, 1)[0] || "/";
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
@@ -51,11 +52,11 @@ export function SuperAdminLeftNav({
   // Always keep the active section visible.
   React.useEffect(() => {
     const activeSection = sections.find((section) =>
-      section.items.some((item) => isItemActive(location, item))
+      section.items.some((item) => isItemActive(normalizedLocation, item))
     )?.section;
     if (!activeSection) return;
     setCollapsed((prev) => (prev[activeSection] ? { ...prev, [activeSection]: false } : prev));
-  }, [location, sections]);
+  }, [normalizedLocation, sections]);
 
   return (
     <aside className={density === "compact" ? "w-60 shrink-0" : "w-64 shrink-0"}>
@@ -90,7 +91,7 @@ export function SuperAdminLeftNav({
             {!collapsed[section.section] &&
               section.items.map((item) => {
                 const Icon = item.icon;
-                const active = isItemActive(location, item);
+                const active = isItemActive(normalizedLocation, item);
                 return (
                   <button
                     key={item.id}
