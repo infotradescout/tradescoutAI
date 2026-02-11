@@ -33,9 +33,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Shield, Crown, UserCog, Users, Search, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  Shield,
+  Crown,
+  UserCog,
+  Users,
+  Search,
+  MoreHorizontal,
+  Trash2,
+  ChevronDown,
+  Mail,
+  SlidersHorizontal,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type User = {
   id: string;
@@ -119,6 +131,7 @@ export default function AdminUsers() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [manualVerifyEmail, setManualVerifyEmail] = useState("");
+  const [showTools, setShowTools] = useState(false);
   const [roleFilter, setRoleFilter] = useState<"all" | "contractor" | "homeowner" | "business">(
     "all"
   );
@@ -689,98 +702,95 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="h-full bg-background p-6">
-      <div className="container mx-auto max-w-7xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">User Management</h1>
-            <p className="text-muted-foreground">Manage user roles and permissions</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSuperAdmin && (
-              <Badge className="bg-primary text-primary-foreground">
-                <Crown className="w-3 h-3 mr-1" />
-                {user?.role === "head_admin" ? "Head Admin" : "Super Admin"}
-              </Badge>
-            )}
-            {user.role === "moderator" && (
-              <Badge className="bg-primary/90 text-primary-foreground">
-                <Shield className="w-3 h-3 mr-1" />
-                Moderator
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        <Card className="bg-card border-border mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-foreground">Email Verification</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end">
-              <div className="flex-1">
-                <Label className="text-muted-foreground text-xs">Email</Label>
-                <Input
-                  value={manualVerifyEmail}
-                  onChange={(e) => setManualVerifyEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  className="bg-input border-input text-foreground placeholder:text-muted-foreground"
-                />
-              </div>
-              <Button
-                onClick={async () => {
-                  const key = `manual:resend-verification`;
-                  setPendingAction((prev) => ({ ...prev, [key]: true }));
-                  try {
-                    const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
-                      email: manualVerifyEmail.trim().toLowerCase(),
-                    });
-                    toast({
-                      title: "Verification email requested",
-                      description:
-                        resp?.message ||
-                        "If the account exists and is unverified, a new link has been sent.",
-                    });
-                    if (resp?.verificationToken) {
-                      console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
-                    }
-                  } catch (err: any) {
-                    toast({
-                      title: "Resend failed",
-                      description: err?.message || "Failed to request verification email.",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setPendingAction((prev) => ({ ...prev, [key]: false }));
-                  }
-                }}
-                disabled={!manualVerifyEmail.trim() || pendingAction["manual:resend-verification"]}
-              >
-                {pendingAction["manual:resend-verification"] ? "Sending..." : "Send link"}
-              </Button>
+    <div className="h-full space-y-4">
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Collapsible open={showTools} onOpenChange={setShowTools}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <Badge className="bg-primary text-primary-foreground">
+                  <Crown className="w-3 h-3 mr-1" />
+                  {user?.role === "head_admin" ? "Head Admin" : "Super Admin"}
+                </Badge>
+              )}
+              {user.role === "moderator" && (
+                <Badge className="bg-primary/90 text-primary-foreground">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Moderator
+                </Badge>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Filters */}
-        <Card className="bg-card border-border mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1 min-w-[220px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-input border-input text-foreground placeholder:text-muted-foreground"
-                  />
+            <CollapsibleTrigger asChild>
+              <Button size="sm" variant="outline" className="border-input text-foreground">
+                <SlidersHorizontal className="w-4 h-4 mr-1" />
+                Tools
+                <ChevronDown
+                  className={`w-4 h-4 ml-2 transition-transform ${showTools ? "rotate-180" : ""}`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Mail className="w-4 h-4" />
+                  Email verification link
                 </div>
-              </div>
-              <div className="flex flex-col gap-3 items-stretch lg:flex-row lg:items-center lg:justify-end">
-                {user && (
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">Saved views</span>
+                <div className="flex flex-col gap-2 md:flex-row md:items-end">
+                  <div className="flex-1">
+                    <Label className="text-muted-foreground text-xs">Email</Label>
+                    <Input
+                      value={manualVerifyEmail}
+                      onChange={(e) => setManualVerifyEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      className="bg-input border-input text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      const key = `manual:resend-verification`;
+                      setPendingAction((prev) => ({ ...prev, [key]: true }));
+                      try {
+                        const resp = await apiRequest(
+                          "POST",
+                          "/api/auth/request-email-verification",
+                          {
+                            email: manualVerifyEmail.trim().toLowerCase(),
+                          }
+                        );
+                        toast({
+                          title: "Verification email requested",
+                          description:
+                            resp?.message ||
+                            "If the account exists and is unverified, a new link has been sent.",
+                        });
+                        if (resp?.verificationToken) {
+                          console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
+                        }
+                      } catch (err: any) {
+                        toast({
+                          title: "Resend failed",
+                          description: err?.message || "Failed to request verification email.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setPendingAction((prev) => ({ ...prev, [key]: false }));
+                      }
+                    }}
+                    disabled={
+                      !manualVerifyEmail.trim() || pendingAction["manual:resend-verification"]
+                    }
+                  >
+                    {pendingAction["manual:resend-verification"] ? "Sending..." : "Send link"}
+                  </Button>
+                </div>
+
+                <div className="h-px bg-border" />
+
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-foreground">Saved views</div>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center">
                     <Select
                       value={activeViewId || ""}
                       onValueChange={(v: string) => {
@@ -788,7 +798,7 @@ export default function AdminUsers() {
                         applySavedView(v);
                       }}
                     >
-                      <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
+                      <SelectTrigger className="w-full md:w-80 bg-input border-input text-foreground text-xs">
                         <SelectValue
                           placeholder={savedViews.length ? "Choose view" : "No views yet"}
                         />
@@ -807,36 +817,59 @@ export default function AdminUsers() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-input text-foreground hover:bg-muted"
-                      onClick={saveCurrentView}
-                    >
-                      Save view
-                    </Button>
-                    {activeViewId && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => deleteSavedView(activeViewId)}
-                        >
-                          Delete
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-accent text-accent-foreground hover:bg-accent/10"
-                          onClick={() => pinSavedView(activeViewId)}
-                        >
-                          Pin default
-                        </Button>
-                      </>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-input text-foreground hover:bg-muted"
+                        onClick={saveCurrentView}
+                      >
+                        Save view
+                      </Button>
+                      {activeViewId && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => deleteSavedView(activeViewId)}
+                          >
+                            Delete
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-accent text-accent-foreground hover:bg-accent/10"
+                            onClick={() => pinSavedView(activeViewId)}
+                          >
+                            Pin default
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Filters */}
+        <Card className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1 min-w-[220px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-input border-input text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 items-stretch lg:flex-row lg:items-center lg:justify-end">
                 <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
                   <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
                     <SelectValue placeholder="Status" />
@@ -914,7 +947,7 @@ export default function AdminUsers() {
                   Export CSV
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+              <div className="flex flex-wrap gap-3 text-[11px] text-gray-400">
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                   Verified
@@ -962,7 +995,7 @@ export default function AdminUsers() {
 
                     return (
                       <TableRow key={user.id}>
-                        <TableCell>
+                        <TableCell className="py-3">
                           <div className="text-foreground">
                             <div className="font-medium">
                               {user.firstName && user.lastName
@@ -980,7 +1013,7 @@ export default function AdminUsers() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
                           <div className="space-y-1">
                             <Badge className={`${roleInfo.color} text-white`}>
                               <RoleIcon className="w-3 h-3 mr-1" />
@@ -988,7 +1021,7 @@ export default function AdminUsers() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
                           <div className="flex flex-col gap-1">
                             <Badge
                               className={
@@ -1028,10 +1061,10 @@ export default function AdminUsers() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell className="py-3 text-muted-foreground">
                           {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
                           {/* Admin Controls: Grouped and with dropdown for less common actions */}
                           {(currentUserLevel >
                             roleHierarchy[user.role as keyof typeof roleHierarchy]?.level ||

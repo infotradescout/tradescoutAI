@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, TestTube2, ToggleLeft, Layers, Mail } from "lucide-react";
+import { Shield, TestTube2, ToggleLeft, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthorityOperations } from "@/components/admin/AuthorityOperations";
 import FeatureTogglePanel from "@/components/admin/FeatureTogglePanel";
@@ -78,17 +78,7 @@ export default function AdminControl() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-          <Layers className="h-6 w-6 text-orange-400" />
-          Admin Controls Hub
-        </h1>
-        <p className="text-sm text-slate-400">
-          Single source of truth for governance, testing, and feature controls.
-        </p>
-      </div>
-
+    <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-slate-900 border-slate-700">
           <CardHeader className="pb-2">
