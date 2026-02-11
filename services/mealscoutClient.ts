@@ -42,7 +42,9 @@ export function createMealscoutSsoToken(user: User): string {
     if (process.env.NODE_ENV === "production") {
       throw new Error("TRADESCOUT_JWT_SECRET or MEALSCOUT_SHARED_SECRET is not configured");
     }
-    console.warn("[MealScoutSSO] TRADESCOUT_JWT_SECRET/MEALSCOUT_SHARED_SECRET missing; using insecure dev-only fallback");
+    console.warn(
+      "[MealScoutSSO] TRADESCOUT_JWT_SECRET/MEALSCOUT_SHARED_SECRET missing; using insecure dev-only fallback"
+    );
   }
 
   const effectiveSecret = secret || TRADESCOUT_JWT_FALLBACK_SECRET;
@@ -50,9 +52,19 @@ export function createMealscoutSsoToken(user: User): string {
   const rolesRaw: any[] = Array.isArray((user as any).roles)
     ? ((user as any).roles as any[])
     : (user as any).role
-    ? [(user as any).role]
-    : [];
+      ? [(user as any).role]
+      : [];
   const roles = rolesRaw.filter((r) => typeof r === "string");
+
+  // Brand/role firewall:
+  // MealScout and TradeScout share identity (sub/email) but NOT role authority.
+  // Only send MealScout-meaningful merchant roles across; never leak TradeScout roles.
+  const MEALSCOUT_ROLE_ALLOWLIST = new Set<string>([
+    "restaurant_owner",
+    "food_truck_owner",
+    "bar_owner",
+  ]);
+  const mealscoutRoles = roles.filter((r) => MEALSCOUT_ROLE_ALLOWLIST.has(r));
 
   const givenName = (user as any).firstName || (user as any).given_name;
   const familyName = (user as any).lastName || (user as any).family_name;
@@ -63,7 +75,7 @@ export function createMealscoutSsoToken(user: User): string {
     name: [givenName, familyName].filter(Boolean).join(" ") || undefined,
     given_name: givenName,
     family_name: familyName,
-    roles,
+    roles: mealscoutRoles,
   };
 
   if (!payload.sub) {
