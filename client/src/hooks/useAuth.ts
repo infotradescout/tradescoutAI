@@ -145,8 +145,11 @@ export function useAuth() {
 }
 
 export async function logoutUser(): Promise<void> {
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const logoutUrl = `${apiBaseUrl}/api/auth/logout`;
+
   const doRequest = async (method: "POST" | "GET") => {
-    const response = await fetch("/auth/logout", {
+    const response = await fetch(logoutUrl, {
       method,
       credentials: "include",
       headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,

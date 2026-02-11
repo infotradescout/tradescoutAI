@@ -46,6 +46,7 @@ import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
 import {
   users,
+  userRoleEnum,
   businesses,
   affiliateAccounts,
   affiliateReferrals,
@@ -741,6 +742,49 @@ export async function registerRoutes(app: any) {
     };
   };
 
+  type UserRoleEnumValue = (typeof userRoleEnum.enumValues)[number];
+  const USER_ROLE_ENUM_VALUES = new Set<string>(userRoleEnum.enumValues as readonly string[]);
+  const BLOCKED_SELF_ASSIGN_ROLES = new Set<string>([
+    // Never user-asserted; must be granted via admin workflows.
+    "admin",
+    "moderator",
+    "ops_admin",
+    "super_admin",
+    "head_admin",
+    // Internal/system roles (not selectable)
+    "content_seo",
+    "analytics_specialist",
+    "marketing_specialist",
+  ]);
+
+  const PERSONA_TO_CANONICAL_ROUTING_ROLE: Record<string, UserRoleEnumValue> = {
+    restaurant_owner: "business_owner",
+    food_truck_owner: "business_owner",
+    bar_owner: "business_owner",
+    vehicle_dealer: "car_dealer",
+    car_salesman: "car_dealer",
+    contractor_user: "contractor",
+    helper: "handyman",
+    hoa_admin: "hoa_board",
+  };
+
+  const coerceToRoutingRoleEnum = (candidate: unknown): UserRoleEnumValue => {
+    const raw = typeof candidate === "string" ? candidate.trim() : "";
+    if (!raw) return "homeowner";
+
+    const viaAlias = PERSONA_TO_CANONICAL_ROUTING_ROLE[raw];
+    if (viaAlias) return viaAlias;
+
+    if (USER_ROLE_ENUM_VALUES.has(raw) && !BLOCKED_SELF_ASSIGN_ROLES.has(raw)) {
+      return raw as UserRoleEnumValue;
+    }
+
+    return "homeowner";
+  };
+
+  const dedupeStrings = (values: string[]) =>
+    Array.from(new Set(values.map((v) => String(v || "").trim()).filter((v) => v.length > 0)));
+
   // Authentication routes
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
@@ -805,6 +849,8 @@ export async function registerRoutes(app: any) {
         if (role === "contractor_user") return "contractor";
         if (role === "vehicle_dealer") return "car_dealer";
         if (role === "car_salesman") return "car_dealer";
+        if (role === "helper") return "handyman";
+        if (role === "hoa_admin") return "hoa_board";
         if (role === "homeowner") return "homeowner";
         if (role === "contractor") return "contractor";
         if (role === "other") return "homeowner"; // Map 'other' to homeowner
@@ -832,6 +878,13 @@ export async function registerRoutes(app: any) {
       // Claim-first: claiming a business during signup implies business-owner context.
       if (claimBusinessId && !userTypes.includes("business_owner")) {
         userTypes.unshift("business_owner");
+      }
+
+      // Never allow public registration to self-assign admin/system roles.
+      if (userTypes.some((r: string) => BLOCKED_SELF_ASSIGN_ROLES.has(r))) {
+        return res.status(400).json({
+          message: "Invalid role selection. Admin accounts must be created by an admin.",
+        });
       }
 
       if (!email) return res.status(400).json({ message: "Email is required" });
@@ -894,7 +947,18 @@ export async function registerRoutes(app: any) {
 
       // Determine primary role from user types
       // CLAIM-FIRST: Default to 'homeowner' if no types selected (neutral starting point)
-      const primaryRole = userTypes && userTypes.length > 0 ? userTypes[0] : "homeowner";
+      const provisionalRoles = dedupeStrings(userTypes || []).filter(
+        (r) => !BLOCKED_SELF_ASSIGN_ROLES.has(r)
+      );
+
+      const primaryRoleCandidate = provisionalRoles.length > 0 ? provisionalRoles[0] : "homeowner";
+      const routingRole = coerceToRoutingRoleEnum(primaryRoleCandidate);
+
+      // Keep the canonical routing role first to stabilize permission derivation,
+      // while preserving any additional persona tags (even if not in the enum).
+      const rolesForDb = dedupeStrings([routingRole, ...provisionalRoles]).filter(
+        (r) => !BLOCKED_SELF_ASSIGN_ROLES.has(r)
+      );
 
       const preferences = {
         ...(body.preferences || {}),
@@ -907,7 +971,7 @@ export async function registerRoutes(app: any) {
         },
         // Store provisional userTypes selections and free-form intent
         provisional: {
-          userTypes: userTypes || [],
+          userTypes: provisionalRoles || [],
           userIntent: userIntent || undefined,
           capturedAt: new Date().toISOString(),
         },
@@ -924,9 +988,9 @@ export async function registerRoutes(app: any) {
         address,
         state,
         county,
-        role: primaryRole as any, // Primary role for backward compatibility (defaults to homeowner for routing)
-        roles: userTypes || [], // Empty array allowed - provisional preferences stored separately
-        activeRole: primaryRole, // Default active role for routing
+        role: routingRole as any, // Canonical routing role (enum-safe)
+        roles: rolesForDb, // Canonical first; persona tags preserved after
+        activeRole: primaryRoleCandidate, // Preserve the user's selected persona when possible
         emailVerified: emailVerificationRequired ? false : true,
         addressVerified: false,
         verificationStatus: status,
@@ -3006,11 +3070,15 @@ export async function registerRoutes(app: any) {
       const current = await storage.getUser(userId);
       const currentActive = (current as any)?.activeRole || (current as any)?.role;
       const activeRole = filteredRoles.includes(currentActive) ? currentActive : filteredRoles[0];
+      const routingRole = coerceToRoutingRoleEnum(activeRole);
+      const rolesForDb = dedupeStrings([routingRole, ...filteredRoles]).filter(
+        (r) => !BLOCKED_SELF_ASSIGN_ROLES.has(r)
+      );
 
       const user = await storage.updateUser(userId, {
-        roles: filteredRoles,
+        roles: rolesForDb,
         activeRole,
-        role: activeRole,
+        role: routingRole,
         updatedAt: new Date(),
       } as any);
 
@@ -3064,11 +3132,15 @@ export async function registerRoutes(app: any) {
       const current = await storage.getUser(userId);
       const currentActive = (current as any)?.activeRole || (current as any)?.role;
       const activeRole = normalized.includes(currentActive) ? currentActive : normalized[0];
+      const routingRole = coerceToRoutingRoleEnum(activeRole);
+      const rolesForDb = dedupeStrings([routingRole, ...normalized]).filter(
+        (r) => !BLOCKED_SELF_ASSIGN_ROLES.has(r)
+      );
 
       const user = await storage.updateUser(userId, {
-        roles: normalized,
+        roles: rolesForDb,
         activeRole,
-        role: activeRole,
+        role: routingRole,
         updatedAt: new Date(),
       } as any);
 

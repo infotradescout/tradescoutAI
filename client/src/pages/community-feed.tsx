@@ -1296,76 +1296,110 @@ const CommunityFeed = memo(function CommunityFeed() {
         <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
           <CommunityTopNav />
           <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-            <CardContent className="p-4 md:p-5">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
+            <CardContent className="p-3 md:p-4 h-[20vh] min-h-[150px] max-h-[220px] overflow-y-hidden">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <p className="text-[11px] uppercase tracking-[0.12em] text-orange-300">
                     Community
                   </p>
-                  <h1 className="mt-1 text-lg md:text-2xl font-semibold text-white">
+                  <h1 className="mt-1 text-base md:text-xl font-semibold text-white truncate">
                     Local conversation, clean and useful
                   </h1>
-                  <p className="mt-1 text-xs md:text-sm text-[color:var(--text-secondary)]">
+                  <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)] truncate">
                     Ask, recommend, and coordinate with people in your area.
                   </p>
-                  <p className="mt-2 text-[11px] md:text-xs text-slate-400">
-                    Active today: {communityStats.activeToday} - Posts today:{" "}
+                  <p className="mt-1 text-[11px] md:text-xs text-slate-400 truncate">
+                    Active today: {communityStats.activeToday} · Posts today:{" "}
                     {communityStats.postsToday}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center min-w-[260px]">
-                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+              </div>
+
+              <div className="mt-3 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
+                <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
+                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Members</p>
-                    <p className="text-sm md:text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-white">
                       {communityStats.totalMembers}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">
                       Verified pros
                     </p>
-                    <p className="text-sm md:text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-white">
                       {communityStats.verifiedPros ?? 0}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Recs (7d)</p>
-                    <p className="text-sm md:text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-white">
                       {communityStats.recommendations7d ?? 0}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Help (7d)</p>
-                    <p className="text-sm md:text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-white">
                       {communityStats.helpRequests7d ?? 0}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[170px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">
                       Median reply (7d)
                     </p>
-                    <p className="text-sm md:text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-white">
                       {formatMinutesCompact(communityStats.medianFirstReplyMinutes7d)}
                     </p>
                   </div>
                 </div>
               </div>
+
               {activeNeighbors.length > 0 && (
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex items-center justify-between gap-3">
                   <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
                     Active now
                   </div>
-                  <div className="flex -space-x-2">
-                    {activeNeighbors.map((neighbor) => (
-                      <Avatar
-                        key={neighbor.id}
-                        className="h-7 w-7 border border-[color:var(--border-subtle)]"
-                        title={neighbor.name}
-                      >
-                        <AvatarImage src={neighbor.avatar} />
-                        <AvatarFallback>{neighbor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                    ))}
+                  <div className="text-[11px] text-slate-400">{activeNeighbors.length}</div>
+                </div>
+              )}
+              {activeNeighbors.length > 0 && (
+                <div className="mt-2 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
+                  <div className="flex items-center gap-2 min-w-max pb-1">
+                    {activeNeighbors.slice(0, 12).map((neighbor) => {
+                      const stableId = String(neighbor.id || "")
+                        .replace(/[^a-z0-9]/gi, "")
+                        .slice(0, 2)
+                        .toUpperCase();
+                      const fallback =
+                        stableId ||
+                        String(neighbor.name || "")
+                          .trim()
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase() ||
+                        "U";
+
+                      return (
+                        <div
+                          key={neighbor.id}
+                          className="shrink-0 flex flex-col items-center gap-1 w-[54px]"
+                          title={neighbor.name}
+                        >
+                          <Avatar className="h-11 w-11 ring-1 ring-orange-500/25">
+                            <AvatarImage src={neighbor.avatar} />
+                            <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
+                              {fallback}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="w-full text-[10px] text-slate-400 text-center truncate">
+                            {String(neighbor.name || "Neighbor")}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
