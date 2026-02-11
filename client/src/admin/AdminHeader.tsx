@@ -25,11 +25,11 @@ export function AdminHeader({
         <button
           type="button"
           onClick={onToggleNav}
-          className="md:hidden inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-scout-500/60"
+          className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-scout-500/60"
           aria-label={isNavOpen ? "Hide admin navigation" : "Show admin navigation"}
         >
           <Menu className="w-4 h-4 mr-1" />
-          <span>{isNavOpen ? "Hide tools" : "Admin tools"}</span>
+          <span className="hidden sm:inline">{isNavOpen ? "Hide tools" : "Admin tools"}</span>
         </button>
         <div>
           <h1

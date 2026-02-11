@@ -22,6 +22,7 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
   const activeItem = findActiveItem(location);
 
   const [density, setDensity] = React.useState<"comfortable" | "compact">("comfortable");
+  const [isNavOpen, setIsNavOpen] = React.useState(true);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -33,6 +34,22 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
     } catch {
       // ignore storage errors
     }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem("admin:ui:navOpen");
+      if (stored === "0" || stored === "1") {
+        setIsNavOpen(stored === "1");
+        return;
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    setIsNavOpen(isDesktop);
   }, []);
 
   const toggleDensity = () => {
@@ -47,21 +64,16 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
     });
   };
 
-  // Default the nav to open so the classic layout remains the
-  // baseline experience, but allow it to be collapsed on any
-  // viewport to create a "windowed" Admin OS surface.
-  const [isNavOpen, setIsNavOpen] = React.useState(true);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-    if (isDesktop) {
-      setIsNavOpen(true);
-    }
-  }, [location]);
-
   const handleToggleNav = () => {
-    setIsNavOpen((prev) => !prev);
+    setIsNavOpen((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("admin:ui:navOpen", next ? "1" : "0");
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
   };
 
   const handleNavigate = () => {
@@ -70,6 +82,11 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
     // Keep nav persistent on desktop, collapse only on mobile/tablet.
     if (!isDesktop) {
       setIsNavOpen(false);
+      try {
+        window.localStorage.setItem("admin:ui:navOpen", "0");
+      } catch {
+        // ignore storage errors
+      }
     }
   };
 
