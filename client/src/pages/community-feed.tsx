@@ -708,6 +708,30 @@ const CommunityFeed = memo(function CommunityFeed() {
     ? trendingTopicsData
     : [];
 
+  function getAuthorName(post: any) {
+    return (
+      post.author?.name ||
+      [post.author?.firstName, post.author?.lastName].filter(Boolean).join(" ") ||
+      post.author?.username ||
+      "Community Member"
+    );
+  }
+
+  function getAuthorAvatar(post: any) {
+    return (
+      post.author?.avatar || post.author?.profileImageUrl || post.author?.photoUrl || undefined
+    );
+  }
+
+  function getAuthorInitials(post: any) {
+    const name = String(getAuthorName(post)).trim();
+    if (!name) return "CM";
+    const parts = name.split(/\s+/).filter(Boolean);
+    return parts.length > 1
+      ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+      : name.slice(0, 2).toUpperCase();
+  }
+
   const activeNeighbors = useMemo(() => {
     const seen = new Set<string>();
     const neighbors: Array<{ id: string; name: string; avatar?: string }> = [];
@@ -766,21 +790,6 @@ const CommunityFeed = memo(function CommunityFeed() {
 
     return list;
   }, [displayPosts, activeTab]);
-  const getAuthorName = (post: any) =>
-    post.author?.name ||
-    [post.author?.firstName, post.author?.lastName].filter(Boolean).join(" ") ||
-    post.author?.username ||
-    "Community Member";
-  const getAuthorAvatar = (post: any) =>
-    post.author?.avatar || post.author?.profileImageUrl || post.author?.photoUrl || undefined;
-  const getAuthorInitials = (post: any) => {
-    const name = String(getAuthorName(post)).trim();
-    if (!name) return "CM";
-    const parts = name.split(/\s+/).filter(Boolean);
-    return parts.length > 1
-      ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-      : name.slice(0, 2).toUpperCase();
-  };
 
   const renderFeedList = () => (
     <div className="space-y-3 md:space-y-5">
