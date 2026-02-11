@@ -41,7 +41,12 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    if (location !== to) navigate(to);
+    const raw = String(location || "");
+    const restIdx = raw.search(/[?#]/);
+    const rest = restIdx >= 0 ? raw.slice(restIdx) : "";
+    const hasRestInTo = /[?#]/.test(to);
+    const target = rest && !hasRestInTo ? `${to}${rest}` : to;
+    if (raw !== target) navigate(target);
   }, [location, navigate, to]);
 
   return null;

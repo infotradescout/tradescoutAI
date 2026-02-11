@@ -84,6 +84,7 @@ export default function CreateAccountPortal() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const oauthNext = "/pre-scout-setup";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [primaryFocus, setPrimaryFocus] = useState<"hire" | "offer" | "both">("hire");
@@ -435,7 +436,9 @@ export default function CreateAccountPortal() {
               {providers.facebook && (
                 <Button
                   type="button"
-                  onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
+                  onClick={() =>
+                    (window.location.href = `${apiBaseUrl}/api/auth/facebook?next=${encodeURIComponent(oauthNext)}`)
+                  }
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6"
                 >
                   <Facebook className="w-5 h-5 mr-3" />
@@ -446,7 +449,9 @@ export default function CreateAccountPortal() {
               {providers.google && (
                 <Button
                   type="button"
-                  onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/google`)}
+                  onClick={() =>
+                    (window.location.href = `${apiBaseUrl}/api/auth/google?next=${encodeURIComponent(oauthNext)}`)
+                  }
                   variant="outline"
                   className="w-full border-tsBorder text-tsTextMain hover:bg-tsCard/80 font-medium py-6"
                 >

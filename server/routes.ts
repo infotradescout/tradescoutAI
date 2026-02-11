@@ -2475,8 +2475,41 @@ export async function registerRoutes(app: any) {
     });
   });
 
+  const readAndClearOAuthNext = (req: Request): string => {
+    try {
+      const raw = String((req.session as any)?.oauthNext || "").trim();
+      if (req.session) {
+        delete (req.session as any).oauthNext;
+      }
+      if (!raw) return "";
+      if (!raw.startsWith("/")) return "";
+      if (raw.startsWith("//")) return "";
+      return raw;
+    } catch {
+      return "";
+    }
+  };
+
   if (hasFacebookOAuth) {
-    app.get("/api/auth/facebook", passport.authenticate("facebook", { scope: ["email"] }));
+    app.get("/api/auth/facebook", (req: Request, res: Response, next: any) => {
+      try {
+        const requestedNext =
+          typeof (req.query as any)?.next === "string"
+            ? String((req.query as any).next).trim()
+            : "";
+        if (
+          req.session &&
+          requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//")
+        ) {
+          (req.session as any).oauthNext = requestedNext;
+        }
+      } catch {
+        // ignore
+      }
+      return passport.authenticate("facebook", { scope: ["email"] })(req, res, next);
+    });
     app.get(
       "/api/auth/facebook/callback",
       (req: Request, res: Response, next: any) => {
@@ -2518,7 +2551,10 @@ export async function registerRoutes(app: any) {
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
         const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-        const redirectBase = needsProfileNormalization ? "/onboarding/profile" : "/";
+        const oauthNext = readAndClearOAuthNext(req);
+        const redirectBase = needsProfileNormalization
+          ? "/onboarding/profile"
+          : oauthNext || "/pre-scout-setup";
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
             if (required && user && user.emailVerified !== true && email) {
@@ -2535,13 +2571,28 @@ export async function registerRoutes(app: any) {
 
   if (hasGoogleOAuth) {
     // Google OAuth entrypoint: request standard OpenID scopes
-    app.get(
-      "/api/auth/google",
-      passport.authenticate("google", {
+    app.get("/api/auth/google", (req: Request, res: Response, next: any) => {
+      try {
+        const requestedNext =
+          typeof (req.query as any)?.next === "string"
+            ? String((req.query as any).next).trim()
+            : "";
+        if (
+          req.session &&
+          requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//")
+        ) {
+          (req.session as any).oauthNext = requestedNext;
+        }
+      } catch {
+        // ignore
+      }
+      return passport.authenticate("google", {
         scope: ["openid", "email", "profile"],
         prompt: "select_account",
-      })
-    );
+      })(req, res, next);
+    });
     app.get(
       "/api/auth/google/callback",
       (req: Request, res: Response, next: any) => {
@@ -2586,7 +2637,10 @@ export async function registerRoutes(app: any) {
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
         const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
-        const redirectBase = needsProfileNormalization ? "/onboarding/profile" : "/";
+        const oauthNext = readAndClearOAuthNext(req);
+        const redirectBase = needsProfileNormalization
+          ? "/onboarding/profile"
+          : oauthNext || "/pre-scout-setup";
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
             if (required && user && user.emailVerified !== true && email) {
