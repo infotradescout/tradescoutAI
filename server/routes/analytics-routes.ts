@@ -17,7 +17,9 @@ export function registerAnalyticsRoutes(app: Express) {
       // Best-effort persistence into the generic events table.
       // This must never throw back to the client.
       try {
-        const ipHeader = (req.headers["x-forwarded-for"] || req.headers["x-real-ip"]) as string | undefined;
+        const ipHeader = (req.headers["x-forwarded-for"] || req.headers["x-real-ip"]) as
+          | string
+          | undefined;
         const ipAddress = ipHeader?.split(",")[0]?.trim() || (req as any).ip || null;
         const userAgent = (req.headers["user-agent"] as string | undefined) ?? null;
 
@@ -29,9 +31,10 @@ export function registerAnalyticsRoutes(app: Express) {
           contractorId,
         };
 
-        const eventType = typeof event?.type === "string" && event.type.trim().length > 0
-          ? event.type
-          : "shell.unknown";
+        const eventType =
+          typeof event?.type === "string" && event.type.trim().length > 0
+            ? event.type
+            : "shell.unknown";
 
         await storage.logEvent(eventType, enrichedEvent);
       } catch (persistError) {
@@ -44,6 +47,32 @@ export function registerAnalyticsRoutes(app: Express) {
       console.error("Error handling shell analytics event", error);
       // Still return 204 so analytics can never break the app
       res.status(204).end();
+    }
+  });
+
+  // Best-effort affiliate click telemetry (used by a few legacy/experimental UI components).
+  // This must never break the user journey.
+  app.post("/api/analytics/affiliate-click", async (req: Request, res: Response) => {
+    try {
+      const user = (req as any)?.user ?? null;
+      const userId = user?.id ?? null;
+      const event = req.body as any;
+
+      try {
+        await storage.logEvent("affiliate.click", {
+          ...event,
+          userId,
+          path: req.path,
+          referrer: req.headers["referer"] || req.headers["referrer"] || null,
+        });
+      } catch (persistError) {
+        console.error("[Analytics][AffiliateClick] Failed to persist", persistError);
+      }
+
+      return res.status(204).end();
+    } catch (error) {
+      console.error("Error handling affiliate-click analytics event", error);
+      return res.status(204).end();
     }
   });
 

@@ -13186,6 +13186,117 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // ==================== AFFILIATE SYSTEM ROUTES ====================
 
+  // ---------------------------------------------------------------------------
+  // Back-compat endpoints used by Scout tools / older clients
+  // ---------------------------------------------------------------------------
+
+  // Enroll the current user into the affiliate program (idempotent)
+  app.post("/api/affiliate/enroll", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      let program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        program = await storage.createAffiliateProgram({ userId } as any);
+      }
+
+      return res.json({
+        affiliateId: (program as any).id || (program as any).affiliateId || userId,
+        status: (program as any).status ?? "active",
+      });
+    } catch (error: any) {
+      console.error("Error enrolling affiliate:", error);
+      res.status(500).json({ message: "Failed to enroll affiliate" });
+    }
+  });
+
+  // Generate a canonical referral URL for the current user's affiliate code
+  app.post("/api/affiliate/link", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const destination =
+        typeof req.body?.destination === "string" ? req.body.destination.trim() : "";
+      const entityId = typeof req.body?.entityId === "string" ? req.body.entityId.trim() : "";
+
+      if (!destination || !destination.startsWith("/")) {
+        return res
+          .status(400)
+          .json({ message: "destination must be a relative path starting with '/'" });
+      }
+
+      let program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        program = await storage.createAffiliateProgram({ userId } as any);
+      }
+
+      const referralCode = String((program as any).referralCode || "").trim();
+      if (!referralCode) {
+        return res.status(500).json({ message: "Affiliate referral code missing" });
+      }
+
+      const baseOrigin =
+        process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com";
+      const url = new URL(destination, baseOrigin);
+      if (!url.searchParams.has("ref")) {
+        url.searchParams.set("ref", referralCode);
+      }
+      if (entityId && !url.searchParams.has("eid")) {
+        url.searchParams.set("eid", entityId);
+      }
+
+      return res.json({ url: url.toString() });
+    } catch (error: any) {
+      console.error("Error generating affiliate link:", error);
+      res.status(500).json({ message: "Failed to generate affiliate link" });
+    }
+  });
+
+  // Log an attributed action for affiliate tracking (best-effort, non-throwing)
+  app.post("/api/affiliate/referral", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const affiliateId =
+        typeof req.body?.affiliateId === "string" ? req.body.affiliateId.trim() : "";
+      const action = typeof req.body?.action === "string" ? req.body.action.trim() : "";
+      const entityId = typeof req.body?.entityId === "string" ? req.body.entityId.trim() : "";
+      const meta = req.body?.meta && typeof req.body.meta === "object" ? req.body.meta : {};
+
+      if (!affiliateId || !action) {
+        return res.status(400).json({ ok: false, message: "affiliateId and action are required" });
+      }
+
+      // Only record if the affiliate program exists; do not error if missing.
+      const program = await storage
+        .getAffiliateProgramByAccountId(affiliateId)
+        .catch(() => undefined);
+      if (program) {
+        await storage
+          .trackReferralClick({
+            affiliateId,
+            referredUserId: null,
+            shareLinkId: null,
+            customLink: entityId ? `${action}:${entityId}` : action,
+            conversionSource: "internal_action",
+            conversionType: action,
+            couponCode: null,
+          } as any)
+          .catch((e) => console.error("Failed to record affiliate referral action", e));
+      }
+
+      return res.json({ ok: true });
+    } catch (error: any) {
+      console.error("Error recording affiliate referral:", error);
+      // Non-throwing contract: always return 200-ish unless request is malformed.
+      return res.json({ ok: false });
+    }
+  });
+
   // Create or get affiliate program for user (explicit join endpoint)
   app.post("/api/affiliate/join", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -13220,9 +13331,48 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Track referral click (public endpoint)
   app.post("/api/affiliate/track-click", async (req: any, res: any) => {
     try {
-      return res.status(501).json({
-        message: "Affiliate click tracking is disabled in the current deployment",
-      });
+      const affiliateCode =
+        typeof req.body?.affiliateCode === "string"
+          ? req.body.affiliateCode.trim()
+          : typeof req.body?.ref === "string"
+            ? req.body.ref.trim()
+            : "";
+
+      const destination =
+        typeof req.body?.destination === "string"
+          ? req.body.destination.trim()
+          : typeof req.body?.url === "string"
+            ? req.body.url.trim()
+            : "";
+
+      const source = typeof req.body?.source === "string" ? req.body.source.trim() : "site";
+
+      if (!affiliateCode) {
+        return res.status(400).json({ ok: false, message: "affiliateCode is required" });
+      }
+
+      const [account] = await db
+        .select()
+        .from(affiliateAccounts)
+        .where(eq(affiliateAccounts.referralCode, affiliateCode))
+        .limit(1);
+
+      if (!account) {
+        // Do not reveal whether a code exists; treat as ok to prevent probing.
+        return res.json({ ok: true });
+      }
+
+      await storage.trackReferralClick({
+        affiliateId: account.id,
+        referredUserId: null,
+        shareLinkId: null,
+        customLink: destination || null,
+        conversionSource: source,
+        conversionType: "click",
+        couponCode: null,
+      } as any);
+
+      return res.json({ ok: true });
     } catch (error: any) {
       console.error("Error tracking referral click:", error);
       res.status(500).json({ message: "Failed to track referral" });
