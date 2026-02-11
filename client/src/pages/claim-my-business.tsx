@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,16 @@ export default function ClaimMyBusinessPage() {
       return "";
     }
   }, [location]);
+
+  useEffect(() => {
+    if (!slug) return;
+    // Keep the legacy entry point but route users into the single signup surface.
+    navigate(
+      `/create-account?claim=${encodeURIComponent(slug)}&next=${encodeURIComponent(
+        "/pre-scout-setup"
+      )}`
+    );
+  }, [navigate, slug]);
 
   return (
     <div className="max-w-xl mx-auto px-4 py-8">

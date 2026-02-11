@@ -130,6 +130,7 @@ export default function CreateAccountPortal() {
     try {
       const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
         email: emailValue,
+        next: "/pre-scout-setup",
       });
       toast({
         title: "Verification email requested",

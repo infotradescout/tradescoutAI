@@ -202,6 +202,14 @@ const getPublicBaseUrlFromRequest = (req: Request): string => {
   return `${proto}://${host}`;
 };
 
+const sanitizeNextPath = (value: unknown): string => {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return "";
+  if (!raw.startsWith("/")) return "";
+  if (raw.startsWith("//")) return "";
+  return raw;
+};
+
 const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promise<void> => {
   try {
     const emailVerificationRequired = await getGeneralSetting<boolean>(
@@ -230,7 +238,8 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
 
     const { token, expiresAt } = emailVerificationService.createToken(userId);
     const verifyBase = getPublicBaseUrlFromRequest(req);
-    const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}`;
+    const next = sanitizeNextPath((req.session as any)?.oauthNext) || "/pre-scout-setup";
+    const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
     await emailService.sendEmail({
       to: email,
@@ -997,7 +1006,8 @@ export async function registerRoutes(app: any) {
       if (emailVerificationRequired && !user.emailVerified) {
         const { token, expiresAt } = emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
-        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}`;
+        const next = "/pre-scout-setup";
+        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
         try {
           await emailService.sendEmail({
@@ -1338,7 +1348,9 @@ export async function registerRoutes(app: any) {
 
         const { token, expiresAt } = emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
-        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}`;
+        const requestedNext = sanitizeNextPath((req.body as any)?.next);
+        const next = requestedNext || "/pre-scout-setup";
+        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
         try {
           await emailService.sendEmail({
@@ -8740,7 +8752,7 @@ export async function registerRoutes(app: any) {
 
       if (emailVerificationRequired && user.emailVerified !== true) {
         const verify = emailVerificationService.createToken(user.id);
-        verifyLink = `${publicBase}/verify-email?token=${verify.token}`;
+        verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
       }
 
       let emailSent = false;
@@ -9348,7 +9360,7 @@ export async function registerRoutes(app: any) {
               if (emailVerificationRequired) {
                 const verify = emailVerificationService.createToken(userId);
                 const verifyBase = getPublicBaseUrlFromRequest(req as any);
-                verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}`;
+                verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
               }
 
               await emailService.sendEmail({
@@ -9506,7 +9518,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (emailVerificationRequired && user.emailVerified !== true) {
         const verify = emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
-        verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}`;
+        verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
       }
 
       if (emailService.isConfigured()) {

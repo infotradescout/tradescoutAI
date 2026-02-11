@@ -80,7 +80,10 @@ export function EmailPasswordAuth() {
     }
     setIsResending(true);
     try {
-      const resp = await apiRequest("POST", "/api/auth/request-email-verification", { email });
+      const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
+        email,
+        next: safeNext || "/pre-scout-setup",
+      });
       toast({
         title: "Verification email requested",
         description: resp?.message || "If an account exists, a new link has been sent.",

@@ -19,6 +19,8 @@ export default function VerifyEmail() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || "";
+    const nextParam = (params.get("next") || "").trim();
+    const safeNext = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
 
     if (!token) {
       setState("error");
@@ -37,6 +39,17 @@ export default function VerifyEmail() {
           title: "Email verified",
           description: "Verified. Routing you to the next step...",
         });
+
+        // Persist `next` in the URL so the follow-up effect + Continue button share the same value.
+        try {
+          if (safeNext) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("next", safeNext);
+            window.history.replaceState({}, "", url.toString());
+          }
+        } catch {
+          // ignore
+        }
       })
       .catch((error: any) => {
         if (!alive) return;
@@ -51,13 +64,17 @@ export default function VerifyEmail() {
 
   useEffect(() => {
     if (state !== "success") return;
+    const params = new URLSearchParams(window.location.search);
+    const nextParam = (params.get("next") || "").trim();
+    const safeNext = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
     const t = window.setTimeout(() => {
       if (isAuthenticated) {
-        setLocation("/pre-scout-setup");
+        setLocation(safeNext || "/pre-scout-setup");
         return;
       }
       const emailParam = verifiedEmail ? `?email=${encodeURIComponent(verifiedEmail)}` : "";
-      setLocation(`/login${emailParam}`);
+      const nextQ = safeNext ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}` : "";
+      setLocation(`/login${emailParam}${nextQ}`);
     }, 900);
     return () => window.clearTimeout(t);
   }, [state, isAuthenticated, setLocation, verifiedEmail]);
@@ -75,13 +92,24 @@ export default function VerifyEmail() {
               className="w-full"
               onClick={() => {
                 if (isAuthenticated) {
-                  setLocation("/pre-scout-setup");
+                  const params = new URLSearchParams(window.location.search);
+                  const nextParam = (params.get("next") || "").trim();
+                  const safeNext =
+                    nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
+                  setLocation(safeNext || "/pre-scout-setup");
                   return;
                 }
                 const emailParam = verifiedEmail
                   ? `?email=${encodeURIComponent(verifiedEmail)}`
                   : "";
-                setLocation(`/login${emailParam}`);
+                const params = new URLSearchParams(window.location.search);
+                const nextParam = (params.get("next") || "").trim();
+                const safeNext =
+                  nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
+                const nextQ = safeNext
+                  ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}`
+                  : "";
+                setLocation(`/login${emailParam}${nextQ}`);
               }}
             >
               Continue

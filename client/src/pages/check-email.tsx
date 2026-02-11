@@ -36,6 +36,7 @@ export default function CheckEmail() {
     try {
       const resp = await apiRequest("POST", "/api/auth/request-email-verification", {
         email: trimmed,
+        next: safeNext || "/pre-scout-setup",
       });
       toast({
         title: "Verification email requested",
