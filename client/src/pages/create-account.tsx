@@ -872,6 +872,14 @@ export default function CreateAccountPortal() {
                 )}
               </div>
 
+              <Button
+                type="submit"
+                className="w-full font-semibold py-6"
+                disabled={signupMutation.isPending}
+              >
+                {signupMutation.isPending ? "Creating account..." : "Create account"}
+              </Button>
+
               <div className="mt-4 flex items-center justify-center">
                 <button
                   type="button"
