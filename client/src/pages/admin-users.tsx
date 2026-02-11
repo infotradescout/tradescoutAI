@@ -23,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -40,7 +39,6 @@ import {
   Users,
   Search,
   MoreHorizontal,
-  Trash2,
   ChevronDown,
   Mail,
   SlidersHorizontal,
@@ -48,6 +46,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type User = {
   id: string;
@@ -1003,14 +1008,6 @@ export default function AdminUsers() {
                                 : user.email}
                             </div>
                             <div className="text-sm text-muted-foreground">{user.email}</div>
-                            <div className="mt-1 text-xs">
-                              <Link
-                                href={`/profile/${user.id}`}
-                                className="text-primary hover:text-primary/80 hover:underline"
-                              >
-                                View public profile
-                              </Link>
-                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="py-3">
@@ -1065,208 +1062,182 @@ export default function AdminUsers() {
                           {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="py-3">
-                          {/* Admin Controls: Grouped and with dropdown for less common actions */}
-                          {(currentUserLevel >
-                            roleHierarchy[user.role as keyof typeof roleHierarchy]?.level ||
-                            (isSuperAdmin && user.role === "super_admin")) && (
-                            <div className="flex flex-wrap gap-2 items-center">
-                              {/* Primary Actions */}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setUserToEdit(user);
-                                  setNewRole(user.role);
-                                }}
-                                className="border-border text-muted-foreground hover:bg-muted"
-                                title="Edit user role"
-                              >
-                                Edit Role
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openProfileEditor(user)}
-                                className="border-border text-muted-foreground hover:bg-muted"
-                                title="Edit public profile fields"
-                              >
-                                Edit Profile
-                              </Button>
-                              {isSuperAdmin &&
-                                user.id !== (userToEdit?.id || "") &&
-                                user.role !== "super_admin" && (
+                          {(() => {
+                            const targetLevel =
+                              roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 0;
+                            const canManage =
+                              currentUserLevel > targetLevel ||
+                              (isSuperAdmin && user.role === "super_admin");
+                            if (!canManage) return null;
+
+                            const canRunSuperActions =
+                              isSuperAdmin &&
+                              user.id !== (userToEdit?.id || "") &&
+                              user.role !== "super_admin";
+
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={async () => {
-                                      const key = `${user.id}:impersonate`;
-                                      setPendingAction((prev) => ({ ...prev, [key]: true }));
-                                      try {
-                                        const res = await fetch(
-                                          `/api/admin/impersonate/start/${user.id}`,
-                                          {
-                                            method: "POST",
-                                            credentials: "include",
-                                          }
-                                        );
-                                        if (!res.ok) {
-                                          const err = await res.json().catch(() => ({}));
-                                          throw new Error(err.message || "Impersonation failed");
-                                        }
-                                        toast({ title: "Impersonation started" });
-                                        window.location.reload();
-                                      } catch (err: any) {
-                                        toast({
-                                          title: "Error",
-                                          description: err.message || "Impersonation failed",
-                                          variant: "destructive",
-                                        });
-                                        setPendingAction((prev) => ({ ...prev, [key]: false }));
-                                      }
-                                    }}
-                                    className="border-accent text-accent-foreground hover:bg-accent/10"
-                                    title="Impersonate user"
-                                    disabled={pendingAction[`${user.id}:impersonate`]}
+                                    className="border-border text-muted-foreground hover:bg-muted"
+                                    title="User actions"
                                   >
-                                    {pendingAction[`${user.id}:impersonate`]
-                                      ? "Working…"
-                                      : "Impersonate"}
+                                    Actions
+                                    <MoreHorizontal className="w-4 h-4 ml-2" />
                                   </Button>
-                                )}
-                              {/* Status Controls */}
-                              {isSuperAdmin &&
-                                user.id !== (userToEdit?.id || "") &&
-                                user.role !== "super_admin" && (
-                                  <div className="flex gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleUserControl("suspend", user.id)}
-                                      className="border-destructive text-destructive hover:bg-destructive/10"
-                                      title={
-                                        user.verificationStatus === "suspended"
-                                          ? "User is already suspended"
-                                          : "Suspend user"
-                                      }
-                                      disabled={
-                                        pendingAction[`${user.id}:suspend`] ||
-                                        user.verificationStatus === "suspended"
-                                      }
-                                    >
-                                      {pendingAction[`${user.id}:suspend`] ? "Working…" : "Suspend"}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleUserControl("unsuspend", user.id)}
-                                      className="border-primary text-primary hover:bg-primary/10"
-                                      title="Unsuspend user"
-                                      disabled={pendingAction[`${user.id}:unsuspend`]}
-                                    >
-                                      {pendingAction[`${user.id}:unsuspend`]
-                                        ? "Working…"
-                                        : "Unsuspend"}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleUserControl("verify", user.id)}
-                                      className="border-primary text-primary hover:bg-primary/10"
-                                      title={
-                                        user.verificationStatus === "approved"
-                                          ? "User is already verified"
-                                          : "Verify user"
-                                      }
-                                      disabled={
-                                        pendingAction[`${user.id}:verify`] ||
-                                        user.verificationStatus === "approved"
-                                      }
-                                    >
-                                      {pendingAction[`${user.id}:verify`] ? "Working…" : "Verify"}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleUserControl("revoke_verify", user.id)}
-                                      className="border-muted text-muted-foreground hover:bg-muted/10"
-                                      title="Revoke verification"
-                                      disabled={pendingAction[`${user.id}:revoke_verify`]}
-                                    >
-                                      {pendingAction[`${user.id}:revoke_verify`]
-                                        ? "Working…"
-                                        : "Revoke Verify"}
-                                    </Button>
-                                  </div>
-                                )}
-                              {/* Quick actions dropdown (resend is useful for all admin roles) */}
-                              {user.id !== (userToEdit?.id || "") &&
-                                user.role !== "super_admin" && (
-                                  <div className="relative group">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-secondary text-secondary-foreground group-hover:bg-secondary/10"
-                                      title="Quick actions"
-                                    >
-                                      More
-                                    </Button>
-                                    <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[180px]">
-                                      {!user.emailVerified && (
-                                        <button
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-64">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setUserToEdit(user);
+                                      setNewRole(user.role);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    Edit role
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => openProfileEditor(user)}
+                                    className="cursor-pointer"
+                                  >
+                                    Edit profile
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link href={`/profile/${user.id}`} className="cursor-pointer">
+                                      View public profile
+                                    </Link>
+                                  </DropdownMenuItem>
+
+                                  {!user.emailVerified &&
+                                    user.id !== (userToEdit?.id || "") &&
+                                    user.role !== "super_admin" && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
                                           onClick={() => handleResendVerification(user)}
-                                          className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
                                           disabled={pendingAction[`${user.id}:resend-verification`]}
+                                          className="cursor-pointer"
                                         >
                                           {pendingAction[`${user.id}:resend-verification`]
-                                            ? "Sending..."
+                                            ? "Sending…"
                                             : "Resend verification email"}
-                                        </button>
-                                      )}
-                                      {isSuperAdmin && (
-                                        <>
-                                          <button
-                                            onClick={() =>
-                                              handleUserControl("role", user.id, "contractor_user")
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+
+                                  {canRunSuperActions && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          const key = `${user.id}:impersonate`;
+                                          setPendingAction((prev) => ({ ...prev, [key]: true }));
+                                          try {
+                                            const res = await fetch(
+                                              `/api/admin/impersonate/start/${user.id}`,
+                                              {
+                                                method: "POST",
+                                                credentials: "include",
+                                              }
+                                            );
+                                            if (!res.ok) {
+                                              const err = await res.json().catch(() => ({}));
+                                              throw new Error(
+                                                err.message || "Impersonation failed"
+                                              );
                                             }
-                                            className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
-                                            disabled={
-                                              pendingAction[`${user.id}:role:contractor_user`]
-                                            }
-                                          >
-                                            {pendingAction[`${user.id}:role:contractor_user`]
-                                              ? "Working…"
-                                              : "Set Contractor"}
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleUserControl("role", user.id, "homeowner")
-                                            }
-                                            className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
-                                            disabled={pendingAction[`${user.id}:role:homeowner`]}
-                                          >
-                                            {pendingAction[`${user.id}:role:homeowner`]
-                                              ? "Working…"
-                                              : "Set Homeowner"}
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              {/* (Optional) Delete user button, if ever enabled */}
-                              {/* {user.id !== user.id && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDeleteUser(user.id, user.role)}
-                                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                  title="Delete user"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              )} */}
-                            </div>
-                          )}
+                                            toast({ title: "Impersonation started" });
+                                            window.location.reload();
+                                          } catch (err: any) {
+                                            toast({
+                                              title: "Error",
+                                              description: err.message || "Impersonation failed",
+                                              variant: "destructive",
+                                            });
+                                            setPendingAction((prev) => ({ ...prev, [key]: false }));
+                                          }
+                                        }}
+                                        disabled={pendingAction[`${user.id}:impersonate`]}
+                                        className="cursor-pointer"
+                                      >
+                                        {pendingAction[`${user.id}:impersonate`]
+                                          ? "Working…"
+                                          : "Impersonate"}
+                                      </DropdownMenuItem>
+
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => handleUserControl("suspend", user.id)}
+                                        disabled={
+                                          pendingAction[`${user.id}:suspend`] ||
+                                          user.verificationStatus === "suspended"
+                                        }
+                                        className="cursor-pointer text-destructive"
+                                      >
+                                        {pendingAction[`${user.id}:suspend`]
+                                          ? "Working…"
+                                          : "Suspend"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleUserControl("unsuspend", user.id)}
+                                        disabled={pendingAction[`${user.id}:unsuspend`]}
+                                        className="cursor-pointer"
+                                      >
+                                        {pendingAction[`${user.id}:unsuspend`]
+                                          ? "Working…"
+                                          : "Unsuspend"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleUserControl("verify", user.id)}
+                                        disabled={
+                                          pendingAction[`${user.id}:verify`] ||
+                                          user.verificationStatus === "approved"
+                                        }
+                                        className="cursor-pointer"
+                                      >
+                                        {pendingAction[`${user.id}:verify`] ? "Working…" : "Verify"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleUserControl("revoke_verify", user.id)}
+                                        disabled={pendingAction[`${user.id}:revoke_verify`]}
+                                        className="cursor-pointer"
+                                      >
+                                        {pendingAction[`${user.id}:revoke_verify`]
+                                          ? "Working…"
+                                          : "Revoke verify"}
+                                      </DropdownMenuItem>
+
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleUserControl("role", user.id, "contractor_user")
+                                        }
+                                        disabled={pendingAction[`${user.id}:role:contractor_user`]}
+                                        className="cursor-pointer"
+                                      >
+                                        {pendingAction[`${user.id}:role:contractor_user`]
+                                          ? "Working…"
+                                          : "Set Contractor"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleUserControl("role", user.id, "homeowner")
+                                        }
+                                        disabled={pendingAction[`${user.id}:role:homeowner`]}
+                                        className="cursor-pointer"
+                                      >
+                                        {pendingAction[`${user.id}:role:homeowner`]
+                                          ? "Working…"
+                                          : "Set Homeowner"}
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );
