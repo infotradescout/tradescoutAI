@@ -1026,6 +1026,13 @@ export async function registerRoutes(app: any) {
       // Convert referral (associate the most recent click with this new user)
       if (referralCodeFromCookie) {
         try {
+          await persistLifetimeReferralOwner({
+            referredUserId: user.id,
+            referralCode: referralCodeFromCookie,
+            conversionSource: "signup",
+            conversionType: "signup",
+            destination: "/create-account",
+          });
           await recordReferralClick({
             referralCode: referralCodeFromCookie,
             destination: "/create-account",
@@ -1257,7 +1264,10 @@ export async function registerRoutes(app: any) {
 
       const referralCode = String((row as any).referralCode || "").trim();
       if (referralCode) {
-        setReferralCookie(res, referralCode);
+        const existingRef = getCookieValue(req as any, "ts_ref");
+        if (!existingRef) {
+          setReferralCookie(res, referralCode);
+        }
         await recordReferralClick({
           referralCode,
           destination: row.fullUrl,
@@ -2236,6 +2246,83 @@ export async function registerRoutes(app: any) {
     } as any);
   }
 
+  async function persistLifetimeReferralOwner(params: {
+    referredUserId: string;
+    referralCode: string;
+    conversionSource: string;
+    conversionType: string;
+    destination?: string;
+  }) {
+    const referredUserId = String(params.referredUserId || "").trim();
+    const referralCode = String(params.referralCode || "").trim();
+    if (!referredUserId || !referralCode) return;
+
+    try {
+      const [account] = await db
+        .select({
+          id: affiliateAccounts.id,
+          affiliateId: affiliateAccounts.affiliateId,
+        })
+        .from(affiliateAccounts)
+        .where(eq(affiliateAccounts.referralCode, referralCode))
+        .limit(1);
+
+      if (!account?.id) return;
+      if (String(account.affiliateId) === referredUserId) return; // no self-attribution
+
+      const [current] = await db
+        .select({ referredByAffiliateAccountId: users.referredByAffiliateAccountId })
+        .from(users)
+        .where(eq(users.id, referredUserId))
+        .limit(1);
+
+      const existingOwner = current?.referredByAffiliateAccountId
+        ? String(current.referredByAffiliateAccountId)
+        : "";
+
+      // First-touch lifetime: never overwrite once set to a different affiliate.
+      if (existingOwner && existingOwner !== account.id) return;
+
+      if (!existingOwner) {
+        await db
+          .update(users)
+          .set({
+            referredByAffiliateAccountId: account.id,
+            referredAt: new Date(),
+          } as any)
+          .where(and(eq(users.id, referredUserId), isNull(users.referredByAffiliateAccountId)));
+      }
+
+      const [existingReferral] = await db
+        .select({ id: affiliateReferrals.id })
+        .from(affiliateReferrals)
+        .where(
+          and(
+            eq(affiliateReferrals.affiliateId, account.id),
+            eq(affiliateReferrals.referredUserId, referredUserId)
+          )
+        )
+        .limit(1);
+
+      if (!existingReferral?.id) {
+        await db
+          .insert(affiliateReferrals)
+          .values({
+            affiliateId: account.id,
+            referredUserId,
+            shareLinkId: null,
+            customLink: params.destination || null,
+            conversionSource: params.conversionSource || "unknown",
+            conversionType: params.conversionType || "signup",
+            couponCode: null,
+          } as any)
+          .catch(() => {});
+      }
+    } catch {
+      // Never block auth flows on referral persistence.
+    }
+  }
+
   // Referral attribution middleware:
   // - If a visitor arrives with ?ref=CODE, persist it in a cookie for later signup conversion.
   // - If a visitor lands on a public profile/business page without ?ref=..., attribute to the
@@ -2256,15 +2343,17 @@ export async function registerRoutes(app: any) {
         typeof (req.query as any)?.ref === "string" ? String((req.query as any).ref).trim() : "";
       const existingRef = getCookieValue(req, "ts_ref");
 
-      // Explicit referrals always win and can overwrite existing cookie.
+      // Explicit referrals are recorded, but cookie attribution is first-touch (lifetime) and will not overwrite.
       if (explicitRef) {
-        setReferralCookie(res, explicitRef);
         await recordReferralClick({
           referralCode: explicitRef,
           destination: req.originalUrl || path,
           source: "query_ref",
           conversionType: "click",
         }).catch(() => {});
+        if (!existingRef) {
+          setReferralCookie(res, explicitRef);
+        }
         return next();
       }
 
@@ -2413,6 +2502,16 @@ export async function registerRoutes(app: any) {
       passport.authenticate("facebook", { failureRedirect: "/login" }),
       (req: Request, res: Response) => {
         const user = req.user as any;
+        const referralCodeFromCookie = getCookieValue(req, "ts_ref");
+        if (user && referralCodeFromCookie) {
+          persistLifetimeReferralOwner({
+            referredUserId: String(user?.id || user?.claims?.sub || ""),
+            referralCode: referralCodeFromCookie,
+            conversionSource: "facebook_oauth",
+            conversionType: (user as any)?._wasNewSocialUser ? "oauth_signup" : "oauth_login",
+            destination: req.originalUrl || "/",
+          }).catch(() => {});
+        }
         maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
@@ -2471,6 +2570,16 @@ export async function registerRoutes(app: any) {
       }),
       (req: Request, res: Response) => {
         const user = req.user as any;
+        const referralCodeFromCookie = getCookieValue(req, "ts_ref");
+        if (user && referralCodeFromCookie) {
+          persistLifetimeReferralOwner({
+            referredUserId: String(user?.id || user?.claims?.sub || ""),
+            referralCode: referralCodeFromCookie,
+            conversionSource: "google_oauth",
+            conversionType: (user as any)?._wasNewSocialUser ? "oauth_signup" : "oauth_login",
+            destination: req.originalUrl || "/",
+          }).catch(() => {});
+        }
         maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};

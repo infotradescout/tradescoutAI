@@ -8665,7 +8665,47 @@ export class DatabaseStorage implements IStorage {
           isNotNull(affiliateReferrals.referredUserId)
         )
       );
-    return referral;
+    if (referral) return referral;
+
+    // Lifetime attribution fallback: if the user has a persisted referral owner,
+    // ensure we can resolve a referral record for commission tracking.
+    const [u] = await db
+      .select({ referredByAffiliateAccountId: users.referredByAffiliateAccountId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const affiliateAccountId = (u as any)?.referredByAffiliateAccountId
+      ? String((u as any).referredByAffiliateAccountId)
+      : "";
+    if (!affiliateAccountId) return undefined;
+
+    const [existing] = await db
+      .select()
+      .from(affiliateReferrals)
+      .where(
+        and(
+          eq(affiliateReferrals.affiliateId, affiliateAccountId),
+          eq(affiliateReferrals.referredUserId, userId)
+        )
+      )
+      .limit(1);
+    if (existing) return existing as any;
+
+    const [created] = await db
+      .insert(affiliateReferrals)
+      .values({
+        affiliateId: affiliateAccountId,
+        referredUserId: userId,
+        shareLinkId: null,
+        customLink: null,
+        conversionSource: "lifetime_fallback",
+        conversionType: "lifetime",
+        couponCode: null,
+      } as any)
+      .returning();
+
+    return created as any;
   }
 
   // Commission management

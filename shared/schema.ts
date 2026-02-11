@@ -404,6 +404,10 @@ export const users = pgTable("users", {
   profileVersion: integer("profile_version").default(0),
   referralCode: varchar("referral_code"),
   invitedBy: varchar("invited_by"),
+  // Lifetime affiliate attribution (first-touch): persists after signup so commissions are durable.
+  // DB has FK to affiliate_accounts; kept as plain varchar here to avoid forward-ref issues.
+  referredByAffiliateAccountId: varchar("referred_by_affiliate_account_id"),
+  referredAt: timestamp("referred_at"),
   preferences: jsonb("preferences").$type<{
     emailNotifications?: boolean;
     smsNotifications?: boolean;
