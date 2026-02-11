@@ -8625,15 +8625,26 @@ export class DatabaseStorage implements IStorage {
 
     if (!account) return;
 
-    await db
-      .update(affiliateReferrals)
-      .set({ referredUserId: userId })
+    // Convert only the most recent unconverted referral to avoid
+    // attributing multiple historical clicks to a single signup.
+    const [latest] = await db
+      .select({ id: affiliateReferrals.id })
+      .from(affiliateReferrals)
       .where(
         and(
           eq(affiliateReferrals.affiliateId, account.id),
           isNull(affiliateReferrals.referredUserId)
         )
-      );
+      )
+      .orderBy(desc(affiliateReferrals.createdAt))
+      .limit(1);
+
+    if (!latest?.id) return;
+
+    await db
+      .update(affiliateReferrals)
+      .set({ referredUserId: userId })
+      .where(eq(affiliateReferrals.id, latest.id));
   }
 
   async getReferralsByAffiliate(affiliateProgramId: string): Promise<AffiliateReferral[]> {

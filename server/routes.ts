@@ -50,6 +50,8 @@ import {
   affiliateAccounts,
   affiliateReferrals,
   affiliatePayouts,
+  affiliateShareLinks,
+  affiliateTrafficEvents,
   generatedStories,
   leads,
   quotes,
@@ -152,7 +154,7 @@ type AuthedHandler = (
   res: Response,
   next: NextFunction
 ) => void | Promise<void>;
-import { eq, desc, and, or, sql, gt, gte, lte, asc, inArray } from "drizzle-orm";
+import { eq, desc, and, or, sql, gt, gte, lte, asc, inArray, isNull } from "drizzle-orm";
 // Removed duplicate User import
 // Stubs for undeclared globals
 const program = {};
@@ -846,6 +848,9 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "User already exists" });
       }
 
+      // Referral attribution (cookie-first) — best-effort, never blocks signup.
+      const referralCodeFromCookie = getCookieValue(req, "ts_ref");
+
       // CLAIM-FIRST: userTypes are now optional provisional preferences, not required identity
       // Empty array is valid - allows users to skip and define intent later
 
@@ -1018,6 +1023,21 @@ export async function registerRoutes(app: any) {
         createdViaScout: typeof body.source === "string" && body.source.toLowerCase() === "scout",
       });
 
+      // Convert referral (associate the most recent click with this new user)
+      if (referralCodeFromCookie) {
+        try {
+          await recordReferralClick({
+            referralCode: referralCodeFromCookie,
+            destination: "/create-account",
+            source: "signup",
+            conversionType: "signup",
+          });
+          await storage.convertReferral(referralCodeFromCookie, user.id);
+        } catch (err) {
+          console.error("[affiliate] Failed to convert referral on signup", err);
+        }
+      }
+
       // Auto-login after registration
       req.login(userForLogin, (err) => {
         if (err) {
@@ -1102,6 +1122,176 @@ export async function registerRoutes(app: any) {
       }
     }
   );
+
+  // Custom referral links (short /r/:slug routes)
+  app.get("/api/affiliate/share-links", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+
+      let program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        program = await storage.createAffiliateProgram({ userId } as any);
+      }
+
+      const links = await db
+        .select()
+        .from(affiliateShareLinks)
+        .where(eq(affiliateShareLinks.affiliateId, program.id))
+        .orderBy(desc(affiliateShareLinks.createdAt))
+        .limit(50);
+
+      const baseUrl =
+        process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com";
+
+      res.json({
+        links: (links || []).map((l: any) => ({
+          id: l.id,
+          slug: l.friendlySlug,
+          description: l.description,
+          destinationUrl: l.fullUrl,
+          shortUrl: l.friendlySlug
+            ? `${baseUrl.replace(/\/$/, "")}/r/${encodeURIComponent(l.friendlySlug)}`
+            : null,
+          createdAt: l.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Error listing affiliate share links:", error);
+      res.status(500).json({ message: "Failed to list share links" });
+    }
+  });
+
+  app.post("/api/affiliate/share-links", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+
+      const destination =
+        typeof req.body?.destination === "string" ? req.body.destination.trim() : "";
+      const slugInput = typeof req.body?.slug === "string" ? req.body.slug.trim() : "";
+      const description =
+        typeof req.body?.description === "string" ? req.body.description.trim() : "";
+
+      if (!destination || !destination.startsWith("/")) {
+        return res
+          .status(400)
+          .json({ message: "destination must be a relative path starting with '/'" });
+      }
+
+      const safeSlug = slugInput || `link-${Math.random().toString(36).slice(2, 8)}`;
+      if (!/^[a-z0-9-]{3,64}$/i.test(safeSlug)) {
+        return res
+          .status(400)
+          .json({ message: "slug must be 3-64 chars (letters, numbers, dash)" });
+      }
+
+      let program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        program = await storage.createAffiliateProgram({ userId } as any);
+      }
+
+      const referralCode = String((program as any).referralCode || "").trim();
+      if (!referralCode) {
+        return res.status(500).json({ message: "Affiliate referral code missing" });
+      }
+
+      const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
+      const full = new URL(destination, baseOrigin);
+      if (!full.searchParams.has("ref")) {
+        full.searchParams.set("ref", referralCode);
+      }
+
+      // Ensure unique slug
+      const [existing] = await db
+        .select({ id: affiliateShareLinks.id })
+        .from(affiliateShareLinks)
+        .where(eq(affiliateShareLinks.friendlySlug, safeSlug))
+        .limit(1);
+      if (existing?.id) {
+        return res.status(409).json({ message: "Slug already in use" });
+      }
+
+      const [created] = await db
+        .insert(affiliateShareLinks)
+        .values({
+          affiliateId: program.id,
+          userId,
+          fullUrl: full.toString(),
+          friendlySlug: safeSlug,
+          description: description || null,
+        } as any)
+        .returning();
+
+      res.status(201).json({
+        id: created.id,
+        slug: created.friendlySlug,
+        destinationUrl: created.fullUrl,
+        shortUrl: `${baseOrigin}/r/${encodeURIComponent(String(created.friendlySlug || safeSlug))}`,
+      });
+    } catch (error: any) {
+      console.error("Error creating affiliate share link:", error);
+      res.status(500).json({ message: "Failed to create share link" });
+    }
+  });
+
+  // Public redirect for a share link slug
+  app.get("/r/:slug", async (req: any, res: any) => {
+    try {
+      const slug = typeof req.params?.slug === "string" ? req.params.slug.trim() : "";
+      if (!slug) return res.redirect(302, "/");
+
+      const [row] = await db
+        .select({
+          id: affiliateShareLinks.id,
+          fullUrl: affiliateShareLinks.fullUrl,
+          affiliateId: affiliateShareLinks.affiliateId,
+          referralCode: affiliateAccounts.referralCode,
+        })
+        .from(affiliateShareLinks)
+        .leftJoin(affiliateAccounts, eq(affiliateAccounts.id, affiliateShareLinks.affiliateId))
+        .where(eq(affiliateShareLinks.friendlySlug, slug))
+        .limit(1);
+
+      if (!row?.id || !row.fullUrl) return res.redirect(302, "/");
+
+      const referralCode = String((row as any).referralCode || "").trim();
+      if (referralCode) {
+        setReferralCookie(res, referralCode);
+        await recordReferralClick({
+          referralCode,
+          destination: row.fullUrl,
+          source: "share_link",
+          conversionType: "click",
+        }).catch(() => {});
+      }
+
+      // Record traffic event (non-blocking)
+      try {
+        const ipHeader = (req.headers["x-forwarded-for"] || req.headers["x-real-ip"]) as
+          | string
+          | undefined;
+        const ipAddress = ipHeader?.split(",")[0]?.trim() || req.ip || null;
+        const userAgent = (req.headers["user-agent"] as string | undefined) ?? null;
+        await db.insert(affiliateTrafficEvents).values({
+          shareLinkId: row.id,
+          ipAddress,
+          userAgent,
+          conversionSource: "share_link",
+          conversionType: "click",
+          conversionsCount: 1,
+          computedConversion: false,
+        } as any);
+      } catch {
+        // ignore
+      }
+
+      return res.redirect(302, row.fullUrl);
+    } catch (error) {
+      console.error("Error resolving share link slug:", error);
+      return res.redirect(302, "/");
+    }
+  });
 
   app.put("/api/affiliate/settings", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -1973,6 +2163,186 @@ export async function registerRoutes(app: any) {
   }
 
   // Auth middleware already initialized at the top of registerRoutes
+
+  function getCookieValue(req: Request, key: string): string | null {
+    const header = String(req.headers.cookie || "");
+    if (!header) return null;
+    const parts = header.split(";").map((p) => p.trim());
+    for (const part of parts) {
+      if (!part) continue;
+      const idx = part.indexOf("=");
+      if (idx <= 0) continue;
+      const k = part.slice(0, idx).trim();
+      if (k !== key) continue;
+      try {
+        return decodeURIComponent(part.slice(idx + 1));
+      } catch {
+        return part.slice(idx + 1);
+      }
+    }
+    return null;
+  }
+
+  function setReferralCookie(res: Response, referralCode: string) {
+    const safe = String(referralCode || "").trim();
+    if (!safe) return;
+    const maxAgeDays = 30;
+    const maxAgeSeconds = maxAgeDays * 24 * 60 * 60;
+    const cookie = [
+      `ts_ref=${encodeURIComponent(safe)}`,
+      "Path=/",
+      `Max-Age=${maxAgeSeconds}`,
+      "SameSite=Lax",
+      // Let the CDN/app decide; in production always secure.
+      process.env.NODE_ENV === "production" ? "Secure" : "",
+    ]
+      .filter(Boolean)
+      .join("; ");
+
+    const existing = res.getHeader("Set-Cookie");
+    if (!existing) {
+      res.setHeader("Set-Cookie", cookie);
+      return;
+    }
+    const arr = Array.isArray(existing) ? existing : [String(existing)];
+    res.setHeader("Set-Cookie", [...arr, cookie]);
+  }
+
+  async function recordReferralClick(params: {
+    referralCode: string;
+    destination: string;
+    source: string;
+    conversionType?: string;
+  }) {
+    const referralCode = String(params.referralCode || "").trim();
+    if (!referralCode) return;
+
+    const [account] = await db
+      .select()
+      .from(affiliateAccounts)
+      .where(eq(affiliateAccounts.referralCode, referralCode))
+      .limit(1);
+
+    if (!account) return;
+
+    await storage.trackReferralClick({
+      affiliateId: account.id,
+      referredUserId: null,
+      shareLinkId: null,
+      customLink: params.destination || null,
+      conversionSource: params.source || "unknown",
+      conversionType: params.conversionType || "click",
+      couponCode: null,
+    } as any);
+  }
+
+  // Referral attribution middleware:
+  // - If a visitor arrives with ?ref=CODE, persist it in a cookie for later signup conversion.
+  // - If a visitor lands on a public profile/business page without ?ref=..., attribute to the
+  //   page owner (clean URLs still count).
+  app.use(async (req: Request, res: Response, next: any) => {
+    try {
+      if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+      const path = String(req.path || "");
+      if (!path || path.startsWith("/api/")) return next();
+
+      // Ignore static assets
+      if (/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$/i.test(path)) {
+        return next();
+      }
+
+      const explicitRef =
+        typeof (req.query as any)?.ref === "string" ? String((req.query as any).ref).trim() : "";
+      const existingRef = getCookieValue(req, "ts_ref");
+
+      // Explicit referrals always win and can overwrite existing cookie.
+      if (explicitRef) {
+        setReferralCookie(res, explicitRef);
+        await recordReferralClick({
+          referralCode: explicitRef,
+          destination: req.originalUrl || path,
+          source: "query_ref",
+          conversionType: "click",
+        }).catch(() => {});
+        return next();
+      }
+
+      // No explicit ref: do not overwrite an existing referral cookie.
+      if (existingRef) return next();
+
+      // Clean public profile attribution (no ?ref=... required).
+      if (path.startsWith("/profile/")) {
+        const parts = path.split("/").filter(Boolean);
+        const profileId = parts[1] ? decodeURIComponent(parts[1]) : "";
+        if (!profileId) return next();
+
+        // Avoid self-attribution
+        const authedUserId =
+          ((req as any)?.user as any)?.id || ((req as any)?.user as any)?.claims?.sub || null;
+        if (authedUserId && String(authedUserId) === profileId) return next();
+
+        let program = await storage.getAffiliateProgram(profileId).catch(() => undefined);
+        if (!program) {
+          program = await storage
+            .createAffiliateProgram({ userId: profileId } as any)
+            .catch(() => undefined);
+        }
+        const referralCode = String((program as any)?.referralCode || "").trim();
+        if (!referralCode) return next();
+
+        setReferralCookie(res, referralCode);
+        await recordReferralClick({
+          referralCode,
+          destination: req.originalUrl || path,
+          source: "profile_clean",
+          conversionType: "profile_view",
+        }).catch(() => {});
+        return next();
+      }
+
+      if (path.startsWith("/business/")) {
+        const parts = path.split("/").filter(Boolean);
+        const slug = parts[1] ? decodeURIComponent(parts[1]) : "";
+        if (!slug) return next();
+
+        const [biz] = await db
+          .select({ ownerUserId: businesses.ownerUserId })
+          .from(businesses)
+          .where(eq(businesses.slug, slug))
+          .limit(1);
+
+        const ownerUserId = (biz as any)?.ownerUserId ? String((biz as any).ownerUserId) : "";
+        if (!ownerUserId) return next();
+
+        const authedUserId =
+          ((req as any)?.user as any)?.id || ((req as any)?.user as any)?.claims?.sub || null;
+        if (authedUserId && String(authedUserId) === ownerUserId) return next();
+
+        let program = await storage.getAffiliateProgram(ownerUserId).catch(() => undefined);
+        if (!program) {
+          program = await storage
+            .createAffiliateProgram({ userId: ownerUserId } as any)
+            .catch(() => undefined);
+        }
+        const referralCode = String((program as any)?.referralCode || "").trim();
+        if (!referralCode) return next();
+
+        setReferralCookie(res, referralCode);
+        await recordReferralClick({
+          referralCode,
+          destination: req.originalUrl || path,
+          source: "business_clean",
+          conversionType: "business_view",
+        }).catch(() => {});
+        return next();
+      }
+    } catch {
+      // Never block page loads on referral attribution.
+    }
+
+    return next();
+  });
 
   // Locality tracking middleware - track all interactions with geographic context
   app.use(localityTrackingMiddleware());

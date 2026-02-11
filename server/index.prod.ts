@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
 import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
-import { pool } from "./db";
+import { db, pool } from "./db";
 import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
@@ -18,6 +18,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
+import { affiliateAccounts } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -114,6 +116,56 @@ app.use((req, res, next) => {
     return res.redirect(301, redirectUrl);
   }
   next();
+});
+
+// Custom domains: redirect to canonical host with ?ref=... attached.
+const CUSTOM_DOMAIN_CACHE = new Map<string, { ref: string; at: number }>();
+const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+app.use(async (req, res, next) => {
+  try {
+    const rawHost = (req.headers.host || "").toString().toLowerCase();
+    const host = rawHost.split(":")[0];
+    if (!host) return next();
+
+    if (
+      host.endsWith("thetradescout.com") ||
+      host.includes("onrender.com") ||
+      host === "localhost" ||
+      host === "127.0.0.1"
+    ) {
+      return next();
+    }
+
+    const now = Date.now();
+    const cached = CUSTOM_DOMAIN_CACHE.get(host);
+    if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
+      const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+      const targetHost = "www.thetradescout.com";
+      const url = new URL(`${protocol}://${targetHost}${req.originalUrl || "/"}`);
+      if (!url.searchParams.has("ref")) url.searchParams.set("ref", cached.ref);
+      return res.redirect(301, url.toString());
+    }
+
+    const [account] = await db
+      .select({ referralCode: affiliateAccounts.referralCode })
+      .from(affiliateAccounts)
+      .where(eq(affiliateAccounts.customDomain, host))
+      .limit(1);
+
+    const ref = typeof account?.referralCode === "string" ? account.referralCode.trim() : "";
+    if (!ref) return next();
+
+    CUSTOM_DOMAIN_CACHE.set(host, { ref, at: now });
+
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const targetHost = "www.thetradescout.com";
+    const url = new URL(`${protocol}://${targetHost}${req.originalUrl || "/"}`);
+    if (!url.searchParams.has("ref")) url.searchParams.set("ref", ref);
+    return res.redirect(301, url.toString());
+  } catch {
+    return next();
+  }
 });
 
 const ALLOWED_ORIGINS: string[] = [

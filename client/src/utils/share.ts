@@ -12,7 +12,7 @@ async function fetchAffiliateCode(): Promise<string | null> {
       const res = await fetch("/api/affiliate/dashboard", {
         credentials: "include",
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
         },
       });
 
@@ -50,7 +50,7 @@ function resolveOrigin(): string {
 
 export async function buildAffiliateUrl(
   rawPathOrUrl: string,
-  options?: { affiliateCodeOverride?: string }
+  options?: { affiliateCodeOverride?: string; suppressRef?: boolean; forceRef?: boolean }
 ): Promise<string> {
   const origin = resolveOrigin();
 
@@ -73,7 +73,19 @@ export async function buildAffiliateUrl(
 
   try {
     const url = new URL(baseUrl, origin || undefined);
-    url.searchParams.set("ref", affiliateCode);
+
+    const pathname = url.pathname || "";
+    const looksLikePublicProfile =
+      pathname.startsWith("/profile/") || pathname.startsWith("/business/");
+
+    // Special rule: public profile links should stay clean (no ?ref=...),
+    // but still count as referrals server-side via clean attribution.
+    const suppressRef =
+      options?.forceRef === true ? false : options?.suppressRef === true || looksLikePublicProfile;
+
+    if (!suppressRef) {
+      url.searchParams.set("ref", affiliateCode);
+    }
     return url.toString();
   } catch {
     return baseUrl;
@@ -93,16 +105,32 @@ interface ShareOptions {
    * Optional explicit affiliate code when it is already known (e.g. on /affiliate dashboard).
    */
   affiliateCodeOverride?: string;
+  /**
+   * Keep the URL clean (no ?ref=...). Use for profile/business pages where
+   * server-side clean attribution counts as a referral without the query param.
+   */
+  suppressRef?: boolean;
+  /**
+   * Force attaching ?ref=... even if the path looks like a public profile.
+   */
+  forceRef?: boolean;
 }
 
 export async function share(options: ShareOptions): Promise<void> {
   const origin = resolveOrigin();
   const baseInput =
-    options.url ?? (options.path ? (options.path.startsWith("http") ? options.path : origin + options.path) : origin || "/");
+    options.url ??
+    (options.path
+      ? options.path.startsWith("http")
+        ? options.path
+        : origin + options.path
+      : origin || "/");
 
   try {
     const finalUrl = await buildAffiliateUrl(baseInput, {
       affiliateCodeOverride: options.affiliateCodeOverride,
+      suppressRef: options.suppressRef,
+      forceRef: options.forceRef,
     });
 
     const title = options.title;
@@ -154,14 +182,23 @@ export async function shareToPlatform(options: {
   title?: string;
   text?: string;
   affiliateCodeOverride?: string;
+  suppressRef?: boolean;
+  forceRef?: boolean;
 }): Promise<void> {
   const origin = resolveOrigin();
   const baseInput =
-    options.url ?? (options.path ? (options.path.startsWith("http") ? options.path : origin + options.path) : origin || "/");
+    options.url ??
+    (options.path
+      ? options.path.startsWith("http")
+        ? options.path
+        : origin + options.path
+      : origin || "/");
 
   try {
     const finalUrl = await buildAffiliateUrl(baseInput, {
       affiliateCodeOverride: options.affiliateCodeOverride,
+      suppressRef: options.suppressRef,
+      forceRef: options.forceRef,
     });
 
     const title = options.title || "Check this out";
