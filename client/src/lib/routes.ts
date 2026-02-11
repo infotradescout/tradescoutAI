@@ -28,7 +28,7 @@ export const ROUTES = {
 
   // Admin routes (require admin role)
   ADMIN_PANEL: "/admin",
-  ADMIN_DASHBOARD: "/admin/dashboard",
+  ADMIN_DASHBOARD: "/admin",
   ADMIN_USERS: "/admin/users",
 
   // Legal pages
@@ -42,7 +42,8 @@ export const ROUTES = {
     "/marketplace": "/exchange",
     "/exchange/list": "/exchange",
     "/contractors/dashboard": "/contractor-dashboard",
-    "/admin-dashboard": "/admin/dashboard",
+    "/admin-dashboard": "/admin",
+    "/admin/dashboard": "/admin",
     "/admin-users": "/admin/users",
     "/admin-panel": "/admin/panel",
   },
@@ -83,7 +84,7 @@ export const ADMIN_ROUTES = [
   ROUTES.ADMIN_DASHBOARD,
   ROUTES.ADMIN_USERS,
   // Added pricing analytics route to admin routes
-  "/admin/pricing-analytics",
+  "/admin/pricing",
 ];
 
 export function isPublicRoute(path: string): boolean {

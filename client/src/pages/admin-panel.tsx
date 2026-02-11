@@ -1009,7 +1009,7 @@ export default function AdminPanel() {
               variant="outline"
               size="sm"
               className="border-navy-600 text-slate-200 hover:bg-navy-900/60"
-              onClick={() => setLocation("/admin/error-reports")}
+              onClick={() => setLocation("/admin/errors")}
             >
               View full error report console
             </Button>
@@ -1073,7 +1073,7 @@ export default function AdminPanel() {
                   </p>
                   <Button
                     className="bg-orange-500 hover:bg-orange-600"
-                    onClick={() => setLocation("/admin/pricing-analytics")}
+                    onClick={() => setLocation("/admin/pricing")}
                   >
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Open Pricing Analytics

@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { MessageCircle, Shield, Users, LayoutDashboard, Settings, FileText, ListChecks } from "lucide-react";
+import { Shield, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getAdminNavSectionsForRole, type AdminRole } from "@/admin/adminTools";
 
 export interface AdminToolLink {
   id: string;
@@ -12,8 +13,6 @@ export interface AdminToolLink {
   href: string;
   description?: string;
 }
-
-export const SUPER_ADMIN_ROLES = ["ops_admin", "super_admin", "admin"] as const;
 
 export function buildPageTools(path: string): AdminToolLink[] {
   const tools: AdminToolLink[] = [];
@@ -55,7 +54,7 @@ export function buildPageTools(path: string): AdminToolLink[] {
       {
         id: "pricing-analytics",
         label: "Pricing Analytics",
-        href: "/admin/pricing-analytics",
+        href: "/admin/pricing",
         description: "Review Exchange fee performance & experiments",
       }
     );
@@ -65,7 +64,7 @@ export function buildPageTools(path: string): AdminToolLink[] {
     tools.push({
       id: "admin-workspace",
       label: "Ops Workspace",
-      href: "/admin/workspace",
+      href: "/admin/control",
       description: "System stats, flags, and verification queues",
     });
   }
@@ -73,40 +72,27 @@ export function buildPageTools(path: string): AdminToolLink[] {
   return tools;
 }
 
-export function buildAdminTools(path: string): AdminToolLink[] {
-  if (!path) return [] as AdminToolLink[];
+export function buildAdminTools(
+  path: string,
+  opts: { role: AdminRole; isSuperAdmin: boolean }
+): AdminToolLink[] {
+  // Backward compat: keep callsites, but source from the Admin OS registry.
+  // This ensures the floating launcher never drifts from the left nav/router.
+  const sections = getAdminNavSectionsForRole(opts.role, opts.isSuperAdmin);
+  const flattened = sections.flatMap((s) => s.items);
+
+  const registryTools: AdminToolLink[] = flattened.map((t) => ({
+    id: t.id,
+    label: t.label,
+    href: t.path,
+  }));
 
   const pageTools = buildPageTools(path);
-
-  const baseTools: AdminToolLink[] = [
-    {
-      id: "admin-dashboard",
-      label: "Admin Dashboard",
-      href: "/admin",
-      description: "Admin OS overview: coverage, ops, and queues",
-    },
-    {
-      id: "admin-users",
-      label: "User Management",
-      href: "/admin/users",
-      description: "Search, edit roles, and impersonate users",
-    },
-    {
-      id: "messages",
-      label: "Message Users",
-      href: "/messages",
-      description: "Jump into conversations & outreach",
-    },
-  ];
-
   const byId = new Map<string, AdminToolLink>();
-  [...pageTools, ...baseTools].forEach((tool) => {
-    if (!byId.has(tool.id)) {
-      byId.set(tool.id, tool);
-    }
+  [...pageTools, ...registryTools].forEach((tool) => {
+    if (!byId.has(tool.id)) byId.set(tool.id, tool);
   });
-
-  return Array.from(byId.values());
+  return Array.from(byId.values()).slice(0, 12);
 }
 
 export function AdminPageToolsBar() {
@@ -114,18 +100,15 @@ export function AdminPageToolsBar() {
   const [path, navigate] = useLocation();
   const [open, setOpen] = useState(false);
 
-  // Use the computed isSuperAdmin flag from the auth payload, with fallback to role check
-  const isSuperAdmin = !!(
-    isAuthenticated &&
-    ((user as any)?.isSuperAdmin === true ||
-     (user?.role && SUPER_ADMIN_ROLES.includes(user.role as (typeof SUPER_ADMIN_ROLES)[number])))
-  );
+  const isAdmin = Boolean(isAuthenticated && (user as any)?.isAdmin === true);
+  const role = ((user?.role as AdminRole) || "ops_admin") as AdminRole;
+  const isSuperAdmin = Boolean((user as any)?.isSuperAdmin === true);
 
   const tools = useMemo(() => {
-    return buildAdminTools(path || "");
-  }, [path]);
+    return buildAdminTools(path || "", { role, isSuperAdmin });
+  }, [path, role, isSuperAdmin]);
 
-  if (!isSuperAdmin || tools.length === 0) {
+  if (!isAdmin || tools.length === 0) {
     return null;
   }
 
@@ -142,7 +125,7 @@ export function AdminPageToolsBar() {
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-orange-400" />
               <span className="text-[0.7rem] uppercase tracking-[0.18em] text-slate-400">
-                Super Admin Tools
+                Admin Tools
               </span>
             </div>
             <span className="text-[0.7rem] text-slate-500">{path}</span>
@@ -160,14 +143,7 @@ export function AdminPageToolsBar() {
                 )}
               >
                 <span className="font-medium text-slate-50 flex items-center gap-1.5">
-                  {tool.id === "messages" && <MessageCircle className="h-3 w-3 text-orange-400" />}
-                  {tool.id === "admin-dashboard" && <LayoutDashboard className="h-3 w-3 text-orange-400" />}
-                  {tool.id === "admin-panel" && <Settings className="h-3 w-3 text-orange-400" />}
-                  {tool.id === "admin-users" && <Users className="h-3 w-3 text-orange-400" />}
-                  {tool.id === "listings-admin" && <ListChecks className="h-3 w-3 text-orange-400" />}
-                  {!["messages","admin-dashboard","admin-panel","admin-users","listings-admin"].includes(tool.id) && (
-                    <FileText className="h-3 w-3 text-orange-400" />
-                  )}
+                  <FileText className="h-3 w-3 text-orange-400" />
                   <span>{tool.label}</span>
                 </span>
                 {tool.description && (

@@ -819,27 +819,17 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/admin-dashboard">
                     <ProtectedRoute adminOnly>
-                      <RedirectTo to="/admin/dashboard" />
+                      <RedirectTo to="/admin" />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/dashboard">
+                    <ProtectedRoute adminOnly>
+                      <RedirectTo to="/admin" />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin-users">
                     <ProtectedRoute adminOnly>
                       <RedirectTo to="/admin/users" />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/panel">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminShell} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/business-import">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminShell} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/geo/coverage">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminShell} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/:rest*">

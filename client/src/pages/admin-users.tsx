@@ -1165,20 +1165,19 @@ export default function AdminUsers() {
                                     </Button>
                                   </div>
                                 )}
-                              {/* Role Quick Set Dropdown */}
-                              {isSuperAdmin &&
-                                user.id !== (userToEdit?.id || "") &&
+                              {/* Quick actions dropdown (resend is useful for all admin roles) */}
+                              {user.id !== (userToEdit?.id || "") &&
                                 user.role !== "super_admin" && (
                                   <div className="relative group">
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="border-secondary text-secondary-foreground group-hover:bg-secondary/10"
-                                      title="Quick set role"
+                                      title="Quick actions"
                                     >
                                       More
                                     </Button>
-                                    <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[160px]">
+                                    <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[180px]">
                                       {!user.emailVerified && (
                                         <button
                                           onClick={() => handleResendVerification(user)}
@@ -1190,30 +1189,34 @@ export default function AdminUsers() {
                                             : "Resend verification email"}
                                         </button>
                                       )}
-                                      <button
-                                        onClick={() =>
-                                          handleUserControl("role", user.id, "contractor_user")
-                                        }
-                                        className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
-                                        disabled={pendingAction[`${user.id}:role:contractor_user`]}
-                                      >
-                                        {" "}
-                                        {pendingAction[`${user.id}:role:contractor_user`]
-                                          ? "Working…"
-                                          : "Set Contractor"}{" "}
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          handleUserControl("role", user.id, "homeowner")
-                                        }
-                                        className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
-                                        disabled={pendingAction[`${user.id}:role:homeowner`]}
-                                      >
-                                        {" "}
-                                        {pendingAction[`${user.id}:role:homeowner`]
-                                          ? "Working…"
-                                          : "Set Homeowner"}{" "}
-                                      </button>
+                                      {isSuperAdmin && (
+                                        <>
+                                          <button
+                                            onClick={() =>
+                                              handleUserControl("role", user.id, "contractor_user")
+                                            }
+                                            className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
+                                            disabled={
+                                              pendingAction[`${user.id}:role:contractor_user`]
+                                            }
+                                          >
+                                            {pendingAction[`${user.id}:role:contractor_user`]
+                                              ? "Working…"
+                                              : "Set Contractor"}
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleUserControl("role", user.id, "homeowner")
+                                            }
+                                            className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted"
+                                            disabled={pendingAction[`${user.id}:role:homeowner`]}
+                                          >
+                                            {pendingAction[`${user.id}:role:homeowner`]
+                                              ? "Working…"
+                                              : "Set Homeowner"}
+                                          </button>
+                                        </>
+                                      )}
                                     </div>
                                   </div>
                                 )}

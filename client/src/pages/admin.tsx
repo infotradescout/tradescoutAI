@@ -1,41 +1,11 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
-import { Shield, Sparkles, Map as MapIcon, Activity, Users as UsersIcon } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { SuperAdminOSLayout } from "@/admin/SuperAdminOSLayout";
-import MissionControlV0 from "@/pages/MissionControlV0";
-import AdminUsers from "@/pages/admin-users";
-import AdminErrorReports from "@/pages/admin-error-reports";
-import AdminPricingAnalytics from "@/pages/admin-pricing-analytics";
-import AdminAddressVerifications from "@/pages/admin-address-verifications";
-import AdminListings from "@/pages/admin-listings";
-import AdminAttachments from "@/pages/admin-attachments";
-import AdminAffiliates from "@/pages/admin-affiliates";
-import { PromptAdminPage } from "@/pages/PromptAdminPage";
-import AdminToolDiscovery from "@/pages/admin-tool-discovery";
-import { UserHeatmap } from "@/components/UserHeatmap";
-import { FinanceLedgerPanel } from "@/components/admin/FinanceLedgerPanel";
-import { UIMonitoringDashboard } from "@/components/admin/UIMonitoringDashboard";
-import { AICodeFixingDashboard } from "@/components/admin/AICodeFixingDashboard";
-import { AdminPanelContent } from "@/pages/admin-panel";
-import AdminGeoCoverageConsole from "@/pages/admin-geo-coverage";
-import AdminUserManagement from "@/pages/AdminUserManagement";
-import AdminProfessionalVerification from "@/pages/admin-professional-verification";
-import AdminCreateAccount from "@/pages/admin-create-account";
-import AdminBusinessImport from "@/pages/admin-business-import";
-import AdminProvisionUser from "@/pages/admin-provision-user";
-import AdminPromotions from "@/pages/admin-promotions";
-import AdminControl from "@/pages/admin-control";
-import PlatformAnalytics from "@/pages/platform-analytics";
-import ContentModeration from "@/pages/content-moderation";
-import AdminObservability from "@/pages/admin-observability";
-import { RoleImpersonation } from "@/components/admin/RoleImpersonation";
+import { resolveAdminToolByLocation, type AdminRole } from "@/admin/adminTools";
 
 type AdminHealthResponse = {
   ok: boolean;
@@ -87,180 +57,37 @@ export default function AdminShell() {
   }
   return (
     <SuperAdminOSLayout>
-      <AdminContentRouter isSuperAdmin={Boolean(data?.isSuperAdmin)} />
+      <AdminContentRouter
+        role={((data?.role as AdminRole) || "ops_admin") as AdminRole}
+        isSuperAdmin={Boolean(data?.isSuperAdmin)}
+      />
     </SuperAdminOSLayout>
   );
 }
 
-function AdminContentRouter({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAdmin: boolean }) {
   const [location] = useLocation();
-  const path = location || "/admin";
-  const subPath = path.startsWith("/admin") ? path.substring("/admin".length) || "/" : path;
 
-  // Default: super admins get Mission Control; other admins land on Users.
-  if (subPath === "/" || subPath === "") {
-    return isSuperAdmin ? <MissionControlV0 /> : <AdminUsers />;
+  // Canonical Admin OS landing: super admins go to mission control, other admins go to users.
+  if ((location || "") === "/admin") {
+    const MissionControlV0 = React.lazy(() => import("@/pages/MissionControlV0"));
+    const AdminUsers = React.lazy(() => import("@/pages/admin-users"));
+    return (
+      <Suspense fallback={<PageLoadingSpinner message="Loading admin tools..." />}>
+        {isSuperAdmin ? <MissionControlV0 /> : <AdminUsers />}
+      </Suspense>
+    );
   }
 
-  if (subPath === "/mission-control") {
-    return <MissionControlV0 />;
-  }
+  const resolved = resolveAdminToolByLocation(location || "/admin", role, isSuperAdmin);
+  if (!resolved.tool) return <UnknownAdminRoute />;
+  if (!resolved.allowed) return <AdminAccessDenied />;
 
-  if (subPath === "/users") {
-    return <AdminUsers />;
-  }
-
-  if (subPath === "/business-import") {
-    return <AdminBusinessImport />;
-  }
-
-  if (subPath === "/create-admin") {
-    return <AdminCreateAccount />;
-  }
-
-  if (subPath === "/provision-user") {
-    return <AdminProvisionUser />;
-  }
-
-  if (subPath === "/user-management") {
-    return <AdminUserManagement />;
-  }
-
-  if (subPath.startsWith("/geo/counties")) {
-    return <UserHeatmap />;
-  }
-
-  if (subPath.startsWith("/geo/coverage")) {
-    return <AdminGeoCoverageConsole />;
-  }
-
-  if (subPath === "/impersonate") {
-    return <AdminImpersonationHub />;
-  }
-
-  if (subPath === "/errors" || subPath === "/error-reports") {
-    return <AdminErrorReports />;
-  }
-
-  // Growth & Marketplace: reuse the legacy Admin Panel tabs
-  // for Ads and Prizes while keeping everything inside the
-  // Super Admin OS shell.
-  if (subPath === "/ads") {
-    return <AdminPanelTabRedirect tab="advertisements" />;
-  }
-
-  if (subPath === "/prizes") {
-    return <AdminPanelTabRedirect tab="prizes" />;
-  }
-
-  if (subPath === "/pricing" || subPath === "/pricing-analytics") {
-    return <AdminPricingAnalytics />;
-  }
-
-  if (subPath === "/finance") {
-    return <FinanceLedgerPanel />;
-  }
-
-  if (subPath === "/verification" || subPath === "/address-verifications") {
-    return <AdminAddressVerifications />;
-  }
-
-  if (subPath === "/professional-verification") {
-    return <AdminProfessionalVerification />;
-  }
-
-  if (subPath === "/ai-monitoring") {
-    return <UIMonitoringDashboard />;
-  }
-
-  if (subPath === "/observability") {
-    return <AdminObservability />;
-  }
-
-  if (subPath === "/ai-fixes") {
-    return <AICodeFixingDashboard />;
-  }
-
-  if (subPath === "/panel") {
-    return <AdminPanelContent />;
-  }
-
-  if (subPath === "/workspace") {
-    return <AdminControl />;
-  }
-
-  if (subPath === "/attachments") {
-    return <AdminAttachments />;
-  }
-
-  if (subPath === "/affiliates") {
-    return <AdminAffiliates />;
-  }
-
-  // Platform Ops: Site and contractor settings, plus
-  // notification ops, are still administered via the
-  // consolidated Admin Panel tabs. We deep-link into those
-  // tabs instead of duplicating logic.
-  if (subPath === "/site-settings") {
-    return <AdminPanelTabRedirect tab="site-settings" />;
-  }
-
-  if (subPath === "/contractors") {
-    return <AdminPanelTabRedirect tab="contractor-settings" />;
-  }
-
-  if (subPath === "/notifications") {
-    return <AdminPanelTabRedirect tab="notification-ops" />;
-  }
-
-  if (subPath === "/testing" || subPath === "/testing-controls") {
-    return <AdminControl />;
-  }
-
-  if (subPath === "/system-prompt") {
-    return <PromptAdminPage />;
-  }
-
-  if (subPath === "/tool-discovery") {
-    return <AdminToolDiscovery />;
-  }
-
-  if (subPath === "/listings") {
-    return <AdminListings />;
-  }
-
-  if (subPath === "/promotions") {
-    return <AdminPromotions />;
-  }
-
-  if (subPath === "/control") {
-    return <AdminControl />;
-  }
-
-  if (subPath === "/authority-diagnostics") {
-    return <AdminControl />;
-  }
-
-  if (subPath === "/platform-analytics") {
-    return <PlatformAnalytics />;
-  }
-
-  // Intelligence & Automation: LLM admin / knowledge upload
-  // still live inside the Admin Panel as a dedicated tab.
-  if (subPath === "/llm" || subPath === "/knowledge") {
-    return <AdminPanelTabRedirect tab="llm-admin" />;
-  }
-
-  if (subPath === "/moderation") {
-    return <ContentModeration />;
-  }
-
-  if (subPath === "/dashboard") {
-    return isSuperAdmin ? <SuperAdminDashboard /> : <AdminAccessDenied />;
-  }
-
-  // For now, any unmapped admin path under /admin is treated as an unknown tool.
-  return <UnknownAdminRoute />;
+  return (
+    <Suspense fallback={<PageLoadingSpinner message="Loading admin tool..." />}>
+      {resolved.tool.render()}
+    </Suspense>
+  );
 }
 
 function AdminAccessDenied() {
@@ -283,162 +110,6 @@ function AdminAccessDenied() {
   );
 }
 
-function AdminPanelTabRedirect({ tab }: { tab: string }) {
-  const [, navigate] = useLocation();
-
-  React.useEffect(() => {
-    navigate(`/admin/panel?tab=${encodeURIComponent(tab)}`);
-  }, [navigate, tab]);
-
-  return <PageLoadingSpinner message="Opening admin workspace..." />;
-}
-
-function SuperAdminDashboard() {
-  type CoverageSummary = {
-    ok: boolean;
-    totalCounties: number;
-    unassignedCounties: number;
-    partiallyCoveredCounties: number;
-    fullyCoveredCounties: number;
-    verifiedCoverageRatePercent: number;
-    fullCoverageNewLast30: number;
-  };
-
-  const { data: coverage } = useQuery<CoverageSummary>({
-    queryKey: ["/api/admin/geo/coverage", "overview"],
-    queryFn: () => apiRequest("GET", "/api/admin/geo/coverage"),
-    staleTime: 60_000,
-  });
-
-  // This acts as the Admin Operations Overview: single landing surface for
-  // coverage, readiness, and urgent work, backed entirely by canonical
-  // geo endpoints and the existing map/console tools.
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-scout-500" />
-            Admin Operations Overview
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-            One control surface for coverage, readiness, and high-safety operations. Use the map and
-            coverage console below to drive assignments and repairs.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-[10px] text-slate-400">
-          <span className="inline-flex items-center gap-1">
-            <MapIcon className="w-3 h-3 text-sky-400" />
-            Map
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <UsersIcon className="w-3 h-3 text-emerald-400" />
-            Coverage
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Activity className="w-3 h-3 text-orange-400" />
-            Queues
-          </span>
-        </div>
-      </div>
-
-      <Separator className="bg-slate-800" />
-
-      {/* Map + queues */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
-        <Card className="bg-slate-950/60 border-slate-800 xl:col-span-2">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
-            <div>
-              <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
-                <MapIcon className="w-4 h-4 text-sky-400" />
-                Coverage & Demand Map
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Counties colored by coverage or metrics, with inline tools to assign TMs,
-                affiliates, and notes.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/40">
-              <UserHeatmap />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-950/60 border-slate-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-orange-400" />
-              Coverage & Risk Queues
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              High-signal slices from the coverage console: focus on where we are not ready or
-              recently changed.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0 text-xs text-slate-400 space-y-3">
-            {!coverage && <p className="text-slate-500">Loading coverage queueshellip;</p>}
-            {coverage && (
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="border-red-500/40 text-red-300">
-                    {coverage.unassignedCounties} unassigned counties
-                  </Badge>
-                  <Badge variant="outline" className="border-amber-500/40 text-amber-200">
-                    {coverage.partiallyCoveredCounties} partial
-                  </Badge>
-                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-200">
-                    {coverage.fullyCoveredCounties} full
-                  </Badge>
-                  <Badge variant="outline" className="border-sky-500/40 text-sky-200">
-                    {Math.round(coverage.verifiedCoverageRatePercent)}% verified coverage
-                  </Badge>
-                </div>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li>
-                    Focus first on <span className="font-semibold text-red-300">unassigned</span>{" "}
-                    counties to prevent demand from landing with no TM or affiliate.
-                  </li>
-                  <li>
-                    Use the Coverage Console filters for quick slices like
-                    <span className="font-mono text-[11px]"> status = partial</span> or
-                    <span className="font-mono text-[11px]"> hasRiskNote = true</span>.
-                  </li>
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Embedded coverage console */}
-      <Card className="bg-slate-950/60 border-slate-800">
-        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
-          <div>
-            <CardTitle className="text-sm text-slate-100">County Coverage Console</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              Full county list with readiness filters. Use this table to assign TMs and affiliates,
-              then jump into map view for spatial context.
-            </CardDescription>
-          </div>
-          <Link href="/admin/geo/coverage">
-            <Button size="sm" variant="outline" className="text-[11px]">
-              Open full console
-            </Button>
-          </Link>
-        </CardHeader>
-        <CardContent className="pt-0 text-xs text-slate-400">
-          <p className="mb-2">
-            The dedicated Coverage Console remains available at{" "}
-            <span className="font-mono text-[11px]">/admin/geo/coverage</span>.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 function UnknownAdminRoute() {
   const [location] = useLocation();
 
@@ -447,35 +118,16 @@ function UnknownAdminRoute() {
       <CardHeader>
         <CardTitle className="text-sm text-slate-100">Unknown admin tool</CardTitle>
         <CardDescription className="text-xs text-slate-400">
-          This admin path is not wired into the Super Admin OS yet.
+          This admin path is not wired into the Admin OS yet.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0 flex justify-between items-center text-xs text-slate-500">
         <span>Requested: {location}</span>
         <Link href="/admin">
           <Button size="sm" variant="outline">
-            Go to Super Admin dashboard
+            Go to Admin dashboard
           </Button>
         </Link>
-      </CardContent>
-    </Card>
-  );
-}
-
-function AdminImpersonationHub() {
-  return (
-    <Card className="bg-slate-950/60 border-slate-800">
-      <CardHeader>
-        <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
-          <UsersIcon className="h-4 w-4 text-scout-500" />
-          Role Impersonation
-        </CardTitle>
-        <CardDescription className="text-xs text-slate-400">
-          Test user-facing experiences safely from a single admin control surface.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <RoleImpersonation />
       </CardContent>
     </Card>
   );

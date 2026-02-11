@@ -1,4 +1,21 @@
-import { type LucideIcon, Home, Wrench, Building, Car, Users, Shield, Eye, Crown, Briefcase, UtensilsCrossed, Truck, Wine, Heart, Shield as ShieldIcon, CreditCard } from "lucide-react";
+import {
+  type LucideIcon,
+  Home,
+  Wrench,
+  Building,
+  Car,
+  Users,
+  Shield,
+  Eye,
+  Crown,
+  Briefcase,
+  UtensilsCrossed,
+  Truck,
+  Wine,
+  Heart,
+  Shield as ShieldIcon,
+  CreditCard,
+} from "lucide-react";
 import { getUserTypeMetadata } from "@shared/userTypes";
 
 export interface RoleUiConfig {
@@ -104,7 +121,7 @@ const BASE_ROLE_UI_CONFIG: Record<string, RoleUiConfig> = {
     userTypeId: "admin",
     icon: Eye,
     color: "bg-red-500",
-    dashboard: "/admin/dashboard",
+    dashboard: "/admin",
   },
   // Super Admin is the highest admin role.
   super_admin: {
@@ -135,9 +152,7 @@ export const SELF_SERVICE_ROLE_KEYS: string[] = [
 ];
 
 function prettifyId(id: string): string {
-  return id
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function getRoleUiConfig(roleKey: string): RoleUiConfig {

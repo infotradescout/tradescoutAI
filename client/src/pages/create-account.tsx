@@ -239,8 +239,12 @@ export default function CreateAccountPortal() {
         // Fail-soft: we'll handle fallback below.
       }
 
-      // Set Scout onboarding marker
-      localStorage.setItem("scout_onboarding_marker", "__SCOUT_ONBOARDING__");
+      // Set Scout onboarding marker (fail-soft for locked-down browsers / private mode).
+      try {
+        localStorage.setItem("scout_onboarding_marker", "__SCOUT_ONBOARDING__");
+      } catch {
+        // ignore
+      }
 
       toast({
         title: "Account created",

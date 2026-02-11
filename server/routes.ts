@@ -743,9 +743,9 @@ export async function registerRoutes(app: any) {
         if (loginErr) {
           return next(loginErr);
         }
-        // Best-effort: ensure unverified users receive a verification email even if
-        // their account was created via a non-standard path (imports, claims, OAuth, etc).
-        maybeSendEmailVerificationForUser(req, user).catch(() => {});
+        // Do not automatically resend verification on every login.
+        // Verification emails are sent during account creation / OAuth callback,
+        // and can be re-requested via /api/auth/request-email-verification.
         return res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
       });
     })(req, res, next);

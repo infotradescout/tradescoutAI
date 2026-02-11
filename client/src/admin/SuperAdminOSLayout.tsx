@@ -1,10 +1,10 @@
 import React from "react";
 import { useLocation } from "wouter";
 import {
-  SUPER_ADMIN_NAV,
   type SuperAdminNavItem,
   getSuperAdminNavForRole,
   type AdminRole,
+  findActiveItem,
 } from "./superAdminNav";
 import { SuperAdminLeftNav } from "./SuperAdminLeftNav";
 import { AdminHeader } from "./AdminHeader";
@@ -12,20 +12,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface SuperAdminOSLayoutProps {
   children: React.ReactNode;
-}
-
-function findActiveItem(pathname: string | null): SuperAdminNavItem | null {
-  if (!pathname) return null;
-  const flat: SuperAdminNavItem[] = SUPER_ADMIN_NAV.flatMap((s) => s.items);
-  for (const item of flat) {
-    if (pathname === item.path) return item;
-    if (item.path !== "/admin" && pathname.startsWith(item.path + "/")) return item;
-  }
-  // Fallback to dashboard if we're somewhere under /admin but not explicitly mapped
-  if (pathname.startsWith("/admin")) {
-    return flat.find((i) => i.path === "/admin") ?? null;
-  }
-  return null;
 }
 
 export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
