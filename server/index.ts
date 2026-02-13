@@ -3,6 +3,8 @@ import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
@@ -21,6 +23,7 @@ import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
 import { affiliateAccounts } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -97,6 +100,23 @@ for (const key of requiredEnv) {
 const app = express();
 // REQUIRED for secure cookies behind hosting proxies
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
+
+app.use((req, res, next) => {
+  const incoming = req.headers["x-request-id"];
+  const requestId =
+    typeof incoming === "string" && incoming.trim().length > 0 ? incoming.trim() : randomUUID();
+  (req as any).requestId = requestId;
+  res.setHeader("X-Request-Id", requestId);
+  next();
+});
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+app.use(compression());
 
 // Always serve on PORT (single entry for API + client); default 5000.
 const PORT = parseInt(process.env.PORT || "5000", 10);
@@ -259,8 +279,9 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // Core body parsing – MUST come before any API routes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
+app.use(express.json({ limit: bodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 
 // Serve uploaded files (dev + prod). In dev, this supports local file workflows and
 // in-app previews; in prod, this supports staff-accessible upload links.

@@ -19,6 +19,7 @@
 
 import type { Express } from "express";
 import { eq, desc, and, or, like, ilike, sql, inArray, notInArray } from "drizzle-orm";
+import { rateLimit } from "express-rate-limit";
 import { db } from "../src/db/drizzle-mock";
 import {
   decisionCards,
@@ -40,6 +41,48 @@ import {
 } from "./utils/contactRequests";
 
 export function registerSocialFeatures(app: Express) {
+  const isProductionEnv = process.env.NODE_ENV === "production";
+  const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
+
+  const rateLimitKey = (req: any) => {
+    const userId = req?.user?.claims?.sub || req?.user?.id;
+    if (userId) return `u:${userId}`;
+    return req.ip;
+  };
+
+  const decisionCardCreateLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 30,
+        message: "Too many decision cards created, please slow down",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+      })
+    : noopRateLimiter;
+
+  const socialSearchLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 30,
+        message: "Too many searches, please slow down",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+      })
+    : noopRateLimiter;
+
+  const conversationStartLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 30,
+        message: "Too many conversation attempts, please slow down",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+      })
+    : noopRateLimiter;
+
   /**
    * DECISION CARDS: Minimal creator endpoint
    *
@@ -55,6 +98,7 @@ export function registerSocialFeatures(app: Express) {
     "/api/decision-cards",
     isAuthenticated,
     requireOnboardingComplete,
+    decisionCardCreateLimiter,
     async (req: any, res: any) => {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;
@@ -103,6 +147,7 @@ export function registerSocialFeatures(app: Express) {
     "/api/social/search",
     isAuthenticated,
     requireOnboardingComplete,
+    socialSearchLimiter,
     async (req: any, res: any) => {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;
@@ -453,6 +498,7 @@ export function registerSocialFeatures(app: Express) {
     "/api/social/conversations/start",
     isAuthenticated,
     requireOnboardingComplete,
+    conversationStartLimiter,
     async (req: any, res: any) => {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;

@@ -633,6 +633,48 @@ export async function registerRoutes(app: any) {
       })
     : noopRateLimiter;
 
+  const rateLimitKey = (req: any) => {
+    const userId = req?.user?.claims?.sub || req?.user?.id;
+    if (userId) return `u:${userId}`;
+    const email =
+      typeof req?.body?.email === "string" ? String(req.body.email).trim().toLowerCase() : "";
+    if (email) return `ip:${req.ip}|e:${email}`;
+    return req.ip;
+  };
+
+  const registerLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 5,
+        message: "Too many registration attempts, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+      })
+    : noopRateLimiter;
+
+  const contractorSearchLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 60,
+        message: "Too many search requests, please slow down",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+      })
+    : noopRateLimiter;
+
+  const marketplaceSearchLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 60,
+        message: "Too many search requests, please slow down",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+      })
+    : noopRateLimiter;
+
   const parseOptionalIsoDate = (value?: string): Date | undefined => {
     if (!value) return undefined;
     const d = new Date(value);
@@ -1422,8 +1464,8 @@ export async function registerRoutes(app: any) {
   });
 
   // Backward compatibility: allow both /auth/register and /api/auth/register
-  app.post("/auth/register", handleRegister);
-  app.post("/api/auth/register", handleRegister);
+  app.post("/auth/register", registerLimiter, handleRegister);
+  app.post("/api/auth/register", registerLimiter, handleRegister);
 
   app.post(
     "/api/auth/request-email-verification",
@@ -4196,7 +4238,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Contractor search endpoint (alias for contractor listing with search params)
-  app.get("/api/contractors/search", async (req: any, res: any) => {
+  app.get("/api/contractors/search", contractorSearchLimiter, async (req: any, res: any) => {
     try {
       const { county, trade, query, sort, limit = 20, offset = 0 } = req.query;
 
@@ -14746,7 +14788,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Notification routes removed - using server/routes/notification-routes.ts
 
   // Advanced search and discovery
-  app.get("/api/marketplace/search", async (req: any, res: any) => {
+  app.get("/api/marketplace/search", marketplaceSearchLimiter, async (req: any, res: any) => {
     try {
       const {
         query,

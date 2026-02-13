@@ -1412,6 +1412,10 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private countiesCache = new Map<
+    string,
+    { expiresAt: number; rows: (County & { state?: { name: string; code: string } })[] }
+  >();
   private slugify(input: string): string {
     return String(input)
       .toLowerCase()
@@ -2325,6 +2329,14 @@ export class DatabaseStorage implements IStorage {
   async getCounties(
     stateCode?: string
   ): Promise<(County & { state?: { name: string; code: string } })[]> {
+    const ttlMs = Number(process.env.COUNTIES_CACHE_TTL_MS || 60 * 60 * 1000);
+    const cacheKey = stateCode ? `state:${stateCode}` : "all";
+    const now = Date.now();
+    const cached = this.countiesCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.rows;
+    }
+
     const query = db
       .select({
         id: counties.id,
@@ -2350,11 +2362,15 @@ export class DatabaseStorage implements IStorage {
 
     if (stateCode) {
       const rows = await query.where(eq(counties.stateCode, stateCode)).orderBy(asc(counties.name));
-      return normalize(rows);
+      const normalized = normalize(rows);
+      this.countiesCache.set(cacheKey, { expiresAt: now + ttlMs, rows: normalized });
+      return normalized;
     }
 
     const rows = await query.orderBy(asc(counties.name));
-    return normalize(rows);
+    const normalized = normalize(rows);
+    this.countiesCache.set(cacheKey, { expiresAt: now + ttlMs, rows: normalized });
+    return normalized;
   }
 
   async getCountyByFips(fips: string): Promise<County | undefined> {

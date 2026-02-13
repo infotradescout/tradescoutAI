@@ -11,12 +11,15 @@ if (process.env.NODE_ENV === "test") {
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
 import { emitHttpStatus } from "./observability/metrics";
 import path from "path";
 import { fileURLToPath } from "url";
+import { randomUUID } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +37,25 @@ function log(message: string, source = "express") {
 export async function createApp() {
   const app = express();
   app.set("trust proxy", 1);
+  app.disable("x-powered-by");
+
+  app.use((req, res, next) => {
+    const incoming = req.headers["x-request-id"];
+    const requestId =
+      typeof incoming === "string" && incoming.trim().length > 0 ? incoming.trim() : randomUUID();
+    (req as any).requestId = requestId;
+    res.setHeader("X-Request-Id", requestId);
+    next();
+  });
+
+  // Basic hardening + perf
+  app.use(
+    helmet({
+      // CSP is intentionally not enforced here; front-end surfaces may rely on inline assets.
+      contentSecurityPolicy: false,
+    })
+  );
+  app.use(compression());
 
   const PORT = parseInt(process.env.PORT || "5000", 10);
 
@@ -124,8 +146,9 @@ export async function createApp() {
   app.options("*", cors(corsOptions));
 
   // Body parsing
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
+  app.use(express.json({ limit: bodyLimit }));
+  app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 
   // Request logging (skip in test)
   if (process.env.NODE_ENV !== "test") {
