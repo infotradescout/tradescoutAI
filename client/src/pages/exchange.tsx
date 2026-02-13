@@ -640,6 +640,78 @@ export default function Exchange() {
         </TabsList>
 
         <TabsContent value="browse" className="space-y-4">
+          <Card className="bg-tsCard border-tsBorder">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-sm">Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                <Card
+                  className={`min-w-[180px] bg-slate-900/40 border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer ${
+                    !selectedCategory ? "border-orange-500/60" : ""
+                  }`}
+                  onClick={() => setSelectedCategory("")}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-orange-500/15 rounded-lg flex items-center justify-center">
+                        <Package className="h-5 w-5 text-orange-300" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-white truncate">All</div>
+                        <div className="text-[11px] text-slate-400 truncate">Browse everything</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {EXCHANGE_CATEGORIES.map((category) => {
+                  const IconComponent = category.icon;
+                  const active = selectedCategory === category.id;
+                  return (
+                    <Card
+                      key={category.id}
+                      className={`min-w-[180px] bg-slate-900/40 border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer ${
+                        active ? "border-orange-500/60" : ""
+                      }`}
+                      onClick={() => setSelectedCategory(category.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-orange-500/15 rounded-lg flex items-center justify-center">
+                            <IconComponent className="h-5 w-5 text-orange-300" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-white truncate">
+                              {category.name}
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate">
+                              {category.description}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
+                <div className="min-w-0 truncate">
+                  {activeCategoryMeta ? `Selected: ${activeCategoryMeta.name}` : "Selected: All"}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 border-slate-700 text-slate-200"
+                  onClick={() => setActiveTab("sell")}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Sell
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 xl:grid-cols-[260px,1fr] gap-4">
             <Card className="bg-tsCard border-tsBorder h-fit xl:sticky xl:top-20">
               <CardHeader className="pb-1">
@@ -658,20 +730,6 @@ export default function Exchange() {
                     className="h-9 pl-10 bg-slate-800 border-slate-700 text-white text-sm"
                   />
                 </div>
-
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {EXCHANGE_CATEGORIES.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
 
                 <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
