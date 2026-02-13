@@ -1275,9 +1275,15 @@ export async function registerRoutes(app: any) {
         program = await storage.createAffiliateProgram({ userId } as any);
       }
 
-      const referralCode = String((program as any).referralCode || "").trim();
+      let referralCode = String((program as any).referralCode || "").trim();
       if (!referralCode) {
-        return res.status(500).json({ message: "Affiliate referral code missing" });
+        // Server-side repair for legacy rows: missing referralCode is not a client fault.
+        referralCode = await storage.generateAffiliateCode(userId);
+        try {
+          await storage.updateAffiliateProgram(program.id, { referralCode } as any);
+        } catch {
+          // Best-effort: if the update fails, still attempt to proceed with the generated code.
+        }
       }
 
       const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
@@ -13894,9 +13900,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         program = await storage.createAffiliateProgram({ userId } as any);
       }
 
-      const referralCode = String((program as any).referralCode || "").trim();
+      let referralCode = String((program as any).referralCode || "").trim();
       if (!referralCode) {
-        return res.status(500).json({ message: "Affiliate referral code missing" });
+        // Server-side repair for legacy rows: missing referralCode is not a client fault.
+        referralCode = await storage.generateAffiliateCode(userId);
+        try {
+          await storage.updateAffiliateProgram(program.id, { referralCode } as any);
+        } catch {
+          // Best-effort: if the update fails, still attempt to proceed with the generated code.
+        }
       }
 
       const baseOrigin =

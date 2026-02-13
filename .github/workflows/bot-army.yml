@@ -14,11 +14,15 @@ jobs:
     name: Bot Army Regression Suite
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
 
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18.x]
+        node-version: [20.x]
 
     steps:
       - name: Checkout repository
@@ -44,6 +48,21 @@ jobs:
 
       - name: Production debt guard
         run: npm run audit:production-debt
+
+      - name: Secrets history guard
+        run: npm run audit:secrets-history
+
+      - name: Validate required test env
+        run: |
+          test -n "$TEST_DATABASE_URL"
+          test -n "$E2E_EMAIL"
+          test -n "$E2E_PASSWORD"
+
+      - name: Push schema to test DB
+        run: npm run db:push:test
+
+      - name: Seed E2E user
+        run: npm run seed:e2e-user
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
@@ -89,7 +108,7 @@ jobs:
 
       - name: Upload Bot Army report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bot-army-report
           path: tests/report/bot-army-report.html

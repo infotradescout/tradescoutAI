@@ -8454,17 +8454,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateAffiliateCode(userId: string): Promise<string> {
-    // Generate a unique affiliate code (e.g., JOHN2024ABC)
+    // Generate a unique-ish affiliate code (e.g., JOHN2026A1B2C3).
+    // Note: schema does not enforce uniqueness, so we proactively avoid collisions.
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
 
     const year = new Date().getFullYear();
-    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
     const baseName = (user.firstName || user.email?.split("@")[0] || "USER")
       .substring(0, 4)
       .toUpperCase();
 
-    return `${baseName}${year}${randomSuffix}`;
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const candidate = `${baseName}${year}${randomSuffix}`;
+      const [existing] = await db
+        .select({ id: affiliateAccounts.id })
+        .from(affiliateAccounts)
+        .where(eq(affiliateAccounts.referralCode, candidate))
+        .limit(1);
+      if (!existing?.id) return candidate;
+    }
+
+    // Fallback: longer random to avoid worst-case collisions.
+    return `TS${year}${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
   }
 
   async getWalletTransactionsForUser(

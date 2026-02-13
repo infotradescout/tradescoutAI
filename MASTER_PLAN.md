@@ -109,60 +109,22 @@ Done when:
 
 ## Open Implementation Gaps (Tracked)
 
-### Unimplemented APIs / Methods
-- `server/routes.ts:906` affiliate settings (501)
-- `server/routes.ts:5987` company promotions endpoint intentionally returns empty until implementation is complete
-- `server/routes.ts:11340` partnerships (501)
-- `server/routes.ts:11422` affiliate click tracking disabled (501)
-- `server/routes/admin.ts:1089` admin affiliate payouts (501)
-- `server/routes/transactions.ts:8` transactions API (501)
-- `server/routes/nationwide.ts:80` method not implemented
-- `server/routes/nationwide.ts:99` method not implemented
-- `server/routes/nationwide.ts:118` method not implemented
-- `server/routes/groups.ts:132` method not implemented
-- `server/storage.ts:8492` commission table fallback simulation
+### How We Track Gaps (Source Of Truth)
+- `npm run audit:http-semantics` (4xx vs 5xx correctness)
+- `npm run audit:authority-gates` (Intent -> Decision Card -> Contact)
+- `npm run audit:trust-leaks` (no stub/placeholder promise copy)
+- `npm run audit:production-debt` (no in-memory critical dependencies)
+- Release Gates workflow (e2e + guardrails) must be green before deploy
 
-### Security Blocker (Hard Stop)
-- `npm run audit:secrets-history` currently fails.
-- Sensitive files still present in git history:
-  - `secrets/db_password.txt`
-  - `secrets/gemini_api_key.txt`
-  - `secrets/session_secret.txt`
-  - `ssl/fullchain.pem`
-  - `ssl/privkey.pem`
-- Required to clear Workstream 5:
-  - rewrite history to remove secret-bearing files from all refs
-  - rotate all exposed credentials
-  - force-push updated refs
-
-### TODOs in Runtime Paths
-- `server/invoicingDocumentsRouter.ts:602`
-- `server/routes/admin-control.ts:122`
-- `server/routes/admin-control.ts:123`
-- `server/routes/admin-tool-discovery.ts:63`
-- `server/routes/authority-operations.ts:107`
-- `server/routes/authority-operations.ts:136`
-- `server/scout/governor.ts:226`
-- `server/scout/governor.ts:309`
-- `server/utils/verificationTelemetry.ts:56`
-- `server/services/countyService.ts:109`
-- `server/services/marketplaceService.ts:23`
-- `server/routes.ts:9825`
-- `server/routes.ts:9835`
-- `server/routes.ts:9845`
-- `server/routes.ts:9855`
-- `server/routes.ts:9865`
-- `server/routes.ts:9875`
-- `server/routes.ts:9885`
-- `server/routes.ts:10968`
-- `client/src/scout/ScoutOS.tsx:3450`
+### Security Status (Workstream 5)
+- Secrets-history remediation is complete as of **Feb 13, 2026**.
+- `npm run audit:secrets-history` must stay green in CI.
 
 ### User-Facing Stub/Coming Soon Debt
 - Cleared in current branch. Keep `Trust leak scan` in release checks to prevent regression.
 
 ### Test Debt Blocking Confidence
-- `tests/community-feed.e2e.spec.ts:7` real sign-in helper TODO
-- 29 placeholder skipped specs under `tests/agent/*` must be replaced or removed from gate criteria
+- Placeholder agent stub specs under `tests/agent/*` removed (they were skipped and not product coverage).
 
 ## Required Checks Before Any Production Deploy
 1. Intent-gate audit across Community, Direct Connect, Scout, and profile contact actions.
