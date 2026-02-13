@@ -161,7 +161,9 @@ export async function runHomeScoutBucketMetricsJob(): Promise<JobResult> {
       activeCount: Number(r.active_count) || 0,
       medianPrice: r.median_price == null ? null : Number(r.median_price),
       medianPricePerSqft: r.median_price_per_sqft == null ? null : Number(r.median_price_per_sqft),
-      medianDomDays: r.median_dom_days == null ? null : Number(r.median_dom_days),
+      // percentile_cont returns a numeric that may include decimals; store rounded days.
+      medianDomDays:
+        r.median_dom_days == null ? null : Math.max(0, Math.round(Number(r.median_dom_days))),
       priceDropCount7d: Number(r.price_drop_count_7d) || 0,
     };
 

@@ -46,7 +46,7 @@ if (!connectionString) {
   db = drizzle({ client: pool, schema });
 
   // Emit DB pool metrics every 60 seconds
-  setInterval(() => {
+  const poolMetricsTimer = setInterval(() => {
     try {
       const totalCount = pool.totalCount || 0;
       const idleCount = pool.idleCount || 0;
@@ -62,10 +62,12 @@ if (!connectionString) {
       console.error("Failed to emit pool metrics:", error);
     }
   }, 60_000); // Every 60 seconds
+  // Don't keep the process alive for background observability timers (scripts/tests/CLI).
+  poolMetricsTimer.unref?.();
 
   const OBS_BASELINE_RECOMPUTE_MS = Number(process.env.OBS_BASELINE_RECOMPUTE_MS || 15 * 60 * 1000);
   // Recompute observability baselines on a fixed cadence from real observed metrics.
-  setInterval(() => {
+  const baselineTimer = setInterval(() => {
     try {
       recomputeBaselinesFromObservedData();
     } catch (error) {
@@ -73,10 +75,11 @@ if (!connectionString) {
       console.error("Failed to recompute observability baselines:", error);
     }
   }, OBS_BASELINE_RECOMPUTE_MS);
+  baselineTimer.unref?.();
 
   // Evaluate alerts every 15 seconds (Phase 3)
   const { evaluateAlerts } = await import("./observability/alerts");
-  setInterval(() => {
+  const alertTimer = setInterval(() => {
     try {
       evaluateAlerts();
     } catch (error) {
@@ -84,6 +87,7 @@ if (!connectionString) {
       console.error("Failed to evaluate alerts:", error);
     }
   }, 15_000); // Every 15 seconds
+  alertTimer.unref?.();
 }
 
 export { db, pool };

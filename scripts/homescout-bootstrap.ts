@@ -20,6 +20,8 @@ import { runHomeScoutIngestionJob } from "../server/services/homeScoutIngestionJ
 import { runHomeScoutBucketMetricsJob } from "../server/services/homeScoutBucketMetricsJob";
 import { runHomeScoutAggregationJob } from "../server/services/homeScoutAggregationJob";
 import { runHomeScoutMarketMetricsJob } from "../server/services/homeScoutMarketMetricsJob";
+import fs from "fs/promises";
+import path from "path";
 
 type Args = {
   sourceKey: string;
@@ -31,6 +33,35 @@ type Args = {
   autoActivate: boolean;
   runAllSources: boolean;
 };
+
+async function applySqlFile(relPath: string) {
+  const abs = path.resolve(process.cwd(), relPath);
+  const sql = await fs.readFile(abs, "utf8");
+  await pool.query(sql);
+}
+
+async function ensureHomeScoutSchema() {
+  // We intentionally apply repo SQL migrations directly here because:
+  // - drizzle-kit migrate is not reliable in this repo (journal may be out of date)
+  // - drizzle-kit push can prompt interactively (rename detection)
+  const files = [
+    "migrations/0038_county_intelligence_containers.sql",
+    "migrations/0034_homescout_listings.sql",
+    "migrations/0035_homescout_search_indexes.sql",
+    "migrations/0036_homescout_reports.sql",
+    "migrations/0037_homescout_ingestion.sql",
+  ];
+
+  for (const f of files) {
+    try {
+      await applySqlFile(f);
+      console.log("[HomeScoutBootstrap] Applied:", f);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed applying ${f}: ${msg}`);
+    }
+  }
+}
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.findIndex((x) => x === `--${flag}` || x.startsWith(`--${flag}=`));
@@ -127,6 +158,8 @@ async function ensureSource(args: Args) {
 
 async function main() {
   const args = parseArgs();
+
+  await ensureHomeScoutSchema();
 
   const source = await ensureSource(args);
   if (!source) {

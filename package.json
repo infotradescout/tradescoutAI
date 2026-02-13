@@ -32,7 +32,7 @@
     "verify:no-vite": "node scripts/verify-no-vite-in-dist.mjs",
     "db:push": "drizzle-kit push",
     "db:push:test": "node scripts/withTestDb.mjs drizzle-kit push",
-    "db:migrate": "drizzle-kit migrate:deploy",
+    "db:migrate": "drizzle-kit migrate",
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
     "test:run:db": "npm run db:push:test && npm run test:run",
     "seed:test-user": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-test-user.ts",
@@ -60,7 +60,7 @@
     "prepare": "husky",
     "lint": "eslint .",
     "pack:repo": "node scripts/pack-repo.mjs --out repo-pack.md",
-    "homescout:bootstrap": "npm run db:migrate && cross-env NODE_ENV=development tsx -r dotenv/config scripts/homescout-bootstrap.ts",
+    "homescout:bootstrap": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/homescout-bootstrap.ts",
     "agents:builder": "cross-env AGENTS_ENABLED=true AGENT_ROLE=builder AGENT_WRITE_SCOPE=branches_only AGENT_DB_SCOPE=seed_only AGENT_INTENT_BUDGET=10 AGENT_MAX_PARALLEL=1 AGENT_HEARTBEAT_SEC=30 SCHEDULER_ENABLED=false DISABLE_CRAWLER=true node agent-runtime/agent-supervisor.js"
   },
   "dependencies": {

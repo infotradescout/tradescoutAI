@@ -17,7 +17,7 @@ npm run homescout:bootstrap
 
 This will:
 
-- Deploy Drizzle migrations (`drizzle-kit migrate:deploy`)
+- Apply required SQL migrations for HomeScout + county intelligence containers (without relying on `drizzle-kit push` prompts)
 - Ensure a HomeScout source exists: `seed_22105` (file: `data/homescout/seed-22105.json`)
 - Run ingestion for that source
 - Run bucket metrics + county metrics jobs (so listing pages show context)
@@ -41,4 +41,3 @@ Override the default seed file path:
 ```bash
 tsx -r dotenv/config scripts/homescout-bootstrap.ts --path data/homescout/seed-22105.json
 ```
-
