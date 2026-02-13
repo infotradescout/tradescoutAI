@@ -6909,10 +6909,44 @@ export async function registerRoutes(app: any) {
   // Exchange routes
   app.get("/api/exchange/items", async (req: any, res: any) => {
     try {
+      // Exchange is not location-gated. Locality params are treated as a sort preference, not a filter.
+      const preferredStateCode =
+        typeof req.query.stateCode === "string"
+          ? String(req.query.stateCode)
+          : typeof req.query.state === "string" && String(req.query.state).length === 2
+            ? String(req.query.state)
+            : undefined;
+
+      const preferredCountyFips =
+        typeof req.query.countyFips === "string"
+          ? String(req.query.countyFips)
+          : typeof req.query.county === "string" && /^\d{5}$/.test(String(req.query.county))
+            ? String(req.query.county)
+            : undefined;
+
+      // Resolve county name when caller provides FIPS, so we can prefer either legacy county strings or FIPS.
+      let preferredCountyName: string | undefined;
+      if (preferredCountyFips) {
+        try {
+          const countyRow = await storage.getCountyByFips(preferredCountyFips);
+          if (countyRow?.name) preferredCountyName = String(countyRow.name);
+        } catch {
+          // Ignore geo lookup failures; preference ordering can still use FIPS.
+        }
+      }
+
       const listings = await storage.getMarketplaceListings({
         categoryId: req.query.categoryId as string,
-        county: req.query.county as string,
-        state: req.query.state as string,
+        // Keep explicit county/state filters available for callers that truly want filtering.
+        county:
+          typeof req.query.filterCounty === "string"
+            ? (req.query.filterCounty as string)
+            : undefined,
+        state:
+          typeof req.query.filterState === "string" ? (req.query.filterState as string) : undefined,
+        preferredStateCode,
+        preferredCountyFips,
+        preferredCountyName,
         priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
         priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
         condition: req.query.condition as string,

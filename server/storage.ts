@@ -4563,6 +4563,9 @@ export class DatabaseStorage implements IStorage {
       categoryId?: string;
       county?: string;
       state?: string;
+      preferredCountyFips?: string;
+      preferredCountyName?: string;
+      preferredStateCode?: string;
       priceMin?: number;
       priceMax?: number;
       condition?: string;
@@ -4647,6 +4650,44 @@ export class DatabaseStorage implements IStorage {
       }
     })();
 
+    const preferredState = String(filters.preferredStateCode || "").trim();
+    const preferredCountyFips = String(filters.preferredCountyFips || "").trim();
+    const preferredCountyName = String(filters.preferredCountyName || "").trim();
+
+    const countyRankClause =
+      preferredCountyFips || preferredCountyName
+        ? desc(
+            sql<number>`CASE
+              WHEN ${
+                preferredCountyFips
+                  ? sql`lower(${marketplaceListings.county}) = lower(${preferredCountyFips})`
+                  : sql`false`
+              } THEN 3
+              WHEN ${
+                preferredCountyName
+                  ? sql`lower(${marketplaceListings.county}) = lower(${preferredCountyName})`
+                  : sql`false`
+              } THEN 3
+              WHEN ${
+                preferredCountyName
+                  ? sql`lower(${marketplaceListings.county}) LIKE lower(${preferredCountyName}) || '%'`
+                  : sql`false`
+              } THEN 2
+              ELSE 0
+            END`
+          )
+        : undefined;
+
+    const stateRankClause =
+      preferredState && preferredState.length === 2
+        ? desc(
+            sql<number>`CASE
+              WHEN lower(${marketplaceListings.state}) = lower(${preferredState}) THEN 1
+              ELSE 0
+            END`
+          )
+        : undefined;
+
     const offset = Math.max(0, Number(filters.offset ?? 0) || 0);
     const limitRequested = Number(filters.limit ?? 20) || 20;
     const limit = Math.min(100, Math.max(0, limitRequested));
@@ -4661,6 +4702,8 @@ export class DatabaseStorage implements IStorage {
       .orderBy(
         desc(marketplaceListings.isPromoted),
         desc(marketplaceListings.promotedUntil),
+        ...(countyRankClause ? [countyRankClause] : []),
+        ...(stateRankClause ? [stateRankClause] : []),
         orderByClause
       )
       .limit(limit)
