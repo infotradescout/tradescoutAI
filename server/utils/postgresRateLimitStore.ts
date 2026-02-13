@@ -1,0 +1,106 @@
+import type { Pool } from "@neondatabase/serverless";
+
+type StoreOptions = {
+  windowMs: number;
+};
+
+type IncrementResponse = {
+  totalHits: number;
+  resetTime: Date;
+};
+
+// Minimal Postgres-backed store for express-rate-limit.
+// This provides stable enforcement across multiple server instances without Redis.
+export function createPostgresRateLimitStore(params: {
+  pool: Pool;
+  prefix: string;
+  cleanupIntervalMs?: number;
+}): {
+  init: (options: StoreOptions) => void;
+  increment: (key: string) => Promise<IncrementResponse>;
+  decrement: (key: string) => Promise<void>;
+  resetKey: (key: string) => Promise<void>;
+} {
+  const { pool, prefix } = params;
+  let windowMs = 60_000;
+
+  const cleanupIntervalMs = Math.max(0, Number(params.cleanupIntervalMs ?? 0) || 0);
+  let cleanupTimer: NodeJS.Timeout | undefined;
+
+  const bucketKey = (key: string) => `${prefix}:${key}`;
+
+  const maybeStartCleanup = () => {
+    if (!cleanupIntervalMs || cleanupTimer) return;
+    cleanupTimer = setInterval(async () => {
+      try {
+        // Keep the table bounded without strict guarantees.
+        await pool.query(
+          "delete from rate_limit_buckets where reset_at < now() - interval '1 hour'"
+        );
+      } catch {
+        // Never crash on cleanup.
+      }
+    }, cleanupIntervalMs);
+    cleanupTimer.unref?.();
+  };
+
+  return {
+    init(options: StoreOptions) {
+      windowMs = Math.max(1, Number(options?.windowMs ?? 60_000) || 60_000);
+      maybeStartCleanup();
+    },
+
+    async increment(key: string): Promise<IncrementResponse> {
+      const k = bucketKey(key);
+      const ms = windowMs;
+
+      const sql = `
+        insert into rate_limit_buckets (bucket_key, hits, reset_at, created_at, updated_at)
+        values ($1, 1, now() + ($2::int * interval '1 millisecond'), now(), now())
+        on conflict (bucket_key) do update
+        set
+          hits = case
+            when rate_limit_buckets.reset_at > now() then rate_limit_buckets.hits + 1
+            else 1
+          end,
+          reset_at = case
+            when rate_limit_buckets.reset_at > now() then rate_limit_buckets.reset_at
+            else now() + ($2::int * interval '1 millisecond')
+          end,
+          updated_at = now()
+        returning hits, reset_at
+      `;
+
+      const res = await pool.query(sql, [k, ms]);
+      const row = res?.rows?.[0] as { hits?: number; reset_at?: string | Date } | undefined;
+      const totalHits = Number(row?.hits ?? 1) || 1;
+      const resetTime = row?.reset_at ? new Date(row.reset_at as any) : new Date(Date.now() + ms);
+      return { totalHits, resetTime };
+    },
+
+    async decrement(key: string): Promise<void> {
+      const k = bucketKey(key);
+      try {
+        await pool.query(
+          `
+          update rate_limit_buckets
+          set hits = greatest(hits - 1, 0), updated_at = now()
+          where bucket_key = $1
+        `,
+          [k]
+        );
+      } catch {
+        // Best-effort; never crash request path on decrement.
+      }
+    },
+
+    async resetKey(key: string): Promise<void> {
+      const k = bucketKey(key);
+      try {
+        await pool.query("delete from rate_limit_buckets where bucket_key = $1", [k]);
+      } catch {
+        // Best-effort.
+      }
+    },
+  };
+}

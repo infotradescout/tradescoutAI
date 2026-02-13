@@ -128,9 +128,10 @@ import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 import type { VerifyCallback } from "passport-google-oauth20";
-import { db } from "./db";
+import { db, pool } from "./db";
 import type { Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
+import { createPostgresRateLimitStore } from "./utils/postgresRateLimitStore";
 import Stripe from "stripe";
 import { paymentService } from "./payment-service";
 import { tutorialStorage } from "./tutorialStorage";
@@ -593,6 +594,14 @@ export async function registerRoutes(app: any) {
   // but we keep the limiter fully enabled in production.
   const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
 
+  const limiterStore = (prefix: string) =>
+    createPostgresRateLimitStore({
+      pool,
+      prefix: `rl:${prefix}`,
+      // Best-effort cleanup; safe to run on multiple instances.
+      cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 10 * 60 * 1000),
+    });
+
   const loginLimiter = isProductionEnv
     ? rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
@@ -600,6 +609,7 @@ export async function registerRoutes(app: any) {
         message: "Too many login attempts, please try again later",
         standardHeaders: true,
         legacyHeaders: false,
+        store: limiterStore("login"),
       })
     : noopRateLimiter;
 
@@ -610,6 +620,7 @@ export async function registerRoutes(app: any) {
         message: "Too many reset requests, please try again later",
         standardHeaders: true,
         legacyHeaders: false,
+        store: limiterStore("password_reset"),
       })
     : noopRateLimiter;
 
@@ -620,6 +631,7 @@ export async function registerRoutes(app: any) {
         message: "Too many verification requests, please try again later",
         standardHeaders: true,
         legacyHeaders: false,
+        store: limiterStore("email_verify"),
       })
     : noopRateLimiter;
 
@@ -630,6 +642,7 @@ export async function registerRoutes(app: any) {
         message: "Too many AI requests, please try again later",
         standardHeaders: true,
         legacyHeaders: false,
+        store: limiterStore("ai"),
       })
     : noopRateLimiter;
 
@@ -650,6 +663,7 @@ export async function registerRoutes(app: any) {
         standardHeaders: true,
         legacyHeaders: false,
         keyGenerator: rateLimitKey,
+        store: limiterStore("register"),
       })
     : noopRateLimiter;
 
@@ -661,6 +675,7 @@ export async function registerRoutes(app: any) {
         standardHeaders: true,
         legacyHeaders: false,
         keyGenerator: rateLimitKey,
+        store: limiterStore("contractor_search"),
       })
     : noopRateLimiter;
 
@@ -672,6 +687,7 @@ export async function registerRoutes(app: any) {
         standardHeaders: true,
         legacyHeaders: false,
         keyGenerator: rateLimitKey,
+        store: limiterStore("marketplace_search"),
       })
     : noopRateLimiter;
 

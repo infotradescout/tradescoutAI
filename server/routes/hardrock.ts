@@ -2,6 +2,8 @@ import type { Express, Request } from "express";
 import path from "path";
 import fs from "fs";
 import rateLimit from "express-rate-limit";
+import { pool } from "../db";
+import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { z } from "zod";
 import { emailService } from "../services/emailService";
 import { isStaff } from "../auth";
@@ -12,6 +14,11 @@ const hardrockApplyLimiter = rateLimit({
   limit: 25,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createPostgresRateLimitStore({
+    pool,
+    prefix: "rl:hardrock_apply",
+    cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 10 * 60 * 1000),
+  }),
 });
 
 export const hardrockApplySchema = z.object({

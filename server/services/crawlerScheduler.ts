@@ -6,6 +6,7 @@ import { runAffiliatesAggregationJob } from "./affiliatesAggregationJob";
 import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
 import { runTrustSnapshotsJob } from "./trustSnapshotsJob";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
+import { withAdvisoryLock } from "../utils/advisoryLocks";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -49,7 +50,13 @@ function startCrawlerJobs() {
   crawlerTask = cron.schedule(schedule, async () => {
     console.log(`\n🚀 [${new Date().toISOString()}] Running scheduled crawler...`);
     try {
-      await runCrawler();
+      const ran = await withAdvisoryLock("job:crawler", async () => {
+        await runCrawler();
+        return true;
+      });
+      if (ran === null) {
+        console.log("Skipping crawler run (advisory lock not acquired)");
+      }
     } catch (error) {
       console.error("❌ Scheduled crawler failed:", error);
     }
@@ -77,9 +84,14 @@ function startUsersAggregationScheduler() {
     console.log(`\n📊 [${new Date().toISOString()}] Running nightly users aggregation job...`);
     emitJobStart(jobName);
     try {
-      const result = await runUsersAggregationJob();
+      const result = await withAdvisoryLock(`job:${jobName}`, async () => runUsersAggregationJob());
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
       console.log("✅ Users aggregation job completed", result);
-      emitJobEnd(jobName, result.metricsWritten || 0, false);
+      emitJobEnd(jobName, (result as any).metricsWritten || 0, false);
     } catch (error) {
       console.error("❌ Users aggregation job failed:", error);
       emitJobError(jobName, error);
@@ -109,9 +121,16 @@ function startAffiliatesAggregationScheduler() {
     console.log(`\n📊 [${new Date().toISOString()}] Running nightly affiliates aggregation job...`);
     emitJobStart(jobName);
     try {
-      const result = await runAffiliatesAggregationJob();
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runAffiliatesAggregationJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
       console.log("✅ Affiliates aggregation job completed", result);
-      emitJobEnd(jobName, result.metricsWritten || 0, false);
+      emitJobEnd(jobName, (result as any).metricsWritten || 0, false);
     } catch (error) {
       console.error("❌ Affiliates aggregation job failed:", error);
       emitJobError(jobName, error);
@@ -143,9 +162,16 @@ function startTradeDealsAggregationScheduler() {
     );
     emitJobStart(jobName);
     try {
-      const result = await runTradeDealsAggregationJob();
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runTradeDealsAggregationJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
       console.log("✅ TradeDeals aggregation job completed", result);
-      emitJobEnd(jobName, result.metricsWritten || 0, false);
+      emitJobEnd(jobName, (result as any).metricsWritten || 0, false);
     } catch (error) {
       console.error("❌ TradeDeals aggregation job failed:", error);
       emitJobError(jobName, error);
@@ -175,9 +201,14 @@ function startTrustSnapshotsScheduler() {
     console.log(`\n📊 [${new Date().toISOString()}] Running nightly trust snapshots job...`);
     emitJobStart(jobName);
     try {
-      const result = await runTrustSnapshotsJob();
+      const result = await withAdvisoryLock(`job:${jobName}`, async () => runTrustSnapshotsJob());
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
       console.log("✅ Trust snapshots job completed", result);
-      emitJobEnd(jobName, result.inserted || 0, false);
+      emitJobEnd(jobName, (result as any).inserted || 0, false);
     } catch (error) {
       console.error("❌ Trust snapshots job failed:", error);
       emitJobError(jobName, error);

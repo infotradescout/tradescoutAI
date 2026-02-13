@@ -20,6 +20,8 @@
 import type { Express } from "express";
 import { eq, desc, and, or, like, ilike, sql, inArray, notInArray } from "drizzle-orm";
 import { rateLimit } from "express-rate-limit";
+import { pool } from "./db";
+import { createPostgresRateLimitStore } from "./utils/postgresRateLimitStore";
 import { db } from "../src/db/drizzle-mock";
 import {
   decisionCards,
@@ -44,6 +46,13 @@ export function registerSocialFeatures(app: Express) {
   const isProductionEnv = process.env.NODE_ENV === "production";
   const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
 
+  const limiterStore = (prefix: string) =>
+    createPostgresRateLimitStore({
+      pool,
+      prefix: `rl:${prefix}`,
+      cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 10 * 60 * 1000),
+    });
+
   const rateLimitKey = (req: any) => {
     const userId = req?.user?.claims?.sub || req?.user?.id;
     if (userId) return `u:${userId}`;
@@ -58,6 +67,7 @@ export function registerSocialFeatures(app: Express) {
         standardHeaders: true,
         legacyHeaders: false,
         keyGenerator: rateLimitKey,
+        store: limiterStore("decision_cards_create"),
       })
     : noopRateLimiter;
 
@@ -69,6 +79,7 @@ export function registerSocialFeatures(app: Express) {
         standardHeaders: true,
         legacyHeaders: false,
         keyGenerator: rateLimitKey,
+        store: limiterStore("social_search"),
       })
     : noopRateLimiter;
 
@@ -80,6 +91,7 @@ export function registerSocialFeatures(app: Express) {
         standardHeaders: true,
         legacyHeaders: false,
         keyGenerator: rateLimitKey,
+        store: limiterStore("conversation_start"),
       })
     : noopRateLimiter;
 

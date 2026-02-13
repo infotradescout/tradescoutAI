@@ -4555,12 +4555,16 @@ export class DatabaseStorage implements IStorage {
     if (filters.priceMax !== undefined) {
       conditions.push(sql`${marketplaceListings.price} <= ${filters.priceMax}`);
     }
-    if (filters.searchQuery) {
+    if (filters.searchQuery && String(filters.searchQuery).trim()) {
+      const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
+      const q = String(filters.searchQuery).trim();
+      const pattern = `%${escapeLike(q)}%`;
+
       const searchCondition = or(
-        like(marketplaceListings.title, `%${filters.searchQuery}%`),
-        like(marketplaceListings.description, `%${filters.searchQuery}%`),
-        like(marketplaceListings.brand, `%${filters.searchQuery}%`),
-        like(marketplaceListings.model, `%${filters.searchQuery}%`)
+        ilike(marketplaceListings.title, pattern),
+        ilike(marketplaceListings.description, pattern),
+        ilike(marketplaceListings.brand, pattern),
+        ilike(marketplaceListings.model, pattern)
       );
 
       if (searchCondition) {
@@ -4584,8 +4588,12 @@ export class DatabaseStorage implements IStorage {
       }
     })();
 
-    const limit = filters.limit ?? 20;
-    const offset = filters.offset ?? 0;
+    const offset = Math.max(0, Number(filters.offset ?? 0) || 0);
+    const limitRequested = Number(filters.limit ?? 20) || 20;
+    const limit = Math.min(100, Math.max(0, limitRequested));
+    if (limit === 0) {
+      return [];
+    }
 
     return await db
       .select()
