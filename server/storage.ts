@@ -412,6 +412,7 @@ import {
   workRequests,
   type WorkRequest,
   countyNotes,
+  trustSnapshots,
   type CountyNote,
   type InsertCountyNote,
 } from "@shared/schema";
@@ -5312,6 +5313,259 @@ export class DatabaseStorage implements IStorage {
     }
 
     return await q;
+  }
+
+  async listHomeScoutPartnerRecommendations(params: {
+    countyFips: string;
+    stateCode?: string;
+    limitPerCategory?: number;
+  }): Promise<
+    Array<{
+      category: "realtor" | "lender" | "inspector" | "trades";
+      userId: string | null;
+      displayName: string;
+      role: string | null;
+      company: string | null;
+      cvsScore: number | null;
+      source: "county_entity" | "network_fallback";
+      rankScore: number;
+      countyEntityId: string | null;
+      metadata: Record<string, any>;
+    }>
+  > {
+    const countyFips = String(params.countyFips || "").trim();
+    if (!/^\d{5}$/.test(countyFips)) return [];
+    const limitPerCategory = Math.max(1, Math.min(6, Number(params.limitPerCategory ?? 3)));
+
+    const ROLE_TO_CATEGORY = new Map<string, "realtor" | "lender" | "inspector" | "trades">([
+      ["realtor", "realtor"],
+      ["mortgage_broker", "lender"],
+      ["inspector", "inspector"],
+      ["home_inspector", "inspector"],
+      ["contractor_user", "trades"],
+      ["specialty_tradesperson", "trades"],
+      ["vendor", "trades"],
+      ["handyman", "trades"],
+      ["maintenance_contractor", "trades"],
+    ]);
+
+    const parseCategory = (
+      rawCategory: unknown,
+      rawRole: unknown
+    ): "realtor" | "lender" | "inspector" | "trades" | null => {
+      const c = String(rawCategory || "")
+        .toLowerCase()
+        .trim();
+      if (c === "realtor" || c === "agent" || c === "real_estate_agent") return "realtor";
+      if (c === "lender" || c === "mortgage" || c === "loan_officer") return "lender";
+      if (c === "inspector" || c === "home_inspector") return "inspector";
+      if (c === "trades" || c === "contractor" || c === "service_pro") return "trades";
+      return ROLE_TO_CATEGORY.get(String(rawRole || "").toLowerCase()) || null;
+    };
+
+    const asObj = (v: unknown): Record<string, any> =>
+      v && typeof v === "object" && !Array.isArray(v) ? (v as any) : {};
+    const toNum = (v: unknown): number | null => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+    const entityRows = await db
+      .select()
+      .from(countyEntities)
+      .where(
+        and(
+          eq(countyEntities.countyFips, countyFips),
+          eq(countyEntities.status, "active" as any),
+          inArray(countyEntities.entityType, ["partner", "vendor", "affiliate"] as any)
+        )
+      )
+      .orderBy(desc(countyEntities.updatedAt), desc(countyEntities.createdAt))
+      .limit(300);
+
+    const entityUserIds = Array.from(
+      new Set(
+        entityRows
+          .map((r) => (typeof r.entityId === "string" ? r.entityId.trim() : ""))
+          .filter(Boolean)
+      )
+    );
+
+    const entityUsers = entityUserIds.length
+      ? await db
+          .select({
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            role: users.role,
+            verificationStatus: users.verificationStatus,
+            countyFips: users.countyFips,
+            stateCode: users.stateCode,
+          })
+          .from(users)
+          .where(inArray(users.id, entityUserIds))
+      : [];
+
+    const latestEntityTrust = entityUserIds.length
+      ? await db.execute(sql`
+          SELECT DISTINCT ON (ts.user_id)
+            ts.user_id::text AS user_id,
+            ts.cvs_score::text AS cvs_score,
+            ts.verification_status::text AS verification_status
+          FROM trust_snapshots ts
+          WHERE ts.county_fips = ${countyFips}
+            AND ts.user_id = ANY(${entityUserIds}::text[])
+          ORDER BY ts.user_id, ts.computed_at DESC
+        `)
+      : { rows: [] as any[] };
+
+    const entityUserMap = new Map(entityUsers.map((u) => [String(u.id), u]));
+    const entityTrustMap = new Map(
+      (latestEntityTrust.rows as any[]).map((r) => [String(r.user_id), r])
+    );
+
+    const ranked: Array<{
+      category: "realtor" | "lender" | "inspector" | "trades";
+      userId: string | null;
+      displayName: string;
+      role: string | null;
+      company: string | null;
+      cvsScore: number | null;
+      source: "county_entity" | "network_fallback";
+      rankScore: number;
+      countyEntityId: string | null;
+      metadata: Record<string, any>;
+    }> = [];
+
+    for (const entity of entityRows) {
+      const meta = asObj((entity as any).metadata);
+      const userId =
+        typeof entity.entityId === "string" && entity.entityId.trim() ? entity.entityId : null;
+      const linkedUser = userId ? entityUserMap.get(String(userId)) : undefined;
+      const trust = userId ? entityTrustMap.get(String(userId)) : undefined;
+      const category = parseCategory(
+        meta.partnerCategory ?? meta.category ?? meta.vertical ?? meta.serviceType,
+        linkedUser?.role
+      );
+      if (!category) continue;
+
+      const firstName = String(linkedUser?.firstName || "").trim();
+      const lastName = String(linkedUser?.lastName || "").trim();
+      const displayName =
+        String(entity.label || "").trim() ||
+        [firstName, lastName].filter(Boolean).join(" ").trim() ||
+        "Local partner";
+      const role = linkedUser?.role ? String(linkedUser.role) : null;
+      const company =
+        String(meta.company || meta.brokerage || meta.organization || "").trim() || null;
+      const cvsScore = toNum((trust as any)?.cvs_score);
+      const priority = clamp(toNum(meta.priority) ?? 0, 0, 5);
+      const localDeals = clamp(toNum(meta.localClosedDeals) ?? 0, 0, 50);
+      const isFeatured = Boolean(meta.featured);
+      const verified =
+        String(
+          (trust as any)?.verification_status || linkedUser?.verificationStatus || ""
+        ).toLowerCase() === "approved";
+      const rankScore =
+        20 +
+        priority * 9 +
+        Math.min(45, (cvsScore ?? 0) * 0.45) +
+        Math.min(15, localDeals * 0.6) +
+        (isFeatured ? 7 : 0) +
+        (verified ? 8 : 0);
+
+      ranked.push({
+        category,
+        userId,
+        displayName,
+        role,
+        company,
+        cvsScore,
+        source: "county_entity",
+        rankScore,
+        countyEntityId: entity.id,
+        metadata: meta,
+      });
+    }
+
+    const fallbackRoles = Array.from(ROLE_TO_CATEGORY.keys());
+    const fallbackUsers = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        verificationStatus: users.verificationStatus,
+      })
+      .from(users)
+      .where(and(eq(users.countyFips, countyFips), inArray(users.role, fallbackRoles as any)))
+      .limit(300);
+
+    const fallbackUserIds = fallbackUsers.map((u) => String(u.id));
+    const latestFallbackTrust = fallbackUserIds.length
+      ? await db.execute(sql`
+          SELECT DISTINCT ON (ts.user_id)
+            ts.user_id::text AS user_id,
+            ts.cvs_score::text AS cvs_score,
+            ts.verification_status::text AS verification_status
+          FROM trust_snapshots ts
+          WHERE ts.county_fips = ${countyFips}
+            AND ts.user_id = ANY(${fallbackUserIds}::text[])
+          ORDER BY ts.user_id, ts.computed_at DESC
+        `)
+      : { rows: [] as any[] };
+
+    const fallbackTrustMap = new Map(
+      (latestFallbackTrust.rows as any[]).map((r) => [String(r.user_id), r])
+    );
+    const seenUserIds = new Set(ranked.map((r) => r.userId).filter(Boolean) as string[]);
+
+    for (const u of fallbackUsers) {
+      const userId = String(u.id);
+      if (seenUserIds.has(userId)) continue;
+      const category = ROLE_TO_CATEGORY.get(String(u.role || "").toLowerCase());
+      if (!category) continue;
+      const trust = fallbackTrustMap.get(userId);
+      const cvsScore = toNum((trust as any)?.cvs_score);
+      const verified =
+        String((trust as any)?.verification_status || u.verificationStatus || "").toLowerCase() ===
+        "approved";
+      const displayName =
+        [String(u.firstName || "").trim(), String(u.lastName || "").trim()]
+          .filter(Boolean)
+          .join(" ") || "Local partner";
+      const rankScore = 10 + Math.min(40, (cvsScore ?? 0) * 0.4) + (verified ? 8 : 0);
+      ranked.push({
+        category,
+        userId,
+        displayName,
+        role: u.role ? String(u.role) : null,
+        company: null,
+        cvsScore,
+        source: "network_fallback",
+        rankScore,
+        countyEntityId: null,
+        metadata: {},
+      });
+      seenUserIds.add(userId);
+    }
+
+    const categories: Array<"realtor" | "lender" | "inspector" | "trades"> = [
+      "realtor",
+      "lender",
+      "inspector",
+      "trades",
+    ];
+    const out: typeof ranked = [];
+    for (const category of categories) {
+      const top = ranked
+        .filter((r) => r.category === category)
+        .sort((a, b) => b.rankScore - a.rankScore)
+        .slice(0, limitPerCategory);
+      out.push(...top);
+    }
+    return out;
   }
 
   async createHomeScoutListing(input: InsertHomeScoutListing): Promise<HomeScoutListing> {
