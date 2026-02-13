@@ -128,6 +128,13 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       visible: true,
     },
     {
+      id: "homescout",
+      label: "HomeScout",
+      icon: "Home",
+      href: "/real-estate-marketplace",
+      visible: true,
+    },
+    {
       id: "leaderboard",
       label: "Leaderboard",
       icon: "Trophy",

@@ -67,9 +67,16 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Briefcase,
     children: [
       { label: "Browse Exchange", href: "/exchange", icon: Briefcase },
-      { label: "Real Estate", href: "/real-estate-marketplace", icon: Building },
       { label: "Business Listing", href: "/business-listing", icon: Building },
     ],
+  },
+
+  // HomeScout: real estate portal (separate from Exchange)
+  {
+    label: "HomeScout",
+    href: "/real-estate-marketplace",
+    icon: Building,
+    children: [{ label: "Browse Homes", href: "/real-estate-marketplace", icon: Building }],
   },
 
   // Service Provider Features

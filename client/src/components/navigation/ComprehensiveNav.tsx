@@ -165,7 +165,6 @@ const ALL_NAVIGATION: NavItem[] = [
     icon: ShoppingBag,
     children: [
       { label: "Browse Exchange", href: "/marketplace", icon: ShoppingBag },
-      { label: "Real Estate", href: "/real-estate-marketplace", icon: Building },
       { label: "Vehicles", href: "/vehicle-marketplace", icon: Car },
       { label: "Handmade & Crafts", href: "/handmade-marketplace", icon: Sparkles },
       { label: "Services", href: "/marketplace/services", icon: Briefcase },
@@ -173,6 +172,17 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: "TradeDeals Directory", href: "/trade-deals", icon: Tags },
       { label: "My Listings", href: "/marketplace/my-listings", icon: FileText },
       { label: "Saved Items", href: "/saved-ads", icon: Heart },
+    ],
+  },
+
+  // HOMESCOUT (Real Estate Portal) - separate from Exchange
+  {
+    label: "HomeScout",
+    href: "/real-estate-marketplace",
+    icon: Building,
+    children: [
+      { label: "Real Estate Marketplace", href: "/real-estate-marketplace", icon: Building },
+      { label: "List Property", href: "/property-listing", icon: Building },
     ],
   },
 
@@ -184,7 +194,6 @@ const ALL_NAVIGATION: NavItem[] = [
     children: [
       { label: "Browse Exchange", href: "/exchange", icon: Briefcase },
       { label: "List Item", href: "/exchange/list", icon: PlusCircle },
-      { label: "Property Listing", href: "/property-listing", icon: Building },
       { label: "Business Listing", href: "/business-listing", icon: Building2 },
       { label: "My Exchange Items", href: "/exchange/my-items", icon: Package },
     ],

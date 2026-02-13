@@ -15,6 +15,7 @@ import {
   Package,
   Settings,
   ClipboardList,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ const mobileNavItems = [
 const quickActions = [
   { href: "/scout?intent=estimate", icon: Calculator, label: "Estimate", guest: true },
   { href: "/exchange", icon: Package, label: "EXCHANGE", guest: true },
+  { href: "/real-estate-marketplace", icon: Building, label: "HomeScout", guest: true },
   { href: "/direct-connect", icon: ClipboardList, label: "New Request", guest: true },
   { href: "/foundation", icon: Heart, label: "Community Builders", guest: true },
 ];

@@ -161,9 +161,9 @@ const EXCHANGE_CATEGORIES = [
   },
   {
     id: "real-estate",
-    name: "Real Estate",
+    name: "HomeScout",
     icon: Home,
-    description: "Houses, land, commercial properties",
+    description: "Homes, land, commercial properties",
   },
   { id: "vehicles", name: "Vehicles", icon: Car, description: "Cars, trucks, motorcycles, boats" },
   {
@@ -258,6 +258,14 @@ export default function Exchange() {
   const [salesSortBy, setSalesSortBy] = useState("newest");
 
   const [route, navigate] = useLocation();
+
+  // Real estate has its own portal (HomeScout). Keep the Exchange category for discoverability,
+  // but route users into the dedicated surface.
+  useEffect(() => {
+    if (selectedCategory === "real-estate") {
+      navigate("/real-estate-marketplace");
+    }
+  }, [selectedCategory, navigate]);
 
   const locationCtx = useLocationContext();
   const stateCode = locationCtx.stateCode as string | undefined;

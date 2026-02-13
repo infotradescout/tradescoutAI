@@ -2,7 +2,12 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X, ChevronDown } from "lucide-react";
@@ -23,15 +28,17 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full bg-slate-900/98 backdrop-blur-xl shadow-lg ${className}`}>
+    <header
+      className={`sticky top-0 z-50 w-full bg-slate-900/98 backdrop-blur-xl shadow-lg ${className}`}
+    >
       <div className="w-full flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-3 transition-transform hover:scale-105 group">
-            <TradeScoutLogo 
-              size="lg" 
-              variant="gradient" 
-              className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300" 
+            <TradeScoutLogo
+              size="lg"
+              variant="gradient"
+              className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300"
             />
             <span className="text-2xl font-bold text-white tracking-tight group-hover:text-orange-400 transition-colors duration-300">
               TradeScout
@@ -39,38 +46,67 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </div>
         </Link>
 
-        {/* Desktop Navigation - Scout, Direct Connect, Community, TradeDeals, Exchange */}
+        {/* Desktop Navigation - Scout, Direct Connect, Community, TradeDeals, Exchange, HomeScout */}
         <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
           <Link href="/scout">
-            <Button variant={isActive("/scout") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+            <Button
+              variant={isActive("/scout") ? "secondary" : "ghost"}
+              size="sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+            >
               Scout
             </Button>
           </Link>
 
           <Link href="/direct-connect">
-            <Button variant={isActive("/direct-connect") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+            <Button
+              variant={isActive("/direct-connect") ? "secondary" : "ghost"}
+              size="sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+            >
               Direct Connect
             </Button>
           </Link>
 
           <Link href="/community">
-            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+            <Button
+              variant={isActive("/community") ? "secondary" : "ghost"}
+              size="sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+            >
               Community
             </Button>
           </Link>
 
           <Link href="/trade-deals">
-            <Button variant={isActive("/trade-deals") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+            <Button
+              variant={isActive("/trade-deals") ? "secondary" : "ghost"}
+              size="sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+            >
               TradeDeals
             </Button>
           </Link>
-          
+
           <Link href="/exchange">
-            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+            <Button
+              variant={isActive("/exchange") ? "secondary" : "ghost"}
+              size="sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+            >
               Exchange
             </Button>
           </Link>
 
+          <Link href="/real-estate-marketplace">
+            <Button
+              variant={isActive("/real-estate-marketplace") ? "secondary" : "ghost"}
+              size="sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+            >
+              HomeScout
+            </Button>
+          </Link>
         </nav>
 
         {/* User Menu / Auth Buttons */}
@@ -80,12 +116,20 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           ) : (
             <div className="hidden md:flex items-center space-x-3">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800/60">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-300 hover:text-white hover:bg-slate-800/60"
+                >
                   Sign In
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500"
+                >
                   Get Started
                 </Button>
               </Link>
@@ -95,29 +139,25 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild className="lg:hidden">
-              <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800/60 p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-slate-300 hover:text-white hover:bg-slate-800/60 p-2"
+              >
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 bg-slate-900 surface-panel">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
-                  <TradeScoutIcon 
-                    size="sm" 
-                    variant="gradient" 
-                    className="text-orange-500" 
-                  />
+                  <TradeScoutIcon size="sm" variant="gradient" className="text-orange-500" />
                   <span className="text-lg font-bold text-white">TradeScout</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              
+
               <div className="space-y-6">
                 {/* Core Navigation */}
                 <div className="space-y-2">
@@ -125,28 +165,51 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                     Navigation
                   </h3>
                   <Link href="/scout" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                    >
                       Scout
                     </Button>
                   </Link>
                   <Link href="/direct-connect" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                    >
                       Direct Connect
                     </Button>
                   </Link>
                   <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                    >
                       Community
                     </Button>
                   </Link>
                   <Link href="/trade-deals" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                    >
                       TradeDeals
                     </Button>
                   </Link>
                   <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                    >
                       Exchange
+                    </Button>
+                  </Link>
+                  <Link href="/real-estate-marketplace" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                    >
+                      HomeScout
                     </Button>
                   </Link>
                 </div>
@@ -158,12 +221,18 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       Account
                     </h3>
                     <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      >
                         Sign In
                       </Button>
                     </Link>
                     <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                      >
                         Get Started
                       </Button>
                     </Link>

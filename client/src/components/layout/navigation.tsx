@@ -98,6 +98,13 @@ export default function Navigation() {
       description: "Premium equipment & valuable items",
     },
     {
+      href: "/real-estate-marketplace",
+      label: "HomeScout",
+      icon: Home,
+      public: true,
+      description: "Real estate marketplace and listing portal",
+    },
+    {
       href: "/leaderboard",
       label: "Leaderboard",
       icon: Trophy,

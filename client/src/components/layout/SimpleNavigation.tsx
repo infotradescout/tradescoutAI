@@ -14,6 +14,7 @@ import {
   MapPin,
   Settings,
   HelpCircle,
+  Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,13 @@ const SimpleNavigation = memo(function SimpleNavigation() {
       path: "/exchange",
       testId: "nav-exchange",
       key: "exchange",
+    },
+    {
+      icon: Building,
+      label: "HomeScout",
+      path: "/real-estate-marketplace",
+      testId: "nav-homescout",
+      key: "homescout",
     },
   ];
 

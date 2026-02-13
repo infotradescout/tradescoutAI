@@ -18,6 +18,7 @@ import {
   CircleHelp,
   Sparkles,
   Shield,
+  Building,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -73,6 +74,11 @@ const buildFeatureNav = (isSuperAdmin: boolean, isAuthenticated: boolean): NavIt
       label: "EXCHANGE",
       href: ROUTES.EXCHANGE ?? "/exchange",
       icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    },
+    {
+      label: "HomeScout",
+      href: "/real-estate-marketplace",
+      icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Leaderboard",
