@@ -15394,7 +15394,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Payment methods and configurations
   app.get("/api/payments/methods", isAuthenticated, (req: Request, res: Response) => {
     try {
-      const methods = paymentService.getAvailablePaymentMethods(true);
+      const amountRaw = (req.query as any)?.amount;
+      const paymentTypeRaw = (req.query as any)?.paymentType;
+      const amount = amountRaw != null ? Number(amountRaw) : undefined;
+      const paymentType =
+        typeof paymentTypeRaw === "string" && paymentTypeRaw.trim()
+          ? (paymentTypeRaw.trim() as any)
+          : undefined;
+
+      const methods = paymentService.getAvailablePaymentMethods(true, { amount, paymentType });
       res.json(methods);
     } catch (error: any) {
       console.error("Error fetching payment methods:", error);
@@ -15757,7 +15765,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        const { transactionId } = req.body;
+        const { transactionId, processingMethod, applyAchDiscount } = req.body;
 
         if (!transactionId) {
           return res.status(400).json({ message: "Transaction ID required" });
@@ -15774,7 +15782,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(403).json({ message: "Not authorized to access this transaction" });
         }
 
-        const result = await paymentService.createMarketplacePaymentIntent(transaction);
+        const method =
+          processingMethod === "ach" ? "ach" : processingMethod === "card" ? "card" : undefined;
+
+        const result = await paymentService.createMarketplacePaymentIntent(transaction as any, {
+          processingMethod: method as any,
+          applyAchDiscount: applyAchDiscount !== false,
+        });
         res.json(result);
       } catch (error: any) {
         console.error("Error creating marketplace payment intent:", error);
@@ -15975,13 +15989,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Calculate payment fees
   app.post("/api/payments/calculate-fees", async (req: any, res: any) => {
     try {
-      const { amount, paymentType = "contractor_service" } = req.body;
+      const { amount, paymentType = "contractor_service", processingMethod } = req.body;
 
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Valid amount required" });
       }
 
-      const fees = await paymentService.calculatePaymentFees(amount, paymentType);
+      const fees = await paymentService.calculatePaymentFees(amount, paymentType, {
+        processingMethod: processingMethod === "ach" ? "ach" : "card",
+      });
       res.json(fees);
     } catch (error: any) {
       console.error("Error calculating fees:", error);

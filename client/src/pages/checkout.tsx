@@ -1,92 +1,97 @@
-import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import { useEffect, useState } from 'react';
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CreditCard, DollarSign, Shield } from "lucide-react";
+import { AlertCircle, CreditCard, DollarSign, Landmark, Shield } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
   : null;
 
+type ProcessingMethod = "ach" | "card";
+const ACH_THRESHOLD_USD = 1000;
+const ACH_DISCOUNT_USD = 10;
+
 interface CheckoutFormProps {
-  paymentType: 'contractor' | 'marketplace';
+  paymentType: "contractor" | "marketplace";
   paymentId: string;
   amount: number;
   description: string;
   isOffPlatform?: boolean;
+  processingMethod: ProcessingMethod;
+  discountApplied: number;
+  onProcessingMethodChange?: (method: ProcessingMethod) => void;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-const CheckoutForm = ({ 
-  paymentType, 
-  paymentId, 
-  amount, 
-  description, 
+const CheckoutForm = ({
+  paymentType,
+  paymentId,
+  amount,
+  description,
   isOffPlatform = false,
-  onSuccess, 
-  onCancel 
+  processingMethod,
+  discountApplied,
+  onProcessingMethodChange,
+  onSuccess,
+  onCancel,
 }: CheckoutFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [clientSecret, setClientSecret] = useState("");
   const [isWalletLoading, setIsWalletLoading] = useState(false);
-  
-  // Get payment methods
+
+  // Get payment methods (for display only)
   const { data: paymentMethods } = useQuery<any[]>({
-    queryKey: ["/api/payments/methods"],
+    queryKey: ["/api/payments/methods", paymentType, String(amount)],
+    queryFn: async () => {
+      const sp = new URLSearchParams();
+      sp.set("amount", String(amount));
+      sp.set(
+        "paymentType",
+        paymentType === "contractor" ? "contractor_service" : "marketplace_transaction"
+      );
+      const res = await fetch(`/api/payments/methods?${sp.toString()}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   // Get fee calculation
   const { data: feeData } = useQuery({
-    queryKey: ["/api/payments/calculate-fees"],
-    queryFn: () => apiRequest("POST", "/api/payments/calculate-fees", {
-      amount,
-      paymentType: paymentType === 'contractor' ? 'contractor_service' : 'marketplace_transaction'
-    }).then(res => res.json())
+    queryKey: ["/api/payments/calculate-fees", paymentType, String(amount), processingMethod],
+    queryFn: () =>
+      apiRequest("POST", "/api/payments/calculate-fees", {
+        amount,
+        paymentType:
+          paymentType === "contractor" ? "contractor_service" : "marketplace_transaction",
+        processingMethod,
+      }).then((res) => res.json()),
   });
 
   // Wallet balance (for marketplace payments)
   const { data: walletData } = useQuery<{ balance: string }>({
     queryKey: ["/api/wallet/balance"],
-    enabled: paymentType === 'marketplace',
+    enabled: paymentType === "marketplace",
   });
-
-  useEffect(() => {
-    if (!isOffPlatform && !clientSecret) {
-      // Create PaymentIntent as soon as the page loads
-      const endpoint = paymentType === 'contractor' 
-        ? "/api/payments/contractor/create-intent"
-        : "/api/payments/marketplace/create-intent";
-      
-      const bodyKey = paymentType === 'contractor' ? 'contractorPaymentId' : 'transactionId';
-      
-      apiRequest("POST", endpoint, { [bodyKey]: paymentId })
-        .then(res => res.json())
-        .then((data) => {
-          setClientSecret(data.clientSecret);
-        })
-        .catch(error => {
-          console.error('Failed to create payment intent:', error);
-          toast({
-            title: "Setup Failed",
-            description: "Unable to initialize payment. Please try again.",
-            variant: "destructive",
-          });
-        });
-    }
-  }, [paymentType, paymentId, isOffPlatform, clientSecret]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,8 +103,8 @@ const CheckoutForm = ({
           paymentType,
           confirmationData: {
             method: "direct_payment", // This would come from a form
-            notes: "Payment completed off-platform"
-          }
+            notes: "Payment completed off-platform",
+          },
         });
 
         toast({
@@ -148,7 +153,7 @@ const CheckoutForm = ({
   };
 
   const handleWalletPay = async () => {
-    if (paymentType !== 'marketplace') return;
+    if (paymentType !== "marketplace") return;
 
     setIsWalletLoading(true);
     try {
@@ -172,14 +177,6 @@ const CheckoutForm = ({
     }
   };
 
-  if (!isOffPlatform && !clientSecret && stripePromise) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-2xl mx-auto p-6">
       <Card>
@@ -188,22 +185,27 @@ const CheckoutForm = ({
             <CreditCard className="w-5 h-5" />
             Complete Payment
           </CardTitle>
-          <CardDescription>
-            {description}
-          </CardDescription>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Payment Summary */}
-          <div
-            className="p-4 rounded-lg"
-            style={{ backgroundColor: "var(--surface-card)" }}
-          >
+          <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--surface-card)" }}>
             <div className="flex justify-between items-center">
               <span className="font-medium">Amount</span>
               <span className="text-xl font-bold">${amount.toFixed(2)}</span>
             </div>
-            
+
+            {discountApplied > 0 ? (
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-emerald-400 flex items-center gap-2">
+                  <Landmark className="w-4 h-4" />
+                  ACH incentive
+                </span>
+                <span className="text-emerald-300">-${discountApplied.toFixed(2)}</span>
+              </div>
+            ) : null}
+
             {feeData && !isOffPlatform && (
               <>
                 <Separator className="my-3" />
@@ -223,7 +225,7 @@ const CheckoutForm = ({
                 </div>
               </>
             )}
-            
+
             {isOffPlatform && (
               <div className="mt-3">
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -235,7 +237,7 @@ const CheckoutForm = ({
           </div>
 
           {/* TradeScout balance option (marketplace only) */}
-          {paymentType === 'marketplace' && walletData && !isOffPlatform && (
+          {paymentType === "marketplace" && walletData && !isOffPlatform && (
             <div className="bg-slate-900/70 border border-slate-700 p-4 rounded-lg flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium flex items-center gap-2">
@@ -243,22 +245,65 @@ const CheckoutForm = ({
                   TradeScout Balance
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  Available: ${parseFloat(walletData.balance || '0').toFixed(2)}
+                  Available: ${parseFloat(walletData.balance || "0").toFixed(2)}
                 </p>
               </div>
               <Button
                 size="sm"
-                disabled={isWalletLoading || parseFloat(walletData.balance || '0') < amount}
+                disabled={isWalletLoading || parseFloat(walletData.balance || "0") < amount}
                 className="bg-emerald-600 hover:bg-emerald-700 text-xs"
                 onClick={handleWalletPay}
               >
-                {isWalletLoading ? 'Processing…' : 'Pay with Balance'}
+                {isWalletLoading ? "Processing…" : "Pay with Balance"}
               </Button>
             </div>
           )}
 
           {/* Payment Method Selection */}
-          {paymentMethods && (
+          {paymentType === "marketplace" && !isOffPlatform ? (
+            <div className="space-y-3">
+              <h4 className="font-medium">Pay with</h4>
+              <div className="grid gap-3">
+                <div
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    processingMethod === "ach"
+                      ? "border-primary bg-primary/5"
+                      : "border-slate-700 hover:bg-slate-900"
+                  }`}
+                  onClick={() => onProcessingMethodChange?.("ach")}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium flex items-center gap-2">
+                        Bank transfer (ACH)
+                        {amount >= ACH_THRESHOLD_USD ? (
+                          <Badge variant="default" className="text-xs">
+                            Recommended
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Lower processing costs.{" "}
+                        {amount >= ACH_THRESHOLD_USD ? `$${ACH_DISCOUNT_USD} off.` : ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    processingMethod === "card"
+                      ? "border-primary bg-primary/5"
+                      : "border-slate-700 hover:bg-slate-900"
+                  }`}
+                  onClick={() => onProcessingMethodChange?.("card")}
+                >
+                  <div className="font-medium flex items-center gap-2">Card</div>
+                  <p className="text-sm text-gray-600">Fastest checkout experience</p>
+                </div>
+              </div>
+            </div>
+          ) : paymentMethods ? (
             <div className="space-y-3">
               <h4 className="font-medium">Available Payment Methods</h4>
               <div className="grid gap-3">
@@ -267,8 +312,8 @@ const CheckoutForm = ({
                     key={method.id}
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       method.recommended
-                        ? 'border-primary bg-primary/5'
-                        : 'border-slate-700 hover:bg-slate-900'
+                        ? "border-primary bg-primary/5"
+                        : "border-slate-700 hover:bg-slate-900"
                     }`}
                   >
                     <div className="flex justify-between items-start">
@@ -276,7 +321,9 @@ const CheckoutForm = ({
                         <div className="font-medium flex items-center gap-2">
                           {method.name}
                           {method.recommended && (
-                            <Badge variant="default" className="text-xs">Recommended</Badge>
+                            <Badge variant="default" className="text-xs">
+                              Recommended
+                            </Badge>
                           )}
                         </div>
                         <p className="text-sm text-gray-600">{method.description}</p>
@@ -287,11 +334,11 @@ const CheckoutForm = ({
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Payment Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isOffPlatform && stripePromise && clientSecret && (
+            {!isOffPlatform && stripePromise && (
               <div className="border p-4 rounded-lg">
                 <PaymentElement />
               </div>
@@ -322,17 +369,12 @@ const CheckoutForm = ({
         </CardContent>
 
         <CardFooter className="flex gap-3">
-          <Button 
-            onClick={onCancel} 
-            variant="outline" 
-            className="flex-1"
-            disabled={isLoading}
-          >
+          <Button onClick={onCancel} variant="outline" className="flex-1" disabled={isLoading}>
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
-            disabled={(!stripe && !isOffPlatform) || isLoading} 
+            disabled={(!stripe && !isOffPlatform) || isLoading}
             className="flex-1"
           >
             {isLoading ? "Processing..." : isOffPlatform ? "Confirm Payment" : "Pay Now"}
@@ -346,15 +388,108 @@ const CheckoutForm = ({
 export default function Checkout() {
   const [location] = useLocation();
   const [match, params] = useRoute("/checkout/:type/:id");
-  
-  const paymentType = params?.type as 'contractor' | 'marketplace';
+
+  const paymentType = params?.type as "contractor" | "marketplace";
   const paymentId = params?.id;
-  
+
   // Parse URL parameters for payment details
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const amount = Number(urlParams.get('amount')) || 0;
-  const description = urlParams.get('description') || 'Payment';
-  const isOffPlatform = urlParams.get('off_platform') === 'true';
+  const urlParams = new URLSearchParams(location.split("?")[1] || "");
+  const urlAmount = Number(urlParams.get("amount")) || 0;
+  const urlDescription = urlParams.get("description") || "Payment";
+  const isOffPlatform = urlParams.get("off_platform") === "true";
+
+  const { data: marketplaceTx } = useQuery<any>({
+    queryKey: ["/api/payments/marketplace", paymentId],
+    queryFn: async () => {
+      if (paymentType !== "marketplace" || !paymentId) return null;
+      const res = await fetch(`/api/payments/marketplace/${encodeURIComponent(paymentId)}`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: Boolean(match && paymentType === "marketplace" && paymentId),
+  });
+
+  const baseAmount = useMemo(() => {
+    if (paymentType === "marketplace") {
+      const txAmount = marketplaceTx?.totalAmount != null ? Number(marketplaceTx.totalAmount) : NaN;
+      if (Number.isFinite(txAmount) && txAmount > 0) return txAmount;
+    }
+    return urlAmount;
+  }, [paymentType, marketplaceTx, urlAmount]);
+
+  const description = useMemo(() => {
+    if (paymentType === "marketplace" && marketplaceTx?.notes) {
+      return String(marketplaceTx.notes);
+    }
+    return urlDescription;
+  }, [paymentType, marketplaceTx, urlDescription]);
+
+  const [processingMethod, setProcessingMethod] = useState<ProcessingMethod>(() => {
+    if (paymentType === "marketplace" && baseAmount >= ACH_THRESHOLD_USD) return "ach";
+    return "card";
+  });
+  const [methodTouched, setMethodTouched] = useState(false);
+
+  useEffect(() => {
+    if (methodTouched) return;
+    if (paymentType === "marketplace" && baseAmount >= ACH_THRESHOLD_USD)
+      setProcessingMethod("ach");
+    else setProcessingMethod("card");
+  }, [baseAmount, paymentType, methodTouched]);
+
+  const [clientSecret, setClientSecret] = useState<string>("");
+  const [discountApplied, setDiscountApplied] = useState<number>(0);
+  const [effectiveAmount, setEffectiveAmount] = useState<number>(baseAmount);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setEffectiveAmount(baseAmount);
+  }, [baseAmount]);
+
+  useEffect(() => {
+    if (!match || !paymentType || !paymentId) return;
+    if (isOffPlatform) return;
+    if (!stripePromise) return;
+
+    // Create PaymentIntent for this payment and method choice.
+    const endpoint =
+      paymentType === "contractor"
+        ? "/api/payments/contractor/create-intent"
+        : "/api/payments/marketplace/create-intent";
+    const body: any =
+      paymentType === "contractor"
+        ? { contractorPaymentId: paymentId }
+        : { transactionId: paymentId, processingMethod };
+
+    setClientSecret("");
+    setDiscountApplied(0);
+
+    apiRequest("POST", endpoint, body)
+      .then((res) => res.json())
+      .then((data) => {
+        setClientSecret(String(data.clientSecret || ""));
+        if (paymentType === "marketplace") {
+          const disc = Number(data.discountApplied ?? 0);
+          const eff = Number(data.effectiveTotalAmount ?? baseAmount);
+          if (Number.isFinite(disc) && disc > 0) setDiscountApplied(disc);
+          if (Number.isFinite(eff) && eff > 0) setEffectiveAmount(eff);
+          else setEffectiveAmount(baseAmount);
+        } else {
+          setEffectiveAmount(baseAmount);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to create payment intent:", error);
+        toast({
+          title: "Setup Failed",
+          description: "Unable to initialize payment. Please try again.",
+          variant: "destructive",
+        });
+      });
+  }, [match, paymentType, paymentId, isOffPlatform, processingMethod, baseAmount, toast]);
 
   if (!match || !paymentType || !paymentId) {
     return (
@@ -373,7 +508,7 @@ export default function Checkout() {
   }
 
   const handleSuccess = () => {
-    window.location.href = '/payments/success';
+    window.location.href = "/payments/success";
   };
 
   const handleCancel = () => {
@@ -386,24 +521,43 @@ export default function Checkout() {
       <CheckoutForm
         paymentType={paymentType}
         paymentId={paymentId}
-        amount={amount}
+        amount={baseAmount}
         description={description}
         isOffPlatform={true}
+        processingMethod={"card"}
+        discountApplied={0}
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />
     );
   }
 
-  // Render with Stripe Elements for on-platform payments
+  if (!clientSecret) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div
+          className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
+          aria-label="Loading"
+        />
+      </div>
+    );
+  }
+
+  // Render with Stripe Elements for on-platform payments (clientSecret-bound)
   return (
-    <Elements stripe={stripePromise}>
+    <Elements stripe={stripePromise} options={{ clientSecret }} key={clientSecret}>
       <CheckoutForm
         paymentType={paymentType}
         paymentId={paymentId}
-        amount={amount}
+        amount={effectiveAmount}
         description={description}
         isOffPlatform={false}
+        processingMethod={processingMethod}
+        discountApplied={discountApplied}
+        onProcessingMethodChange={(method) => {
+          setMethodTouched(true);
+          setProcessingMethod(method);
+        }}
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />
