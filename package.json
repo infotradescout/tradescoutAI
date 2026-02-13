@@ -47,6 +47,8 @@
     "audit:production-debt": "node scripts/audit-production-debt.mjs",
     "audit:secrets-history": "node scripts/audit-secrets-history.mjs",
     "audit:secrets-history:ps": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/audit-secrets-history.ps1",
+    "load:public": "node scripts/load/autocannon.mjs",
+    "load:search": "cross-env SCENARIO=search node scripts/load/autocannon.mjs",
     "audit:latest-builder": "node tools/audit-latest-builder-branch.mjs",
     "backfill:decision-cards": "node scripts/backfill-decision-cards.mjs",
     "backfill:trust-snapshots": "node scripts/backfill-trust-snapshots.mjs",
