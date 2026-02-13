@@ -4,6 +4,8 @@ Allow: /profile/
 Allow: /business/
 Allow: /community/
 Allow: /county/
+Allow: /homescout/
+Allow: /homescout/listings/
 
 Disallow: /admin/
 Disallow: /dashboard/

@@ -560,6 +560,12 @@ export interface IStorage {
   getProfileOwnerUserId(profileId: string): Promise<string | null>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
   listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
+  listActiveHomeScoutListingsForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ id: string; updatedAt: Date | null }>>;
+  listHomeScoutCountiesForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ countyFips: string; stateCode: string; updatedAt: Date | null }>>;
   searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
@@ -1787,6 +1793,53 @@ export class DatabaseStorage implements IStorage {
     return rows.map((row) => ({
       slug: row.slug,
       updatedAt: row.updatedAt ?? null,
+    }));
+  }
+
+  async listActiveHomeScoutListingsForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ id: string; updatedAt: Date | null }>> {
+    const limitRequested = Number(args?.limit ?? 50_000) || 50_000;
+    const limit = Math.max(1, Math.min(100_000, limitRequested));
+
+    const rows = await db
+      .select({
+        id: homeScoutListings.id,
+        updatedAt: homeScoutListings.updatedAt,
+      })
+      .from(homeScoutListings)
+      .where(eq(homeScoutListings.status, "active" as any))
+      .orderBy(desc(homeScoutListings.updatedAt))
+      .limit(limit);
+
+    return rows.map((row) => ({
+      id: row.id,
+      updatedAt: row.updatedAt ?? null,
+    }));
+  }
+
+  async listHomeScoutCountiesForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ countyFips: string; stateCode: string; updatedAt: Date | null }>> {
+    const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
+    const limit = Math.max(1, Math.min(50_000, limitRequested));
+
+    const rows = await db
+      .select({
+        countyFips: homeScoutListings.countyFips,
+        stateCode: homeScoutListings.stateCode,
+        updatedAt: sql<Date | null>`max(${homeScoutListings.updatedAt})`,
+      })
+      .from(homeScoutListings)
+      .where(eq(homeScoutListings.status, "active" as any))
+      .groupBy(homeScoutListings.countyFips, homeScoutListings.stateCode)
+      .orderBy(desc(sql`max(${homeScoutListings.updatedAt})`))
+      .limit(limit);
+
+    return rows.map((row) => ({
+      countyFips: row.countyFips as any,
+      stateCode: row.stateCode as any,
+      updatedAt: (row as any).updatedAt ?? null,
     }));
   }
 

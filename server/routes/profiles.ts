@@ -307,8 +307,20 @@ router.get("/robots.txt", async (req, res) => {
     [
       "User-agent: *",
       "Allow: /p/",
+      "Allow: /contractors/",
+      "Allow: /profile/",
+      "Allow: /business/",
+      "Allow: /community/",
+      "Allow: /county/",
+      "Allow: /homescout/",
+      "Allow: /homescout/listings/",
       "Disallow: /api/",
-      "Disallow: /admin",
+      "Disallow: /admin/",
+      "Disallow: /dashboard/",
+      "Disallow: /settings/",
+      "Disallow: /messages/",
+      "Disallow: /scout/",
+      "Disallow: /auth/",
       `Sitemap: ${protocol}://${host}/sitemap.xml`,
       "",
     ].join("\n")
@@ -316,6 +328,82 @@ router.get("/robots.txt", async (req, res) => {
 });
 
 router.get("/sitemap.xml", async (req, res) => {
+  try {
+    const host = req.headers.host || "www.thetradescout.com";
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const baseUrl = `${protocol}://${host}`;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Sitemap index: keep /sitemap.xml stable and delegate large URL sets.
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-core.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-profiles.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-homescout-counties.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-homescout-listings.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-core.xml", async (req, res) => {
+  try {
+    const host = req.headers.host || "www.thetradescout.com";
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const baseUrl = `${protocol}://${host}`;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const urls = [
+      { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
+      { loc: `${baseUrl}/create-account`, priority: "0.7", changefreq: "weekly" },
+      { loc: `${baseUrl}/login`, priority: "0.6", changefreq: "weekly" },
+      { loc: `${baseUrl}/direct-connect`, priority: "0.9", changefreq: "hourly" },
+      { loc: `${baseUrl}/community`, priority: "0.8", changefreq: "hourly" },
+      { loc: `${baseUrl}/exchange`, priority: "0.6", changefreq: "daily" },
+    ];
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (u) => `
+  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`
+  )
+  .join("\n")}
+</urlset>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating core sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-profiles.xml", async (req, res) => {
   try {
     const host = req.headers.host || "www.thetradescout.com";
     const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
@@ -342,7 +430,73 @@ ${urls.join("\n")}
     res.type("application/xml");
     res.send(xml);
   } catch (error: any) {
-    console.error("Error generating sitemap:", error);
+    console.error("Error generating profiles sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-homescout-listings.xml", async (req, res) => {
+  try {
+    const host = req.headers.host || "www.thetradescout.com";
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const baseUrl = `${protocol}://${host}`;
+
+    const listings = await storage.listActiveHomeScoutListingsForSitemap();
+
+    const urls = listings.map((listing) => {
+      const lastmod = listing.updatedAt
+        ? listing.updatedAt.toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      return `
+  <url>
+    <loc>${baseUrl}/homescout/listings/${encodeURIComponent(listing.id)}</loc>
+    <lastmod>${lastmod}</lastmod>
+  </url>`;
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join("\n")}
+</urlset>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating HomeScout listings sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-homescout-counties.xml", async (req, res) => {
+  try {
+    const host = req.headers.host || "www.thetradescout.com";
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const baseUrl = `${protocol}://${host}`;
+
+    const counties = await storage.listHomeScoutCountiesForSitemap();
+
+    const urls = counties.map((row) => {
+      const lastmod = row.updatedAt
+        ? row.updatedAt.toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      const stateCode = String(row.stateCode || "").toUpperCase();
+      const countyFips = String(row.countyFips || "");
+      return `
+  <url>
+    <loc>${baseUrl}/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}</loc>
+    <lastmod>${lastmod}</lastmod>
+  </url>`;
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join("\n")}
+</urlset>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating HomeScout counties sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
   }
 });
