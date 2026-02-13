@@ -40,10 +40,7 @@ const cleanBucket = (bucket: Bucket, now: number) => {
 
 const getKey = (req: Request): string => {
   const ip =
-    (req.headers["x-forwarded-for"] as string) ||
-    req.ip ||
-    req.socket.remoteAddress ||
-    "unknown";
+    (req.headers["x-forwarded-for"] as string) || req.ip || req.socket.remoteAddress || "unknown";
   const ua = req.get("user-agent") || "unknown";
   return `${ip}|${ua}`;
 };
@@ -55,7 +52,7 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
 
   // Allow internal health/monitoring checks and static assets
   const allowlistedPaths = [
-    /^\/api\/health/i, 
+    /^\/api\/health/i,
     /^\/api\/(scout|assistant)\/health/i,
     /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/i, // static assets
     /^\/@vite/i, // vite HMR
@@ -66,7 +63,7 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   }
 
   // Allow configured scraper agents or header token to bypass UA blocks (for LLM/bot crawlers)
-  const allowedAgents = (process.env.SCRAPE_ALLOW_AGENTS || "scout-crawler,mealscout-bot")
+  const allowedAgents = (process.env.SCRAPE_ALLOW_AGENTS || "scout-crawler")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
@@ -81,8 +78,8 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   }
 
   // In development, skip user agent blocking
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+  const isProduction = process.env.NODE_ENV === "production";
+
   // Block known scraping user agents early (only in production)
   if (isProduction && blockedUserAgents.some((pattern) => pattern.test(ua))) {
     return res.status(403).json({ error: "Automated scraping is blocked." });
@@ -102,7 +99,7 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
 
   // In development, don't log or block (too noisy with HMR)
   if (burstHits > burstLimit || windowHits > windowLimit) {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       return res.status(429).json({
         error: "Too many requests. Slow down to continue.",
       });

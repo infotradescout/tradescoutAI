@@ -66,8 +66,6 @@ export async function createApp() {
     "https://www.thetradescout.com",
     "https://thetradescout.com",
     "https://tradescoutai.onrender.com",
-    "https://mealscout.us",
-    "https://www.mealscout.us",
   ].map((o) => o.toLowerCase());
 
   const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";

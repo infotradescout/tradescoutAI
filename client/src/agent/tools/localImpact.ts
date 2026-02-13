@@ -1,4 +1,4 @@
-import type { LocalImpactSummary } from '@/components/dashboard/LocalImpactCard';
+import type { LocalImpactSummary } from "@/components/dashboard/LocalImpactCard";
 
 /**
  * Fetch the unified Local Impact snapshot for the current user.
@@ -6,9 +6,9 @@ import type { LocalImpactSummary } from '@/components/dashboard/LocalImpactCard'
  * for local vault balance, contributions, and affiliate impact.
  */
 export async function fetchLocalImpactSummary(): Promise<LocalImpactSummary> {
-  const res = await fetch('/api/local-impact/summary', {
-    credentials: 'include',
-    headers: { 'Accept': 'application/json' },
+  const res = await fetch("/api/local-impact/summary", {
+    credentials: "include",
+    headers: { Accept: "application/json" },
   });
 
   if (!res.ok) {
@@ -24,6 +24,7 @@ export async function fetchLocalImpactSummary(): Promise<LocalImpactSummary> {
     localVaultBalance: Number(json.localVaultBalance ?? 0),
     userDirectContribution: Number(json.userDirectContribution ?? 0),
     userIndirectContribution: Number(json.userIndirectContribution ?? 0),
+    userTotalContributionToCountyVault: Number(json.userTotalContributionToCountyVault ?? 0),
     affiliateEarnings: Number(json.affiliateEarnings ?? 0),
     affiliatesOnboardedCount: Number(json.affiliatesOnboardedCount ?? 0),
     countyId: json.countyId ?? null,

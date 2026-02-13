@@ -1,9 +1,6 @@
-import { db } from "../../src/db/drizzle-mock";
-import { eq, like, and, desc } from "drizzle-orm";
-
-/**
- * Marketplace Service - Handles all marketplace-related database operations
- */
+import { and, desc, eq, gte, ilike, lte } from "drizzle-orm";
+import { db } from "../db";
+import { marketplaceCategories, marketplaceListings } from "@shared/schema";
 
 export interface ListingSearchParams {
   query?: string;
@@ -15,27 +12,50 @@ export interface ListingSearchParams {
   limit?: number;
 }
 
-/**
- * Search marketplace listings with filters
- */
 export async function searchMarketplaceListings(params: ListingSearchParams) {
   try {
-    // TODO: When DATABASE_URL is connected, implement actual Drizzle query
-    // Build query with filters for title, category, county, state, price range
-    // const listings = await db.select().from(marketplaceListings)
-    //   .where(
-    //     and(
-    //       params.query ? like(marketplaceListings.title, `%${params.query}%`) : undefined,
-    //       params.category ? eq(marketplaceListings.category, params.category) : undefined,
-    //       params.county ? eq(marketplaceListings.county, params.county) : undefined,
-    //       params.state ? eq(marketplaceListings.state, params.state) : undefined,
-    //     )
-    //   )
-    //   .limit(params.limit || 20);
+    const filters: any[] = [eq(marketplaceListings.status, "active")];
+
+    if (params.query?.trim()) {
+      filters.push(ilike(marketplaceListings.title, `%${params.query.trim()}%`));
+    }
+    if (params.county?.trim()) {
+      filters.push(eq(marketplaceListings.county, params.county.trim()));
+    }
+    if (params.state?.trim()) {
+      filters.push(eq(marketplaceListings.state, params.state.trim()));
+    }
+    if (Number.isFinite(params.minPrice)) {
+      filters.push(gte(marketplaceListings.price, String(params.minPrice)));
+    }
+    if (Number.isFinite(params.maxPrice)) {
+      filters.push(lte(marketplaceListings.price, String(params.maxPrice)));
+    }
+
+    let categoryId: string | null = null;
+    if (params.category?.trim()) {
+      const [category] = await db
+        .select({ id: marketplaceCategories.id })
+        .from(marketplaceCategories)
+        .where(ilike(marketplaceCategories.name, params.category.trim()))
+        .limit(1);
+      categoryId = category?.id || null;
+      if (categoryId) {
+        filters.push(eq(marketplaceListings.categoryId, categoryId));
+      }
+    }
+
+    const listings = await db
+      .select()
+      .from(marketplaceListings)
+      .where(and(...filters) as any)
+      .orderBy(desc(marketplaceListings.createdAt))
+      .limit(Math.min(Math.max(Number(params.limit || 20), 1), 100));
 
     return {
       success: true,
-      data: [],
+      data: listings,
+      categoryId,
       message: "Marketplace listings retrieved",
     };
   } catch (error) {
@@ -46,34 +66,25 @@ export async function searchMarketplaceListings(params: ListingSearchParams) {
   }
 }
 
-/**
- * Get marketplace listings by county and state for a user
- */
 export async function getMarketplaceForCounty(county: string, state: string) {
   try {
-    // Check if database is available
-    if (!(db as any).query?.marketplaceListings?.findMany) {
-      return {
-        success: true,
-        data: [],
-        message: `No marketplace listings for ${county}, ${state} (dev mode)`,
-      };
-    }
-
-    // In production:
-    // const listings = await db.query.marketplaceListings.findMany({
-    //   where: (table, { eq, and }) =>
-    //     and(
-    //       eq(table.county, county),
-    //       eq(table.state, state)
-    //     ),
-    //   limit: 50,
-    // });
+    const listings = await db
+      .select()
+      .from(marketplaceListings)
+      .where(
+        and(
+          eq(marketplaceListings.county, county),
+          eq(marketplaceListings.state, state),
+          eq(marketplaceListings.status, "active")
+        )
+      )
+      .orderBy(desc(marketplaceListings.createdAt))
+      .limit(50);
 
     return {
       success: true,
-      data: [],
-      message: `County listings query ready for ${county}, ${state}`,
+      data: listings,
+      message: `County listings retrieved for ${county}, ${state}`,
     };
   } catch (error) {
     return {
@@ -83,11 +94,8 @@ export async function getMarketplaceForCounty(county: string, state: string) {
   }
 }
 
-/**
- * Create a new marketplace listing
- */
 export async function createMarketplaceListing(
-  userId: number,
+  userId: string | number,
   title: string,
   description: string,
   price: number,
@@ -96,30 +104,45 @@ export async function createMarketplaceListing(
   state: string
 ) {
   try {
-    if (!userId || !title || !price) {
+    if (!userId || !title || !description || !price || !category || !county || !state) {
       return {
         success: false,
         error: "Missing required fields",
       };
     }
 
-    // In production would insert:
-    // const result = await db.insert(marketplaceListings).values({
-    //   userId,
-    //   title,
-    //   description,
-    //   price,
-    //   category,
-    //   county,
-    //   state,
-    //   status: "active",
-    //   createdAt: new Date(),
-    // });
+    const [categoryRow] = await db
+      .select({ id: marketplaceCategories.id })
+      .from(marketplaceCategories)
+      .where(ilike(marketplaceCategories.name, category.trim()))
+      .limit(1);
+
+    if (!categoryRow?.id) {
+      return {
+        success: false,
+        error: "Invalid category",
+      };
+    }
+
+    const [created] = await db
+      .insert(marketplaceListings)
+      .values({
+        sellerId: String(userId),
+        categoryId: categoryRow.id,
+        title: title.trim(),
+        description: description.trim(),
+        price: String(price),
+        county: county.trim(),
+        state: state.trim(),
+        condition: "good",
+        status: "active",
+      } as any)
+      .returning();
 
     return {
       success: true,
-      data: { id: 1, title, price },
-      message: "Marketplace listing creation ready",
+      data: created,
+      message: "Marketplace listing created",
     };
   } catch (error) {
     return {
@@ -129,10 +152,7 @@ export async function createMarketplaceListing(
   }
 }
 
-/**
- * Get user's marketplace listings
- */
-export async function getUserMarketplaceListings(userId: number) {
+export async function getUserMarketplaceListings(userId: string | number) {
   try {
     if (!userId) {
       return {
@@ -141,15 +161,17 @@ export async function getUserMarketplaceListings(userId: number) {
       };
     }
 
-    // In production:
-    // const listings = await db.query.marketplaceListings.findMany({
-    //   where: (table, { eq }) => eq(table.userId, userId),
-    // });
+    const listings = await db
+      .select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.sellerId, String(userId)))
+      .orderBy(desc(marketplaceListings.createdAt))
+      .limit(100);
 
     return {
       success: true,
-      data: [],
-      message: "User listings query ready",
+      data: listings,
+      message: "User listings retrieved",
     };
   } catch (error) {
     return {

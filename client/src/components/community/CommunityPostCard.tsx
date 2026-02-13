@@ -37,6 +37,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { UserBadges } from "@/components/user-badges";
 import { CommunityCTA } from "./CommunityCTA";
+import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
 
 export interface CommunityPostCardAuthor {
   id?: string;
@@ -153,6 +154,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const [workBoardInfo, setWorkBoardInfo] = useState<{ sent: boolean; workRequestId?: string }>(
     initialWorkBoardState
   );
+  const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const role = (user as any)?.role as string | undefined;
   const canModerate =
     !!user &&
@@ -203,7 +205,27 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
       navigate("/messages");
       return;
     }
-    navigate(`/messages?user=${encodeURIComponent(String(post.author.id))}`);
+
+    const authorName = post.author?.name || "Community member";
+    const targetLocation =
+      post.county && post.state ? `${post.county}, ${post.state}` : post.location || undefined;
+    const suggestedIntent: ContactOutcome["suggestedIntent"] = post.hasWorkRequest
+      ? "hire"
+      : "collaborate";
+
+    setContactOutcome({
+      targetUserId: String(post.author.id),
+      targetUserName: authorName,
+      targetRole: post.author?.role || "Member",
+      targetLocation,
+      suggestedIntent,
+      reasonForContact: post.title
+        ? `I saw your post \"${post.title}\" and I'd like to connect.`
+        : "I saw your post and I'd like to connect.",
+      riskFlags: [],
+      decisionScope: `community_post:${post.id}`,
+      decisionTitle: "Community contact request",
+    });
   };
 
   const handleTogglePin = async () => {
@@ -301,317 +323,322 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const isContractor = (role || "").toLowerCase().includes("contractor");
 
   return (
-    <Card
-      className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}
-    >
-      <CardContent className="p-4 sm:p-5 space-y-3">
-        {(isPinned || isTrending || isAdminNotice) && (
-          <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500/30">
-              {isPinned ? (
-                <Heart className="w-3 h-3" />
-              ) : isAdminNotice ? (
-                <Info className="w-3 h-3" />
+    <>
+      <Card
+        className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}
+      >
+        <CardContent className="p-4 sm:p-5 space-y-3">
+          {(isPinned || isTrending || isAdminNotice) && (
+            <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500/30">
+                {isPinned ? (
+                  <Heart className="w-3 h-3" />
+                ) : isAdminNotice ? (
+                  <Info className="w-3 h-3" />
+                ) : (
+                  <MessageSquare className="w-3 h-3" />
+                )}
+              </span>
+              <span className="font-medium">
+                {isPinned
+                  ? "Pinned · From TradeScout"
+                  : isAdminNotice
+                    ? `Official TradeScout Update${post.county ? ` — ${post.county}` : post.location ? ` — ${post.location}` : ""}`
+                    : "Trending in your area"}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-start justify-between">
+            <div className="flex gap-3">
+              {post.author?.id ? (
+                <Link
+                  href={`/community/u/${encodeURIComponent(post.author.id)}`}
+                  className="flex gap-3 group cursor-pointer"
+                >
+                  <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40 group-hover:ring-orange-400/70">
+                    <AvatarImage src={post.author.avatar} />
+                    <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
+                      {post.author.name?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-white text-base group-hover:text-orange-300">
+                        {post.author.name || "Anonymous"}
+                      </span>
+                      {post.author.role && (
+                        <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
+                          {post.author.role}
+                        </span>
+                      )}
+                      {post.author?.verified !== undefined && (
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] px-1.5 py-0.5 ${
+                            post.author.verified ? "text-green-300" : "text-slate-300"
+                          }`}
+                          title={
+                            post.author.verified
+                              ? "Verified profile"
+                              : "Unverified profile. Verified members are more likely to be accepted."
+                          }
+                        >
+                          {post.author.verified ? "Verified" : "Unverified"}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
+                      >
+                        {categoryMeta.icon}
+                        <span className="font-medium">{categoryMeta.label}</span>
+                      </span>
+                      <span>• {formatTimeAgo(post.createdAt)}</span>
+                      {post.location && (
+                        <span className="inline-flex items-center gap-1">
+                          <span>•</span>
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>{post.location}</span>
+                          {localityLabel && (
+                            <span className="ml-1 text-slate-500">· {localityLabel}</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {post.author.badges && post.author.badges.length > 0 && (
+                      <UserBadges
+                        badges={post.author.badges}
+                        size="sm"
+                        maxVisible={3}
+                        className="mt-1"
+                      />
+                    )}
+                  </div>
+                </Link>
               ) : (
-                <MessageSquare className="w-3 h-3" />
-              )}
-            </span>
-            <span className="font-medium">
-              {isPinned
-                ? "Pinned · From TradeScout"
-                : isAdminNotice
-                  ? `Official TradeScout Update${post.county ? ` — ${post.county}` : post.location ? ` — ${post.location}` : ""}`
-                  : "Trending in your area"}
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-start justify-between">
-          <div className="flex gap-3">
-            {post.author?.id ? (
-              <Link
-                href={`/community/u/${encodeURIComponent(post.author.id)}`}
-                className="flex gap-3 group cursor-pointer"
-              >
-                <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40 group-hover:ring-orange-400/70">
-                  <AvatarImage src={post.author.avatar} />
-                  <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                    {post.author.name?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white text-base group-hover:text-orange-300">
-                      {post.author.name || "Anonymous"}
-                    </span>
-                    {post.author.role && (
-                      <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
-                        {post.author.role}
-                      </span>
-                    )}
-                    {post.author?.verified !== undefined && (
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] px-1.5 py-0.5 ${
-                          post.author.verified ? "text-green-300" : "text-slate-300"
-                        }`}
-                        title={
-                          post.author.verified
-                            ? "Verified profile"
-                            : "Unverified profile. Verified members are more likely to be accepted."
-                        }
-                      >
-                        {post.author.verified ? "Verified" : "Unverified"}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
-                    >
-                      {categoryMeta.icon}
-                      <span className="font-medium">{categoryMeta.label}</span>
-                    </span>
-                    <span>• {formatTimeAgo(post.createdAt)}</span>
-                    {post.location && (
-                      <span className="inline-flex items-center gap-1">
-                        <span>•</span>
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{post.location}</span>
-                        {localityLabel && (
-                          <span className="ml-1 text-slate-500">· {localityLabel}</span>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  {post.author.badges && post.author.badges.length > 0 && (
-                    <UserBadges
-                      badges={post.author.badges}
-                      size="sm"
-                      maxVisible={3}
-                      className="mt-1"
-                    />
-                  )}
-                </div>
-              </Link>
-            ) : (
-              <>
-                <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40">
-                  <AvatarImage src={post.author?.avatar} />
-                  <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                    {post.author?.name?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white text-base">
-                      {post.author?.name || "Anonymous"}
-                    </span>
-                    {post.author?.role && (
-                      <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
-                        {post.author.role}
-                      </span>
-                    )}
-                    {post.author?.verified !== undefined && (
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] px-1.5 py-0.5 ${
-                          post.author.verified ? "text-green-300" : "text-slate-300"
-                        }`}
-                        title={
-                          post.author.verified
-                            ? "Verified profile"
-                            : "Unverified profile. Verified members are more likely to be accepted."
-                        }
-                      >
-                        {post.author.verified ? "Verified" : "Unverified"}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
-                    >
-                      {categoryMeta.icon}
-                      <span className="font-medium">{categoryMeta.label}</span>
-                    </span>
-                    <span>• {formatTimeAgo(post.createdAt)}</span>
-                    {post.location && (
-                      <span className="inline-flex items-center gap-1">
-                        <span>•</span>
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{post.location}</span>
-                        {localityLabel && (
-                          <span className="ml-1 text-slate-500">· {localityLabel}</span>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  {post.author?.badges && post.author.badges.length > 0 && (
-                    <UserBadges
-                      badges={post.author.badges}
-                      size="sm"
-                      maxVisible={3}
-                      className="mt-1"
-                    />
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-tsBg transition-colors"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
-              {canOpenMessages && (
-                <DropdownMenuItem onClick={handleOpenMessages}>
-                  <MessagesSquare className="w-3.5 h-3.5 mr-2" />
-                  Open Messages with this neighbor
-                </DropdownMenuItem>
-              )}
-              {canOpenMessages && <DropdownMenuSeparator />}
-              {isAuthor && (
                 <>
-                  {!workBoardInfo.sent ? (
-                    <DropdownMenuItem onClick={handleSendToWorkBoard}>
-                      <Hammer className="w-3.5 h-3.5 mr-2" />
-                      Send to Direct Connect
-                    </DropdownMenuItem>
-                  ) : (
-                    <>
-                      <DropdownMenuItem disabled>
-                        <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
-                        <span className="text-emerald-300">✓ Sent to Direct Connect</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
+                  <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40">
+                    <AvatarImage src={post.author?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
+                      {post.author?.name?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-white text-base">
+                        {post.author?.name || "Anonymous"}
+                      </span>
+                      {post.author?.role && (
+                        <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
+                          {post.author.role}
+                        </span>
+                      )}
+                      {post.author?.verified !== undefined && (
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] px-1.5 py-0.5 ${
+                            post.author.verified ? "text-green-300" : "text-slate-300"
+                          }`}
+                          title={
+                            post.author.verified
+                              ? "Verified profile"
+                              : "Unverified profile. Verified members are more likely to be accepted."
+                          }
+                        >
+                          {post.author.verified ? "Verified" : "Unverified"}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
+                      >
+                        {categoryMeta.icon}
+                        <span className="font-medium">{categoryMeta.label}</span>
+                      </span>
+                      <span>• {formatTimeAgo(post.createdAt)}</span>
+                      {post.location && (
+                        <span className="inline-flex items-center gap-1">
+                          <span>•</span>
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>{post.location}</span>
+                          {localityLabel && (
+                            <span className="ml-1 text-slate-500">· {localityLabel}</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {post.author?.badges && post.author.badges.length > 0 && (
+                      <UserBadges
+                        badges={post.author.badges}
+                        size="sm"
+                        maxVisible={3}
+                        className="mt-1"
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-tsBg transition-colors"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
+                {canOpenMessages && (
+                  <DropdownMenuItem onClick={handleOpenMessages}>
+                    <MessagesSquare className="w-3.5 h-3.5 mr-2" />
+                    Open Messages with this neighbor
+                  </DropdownMenuItem>
+                )}
+                {canOpenMessages && <DropdownMenuSeparator />}
+                {isAuthor && (
+                  <>
+                    {!workBoardInfo.sent ? (
+                      <DropdownMenuItem onClick={handleSendToWorkBoard}>
                         <Hammer className="w-3.5 h-3.5 mr-2" />
-                        View Direct Connect
+                        Send to Direct Connect
                       </DropdownMenuItem>
-                    </>
-                  )}
-                  {canModerate && <DropdownMenuSeparator />}
-                </>
-              )}
-              {canModerate && (
-                <>
-                  <DropdownMenuItem onClick={handleTogglePin}>
-                    <Pin className="w-3.5 h-3.5 mr-2" />
-                    {isPinned ? "Unpin post" : "Pin post"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleHidePost}>
-                    <EyeOff className="w-3.5 h-3.5 mr-2" />
-                    Hide from community feed
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleDeletePost}
-                    className="text-red-400 focus:text-red-500"
+                    ) : (
+                      <>
+                        <DropdownMenuItem disabled>
+                          <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
+                          <span className="text-emerald-300">✓ Sent to Direct Connect</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
+                          <Hammer className="w-3.5 h-3.5 mr-2" />
+                          View Direct Connect
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {canModerate && <DropdownMenuSeparator />}
+                  </>
+                )}
+                {canModerate && (
+                  <>
+                    <DropdownMenuItem onClick={handleTogglePin}>
+                      <Pin className="w-3.5 h-3.5 mr-2" />
+                      {isPinned ? "Unpin post" : "Pin post"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleHidePost}>
+                      <EyeOff className="w-3.5 h-3.5 mr-2" />
+                      Hide from community feed
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleDeletePost}
+                      className="text-red-400 focus:text-red-500"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                      Remove post
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className={categoryMeta.accentClassName}>
+            {post.title && (
+              <h3 className="text-base font-medium text-orange-400 mb-1">{post.title}</h3>
+            )}
+            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {post.content}
+            </p>
+            {post.imageUrls && post.imageUrls.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {post.imageUrls.slice(0, 6).map((url, index) => (
+                  <div
+                    key={url + index}
+                    className="relative w-full overflow-hidden rounded-md border border-tsBorder bg-tsBg/40"
+                    style={{ paddingBottom: "70%" }}
                   >
-                    <Trash2 className="w-3.5 h-3.5 mr-2" />
-                    Remove post
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className={categoryMeta.accentClassName}>
-          {post.title && (
-            <h3 className="text-base font-medium text-orange-400 mb-1">{post.title}</h3>
-          )}
-          <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-            {post.content}
-          </p>
-          {post.imageUrls && post.imageUrls.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {post.imageUrls.slice(0, 6).map((url, index) => (
-                <div
-                  key={url + index}
-                  className="relative w-full overflow-hidden rounded-md border border-tsBorder bg-tsBg/40"
-                  style={{ paddingBottom: "70%" }}
-                >
-                  <img
-                    src={url}
-                    alt="Post image"
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {post.tags.map((tag, idx) => (
-                <Badge
-                  key={idx}
-                  variant="secondary"
-                  className="text-[10px] bg-orange-500/10 border border-orange-500/30 text-orange-400 px-2 py-0.5"
-                >
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {!isAdminNotice && (
-          <>
-            <Separator className="bg-tsBorder" />
-            <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
-              <span>{post.upvotes || 0} likes</span>
-              <span>{post.comments || 0} comments</span>
-            </div>
-            <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-tsBorder rounded-lg bg-tsBg/40">
-              <button
-                onClick={handleLikeClick}
-                className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors"
-              >
-                <Heart className="w-4 h-4" />
-                <span>Like</span>
-              </button>
-              <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder">
-                <MessageSquare className="w-4 h-4" />
-                <span>Comment</span>
-              </button>
-              <button
-                className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder"
-                onClick={handleShareClick}
-              >
-                <Share2 className="w-4 h-4" />
-                <span>Share</span>
-              </button>
-            </div>
-            <CommunityCTA
-              layout="grid"
-              source="community_post"
-              contextId={post.id}
-              ownerUserId={post.author?.id ? String(post.author.id) : undefined}
-              canDirectConnect={canDirectConnect}
-              canMessage={canOpenMessages}
-              disableDirectConnect={isContractor}
-              scope={post.county} // Pass county for authority scope
-            />
-
-            {/* Authority label - interpretive guidance from Scout */}
-            {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
-            {ENABLE_AUTHORITY_LABELS && post.authorityLabel && (
-              <div className="mt-3 pt-3 border-t border-tsBorder/50 flex items-start gap-2">
-                <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
-                <span className="text-xs text-slate-400 italic leading-relaxed">
-                  {post.authorityLabel}
-                </span>
+                    <img
+                      src={url}
+                      alt="Post image"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
               </div>
             )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {post.tags.map((tag, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="secondary"
+                    className="text-[10px] bg-orange-500/10 border border-orange-500/30 text-orange-400 px-2 py-0.5"
+                  >
+                    #{tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {!isAdminNotice && (
+            <>
+              <Separator className="bg-tsBorder" />
+              <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
+                <span>{post.upvotes || 0} likes</span>
+                <span>{post.comments || 0} comments</span>
+              </div>
+              <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-tsBorder rounded-lg bg-tsBg/40">
+                <button
+                  onClick={handleLikeClick}
+                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors"
+                >
+                  <Heart className="w-4 h-4" />
+                  <span>Like</span>
+                </button>
+                <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Comment</span>
+                </button>
+                <button
+                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder"
+                  onClick={handleShareClick}
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Share</span>
+                </button>
+              </div>
+              <CommunityCTA
+                layout="grid"
+                source="community_post"
+                contextId={post.id}
+                ownerUserId={post.author?.id ? String(post.author.id) : undefined}
+                canDirectConnect={canDirectConnect}
+                canMessage={canOpenMessages}
+                disableDirectConnect={isContractor}
+                scope={post.county} // Pass county for authority scope
+              />
+
+              {/* Authority label - interpretive guidance from Scout */}
+              {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
+              {ENABLE_AUTHORITY_LABELS && post.authorityLabel && (
+                <div className="mt-3 pt-3 border-t border-tsBorder/50 flex items-start gap-2">
+                  <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+                  <span className="text-xs text-slate-400 italic leading-relaxed">
+                    {post.authorityLabel}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+      {contactOutcome && (
+        <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
+      )}
+    </>
   );
 }

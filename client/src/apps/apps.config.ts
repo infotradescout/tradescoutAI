@@ -6,7 +6,7 @@ export interface AppConfig {
   label: string;
   icon: string;
   nav: AppNavPlacement;
-  mode?: "mealscout" | "default" | "marketplace" | "contractors" | "admin";
+  mode?: "default" | "marketplace" | "contractors" | "admin";
   requiresAuth?: boolean;
 }
 
@@ -41,15 +41,6 @@ export const APPS: Record<string, AppConfig> = {
     label: "Marketplace",
     icon: "ShoppingCart",
     nav: "bottom",
-  },
-
-  mealscout: {
-    slug: "mealscout",
-    route: "/mealscout",
-    label: "Meals",
-    icon: "Soup",
-    nav: "bottom",
-    mode: "mealscout",
   },
 
   profile: {

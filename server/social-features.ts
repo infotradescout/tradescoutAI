@@ -41,6 +41,55 @@ import {
 
 export function registerSocialFeatures(app: Express) {
   /**
+   * DECISION CARDS: Minimal creator endpoint
+   *
+   * Purpose: provide a durable authority object for intent-gated contact.
+   * Contact is still enforced via POST /api/social/conversations/start which validates:
+   * - authorityGate === 'decision_card'
+   * - sourceDecisionCardId belongs to requester and is active
+   *
+   * POST /api/decision-cards
+   * Body: { intent, decisionScope?, title?, description? }
+   */
+  app.post(
+    "/api/decision-cards",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const { intent, decisionScope, title, description } = req.body ?? {};
+
+        if (!intent || !["hire", "advise", "collaborate", "reconnect"].includes(intent)) {
+          return res.status(400).json({
+            message: "Intent required: 'hire', 'advise', 'collaborate', or 'reconnect'",
+          });
+        }
+
+        const [row] = await db
+          .insert(decisionCards)
+          .values({
+            userId,
+            intent,
+            decisionScope: typeof decisionScope === "string" ? decisionScope : null,
+            title: typeof title === "string" ? title : null,
+            description: typeof description === "string" ? description : null,
+            status: "active",
+            updatedAt: new Date(),
+          } as any)
+          .returning({ id: decisionCards.id });
+
+        res.json({ id: row?.id });
+      } catch (error: any) {
+        console.error("Error creating decision card:", error);
+        res.status(500).json({ message: "Failed to create decision card" });
+      }
+    }
+  );
+
+  /**
    * SEARCH: Find people in the community
    * GET /api/social/search?q=name&scope=county&limit=20
    *

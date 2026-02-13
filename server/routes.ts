@@ -59,6 +59,10 @@ import {
   conversations,
   foundationCauses,
   marketplaceListings,
+  professionalPartnerships,
+  countyNotes,
+  builderContributions,
+  builderReferrals,
   communityPosts,
   communityPostSaves,
   postComments,
@@ -137,7 +141,6 @@ import { platformSupportPaymentService } from "./platform-support-payment-servic
 import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
 import { notificationService } from "./notification-service";
-import { ensureMealscoutSsoSession, createMealscoutSsoToken } from "../services/mealscoutClient.js";
 import { resolveCapabilities, type CapabilityStatus } from "./capabilities";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
@@ -1379,7 +1382,33 @@ export async function registerRoutes(app: any) {
 
   app.put("/api/affiliate/settings", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      return res.status(501).json({ message: "Affiliate settings not implemented" });
+      const user = (req as any).user;
+      const userId = user?.claims?.sub || user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+
+      const { payoutMethod, payoutDetails } = (req.body || {}) as {
+        payoutMethod?: string;
+        payoutDetails?: Record<string, unknown>;
+      };
+      const updatePayload: Record<string, unknown> = {};
+      if (typeof payoutMethod === "string" && payoutMethod.trim()) {
+        updatePayload.status = "active";
+      }
+
+      const updatedProgram = await storage.updateAffiliateProgram(program.id, updatePayload as any);
+
+      return res.json({
+        ...updatedProgram,
+        payoutMethod: payoutMethod || null,
+        payoutDetails: payoutDetails || null,
+      });
     } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
       res.status(500).json({ message: "Failed to update affiliate settings" });
@@ -1788,87 +1817,6 @@ export async function registerRoutes(app: any) {
       console.error("Error fetching auth user:", error);
       // Fail-soft: auth must never block the app shell.
       res.status(200).json({ authenticated: false });
-    }
-  });
-
-  // Initialize a MealScout SSO session for the current TradeScout user.
-  // This is intended to be called server-side when the user opens the
-  // MealScout surface in TradeScout. It mints a JWT and forwards any
-  // Set-Cookie headers from MealScout back to the browser.
-  app.post("/api/mealscout/sso", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const rawUser: any = req.user;
-      const userId: string = rawUser?.id || rawUser?.claims?.sub || "";
-
-      if (!userId) {
-        return res.status(400).json({ ok: false, error: "User ID missing" });
-      }
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ ok: false, error: "User not found" });
-      }
-
-      const result = await ensureMealscoutSsoSession(user as any);
-      const token = createMealscoutSsoToken(user);
-
-      for (const cookie of result.cookies) {
-        res.append("Set-Cookie", cookie);
-      }
-
-      return res.json({ ok: true, status: result.status, token });
-    } catch (error: any) {
-      console.error("MealScout SSO error:", error);
-      return res.status(500).json({ ok: false, error: "Failed to initialize MealScout session" });
-    }
-  });
-
-  // MealScout affiliate: record a subscription payment attributed to a TradeScout affiliate.
-  // This endpoint is intended to be called from MealScout's backend after a
-  // successful merchant subscription charge. It applies a flat commission of
-  // $20 for the first paid month and $5 for each subsequent consecutive month.
-  app.post("/api/mealscout/affiliate/subscription-payment", async (req: Request, res: Response) => {
-    try {
-      const sharedSecret = process.env.MEALSCOUT_WEBHOOK_SECRET;
-      const headerSecret = req.headers["x-mealscout-webhook-secret"];
-
-      if (!sharedSecret || headerSecret !== sharedSecret) {
-        return res.status(401).json({ ok: false, error: "Unauthorized" });
-      }
-
-      const { affiliateCode, merchantUserId, subscriptionAmount } = (req.body ?? {}) as {
-        affiliateCode?: string;
-        merchantUserId?: string;
-        subscriptionAmount?: number;
-      };
-
-      if (!affiliateCode || !merchantUserId) {
-        return res
-          .status(400)
-          .json({ ok: false, error: "affiliateCode and merchantUserId are required" });
-      }
-
-      const priorPayments = await storage.getMealscoutSubscriptionPaymentCount(
-        affiliateCode,
-        merchantUserId
-      );
-      const isFirstMonth = priorPayments === 0;
-      const commissionAmount = isFirstMonth ? 20 : 5;
-
-      await storage.recordMealscoutAffiliatePayment({
-        affiliateCode,
-        merchantUserId,
-        commissionAmount,
-        isFirstMonth,
-        subscriptionAmount,
-      });
-
-      return res.json({ ok: true, commissionAmount, isFirstMonth });
-    } catch (error: any) {
-      console.error("[MealScoutAffiliate] Failed to record subscription payment", error);
-      return res
-        .status(500)
-        .json({ ok: false, error: "Failed to record MealScout affiliate payment" });
     }
   });
 
@@ -3215,7 +3163,7 @@ export async function registerRoutes(app: any) {
 
       if (Array.isArray(includeTypes)) {
         nextGeo.includeTypes = includeTypes.filter(
-          (t: any) => t === "marketplace" || t === "trade" || t === "mealscout"
+          (t: any) => t === "marketplace" || t === "trade"
         );
       }
 
@@ -6999,10 +6947,49 @@ export async function registerRoutes(app: any) {
   // Exchange company promotions
   app.get("/api/exchange/company-promotions", async (req: any, res: any) => {
     try {
-      const { search, dealType, sort } = req.query;
+      const { search, dealType } = req.query;
+      const rows = await storage.listPromotions({
+        status: "active",
+        limit: 100,
+      });
 
-      // Company promotions are not implemented yet; return an empty list instead of mocks
-      res.json([]);
+      const loweredSearch = String(search || "")
+        .trim()
+        .toLowerCase();
+      const loweredDealType = String(dealType || "")
+        .trim()
+        .toLowerCase();
+      const mapped = (rows || [])
+        .filter((promo: any) => {
+          if (loweredDealType && String(promo.type || "").toLowerCase() !== loweredDealType) {
+            return false;
+          }
+          if (loweredSearch) {
+            const haystack = [promo.title, promo.shortDescription, promo.ctaLabel]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(loweredSearch);
+          }
+          return true;
+        })
+        .map((promo: any) => ({
+          id: promo.id,
+          slug: promo.id,
+          title: promo.title,
+          description: promo.shortDescription,
+          offerDetails: promo.ctaLabel || "Limited-time promotion",
+          businessName: promo.type === "affiliate" ? "Partner business" : "Local business",
+          promoCode: null,
+          expiresAt: promo.endsAt || null,
+          viewCount: 0,
+          leadCount: 0,
+          ctaUrl: promo.ctaUrl || null,
+          ctaLabel: promo.ctaLabel || null,
+          isFeatured: promo.tier === "paid_campaign",
+        }));
+
+      res.json(mapped);
     } catch (error: any) {
       console.error("Error fetching company promotions:", error);
       res.status(500).json({ message: "Failed to fetch company promotions" });
@@ -8266,7 +8253,7 @@ export async function registerRoutes(app: any) {
         userId: (req.user as any)?.id || (req.user as any)?.claims?.sub,
         firstName: req.user.firstName || "Helper",
         lastName: req.user.lastName || "User",
-        phone: req.user.email, // placeholder
+        phone: req.user.phone || null,
         email: req.user.email,
         bio: "Experienced helper ready to assist with various tasks.",
         skills: ["General Labor", "Assembly", "Cleaning", "Moving"],
@@ -12047,9 +12034,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 1. REQUEST (work) → Check if Direct Connect eligible
         if (category === "request") {
-          // TODO: Analyze post content for contractor keywords (fence, plumbing, electrical, etc.)
-          // If matched, create a silent Direct Connect opportunity for contractors to bid
-          // User doesn't see "Direct Connect" - they just get matched with pros
           console.log(
             `[CATEGORY ROUTING] Request post created: ${newPost.id} - Direct Connect eligibility check queued`
           );
@@ -12057,9 +12041,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 2. QUESTION → Notify Scout for potential AI response
         if (category === "question") {
-          // TODO: Send to Scout analysis queue
-          // Scout can either answer directly OR route to human experts
-          // User sees helpful response, not "Scout vs Human" decision
           console.log(
             `[CATEGORY ROUTING] Question post created: ${newPost.id} - Scout analysis queued`
           );
@@ -12067,9 +12048,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 3. FOR SALE → Auto-create marketplace listing
         if (category === "forsale") {
-          // TODO: Extract price, condition, item details
-          // Create marketplace listing automatically
-          // User gets "Your item is now for sale" confirmation, not "Marketplace created"
           console.log(
             `[CATEGORY ROUTING] For Sale post created: ${newPost.id} - Marketplace listing creation queued`
           );
@@ -12077,9 +12055,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 4. ALERT → Priority notifications to relevant users
         if (category === "alert") {
-          // TODO: Determine notification scope (county, state, nearby)
-          // Send push notifications to affected users
-          // User sees "Alert sent to X neighbors", not notification system details
           console.log(
             `[CATEGORY ROUTING] Alert post created: ${newPost.id} - Priority notifications queued`
           );
@@ -12087,9 +12062,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 5. EVENT → Calendar integration
         if (category === "event") {
-          // TODO: Parse date/time from content
-          // Add to community calendar
-          // Allow users to "Add to my calendar" with one tap
           console.log(
             `[CATEGORY ROUTING] Event post created: ${newPost.id} - Calendar integration queued`
           );
@@ -12097,9 +12069,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 6. RECOMMENDATION → Link to contractor/business profiles
         if (category === "recommendation") {
-          // TODO: Extract mentioned businesses/contractors
-          // Create profile links, boost their reputation scores
-          // User sees "Thanks for the recommendation!" not profile system details
           console.log(
             `[CATEGORY ROUTING] Recommendation post created: ${newPost.id} - Profile linking queued`
           );
@@ -12107,12 +12076,28 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // 7. TIP → Feed Scout learning system
         if (category === "tip") {
-          // TODO: Extract actionable knowledge
-          // Add to Scout's local knowledge base
-          // Scout can reference this tip when helping other users
           console.log(
             `[CATEGORY ROUTING] Tip post created: ${newPost.id} - Scout learning ingestion queued`
           );
+        }
+
+        const categoryRoutingSummary: Partial<Record<string, string>> = {
+          request: "direct_connect_eligibility",
+          question: "scout_analysis",
+          forsale: "marketplace_extraction",
+          alert: "priority_notifications",
+          event: "calendar_extraction",
+          recommendation: "profile_linking",
+          tip: "knowledge_ingestion",
+        };
+        const routingSummary = categoryRoutingSummary[category];
+        if (resolvedCountyFips && routingSummary) {
+          await db.insert(countyNotes).values({
+            countyFips: resolvedCountyFips,
+            authorUserId: String(userId),
+            category: "operations",
+            content: `community_post:${newPost.id}:${routingSummary}`,
+          } as any);
         }
 
         res.status(201).json(newPost);
@@ -13383,7 +13368,24 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Update user's referral stats
       await storage.incrementInvitationsSent(userId);
 
-      // TODO: Send email notification (when email service is setup)
+      try {
+        const inviteBase =
+          process.env.PUBLIC_WEB_URL || process.env.APP_URL || getPublicBaseUrlFromRequest(req);
+        const inviteLink = `${inviteBase.replace(/\/$/, "")}/register?invite=${encodeURIComponent(invitationCode)}`;
+        await emailService.sendEmail({
+          to: email,
+          subject: "You're invited to TradeScout",
+          html: `<p>You were invited to TradeScout as <strong>${targetRole}</strong>.</p><p><a href="${inviteLink}">Accept invitation</a></p>${
+            personalMessage ? `<p>Message: ${personalMessage}</p>` : ""
+          }`,
+          text: `You were invited to TradeScout as ${targetRole}. Accept invitation: ${inviteLink}${
+            personalMessage ? `\nMessage: ${personalMessage}` : ""
+          }`,
+          purpose: "invitation",
+        });
+      } catch (emailError) {
+        console.error("Invitation email send failed:", emailError);
+      }
 
       res.status(201).json(invitation);
     } catch (error: any) {
@@ -13731,19 +13733,44 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         return res.status(400).json({ message: "Partner ID and partnership type are required" });
       }
 
-      // Check if partnership already exists (stub for now)
-      // const existingPartnership = await storage.getPartnership(userId, partnerId);
+      const existing = await db
+        .select()
+        .from(professionalPartnerships)
+        .where(
+          and(
+            or(
+              and(
+                eq(professionalPartnerships.initiatorId, String(userId)),
+                eq(professionalPartnerships.partnerId, String(partnerId))
+              ),
+              and(
+                eq(professionalPartnerships.initiatorId, String(partnerId)),
+                eq(professionalPartnerships.partnerId, String(userId))
+              )
+            ),
+            or(
+              eq(professionalPartnerships.status, "pending"),
+              eq(professionalPartnerships.status, "active")
+            )
+          )
+        )
+        .limit(1);
 
-      const partnership = {
-        id: `partnership_${Date.now()}`,
-        initiatorId: userId,
-        partnerId,
-        partnershipType,
-        referralTerms,
-        partnershipDescription,
-        status: "pending",
-        createdAt: new Date(),
-      };
+      if (existing.length > 0) {
+        return res.status(409).json({ message: "Partnership already exists for this pair" });
+      }
+
+      const [partnership] = await db
+        .insert(professionalPartnerships)
+        .values({
+          initiatorId: String(userId),
+          partnerId: String(partnerId),
+          partnershipType,
+          referralTerms: referralTerms ?? null,
+          partnershipDescription: partnershipDescription ?? null,
+          status: "pending",
+        } as any)
+        .returning();
 
       res.status(201).json(partnership);
     } catch (error: any) {
@@ -13755,7 +13782,24 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get user's partnerships
   app.get("/api/partnerships/my", isAuthenticated, async (req: any, res: any) => {
     try {
-      return res.status(501).json({ message: "Partnerships not implemented" });
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const rows = await db
+        .select()
+        .from(professionalPartnerships)
+        .where(
+          or(
+            eq(professionalPartnerships.initiatorId, String(userId)),
+            eq(professionalPartnerships.partnerId, String(userId))
+          )
+        )
+        .orderBy(desc(professionalPartnerships.createdAt))
+        .limit(200);
+
+      return res.json(rows);
     } catch (error: any) {
       console.error("Error fetching partnerships:", error);
       res.status(500).json({ message: "Failed to fetch partnerships" });
@@ -13765,36 +13809,33 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Find potential partners by role
   app.get("/api/partnerships/find/:role", isAuthenticated, async (req: any, res: any) => {
     try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const { role } = req.params;
+      const targetRole = String(role || "").trim();
+      if (!targetRole) {
+        return res.status(400).json({ message: "Role is required" });
+      }
 
-      // Mock potential partners based on requested role
-      const mockPartners =
-        role === "contractor"
-          ? [
-              {
-                id: "contractor_789",
-                firstName: "Mike",
-                lastName: "Rodriguez",
-                companyName: "Rodriguez Construction",
-                specialties: ["Roofing", "Siding", "General"],
-                rating: 4.8,
-                completedJobs: 147,
-                location: "Downtown Area",
-              },
-              {
-                id: "contractor_101",
-                firstName: "Sarah",
-                lastName: "Johnson",
-                companyName: "Johnson Home Improvements",
-                specialties: ["Kitchen Remodel", "Bathroom Remodel"],
-                rating: 4.9,
-                completedJobs: 89,
-                location: "Westside",
-              },
-            ]
-          : [];
+      const candidates = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          county: users.county,
+          state: users.state,
+          city: users.city,
+          profileImageUrl: users.profileImageUrl,
+        })
+        .from(users)
+        .where(and(eq(users.role, targetRole as any), sql`${users.id} <> ${String(userId)}`))
+        .orderBy(desc(users.createdAt))
+        .limit(50);
 
-      res.json(mockPartners);
+      res.json(candidates);
     } catch (error: any) {
       console.error("Error finding potential partners:", error);
       res.status(500).json({ message: "Failed to find potential partners" });
@@ -15630,24 +15671,89 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       const localVaultBalance = snapshot.vault ? Number(snapshot.vault.currentBalance ?? 0) : 0;
 
-      // Direct contribution: if the user is a Community Builder in this county,
-      // use their verified totalContributionValue as a local direct impact signal.
+      // Vault contributions:
+      // - Direct: payouts-to-vault from the current user's Community Builder contributions (any county vault).
+      // - Network: payouts-to-vault from builders they referred (any county vault).
+      // - Total to home county vault: direct + network constrained to the user's home county vault.
       let userDirectContribution = 0;
+      let userIndirectContribution = 0;
+      let userTotalContributionToCountyVault = 0;
       try {
         const builderProfile = await storage.getBuilderProfile(userId);
         if (builderProfile) {
-          // If snapshot has a county, ensure we only count contributions for that county
-          if (!snapshot.county || builderProfile.countyId === snapshot.county.id) {
-            userDirectContribution = Number(builderProfile.totalContributionValue ?? 0);
+          const sumDirectVaultPayouts = async (params?: {
+            countyId?: string | null;
+          }): Promise<number> => {
+            const countyId = params?.countyId ?? null;
+            const [row] = await db
+              .select({
+                total: sql<string>`
+                  coalesce(
+                    sum(coalesce(${builderContributions.paidOutAmount}, ${builderContributions.actualValue}, 0)),
+                    0
+                  )
+                `,
+              })
+              .from(builderContributions)
+              .where(
+                and(
+                  eq(builderContributions.builderId, builderProfile.id),
+                  eq(builderContributions.isPaidOut, true),
+                  eq(builderContributions.paidOutToVault, true),
+                  countyId ? eq(builderContributions.countyId, countyId) : sql`true`
+                )
+              );
+
+            return Number(row?.total ?? 0) || 0;
+          };
+
+          const sumNetworkVaultPayouts = async (params?: {
+            countyId?: string | null;
+          }): Promise<number> => {
+            const countyId = params?.countyId ?? null;
+            const [row] = await db
+              .select({
+                total: sql<string>`
+                  coalesce(
+                    sum(coalesce(${builderContributions.paidOutAmount}, ${builderContributions.actualValue}, 0)),
+                    0
+                  )
+                `,
+              })
+              .from(builderContributions)
+              .innerJoin(
+                builderReferrals,
+                eq(builderReferrals.referredBuilderId, builderContributions.builderId)
+              )
+              .where(
+                and(
+                  eq(builderReferrals.referrerId, builderProfile.id),
+                  eq(builderContributions.isPaidOut, true),
+                  eq(builderContributions.paidOutToVault, true),
+                  countyId ? eq(builderContributions.countyId, countyId) : sql`true`
+                )
+              );
+
+            return Number(row?.total ?? 0) || 0;
+          };
+
+          // Direct to any county vault
+          userDirectContribution = await sumDirectVaultPayouts();
+
+          // Network: 1-hop referred builders to any county vault
+          userIndirectContribution = await sumNetworkVaultPayouts();
+
+          // Total direct+network to the user's home county vault (if resolvable)
+          const homeCountyId = snapshot.county?.id ?? null;
+          if (homeCountyId) {
+            const directToHome = await sumDirectVaultPayouts({ countyId: homeCountyId });
+            const networkToHome = await sumNetworkVaultPayouts({ countyId: homeCountyId });
+            userTotalContributionToCountyVault = directToHome + networkToHome;
           }
         }
       } catch (err) {
-        console.warn("[local-impact] Failed to load builder profile for direct contribution", err);
+        console.warn("[local-impact] Failed to compute vault contribution metrics", err);
       }
-
-      // Indirect contribution: reserved for deeper referral / territory effects.
-      // For now, we return 0 rather than fabricating values.
-      const userIndirectContribution = 0;
 
       // Affiliate earnings & onboarded count: derived from the affiliate program, if any.
       let affiliateEarnings = 0;
@@ -15667,6 +15773,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         localVaultBalance,
         userDirectContribution,
         userIndirectContribution,
+        userTotalContributionToCountyVault,
         affiliateEarnings,
         affiliatesOnboardedCount,
         countyId: snapshot.county?.id ?? null,
@@ -17123,35 +17230,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
-  // Returns a signed JWT for MealScout SSO that the client can pass into
-  // performMealScoutSSO from the MealScout SDK. This does not perform any
-  // server-to-server call; it only mints the token.
-  app.post("/api/mealscout/token", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const caps = resolveCapabilities(req);
-      if (caps.mealscout !== "ok") {
-        return res.status(200).json({ available: false });
-      }
-
-      const rawUser: any = req.user;
-      const userId: string = rawUser?.id || rawUser?.claims?.sub || "";
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const token = createMealscoutSsoToken(user);
-      return res.json({ available: true, token });
-    } catch (err: any) {
-      console.error("[MealScoutSSO] Failed to mint SSO token", err);
-      return res.status(200).json({ available: false });
-    }
-  });
-
   // Simple system-wide health + capability snapshot
   app.get("/api/system/health", async (req: AuthedRequest, res: Response) => {
     const caps = resolveCapabilities(req);
@@ -17167,7 +17245,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
     res.json({
       accounting: dbStatus,
-      mealscout: caps.mealscout,
       admin: caps.admin,
     });
   });

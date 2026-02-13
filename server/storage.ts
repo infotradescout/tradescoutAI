@@ -428,7 +428,7 @@ type InsertAffiliateProgram = InsertAffiliateAccount;
 type AffiliateReferral = DbAffiliateReferral;
 type AffiliatePayout = DbAffiliatePayout;
 
-// Minimal commission shape since no table exists in schema (stubbed behaviour)
+// Minimal commission shape mapped onto affiliate referral records.
 type AffiliateCommission = {
   id: string;
   affiliateProgramId: string;
@@ -1211,20 +1211,6 @@ export interface IStorage {
     totalCommissionPaid: string;
     conversionRate: number;
   }>;
-
-  // MealScout-specific affiliate helpers
-  recordMealscoutAffiliatePayment(params: {
-    affiliateCode: string;
-    merchantUserId?: string;
-    commissionAmount: number;
-    isFirstMonth: boolean;
-    subscriptionAmount?: number;
-  }): Promise<void>;
-
-  getMealscoutSubscriptionPaymentCount(
-    affiliateCode: string,
-    merchantUserId: string
-  ): Promise<number>;
 
   // CRM operations
   createCrmContact(contact: InsertCrmContact): Promise<CrmContact>;
@@ -8710,17 +8696,84 @@ export class DatabaseStorage implements IStorage {
 
   // Commission management
   async createCommission(data: InsertAffiliateCommission): Promise<AffiliateCommission> {
-    // Commission table not implemented in current schema; simulate record for API compatibility
+    const commissionAmount = data.commissionAmount || "0";
+
+    if (data.referralId) {
+      const [updated] = await db
+        .update(affiliateReferrals)
+        .set({
+          commissionAmount,
+        })
+        .where(eq(affiliateReferrals.id, data.referralId))
+        .returning();
+
+      if (updated) {
+        return {
+          id: updated.id,
+          affiliateProgramId: data.affiliateProgramId,
+          status: data.status || "pending",
+          commissionAmount,
+          revenueAmount: data.revenueAmount,
+          referralId: updated.id,
+          transactionId: data.transactionId,
+          description: data.description,
+          createdAt: updated.createdAt || new Date(),
+          approvedAt: null,
+          paidAt: null,
+        };
+      }
+    }
+
+    const [created] = await db
+      .insert(affiliateReferrals)
+      .values({
+        affiliateId: data.affiliateProgramId,
+        referredUserId: null,
+        shareLinkId: null,
+        customLink: data.transactionId || null,
+        commissionAmount,
+        discountAmount: "0",
+        conversionSource: "commission",
+        conversionType: "commission",
+        couponCode: null,
+      } as any)
+      .returning();
+
     return {
-      ...data,
-      id: data.id || randomUUID(),
-      createdAt: data.createdAt || new Date(),
-    } as AffiliateCommission;
+      id: created.id,
+      affiliateProgramId: data.affiliateProgramId,
+      status: data.status || "pending",
+      commissionAmount,
+      revenueAmount: data.revenueAmount,
+      referralId: created.id,
+      transactionId: data.transactionId,
+      description: data.description,
+      createdAt: created.createdAt || new Date(),
+      approvedAt: null,
+      paidAt: null,
+    };
   }
 
   async getCommissionsForAffiliate(affiliateProgramId: string): Promise<AffiliateCommission[]> {
-    // No backing table; return empty list to satisfy callers
-    return [];
+    const rows = await db
+      .select()
+      .from(affiliateReferrals)
+      .where(eq(affiliateReferrals.affiliateId, affiliateProgramId))
+      .orderBy(desc(affiliateReferrals.createdAt));
+
+    return rows
+      .filter((row) => Number(row.commissionAmount || 0) > 0)
+      .map((row) => ({
+        id: row.id,
+        affiliateProgramId,
+        status: "pending",
+        commissionAmount: row.commissionAmount || "0",
+        referralId: row.id,
+        transactionId: row.customLink || undefined,
+        createdAt: row.createdAt || new Date(),
+        approvedAt: null,
+        paidAt: null,
+      }));
   }
 
   async approveCommission(commissionId: string): Promise<void> {
@@ -8729,8 +8782,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUnpaidCommissions(affiliateProgramId: string): Promise<AffiliateCommission[]> {
-    // No backing table; return empty list to satisfy callers
-    return [];
+    return this.getCommissionsForAffiliate(affiliateProgramId);
   }
 
   // Payout management
@@ -9398,97 +9450,6 @@ export class DatabaseStorage implements IStorage {
       monthlyStats,
       topPerformingLinks: [], // To be implemented
     };
-  }
-
-  async recordMealscoutAffiliatePayment(params: {
-    affiliateCode: string;
-    merchantUserId?: string;
-    commissionAmount: number;
-    isFirstMonth: boolean;
-    subscriptionAmount?: number;
-  }): Promise<void> {
-    const { affiliateCode, merchantUserId, commissionAmount, isFirstMonth, subscriptionAmount } =
-      params;
-
-    if (!affiliateCode || !Number.isFinite(commissionAmount) || commissionAmount <= 0) {
-      return;
-    }
-
-    const [affiliate] = await db
-      .select()
-      .from(userAffiliates)
-      .where(eq(userAffiliates.affiliateCode, affiliateCode));
-
-    if (!affiliate) {
-      // Unknown affiliate code; nothing to track
-      return;
-    }
-
-    const currentTotal = parseFloat((affiliate.totalEarnings as any) ?? "0") || 0;
-    const currentPending = parseFloat((affiliate.pendingEarnings as any) ?? "0") || 0;
-
-    const updates: Partial<typeof userAffiliates.$inferInsert> = {
-      totalEarnings: (currentTotal + commissionAmount).toFixed(2),
-      pendingEarnings: (currentPending + commissionAmount).toFixed(2),
-      updatedAt: new Date(),
-    };
-
-    if (isFirstMonth) {
-      const totalReferrals = (affiliate.totalReferrals as number | null) ?? 0;
-      const successfulReferrals = (affiliate.successfulReferrals as number | null) ?? 0;
-      updates.totalReferrals = totalReferrals + 1;
-      updates.successfulReferrals = successfulReferrals + 1;
-    }
-
-    await db
-      .update(userAffiliates)
-      .set(updates)
-      .where(eq(userAffiliates.affiliateCode, affiliateCode));
-
-    const commissionStr = commissionAmount.toFixed(2);
-    const conversionValueStr =
-      typeof subscriptionAmount === "number" && Number.isFinite(subscriptionAmount)
-        ? subscriptionAmount.toFixed(2)
-        : undefined;
-
-    await db.insert(affiliateTracking).values({
-      affiliateCode,
-      visitingUserId: merchantUserId,
-      action: isFirstMonth
-        ? "mealscout_subscription_first_month"
-        : "mealscout_subscription_renewal",
-      sourceUrl: null,
-      targetUrl: null,
-      sessionId: null,
-      ipAddress: null,
-      userAgent: null,
-      conversionValue: conversionValueStr,
-      commissionEarned: commissionStr,
-    });
-  }
-
-  async getMealscoutSubscriptionPaymentCount(
-    affiliateCode: string,
-    merchantUserId: string
-  ): Promise<number> {
-    if (!affiliateCode || !merchantUserId) return 0;
-
-    const [row] = await db
-      .select({ count: sql<string>`count(*)` })
-      .from(affiliateTracking)
-      .where(
-        and(
-          eq(affiliateTracking.affiliateCode, affiliateCode),
-          eq(affiliateTracking.visitingUserId, merchantUserId),
-          inArray(affiliateTracking.action, [
-            "mealscout_subscription_first_month",
-            "mealscout_subscription_renewal",
-          ])
-        )
-      );
-
-    const count = row?.count ? parseInt(row.count, 10) : 0;
-    return Number.isFinite(count) && count > 0 ? count : 0;
   }
 
   // Smart Recommendation Generator implementation

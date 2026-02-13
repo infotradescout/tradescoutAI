@@ -668,10 +668,6 @@ export default function ScoutOS() {
       return "admin";
     }
 
-    if (normalized.some((r) => ["restaurant_owner", "food_truck_owner", "bar_owner"].includes(r))) {
-      return "mealscout";
-    }
-
     if (normalized.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
       return "contractors";
     }
@@ -727,14 +723,6 @@ export default function ScoutOS() {
           "Show Exchange listings that match this need near me",
           "Post a listing",
           "Manage my listings",
-          "Open a floating note to keep this visible"
-        );
-        break;
-      case "mealscout":
-        base.push(
-          "Open MealScout to see my current deals and subscriptions",
-          "Help me create my next MealScout deal or menu update",
-          "Show how MealScout and TradeScout work together for my area",
           "Open a floating note to keep this visible"
         );
         break;
@@ -3164,7 +3152,6 @@ export default function ScoutOS() {
                         scoutModeHook.skipOnboarding();
                       }}
                       onEdit={() => {
-                        // TODO: Implement edit flow (navigate back to profile/signup)
                         onboarding.resetFlow();
                         navigate("/profile-settings");
                       }}

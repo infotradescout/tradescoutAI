@@ -2,12 +2,11 @@ import { test, expect } from "./fixtures/botArmy";
 
 // Basic e2e guard: community feed shows posts for the user's county
 
-test.describe('Community feed scoped to user county', () => {
-  test('shows county posts on /community-feed', async ({ page }) => {
-    // TODO: replace with your real sign-in helper once available
-    // For now, assume the default dev user is already authenticated via cookie/session
+test.describe("Community feed scoped to user county", () => {
+  test("shows county posts on /community-feed", async ({ page }) => {
+    // Assumes fixture session authentication.
 
-    await page.goto('/community-feed');
+    await page.goto("/community-feed");
 
     // Wait for at least one post card to appear
     const postCards = page.locator('[data-testid="community-post-card"]');

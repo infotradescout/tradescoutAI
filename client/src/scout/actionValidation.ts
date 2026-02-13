@@ -14,7 +14,6 @@ const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
   "OPEN_FLOATING_NOTE",
   "EXTERNAL_LINK",
   "NOOP",
-  "MEALSCOUT_COMMAND",
   "FOLLOW_USER",
   "UNFOLLOW_USER",
   "START_COMMUNITY_VAULT_DONATION",
@@ -34,7 +33,6 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/projects",
   "/request-quote",
   "/leaderboard",
-  "/mealscout",
   "/settings",
   "/profile",
   "/connections",
@@ -106,11 +104,7 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
 
   // PREFILL_INPUT requires text payload
   if (action.type === "PREFILL_INPUT") {
-    if (
-      !action.payload ||
-      typeof action.payload.text !== "string" ||
-      !action.payload.text.trim()
-    ) {
+    if (!action.payload || typeof action.payload.text !== "string" || !action.payload.text.trim()) {
       console.warn("[Scout] PREFILL_INPUT missing valid text", action);
       return null;
     }

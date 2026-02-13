@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPresets";
@@ -16,7 +22,7 @@ import { applyTheme, type Theme } from "@/lib/themes";
 
 interface UserPreferences {
   defaultHomePage?: string;
-  profileVisibility?: 'public' | 'private';
+  profileVisibility?: "public" | "private";
   colorScheme?: {
     preset?: string;
     primary?: string;
@@ -39,7 +45,7 @@ type ProfileSections = {
   reviews?: boolean;
   communityActivity?: boolean;
   contactCard?: boolean;
-}
+};
 
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
@@ -47,21 +53,24 @@ export default function ProfileSettings() {
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
-    defaultHomePage: 'llm',
-    profileVisibility: 'public',
-    colorScheme: { preset: 'default' },
+    defaultHomePage: "llm",
+    profileVisibility: "public",
+    colorScheme: { preset: "default" },
     profileSections: {},
-    servicesDescription: '',
+    servicesDescription: "",
   });
 
-  const [customColors, setCustomColors] = useState<{ primary: string; secondary: string; background: string; text: string }>(
-    {
-      primary: COLOR_PRESETS.default.primary,
-      secondary: COLOR_PRESETS.default.secondary,
-      background: COLOR_PRESETS.default.background,
-      text: COLOR_PRESETS.default.text,
-    }
-  );
+  const [customColors, setCustomColors] = useState<{
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+  }>({
+    primary: COLOR_PRESETS.default.primary,
+    secondary: COLOR_PRESETS.default.secondary,
+    background: COLOR_PRESETS.default.background,
+    text: COLOR_PRESETS.default.text,
+  });
 
   // 6-color palette (background + UI surface + white/orange accents) that drives BOTH
   // in-app theme and public profile defaults.
@@ -74,9 +83,9 @@ export default function ProfileSettings() {
     accentStrong: string;
   }>(() => ({
     background: COLOR_PRESETS.default.background,
-    surface: "#121A24",
+    surface: COLOR_PRESETS.default.surface || COLOR_PRESETS.default.background,
     text: COLOR_PRESETS.default.text,
-    textMuted: "#B8C0CC",
+    textMuted: COLOR_PRESETS.default.textMuted || COLOR_PRESETS.default.text,
     accent: COLOR_PRESETS.default.primary,
     accentStrong: COLOR_PRESETS.default.secondary,
   }));
@@ -93,7 +102,7 @@ export default function ProfileSettings() {
   const HEX_BLACK_FALLBACK = "#" + "000000";
 
   const sanitizeColorForInput = (value: string | undefined | null) => {
-    if (!value || typeof value !== 'string') return HEX_BLACK_FALLBACK;
+    if (!value || typeof value !== "string") return HEX_BLACK_FALLBACK;
     // If we get an 8-digit hex (e.g. #rrggbbaa), trim to 6-digit which <input type="color"> expects.
     if (HEX8_REGEX.test(value)) {
       return value.slice(0, 7);
@@ -105,15 +114,15 @@ export default function ProfileSettings() {
   useEffect(() => {
     if (user?.preferences) {
       setPreferences({
-        defaultHomePage: user.preferences.defaultHomePage || 'llm',
-        profileVisibility: user.preferences.profileVisibility || 'public',
-        colorScheme: user.preferences.colorScheme || { preset: 'default' },
+        defaultHomePage: user.preferences.defaultHomePage || "llm",
+        profileVisibility: user.preferences.profileVisibility || "public",
+        colorScheme: user.preferences.colorScheme || { preset: "default" },
         profileSections: user.preferences.profileSections || {},
-        servicesDescription: user.preferences.servicesDescription || '',
+        servicesDescription: user.preferences.servicesDescription || "",
       });
 
       const scheme = user.preferences.colorScheme;
-      if (scheme && scheme.preset === 'custom') {
+      if (scheme && scheme.preset === "custom") {
         setCustomColors({
           primary: scheme.primary || COLOR_PRESETS.default.primary,
           secondary: scheme.secondary || COLOR_PRESETS.default.secondary,
@@ -124,8 +133,16 @@ export default function ProfileSettings() {
 
       // Prefer the richer site theme payload when available; otherwise derive from profile scheme.
       try {
-        const rawTheme = (user as any)?.customThemeColors ? JSON.parse((user as any).customThemeColors) : null;
-        if (rawTheme?.bgPrimary && rawTheme?.bgSecondary && rawTheme?.textPrimary && rawTheme?.accentPrimary && rawTheme?.accentSecondary) {
+        const rawTheme = (user as any)?.customThemeColors
+          ? JSON.parse((user as any).customThemeColors)
+          : null;
+        if (
+          rawTheme?.bgPrimary &&
+          rawTheme?.bgSecondary &&
+          rawTheme?.textPrimary &&
+          rawTheme?.accentPrimary &&
+          rawTheme?.accentSecondary
+        ) {
           setPalette({
             background: sanitizeColorForInput(rawTheme.bgPrimary),
             surface: sanitizeColorForInput(rawTheme.bgSecondary),
@@ -155,19 +172,19 @@ export default function ProfileSettings() {
   const updateColorScheme = async (preset: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users/color-scheme', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/color-scheme", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ preset }),
       });
 
-      if (!response.ok) throw new Error('Failed to update color scheme');
+      if (!response.ok) throw new Error("Failed to update color scheme");
 
       const data = await response.json();
-      setPreferences(prev => ({ ...prev, colorScheme: data.colorScheme }));
+      setPreferences((prev) => ({ ...prev, colorScheme: data.colorScheme }));
       await refetch();
-      
+
       toast({
         title: "Color scheme updated",
         description: "Your profile colors have been saved.",
@@ -190,12 +207,12 @@ export default function ProfileSettings() {
   const saveCustomColors = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users/color-scheme', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/color-scheme", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          preset: 'custom',
+          preset: "custom",
           primary: customColors.primary,
           secondary: customColors.secondary,
           background: customColors.background,
@@ -203,18 +220,23 @@ export default function ProfileSettings() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update color scheme');
+      if (!response.ok) throw new Error("Failed to update color scheme");
 
       const data = await response.json();
-      setPreferences(prev => ({ ...prev, colorScheme: data.colorScheme }));
+      setPreferences((prev) => ({ ...prev, colorScheme: data.colorScheme }));
       await refetch();
-      
+
       toast({
         title: "Color scheme updated",
         description: "Your profile colors have been saved.",
       });
 
-      if (data.colorScheme?.primary && data.colorScheme?.secondary && data.colorScheme?.background && data.colorScheme?.text) {
+      if (
+        data.colorScheme?.primary &&
+        data.colorScheme?.secondary &&
+        data.colorScheme?.background &&
+        data.colorScheme?.text
+      ) {
         applyCustomColors({
           primary: data.colorScheme.primary,
           secondary: data.colorScheme.secondary,
@@ -255,12 +277,12 @@ export default function ProfileSettings() {
       });
 
       // 2) Keep public profile color scheme aligned (back-compat path used by profile renderer)
-      const response = await fetch('/api/users/color-scheme', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/color-scheme", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          preset: 'custom',
+          preset: "custom",
           primary: palette.accent,
           secondary: palette.accentStrong,
           background: palette.background,
@@ -268,7 +290,7 @@ export default function ProfileSettings() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update color scheme');
+      if (!response.ok) throw new Error("Failed to update color scheme");
 
       await refetch();
 
@@ -290,18 +312,18 @@ export default function ProfileSettings() {
   const updateDefaultHome = async (page: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users/default-home', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/default-home", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ defaultHomePage: page }),
       });
 
-      if (!response.ok) throw new Error('Failed to update home page');
+      if (!response.ok) throw new Error("Failed to update home page");
 
-      setPreferences(prev => ({ ...prev, defaultHomePage: page }));
+      setPreferences((prev) => ({ ...prev, defaultHomePage: page }));
       await refetch();
-      
+
       toast({
         title: "Default home page updated",
         description: `Your home page is now set to ${page}`,
@@ -319,21 +341,21 @@ export default function ProfileSettings() {
 
   const updateProfileVisibility = async (isPublic: boolean) => {
     setLoading(true);
-    const visibility = isPublic ? 'public' : 'private';
-    
+    const visibility = isPublic ? "public" : "private";
+
     try {
-      const response = await fetch('/api/users/profile-visibility', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/profile-visibility", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ profileVisibility: visibility }),
       });
 
-      if (!response.ok) throw new Error('Failed to update visibility');
+      if (!response.ok) throw new Error("Failed to update visibility");
 
-      setPreferences(prev => ({ ...prev, profileVisibility: visibility }));
+      setPreferences((prev) => ({ ...prev, profileVisibility: visibility }));
       await refetch();
-      
+
       toast({
         title: "Profile visibility updated",
         description: `Your profile is now ${visibility}`,
@@ -352,21 +374,21 @@ export default function ProfileSettings() {
   const saveServicesDescription = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users/preferences', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          servicesDescription: preferences.servicesDescription || '',
+          servicesDescription: preferences.servicesDescription || "",
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update services description');
+      if (!response.ok) throw new Error("Failed to update services description");
 
       const data = await response.json();
-      setPreferences(prev => ({
+      setPreferences((prev) => ({
         ...prev,
-        servicesDescription: data.preferences?.servicesDescription || '',
+        servicesDescription: data.preferences?.servicesDescription || "",
       }));
       await refetch();
 
@@ -387,13 +409,13 @@ export default function ProfileSettings() {
 
   const applyColorValues = (colors: ColorScheme) => {
     const root = document.documentElement;
-    
-    root.style.setProperty('--user-primary', colors.primary);
-    root.style.setProperty('--user-secondary', colors.secondary);
-    root.style.setProperty('--user-background', colors.background);
-    root.style.setProperty('--user-text', colors.text);
-    root.style.setProperty('--user-accent', colors.accent || colors.primary);
-    root.style.setProperty('--user-border', colors.border || colors.background);
+
+    root.style.setProperty("--user-primary", colors.primary);
+    root.style.setProperty("--user-secondary", colors.secondary);
+    root.style.setProperty("--user-background", colors.background);
+    root.style.setProperty("--user-text", colors.text);
+    root.style.setProperty("--user-accent", colors.accent || colors.primary);
+    root.style.setProperty("--user-border", colors.border || colors.background);
   };
 
   const applyColorScheme = (preset: string) => {
@@ -404,9 +426,9 @@ export default function ProfileSettings() {
   const applyCustomColors = (colors: ColorScheme) => {
     applyColorValues(colors);
     const themeFromScheme: Theme = {
-      id: 'profile-custom',
-      name: 'Profile Color Scheme',
-      description: 'Synced from profile settings',
+      id: "profile-custom",
+      name: "Profile Color Scheme",
+      description: "Synced from profile settings",
       colors: {
         bgPrimary: colors.background,
         bgSecondary: colors.background,
@@ -424,9 +446,9 @@ export default function ProfileSettings() {
     // Keep global theme context in sync so the rest of the app
     // immediately reflects these custom colors.
     updateCustomColors(themeFromScheme.colors);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('themeId', themeFromScheme.id);
-      localStorage.setItem('customColors', JSON.stringify(themeFromScheme.colors));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("themeId", themeFromScheme.id);
+      localStorage.setItem("customColors", JSON.stringify(themeFromScheme.colors));
     }
   };
 
@@ -434,8 +456,8 @@ export default function ProfileSettings() {
     const colors = COLOR_PRESETS[preset] || COLOR_PRESETS.default;
     const themeFromScheme: Theme = {
       id: `profile-${preset}`,
-      name: 'Profile Color Scheme',
-      description: 'Synced from profile settings',
+      name: "Profile Color Scheme",
+      description: "Synced from profile settings",
       colors: {
         bgPrimary: colors.background,
         bgSecondary: colors.background,
@@ -451,9 +473,9 @@ export default function ProfileSettings() {
 
     applyTheme(themeFromScheme);
     setTheme(`profile-${preset}`);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('themeId', themeFromScheme.id);
-      localStorage.setItem('customColors', JSON.stringify(themeFromScheme.colors));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("themeId", themeFromScheme.id);
+      localStorage.setItem("customColors", JSON.stringify(themeFromScheme.colors));
     }
   };
 
@@ -462,7 +484,13 @@ export default function ProfileSettings() {
     const scheme = preferences.colorScheme;
     if (!scheme) return;
 
-    if (scheme.preset === 'custom' && scheme.primary && scheme.secondary && scheme.background && scheme.text) {
+    if (
+      scheme.preset === "custom" &&
+      scheme.primary &&
+      scheme.secondary &&
+      scheme.background &&
+      scheme.text
+    ) {
       applyCustomColors({
         primary: scheme.primary,
         secondary: scheme.secondary,
@@ -480,18 +508,18 @@ export default function ProfileSettings() {
   const updateProfileSection = async (section: keyof ProfileSections, enabled: boolean) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/users/profile-sections', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/users/profile-sections", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ [section]: enabled }),
       });
 
-      if (!response.ok) throw new Error('Failed to update profile sections');
+      if (!response.ok) throw new Error("Failed to update profile sections");
 
       const data = await response.json();
 
-      setPreferences(prev => ({
+      setPreferences((prev) => ({
         ...prev,
         profileSections: {
           ...(prev.profileSections || {}),
@@ -517,25 +545,32 @@ export default function ProfileSettings() {
     }
   };
 
-  const currentPreset = preferences.colorScheme?.preset || 'default';
-  const previewColors: ColorScheme = currentPreset === 'custom'
-    ? {
-        primary: preferences.colorScheme?.primary || COLOR_PRESETS.default.primary,
-        secondary: preferences.colorScheme?.secondary || COLOR_PRESETS.default.secondary,
-        background: preferences.colorScheme?.background || COLOR_PRESETS.default.background,
-        text: preferences.colorScheme?.text || COLOR_PRESETS.default.text,
-        accent: preferences.colorScheme?.accent || preferences.colorScheme?.primary || COLOR_PRESETS.default.primary,
-        border: preferences.colorScheme?.border || preferences.colorScheme?.background || COLOR_PRESETS.default.background,
-      }
-    : (COLOR_PRESETS[currentPreset] || COLOR_PRESETS.default);
+  const currentPreset = preferences.colorScheme?.preset || "default";
+  const previewColors: ColorScheme =
+    currentPreset === "custom"
+      ? {
+          primary: preferences.colorScheme?.primary || COLOR_PRESETS.default.primary,
+          secondary: preferences.colorScheme?.secondary || COLOR_PRESETS.default.secondary,
+          background: preferences.colorScheme?.background || COLOR_PRESETS.default.background,
+          text: preferences.colorScheme?.text || COLOR_PRESETS.default.text,
+          accent:
+            preferences.colorScheme?.accent ||
+            preferences.colorScheme?.primary ||
+            COLOR_PRESETS.default.primary,
+          border:
+            preferences.colorScheme?.border ||
+            preferences.colorScheme?.background ||
+            COLOR_PRESETS.default.background,
+        }
+      : COLOR_PRESETS[currentPreset] || COLOR_PRESETS.default;
 
   const handlePresetChange = (preset: string) => {
-    if (preset === 'custom') {
-      setPreferences(prev => ({
+    if (preset === "custom") {
+      setPreferences((prev) => ({
         ...prev,
         colorScheme: {
           ...(prev.colorScheme || {}),
-          preset: 'custom',
+          preset: "custom",
           primary: customColors.primary,
           secondary: customColors.secondary,
           background: customColors.background,
@@ -557,7 +592,8 @@ export default function ProfileSettings() {
         </p>
         {isOnboarding && (
           <p className="mt-2 text-sm text-tsTextMuted">
-            You just created your account with Google or Facebook. You can finish this now or skip and come back later from Settings → Profile.
+            You just created your account with Google or Facebook. You can finish this now or skip
+            and come back later from Settings → Profile.
           </p>
         )}
       </div>
@@ -570,7 +606,8 @@ export default function ProfileSettings() {
             Site + Profile Palette
           </CardTitle>
           <CardDescription>
-            These 6 colors power your full site experience (background + UI layer) and keep your public profile in sync.
+            These 6 colors power your full site experience (background + UI layer) and keep your
+            public profile in sync.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -625,7 +662,7 @@ export default function ProfileSettings() {
           <div className="space-y-2">
             <Label>Select Preset</Label>
             <Select
-              value={preferences.colorScheme?.preset || 'default'}
+              value={preferences.colorScheme?.preset || "default"}
               onValueChange={handlePresetChange}
               disabled={loading}
             >
@@ -697,7 +734,8 @@ export default function ProfileSettings() {
           <div className="mt-6 space-y-3">
             <Label>Custom Colors</Label>
             <p className="text-xs text-tsTextMuted">
-              Pick your own colors for this profile. Select “Custom” above to use them in your theme and public profile.
+              Pick your own colors for this profile. Select “Custom” above to use them in your theme
+              and public profile.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -706,12 +744,16 @@ export default function ProfileSettings() {
                   <input
                     type="color"
                     value={sanitizeColorForInput(customColors.primary)}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
+                    onChange={(e) =>
+                      setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
+                    }
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
                   <Input
                     value={customColors.primary}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
+                    onChange={(e) =>
+                      setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
+                    }
                   />
                 </div>
               </div>
@@ -722,12 +764,16 @@ export default function ProfileSettings() {
                   <input
                     type="color"
                     value={sanitizeColorForInput(customColors.secondary)}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
+                    onChange={(e) =>
+                      setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
+                    }
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
                   <Input
                     value={customColors.secondary}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
+                    onChange={(e) =>
+                      setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
+                    }
                   />
                 </div>
               </div>
@@ -738,12 +784,16 @@ export default function ProfileSettings() {
                   <input
                     type="color"
                     value={sanitizeColorForInput(customColors.background)}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, background: e.target.value }))}
+                    onChange={(e) =>
+                      setCustomColors((prev) => ({ ...prev, background: e.target.value }))
+                    }
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
                   <Input
                     value={customColors.background}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, background: e.target.value }))}
+                    onChange={(e) =>
+                      setCustomColors((prev) => ({ ...prev, background: e.target.value }))
+                    }
                   />
                 </div>
               </div>
@@ -754,12 +804,12 @@ export default function ProfileSettings() {
                   <input
                     type="color"
                     value={sanitizeColorForInput(customColors.text)}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, text: e.target.value }))}
+                    onChange={(e) => setCustomColors((prev) => ({ ...prev, text: e.target.value }))}
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
                   <Input
                     value={customColors.text}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, text: e.target.value }))}
+                    onChange={(e) => setCustomColors((prev) => ({ ...prev, text: e.target.value }))}
                   />
                 </div>
               </div>
@@ -767,7 +817,7 @@ export default function ProfileSettings() {
 
             <div className="flex justify-end pt-2">
               <Button onClick={saveCustomColors} disabled={loading}>
-                {loading ? 'Saving…' : 'Save Custom Colors'}
+                {loading ? "Saving…" : "Save Custom Colors"}
               </Button>
             </div>
           </div>
@@ -782,14 +832,15 @@ export default function ProfileSettings() {
             Default Home Page
           </CardTitle>
           <CardDescription>
-            Choose the first page you see when you visit TradeScout. Scout and your home route will use this when you open the app.
+            Choose the first page you see when you visit TradeScout. Scout and your home route will
+            use this when you open the app.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Landing Page</Label>
             <Select
-              value={preferences.defaultHomePage || 'llm'}
+              value={preferences.defaultHomePage || "llm"}
               onValueChange={updateDefaultHome}
               disabled={loading}
             >
@@ -807,12 +858,19 @@ export default function ProfileSettings() {
             </Select>
           </div>
           <p className="text-xs text-tsTextMuted">
-            Your current default is {preferences.defaultHomePage === 'dashboard' ? 'Dashboard' :
-              preferences.defaultHomePage === 'marketplace' ? 'Exchange' :
-              preferences.defaultHomePage === 'contractor-board' ? 'Contractor Board' :
-              preferences.defaultHomePage === 'profile' ? 'My Profile' :
-              preferences.defaultHomePage === 'community' ? 'Community Feed' :
-              'Scout (Default)'}.
+            Your current default is{" "}
+            {preferences.defaultHomePage === "dashboard"
+              ? "Dashboard"
+              : preferences.defaultHomePage === "marketplace"
+                ? "Exchange"
+                : preferences.defaultHomePage === "contractor-board"
+                  ? "Contractor Board"
+                  : preferences.defaultHomePage === "profile"
+                    ? "My Profile"
+                    : preferences.defaultHomePage === "community"
+                      ? "Community Feed"
+                      : "Scout (Default)"}
+            .
           </p>
         </CardContent>
       </Card>
@@ -821,7 +879,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {preferences.profileVisibility === 'public' ? (
+            {preferences.profileVisibility === "public" ? (
               <Eye className="h-5 w-5 text-tsAccent" />
             ) : (
               <EyeOff className="h-5 w-5 text-tsAccent" />
@@ -829,7 +887,8 @@ export default function ProfileSettings() {
             Profile Visibility
           </CardTitle>
           <CardDescription>
-            Control who can see your profile. Public profiles are searchable and can be found by Scout.
+            Control who can see your profile. Public profiles are searchable and can be found by
+            Scout.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -841,17 +900,18 @@ export default function ProfileSettings() {
               </p>
             </div>
             <Switch
-              checked={preferences.profileVisibility === 'public'}
+              checked={preferences.profileVisibility === "public"}
               onCheckedChange={updateProfileVisibility}
               disabled={loading}
             />
           </div>
-          
-          {preferences.profileVisibility === 'public' && (
+
+          {preferences.profileVisibility === "public" && (
             <div className="p-4 bg-tsAccent/10 rounded-lg border border-tsAccent/20">
               <p className="text-sm text-tsTextMain">
-                <strong>Your profile is your website.</strong> When public, visitors will see your customized colors,
-                user types, activity, and information. Scout can reference your profile when answering questions.
+                <strong>Your profile is your website.</strong> When public, visitors will see your
+                customized colors, user types, activity, and information. Scout can reference your
+                profile when answering questions.
               </p>
             </div>
           )}
@@ -866,14 +926,14 @@ export default function ProfileSettings() {
             Services You Offer
           </CardTitle>
           <CardDescription>
-            Describe, in your own words, the services you perform. Scout and the auto-routing system use this
-            (along with your roles, locality, and recommendations) to send you the right requests and avoid
-            calls for work you don&apos;t offer.
+            Describe, in your own words, the services you perform. Scout and the auto-routing system
+            use this (along with your roles, locality, and recommendations) to send you the right
+            requests and avoid calls for work you don&apos;t offer.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
-            value={preferences.servicesDescription || ''}
+            value={preferences.servicesDescription || ""}
             onChange={(e) =>
               setPreferences((prev) => ({
                 ...prev,
@@ -899,7 +959,8 @@ export default function ProfileSettings() {
             Profile Site Sections
           </CardTitle>
           <CardDescription>
-            Choose which sections appear on your public profile site. Turning sections off hides them from visitors.
+            Choose which sections appear on your public profile site. Turning sections off hides
+            them from visitors.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -912,7 +973,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.about !== false}
-              onCheckedChange={(value) => updateProfileSection('about', value)}
+              onCheckedChange={(value) => updateProfileSection("about", value)}
               disabled={loading}
             />
           </div>
@@ -926,7 +987,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.rolesAndBadges !== false}
-              onCheckedChange={(value) => updateProfileSection('rolesAndBadges', value)}
+              onCheckedChange={(value) => updateProfileSection("rolesAndBadges", value)}
               disabled={loading}
             />
           </div>
@@ -940,7 +1001,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.stats !== false}
-              onCheckedChange={(value) => updateProfileSection('stats', value)}
+              onCheckedChange={(value) => updateProfileSection("stats", value)}
               disabled={loading}
             />
           </div>
@@ -954,7 +1015,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.services !== false}
-              onCheckedChange={(value) => updateProfileSection('services', value)}
+              onCheckedChange={(value) => updateProfileSection("services", value)}
               disabled={loading}
             />
           </div>
@@ -968,7 +1029,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.marketplaceListings !== false}
-              onCheckedChange={(value) => updateProfileSection('marketplaceListings', value)}
+              onCheckedChange={(value) => updateProfileSection("marketplaceListings", value)}
               disabled={loading}
             />
           </div>
@@ -982,7 +1043,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.reviews !== false}
-              onCheckedChange={(value) => updateProfileSection('reviews', value)}
+              onCheckedChange={(value) => updateProfileSection("reviews", value)}
               disabled={loading}
             />
           </div>
@@ -996,7 +1057,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.communityActivity !== false}
-              onCheckedChange={(value) => updateProfileSection('communityActivity', value)}
+              onCheckedChange={(value) => updateProfileSection("communityActivity", value)}
               disabled={loading}
             />
           </div>
@@ -1010,7 +1071,7 @@ export default function ProfileSettings() {
             </div>
             <Switch
               checked={preferences.profileSections?.contactCard !== false}
-              onCheckedChange={(value) => updateProfileSection('contactCard', value)}
+              onCheckedChange={(value) => updateProfileSection("contactCard", value)}
               disabled={loading}
             />
           </div>

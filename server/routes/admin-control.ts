@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
-import { eq, sql, count } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -17,8 +17,7 @@ let outcomeLearningEnabled: boolean = true;
 
 function isSuperAdmin(req: any): boolean {
   return (
-    req.isAuthenticated() &&
-    (req.user?.role === "super_admin" || req.user?.role === "head_admin")
+    req.isAuthenticated() && (req.user?.role === "super_admin" || req.user?.role === "head_admin")
   );
 }
 
@@ -98,9 +97,7 @@ router.post("/reset-scope", async (req, res) => {
   }
 
   try {
-    await db
-      .delete(scoutUserConfidenceState)
-      .where(eq(scoutUserConfidenceState.scope, scope));
+    await db.delete(scoutUserConfidenceState).where(eq(scoutUserConfidenceState.scope, scope));
 
     console.log(`[ADMIN CONTROL] Reset confidence for scope: ${scope}`);
 
@@ -118,10 +115,17 @@ router.get("/health", async (req, res) => {
   }
 
   try {
-    // BLOCK rate (using actual governor actions if tracked; placeholder for now)
-    const totalInterventions = 100; // TODO: track actual intervention counts
-    const blockCount = 5; // TODO: track actual BLOCK counts
-    const blockRate = ((blockCount / totalInterventions) * 100).toFixed(1);
+    const [interventionTotals] = await db
+      .select({
+        totalInterventions: sql<number>`count(*) filter (where ${scoutOutcomeEvents.action} in ('ignored_advice','followed_advice','completed_flow'))`,
+        blockLikeInterventions: sql<number>`count(*) filter (where ${scoutOutcomeEvents.action} in ('ignored_advice','canceled','regret_reported','reported_spam','dispute','refund'))`,
+      })
+      .from(scoutOutcomeEvents);
+
+    const totalInterventions = Number(interventionTotals?.totalInterventions || 0);
+    const blockCount = Number(interventionTotals?.blockLikeInterventions || 0);
+    const blockRate =
+      totalInterventions > 0 ? ((blockCount / totalInterventions) * 100).toFixed(1) : "0.0";
 
     // Override rate
     const totalOutcomes = await db

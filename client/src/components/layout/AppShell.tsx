@@ -15,7 +15,6 @@ import {
   LogIn,
   Wrench,
   ClipboardList,
-  Utensils,
   CircleHelp,
   Sparkles,
   Shield,
@@ -60,15 +59,6 @@ const buildFeatureNav = (isSuperAdmin: boolean, isAuthenticated: boolean): NavIt
       href: "/direct-connect",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
-    ...(isAuthenticated
-      ? [
-          {
-            label: "MealScout",
-            href: "/mealscout",
-            icon: <Utensils className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-          } as NavItem,
-        ]
-      : []),
     {
       label: "Community",
       href: ROUTES.COMMUNITY ?? "/community",

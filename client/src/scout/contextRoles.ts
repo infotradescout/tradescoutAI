@@ -66,7 +66,9 @@ export function inferContextRoles(signals: ContextSignals): ContextRole[] {
   return Array.from(roles);
 }
 
-export function deriveModeFromContextRoles(contextRoles: ContextRole[]): "admin" | "marketplace" | "mealscout" | "contractors" | "default" {
+export function deriveModeFromContextRoles(
+  contextRoles: ContextRole[]
+): "admin" | "marketplace" | "contractors" | "default" {
   const set = new Set(contextRoles);
   if (set.has("admin")) return "admin";
   if (set.has("marketplace_vendor") || set.has("vendor")) return "marketplace";

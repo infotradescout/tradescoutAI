@@ -74,7 +74,8 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     case "NAVIGATE": {
       let destination = action.to ?? action.path;
       if (destination) {
-        const adId = typeof action.payload?.adId === "string" ? (action.payload.adId as string) : null;
+        const adId =
+          typeof action.payload?.adId === "string" ? (action.payload.adId as string) : null;
         if (adId) {
           void fetch("/api/ads/track-click", {
             method: "POST",
@@ -98,10 +99,13 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
         }
 
         // If a jobId payload is present, deep-link into the Deal Room
-        const jobId = typeof action.payload?.jobId === "string" ? (action.payload.jobId as string) : null;
+        const jobId =
+          typeof action.payload?.jobId === "string" ? (action.payload.jobId as string) : null;
         if (
           jobId &&
-          (destination === "/lead-management" || destination === "/project-tracker" || destination === "/finances")
+          (destination === "/lead-management" ||
+            destination === "/project-tracker" ||
+            destination === "/finances")
         ) {
           destination = `/deal-room/${encodeURIComponent(jobId)}`;
         }
@@ -130,29 +134,9 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
       }
       return;
 
-    case "MEALSCOUT_COMMAND": {
-      // For now, treat any MealScout command as a deep-link into the MealScout tab.
-      // We can later read a queued command from storage or context inside MealScoutBridge.
-      try {
-        if (action.payload) {
-          window.localStorage.setItem(
-            "mealscout:pending-command",
-            JSON.stringify(action.payload)
-          );
-        }
-      } catch {
-        // ignore storage failures; navigation still works
-      }
-
-      helpers.navigate("/mealscout");
-      return;
-    }
-
     case "FOLLOW_USER": {
       const targetId =
-        typeof action.payload?.userId === "string"
-          ? (action.payload.userId as string)
-          : null;
+        typeof action.payload?.userId === "string" ? (action.payload.userId as string) : null;
       if (!targetId) return;
 
       try {
@@ -168,9 +152,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
 
     case "UNFOLLOW_USER": {
       const targetId =
-        typeof action.payload?.userId === "string"
-          ? (action.payload.userId as string)
-          : null;
+        typeof action.payload?.userId === "string" ? (action.payload.userId as string) : null;
       if (!targetId) return;
 
       try {
@@ -190,9 +172,12 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
         typeof action.payload?.amount === "number"
           ? (action.payload.amount as number)
           : typeof action.payload?.amount === "string"
-          ? Number(action.payload.amount)
-          : NaN;
-      const causeId = typeof action.payload?.causeId === "string" ? (action.payload.causeId as string) : undefined;
+            ? Number(action.payload.amount)
+            : NaN;
+      const causeId =
+        typeof action.payload?.causeId === "string"
+          ? (action.payload.causeId as string)
+          : undefined;
 
       if (!profileId || !Number.isFinite(amount) || amount <= 0) return;
 
@@ -214,8 +199,8 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
         typeof action.payload?.amount === "number"
           ? (action.payload.amount as number)
           : typeof action.payload?.amount === "string"
-          ? Number(action.payload.amount)
-          : NaN;
+            ? Number(action.payload.amount)
+            : NaN;
       const mode =
         action.payload?.mode === "subscription" || action.payload?.mode === "one_time"
           ? (action.payload.mode as "subscription" | "one_time")
@@ -228,7 +213,9 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
       if (!Number.isFinite(amount) || amount <= 0) return;
 
       const origin = window.location.origin;
-      const profileSuffix = originatingProfileId ? `/profile/${originatingProfileId}/community` : "/";
+      const profileSuffix = originatingProfileId
+        ? `/profile/${originatingProfileId}/community`
+        : "/";
       const { url } = await createPlatformSupportCheckoutSession({
         amount,
         mode,
@@ -266,7 +253,9 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
           ? ((payload as any).campaignType as string)
           : undefined;
 
-      const rawTags = Array.isArray((payload as any).tags) ? ((payload as any).tags as unknown[]) : [];
+      const rawTags = Array.isArray((payload as any).tags)
+        ? ((payload as any).tags as unknown[])
+        : [];
       const tags = rawTags
         .map((t) => (typeof t === "string" ? t.trim() : ""))
         .filter((t) => t.length > 0);
@@ -276,10 +265,10 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
       const rawStateCodes = Array.isArray((payload as any).stateCodes)
         ? ((payload as any).stateCodes as unknown[])
         : Array.isArray((payload as any).targetStates)
-        ? ((payload as any).targetStates as unknown[])
-        : Array.isArray((payload as any).targetFilters?.stateCodes)
-        ? ((payload as any).targetFilters.stateCodes as unknown[])
-        : [];
+          ? ((payload as any).targetStates as unknown[])
+          : Array.isArray((payload as any).targetFilters?.stateCodes)
+            ? ((payload as any).targetFilters.stateCodes as unknown[])
+            : [];
 
       const stateCodes = rawStateCodes
         .map((v) => (typeof v === "string" ? v.trim().toUpperCase() : ""))

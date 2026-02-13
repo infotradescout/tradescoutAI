@@ -9,7 +9,6 @@ import * as messagingService from "./services/messagingService.js";
 import * as projectService from "./services/projectService.js";
 import { writeManualCacheFile } from "./services/knowledgeService.js";
 import { storage } from "./storage.js";
-import { mealscoutAction } from "../services/mealscoutClient.js";
 import { webSearch } from "./services/webSearchService.js";
 
 /**
@@ -147,10 +146,6 @@ export async function executeAssistantAction(
       case "admin_reset_user_password":
         return await adminResetUserPasswordAction(user, action.params);
 
-      // MealScout universal action proxy
-      case "mealscout_action":
-        return await mealscoutProxyAction(action.params);
-
       // Internet/web search fallback
       case "web_search":
         return await webSearchAction(action.params);
@@ -214,20 +209,8 @@ export async function executeAssistantAction(
 }
 
 // ============================================================================
-// MEALSCOUT + WEB SEARCH TOOLS
+// WEB SEARCH TOOL
 // ============================================================================
-
-async function mealscoutProxyAction(params?: Record<string, any>) {
-  if (!params?.action) {
-    return { success: false, error: "action is required for mealscout_action" };
-  }
-  try {
-    const data = await mealscoutAction(params.action, params.params || {});
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error?.message || "MealScout action failed" };
-  }
-}
 
 async function webSearchAction(params?: Record<string, any>) {
   const query = params?.query || params?.q;

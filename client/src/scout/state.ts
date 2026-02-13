@@ -15,12 +15,7 @@ export type ScoutStatus =
   | "executing_action"
   | "error";
 
-export type ScoutClusterKind =
-  | "projects"
-  | "pros"
-  | "marketplace"
-  | "community"
-  | "generic";
+export type ScoutClusterKind = "projects" | "pros" | "marketplace" | "community" | "generic";
 
 export interface ScoutClusterItem {
   id: string;
@@ -52,7 +47,6 @@ export type ScoutActionType =
   | "PREFILL_INPUT"
   | "OPEN_TOOLS_DRAWER"
   | "ASK_SCOUT"
-  | "MEALSCOUT_COMMAND"
   | "FOLLOW_USER"
   | "UNFOLLOW_USER"
   | "START_COMMUNITY_VAULT_DONATION"
@@ -239,15 +233,12 @@ export function useScoutState(initialMessages?: ScoutMessage[]) {
     []
   );
 
-  const setError = useCallback(
-    (error: string) => dispatch({ type: "ERROR", error }),
+  const setError = useCallback((error: string) => dispatch({ type: "ERROR", error }), []);
+
+  const setStatus = useCallback(
+    (status: ScoutStatus) => dispatch({ type: "SET_STATUS", status }),
     []
   );
-
-	const setStatus = useCallback(
-		(status: ScoutStatus) => dispatch({ type: "SET_STATUS", status }),
-		[]
-	);
 
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
 
@@ -261,4 +252,3 @@ export function useScoutState(initialMessages?: ScoutMessage[]) {
     reset,
   };
 }
-

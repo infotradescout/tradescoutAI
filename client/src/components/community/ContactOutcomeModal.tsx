@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, AlertCircle, User, MapPin, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -32,10 +33,44 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [confirmed, setConfirmed] = useState(false);
+  const [contactPreview, setContactPreview] = useState(() => outcome.reasonForContact || "");
 
   // Create conversation mutation
   const createConversation = useMutation({
     mutationFn: async () => {
+      const preview = (contactPreview || "").trim();
+      if (!preview) {
+        throw new Error("Contact preview required");
+      }
+
+      // Always ensure we have a durable decision card backing authority.
+      // Scout recommendation IDs are not yet validated end-to-end, so decision_card is the safe gate.
+      let decisionCardId = outcome.sourceDecisionCardId;
+      if (!decisionCardId) {
+        const res = await fetch("/api/decision-cards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            intent: outcome.suggestedIntent,
+            decisionScope: outcome.decisionScope,
+            title: outcome.decisionTitle,
+            description: preview,
+          }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({}));
+          throw new Error(error.message || "Failed to create decision card");
+        }
+
+        const json = await res.json().catch(() => ({}));
+        decisionCardId = json?.id;
+        if (!decisionCardId) {
+          throw new Error("Failed to create decision card");
+        }
+      }
+
       const res = await fetch("/api/social/conversations/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,19 +78,11 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
         body: JSON.stringify({
           targetUserId: outcome.targetUserId,
           intent: outcome.suggestedIntent,
-          // D1: If from Decision Card
-          ...(outcome.sourceDecisionCardId && {
-            authorityGate: "decision_card",
-            sourceDecisionCardId: outcome.sourceDecisionCardId,
-          }),
-          // D2: If from Scout Recommendation
-          ...(outcome.sourceScoutRecommendationId && {
-            authorityGate: "scout_recommendation",
-            initiatedFromScoutRecommendationId: outcome.sourceScoutRecommendationId,
-          }),
+          authorityGate: "decision_card",
+          sourceDecisionCardId: decisionCardId,
           confidenceScore: outcome.confidenceScore,
           decisionScope: outcome.decisionScope,
-          contactPreview: outcome.reasonForContact,
+          contactPreview: preview,
         }),
       });
 
@@ -97,6 +124,14 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
       toast({
         title: "Confirmation required",
         description: "Please confirm you understand the intent before proceeding",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!(contactPreview || "").trim()) {
+      toast({
+        title: "Preview required",
+        description: "Write a short first-contact preview before sending.",
         variant: "destructive",
       });
       return;
@@ -200,17 +235,26 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           </div>
         </div>
 
-        {/* Section 2: Why (Intent - READ ONLY) */}
+        {/* Section 2: Why (Intent - LOCKED) */}
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-slate-900">Why you're contacting them</h3>
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
             <p className="text-sm font-medium text-slate-900 capitalize">
               Intent: {outcome.suggestedIntent}
             </p>
-            <p className="text-sm text-slate-600">{outcome.reasonForContact}</p>
-            <p className="text-xs text-slate-500 italic mt-2">
-              This intent was determined by Scout policy and cannot be changed.
+            <p className="text-xs text-slate-500 mt-2">
+              Intent is locked by policy. Your preview is editable.
             </p>
+            <div className="mt-2">
+              <Textarea
+                value={contactPreview}
+                onChange={(e) => setContactPreview(e.target.value)}
+                placeholder="Write a short intro and why you want to connect"
+                rows={4}
+                className="bg-white border-slate-200 text-slate-900"
+                disabled={createConversation.isPending}
+              />
+            </div>
           </div>
         </div>
 

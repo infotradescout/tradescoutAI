@@ -12,13 +12,13 @@ export async function updateGeoPreferencesFromDeviceLocation(args: {
   /** Enable or disable hyper-local alerts */
   enableNearbyDeals?: boolean;
   /** Optional explicit includeTypes override */
-  includeTypes?: Array<'marketplace' | 'trade' | 'mealscout'>;
+  includeTypes?: Array<"marketplace" | "trade">;
 }): Promise<{
   geo: {
     homeLocation: { lat: number; lng: number; label?: string };
     notifyNearbyRadiusMeters?: number;
     enableNearbyDeals?: boolean;
-    includeTypes?: Array<'marketplace' | 'trade' | 'mealscout'>;
+    includeTypes?: Array<"marketplace" | "trade">;
   } | null;
 }> {
   const body: any = {
@@ -29,11 +29,11 @@ export async function updateGeoPreferencesFromDeviceLocation(args: {
     },
   };
 
-  if (typeof args.notifyNearbyRadiusMeters === 'number') {
+  if (typeof args.notifyNearbyRadiusMeters === "number") {
     body.notifyNearbyRadiusMeters = args.notifyNearbyRadiusMeters;
   }
 
-  if (typeof args.enableNearbyDeals === 'boolean') {
+  if (typeof args.enableNearbyDeals === "boolean") {
     body.enableNearbyDeals = args.enableNearbyDeals;
   }
 
@@ -41,12 +41,12 @@ export async function updateGeoPreferencesFromDeviceLocation(args: {
     body.includeTypes = args.includeTypes;
   }
 
-  const res = await fetch('/api/agent/preferences/geo', {
-    method: 'POST',
-    credentials: 'include',
+  const res = await fetch("/api/agent/preferences/geo", {
+    method: "POST",
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
+      "Content-Type": "application/json",
+      Accept: "application/json",
     },
     body: JSON.stringify(body),
   });

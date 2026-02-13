@@ -75,7 +75,6 @@ export default function MessagesPanel() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [requestPreview, setRequestPreview] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeView, setActiveView] = useState<InboxView>("threads");
 
@@ -83,7 +82,6 @@ export default function MessagesPanel() {
     () => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""),
     []
   );
-  const requestedUserId = searchParams.get("user");
   const preselectedThreadId = searchParams.get("thread");
   const requestedTab = (searchParams.get("tab") || "").toLowerCase();
 
@@ -176,36 +174,6 @@ export default function MessagesPanel() {
     },
   });
 
-  const sendFirstContactRequestMutation = useMutation({
-    mutationFn: (payload: { targetUserId: string; preview: string }) =>
-      apiRequest("POST", "/api/social/conversations/start", {
-        targetUserId: payload.targetUserId,
-        intent: "collaborate",
-        authorityGate: "scout_recommendation",
-        initiatedFromScoutRecommendationId: "community-first-contact",
-        decisionScope: "Community first-contact request",
-        contactPreview: payload.preview,
-      }),
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social/conversations/requests/incoming"] });
-      if (data?.threadId) {
-        setActiveThreadId(String(data.threadId));
-        setActiveView("threads");
-      }
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("user");
-        window.history.replaceState({}, "", url.toString());
-      }
-      toast({
-        title: data?.pending ? "Request sent" : "Conversation ready",
-        description: data?.pending
-          ? "They will review your preview before chat opens."
-          : "You can now message.",
-      });
-    },
-  });
-
   const respondToRequestMutation = useMutation({
     mutationFn: (payload: { requestId: string; action: "accept" | "decline" }) =>
       apiRequest("POST", `/api/social/conversations/requests/${payload.requestId}/respond`, {
@@ -230,13 +198,6 @@ export default function MessagesPanel() {
   const handleSend = () => {
     if (!activeThreadId || !newMessage.trim()) return;
     sendMutation.mutate({ threadId: activeThreadId, content: newMessage });
-  };
-
-  const handleSendFirstContactRequest = () => {
-    if (!requestedUserId) return;
-    const preview = requestPreview.trim();
-    if (!preview) return;
-    sendFirstContactRequestMutation.mutate({ targetUserId: requestedUserId, preview });
   };
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || null;
@@ -496,36 +457,6 @@ export default function MessagesPanel() {
         ) : (
           <>
             <ScrollArea className="flex-1 p-4">
-              {requestedUserId && (
-                <div className="mb-4 rounded-xl border border-blue-600/40 bg-blue-950/20 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-300">
-                    First Contact Preview
-                  </div>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Your first message is sent as a request. The other person must accept before
-                    chat opens.
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <Textarea
-                      value={requestPreview}
-                      onChange={(e) => setRequestPreview(e.target.value)}
-                      placeholder="Write a short intro and why you want to connect"
-                      className="bg-slate-900 border-slate-800 text-slate-200"
-                      rows={3}
-                      disabled={sendFirstContactRequestMutation.isPending}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleSendFirstContactRequest}
-                      disabled={!requestPreview.trim() || sendFirstContactRequestMutation.isPending}
-                      className="bg-blue-500 hover:bg-blue-600"
-                    >
-                      Send Contact Request
-                    </Button>
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-3">
                 {mappedMessages.length === 0 ? (
                   <div className="text-center text-slate-400 py-12">No messages yet.</div>

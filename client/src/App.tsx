@@ -290,7 +290,6 @@ const CommunityProfile = React.lazy(() => import("./pages/CommunityProfile"));
 const ReferralDashboard = React.lazy(() => import("./pages/referral-dashboard"));
 const EventManagement = React.lazy(() => import("./pages/event-management"));
 const APIIntegrations = React.lazy(() => import("./pages/api-integrations"));
-const MealScoutPage = React.lazy(() => import("./pages/mealscout"));
 
 // Admin Interactive Features
 const ContractorVerification = React.lazy(() => import("./pages/contractor-verification"));
@@ -729,12 +728,6 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/exchange">
                     <LazyPage Component={Exchange} />
                   </Route>
-                  <Route path="/mealscout">
-                    <ProtectedRoute>
-                      <LazyPage Component={MealScoutPage} />
-                    </ProtectedRoute>
-                  </Route>
-
                   {/* Groups routes */}
                   <Route path="/groups">
                     <LazyPage Component={Groups} />

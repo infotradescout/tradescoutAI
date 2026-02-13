@@ -1100,7 +1100,31 @@ export function mountAdminRoutes(app: any) {
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        return res.status(501).json({ message: "Admin affiliate payouts not implemented" });
+        const { id: affiliateProgramId } = req.params as { id: string };
+        const { amount, payoutMethod, note, status } = (req.body || {}) as {
+          amount?: number | string;
+          payoutMethod?: string;
+          note?: string;
+          status?: string;
+        };
+
+        const totalAmount = Number(amount ?? 0);
+        if (!affiliateProgramId) {
+          return res.status(400).json({ message: "Affiliate program id is required" });
+        }
+        if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+          return res.status(400).json({ message: "Positive payout amount is required" });
+        }
+
+        const payout = await storage.createPayout({
+          affiliateProgramId,
+          totalAmount: totalAmount.toFixed(2),
+          payoutMethod: payoutMethod || "manual",
+          status: status || "pending",
+          notes: note,
+        });
+
+        return res.status(201).json(payout);
       } catch (error: any) {
         console.error("Error creating admin payout:", error);
         res.status(500).json({ message: "Failed to create payout" });

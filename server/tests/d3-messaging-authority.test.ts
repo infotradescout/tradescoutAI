@@ -19,6 +19,7 @@ import { eq, and } from "drizzle-orm";
 
 // Test utilities
 const API_BASE = "http://localhost:5000";
+const describeIntegration = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 
 async function createTestUser(overrides = {}) {
   const [user] = await db
@@ -64,7 +65,7 @@ async function startConversation(authToken: string, payload: any) {
   return { status: res.status, data: await res.json() };
 }
 
-describe("D3: Messaging Authority Enforcement", () => {
+describeIntegration("D3: Messaging Authority Enforcement", () => {
   // ========================================
   // Category 1: Immutability Tests
   // ========================================

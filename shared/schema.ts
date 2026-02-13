@@ -464,7 +464,7 @@ export const users = pgTable("users", {
       // Enable/disable hyper-local alerts at the user level
       enableNearbyDeals?: boolean;
       // Which content types should be considered for nearby alerts
-      includeTypes?: Array<"marketplace" | "trade" | "mealscout">;
+      includeTypes?: Array<"marketplace" | "trade">;
     };
 
     // Profile site builder settings - which sections appear on the public profile

@@ -221,13 +221,43 @@ html {
 .bg-tsBg { background-color: transparent !important; }
 .bg-tsCard,
 .bg-tsSurface {
-  background-color: var(--surface-card) !important;
-  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  background-color: transparent !important;
 }
 .bg-tsCardMuted,
 .bg-tsSurface-strong {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  background-color: transparent !important;
+}
+
+.bg-tsCard::before,
+.bg-tsSurface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--surface-card) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.bg-tsCardMuted::before,
+.bg-tsSurface-strong::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
   background-color: var(--surface-intermediate) !important;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
+  pointer-events: none;
 }
 
 /* Unified page frame */
@@ -566,8 +596,10 @@ html {
   .bg-slate-900\/40,
   .hover\:bg-slate-900,
   .dark\:bg-slate-900 {
-    background-color: var(--surface-card) !important;
-    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    background-color: transparent !important;
   }
 
   /* bg-slate-800 → charcoal-800 (interactive surfaces) */
@@ -576,9 +608,44 @@ html {
 .bg-slate-800\/70,
 .bg-slate-800\/30,
 .dark\:bg-slate-800 {
-  background-color: var(--surface-intermediate) !important;
-  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  background-color: transparent !important;
 }
+
+  .bg-slate-900::before,
+  .bg-slate-900\/70::before,
+  .bg-slate-900\/60::before,
+  .bg-slate-900\/40::before,
+  .hover\:bg-slate-900::before,
+  .dark\:bg-slate-900::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: var(--surface-card) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+  }
+
+  .bg-slate-800::before,
+  .bg-slate-800\/50::before,
+  .bg-slate-800\/70::before,
+  .bg-slate-800\/30::before,
+  .dark\:bg-slate-800::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: var(--surface-intermediate) !important;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
 
   /* Border color mapping */
   .border-slate-900,
@@ -1576,8 +1643,10 @@ html, body {
   .bg-navy-900\/50,
   .bg-navy-900\/40,
   .hover\:bg-navy-900 {
-    background-color: var(--surface-card) !important;
-    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    background-color: transparent !important;
   }
 
 .bg-navy-800,
@@ -1586,9 +1655,45 @@ html, body {
 .bg-navy-800\/50,
 .bg-navy-800\/40,
 .hover\:bg-navy-800 {
-  background-color: var(--surface-intermediate) !important;
-  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  background-color: transparent !important;
 }
+
+  .bg-navy-900::before,
+  .bg-navy-900\/70::before,
+  .bg-navy-900\/60::before,
+  .bg-navy-900\/50::before,
+  .bg-navy-900\/40::before,
+  .hover\:bg-navy-900::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: var(--surface-card) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+  }
+
+  .bg-navy-800::before,
+  .bg-navy-800\/70::before,
+  .bg-navy-800\/60::before,
+  .bg-navy-800\/50::before,
+  .bg-navy-800\/40::before,
+  .hover\:bg-navy-800::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: var(--surface-intermediate) !important;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
 
 .bg-navy-700,
 .bg-navy-700\/50 {

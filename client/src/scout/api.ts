@@ -18,7 +18,7 @@ export interface ScoutLocality {
   lng?: number;
 }
 
-export type ScoutMode = "default" | "mealscout" | "marketplace" | "contractors" | "admin";
+export type ScoutMode = "default" | "marketplace" | "contractors" | "admin";
 
 export type KnowledgeMode = "local-first" | "kb-only" | "web-fallback";
 
@@ -162,9 +162,6 @@ function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutM
   const roleSet = new Set((roles ?? []).map((r) => r.toLowerCase()));
 
   // Message-driven
-  if (lower.includes("meal") || lower.includes("restaurant") || lower.includes("food")) {
-    return "mealscout";
-  }
   if (lower.includes("marketplace") || lower.includes("for sale") || lower.includes("listing")) {
     return "marketplace";
   }
@@ -185,9 +182,6 @@ function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutM
   }
   if (rolesArray.some((r) => r.includes("car_dealer") || r.includes("auto_service"))) {
     return "marketplace";
-  }
-  if (rolesArray.some((r) => r.includes("restaurant") || r.includes("restaurant-owner"))) {
-    return "mealscout";
   }
 
   return "default";
