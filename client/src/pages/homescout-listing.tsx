@@ -510,12 +510,11 @@ export default function HomeScoutListingPage() {
                             {String(r.reportType || "other").replace(/_/g, " ")}
                           </div>
                           <a
-                            href={r.reportUrl}
-                            target="_blank"
+                            href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
                             rel="noreferrer"
                             className="text-orange-300 hover:text-orange-200 text-xs"
                           >
-                            Open report
+                            Download report
                           </a>
                         </div>
                         {r.inspectionDate ? (

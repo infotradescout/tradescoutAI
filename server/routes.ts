@@ -15083,6 +15083,78 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  app.get("/api/homescout/inspection-reports/:reportId/download", async (req: any, res: any) => {
+    try {
+      const reportId = String(req.params.reportId || "");
+      if (!reportId) return res.status(400).json({ message: "reportId required" });
+
+      const report = await storage.getHomeScoutInspectionReport(reportId);
+      if (!report) return res.status(404).json({ message: "Inspection report not found" });
+
+      const listing = await storage.getHomeScoutListing(String((report as any).listingId || ""));
+      if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+      const isPublicReport =
+        String((report as any).status || "") === "published" &&
+        String((report as any).visibility || "") === "public";
+
+      if (!isPublicReport) {
+        const viewerId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+        if (!viewerId) return res.status(403).json({ message: "Not allowed" });
+
+        const viewer = await storage.getUser(String(viewerId));
+        const viewerRole = String((viewer as any)?.role || "");
+        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+          viewerRole
+        );
+        const isOwner =
+          String(viewerId) === String((listing as any).sellerUserId || "") ||
+          String(viewerId) === String((listing as any).agentUserId || "") ||
+          String(viewerId) === String((listing as any).contactUserId || "") ||
+          String(viewerId) === String((report as any).submittedByUserId || "");
+
+        if (!isAdminLike && !isOwner) {
+          return res.status(403).json({ message: "Not allowed" });
+        }
+      }
+
+      const upstreamUrl = String((report as any).reportUrl || "").trim();
+      if (!upstreamUrl || !/^https?:\/\//i.test(upstreamUrl)) {
+        return res.status(400).json({ message: "Invalid report URL" });
+      }
+
+      const upstream = await fetch(upstreamUrl, {
+        headers: { Accept: "application/pdf,application/octet-stream,*/*" },
+      });
+      if (!upstream.ok) {
+        return res.status(502).json({ message: "Failed to fetch report file" });
+      }
+
+      const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+      const sourcePath = (() => {
+        try {
+          return new URL(upstreamUrl).pathname || "";
+        } catch {
+          return "";
+        }
+      })();
+      const ext = (sourcePath.match(/\.([a-zA-Z0-9]{2,8})$/)?.[1] || "pdf").toLowerCase();
+      const safeExt = /^[a-z0-9]{2,8}$/.test(ext) ? ext : "pdf";
+      const baseName = `homescout-inspection-${reportId}.${safeExt}`;
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${baseName}"`);
+      res.setHeader("Cache-Control", "private, max-age=300");
+
+      const body = Buffer.from(await upstream.arrayBuffer());
+      res.setHeader("Content-Length", String(body.byteLength));
+      return res.status(200).send(body);
+    } catch (error: any) {
+      console.error("Error downloading HomeScout inspection report:", error);
+      res.status(500).json({ message: "Failed to download inspection report" });
+    }
+  });
+
   app.post(
     "/api/homescout/listings/:id/inspection-requests",
     isAuthenticated,
