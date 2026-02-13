@@ -2,21 +2,25 @@ import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
 
-let app: any;
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 
-beforeAll(async () => {
-  const created = await createApp();
-  app = created.app;
-});
+if (!hasTestDb) {
+  describe.skip("GET /api/public/proof-metrics", () => {
+    it("skipped (requires TEST_DATABASE_URL)", () => {});
+  });
+} else {
+  let app: any;
 
-describe("GET /api/public/proof-metrics", () => {
-  it("returns counts-only payload with cache headers", async () => {
-    const res = await request(app).get("/api/public/proof-metrics");
+  beforeAll(async () => {
+    const created = await createApp();
+    app = created.app;
+  });
 
-    // Endpoint may return 503 if DB is unavailable in test env; treat as acceptable.
-    expect([200, 503]).toContain(res.status);
+  describe("GET /api/public/proof-metrics", () => {
+    it("returns counts-only payload with cache headers", async () => {
+      const res = await request(app).get("/api/public/proof-metrics");
 
-    if (res.status === 200) {
+      expect(res.status).toBe(200);
       expect(res.headers["cache-control"]).toBeTruthy();
 
       expect(res.body).toHaveProperty("generatedAt");
@@ -33,6 +37,6 @@ describe("GET /api/public/proof-metrics", () => {
       expect(res.body).not.toHaveProperty("users");
       expect(res.body).not.toHaveProperty("emails");
       expect(res.body).not.toHaveProperty("names");
-    }
+    });
   });
-});
+}

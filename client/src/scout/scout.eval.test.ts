@@ -1,13 +1,13 @@
 /**
  * Scout Tool Layer Evaluation Suite
- * 
+ *
  * Tests verify:
  * 1. All actions pass validateAction (no unknown types, valid paths)
  * 2. No hallucinated links (all URLs exist in allowlist or match dynamic patterns)
  * 3. Personalization present (draft includes user.name, locality when available)
  * 4. Latency budget met (tools complete within timeout)
  * 5. Error handling works (circuit breaker, retries, meaningful errors)
- * 
+ *
  * Run with: npm test scout-evals
  */
 
@@ -18,6 +18,67 @@ import { createNote } from "../agent/tools/scoutMutations";
 import type { ScoutAction } from "./state";
 
 describe("Scout Tool Evals", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // These evals must be deterministic and must not require a running server.
+    // Node's native fetch also rejects relative URLs, so we stub fetch here.
+    const makeJsonResponse = (body: unknown, status = 200) =>
+      ({
+        ok: status >= 200 && status < 300,
+        status,
+        statusText: status === 200 ? "OK" : "Error",
+        json: async () => body,
+        text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+      }) as unknown as Response;
+
+    globalThis.fetch = vi.fn(async (input: any, init?: any) => {
+      const url = typeof input === "string" ? input : String(input?.url || "");
+      const method = String(init?.method || "GET").toUpperCase();
+
+      if (url.startsWith("/api/contractors/search")) {
+        return makeJsonResponse([
+          {
+            id: "c1",
+            companyName: "Test Contractor Co",
+            trade: "general",
+            rating: 4.6,
+            reviewCount: 12,
+            location: "Test County, TS",
+          },
+        ]);
+      }
+
+      if (url.startsWith("/api/marketplace/search")) {
+        return makeJsonResponse([
+          {
+            id: "m1",
+            title: "Test Listing",
+            description: "Fixture listing for eval suite",
+            price: 50,
+            category: "tools",
+            condition: "used",
+            location: "TS",
+            sellerName: "Test Seller",
+            verified: true,
+          },
+        ]);
+      }
+
+      if (url === "/api/notes" && method === "POST") {
+        return makeJsonResponse({
+          id: "n1",
+          title: "Speed test",
+          content: "Testing latency budget",
+          type: "quick",
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      return makeJsonResponse({ message: "Not found" }, 404);
+    }) as any;
+  });
+
   describe("Action Validation", () => {
     it("should allow all valid action types", () => {
       const validActions: ScoutAction[] = [
@@ -39,7 +100,7 @@ describe("Scout Tool Evals", () => {
     it("should reject unknown action types", () => {
       const unknownAction = { type: "HACK_THE_MAINFRAME", label: "Bad" } as any;
       const validated = validateAction(unknownAction);
-      
+
       // Should downgrade to NOOP
       expect(validated?.type).toBe("NOOP");
     });
@@ -81,12 +142,7 @@ describe("Scout Tool Evals", () => {
     });
 
     it("should reject invalid NAVIGATE paths", () => {
-      const invalidPaths = [
-        "/admin/secret",
-        "/api/users",
-        "/../etc/passwd",
-        "javascript:alert(1)",
-      ];
+      const invalidPaths = ["/admin/secret", "/api/users", "/../etc/passwd", "javascript:alert(1)"];
 
       invalidPaths.forEach((path) => {
         const action: ScoutAction = { type: "NAVIGATE", label: "Go", to: path };
@@ -138,7 +194,7 @@ describe("Scout Tool Evals", () => {
       if (result.success && result.data) {
         expect(Array.isArray(result.data)).toBe(true);
         expect(result.data.length).toBeGreaterThanOrEqual(0);
-        
+
         // If we got results, verify structure
         if (result.data.length > 0) {
           const contractor = result.data[0];
@@ -152,7 +208,7 @@ describe("Scout Tool Evals", () => {
 
     it("should complete within timeout budget", async () => {
       const startTime = performance.now();
-      
+
       await searchContractors({
         trade: "electrical",
         county: "Los Angeles",
@@ -161,7 +217,7 @@ describe("Scout Tool Evals", () => {
       });
 
       const duration = performance.now() - startTime;
-      
+
       // Default timeout is 12s, should complete well under that
       expect(duration).toBeLessThan(12000);
     });
@@ -196,7 +252,7 @@ describe("Scout Tool Evals", () => {
             // Should be internal path or full URL
             expect(
               contractor.profileUrl.startsWith("/contractors/") ||
-              contractor.profileUrl.startsWith("http")
+                contractor.profileUrl.startsWith("http")
             ).toBe(true);
           }
         });
@@ -216,7 +272,7 @@ describe("Scout Tool Evals", () => {
       expect(result.success).toBe(true);
       if (result.success && result.data) {
         expect(Array.isArray(result.data)).toBe(true);
-        
+
         if (result.data.length > 0) {
           const listing = result.data[0];
           expect(listing).toHaveProperty("id");
@@ -255,8 +311,7 @@ describe("Scout Tool Evals", () => {
         result.data.forEach((listing) => {
           if (listing.listingUrl) {
             expect(
-              listing.listingUrl.startsWith("/exchange/") ||
-              listing.listingUrl.startsWith("http")
+              listing.listingUrl.startsWith("/exchange/") || listing.listingUrl.startsWith("http")
             ).toBe(true);
           }
         });
@@ -402,7 +457,7 @@ describe("Scout Tool Evals", () => {
         limit: 5,
       });
       const duration = performance.now() - start;
-      
+
       expect(duration).toBeLessThan(12000);
     });
 
@@ -414,7 +469,7 @@ describe("Scout Tool Evals", () => {
         limit: 5,
       });
       const duration = performance.now() - start;
-      
+
       expect(duration).toBeLessThan(12000);
     });
 
@@ -425,7 +480,7 @@ describe("Scout Tool Evals", () => {
         content: "Testing latency budget",
       });
       const duration = performance.now() - start;
-      
+
       expect(duration).toBeLessThan(8000);
     });
   });

@@ -1,6 +1,6 @@
 /**
  * Scout Tile Resolver
- * 
+ *
  * Resolves action tiles to their contextual variants based on deterministic user state.
  * This is the single choke point for tile personalization.
  */
@@ -9,22 +9,28 @@ import type { ScoutActionTile, ScoutTileContext, TileVariant } from "./scoutActi
 
 /**
  * Resolves a tile to its contextual variant if conditions match.
- * 
+ *
  * Rules:
  * - Intent IDs never change (stable routing)
  * - Only labels/descriptions adapt
  * - First matching variant wins
  * - Falls back to default if no variants match
  * - No side effects, no mutations
- * 
+ *
  * @param tile - The base tile definition
  * @param ctx - Deterministic user context
  * @returns Resolved tile with adapted label/description
  */
-export function resolveTile(
-  tile: ScoutActionTile,
-  ctx: ScoutTileContext
-): ScoutActionTile {
+export function resolveTile(tile: ScoutActionTile, ctx: ScoutTileContext): ScoutActionTile {
+  // Runtime hardening: callers sometimes pass partial contexts.
+  const safeCtx: ScoutTileContext = {
+    ...ctx,
+    activeJobs: Array.isArray((ctx as any)?.activeJobs) ? (ctx as any).activeJobs : [],
+    activeInvoices: Array.isArray((ctx as any)?.activeInvoices) ? (ctx as any).activeInvoices : [],
+    savedContractors: Array.isArray((ctx as any)?.savedContractors)
+      ? (ctx as any).savedContractors
+      : [],
+  };
   // No variants → return as-is
   if (!tile.variants || tile.variants.length === 0) {
     return tile;
@@ -33,11 +39,11 @@ export function resolveTile(
   // Find first matching variant
   for (const variant of tile.variants) {
     try {
-      if (variant.when(ctx)) {
+      if (variant.when(safeCtx)) {
         return {
           ...tile,
-          label: resolveLabel(variant.label, ctx, tile.label),
-          description: resolveDescription(variant.description, ctx, tile.description),
+          label: resolveLabel(variant.label, safeCtx, tile.label),
+          description: resolveDescription(variant.description, safeCtx, tile.description),
         };
       }
     } catch (error) {
@@ -89,7 +95,7 @@ function resolveDescription(
 
 /**
  * Resolves all tiles in an array.
- * 
+ *
  * @param tiles - Array of base tiles
  * @param ctx - Deterministic user context
  * @returns Array of resolved tiles

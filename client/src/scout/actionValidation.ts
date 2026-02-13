@@ -89,6 +89,7 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
     const isAllowedStatic = ALLOWED_NAVIGATION_PATHS.has(basePath);
     const isAllowedDynamic =
       /^\/contractors\/[a-zA-Z0-9_-]+$/.test(basePath) ||
+      /^\/exchange\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/profile\/[a-zA-Z0-9_-]+/.test(basePath) ||
       /^\/deal-room\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/community\/[a-zA-Z0-9_-]+$/.test(basePath) ||
