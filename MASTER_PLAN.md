@@ -107,6 +107,83 @@ Done when:
 Done when:
 - Planning and release decisions reference this metric explicitly.
 
+## HomeScout Program (Zillow Replacement, No Pay Gate)
+
+HomeScout is the real estate portal (`/real-estate-marketplace`) that replaces Zillow end-to-end while preserving TradeScout platform laws:
+- No pay-to-play, no lead selling, no ranking by payment.
+- Awareness does not grant authority; all contact is gated: Intent -> Decision Card -> Contact.
+- County is the operational container; county intelligence rollups write only to `county_metrics`, `county_entities`, `county_notes`.
+- Admin/UI does not compute intelligence; jobs precompute and store snapshots.
+- Trust/CVS governs exposure.
+
+### HS-0) Definitions (Lock-In)
+- Inventory sources: MLS/IDX if available, plus non-MLS (agent submissions, FSBO, builders, public records, partner sites).
+- Canonical listing: source-attributed record with freshness, dedupe, and audit trail.
+- Exposure policy: show listings and agents based on Trust/CVS, verification, and anti-fraud checks, never payment.
+
+Done when:
+- Data-source policy and exposure policy are written and referenced in code reviews.
+
+### HS-1) Inventory Ingestion (P0)
+- Build ingestion pipeline(s) that normalize listings into a single schema:
+  - Required fields: location (county/state), address/geo (as allowed), beds/baths/sqft/lot, price, status, source, updatedAt.
+  - Store source attribution + observedAt timestamps.
+  - Dedupe across feeds (address/parcel/agent + fuzzy match).
+- Add import jobs with idempotency + advisory locks so multi-instance does not duplicate work.
+- Create basic abuse handling: report listing, takedown workflow, and source disable switch.
+
+Done when:
+- One county can be fully populated from at least one source end-to-end.
+- Re-ingesting the same feed is idempotent and does not inflate counts.
+
+### HS-2) Search, Filters, and Performance (P0)
+- HomeScout search supports Zillow-class filters (price/beds/baths/type/status/keywords/DOM) and returns results in < 1s p95 for a seeded county.
+- Use DB-first filtering with indexed query paths; no in-memory scanning for large result sets.
+- Add substring-search indexes (pg_trgm) and/or FTS where needed; keep limits bounded and rate limited.
+
+Done when:
+- Load test for HomeScout search passes with stable p95 under expected concurrency.
+
+### HS-3) Listing Pages That Answer the Full Question (P0)
+- Listing detail page includes:
+  - structured facts, photos/docs, price history, status timeline, map/county context
+  - comps and market context are precomputed in jobs (not computed in UI)
+- County rollups (inventory count, median price, DOM, price drops) are written to `county_metrics`.
+
+Done when:
+- At least one county path has: browse -> listing detail -> precomputed context -> gated contact.
+
+### HS-4) Contact, Offers, and Showings (P0)
+- Every contact entry point routes through Scout/Decision Card:
+  - buyer intent (tour, offer, questions) -> Decision Card -> gated contact with agent/seller/builder
+- Maintain the existing authority-gates audits as release blockers.
+
+Done when:
+- No direct “call/email/message” bypass exists from HomeScout surfaces.
+
+### HS-5) Trust, Verification, and Anti-Fraud (P0)
+- Agent verification: license + brokerage + identity where required.
+- FSBO verification: proof-of-ownership or equivalent evidence tiering.
+- Dedupe + spam prevention: rate limits, submission review, and abuse scoring.
+
+Done when:
+- Fraud and duplicate listings are suppressed by policy without manual firefighting.
+
+### HS-6) Alerts and Distribution (P1)
+- Saved searches + alerts (email/push) for:
+  - new listings, price drops, status changes, open houses (where known)
+- “Local-first” discovery: county-specific feeds and summaries.
+
+Done when:
+- Users can create alerts and reliably receive updates for at least one county.
+
+### HS-7) SEO as a Gate (P0)
+- Canonicals match real routes; sitemap includes HomeScout county + listing pages.
+- Indexing coverage is monitored and treated as a release criterion for expansion.
+
+Done when:
+- HomeScout pages are discoverable and stable under crawl without trust leaks or thin content.
+
 ## Open Implementation Gaps (Tracked)
 
 ### How We Track Gaps (Source Of Truth)
