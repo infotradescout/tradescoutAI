@@ -15765,7 +15765,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        const { transactionId, processingMethod, applyAchDiscount } = req.body;
+        const { transactionId, processingMethod } = req.body;
 
         if (!transactionId) {
           return res.status(400).json({ message: "Transaction ID required" });
@@ -15787,7 +15787,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const result = await paymentService.createMarketplacePaymentIntent(transaction as any, {
           processingMethod: method as any,
-          applyAchDiscount: applyAchDiscount !== false,
         });
         res.json(result);
       } catch (error: any) {

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CreditCard, DollarSign, Landmark, Shield } from "lucide-react";
+import { AlertCircle, CreditCard, DollarSign, Shield } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
@@ -26,7 +26,6 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
 
 type ProcessingMethod = "ach" | "card";
 const ACH_THRESHOLD_USD = 1000;
-const ACH_DISCOUNT_USD = 10;
 
 interface CheckoutFormProps {
   paymentType: "contractor" | "marketplace";
@@ -35,7 +34,6 @@ interface CheckoutFormProps {
   description: string;
   isOffPlatform?: boolean;
   processingMethod: ProcessingMethod;
-  discountApplied: number;
   onProcessingMethodChange?: (method: ProcessingMethod) => void;
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -48,7 +46,6 @@ const CheckoutForm = ({
   description,
   isOffPlatform = false,
   processingMethod,
-  discountApplied,
   onProcessingMethodChange,
   onSuccess,
   onCancel,
@@ -196,16 +193,6 @@ const CheckoutForm = ({
               <span className="text-xl font-bold">${amount.toFixed(2)}</span>
             </div>
 
-            {discountApplied > 0 ? (
-              <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="text-emerald-400 flex items-center gap-2">
-                  <Landmark className="w-4 h-4" />
-                  ACH incentive
-                </span>
-                <span className="text-emerald-300">-${discountApplied.toFixed(2)}</span>
-              </div>
-            ) : null}
-
             {feeData && !isOffPlatform && (
               <>
                 <Separator className="my-3" />
@@ -283,8 +270,7 @@ const CheckoutForm = ({
                         ) : null}
                       </div>
                       <p className="text-sm text-gray-600">
-                        Lower processing costs.{" "}
-                        {amount >= ACH_THRESHOLD_USD ? `$${ACH_DISCOUNT_USD} off.` : ""}
+                        Lower processing costs on larger payments.
                       </p>
                     </div>
                   </div>
@@ -441,7 +427,6 @@ export default function Checkout() {
   }, [baseAmount, paymentType, methodTouched]);
 
   const [clientSecret, setClientSecret] = useState<string>("");
-  const [discountApplied, setDiscountApplied] = useState<number>(0);
   const [effectiveAmount, setEffectiveAmount] = useState<number>(baseAmount);
   const { toast } = useToast();
 
@@ -465,16 +450,13 @@ export default function Checkout() {
         : { transactionId: paymentId, processingMethod };
 
     setClientSecret("");
-    setDiscountApplied(0);
 
     apiRequest("POST", endpoint, body)
       .then((res) => res.json())
       .then((data) => {
         setClientSecret(String(data.clientSecret || ""));
         if (paymentType === "marketplace") {
-          const disc = Number(data.discountApplied ?? 0);
           const eff = Number(data.effectiveTotalAmount ?? baseAmount);
-          if (Number.isFinite(disc) && disc > 0) setDiscountApplied(disc);
           if (Number.isFinite(eff) && eff > 0) setEffectiveAmount(eff);
           else setEffectiveAmount(baseAmount);
         } else {
@@ -525,7 +507,6 @@ export default function Checkout() {
         description={description}
         isOffPlatform={true}
         processingMethod={"card"}
-        discountApplied={0}
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />
@@ -553,7 +534,6 @@ export default function Checkout() {
         description={description}
         isOffPlatform={false}
         processingMethod={processingMethod}
-        discountApplied={discountApplied}
         onProcessingMethodChange={(method) => {
           setMethodTouched(true);
           setProcessingMethod(method);

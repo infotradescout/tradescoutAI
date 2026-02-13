@@ -12,10 +12,8 @@ type ProcessingMethod = "card" | "ach";
 
 function getAchIncentiveConfig() {
   const threshold = Number(process.env.ACH_DEFAULT_THRESHOLD_USD ?? 1000);
-  const discount = Number(process.env.ACH_DISCOUNT_USD ?? 10);
   const safeThreshold = Number.isFinite(threshold) ? Math.max(0, threshold) : 1000;
-  const safeDiscount = Number.isFinite(discount) ? Math.max(0, discount) : 10;
-  return { thresholdUsd: safeThreshold, discountUsd: safeDiscount };
+  return { thresholdUsd: safeThreshold };
 }
 
 // Payment service for handling platform transactions
@@ -304,7 +302,6 @@ export class PaymentService {
     transaction: MarketplaceTransaction,
     opts?: {
       processingMethod?: ProcessingMethod;
-      applyAchDiscount?: boolean;
     }
   ) {
     if (!this.stripe || transaction.isOffPlatform) {
@@ -312,7 +309,7 @@ export class PaymentService {
     }
 
     const baseTotal = Number(transaction.totalAmount);
-    const { thresholdUsd, discountUsd } = getAchIncentiveConfig();
+    const { thresholdUsd } = getAchIncentiveConfig();
     const desiredMethod: ProcessingMethod =
       opts?.processingMethod === "ach"
         ? "ach"
@@ -322,36 +319,9 @@ export class PaymentService {
             ? "ach"
             : "card";
 
-    const sellerAmount = Number((transaction as any).sellerAmount ?? 0);
-    const maxDiscount =
-      Number.isFinite(baseTotal) && Number.isFinite(sellerAmount)
-        ? Math.max(0, baseTotal - sellerAmount)
-        : 0;
-    const discountEligible =
-      desiredMethod === "ach" &&
-      Boolean(opts?.applyAchDiscount ?? true) &&
-      Number.isFinite(baseTotal) &&
-      baseTotal >= thresholdUsd &&
-      discountUsd > 0;
-    const discountApplied = discountEligible ? Math.min(discountUsd, maxDiscount) : 0;
     const effectiveTotal = Number.isFinite(baseTotal)
-      ? Math.max(0.5, Number((baseTotal - discountApplied).toFixed(2)))
+      ? Math.max(0.5, Number(baseTotal.toFixed(2)))
       : 0;
-
-    // Persist the discount intent in internal notes so audits can reconcile.
-    // We do NOT mutate totalAmount here because wallet/off-platform flows use it.
-    if (discountApplied > 0 && effectiveTotal !== baseTotal) {
-      const internalNotes = String((transaction as any).internalNotes || "");
-      const marker = `ach_discount_applied:$${discountApplied.toFixed(2)}`;
-      if (!internalNotes.includes(marker)) {
-        await storage.updateMarketplaceTransaction(transaction.id, {
-          internalNotes: [internalNotes, `base_total:$${baseTotal.toFixed(2)}`, marker]
-            .filter(Boolean)
-            .join(" | ")
-            .slice(0, 2000) as any,
-        } as any);
-      }
-    }
 
     const fees = await this.calculatePaymentFees(effectiveTotal, "marketplace_transaction", {
       processingMethod: desiredMethod,
@@ -369,7 +339,7 @@ export class PaymentService {
         type: "marketplace_transaction",
         processingMethod: desiredMethod,
         baseTotalAmount: Number.isFinite(baseTotal) ? baseTotal.toFixed(2) : "",
-        discountApplied: discountApplied ? discountApplied.toFixed(2) : "0.00",
+        discountApplied: "0.00",
       },
     });
 
@@ -379,7 +349,7 @@ export class PaymentService {
       fees,
       processingMethod: desiredMethod,
       effectiveTotalAmount: effectiveTotal,
-      discountApplied,
+      discountApplied: 0,
     };
   }
 
@@ -554,7 +524,7 @@ export class PaymentService {
     ctx?: { amount?: number; paymentType?: PaymentType }
   ) {
     const amount = Number(ctx?.amount ?? 0);
-    const { thresholdUsd, discountUsd } = getAchIncentiveConfig();
+    const { thresholdUsd } = getAchIncentiveConfig();
     const isHighTicket = Number.isFinite(amount) && amount >= thresholdUsd;
 
     const methods = [
@@ -562,10 +532,7 @@ export class PaymentService {
         id: "on_platform_stripe_ach",
         name: "Bank transfer (ACH)",
         description: "Pay with a bank account through Stripe (lower processing costs)",
-        fees:
-          isHighTicket && discountUsd > 0
-            ? `Save $${discountUsd.toFixed(0)} on high-ticket payments`
-            : "Lower processing fees vs card",
+        fees: "Lower processing fees vs card",
         recommended: isHighTicket,
       },
       {
