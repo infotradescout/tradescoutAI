@@ -397,6 +397,7 @@ import {
   sql,
   inArray,
   like,
+  ilike,
   gt,
   or,
   lt,
@@ -406,6 +407,7 @@ import {
   gte,
   lte,
   notInArray,
+  exists,
   type SQL,
 } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm/utils";
@@ -2177,94 +2179,105 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<Contractor[]> {
-    // Start with basic contractor query without ordering for now
-    let query = db.select().from(contractors).where(eq(contractors.isActive, true));
+    const offset = Math.max(0, Number(filters?.offset ?? 0) || 0);
+    const limitRequested = Number(filters?.limit ?? 20) || 20;
+    const limit = Math.min(100, Math.max(0, limitRequested));
+    if (limit === 0) {
+      return [];
+    }
+
+    const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
     const hasNameQuery = Boolean(filters?.query && String(filters.query).trim());
-    // If a name query is present, avoid applying limit/offset at the DB layer so we don't miss matches.
-    // Cap the scan to keep this safe in production.
-    if (hasNameQuery) {
-      query = query.limit(500) as any;
-    } else {
-      if (filters?.limit) {
-        query = query.limit(filters.limit) as any;
-      }
+    const predicates: (SQL | undefined)[] = [eq(contractors.isActive, true)];
 
-      if (filters?.offset) {
-        query = query.offset(filters.offset) as any;
-      }
-    }
-
-    let result = await query;
-
-    // Filter by county if specified
     if (filters?.countyId) {
-      const contractorIds = await db
-        .select({
-          contractorId: contractorCounties.contractorId,
-        })
-        .from(contractorCounties)
-        .where(eq(contractorCounties.countyId, filters.countyId));
-
-      const validIds = contractorIds.map((row: { contractorId: string }) => row.contractorId);
-      result = result.filter((contractor: any) => validIds.includes(contractor.id));
+      predicates.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(contractorCounties)
+            .where(
+              and(
+                eq(contractorCounties.contractorId, contractors.id),
+                eq(contractorCounties.countyId, filters.countyId)
+              )
+            )
+            .limit(1)
+        )
+      );
     }
 
-    // Filter by trade if specified
     if (filters?.tradeIds?.length) {
-      const contractorIds = await db
-        .select({
-          contractorId: contractorTrades.contractorId,
-        })
-        .from(contractorTrades)
-        .where(inArray(contractorTrades.tradeId, filters.tradeIds));
-
-      const validIds = contractorIds.map((row: { contractorId: string }) => row.contractorId);
-      result = result.filter((contractor: any) => validIds.includes(contractor.id));
+      predicates.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(contractorTrades)
+            .where(
+              and(
+                eq(contractorTrades.contractorId, contractors.id),
+                inArray(contractorTrades.tradeId, filters.tradeIds)
+              )
+            )
+            .limit(1)
+        )
+      );
     }
 
-    // Filter by name/slug query (in-memory for now)
     if (hasNameQuery) {
-      const q = String(filters?.query || "")
-        .toLowerCase()
-        .trim();
-      result = result.filter((contractor: any) => {
-        const name = String(contractor.companyName || "").toLowerCase();
-        const slug = String(contractor.slug || "").toLowerCase();
-        return name.includes(q) || slug.includes(q);
-      });
-
-      const offset = Math.max(0, Number(filters?.offset ?? 0) || 0);
-      const limit = Math.max(0, Number(filters?.limit ?? 20) || 20);
-      result = result.slice(offset, offset + limit);
+      const raw = String(filters?.query || "").trim();
+      const pattern = `%${escapeLike(raw)}%`;
+      predicates.push(
+        or(ilike(contractors.companyName, pattern), ilike(contractors.slug, pattern))
+      );
     }
 
-    // Apply sorting in memory for now
-    if (filters?.sortBy) {
-      switch (filters.sortBy) {
-        case "rating":
-          result.sort((a: any, b: any) => (b.yearsInBusiness || 0) - (a.yearsInBusiness || 0));
-          break;
-        case "years":
-          result.sort((a: any, b: any) => (b.yearsInBusiness || 0) - (a.yearsInBusiness || 0));
-          break;
-        case "verified":
-          result.sort((a: any, b: any) => {
-            const aDate = a.lastVerified ? new Date(a.lastVerified).getTime() : 0;
-            const bDate = b.lastVerified ? new Date(b.lastVerified).getTime() : 0;
-            return bDate - aDate;
-          });
-          break;
-        default:
-          // Default to "Most Recommended" - order by rating then reviews
-          result.sort((a: any, b: any) => {
-            // Simplified sorting without avgRating/totalRecommendations
-            return 0;
-          });
-      }
+    let q = db
+      .select()
+      .from(contractors)
+      .where(and(...predicates))
+      .limit(limit)
+      .offset(offset);
+
+    // Sorting must be DB-backed for scale; keep this deterministic.
+    switch (filters?.sortBy) {
+      case "verified":
+        q = q.orderBy(
+          sql`${contractors.lastVerified} desc nulls last`,
+          desc(contractors.recommendationScore),
+          desc(contractors.totalRecommendations),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+      case "years":
+        q = q.orderBy(
+          sql`${contractors.yearsInBusiness} desc nulls last`,
+          desc(contractors.recommendationScore),
+          desc(contractors.totalRecommendations),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+      case "rating":
+        q = q.orderBy(
+          desc(contractors.recommendationPercentage),
+          desc(contractors.totalRecommendations),
+          desc(contractors.recommendationScore),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+      case "recommended":
+      default:
+        q = q.orderBy(
+          desc(contractors.recommendationScore),
+          desc(contractors.totalRecommendations),
+          desc(contractors.recommendationPercentage),
+          asc(contractors.companyName)
+        ) as any;
+        break;
     }
 
-    return result;
+    return await q;
   }
 
   // Service area summary per contractor (used for reach tier classification)
@@ -2376,6 +2389,43 @@ export class DatabaseStorage implements IStorage {
   async getCountyByFips(fips: string): Promise<County | undefined> {
     const [county] = await db.select().from(counties).where(eq(counties.fips, fips));
     return county;
+  }
+
+  async findCountyByNameOrFips(params: {
+    query: string;
+    stateCode?: string;
+  }): Promise<County | undefined> {
+    const raw = String(params.query || "").trim();
+    if (!raw) {
+      return undefined;
+    }
+
+    // Prefer FIPS if it looks like one.
+    if (/^\d{5}$/.test(raw)) {
+      return await this.getCountyByFips(raw);
+    }
+
+    const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
+    const exact = raw.toLowerCase();
+
+    const base = db.select().from(counties);
+    const statePredicate = params.stateCode ? eq(counties.stateCode, params.stateCode) : undefined;
+
+    // Exact (case-insensitive) match first.
+    const [exactMatch] = await base
+      .where(and(statePredicate, sql`lower(${counties.name}) = ${exact}`))
+      .limit(1);
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    const pattern = `%${escapeLike(raw)}%`;
+    const [partialMatch] = await base
+      .where(and(statePredicate, ilike(counties.name, pattern)))
+      .orderBy(asc(counties.name))
+      .limit(1);
+
+    return partialMatch;
   }
 
   async upsertCounty(county: InsertCounty): Promise<County> {

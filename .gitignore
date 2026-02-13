@@ -25,4 +25,8 @@ playwright-report/
 tests/.auth/
 test-results/
 
+# Vitest HTML report (legacy root output path; keep ignored even after moving outputFile)
+test-results.html
+html.meta.json.gz
+
 test-db-connection.js

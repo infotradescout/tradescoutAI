@@ -4255,12 +4255,8 @@ export async function registerRoutes(app: any) {
       }
 
       if (county) {
-        // Try to find county by name (not FIPS)
-        const counties = await storage.getCounties();
-        const countyRecord = counties.find(
-          (c) =>
-            c.name.toLowerCase().includes((county as string).toLowerCase()) || c.fips === county
-        );
+        // Resolve county by FIPS or name without pulling all counties into memory.
+        const countyRecord = await storage.findCountyByNameOrFips({ query: String(county) });
         if (countyRecord) {
           filters.countyId = countyRecord.id;
         } else {
