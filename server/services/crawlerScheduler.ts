@@ -7,6 +7,9 @@ import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
 import { runTrustSnapshotsJob } from "./trustSnapshotsJob";
 import { runHomeScoutAggregationJob } from "./homeScoutAggregationJob";
 import { runHomeScoutMarketMetricsJob } from "./homeScoutMarketMetricsJob";
+import { runHomeScoutIngestionJob } from "./homeScoutIngestionJob";
+import { runHomeScoutBucketMetricsJob } from "./homeScoutBucketMetricsJob";
+import { runHomeScoutAlertsJob } from "./homeScoutAlertsJob";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 
@@ -24,6 +27,9 @@ let tradeDealsAggregationTask: any = null;
 let trustSnapshotsTask: any = null;
 let homeScoutAggregationTask: any = null;
 let homeScoutMarketMetricsTask: any = null;
+let homeScoutIngestionTask: any = null;
+let homeScoutBucketMetricsTask: any = null;
+let homeScoutAlertsTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -43,6 +49,9 @@ export function startCrawlerScheduler() {
   startTradeDealsAggregationScheduler();
   startHomeScoutAggregationScheduler();
   startHomeScoutMarketMetricsScheduler();
+  startHomeScoutIngestionScheduler();
+  startHomeScoutBucketMetricsScheduler();
+  startHomeScoutAlertsScheduler();
   startTrustSnapshotsScheduler();
 }
 
@@ -267,6 +276,119 @@ function startHomeScoutMarketMetricsScheduler() {
 }
 
 /**
+ * Start periodic HomeScout ingestion job
+ * Runs hourly by default (inventory freshness)
+ */
+function startHomeScoutIngestionScheduler() {
+  if (process.env.DISABLE_HOMESCOUT_INGESTION === "true") {
+    console.log("HomeScout ingestion job disabled via DISABLE_HOMESCOUT_INGESTION env flag");
+    return;
+  }
+
+  const schedule = process.env.HOMESCOUT_INGESTION_SCHEDULE || "0 * * * *"; // hourly
+  console.log(`\n🔄 Starting HomeScout ingestion scheduler with schedule: "${schedule}"`);
+
+  homeScoutIngestionTask = cron.schedule(schedule, async () => {
+    const jobName = "homescout_ingestion";
+    console.log(`\n🔄 [${new Date().toISOString()}] Running HomeScout ingestion job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runHomeScoutIngestionJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("✅ HomeScout ingestion job completed", result);
+      emitJobEnd(jobName, (result as any).listingsSeen || 0, false);
+    } catch (error) {
+      console.error("❌ HomeScout ingestion job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ HomeScout ingestion scheduler started\n");
+}
+
+/**
+ * Start nightly HomeScout market bucket job
+ * Runs daily at 2 AM UTC by default (same window as other jobs)
+ */
+function startHomeScoutBucketMetricsScheduler() {
+  if (process.env.DISABLE_HOMESCOUT_BUCKET_METRICS === "true") {
+    console.log(
+      "HomeScout bucket metrics job disabled via DISABLE_HOMESCOUT_BUCKET_METRICS env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.HOMESCOUT_BUCKET_METRICS_SCHEDULE || "0 2 * * *";
+  console.log(`\n📈 Starting HomeScout bucket metrics scheduler with schedule: "${schedule}"`);
+
+  homeScoutBucketMetricsTask = cron.schedule(schedule, async () => {
+    const jobName = "homescout_bucket_metrics";
+    console.log(
+      `\n📈 [${new Date().toISOString()}] Running nightly HomeScout bucket metrics job...`
+    );
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runHomeScoutBucketMetricsJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("✅ HomeScout bucket metrics job completed", result);
+      emitJobEnd(jobName, (result as any).bucketsWritten || 0, false);
+    } catch (error) {
+      console.error("❌ HomeScout bucket metrics job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ HomeScout bucket metrics scheduler started\n");
+}
+
+/**
+ * Start periodic HomeScout alerts job (saved searches)
+ * Runs every 15 minutes by default
+ */
+function startHomeScoutAlertsScheduler() {
+  if (process.env.DISABLE_HOMESCOUT_ALERTS === "true") {
+    console.log("HomeScout alerts job disabled via DISABLE_HOMESCOUT_ALERTS env flag");
+    return;
+  }
+
+  const schedule = process.env.HOMESCOUT_ALERTS_SCHEDULE || "*/15 * * * *";
+  console.log(`\n🔔 Starting HomeScout alerts scheduler with schedule: "${schedule}"`);
+
+  homeScoutAlertsTask = cron.schedule(schedule, async () => {
+    const jobName = "homescout_alerts";
+    console.log(`\n🔔 [${new Date().toISOString()}] Running HomeScout alerts job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () => runHomeScoutAlertsJob());
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("✅ HomeScout alerts job completed", result);
+      emitJobEnd(jobName, (result as any).notificationsSent || 0, false);
+    } catch (error) {
+      console.error("❌ HomeScout alerts job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ HomeScout alerts scheduler started\n");
+}
+
+/**
  * Start nightly trust snapshot job
  * Runs daily at 2 AM UTC by default (same window as other jobs)
  */
@@ -354,6 +476,27 @@ export function stopCrawlerScheduler() {
     homeScoutMarketMetricsTask = null;
     console.log("🛑 HomeScout market metrics scheduler stopped");
   }
+
+  if (homeScoutIngestionTask) {
+    homeScoutIngestionTask.stop();
+    homeScoutIngestionTask.destroy();
+    homeScoutIngestionTask = null;
+    console.log("🛑 HomeScout ingestion scheduler stopped");
+  }
+
+  if (homeScoutBucketMetricsTask) {
+    homeScoutBucketMetricsTask.stop();
+    homeScoutBucketMetricsTask.destroy();
+    homeScoutBucketMetricsTask = null;
+    console.log("🛑 HomeScout bucket metrics scheduler stopped");
+  }
+
+  if (homeScoutAlertsTask) {
+    homeScoutAlertsTask.stop();
+    homeScoutAlertsTask.destroy();
+    homeScoutAlertsTask = null;
+    console.log("🛑 HomeScout alerts scheduler stopped");
+  }
 }
 
 /**
@@ -376,6 +519,26 @@ export function getCrawlerSchedulerStatus() {
     tradeDealsAggregation: {
       active: tradeDealsAggregationTask !== null,
       schedule: process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *",
+    },
+    homeScoutAggregation: {
+      active: homeScoutAggregationTask !== null,
+      schedule: process.env.HOMESCOUT_AGGREGATION_SCHEDULE || "0 2 * * *",
+    },
+    homeScoutMarketMetrics: {
+      active: homeScoutMarketMetricsTask !== null,
+      schedule: process.env.HOMESCOUT_MARKET_METRICS_SCHEDULE || "0 2 * * *",
+    },
+    homeScoutIngestion: {
+      active: homeScoutIngestionTask !== null,
+      schedule: process.env.HOMESCOUT_INGESTION_SCHEDULE || "0 * * * *",
+    },
+    homeScoutBucketMetrics: {
+      active: homeScoutBucketMetricsTask !== null,
+      schedule: process.env.HOMESCOUT_BUCKET_METRICS_SCHEDULE || "0 2 * * *",
+    },
+    homeScoutAlerts: {
+      active: homeScoutAlertsTask !== null,
+      schedule: process.env.HOMESCOUT_ALERTS_SCHEDULE || "*/15 * * * *",
     },
     trustSnapshots: {
       active: trustSnapshotsTask !== null,

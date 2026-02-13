@@ -14923,6 +14923,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         propertyType,
         bedsMin,
         bathsMin,
+        sqftMin,
+        yearBuiltMin,
+        maxDomDays,
+        priceDropsOnly,
         minPrice,
         maxPrice,
         sortBy = "newest",
@@ -14937,6 +14941,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         propertyType: typeof propertyType === "string" ? (propertyType as any) : undefined,
         bedsMin: bedsMin != null ? Number(bedsMin) : undefined,
         bathsMin: bathsMin != null ? Number(bathsMin) : undefined,
+        sqftMin: sqftMin != null ? Number(sqftMin) : undefined,
+        yearBuiltMin: yearBuiltMin != null ? Number(yearBuiltMin) : undefined,
+        maxDomDays: maxDomDays != null ? Number(maxDomDays) : undefined,
+        priceDropsOnly: priceDropsOnly === "true",
         priceMin: minPrice != null ? Number(minPrice) : undefined,
         priceMax: maxPrice != null ? Number(maxPrice) : undefined,
         // Search is public-facing; only active inventory is discoverable here.
@@ -14990,8 +14998,57 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         (listing as any).agentUserId ||
         (listing as any).sellerUserId;
 
+      const events = await storage.listHomeScoutListingEvents({
+        listingId: String((listing as any).id),
+        limit: 100,
+        offset: 0,
+      });
+
+      const bedsNum = (listing as any).beds != null ? Number((listing as any).beds) : null;
+      const bedsBucket =
+        bedsNum == null || !Number.isFinite(bedsNum)
+          ? null
+          : bedsNum >= 5
+            ? 5
+            : Math.max(0, Math.trunc(bedsNum));
+
+      const propertyType = String((listing as any).propertyType || "house");
+      const countyFipsStr = String((listing as any).countyFips || "");
+      const stateCodeStr = String((listing as any).stateCode || "");
+
+      const marketBucket =
+        (await storage.getHomeScoutMarketBucket({
+          countyFips: countyFipsStr,
+          stateCode: stateCodeStr,
+          propertyType,
+          bedsBucket,
+        })) ||
+        (await storage.getHomeScoutMarketBucket({
+          countyFips: countyFipsStr,
+          stateCode: stateCodeStr,
+          propertyType,
+          bedsBucket: null,
+        })) ||
+        null;
+
+      const countyMetrics = await storage.getCountyMetricsForCounty({
+        countyFips: countyFipsStr,
+        metricKeys: [
+          "homescout_active_listings",
+          "homescout_median_price",
+          "homescout_median_dom_days",
+          "homescout_price_drops_7d",
+        ],
+      });
+
       // Do not bypass privacy: consumers may optionally call /api/users/:userId/public.
-      res.json({ listing, contactUserId: contactUserId || null });
+      res.json({
+        listing,
+        contactUserId: contactUserId || null,
+        events,
+        marketBucket,
+        countyMetrics,
+      });
     } catch (error: any) {
       console.error("Error fetching HomeScout listing:", error);
       res.status(500).json({ message: "Failed to fetch HomeScout listing" });
@@ -15145,6 +15202,125 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } catch (error: any) {
         console.error("Error creating HomeScout listing:", error);
         res.status(500).json({ message: "Failed to create HomeScout listing" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/homescout/listings/:id",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const listingId = String(req.params.id || "");
+        if (!listingId) return res.status(400).json({ message: "listingId required" });
+
+        const existing = await storage.getHomeScoutListing(listingId);
+        if (!existing) return res.status(404).json({ message: "Listing not found" });
+
+        const viewer = await storage.getUser(String(userId));
+        const viewerRole = (viewer as any)?.role || "";
+        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+          String(viewerRole)
+        );
+
+        const isOwner =
+          String(userId) === String((existing as any).sellerUserId || "") ||
+          String(userId) === String((existing as any).agentUserId || "") ||
+          String(userId) === String((existing as any).contactUserId || "");
+
+        if (!isAdminLike && !isOwner) {
+          return res.status(403).json({ message: "Not allowed" });
+        }
+
+        const body = req.body ?? {};
+        const updates: any = {};
+
+        if (typeof body.title === "string") {
+          const title = body.title.trim();
+          if (title.length < 10 || title.length > 200) {
+            return res.status(400).json({ message: "title must be 10-200 characters" });
+          }
+          updates.title = title;
+        }
+
+        if (typeof body.description === "string") {
+          updates.description = body.description;
+        }
+
+        if (body.price != null) {
+          const nextPrice = Number(body.price);
+          if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+            return res.status(400).json({ message: "price must be a positive number" });
+          }
+          const prev = Number(String((existing as any).price ?? 0));
+          if (Number.isFinite(prev) && prev !== nextPrice) {
+            updates.pricePrevious = (existing as any).price;
+            updates.priceChangedAt = new Date();
+          }
+          updates.price = String(nextPrice);
+        }
+
+        const intField = (key: string, min: number, max: number) => {
+          if (body[key] == null) return;
+          const n = Number(body[key]);
+          if (!Number.isFinite(n)) return;
+          updates[key] = Math.max(min, Math.min(max, Math.trunc(n)));
+        };
+
+        const numField = (key: string, min: number, max: number) => {
+          if (body[key] == null) return;
+          const n = Number(body[key]);
+          if (!Number.isFinite(n)) return;
+          updates[key] = String(Math.max(min, Math.min(max, n)));
+        };
+
+        if (typeof body.propertyType === "string" && body.propertyType.trim()) {
+          updates.propertyType = body.propertyType.trim();
+        }
+        intField("beds", 0, 50);
+        numField("baths", 0, 50);
+        intField("sqft", 0, 200000);
+        intField("lotSqft", 0, 50000000);
+        intField("yearBuilt", 1600, 2200);
+
+        if (Array.isArray(body.features)) {
+          updates.features = body.features.filter((x: any) => typeof x === "string");
+        }
+        if (Array.isArray(body.photos)) {
+          updates.photos = body.photos.filter((x: any) => typeof x === "string");
+        }
+
+        if (Object.keys(updates).length === 0) {
+          return res.status(400).json({ message: "No updates provided" });
+        }
+
+        const updated = await storage.updateHomeScoutListing({ listingId, updates } as any);
+        if (!updated) return res.status(404).json({ message: "Listing not found" });
+
+        // Timeline events (job/UI reads)
+        if (updates.priceChangedAt) {
+          await storage.createHomeScoutListingEvent({
+            listingId,
+            eventType: "price_changed" as any,
+            observedAt: updates.priceChangedAt,
+            payload: { from: (existing as any).price, to: (updated as any).price },
+          } as any);
+        }
+        await storage.createHomeScoutListingEvent({
+          listingId,
+          eventType: "updated" as any,
+          observedAt: new Date(),
+          payload: { fields: Object.keys(updates) },
+        } as any);
+
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error updating HomeScout listing:", error);
+        res.status(500).json({ message: "Failed to update HomeScout listing" });
       }
     }
   );

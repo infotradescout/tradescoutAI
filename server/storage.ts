@@ -84,9 +84,21 @@ import {
   marketplaceConversations,
   marketplaceMessages,
   homeScoutListings,
+  homeScoutSources,
+  homeScoutIngestRuns,
+  homeScoutListingEvents,
+  homeScoutMarketBuckets,
   homeScoutListingReports,
   type HomeScoutListing,
   type InsertHomeScoutListing,
+  type HomeScoutSource,
+  type InsertHomeScoutSource,
+  type HomeScoutIngestRun,
+  type InsertHomeScoutIngestRun,
+  type HomeScoutListingEvent,
+  type InsertHomeScoutListingEvent,
+  type HomeScoutMarketBucket,
+  type InsertHomeScoutMarketBucket,
   type HomeScoutListingReport,
   type InsertHomeScoutListingReport,
   // Foundation system
@@ -4343,6 +4355,24 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(countyMetrics).where(eq(countyMetrics.metricKey, metricKey));
   }
 
+  async getCountyMetricsForCounty(params: {
+    countyFips: string;
+    metricKeys?: string[];
+  }): Promise<CountyMetric[]> {
+    const fips = String(params.countyFips || "");
+    if (!/^\d{5}$/.test(fips)) return [];
+    const keys = Array.isArray(params.metricKeys)
+      ? params.metricKeys.filter((k): k is string => typeof k === "string" && k.trim().length > 0)
+      : [];
+
+    const predicates: (SQL | undefined)[] = [eq(countyMetrics.countyFips, fips)];
+    if (keys.length) predicates.push(inArray(countyMetrics.metricKey, Array.from(new Set(keys))));
+    return await db
+      .select()
+      .from(countyMetrics)
+      .where(and(...predicates));
+  }
+
   // Contractor Promo Operations
   async createContractorPromo(
     promo: Omit<
@@ -4730,6 +4760,378 @@ export class DatabaseStorage implements IStorage {
   // HomeScout (Real Estate Portal)
   // ---------------------------------------------------------------------------
 
+  async listHomeScoutSources(params?: {
+    enabled?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutSource[]> {
+    const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
+    const offset = Math.max(0, Number(params?.offset ?? 0));
+    const enabled = params?.enabled;
+
+    const predicates: (SQL | undefined)[] = [];
+    if (enabled === true) predicates.push(eq(homeScoutSources.enabled, true));
+    if (enabled === false) predicates.push(eq(homeScoutSources.enabled, false));
+
+    const whereClause = predicates.length ? (and(...predicates) as any) : undefined;
+
+    const q = db
+      .select()
+      .from(homeScoutSources)
+      .where(whereClause as any)
+      .orderBy(desc(homeScoutSources.updatedAt))
+      .limit(limit)
+      .offset(offset);
+
+    return await q;
+  }
+
+  async getHomeScoutSourceById(sourceId: string): Promise<HomeScoutSource | undefined> {
+    const [row] = await db.select().from(homeScoutSources).where(eq(homeScoutSources.id, sourceId));
+    return row;
+  }
+
+  async getHomeScoutSourceByKey(sourceKey: string): Promise<HomeScoutSource | undefined> {
+    const [row] = await db
+      .select()
+      .from(homeScoutSources)
+      .where(eq(homeScoutSources.sourceKey, sourceKey));
+    return row;
+  }
+
+  async createHomeScoutSource(
+    input: Omit<InsertHomeScoutSource, "id" | "createdAt" | "updatedAt">
+  ): Promise<HomeScoutSource> {
+    const [row] = await db
+      .insert(homeScoutSources)
+      .values({ ...(input as any), updatedAt: new Date(), createdAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async updateHomeScoutSource(
+    sourceId: string,
+    updates: Partial<Omit<HomeScoutSource, "id" | "createdAt">>
+  ): Promise<HomeScoutSource | undefined> {
+    const [row] = await db
+      .update(homeScoutSources)
+      .set({ ...(updates as any), updatedAt: new Date() })
+      .where(eq(homeScoutSources.id, sourceId))
+      .returning();
+    return row;
+  }
+
+  async setHomeScoutSourceEnabled(params: {
+    sourceId: string;
+    enabled: boolean;
+    lastError?: string | null;
+  }): Promise<HomeScoutSource | undefined> {
+    const [row] = await db
+      .update(homeScoutSources)
+      .set({
+        enabled: params.enabled,
+        lastError: params.lastError ?? null,
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(homeScoutSources.id, params.sourceId))
+      .returning();
+    return row;
+  }
+
+  async createHomeScoutIngestRun(
+    input: Omit<InsertHomeScoutIngestRun, "id" | "startedAt">
+  ): Promise<HomeScoutIngestRun> {
+    const [row] = await db
+      .insert(homeScoutIngestRuns)
+      .values({ ...(input as any), startedAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async finishHomeScoutIngestRun(params: {
+    runId: string;
+    status: "success" | "error";
+    stats?: Record<string, any>;
+    error?: string | null;
+  }): Promise<HomeScoutIngestRun | undefined> {
+    const [row] = await db
+      .update(homeScoutIngestRuns)
+      .set({
+        status: params.status as any,
+        stats: (params.stats ?? {}) as any,
+        finishedAt: new Date(),
+        error: params.error ?? null,
+      } as any)
+      .where(eq(homeScoutIngestRuns.id, params.runId))
+      .returning();
+    return row;
+  }
+
+  async listHomeScoutIngestRuns(params: {
+    sourceId: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutIngestRun[]> {
+    const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+    return await db
+      .select()
+      .from(homeScoutIngestRuns)
+      .where(eq(homeScoutIngestRuns.sourceId, params.sourceId))
+      .orderBy(desc(homeScoutIngestRuns.startedAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async createHomeScoutListingEvent(
+    input: Omit<InsertHomeScoutListingEvent, "id" | "createdAt">
+  ): Promise<HomeScoutListingEvent> {
+    const [row] = await db
+      .insert(homeScoutListingEvents)
+      .values({ ...(input as any), createdAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async listHomeScoutListingEvents(params: {
+    listingId: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutListingEvent[]> {
+    const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+
+    return await db
+      .select()
+      .from(homeScoutListingEvents)
+      .where(eq(homeScoutListingEvents.listingId, params.listingId))
+      .orderBy(desc(homeScoutListingEvents.observedAt), desc(homeScoutListingEvents.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getHomeScoutMarketBucket(params: {
+    countyFips: string;
+    stateCode: string;
+    propertyType: string;
+    bedsBucket?: number | null;
+  }): Promise<HomeScoutMarketBucket | undefined> {
+    const bedsBucket =
+      params.bedsBucket == null || !Number.isFinite(Number(params.bedsBucket))
+        ? null
+        : Number(params.bedsBucket);
+
+    const predicates: (SQL | undefined)[] = [
+      eq(homeScoutMarketBuckets.countyFips, params.countyFips),
+      eq(homeScoutMarketBuckets.stateCode, params.stateCode),
+      eq(homeScoutMarketBuckets.propertyType, params.propertyType),
+    ];
+    if (bedsBucket == null) predicates.push(isNull(homeScoutMarketBuckets.bedsBucket));
+    else predicates.push(eq(homeScoutMarketBuckets.bedsBucket, bedsBucket));
+
+    const [row] = await db
+      .select()
+      .from(homeScoutMarketBuckets)
+      .where(and(...predicates))
+      .limit(1);
+    return row;
+  }
+
+  async upsertHomeScoutMarketBucket(
+    input: Omit<InsertHomeScoutMarketBucket, "id" | "updatedAt">
+  ): Promise<HomeScoutMarketBucket> {
+    const [row] = await db
+      .insert(homeScoutMarketBuckets)
+      .values({ ...(input as any), updatedAt: new Date() } as any)
+      .onConflictDoUpdate({
+        target: [
+          homeScoutMarketBuckets.countyFips,
+          homeScoutMarketBuckets.stateCode,
+          homeScoutMarketBuckets.propertyType,
+          homeScoutMarketBuckets.bedsBucket,
+        ],
+        set: {
+          ...(input as any),
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async getHomeScoutListingBySource(params: {
+    sourceKey: string;
+    sourceListingId: string;
+  }): Promise<HomeScoutListing | undefined> {
+    const [row] = await db
+      .select()
+      .from(homeScoutListings)
+      .where(
+        and(
+          eq(homeScoutListings.sourceKey, params.sourceKey),
+          eq(homeScoutListings.sourceListingId, params.sourceListingId)
+        )
+      )
+      .limit(1);
+    return row;
+  }
+
+  async upsertHomeScoutListingFromSource(params: {
+    sourceKey: string;
+    sourceListingId: string;
+    autoActivate?: boolean;
+    values: Omit<
+      InsertHomeScoutListing,
+      "id" | "createdAt" | "updatedAt" | "sourceKey" | "sourceListingId"
+    >;
+  }): Promise<{
+    listing: HomeScoutListing;
+    created: boolean;
+    priceChanged: boolean;
+    statusChanged: boolean;
+  }> {
+    const now = new Date();
+
+    const existing = await this.getHomeScoutListingBySource({
+      sourceKey: params.sourceKey,
+      sourceListingId: params.sourceListingId,
+    });
+
+    const desiredStatus =
+      (params.values as any).status ||
+      (params.autoActivate ? ("active" as any) : ("pending_review" as any));
+
+    const baseValues: any = {
+      ...params.values,
+      sourceKey: params.sourceKey,
+      sourceListingId: params.sourceListingId,
+      status: desiredStatus,
+      observedAt: now,
+      lastSeenAt: now,
+      updatedAt: now,
+    };
+
+    if (!existing) {
+      if (desiredStatus === "active") {
+        baseValues.approvedAt = now;
+        baseValues.listedAt = baseValues.listedAt ?? now;
+      }
+
+      const [row] = await db.insert(homeScoutListings).values(baseValues).returning();
+      await this.createHomeScoutListingEvent({
+        listingId: row.id,
+        eventType: "created" as any,
+        observedAt: now,
+        payload: {
+          sourceKey: params.sourceKey,
+          sourceListingId: params.sourceListingId,
+          status: row.status,
+          price: row.price,
+          listedAt: row.listedAt,
+        },
+      } as any);
+      return { listing: row, created: true, priceChanged: false, statusChanged: false };
+    }
+
+    let priceChanged = false;
+    let statusChanged = false;
+
+    const updates: any = { ...baseValues };
+
+    // Preserve manual moderation fields unless the listing becomes active via auto-activate.
+    if (existing.status !== "active" && desiredStatus === "active" && params.autoActivate) {
+      updates.approvedAt = existing.approvedAt ?? now;
+      updates.listedAt = existing.listedAt ?? updates.listedAt ?? now;
+    }
+
+    const existingPrice = existing.price != null ? Number(String(existing.price)) : null;
+    const nextPrice = updates.price != null ? Number(String(updates.price)) : null;
+    if (existingPrice != null && nextPrice != null && existingPrice !== nextPrice) {
+      priceChanged = true;
+      updates.pricePrevious = existing.price;
+      updates.priceChangedAt = now;
+    }
+
+    const existingStatus = String(existing.status || "");
+    const nextStatus = String(updates.status || "");
+    if (existingStatus && nextStatus && existingStatus !== nextStatus) {
+      statusChanged = true;
+    }
+
+    const [row] = await db
+      .update(homeScoutListings)
+      .set(updates)
+      .where(eq(homeScoutListings.id, existing.id))
+      .returning();
+
+    // Events
+    await this.createHomeScoutListingEvent({
+      listingId: row.id,
+      eventType: "seen" as any,
+      observedAt: now,
+      payload: { sourceKey: params.sourceKey, sourceListingId: params.sourceListingId },
+    } as any);
+
+    if (priceChanged) {
+      await this.createHomeScoutListingEvent({
+        listingId: row.id,
+        eventType: "price_changed" as any,
+        observedAt: now,
+        payload: {
+          from: existing.price,
+          to: row.price,
+          previous: row.pricePrevious ?? null,
+        },
+      } as any);
+    }
+    if (statusChanged) {
+      await this.createHomeScoutListingEvent({
+        listingId: row.id,
+        eventType: "status_changed" as any,
+        observedAt: now,
+        payload: { from: existing.status, to: row.status },
+      } as any);
+    }
+
+    return { listing: row, created: false, priceChanged, statusChanged };
+  }
+
+  async inactivateStaleHomeScoutListingsFromSource(params: {
+    sourceKey: string;
+    staleBefore: Date;
+  }): Promise<number> {
+    const now = new Date();
+    const rows = await db
+      .update(homeScoutListings)
+      .set({
+        status: "inactive" as any,
+        offMarketAt: sql`coalesce(${homeScoutListings.offMarketAt}, now())` as any,
+        updatedAt: now,
+      } as any)
+      .where(
+        and(
+          eq(homeScoutListings.sourceKey, params.sourceKey),
+          eq(homeScoutListings.status, "active" as any),
+          isNotNull(homeScoutListings.lastSeenAt),
+          lt(homeScoutListings.lastSeenAt, params.staleBefore)
+        )
+      )
+      .returning({ id: homeScoutListings.id });
+
+    if (!rows.length) return 0;
+
+    for (const r of rows) {
+      await this.createHomeScoutListingEvent({
+        listingId: String((r as any).id),
+        eventType: "status_changed" as any,
+        observedAt: now,
+        payload: { from: "active", to: "inactive", reason: "stale" },
+      } as any);
+    }
+
+    return rows.length;
+  }
+
   async getHomeScoutListing(id: string): Promise<HomeScoutListing | undefined> {
     const [row] = await db.select().from(homeScoutListings).where(eq(homeScoutListings.id, id));
     return row;
@@ -4797,6 +5199,10 @@ export class DatabaseStorage implements IStorage {
     propertyType?: "house" | "condo" | "townhouse" | "land" | "commercial" | "multifamily";
     bedsMin?: number;
     bathsMin?: number;
+    sqftMin?: number;
+    yearBuiltMin?: number;
+    maxDomDays?: number;
+    priceDropsOnly?: boolean;
     priceMin?: number;
     priceMax?: number;
     query?: string;
@@ -4834,6 +5240,30 @@ export class DatabaseStorage implements IStorage {
     if (Number.isFinite(filters?.bathsMin as any)) {
       const bathsMin = Number(filters?.bathsMin);
       predicates.push(gte(homeScoutListings.baths, String(bathsMin) as any));
+    }
+
+    if (Number.isFinite(filters?.sqftMin as any)) {
+      const sqftMin = Number(filters?.sqftMin);
+      predicates.push(gte(homeScoutListings.sqft, sqftMin));
+    }
+
+    if (Number.isFinite(filters?.yearBuiltMin as any)) {
+      const yearBuiltMin = Number(filters?.yearBuiltMin);
+      predicates.push(gte(homeScoutListings.yearBuilt, yearBuiltMin));
+    }
+
+    // Index-friendly DOM filter: translate to listed_at >= now() - interval
+    if (Number.isFinite(filters?.maxDomDays as any) && Number(filters?.maxDomDays) > 0) {
+      const days = Math.min(3650, Math.max(1, Number(filters?.maxDomDays)));
+      predicates.push(
+        sql`${homeScoutListings.listedAt} >= (now() - (${days}::int || ' days')::interval)` as any
+      );
+    }
+
+    if (filters?.priceDropsOnly) {
+      predicates.push(isNotNull(homeScoutListings.priceChangedAt));
+      predicates.push(isNotNull(homeScoutListings.pricePrevious));
+      predicates.push(sql`${homeScoutListings.pricePrevious} > ${homeScoutListings.price}` as any);
     }
 
     if (Number.isFinite(filters?.priceMin as any)) {
@@ -4880,6 +5310,12 @@ export class DatabaseStorage implements IStorage {
       .insert(homeScoutListings)
       .values({ ...input, updatedAt: new Date() })
       .returning();
+    await this.createHomeScoutListingEvent({
+      listingId: row.id,
+      eventType: "created" as any,
+      observedAt: new Date(),
+      payload: { sourceKey: row.sourceKey, sourceListingId: row.sourceListingId ?? null },
+    } as any);
     return row;
   }
 
@@ -4887,6 +5323,7 @@ export class DatabaseStorage implements IStorage {
     listingId: string;
     approvedByUserId: string;
   }): Promise<HomeScoutListing | undefined> {
+    const before = await this.getHomeScoutListing(params.listingId);
     const [row] = await db
       .update(homeScoutListings)
       .set({
@@ -4896,6 +5333,26 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
         listedAt: sql`coalesce(${homeScoutListings.listedAt}, now())` as any,
       })
+      .where(eq(homeScoutListings.id, params.listingId))
+      .returning();
+    if (row && before && String(before.status) !== String(row.status)) {
+      await this.createHomeScoutListingEvent({
+        listingId: row.id,
+        eventType: "status_changed" as any,
+        observedAt: new Date(),
+        payload: { from: before.status, to: row.status },
+      } as any);
+    }
+    return row;
+  }
+
+  async updateHomeScoutListing(params: {
+    listingId: string;
+    updates: Partial<InsertHomeScoutListing>;
+  }): Promise<HomeScoutListing | undefined> {
+    const [row] = await db
+      .update(homeScoutListings)
+      .set({ ...(params.updates as any), updatedAt: new Date() })
       .where(eq(homeScoutListings.id, params.listingId))
       .returning();
     return row;
@@ -7925,6 +8382,31 @@ export class DatabaseStorage implements IStorage {
       .from(savedSearches)
       .where(eq(savedSearches.userId, userId))
       .orderBy(desc(savedSearches.createdAt));
+  }
+
+  async listSavedSearchesForAlerts(params: {
+    searchType: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<SavedSearch[]> {
+    const limit = Math.max(1, Math.min(500, Number(params.limit ?? 200)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+    return await db
+      .select()
+      .from(savedSearches)
+      .where(
+        and(eq(savedSearches.searchType, params.searchType), eq(savedSearches.alertsEnabled, true))
+      )
+      .orderBy(asc(savedSearches.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async touchSavedSearchLastNotified(params: { id: string; at: Date }): Promise<void> {
+    await db
+      .update(savedSearches)
+      .set({ lastNotified: params.at })
+      .where(eq(savedSearches.id, params.id));
   }
 
   async deleteSavedSearch(id: string): Promise<void> {

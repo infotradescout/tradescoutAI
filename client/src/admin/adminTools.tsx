@@ -180,6 +180,7 @@ const AdminPricingAnalytics = React.lazy(() => import("@/pages/admin-pricing-ana
 const AdminAddressVerifications = React.lazy(() => import("@/pages/admin-address-verifications"));
 const AdminListings = React.lazy(() => import("@/pages/admin-listings"));
 const AdminHomeScoutListings = React.lazy(() => import("@/pages/admin-homescout-listings"));
+const AdminHomeScoutSources = React.lazy(() => import("@/pages/admin-homescout-sources"));
 const AdminAttachments = React.lazy(() => import("@/pages/admin-attachments"));
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
 const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
@@ -381,6 +382,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Home,
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
         render: () => <AdminHomeScoutListings />,
+      }),
+      tool({
+        id: "homescout-sources",
+        label: "HomeScout Sources",
+        path: "/admin/homescout/sources",
+        icon: Home,
+        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        render: () => <AdminHomeScoutSources />,
       }),
       tool({
         id: "ads",

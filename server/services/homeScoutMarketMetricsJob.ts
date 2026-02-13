@@ -22,6 +22,7 @@ type CountyMarketRow = {
   countyFips: string;
   medianPrice: number | null;
   medianDomDays: number | null;
+  priceDrops7d: number;
 };
 
 interface JobResult {
@@ -37,7 +38,10 @@ async function computeCountyMedians(): Promise<CountyMarketRow[]> {
       SELECT
         county_fips,
         price::numeric as price_num,
-        listed_at
+        listed_at,
+        price_changed_at,
+        price_previous,
+        price::numeric as price_current
       FROM home_scout_listings
       WHERE status = 'active'
         AND county_fips IS NOT NULL
@@ -59,16 +63,29 @@ async function computeCountyMedians(): Promise<CountyMarketRow[]> {
       FROM active
       WHERE listed_at IS NOT NULL
       GROUP BY county_fips
+    ),
+    drops_7d AS (
+      SELECT
+        county_fips,
+        COUNT(*)::int as price_drops_7d
+      FROM active
+      WHERE price_changed_at IS NOT NULL
+        AND price_changed_at >= (now() - interval '7 days')
+        AND price_previous IS NOT NULL
+        AND price_previous::numeric > price_current
+      GROUP BY county_fips
     )
     SELECT
       c.county_fips as "countyFips",
       pm.median_price as "medianPrice",
-      dm.median_dom_days as "medianDomDays"
+      dm.median_dom_days as "medianDomDays",
+      COALESCE(d7.price_drops_7d, 0) as "priceDrops7d"
     FROM (
       SELECT DISTINCT county_fips FROM active
     ) c
     LEFT JOIN price_med pm ON pm.county_fips = c.county_fips
     LEFT JOIN dom_med dm ON dm.county_fips = c.county_fips
+    LEFT JOIN drops_7d d7 ON d7.county_fips = c.county_fips
     ORDER BY c.county_fips
   `);
 
@@ -77,6 +94,7 @@ async function computeCountyMedians(): Promise<CountyMarketRow[]> {
     medianPrice: r.medianPrice == null || r.medianPrice === "" ? null : Number(r.medianPrice),
     medianDomDays:
       r.medianDomDays == null || r.medianDomDays === "" ? null : Number(r.medianDomDays),
+    priceDrops7d: Number(r.priceDrops7d) || 0,
   }));
 }
 
@@ -124,6 +142,15 @@ export async function runHomeScoutMarketMetricsJob(): Promise<JobResult> {
         asOf: startTime,
       });
     }
+
+    requests.push({
+      source: "homescout_market_metrics_job",
+      metricKey: MetricKey.HOMESCOUT_PRICE_DROPS_7D,
+      countyFips: fips,
+      value: Math.max(0, Math.round(Number(row.priceDrops7d || 0))),
+      mode: "set",
+      asOf: startTime,
+    });
 
     for (const req of requests) {
       try {

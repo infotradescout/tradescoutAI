@@ -3931,6 +3931,12 @@ export const homeScoutListings = pgTable(
     listedAt: timestamp("listed_at"),
     offMarketAt: timestamp("off_market_at"),
 
+    externalUrl: varchar("external_url", { length: 500 }),
+    sourceUpdatedAt: timestamp("source_updated_at"),
+    observedAt: timestamp("observed_at"),
+    lastSeenAt: timestamp("last_seen_at"),
+    domDays: integer("dom_days"),
+
     propertyType: varchar("property_type", {
       length: 32,
       enum: [...HOME_SCOUT_PROPERTY_TYPES],
@@ -3979,6 +3985,136 @@ export const homeScoutListings = pgTable(
 
 export type HomeScoutListing = typeof homeScoutListings.$inferSelect;
 export type InsertHomeScoutListing = typeof homeScoutListings.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// HomeScout ingestion + timeline + market buckets
+// ---------------------------------------------------------------------------
+
+export const HOME_SCOUT_SOURCE_TYPES = ["json_file", "json_url", "mls", "idx", "partner"] as const;
+
+export const homeScoutSources = pgTable(
+  "home_scout_sources",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    sourceKey: varchar("source_key", { length: 64 }).notNull(),
+    sourceType: varchar("source_type", {
+      length: 32,
+      enum: [...HOME_SCOUT_SOURCE_TYPES],
+    }).notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    config: jsonb("config").notNull().default({}),
+    lastRunAt: timestamp("last_run_at"),
+    lastSuccessAt: timestamp("last_success_at"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("uq_homescout_sources_source_key").on(table.sourceKey)]
+);
+
+export type HomeScoutSource = typeof homeScoutSources.$inferSelect;
+export type InsertHomeScoutSource = typeof homeScoutSources.$inferInsert;
+
+export const HOME_SCOUT_INGEST_RUN_STATUSES = ["running", "success", "error"] as const;
+
+export const homeScoutIngestRuns = pgTable(
+  "home_scout_ingest_runs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    sourceId: varchar("source_id")
+      .notNull()
+      .references(() => homeScoutSources.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16, enum: [...HOME_SCOUT_INGEST_RUN_STATUSES] })
+      .notNull()
+      .default("running"),
+    stats: jsonb("stats").notNull().default({}),
+    startedAt: timestamp("started_at").notNull().defaultNow(),
+    finishedAt: timestamp("finished_at"),
+    error: text("error"),
+  },
+  (table) => [index("idx_homescout_ingest_runs_source_started").on(table.sourceId, table.startedAt)]
+);
+
+export type HomeScoutIngestRun = typeof homeScoutIngestRuns.$inferSelect;
+export type InsertHomeScoutIngestRun = typeof homeScoutIngestRuns.$inferInsert;
+
+export const HOME_SCOUT_LISTING_EVENT_TYPES = [
+  "created",
+  "seen",
+  "price_changed",
+  "status_changed",
+  "updated",
+] as const;
+
+export const homeScoutListingEvents = pgTable(
+  "home_scout_listing_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    listingId: varchar("listing_id")
+      .notNull()
+      .references(() => homeScoutListings.id, { onDelete: "cascade" }),
+    eventType: varchar("event_type", {
+      length: 32,
+      enum: [...HOME_SCOUT_LISTING_EVENT_TYPES],
+    }).notNull(),
+    observedAt: timestamp("observed_at").notNull().defaultNow(),
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_homescout_listing_events_listing_time").on(table.listingId, table.observedAt),
+    index("idx_homescout_listing_events_type_time").on(table.eventType, table.observedAt),
+  ]
+);
+
+export type HomeScoutListingEvent = typeof homeScoutListingEvents.$inferSelect;
+export type InsertHomeScoutListingEvent = typeof homeScoutListingEvents.$inferInsert;
+
+export const homeScoutMarketBuckets = pgTable(
+  "home_scout_market_buckets",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
+    stateCode: varchar("state_code", { length: 2 })
+      .notNull()
+      .references(() => states.code),
+    propertyType: varchar("property_type", { length: 32 }).notNull(),
+    bedsBucket: integer("beds_bucket"),
+    activeCount: integer("active_count").notNull().default(0),
+    medianPrice: numeric("median_price", { precision: 12, scale: 2 }),
+    medianPricePerSqft: numeric("median_price_per_sqft", { precision: 12, scale: 2 }),
+    medianDomDays: integer("median_dom_days"),
+    priceDropCount7d: integer("price_drop_count_7d").notNull().default(0),
+    computedAt: timestamp("computed_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_homescout_market_bucket").on(
+      table.countyFips,
+      table.stateCode,
+      table.propertyType,
+      table.bedsBucket
+    ),
+    index("idx_homescout_market_bucket_county_type").on(
+      table.countyFips,
+      table.stateCode,
+      table.propertyType
+    ),
+  ]
+);
+
+export type HomeScoutMarketBucket = typeof homeScoutMarketBuckets.$inferSelect;
+export type InsertHomeScoutMarketBucket = typeof homeScoutMarketBuckets.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // HomeScout abuse handling (reports)

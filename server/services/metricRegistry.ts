@@ -31,6 +31,7 @@ export enum MetricKey {
   HOMESCOUT_ACTIVE_LISTINGS = "homescout_active_listings",
   HOMESCOUT_MEDIAN_PRICE = "homescout_median_price",
   HOMESCOUT_MEDIAN_DOM_DAYS = "homescout_median_dom_days",
+  HOMESCOUT_PRICE_DROPS_7D = "homescout_price_drops_7d",
 }
 
 /**
@@ -129,6 +130,15 @@ const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     dataType: "integer",
     minValue: 0,
     maxValue: 9_999_999,
+    acceptsNegative: false,
+  },
+  [MetricKey.HOMESCOUT_PRICE_DROPS_7D]: {
+    key: MetricKey.HOMESCOUT_PRICE_DROPS_7D,
+    description:
+      "Count of active HomeScout listings in county with a price drop event in the last 7 days",
+    dataType: "integer",
+    minValue: 0,
+    maxValue: 999_999_999,
     acceptsNegative: false,
   },
 };

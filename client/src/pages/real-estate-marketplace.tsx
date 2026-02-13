@@ -16,6 +16,8 @@ import {
 import { RealEstateMarketplaceShell } from "@/shells/RealEstateMarketplaceShell";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 
 type HomeScoutListing = {
   id: string;
@@ -52,11 +54,16 @@ function safePhotos(input: unknown): string[] {
 const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   const ctx = useLocationContext();
   const allowBypass = hasCountyContext(ctx);
+  const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [propertyType, setPropertyType] = useState<string>("all");
   const [bedrooms, setBedrooms] = useState<string>("all");
+  const [bathrooms, setBathrooms] = useState<string>("all");
   const [priceRange, setPriceRange] = useState<string>("all");
+  const [maxDom, setMaxDom] = useState<string>("all");
+  const [sqftMin, setSqftMin] = useState<string>("all");
+  const [priceDropsOnly, setPriceDropsOnly] = useState(false);
 
   const resolvedCountyFips = typeof ctx.countyFips === "string" ? ctx.countyFips : undefined;
   const resolvedStateCode = typeof ctx.stateCode === "string" ? ctx.stateCode : undefined;
@@ -82,6 +89,24 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
     return Number.isFinite(n) ? n : undefined;
   }, [bedrooms]);
 
+  const bathsMin = useMemo(() => {
+    if (bathrooms === "all") return undefined;
+    const n = Number(bathrooms);
+    return Number.isFinite(n) ? n : undefined;
+  }, [bathrooms]);
+
+  const domMaxDays = useMemo(() => {
+    if (maxDom === "all") return undefined;
+    const n = Number(maxDom);
+    return Number.isFinite(n) ? n : undefined;
+  }, [maxDom]);
+
+  const sqftMinValue = useMemo(() => {
+    if (sqftMin === "all") return undefined;
+    const n = Number(sqftMin);
+    return Number.isFinite(n) ? n : undefined;
+  }, [sqftMin]);
+
   const queryKey = useMemo(
     () => [
       "/api/homescout/search",
@@ -90,10 +115,26 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
       searchQuery.trim(),
       propertyType,
       String(bedsMin ?? ""),
+      String(bathsMin ?? ""),
       String(minPrice ?? ""),
       String(maxPrice ?? ""),
+      String(domMaxDays ?? ""),
+      String(sqftMinValue ?? ""),
+      priceDropsOnly ? "1" : "0",
     ],
-    [resolvedCountyFips, resolvedStateCode, searchQuery, propertyType, bedsMin, minPrice, maxPrice]
+    [
+      resolvedCountyFips,
+      resolvedStateCode,
+      searchQuery,
+      propertyType,
+      bedsMin,
+      bathsMin,
+      minPrice,
+      maxPrice,
+      domMaxDays,
+      sqftMinValue,
+      priceDropsOnly,
+    ]
   );
 
   const {
@@ -110,8 +151,12 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
       if (q) sp.set("query", q);
       if (propertyType !== "all") sp.set("propertyType", propertyType);
       if (bedsMin != null) sp.set("bedsMin", String(bedsMin));
+      if (bathsMin != null) sp.set("bathsMin", String(bathsMin));
       if (minPrice != null) sp.set("minPrice", String(minPrice));
       if (maxPrice != null) sp.set("maxPrice", String(maxPrice));
+      if (domMaxDays != null) sp.set("maxDomDays", String(domMaxDays));
+      if (sqftMinValue != null) sp.set("sqftMin", String(sqftMinValue));
+      if (priceDropsOnly) sp.set("priceDropsOnly", "true");
       sp.set("sortBy", "newest");
       sp.set("limit", "50");
       sp.set("offset", "0");
@@ -127,6 +172,53 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
       return res.json();
     },
     enabled: Boolean(resolvedCountyFips && resolvedStateCode),
+  });
+
+  const saveSearchMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        searchType: "homescout",
+        searchQuery: searchQuery.trim() || null,
+        filters: {
+          countyFips: resolvedCountyFips,
+          stateCode: resolvedStateCode,
+          query: searchQuery.trim() || undefined,
+          propertyType: propertyType !== "all" ? propertyType : undefined,
+          bedsMin: bedsMin ?? undefined,
+          bathsMin: bathsMin ?? undefined,
+          minPrice: minPrice ?? undefined,
+          maxPrice: maxPrice ?? undefined,
+          maxDomDays: domMaxDays ?? undefined,
+          sqftMin: sqftMinValue ?? undefined,
+          priceDropsOnly,
+        },
+        alertsEnabled: true,
+      };
+      const res = await fetch("/api/saved-searches", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Failed to save search");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Saved",
+        description: "HomeScout alerts are enabled for this search.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Save failed",
+        description: err?.message || "Could not save search",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -154,6 +246,13 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   List a home
                 </Button>
               </Link>
+              <Button
+                variant="secondary"
+                onClick={() => saveSearchMutation.mutate()}
+                disabled={saveSearchMutation.isPending}
+              >
+                Save search
+              </Button>
             </div>
           </div>
 
@@ -210,6 +309,54 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                     <SelectItem value="4">4+ Bedrooms</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Select value={bathrooms} onValueChange={setBathrooms}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="Bathrooms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Baths</SelectItem>
+                    <SelectItem value="1">1+ Baths</SelectItem>
+                    <SelectItem value="1.5">1.5+ Baths</SelectItem>
+                    <SelectItem value="2">2+ Baths</SelectItem>
+                    <SelectItem value="3">3+ Baths</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={maxDom} onValueChange={setMaxDom}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="Days on market" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any DOM</SelectItem>
+                    <SelectItem value="7">7 days</SelectItem>
+                    <SelectItem value="14">14 days</SelectItem>
+                    <SelectItem value="30">30 days</SelectItem>
+                    <SelectItem value="90">90 days</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sqftMin} onValueChange={setSqftMin}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="Min sqft" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any sqft</SelectItem>
+                    <SelectItem value="800">800+</SelectItem>
+                    <SelectItem value="1200">1200+</SelectItem>
+                    <SelectItem value="1600">1600+</SelectItem>
+                    <SelectItem value="2000">2000+</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  type="button"
+                  variant={priceDropsOnly ? "default" : "secondary"}
+                  className="shrink-0"
+                  onClick={() => setPriceDropsOnly((v) => !v)}
+                >
+                  Price drops
+                </Button>
               </div>
 
               <div className="flex items-center gap-2">

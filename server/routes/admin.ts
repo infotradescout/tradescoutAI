@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { isAuthenticated, isSuperAdmin, requireAdmin, isAdmin } from "../auth";
 import { storage } from "../storage";
+import { withAdvisoryLock } from "../utils/advisoryLocks";
+import { runHomeScoutIngestionJob } from "../services/homeScoutIngestionJob";
 import { db } from "../db";
 import {
   affiliateAccounts,
@@ -1426,6 +1428,152 @@ export function mountAdminRoutes(app: any) {
       } catch (error: any) {
         console.error("Error closing HomeScout report:", error);
         res.status(500).json({ message: "Failed to close HomeScout report" });
+      }
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // HomeScout ingestion sources (admin-only)
+  // ---------------------------------------------------------------------------
+
+  app.get(
+    "/api/admin/homescout/sources",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const enabledRaw = (req.query as any)?.enabled;
+        const enabled = enabledRaw === "true" ? true : enabledRaw === "false" ? false : undefined;
+        const limitRaw = (req.query as any)?.limit;
+        const offsetRaw = (req.query as any)?.offset;
+
+        const rows = await storage.listHomeScoutSources({
+          enabled,
+          limit: limitRaw != null ? Number(limitRaw) : 50,
+          offset: offsetRaw != null ? Number(offsetRaw) : 0,
+        });
+
+        res.json(rows);
+      } catch (error: any) {
+        console.error("Error fetching HomeScout sources (admin):", error);
+        res.status(500).json({ message: "Failed to fetch HomeScout sources" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/homescout/sources",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const body: any = req.body ?? {};
+        const sourceKey = typeof body.sourceKey === "string" ? body.sourceKey.trim() : "";
+        const sourceType = typeof body.sourceType === "string" ? body.sourceType.trim() : "";
+        const enabled = body.enabled == null ? true : Boolean(body.enabled);
+        const config = body.config && typeof body.config === "object" ? body.config : {};
+
+        if (!sourceKey || sourceKey.length < 2 || sourceKey.length > 64) {
+          return res.status(400).json({ message: "sourceKey (2-64 chars) required" });
+        }
+        if (!sourceType || sourceType.length < 2 || sourceType.length > 32) {
+          return res.status(400).json({ message: "sourceType (2-32 chars) required" });
+        }
+
+        const existing = await storage.getHomeScoutSourceByKey(sourceKey);
+        if (existing) {
+          return res.status(409).json({ message: "sourceKey already exists" });
+        }
+
+        const created = await storage.createHomeScoutSource({
+          sourceKey,
+          sourceType: sourceType as any,
+          enabled,
+          config,
+          lastRunAt: null,
+          lastSuccessAt: null,
+          lastError: null,
+        } as any);
+
+        res.status(201).json(created);
+      } catch (error: any) {
+        console.error("Error creating HomeScout source (admin):", error);
+        res.status(500).json({ message: "Failed to create HomeScout source" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/admin/homescout/sources/:id",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const sourceId = String(req.params.id || "");
+        if (!sourceId) return res.status(400).json({ message: "sourceId required" });
+
+        const source = await storage.getHomeScoutSourceById(sourceId);
+        if (!source) return res.status(404).json({ message: "Source not found" });
+
+        const body: any = req.body ?? {};
+        const updates: any = {};
+        if (typeof body.enabled === "boolean") updates.enabled = body.enabled;
+        if (body.config && typeof body.config === "object") updates.config = body.config;
+        if (typeof body.sourceType === "string" && body.sourceType.trim()) {
+          updates.sourceType = body.sourceType.trim();
+        }
+
+        const updated = await storage.updateHomeScoutSource(sourceId, updates);
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error updating HomeScout source (admin):", error);
+        res.status(500).json({ message: "Failed to update HomeScout source" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/homescout/sources/:id/runs",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const sourceId = String(req.params.id || "");
+        if (!sourceId) return res.status(400).json({ message: "sourceId required" });
+        const limitRaw = (req.query as any)?.limit;
+        const offsetRaw = (req.query as any)?.offset;
+        const rows = await storage.listHomeScoutIngestRuns({
+          sourceId,
+          limit: limitRaw != null ? Number(limitRaw) : 50,
+          offset: offsetRaw != null ? Number(offsetRaw) : 0,
+        });
+        res.json(rows);
+      } catch (error: any) {
+        console.error("Error fetching HomeScout ingest runs (admin):", error);
+        res.status(500).json({ message: "Failed to fetch ingest runs" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/homescout/sources/:id/run",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const sourceId = String(req.params.id || "");
+        if (!sourceId) return res.status(400).json({ message: "sourceId required" });
+
+        const ran = await withAdvisoryLock("job:homescout_ingestion", async () =>
+          runHomeScoutIngestionJob({ sourceId })
+        );
+        if (ran === null) {
+          return res.status(409).json({ message: "Ingestion already running" });
+        }
+        res.json(ran);
+      } catch (error: any) {
+        console.error("Error running HomeScout ingestion (admin):", error);
+        res.status(500).json({ message: "Failed to run ingestion" });
       }
     }
   );

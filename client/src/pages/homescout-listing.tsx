@@ -37,9 +37,44 @@ type HomeScoutListing = {
   contactUserId?: string | null;
   sellerUserId?: string | null;
   agentUserId?: string | null;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
 };
 
-type ListingResponse = { listing: HomeScoutListing; contactUserId: string | null };
+type HomeScoutListingEvent = {
+  id: string;
+  eventType: string;
+  observedAt: string;
+  payload: any;
+};
+
+type HomeScoutMarketBucket = {
+  countyFips: string;
+  stateCode: string;
+  propertyType: string;
+  bedsBucket?: number | null;
+  activeCount: number;
+  medianPrice?: string | number | null;
+  medianPricePerSqft?: string | number | null;
+  medianDomDays?: number | null;
+  priceDropCount7d?: number | null;
+  computedAt?: string | null;
+};
+
+type CountyMetric = {
+  countyFips: string;
+  metricKey: string;
+  metricValue: string | number;
+  updatedAt?: string | null;
+};
+
+type ListingResponse = {
+  listing: HomeScoutListing;
+  contactUserId: string | null;
+  events: HomeScoutListingEvent[];
+  marketBucket: HomeScoutMarketBucket | null;
+  countyMetrics: CountyMetric[];
+};
 
 function formatCurrency(value: string | number) {
   const num = typeof value === "number" ? value : Number(String(value || 0));
@@ -80,6 +115,9 @@ export default function HomeScoutListingPage() {
 
   const listing = data?.listing ?? null;
   const contactUserId = data?.contactUserId ?? null;
+  const events = Array.isArray(data?.events) ? data!.events : [];
+  const marketBucket = data?.marketBucket ?? null;
+  const countyMetrics = Array.isArray(data?.countyMetrics) ? data!.countyMetrics : [];
 
   const { data: contactPublicProfile } = useQuery<any>({
     queryKey: ["/api/users/public", contactUserId],
@@ -99,6 +137,28 @@ export default function HomeScoutListingPage() {
     const photos = safePhotos(listing?.photos);
     return photos.length > 0 ? photos[0] : null;
   }, [listing?.photos]);
+
+  const priceEvents = useMemo(() => {
+    return events
+      .filter((e) => String(e.eventType) === "price_changed")
+      .sort((a, b) => +new Date(b.observedAt) - +new Date(a.observedAt))
+      .slice(0, 20);
+  }, [events]);
+
+  const statusEvents = useMemo(() => {
+    return events
+      .filter((e) => String(e.eventType) === "status_changed" || String(e.eventType) === "created")
+      .sort((a, b) => +new Date(b.observedAt) - +new Date(a.observedAt))
+      .slice(0, 20);
+  }, [events]);
+
+  const metricMap = useMemo(() => {
+    const m = new Map<string, string | number>();
+    for (const cm of countyMetrics) {
+      if (cm?.metricKey) m.set(String(cm.metricKey), cm.metricValue);
+    }
+    return m;
+  }, [countyMetrics]);
 
   if (!match) return null;
   if (isLoading) return <PageLoadingSpinner message="Loading HomeScout listing..." />;
@@ -130,6 +190,12 @@ export default function HomeScoutListingPage() {
 
   const statusLabel = String(listing.status || "active").replace(/_/g, " ");
   const locationLabel = [listing.city, listing.stateCode].filter(Boolean).join(", ");
+  const coordsLabel = (() => {
+    const lat = listing.latitude != null ? Number(listing.latitude) : NaN;
+    const lng = listing.longitude != null ? Number(listing.longitude) : NaN;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  })();
 
   const canContact = Boolean(contactUserId);
   const targetName =
@@ -192,6 +258,31 @@ export default function HomeScoutListingPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card className="bg-slate-950/60 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-slate-100">Price history</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-slate-300">
+              {priceEvents.length === 0 ? (
+                <div className="text-xs text-slate-400">No recorded price changes yet.</div>
+              ) : (
+                priceEvents.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-3">
+                    <div className="text-slate-200">
+                      {formatCurrency((e.payload as any)?.from ?? 0)} →{" "}
+                      <span className="font-semibold">
+                        {formatCurrency((e.payload as any)?.to ?? 0)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 whitespace-nowrap">
+                      {new Date(e.observedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="lg:col-span-2 space-y-4">
@@ -232,6 +323,106 @@ export default function HomeScoutListingPage() {
                   <span className="text-slate-400">Year built</span>
                   <span className="font-medium text-slate-100">{listing.yearBuilt}</span>
                 </div>
+              )}
+              {listing.lotSqft != null && (
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-slate-400">Lot</span>
+                  <span className="font-medium text-slate-100">{listing.lotSqft} sqft</span>
+                </div>
+              )}
+              {coordsLabel ? (
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-slate-400">Coords</span>
+                  <span className="font-medium text-slate-100">{coordsLabel}</span>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-950/60 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-slate-100">County context</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-slate-300">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Active listings</span>
+                <span className="font-medium text-slate-100">
+                  {String(metricMap.get("homescout_active_listings") ?? "—")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Median price</span>
+                <span className="font-medium text-slate-100">
+                  {metricMap.has("homescout_median_price")
+                    ? formatCurrency(metricMap.get("homescout_median_price") as any)
+                    : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Median DOM</span>
+                <span className="font-medium text-slate-100">
+                  {String(metricMap.get("homescout_median_dom_days") ?? "—")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Price drops (7d)</span>
+                <span className="font-medium text-slate-100">
+                  {String(metricMap.get("homescout_price_drops_7d") ?? "—")}
+                </span>
+              </div>
+
+              {marketBucket ? (
+                <div className="pt-3 border-t border-slate-800 space-y-2">
+                  <div className="text-xs text-slate-400">Similar homes snapshot</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Count</span>
+                    <span className="font-medium text-slate-100">
+                      {marketBucket.activeCount ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Median price</span>
+                    <span className="font-medium text-slate-100">
+                      {marketBucket.medianPrice != null
+                        ? formatCurrency(marketBucket.medianPrice as any)
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Median $/sqft</span>
+                    <span className="font-medium text-slate-100">
+                      {marketBucket.medianPricePerSqft != null
+                        ? `$${Math.round(Number(marketBucket.medianPricePerSqft))}`
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-950/60 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-slate-100">Status timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-slate-300">
+              {statusEvents.length === 0 ? (
+                <div className="text-xs text-slate-400">No recorded status timeline yet.</div>
+              ) : (
+                statusEvents.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-3">
+                    <div className="text-slate-200">
+                      {String((e.payload as any)?.from ?? "").trim()
+                        ? `${String((e.payload as any)?.from).replace(/_/g, " ")} → ${String(
+                            (e.payload as any)?.to ?? ""
+                          ).replace(/_/g, " ")}`
+                        : String((e.payload as any)?.status ?? listing.status).replace(/_/g, " ")}
+                    </div>
+                    <div className="text-xs text-slate-500 whitespace-nowrap">
+                      {new Date(e.observedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
