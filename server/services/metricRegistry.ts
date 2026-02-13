@@ -29,6 +29,8 @@ export enum MetricKey {
 
   // HomeScout aggregates
   HOMESCOUT_ACTIVE_LISTINGS = "homescout_active_listings",
+  HOMESCOUT_MEDIAN_PRICE = "homescout_median_price",
+  HOMESCOUT_MEDIAN_DOM_DAYS = "homescout_median_dom_days",
 }
 
 /**
@@ -109,6 +111,24 @@ const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     dataType: "integer",
     minValue: 0,
     maxValue: 999_999_999,
+    acceptsNegative: false,
+  },
+  [MetricKey.HOMESCOUT_MEDIAN_PRICE]: {
+    key: MetricKey.HOMESCOUT_MEDIAN_PRICE,
+    description:
+      "Median list price (USD, rounded to whole dollars) for active HomeScout listings in county",
+    dataType: "integer",
+    minValue: 0,
+    maxValue: 9_999_999_999,
+    acceptsNegative: false,
+  },
+  [MetricKey.HOMESCOUT_MEDIAN_DOM_DAYS]: {
+    key: MetricKey.HOMESCOUT_MEDIAN_DOM_DAYS,
+    description:
+      "Median days on market (days since listed_at) for active HomeScout listings in county",
+    dataType: "integer",
+    minValue: 0,
+    maxValue: 9_999_999,
     acceptsNegative: false,
   },
 };

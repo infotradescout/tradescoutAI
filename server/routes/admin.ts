@@ -1373,4 +1373,60 @@ export function mountAdminRoutes(app: any) {
       }
     }
   );
+
+  // ---------------------------------------------------------------------------
+  // HomeScout listing reports (admin-only)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/homescout/reports",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const status =
+          typeof (req.query as any)?.status === "string"
+            ? String((req.query as any).status)
+            : "open";
+        const limitRaw = (req.query as any)?.limit;
+        const offsetRaw = (req.query as any)?.offset;
+
+        const rows = await storage.listHomeScoutListingReports({
+          status: status === "closed" ? "closed" : "open",
+          limit: limitRaw != null ? Number(limitRaw) : 50,
+          offset: offsetRaw != null ? Number(offsetRaw) : 0,
+        });
+
+        res.json(rows);
+      } catch (error: any) {
+        console.error("Error fetching HomeScout reports (admin):", error);
+        res.status(500).json({ message: "Failed to fetch HomeScout reports" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/homescout/reports/:id/close",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub || null;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const reportId = String(req.params.id || "");
+        if (!reportId) return res.status(400).json({ message: "reportId required" });
+
+        const updated = await storage.closeHomeScoutListingReport({
+          reportId,
+          closedByUserId: String(userId),
+        });
+
+        if (!updated) return res.status(404).json({ message: "Report not found" });
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error closing HomeScout report:", error);
+        res.status(500).json({ message: "Failed to close HomeScout report" });
+      }
+    }
+  );
 }

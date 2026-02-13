@@ -84,8 +84,11 @@ import {
   marketplaceConversations,
   marketplaceMessages,
   homeScoutListings,
+  homeScoutListingReports,
   type HomeScoutListing,
   type InsertHomeScoutListing,
+  type HomeScoutListingReport,
+  type InsertHomeScoutListingReport,
   // Foundation system
   foundationCauses,
   foundationDonations,
@@ -4851,6 +4854,50 @@ export class DatabaseStorage implements IStorage {
         listedAt: sql`coalesce(${homeScoutListings.listedAt}, now())` as any,
       })
       .where(eq(homeScoutListings.id, params.listingId))
+      .returning();
+    return row;
+  }
+
+  async createHomeScoutListingReport(
+    input: Omit<InsertHomeScoutListingReport, "id" | "createdAt">
+  ): Promise<HomeScoutListingReport> {
+    const [row] = await db
+      .insert(homeScoutListingReports)
+      .values({ ...input, createdAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async listHomeScoutListingReports(params?: {
+    status?: "open" | "closed";
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutListingReport[]> {
+    const status = (params?.status ?? "open") as any;
+    const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
+    const offset = Math.max(0, Number(params?.offset ?? 0));
+
+    return await db
+      .select()
+      .from(homeScoutListingReports)
+      .where(eq(homeScoutListingReports.status, status))
+      .orderBy(desc(homeScoutListingReports.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async closeHomeScoutListingReport(params: {
+    reportId: string;
+    closedByUserId: string;
+  }): Promise<HomeScoutListingReport | undefined> {
+    const [row] = await db
+      .update(homeScoutListingReports)
+      .set({
+        status: "closed" as any,
+        closedAt: new Date(),
+        closedByUserId: params.closedByUserId,
+      } as any)
+      .where(eq(homeScoutListingReports.id, params.reportId))
       .returning();
     return row;
   }

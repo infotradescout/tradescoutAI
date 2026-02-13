@@ -3885,23 +3885,23 @@ export const marketplaceListings = pgTable("marketplace_listings", {
 // HomeScout (Real Estate Portal)
 // -----------------------------------------------------------------------------
 
-export const homeScoutListingStatusEnum = pgEnum("home_scout_listing_status", [
+export const HOME_SCOUT_LISTING_STATUSES = [
   "pending_review",
   "active",
   "sold",
   "rented",
   "removed",
   "inactive",
-]);
+] as const;
 
-export const homeScoutPropertyTypeEnum = pgEnum("home_scout_property_type", [
+export const HOME_SCOUT_PROPERTY_TYPES = [
   "house",
   "condo",
   "townhouse",
   "land",
   "commercial",
   "multifamily",
-]);
+] as const;
 
 export const homeScoutListings = pgTable(
   "home_scout_listings",
@@ -3914,7 +3914,9 @@ export const homeScoutListings = pgTable(
     sourceListingId: varchar("source_listing_id", { length: 128 }),
     dedupeKey: varchar("dedupe_key", { length: 160 }),
 
-    status: homeScoutListingStatusEnum("status").notNull().default("pending_review"),
+    status: varchar("status", { length: 32, enum: [...HOME_SCOUT_LISTING_STATUSES] })
+      .notNull()
+      .default("pending_review"),
     approvedAt: timestamp("approved_at"),
     approvedByUserId: varchar("approved_by_user_id").references(() => users.id, {
       onDelete: "set null",
@@ -3929,7 +3931,12 @@ export const homeScoutListings = pgTable(
     listedAt: timestamp("listed_at"),
     offMarketAt: timestamp("off_market_at"),
 
-    propertyType: homeScoutPropertyTypeEnum("property_type").notNull().default("house"),
+    propertyType: varchar("property_type", {
+      length: 32,
+      enum: [...HOME_SCOUT_PROPERTY_TYPES],
+    })
+      .notNull()
+      .default("house"),
     beds: integer("beds"),
     baths: numeric("baths", { precision: 4, scale: 1 }),
     sqft: integer("sqft"),
@@ -3972,6 +3979,45 @@ export const homeScoutListings = pgTable(
 
 export type HomeScoutListing = typeof homeScoutListings.$inferSelect;
 export type InsertHomeScoutListing = typeof homeScoutListings.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// HomeScout abuse handling (reports)
+// ---------------------------------------------------------------------------
+
+export const homeScoutListingReports = pgTable(
+  "home_scout_listing_reports",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    listingId: varchar("listing_id")
+      .notNull()
+      .references(() => homeScoutListings.id, { onDelete: "cascade" }),
+
+    reporterUserId: varchar("reporter_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reason: varchar("reason", { length: 64 }).notNull(),
+    message: text("message"),
+    status: varchar("status", { length: 16, enum: ["open", "closed"] })
+      .notNull()
+      .default("open"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+
+    closedAt: timestamp("closed_at"),
+    closedByUserId: varchar("closed_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    index("idx_homescout_reports_listing").on(table.listingId),
+    index("idx_homescout_reports_status_created").on(table.status, table.createdAt),
+  ]
+);
+
+export type HomeScoutListingReport = typeof homeScoutListingReports.$inferSelect;
+export type InsertHomeScoutListingReport = typeof homeScoutListingReports.$inferInsert;
 
 export const marketplaceInquiries = pgTable("marketplace_inquiries", {
   id: varchar("id")

@@ -6,6 +6,7 @@ import { runAffiliatesAggregationJob } from "./affiliatesAggregationJob";
 import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
 import { runTrustSnapshotsJob } from "./trustSnapshotsJob";
 import { runHomeScoutAggregationJob } from "./homeScoutAggregationJob";
+import { runHomeScoutMarketMetricsJob } from "./homeScoutMarketMetricsJob";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 
@@ -22,6 +23,7 @@ let affiliatesAggregationTask: any = null;
 let tradeDealsAggregationTask: any = null;
 let trustSnapshotsTask: any = null;
 let homeScoutAggregationTask: any = null;
+let homeScoutMarketMetricsTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -40,6 +42,7 @@ export function startCrawlerScheduler() {
   startAffiliatesAggregationScheduler();
   startTradeDealsAggregationScheduler();
   startHomeScoutAggregationScheduler();
+  startHomeScoutMarketMetricsScheduler();
   startTrustSnapshotsScheduler();
 }
 
@@ -223,6 +226,47 @@ function startHomeScoutAggregationScheduler() {
 }
 
 /**
+ * Start nightly HomeScout market metrics job
+ * Runs daily at 2 AM UTC by default (same window as other jobs)
+ */
+function startHomeScoutMarketMetricsScheduler() {
+  if (process.env.DISABLE_HOMESCOUT_MARKET_METRICS === "true") {
+    console.log(
+      "HomeScout market metrics job disabled via DISABLE_HOMESCOUT_MARKET_METRICS env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.HOMESCOUT_MARKET_METRICS_SCHEDULE || "0 2 * * *";
+  console.log(`\n📈 Starting HomeScout market metrics scheduler with schedule: "${schedule}"`);
+
+  homeScoutMarketMetricsTask = cron.schedule(schedule, async () => {
+    const jobName = "homescout_market_metrics";
+    console.log(
+      `\n📈 [${new Date().toISOString()}] Running nightly HomeScout market metrics job...`
+    );
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runHomeScoutMarketMetricsJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("✅ HomeScout market metrics job completed", result);
+      emitJobEnd(jobName, (result as any).metricsWritten || 0, false);
+    } catch (error) {
+      console.error("❌ HomeScout market metrics job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ HomeScout market metrics scheduler started\n");
+}
+
+/**
  * Start nightly trust snapshot job
  * Runs daily at 2 AM UTC by default (same window as other jobs)
  */
@@ -302,6 +346,13 @@ export function stopCrawlerScheduler() {
     homeScoutAggregationTask.destroy();
     homeScoutAggregationTask = null;
     console.log("🛑 HomeScout aggregation scheduler stopped");
+  }
+
+  if (homeScoutMarketMetricsTask) {
+    homeScoutMarketMetricsTask.stop();
+    homeScoutMarketMetricsTask.destroy();
+    homeScoutMarketMetricsTask = null;
+    console.log("🛑 HomeScout market metrics scheduler stopped");
   }
 }
 

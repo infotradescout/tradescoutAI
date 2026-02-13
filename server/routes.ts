@@ -14869,6 +14869,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // HomeScout (Real Estate Portal)
   // ---------------------------------------------------------------------------
 
+  const homeScoutReportLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000,
+        max: 6,
+        message: "Too many HomeScout reports, please slow down",
+        store: limiterStore("homescout_report"),
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    : (req: any, _res: any, next: any) => next();
+
   app.get("/api/homescout/search", homeScoutSearchLimiter, async (req: any, res: any) => {
     try {
       const {
@@ -14952,6 +14963,50 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       res.status(500).json({ message: "Failed to fetch HomeScout listing" });
     }
   });
+
+  app.post(
+    "/api/homescout/listings/:id/report",
+    isAuthenticated,
+    homeScoutReportLimiter,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const listingId = String(req.params.id || "");
+        if (!listingId) return res.status(400).json({ message: "Listing id required" });
+
+        const listing = await storage.getHomeScoutListing(listingId);
+        if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+        const body = req.body ?? {};
+        const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+        const message = typeof body.message === "string" ? body.message.trim() : "";
+
+        if (!reason || reason.length < 3 || reason.length > 64) {
+          return res.status(400).json({ message: "reason (3-64 chars) required" });
+        }
+        if (message && message.length > 2000) {
+          return res.status(400).json({ message: "message too long" });
+        }
+
+        const report = await storage.createHomeScoutListingReport({
+          listingId,
+          reporterUserId: String(userId),
+          reason,
+          message: message || null,
+          status: "open" as any,
+          closedAt: null,
+          closedByUserId: null,
+        } as any);
+
+        res.status(201).json({ id: report.id });
+      } catch (error: any) {
+        console.error("Error reporting HomeScout listing:", error);
+        res.status(500).json({ message: "Failed to report listing" });
+      }
+    }
+  );
 
   app.get(
     "/api/homescout/my-listings",
