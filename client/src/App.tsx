@@ -174,6 +174,8 @@ const Exchange = React.lazy(() => import("./pages/exchange"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
 const Foundation = React.lazy(() => import("./pages/foundation"));
+const PropertyListing = React.lazy(() => import("./pages/property-listing"));
+const HomeScoutListing = React.lazy(() => import("./pages/homescout-listing"));
 const Accounting = React.lazy(() => import("./pages/accounting"));
 const FinancesInvoices = React.lazy(() => import("./pages/finances-invoices"));
 const FinancesExpenses = React.lazy(() => import("./pages/finances-expenses"));
@@ -721,6 +723,14 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/real-estate-marketplace">
                     <LazyPage Component={RealEstateMarketplace} />
+                  </Route>
+                  <Route path="/homescout/listings/:id">
+                    <LazyPage Component={HomeScoutListing} />
+                  </Route>
+                  <Route path="/property-listing">
+                    <ProtectedRoute>
+                      <LazyPage Component={PropertyListing} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/handmade-marketplace">
                     <LazyPage Component={HandmadeMarketplace} />

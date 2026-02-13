@@ -5,6 +5,7 @@ import { runUsersAggregationJob } from "./usersAggregationJob";
 import { runAffiliatesAggregationJob } from "./affiliatesAggregationJob";
 import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
 import { runTrustSnapshotsJob } from "./trustSnapshotsJob";
+import { runHomeScoutAggregationJob } from "./homeScoutAggregationJob";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 
@@ -20,6 +21,7 @@ let usersAggregationTask: any = null;
 let affiliatesAggregationTask: any = null;
 let tradeDealsAggregationTask: any = null;
 let trustSnapshotsTask: any = null;
+let homeScoutAggregationTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -37,6 +39,7 @@ export function startCrawlerScheduler() {
   startUsersAggregationScheduler();
   startAffiliatesAggregationScheduler();
   startTradeDealsAggregationScheduler();
+  startHomeScoutAggregationScheduler();
   startTrustSnapshotsScheduler();
 }
 
@@ -183,6 +186,43 @@ function startTradeDealsAggregationScheduler() {
 }
 
 /**
+ * Start nightly HomeScout aggregation job
+ * Runs daily at 2 AM UTC by default (same window as other jobs)
+ */
+function startHomeScoutAggregationScheduler() {
+  if (process.env.DISABLE_HOMESCOUT_AGGREGATION === "true") {
+    console.log("HomeScout aggregation job disabled via DISABLE_HOMESCOUT_AGGREGATION env flag");
+    return;
+  }
+
+  const schedule = process.env.HOMESCOUT_AGGREGATION_SCHEDULE || "0 2 * * *";
+  console.log(`\n📊 Starting HomeScout aggregation scheduler with schedule: "${schedule}"`);
+
+  homeScoutAggregationTask = cron.schedule(schedule, async () => {
+    const jobName = "homescout_aggregation";
+    console.log(`\n📊 [${new Date().toISOString()}] Running nightly HomeScout aggregation job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runHomeScoutAggregationJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("✅ HomeScout aggregation job completed", result);
+      emitJobEnd(jobName, (result as any).metricsWritten || 0, false);
+    } catch (error) {
+      console.error("❌ HomeScout aggregation job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ HomeScout aggregation scheduler started\n");
+}
+
+/**
  * Start nightly trust snapshot job
  * Runs daily at 2 AM UTC by default (same window as other jobs)
  */
@@ -255,6 +295,13 @@ export function stopCrawlerScheduler() {
     trustSnapshotsTask.destroy();
     trustSnapshotsTask = null;
     console.log("🛑 Trust snapshots scheduler stopped");
+  }
+
+  if (homeScoutAggregationTask) {
+    homeScoutAggregationTask.stop();
+    homeScoutAggregationTask.destroy();
+    homeScoutAggregationTask = null;
+    console.log("🛑 HomeScout aggregation scheduler stopped");
   }
 }
 

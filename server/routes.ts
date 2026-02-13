@@ -691,6 +691,18 @@ export async function registerRoutes(app: any) {
       })
     : noopRateLimiter;
 
+  const homeScoutSearchLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 60,
+        message: "Too many HomeScout searches, please slow down",
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: rateLimitKey,
+        store: limiterStore("homescout_search"),
+      })
+    : noopRateLimiter;
+
   const parseOptionalIsoDate = (value?: string): Date | undefined => {
     if (!value) return undefined;
     const d = new Date(value);
@@ -14852,6 +14864,201 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       res.status(500).json({ message: "Failed to perform search" });
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // HomeScout (Real Estate Portal)
+  // ---------------------------------------------------------------------------
+
+  app.get("/api/homescout/search", homeScoutSearchLimiter, async (req: any, res: any) => {
+    try {
+      const {
+        query,
+        countyFips,
+        stateCode,
+        propertyType,
+        bedsMin,
+        bathsMin,
+        minPrice,
+        maxPrice,
+        sortBy = "newest",
+        limit = 20,
+        offset = 0,
+      } = req.query ?? {};
+
+      const rows = await storage.searchHomeScoutListings({
+        query: typeof query === "string" ? query : undefined,
+        countyFips: typeof countyFips === "string" ? countyFips : undefined,
+        stateCode: typeof stateCode === "string" ? stateCode : undefined,
+        propertyType: typeof propertyType === "string" ? (propertyType as any) : undefined,
+        bedsMin: bedsMin != null ? Number(bedsMin) : undefined,
+        bathsMin: bathsMin != null ? Number(bathsMin) : undefined,
+        priceMin: minPrice != null ? Number(minPrice) : undefined,
+        priceMax: maxPrice != null ? Number(maxPrice) : undefined,
+        // Search is public-facing; only active inventory is discoverable here.
+        status: "active" as any,
+        sortBy: typeof sortBy === "string" ? (sortBy as any) : "newest",
+        limit: Number(limit),
+        offset: Number(offset),
+      });
+
+      res.json(rows);
+    } catch (error: any) {
+      console.error("Error searching HomeScout listings:", error);
+      res.status(500).json({ message: "Failed to search HomeScout listings" });
+    }
+  });
+
+  app.get("/api/homescout/listings/:id", async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const listing = await storage.getHomeScoutListing(String(id));
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      // Only active listings are public. Pending/removed listings are visible only to:
+      // - the seller/agent/contact user
+      // - admins
+      const status = String((listing as any).status || "active");
+      if (status !== "active") {
+        const viewerId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+        if (!viewerId) {
+          return res.status(404).json({ message: "Listing not found" });
+        }
+
+        const viewer = await storage.getUser(viewerId);
+        const viewerRole = (viewer as any)?.role || "";
+        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+          String(viewerRole)
+        );
+        const isOwner =
+          viewerId === (listing as any).sellerUserId ||
+          viewerId === (listing as any).agentUserId ||
+          viewerId === (listing as any).contactUserId;
+
+        if (!isAdminLike && !isOwner) {
+          return res.status(404).json({ message: "Listing not found" });
+        }
+      }
+      const contactUserId =
+        (listing as any).contactUserId ||
+        (listing as any).agentUserId ||
+        (listing as any).sellerUserId;
+
+      // Do not bypass privacy: consumers may optionally call /api/users/:userId/public.
+      res.json({ listing, contactUserId: contactUserId || null });
+    } catch (error: any) {
+      console.error("Error fetching HomeScout listing:", error);
+      res.status(500).json({ message: "Failed to fetch HomeScout listing" });
+    }
+  });
+
+  app.get(
+    "/api/homescout/my-listings",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const { limit = 50, offset = 0 } = req.query ?? {};
+
+        const rows = await storage.listHomeScoutListingsForSeller({
+          sellerUserId: String(userId),
+          limit: Number(limit),
+          offset: Number(offset),
+        });
+
+        res.json(rows);
+      } catch (error: any) {
+        console.error("Error fetching my HomeScout listings:", error);
+        res.status(500).json({ message: "Failed to fetch listings" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/homescout/listings",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const body = req.body ?? {};
+
+        const countyFips = typeof body.countyFips === "string" ? body.countyFips : "";
+        const stateCode = typeof body.stateCode === "string" ? body.stateCode : "";
+        const title = typeof body.title === "string" ? body.title.trim() : "";
+        const priceRaw = body.price;
+        const price = Number(priceRaw);
+
+        if (!countyFips || !/^[0-9]{5}$/.test(countyFips)) {
+          return res.status(400).json({ message: "countyFips (5 digits) required" });
+        }
+        if (!stateCode || String(stateCode).length !== 2) {
+          return res.status(400).json({ message: "stateCode (2 letters) required" });
+        }
+        if (!title || title.length < 10) {
+          return res.status(400).json({ message: "title must be at least 10 characters" });
+        }
+        if (!Number.isFinite(price) || price <= 0) {
+          return res.status(400).json({ message: "price must be a positive number" });
+        }
+
+        const listing = await storage.createHomeScoutListing({
+          sourceKey: "manual",
+          sourceListingId: null,
+          dedupeKey: null,
+          status: "pending_review" as any,
+          title,
+          description: typeof body.description === "string" ? body.description : null,
+          price: String(price) as any,
+          pricePrevious: null,
+          priceChangedAt: null,
+          listedAt: null,
+          offMarketAt: null,
+          propertyType: (typeof body.propertyType === "string"
+            ? body.propertyType
+            : "house") as any,
+          beds: body.beds != null ? Number(body.beds) : null,
+          baths: body.baths != null ? String(Number(body.baths)) : null,
+          sqft: body.sqft != null ? Number(body.sqft) : null,
+          lotSqft: body.lotSqft != null ? Number(body.lotSqft) : null,
+          yearBuilt: body.yearBuilt != null ? Number(body.yearBuilt) : null,
+          features: Array.isArray(body.features)
+            ? body.features.filter((x: any) => typeof x === "string")
+            : null,
+          countyFips,
+          stateCode,
+          city: typeof body.city === "string" ? body.city : null,
+          zipCode: typeof body.zipCode === "string" ? body.zipCode : null,
+          address1: typeof body.address1 === "string" ? body.address1 : null,
+          address2: typeof body.address2 === "string" ? body.address2 : null,
+          addressVisibility: (body.addressVisibility === "approximate"
+            ? "approximate"
+            : "exact") as any,
+          latitude: body.latitude != null ? String(Number(body.latitude)) : null,
+          longitude: body.longitude != null ? String(Number(body.longitude)) : null,
+          photos: Array.isArray(body.photos)
+            ? body.photos.filter((x: any) => typeof x === "string")
+            : [],
+          sellerUserId: userId,
+          agentUserId: null,
+          contactUserId: userId,
+          approvedAt: null,
+          approvedByUserId: null,
+        } as any);
+
+        res.status(201).json({ id: listing.id });
+      } catch (error: any) {
+        console.error("Error creating HomeScout listing:", error);
+        res.status(500).json({ message: "Failed to create HomeScout listing" });
+      }
+    }
+  );
 
   // Saved searches
   app.post("/api/saved-searches", isAuthenticated, async (req: any, res: any) => {

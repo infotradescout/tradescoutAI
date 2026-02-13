@@ -83,6 +83,9 @@ import {
   platformAnalytics,
   marketplaceConversations,
   marketplaceMessages,
+  homeScoutListings,
+  type HomeScoutListing,
+  type InsertHomeScoutListing,
   // Foundation system
   foundationCauses,
   foundationDonations,
@@ -4622,6 +4625,181 @@ export class DatabaseStorage implements IStorage {
       .from(marketplaceListings)
       .where(eq(marketplaceListings.slug, slug));
     return listing;
+  }
+
+  // ---------------------------------------------------------------------------
+  // HomeScout (Real Estate Portal)
+  // ---------------------------------------------------------------------------
+
+  async getHomeScoutListing(id: string): Promise<HomeScoutListing | undefined> {
+    const [row] = await db.select().from(homeScoutListings).where(eq(homeScoutListings.id, id));
+    return row;
+  }
+
+  async listHomeScoutListings(params?: {
+    status?: HomeScoutListing["status"] | string;
+    countyFips?: string;
+    stateCode?: string;
+    limit?: number;
+    offset?: number;
+    orderBy?: "createdAt" | "listedAt";
+  }): Promise<HomeScoutListing[]> {
+    const status = (params?.status ?? "pending_review") as any;
+    const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
+    const offset = Math.max(0, Number(params?.offset ?? 0));
+    const orderBy = params?.orderBy ?? "createdAt";
+
+    const predicates: (SQL | undefined)[] = [eq(homeScoutListings.status, status)];
+    if (params?.countyFips) {
+      predicates.push(eq(homeScoutListings.countyFips, params.countyFips));
+    }
+    if (params?.stateCode) {
+      predicates.push(eq(homeScoutListings.stateCode, params.stateCode));
+    }
+
+    const whereClause = and(...predicates.filter(Boolean)) as any;
+
+    let q = db
+      .select()
+      .from(homeScoutListings)
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset) as any;
+    if (orderBy === "listedAt") {
+      q = q.orderBy(desc(homeScoutListings.listedAt), desc(homeScoutListings.createdAt)) as any;
+    } else {
+      q = q.orderBy(desc(homeScoutListings.createdAt)) as any;
+    }
+
+    return await q;
+  }
+
+  async listHomeScoutListingsForSeller(params: {
+    sellerUserId: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutListing[]> {
+    const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+
+    return await db
+      .select()
+      .from(homeScoutListings)
+      .where(eq(homeScoutListings.sellerUserId, params.sellerUserId))
+      .orderBy(desc(homeScoutListings.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async searchHomeScoutListings(filters?: {
+    countyFips?: string;
+    stateCode?: string;
+    status?: "pending_review" | "active" | "sold" | "rented" | "removed" | "inactive";
+    propertyType?: "house" | "condo" | "townhouse" | "land" | "commercial" | "multifamily";
+    bedsMin?: number;
+    bathsMin?: number;
+    priceMin?: number;
+    priceMax?: number;
+    query?: string;
+    limit?: number;
+    offset?: number;
+    sortBy?: "newest" | "price_asc" | "price_desc";
+  }): Promise<HomeScoutListing[]> {
+    const offset = Math.max(0, Number(filters?.offset ?? 0) || 0);
+    const limitRequested = Number(filters?.limit ?? 20) || 20;
+    const limit = Math.min(100, Math.max(0, limitRequested));
+    if (limit === 0) return [];
+
+    const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
+
+    const status = filters?.status || "active";
+    const predicates: (SQL | undefined)[] = [eq(homeScoutListings.status, status as any)];
+
+    if (filters?.countyFips) {
+      predicates.push(eq(homeScoutListings.countyFips, filters.countyFips));
+    }
+
+    if (filters?.stateCode) {
+      predicates.push(eq(homeScoutListings.stateCode, filters.stateCode));
+    }
+
+    if (filters?.propertyType) {
+      predicates.push(eq(homeScoutListings.propertyType, filters.propertyType as any));
+    }
+
+    if (Number.isFinite(filters?.bedsMin as any)) {
+      const bedsMin = Number(filters?.bedsMin);
+      predicates.push(gte(homeScoutListings.beds, bedsMin));
+    }
+
+    if (Number.isFinite(filters?.bathsMin as any)) {
+      const bathsMin = Number(filters?.bathsMin);
+      predicates.push(gte(homeScoutListings.baths, String(bathsMin) as any));
+    }
+
+    if (Number.isFinite(filters?.priceMin as any)) {
+      predicates.push(gte(homeScoutListings.price, String(Number(filters?.priceMin)) as any));
+    }
+
+    if (Number.isFinite(filters?.priceMax as any)) {
+      predicates.push(lte(homeScoutListings.price, String(Number(filters?.priceMax)) as any));
+    }
+
+    if (filters?.query && String(filters.query).trim()) {
+      const q = String(filters.query).trim();
+      const pattern = `%${escapeLike(q)}%`;
+      predicates.push(
+        or(ilike(homeScoutListings.title, pattern), ilike(homeScoutListings.city, pattern))
+      );
+    }
+
+    let q = db
+      .select()
+      .from(homeScoutListings)
+      .where(and(...predicates))
+      .limit(limit)
+      .offset(offset);
+
+    switch (filters?.sortBy) {
+      case "price_asc":
+        q = q.orderBy(asc(homeScoutListings.price), desc(homeScoutListings.listedAt)) as any;
+        break;
+      case "price_desc":
+        q = q.orderBy(desc(homeScoutListings.price), desc(homeScoutListings.listedAt)) as any;
+        break;
+      case "newest":
+      default:
+        q = q.orderBy(desc(homeScoutListings.listedAt), desc(homeScoutListings.createdAt)) as any;
+        break;
+    }
+
+    return await q;
+  }
+
+  async createHomeScoutListing(input: InsertHomeScoutListing): Promise<HomeScoutListing> {
+    const [row] = await db
+      .insert(homeScoutListings)
+      .values({ ...input, updatedAt: new Date() })
+      .returning();
+    return row;
+  }
+
+  async approveHomeScoutListing(params: {
+    listingId: string;
+    approvedByUserId: string;
+  }): Promise<HomeScoutListing | undefined> {
+    const [row] = await db
+      .update(homeScoutListings)
+      .set({
+        status: "active" as any,
+        approvedAt: new Date(),
+        approvedByUserId: params.approvedByUserId,
+        updatedAt: new Date(),
+        listedAt: sql`coalesce(${homeScoutListings.listedAt}, now())` as any,
+      })
+      .where(eq(homeScoutListings.id, params.listingId))
+      .returning();
+    return row;
   }
 
   async createMarketplaceListing(

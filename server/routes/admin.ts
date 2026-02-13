@@ -1316,4 +1316,61 @@ export function mountAdminRoutes(app: any) {
       }
     }
   );
+
+  // ---------------------------------------------------------------------------
+  // HomeScout listing moderation (admin-only)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/homescout/listings",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const status =
+          typeof (req.query as any)?.status === "string"
+            ? String((req.query as any).status)
+            : "pending_review";
+        const limitRaw = (req.query as any)?.limit;
+        const offsetRaw = (req.query as any)?.offset;
+
+        const rows = await storage.listHomeScoutListings({
+          status,
+          limit: limitRaw != null ? Number(limitRaw) : 50,
+          offset: offsetRaw != null ? Number(offsetRaw) : 0,
+          orderBy: status === "active" ? "listedAt" : "createdAt",
+        });
+
+        res.json(rows);
+      } catch (error: any) {
+        console.error("Error fetching HomeScout listings (admin):", error);
+        res.status(500).json({ message: "Failed to fetch HomeScout listings" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/homescout/listings/:id/approve",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub || null;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const listingId = String(req.params.id || "");
+        if (!listingId) return res.status(400).json({ message: "listingId required" });
+
+        const updated = await storage.approveHomeScoutListing({
+          listingId,
+          approvedByUserId: String(userId),
+        });
+
+        if (!updated) return res.status(404).json({ message: "Listing not found" });
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error approving HomeScout listing:", error);
+        res.status(500).json({ message: "Failed to approve HomeScout listing" });
+      }
+    }
+  );
 }

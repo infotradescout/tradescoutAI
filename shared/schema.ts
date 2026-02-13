@@ -3881,6 +3881,98 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// -----------------------------------------------------------------------------
+// HomeScout (Real Estate Portal)
+// -----------------------------------------------------------------------------
+
+export const homeScoutListingStatusEnum = pgEnum("home_scout_listing_status", [
+  "pending_review",
+  "active",
+  "sold",
+  "rented",
+  "removed",
+  "inactive",
+]);
+
+export const homeScoutPropertyTypeEnum = pgEnum("home_scout_property_type", [
+  "house",
+  "condo",
+  "townhouse",
+  "land",
+  "commercial",
+  "multifamily",
+]);
+
+export const homeScoutListings = pgTable(
+  "home_scout_listings",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    sourceKey: varchar("source_key", { length: 64 }).notNull().default("manual"),
+    sourceListingId: varchar("source_listing_id", { length: 128 }),
+    dedupeKey: varchar("dedupe_key", { length: 160 }),
+
+    status: homeScoutListingStatusEnum("status").notNull().default("pending_review"),
+    approvedAt: timestamp("approved_at"),
+    approvedByUserId: varchar("approved_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+
+    price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+    pricePrevious: numeric("price_previous", { precision: 12, scale: 2 }),
+    priceChangedAt: timestamp("price_changed_at"),
+    listedAt: timestamp("listed_at"),
+    offMarketAt: timestamp("off_market_at"),
+
+    propertyType: homeScoutPropertyTypeEnum("property_type").notNull().default("house"),
+    beds: integer("beds"),
+    baths: numeric("baths", { precision: 4, scale: 1 }),
+    sqft: integer("sqft"),
+    lotSqft: integer("lot_sqft"),
+    yearBuilt: integer("year_built"),
+    features: jsonb("features").$type<string[]>(),
+
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
+    stateCode: varchar("state_code", { length: 2 })
+      .notNull()
+      .references(() => states.code),
+    city: varchar("city", { length: 100 }),
+    zipCode: varchar("zip_code", { length: 10 }),
+    address1: varchar("address_1", { length: 255 }),
+    address2: varchar("address_2", { length: 255 }),
+    addressVisibility: varchar("address_visibility", { length: 16, enum: ["exact", "approximate"] })
+      .notNull()
+      .default("exact"),
+    latitude: numeric("latitude", { precision: 9, scale: 6 }),
+    longitude: numeric("longitude", { precision: 9, scale: 6 }),
+
+    photos: jsonb("photos").$type<string[]>().notNull().default([]),
+
+    sellerUserId: varchar("seller_user_id").references(() => users.id, { onDelete: "set null" }),
+    agentUserId: varchar("agent_user_id").references(() => users.id, { onDelete: "set null" }),
+    contactUserId: varchar("contact_user_id").references(() => users.id, { onDelete: "set null" }),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_homescout_county_status").on(table.countyFips, table.status),
+    index("idx_homescout_county_price").on(table.countyFips, table.status, table.price),
+    index("idx_homescout_county_listed_at").on(table.countyFips, table.status, table.listedAt),
+    uniqueIndex("uq_homescout_source_listing").on(table.sourceKey, table.sourceListingId),
+  ]
+);
+
+export type HomeScoutListing = typeof homeScoutListings.$inferSelect;
+export type InsertHomeScoutListing = typeof homeScoutListings.$inferInsert;
+
 export const marketplaceInquiries = pgTable("marketplace_inquiries", {
   id: varchar("id")
     .primaryKey()

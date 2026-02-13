@@ -83,7 +83,7 @@ const BUILD_GREEN_CONSTRAINT = `
 export function validatePhase2Constraints(): void {
   console.info("\n[Phase2Validation] Checking Phase 2 constraints...\n");
 
-  // Check 1: Metric registry keys are all registered
+  // Check 1: Metric registry keys include the required core keys
   const keys = getAllRegisteredMetricKeys();
   if (!keys.includes(MetricKey.USERS_TOTAL)) {
     throw new Error("Metric registry missing USERS_TOTAL key");
@@ -97,7 +97,7 @@ export function validatePhase2Constraints(): void {
   if (!keys.includes(MetricKey.HOMEOWNERS_TOTAL)) {
     throw new Error("Metric registry missing HOMEOWNERS_TOTAL key");
   }
-  console.info("✅ Metric registry locked with 4 keys");
+  console.info(`✅ Metric registry loaded (${keys.length} keys registered)`);
 
   // Check 2: geographicDataRouter is exported correctly
   if (typeof writeMetricsBatch !== "function") {
@@ -152,9 +152,7 @@ export async function smokeTestMetricRoundTrip(): Promise<void> {
     }
 
     if (readResult.metricValue !== testValue) {
-      throw new Error(
-        `Value mismatch: wrote ${testValue}, read ${readResult.metricValue}`
-      );
+      throw new Error(`Value mismatch: wrote ${testValue}, read ${readResult.metricValue}`);
     }
 
     console.info(
@@ -198,7 +196,5 @@ export function guardAgainstUnregisteredMetrics(): void {
   // This function just documents the guard
   // The actual guard is in geographicDataRouter.ts:validateMetricWriteRequest()
   // which calls isMetricKeyRegistered()
-  console.info(
-    "[Phase2Validation] Guard: All writes must use registered MetricKey enum"
-  );
+  console.info("[Phase2Validation] Guard: All writes must use registered MetricKey enum");
 }

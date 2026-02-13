@@ -3,7 +3,7 @@
  *
  * This is the single source of truth for metric keys.
  * Only registered metrics can be written to the county_metrics table.
- * 
+ *
  * No UI, no computation - this is purely a registry of facts.
  */
 
@@ -15,17 +15,20 @@ export enum MetricKey {
   // User aggregates (verified counts only)
   USERS_TOTAL = "users_total",
   USERS_VERIFIED = "users_verified",
-  
+
   // Role/type counts (derived from user table claims/roles, not computed)
   CONTRACTORS_TOTAL = "contractors_total",
   HOMEOWNERS_TOTAL = "homeowners_total",
-  
+
   // Affiliate aggregates (Phase 2b)
   AFFILIATES_COUNT = "affiliates_count",
-  
+
   // TradeDeals aggregates (Phase 2b)
   TRADEDEALS_ACTIVE = "tradedeals_active",
   TRADEDEALS_CLAIMED_30D = "tradedeals_claimed_30d",
+
+  // HomeScout aggregates
+  HOMESCOUT_ACTIVE_LISTINGS = "homescout_active_listings",
 }
 
 /**
@@ -100,6 +103,14 @@ const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     maxValue: 999_999_999,
     acceptsNegative: false,
   },
+  [MetricKey.HOMESCOUT_ACTIVE_LISTINGS]: {
+    key: MetricKey.HOMESCOUT_ACTIVE_LISTINGS,
+    description: "Count of active HomeScout listings in county",
+    dataType: "integer",
+    minValue: 0,
+    maxValue: 999_999_999,
+    acceptsNegative: false,
+  },
 };
 
 // ============================================================================
@@ -135,7 +146,7 @@ export function getAllRegisteredMetricKeys(): MetricKey[] {
  * Get all metric definitions
  */
 export function getAllMetricDefinitions(): MetricDefinition[] {
-  return getAllRegisteredMetricKeys().map(key => METRIC_DEFINITIONS[key]);
+  return getAllRegisteredMetricKeys().map((key) => METRIC_DEFINITIONS[key]);
 }
 
 /**
@@ -144,31 +155,23 @@ export function getAllMetricDefinitions(): MetricDefinition[] {
  */
 export function validateMetricValue(key: MetricKey, value: number): void {
   const def = getMetricDefinition(key);
-  
+
   // Type check
   if (def.dataType === "integer" && !Number.isInteger(value)) {
-    throw new Error(
-      `Metric "${key}" expects integer value, got ${value}`
-    );
+    throw new Error(`Metric "${key}" expects integer value, got ${value}`);
   }
-  
+
   // Range check
   if (value < def.minValue) {
-    throw new Error(
-      `Metric "${key}" value ${value} below minimum ${def.minValue}`
-    );
+    throw new Error(`Metric "${key}" value ${value} below minimum ${def.minValue}`);
   }
   if (value > def.maxValue) {
-    throw new Error(
-      `Metric "${key}" value ${value} exceeds maximum ${def.maxValue}`
-    );
+    throw new Error(`Metric "${key}" value ${value} exceeds maximum ${def.maxValue}`);
   }
-  
+
   // Negative check
   if (!def.acceptsNegative && value < 0) {
-    throw new Error(
-      `Metric "${key}" does not accept negative values, got ${value}`
-    );
+    throw new Error(`Metric "${key}" does not accept negative values, got ${value}`);
   }
 }
 

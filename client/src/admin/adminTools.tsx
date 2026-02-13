@@ -15,6 +15,7 @@ import {
   BarChart3,
   FileUp,
   Briefcase,
+  Home,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -178,6 +179,7 @@ const AdminErrorReports = React.lazy(() => import("@/pages/admin-error-reports")
 const AdminPricingAnalytics = React.lazy(() => import("@/pages/admin-pricing-analytics"));
 const AdminAddressVerifications = React.lazy(() => import("@/pages/admin-address-verifications"));
 const AdminListings = React.lazy(() => import("@/pages/admin-listings"));
+const AdminHomeScoutListings = React.lazy(() => import("@/pages/admin-homescout-listings"));
 const AdminAttachments = React.lazy(() => import("@/pages/admin-attachments"));
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
 const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
@@ -371,6 +373,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Briefcase,
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
         render: () => <AdminListings />,
+      }),
+      tool({
+        id: "homescout-listings",
+        label: "HomeScout Listings",
+        path: "/admin/homescout/listings",
+        icon: Home,
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        render: () => <AdminHomeScoutListings />,
       }),
       tool({
         id: "ads",
