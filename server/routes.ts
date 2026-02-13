@@ -14914,6 +14914,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       })
     : (req: any, _res: any, next: any) => next();
 
+  const homeScoutInspectionLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000,
+        max: 8,
+        message: "Too many HomeScout inspection actions, please slow down",
+        store: limiterStore("homescout_inspection"),
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    : (req: any, _res: any, next: any) => next();
+
   app.get("/api/homescout/search", homeScoutSearchLimiter, async (req: any, res: any) => {
     try {
       const {
@@ -15041,6 +15052,21 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         ],
       });
 
+      const inspectionReports = await storage.listHomeScoutInspectionReports({
+        listingId: String((listing as any).id),
+        visibility: "public",
+        status: "published",
+        limit: 50,
+        offset: 0,
+      } as any);
+
+      const openInspectionRequests = await storage.listHomeScoutInspectionRequests({
+        listingId: String((listing as any).id),
+        status: "open",
+        limit: 50,
+        offset: 0,
+      } as any);
+
       // Do not bypass privacy: consumers may optionally call /api/users/:userId/public.
       res.json({
         listing,
@@ -15048,12 +15074,295 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         events,
         marketBucket,
         countyMetrics,
+        inspectionReports,
+        openInspectionRequests,
       });
     } catch (error: any) {
       console.error("Error fetching HomeScout listing:", error);
       res.status(500).json({ message: "Failed to fetch HomeScout listing" });
     }
   });
+
+  app.post(
+    "/api/homescout/listings/:id/inspection-requests",
+    isAuthenticated,
+    homeScoutInspectionLimiter,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const listingId = String(req.params.id || "");
+        if (!listingId) return res.status(400).json({ message: "Listing id required" });
+
+        const listing = await storage.getHomeScoutListing(listingId);
+        if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+        const body = req.body ?? {};
+        const requestMessage =
+          typeof body.requestMessage === "string" ? body.requestMessage.trim() : "";
+        const preferredWindow =
+          typeof body.preferredWindow === "string" ? body.preferredWindow.trim() : "";
+
+        if (!requestMessage || requestMessage.length < 12 || requestMessage.length > 2000) {
+          return res.status(400).json({ message: "requestMessage must be 12-2000 characters" });
+        }
+        if (preferredWindow.length > 120) {
+          return res.status(400).json({ message: "preferredWindow must be <= 120 characters" });
+        }
+
+        const created = await storage.createHomeScoutInspectionRequest({
+          listingId,
+          requesterUserId: String(userId),
+          status: "open" as any,
+          requestMessage,
+          preferredWindow: preferredWindow || null,
+          fulfilledAt: null,
+          cancelledAt: null,
+        } as any);
+
+        res.status(201).json({ id: created.id });
+      } catch (error: any) {
+        console.error("Error creating HomeScout inspection request:", error);
+        res.status(500).json({ message: "Failed to create inspection request" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/homescout/listings/:id/inspection-reports",
+    isAuthenticated,
+    homeScoutInspectionLimiter,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const listingId = String(req.params.id || "");
+        if (!listingId) return res.status(400).json({ message: "Listing id required" });
+
+        const listing = await storage.getHomeScoutListing(listingId);
+        if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+        const body = req.body ?? {};
+        const reportType =
+          typeof body.reportType === "string" && body.reportType.trim()
+            ? body.reportType.trim()
+            : "other";
+        const reportUrl = typeof body.reportUrl === "string" ? body.reportUrl.trim() : "";
+        const inspectionDate =
+          typeof body.inspectionDate === "string" && body.inspectionDate.trim()
+            ? body.inspectionDate.trim()
+            : null;
+        const inspectorName =
+          typeof body.inspectorName === "string" ? body.inspectorName.trim() : "";
+        const inspectorCompany =
+          typeof body.inspectorCompany === "string" ? body.inspectorCompany.trim() : "";
+        const inspectorLicense =
+          typeof body.inspectorLicense === "string" ? body.inspectorLicense.trim() : "";
+        const summary = typeof body.summary === "string" ? body.summary.trim() : "";
+        const sourceRequestId =
+          typeof body.sourceRequestId === "string" ? body.sourceRequestId.trim() : "";
+        const highlights = Array.isArray(body.highlights)
+          ? body.highlights
+              .filter((x: any) => typeof x === "string")
+              .map((x: string) => x.trim())
+              .filter(Boolean)
+              .slice(0, 20)
+          : [];
+
+        const allowedReportTypes = [
+          "seller_pre_listing",
+          "buyer_independent",
+          "municipal",
+          "other",
+        ];
+        if (!allowedReportTypes.includes(reportType)) {
+          return res.status(400).json({ message: "Invalid reportType" });
+        }
+        if (!reportUrl || reportUrl.length > 500 || !/^https?:\/\//i.test(reportUrl)) {
+          return res.status(400).json({ message: "reportUrl (http/https) required" });
+        }
+        if (summary.length > 4000) {
+          return res.status(400).json({ message: "summary too long" });
+        }
+        if (
+          inspectorName.length > 140 ||
+          inspectorCompany.length > 140 ||
+          inspectorLicense.length > 80
+        ) {
+          return res.status(400).json({ message: "Inspector fields exceed max length" });
+        }
+
+        const isOwner =
+          String(userId) === String((listing as any).sellerUserId || "") ||
+          String(userId) === String((listing as any).agentUserId || "") ||
+          String(userId) === String((listing as any).contactUserId || "");
+
+        let sourceRequest: any = null;
+        if (sourceRequestId) {
+          sourceRequest = await storage.getHomeScoutInspectionRequest(sourceRequestId);
+          if (!sourceRequest || String((sourceRequest as any).listingId) !== listingId) {
+            return res.status(400).json({ message: "Invalid sourceRequestId for listing" });
+          }
+        }
+
+        if (reportType === "seller_pre_listing" && !isOwner) {
+          return res
+            .status(403)
+            .json({ message: "Only listing owner/agent can upload seller reports" });
+        }
+        if (reportType === "buyer_independent" && !sourceRequest) {
+          return res.status(400).json({
+            message: "buyer_independent uploads must reference an inspection request",
+          });
+        }
+        if (
+          sourceRequest &&
+          String((sourceRequest as any).requesterUserId) !== String(userId) &&
+          !isOwner
+        ) {
+          return res
+            .status(403)
+            .json({ message: "You can only fulfill your own inspection request" });
+        }
+
+        const created = await storage.createHomeScoutInspectionReport({
+          listingId,
+          submittedByUserId: String(userId),
+          reportType: reportType as any,
+          inspectionDate: inspectionDate || null,
+          inspectorName: inspectorName || null,
+          inspectorCompany: inspectorCompany || null,
+          inspectorLicense: inspectorLicense || null,
+          summary: summary || null,
+          highlights,
+          reportUrl,
+          sourceRequestId: sourceRequestId || null,
+          visibility: "public" as any,
+          status: "published" as any,
+        } as any);
+
+        if (sourceRequestId) {
+          await storage.markHomeScoutInspectionRequestFulfilled({ requestId: sourceRequestId });
+        }
+
+        res.status(201).json({ id: created.id });
+      } catch (error: any) {
+        console.error("Error creating HomeScout inspection report:", error);
+        res.status(500).json({ message: "Failed to upload inspection report" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/homescout/inspection-reports/:reportId/service-requests",
+    isAuthenticated,
+    homeScoutInspectionLimiter,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const reportId = String(req.params.reportId || "");
+        if (!reportId) return res.status(400).json({ message: "reportId required" });
+
+        const report = await storage.getHomeScoutInspectionReport(reportId);
+        if (!report) return res.status(404).json({ message: "Inspection report not found" });
+
+        const listing = await storage.getHomeScoutListing(String((report as any).listingId || ""));
+        if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+        const body = req.body ?? {};
+        const serviceCategory =
+          typeof body.serviceCategory === "string" ? body.serviceCategory.trim() : "";
+        const serviceDescription =
+          typeof body.serviceDescription === "string" ? body.serviceDescription.trim() : "";
+
+        const allowedCategories = [
+          "roofing",
+          "plumbing",
+          "electrical",
+          "hvac",
+          "foundation",
+          "structural",
+          "pest",
+          "mold",
+          "general_repair",
+          "follow_up_inspection",
+        ];
+        if (!allowedCategories.includes(serviceCategory)) {
+          return res.status(400).json({ message: "Invalid serviceCategory" });
+        }
+        if (
+          !serviceDescription ||
+          serviceDescription.length < 12 ||
+          serviceDescription.length > 4000
+        ) {
+          return res.status(400).json({
+            message: "serviceDescription must be 12-4000 characters",
+          });
+        }
+
+        const [workRequest] = await db
+          .insert(workRequests)
+          .values({
+            createdByUserId: String(userId),
+            title: `Inspection follow-up: ${serviceCategory.replace(/_/g, " ")}`,
+            description: [
+              `HomeScout listing: ${(listing as any).title || "Property"}`,
+              `Inspection report: ${String((report as any).reportUrl || "")}`,
+              "",
+              serviceDescription,
+            ].join("\n"),
+            category: serviceCategory,
+            countyFips: (listing as any).countyFips || null,
+            stateCode: (listing as any).stateCode || null,
+            scope: "community",
+            source: "scout",
+            sourceRefId: `homescout_report:${reportId}`,
+            status: "open",
+            visibility: "community",
+            exposureMode: "guided",
+            competitionMode: "none",
+          })
+          .returning();
+
+        if (workRequest) {
+          await db.insert(workRequestEvents).values({
+            workRequestId: workRequest.id,
+            type: "created",
+            actorUserId: String(userId),
+            metadata: {
+              source: "homescout_inspection_report",
+              reportId,
+              listingId: (listing as any).id,
+            },
+          });
+        }
+
+        const created = await storage.createHomeScoutInspectionServiceRequest({
+          reportId,
+          listingId: String((listing as any).id),
+          requesterUserId: String(userId),
+          countyFips: String((listing as any).countyFips || ""),
+          stateCode: String((listing as any).stateCode || ""),
+          serviceCategory,
+          serviceDescription,
+          status: "open" as any,
+          workRequestId: workRequest?.id || null,
+        } as any);
+
+        res.status(201).json({
+          id: created.id,
+          workRequestId: workRequest?.id || null,
+        });
+      } catch (error: any) {
+        console.error("Error creating HomeScout inspection service request:", error);
+        res.status(500).json({ message: "Failed to create service request" });
+      }
+    }
+  );
 
   app.post(
     "/api/homescout/listings/:id/report",

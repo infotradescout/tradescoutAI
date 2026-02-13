@@ -89,6 +89,9 @@ import {
   homeScoutListingEvents,
   homeScoutMarketBuckets,
   homeScoutListingReports,
+  homeScoutInspectionRequests,
+  homeScoutInspectionReports,
+  homeScoutInspectionServiceRequests,
   type HomeScoutListing,
   type InsertHomeScoutListing,
   type HomeScoutSource,
@@ -101,6 +104,12 @@ import {
   type InsertHomeScoutMarketBucket,
   type HomeScoutListingReport,
   type InsertHomeScoutListingReport,
+  type HomeScoutInspectionRequest,
+  type InsertHomeScoutInspectionRequest,
+  type HomeScoutInspectionReport,
+  type InsertHomeScoutInspectionReport,
+  type HomeScoutInspectionServiceRequest,
+  type InsertHomeScoutInspectionServiceRequest,
   // Foundation system
   foundationCauses,
   foundationDonations,
@@ -5400,6 +5409,161 @@ export class DatabaseStorage implements IStorage {
       .where(eq(homeScoutListingReports.id, params.reportId))
       .returning();
     return row;
+  }
+
+  async createHomeScoutInspectionRequest(
+    input: Omit<InsertHomeScoutInspectionRequest, "id" | "createdAt" | "updatedAt">
+  ): Promise<HomeScoutInspectionRequest> {
+    const [row] = await db
+      .insert(homeScoutInspectionRequests)
+      .values({ ...(input as any), createdAt: new Date(), updatedAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async listHomeScoutInspectionRequests(params: {
+    listingId: string;
+    status?: "open" | "fulfilled" | "cancelled";
+    requesterUserId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutInspectionRequest[]> {
+    const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+    const status = params.status;
+
+    const predicates: (SQL | undefined)[] = [
+      eq(homeScoutInspectionRequests.listingId, params.listingId),
+    ];
+    if (status) predicates.push(eq(homeScoutInspectionRequests.status, status as any));
+    if (params.requesterUserId) {
+      predicates.push(eq(homeScoutInspectionRequests.requesterUserId, params.requesterUserId));
+    }
+
+    return await db
+      .select()
+      .from(homeScoutInspectionRequests)
+      .where(and(...predicates))
+      .orderBy(desc(homeScoutInspectionRequests.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getHomeScoutInspectionRequest(
+    requestId: string
+  ): Promise<HomeScoutInspectionRequest | undefined> {
+    const [row] = await db
+      .select()
+      .from(homeScoutInspectionRequests)
+      .where(eq(homeScoutInspectionRequests.id, requestId))
+      .limit(1);
+    return row;
+  }
+
+  async markHomeScoutInspectionRequestFulfilled(params: {
+    requestId: string;
+  }): Promise<HomeScoutInspectionRequest | undefined> {
+    const [row] = await db
+      .update(homeScoutInspectionRequests)
+      .set({
+        status: "fulfilled" as any,
+        fulfilledAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(homeScoutInspectionRequests.id, params.requestId))
+      .returning();
+    return row;
+  }
+
+  async createHomeScoutInspectionReport(
+    input: Omit<InsertHomeScoutInspectionReport, "id" | "createdAt" | "updatedAt">
+  ): Promise<HomeScoutInspectionReport> {
+    const [row] = await db
+      .insert(homeScoutInspectionReports)
+      .values({ ...(input as any), createdAt: new Date(), updatedAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async listHomeScoutInspectionReports(params: {
+    listingId: string;
+    visibility?: "public" | "private";
+    status?: "published" | "removed";
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutInspectionReport[]> {
+    const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+    const predicates: (SQL | undefined)[] = [
+      eq(homeScoutInspectionReports.listingId, params.listingId),
+    ];
+    if (params.visibility)
+      predicates.push(eq(homeScoutInspectionReports.visibility, params.visibility as any));
+    if (params.status) predicates.push(eq(homeScoutInspectionReports.status, params.status as any));
+
+    return await db
+      .select()
+      .from(homeScoutInspectionReports)
+      .where(and(...predicates))
+      .orderBy(desc(homeScoutInspectionReports.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getHomeScoutInspectionReport(
+    reportId: string
+  ): Promise<HomeScoutInspectionReport | undefined> {
+    const [row] = await db
+      .select()
+      .from(homeScoutInspectionReports)
+      .where(eq(homeScoutInspectionReports.id, reportId))
+      .limit(1);
+    return row;
+  }
+
+  async createHomeScoutInspectionServiceRequest(
+    input: Omit<InsertHomeScoutInspectionServiceRequest, "id" | "createdAt" | "updatedAt">
+  ): Promise<HomeScoutInspectionServiceRequest> {
+    const [row] = await db
+      .insert(homeScoutInspectionServiceRequests)
+      .values({ ...(input as any), createdAt: new Date(), updatedAt: new Date() } as any)
+      .returning();
+    return row;
+  }
+
+  async listHomeScoutInspectionServiceRequests(params: {
+    listingId?: string;
+    reportId?: string;
+    requesterUserId?: string;
+    status?: "open" | "routed" | "in_progress" | "completed" | "cancelled";
+    limit?: number;
+    offset?: number;
+  }): Promise<HomeScoutInspectionServiceRequest[]> {
+    const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+    const offset = Math.max(0, Number(params.offset ?? 0));
+    const predicates: (SQL | undefined)[] = [];
+    if (params.listingId)
+      predicates.push(eq(homeScoutInspectionServiceRequests.listingId, params.listingId));
+    if (params.reportId)
+      predicates.push(eq(homeScoutInspectionServiceRequests.reportId, params.reportId));
+    if (params.requesterUserId) {
+      predicates.push(
+        eq(homeScoutInspectionServiceRequests.requesterUserId, params.requesterUserId)
+      );
+    }
+    if (params.status) {
+      predicates.push(eq(homeScoutInspectionServiceRequests.status, params.status as any));
+    }
+
+    const whereClause = predicates.length ? (and(...predicates) as any) : undefined;
+
+    return await db
+      .select()
+      .from(homeScoutInspectionServiceRequests)
+      .where(whereClause)
+      .orderBy(desc(homeScoutInspectionServiceRequests.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
 
   async createMarketplaceListing(

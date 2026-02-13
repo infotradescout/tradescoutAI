@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { useRoute, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MapPin, BedDouble, Bath, Square, Home, ShieldAlert, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { uploadObject } from "@/lib/objectUpload";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -68,12 +71,34 @@ type CountyMetric = {
   updatedAt?: string | null;
 };
 
+type HomeScoutInspectionReport = {
+  id: string;
+  reportType: string;
+  inspectionDate?: string | null;
+  inspectorName?: string | null;
+  inspectorCompany?: string | null;
+  summary?: string | null;
+  highlights?: string[] | null;
+  reportUrl: string;
+  createdAt: string;
+};
+
+type HomeScoutInspectionRequest = {
+  id: string;
+  status: string;
+  requestMessage: string;
+  preferredWindow?: string | null;
+  createdAt: string;
+};
+
 type ListingResponse = {
   listing: HomeScoutListing;
   contactUserId: string | null;
   events: HomeScoutListingEvent[];
   marketBucket: HomeScoutMarketBucket | null;
   countyMetrics: CountyMetric[];
+  inspectionReports: HomeScoutInspectionReport[];
+  openInspectionRequests: HomeScoutInspectionRequest[];
 };
 
 function formatCurrency(value: string | number) {
@@ -96,6 +121,19 @@ export default function HomeScoutListingPage() {
   const [match, params] = useRoute("/homescout/listings/:id");
   const listingId = params?.id ? String(params.id) : "";
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
+  const [inspectionRequestMessage, setInspectionRequestMessage] = useState("");
+  const [inspectionPreferredWindow, setInspectionPreferredWindow] = useState("");
+  const [uploadReportType, setUploadReportType] = useState("buyer_independent");
+  const [uploadSummary, setUploadSummary] = useState("");
+  const [uploadInspectorName, setUploadInspectorName] = useState("");
+  const [uploadInspectorCompany, setUploadInspectorCompany] = useState("");
+  const [uploadInspectionDate, setUploadInspectionDate] = useState("");
+  const [uploadHighlights, setUploadHighlights] = useState("");
+  const [uploadSourceRequestId, setUploadSourceRequestId] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error } = useQuery<ListingResponse>({
     queryKey: ["/api/homescout/listings", listingId],
@@ -118,6 +156,136 @@ export default function HomeScoutListingPage() {
   const events = Array.isArray(data?.events) ? data!.events : [];
   const marketBucket = data?.marketBucket ?? null;
   const countyMetrics = Array.isArray(data?.countyMetrics) ? data!.countyMetrics : [];
+  const inspectionReports = Array.isArray(data?.inspectionReports) ? data!.inspectionReports : [];
+  const openInspectionRequests = Array.isArray(data?.openInspectionRequests)
+    ? data!.openInspectionRequests
+    : [];
+
+  const createInspectionRequest = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        `/api/homescout/listings/${encodeURIComponent(listingId)}/inspection-requests`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requestMessage: inspectionRequestMessage,
+            preferredWindow: inspectionPreferredWindow || undefined,
+          }),
+        }
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || "Failed to create inspection request");
+      return body;
+    },
+    onSuccess: () => {
+      setInspectionRequestMessage("");
+      setInspectionPreferredWindow("");
+      queryClient.invalidateQueries({ queryKey: ["/api/homescout/listings", listingId] });
+      toast({
+        title: "Inspection requested",
+        description: "Your request is posted on this listing for inspection follow-through.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Request failed",
+        description: err?.message || "Could not create inspection request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const uploadInspectionReport = useMutation({
+    mutationFn: async () => {
+      if (!uploadFile) throw new Error("Attach an inspection report file first");
+      const { publicUrl } = await uploadObject(uploadFile);
+
+      const highlights = uploadHighlights
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .slice(0, 20);
+
+      const res = await fetch(
+        `/api/homescout/listings/${encodeURIComponent(listingId)}/inspection-reports`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reportType: uploadReportType,
+            reportUrl: publicUrl,
+            inspectionDate: uploadInspectionDate || undefined,
+            inspectorName: uploadInspectorName || undefined,
+            inspectorCompany: uploadInspectorCompany || undefined,
+            summary: uploadSummary || undefined,
+            highlights,
+            sourceRequestId: uploadSourceRequestId || undefined,
+          }),
+        }
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || "Failed to upload inspection report");
+      return body;
+    },
+    onSuccess: () => {
+      setUploadSummary("");
+      setUploadInspectorName("");
+      setUploadInspectorCompany("");
+      setUploadInspectionDate("");
+      setUploadHighlights("");
+      setUploadSourceRequestId("");
+      setUploadFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/homescout/listings", listingId] });
+      toast({
+        title: "Inspection report uploaded",
+        description: "The report is now visible on this listing.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Upload failed",
+        description: err?.message || "Could not upload inspection report",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createServiceRequest = useMutation({
+    mutationFn: async (params: {
+      reportId: string;
+      serviceCategory: string;
+      serviceDescription: string;
+    }) => {
+      const res = await fetch(
+        `/api/homescout/inspection-reports/${encodeURIComponent(params.reportId)}/service-requests`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        }
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || "Failed to request service");
+      return body;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Service request sent",
+        description: "We opened a guided work request from this inspection report.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Service request failed",
+        description: err?.message || "Could not create service request",
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: contactPublicProfile } = useQuery<any>({
     queryKey: ["/api/users/public", contactUserId],
@@ -280,6 +448,221 @@ export default function HomeScoutListingPage() {
                     </div>
                   </div>
                 ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-950/60 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-slate-100">
+                Inspections and repair follow-up
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-slate-300">
+              <div className="text-xs text-slate-400">
+                Sellers can post current inspections. Buyers can request inspections, upload
+                independent reports, and open repair/service requests from findings.
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-slate-100 font-semibold text-sm">
+                  Open inspection requests ({openInspectionRequests.length})
+                </div>
+                {openInspectionRequests.length === 0 ? (
+                  <div className="text-xs text-slate-500">No open requests yet.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {openInspectionRequests.slice(0, 6).map((r) => (
+                      <div
+                        key={r.id}
+                        className="rounded-md border border-slate-800 p-3 bg-slate-950/40"
+                      >
+                        <div className="text-slate-200">{r.requestMessage}</div>
+                        {r.preferredWindow ? (
+                          <div className="text-xs text-slate-400 mt-1">
+                            Window: {r.preferredWindow}
+                          </div>
+                        ) : null}
+                        <div className="text-xs text-slate-500 mt-1">
+                          {new Date(r.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-slate-100 font-semibold text-sm">
+                  Published inspection reports ({inspectionReports.length})
+                </div>
+                {inspectionReports.length === 0 ? (
+                  <div className="text-xs text-slate-500">No reports uploaded yet.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {inspectionReports.map((r) => (
+                      <div
+                        key={r.id}
+                        className="rounded-md border border-slate-800 p-3 bg-slate-950/40 space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-slate-100 font-medium">
+                            {String(r.reportType || "other").replace(/_/g, " ")}
+                          </div>
+                          <a
+                            href={r.reportUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-orange-300 hover:text-orange-200 text-xs"
+                          >
+                            Open report
+                          </a>
+                        </div>
+                        {r.inspectionDate ? (
+                          <div className="text-xs text-slate-400">
+                            Inspection date: {new Date(r.inspectionDate).toLocaleDateString()}
+                          </div>
+                        ) : null}
+                        {(r.inspectorName || r.inspectorCompany) && (
+                          <div className="text-xs text-slate-400">
+                            Inspector:{" "}
+                            {[r.inspectorName, r.inspectorCompany].filter(Boolean).join(" - ")}
+                          </div>
+                        )}
+                        {r.summary ? (
+                          <div className="text-sm text-slate-300">{r.summary}</div>
+                        ) : null}
+                        {Array.isArray(r.highlights) && r.highlights.length > 0 ? (
+                          <div className="text-xs text-slate-400">
+                            Highlights: {r.highlights.slice(0, 5).join("; ")}
+                          </div>
+                        ) : null}
+                        {isAuthenticated ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const serviceCategory =
+                                window.prompt(
+                                  "Service category (roofing, plumbing, electrical, hvac, foundation, structural, pest, mold, general_repair, follow_up_inspection):",
+                                  "general_repair"
+                                ) || "";
+                              const serviceDescription =
+                                window.prompt(
+                                  "Describe the work needed from this report:",
+                                  "Need licensed pro to quote and fix highlighted items."
+                                ) || "";
+                              if (!serviceCategory.trim() || !serviceDescription.trim()) return;
+                              createServiceRequest.mutate({
+                                reportId: r.id,
+                                serviceCategory: serviceCategory.trim(),
+                                serviceDescription: serviceDescription.trim(),
+                              });
+                            }}
+                          >
+                            Request service from this report
+                          </Button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {isAuthenticated ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                  <div className="space-y-2">
+                    <div className="text-slate-100 font-semibold text-sm">Request inspection</div>
+                    <textarea
+                      value={inspectionRequestMessage}
+                      onChange={(e) => setInspectionRequestMessage(e.target.value)}
+                      placeholder="Request an inspection for this property..."
+                      className="w-full min-h-[92px] rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <input
+                      value={inspectionPreferredWindow}
+                      onChange={(e) => setInspectionPreferredWindow(e.target.value)}
+                      placeholder="Preferred window (optional)"
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => createInspectionRequest.mutate()}
+                      disabled={createInspectionRequest.isPending}
+                    >
+                      {createInspectionRequest.isPending ? "Submitting..." : "Request inspection"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-slate-100 font-semibold text-sm">
+                      Upload inspection report
+                    </div>
+                    <select
+                      value={uploadReportType}
+                      onChange={(e) => setUploadReportType(e.target.value)}
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    >
+                      <option value="buyer_independent">Buyer independent</option>
+                      <option value="seller_pre_listing">Seller pre-listing</option>
+                      <option value="municipal">Municipal</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input
+                      type="date"
+                      value={uploadInspectionDate}
+                      onChange={(e) => setUploadInspectionDate(e.target.value)}
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <input
+                      value={uploadInspectorName}
+                      onChange={(e) => setUploadInspectorName(e.target.value)}
+                      placeholder="Inspector name (optional)"
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <input
+                      value={uploadInspectorCompany}
+                      onChange={(e) => setUploadInspectorCompany(e.target.value)}
+                      placeholder="Inspector company (optional)"
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <textarea
+                      value={uploadSummary}
+                      onChange={(e) => setUploadSummary(e.target.value)}
+                      placeholder="Summary of findings (optional)"
+                      className="w-full min-h-[72px] rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <textarea
+                      value={uploadHighlights}
+                      onChange={(e) => setUploadHighlights(e.target.value)}
+                      placeholder="Highlights, one per line (optional)"
+                      className="w-full min-h-[72px] rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <input
+                      value={uploadSourceRequestId}
+                      onChange={(e) => setUploadSourceRequestId(e.target.value)}
+                      placeholder="Source request id (required for buyer independent)"
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                    />
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs text-slate-200"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => uploadInspectionReport.mutate()}
+                      disabled={uploadInspectionReport.isPending || !uploadFile}
+                    >
+                      {uploadInspectionReport.isPending ? "Uploading..." : "Upload report"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-400">
+                  Sign in to request inspections, upload reports, and request repair services.
+                </div>
               )}
             </CardContent>
           </Card>

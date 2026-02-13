@@ -4155,6 +4155,156 @@ export const homeScoutListingReports = pgTable(
 export type HomeScoutListingReport = typeof homeScoutListingReports.$inferSelect;
 export type InsertHomeScoutListingReport = typeof homeScoutListingReports.$inferInsert;
 
+// ---------------------------------------------------------------------------
+// HomeScout inspections + repair follow-up requests
+// ---------------------------------------------------------------------------
+
+export const HOME_SCOUT_INSPECTION_REPORT_TYPES = [
+  "seller_pre_listing",
+  "buyer_independent",
+  "municipal",
+  "other",
+] as const;
+
+export const HOME_SCOUT_INSPECTION_REQUEST_STATUSES = ["open", "fulfilled", "cancelled"] as const;
+
+export const HOME_SCOUT_INSPECTION_SERVICE_REQUEST_STATUSES = [
+  "open",
+  "routed",
+  "in_progress",
+  "completed",
+  "cancelled",
+] as const;
+
+export const homeScoutInspectionRequests = pgTable(
+  "home_scout_inspection_requests",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    listingId: varchar("listing_id")
+      .notNull()
+      .references(() => homeScoutListings.id, { onDelete: "cascade" }),
+    requesterUserId: varchar("requester_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16, enum: [...HOME_SCOUT_INSPECTION_REQUEST_STATUSES] })
+      .notNull()
+      .default("open"),
+    requestMessage: text("request_message").notNull(),
+    preferredWindow: varchar("preferred_window", { length: 120 }),
+    fulfilledAt: timestamp("fulfilled_at"),
+    cancelledAt: timestamp("cancelled_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_homescout_inspection_requests_listing_status").on(table.listingId, table.status),
+    index("idx_homescout_inspection_requests_requester").on(table.requesterUserId),
+  ]
+);
+
+export type HomeScoutInspectionRequest = typeof homeScoutInspectionRequests.$inferSelect;
+export type InsertHomeScoutInspectionRequest = typeof homeScoutInspectionRequests.$inferInsert;
+
+export const homeScoutInspectionReports = pgTable(
+  "home_scout_inspection_reports",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    listingId: varchar("listing_id")
+      .notNull()
+      .references(() => homeScoutListings.id, { onDelete: "cascade" }),
+    submittedByUserId: varchar("submitted_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reportType: varchar("report_type", {
+      length: 32,
+      enum: [...HOME_SCOUT_INSPECTION_REPORT_TYPES],
+    })
+      .notNull()
+      .default("other"),
+    inspectionDate: date("inspection_date"),
+    inspectorName: varchar("inspector_name", { length: 140 }),
+    inspectorCompany: varchar("inspector_company", { length: 140 }),
+    inspectorLicense: varchar("inspector_license", { length: 80 }),
+    summary: text("summary"),
+    highlights: jsonb("highlights").$type<string[]>().notNull().default([]),
+    reportUrl: varchar("report_url", { length: 500 }).notNull(),
+    sourceRequestId: varchar("source_request_id").references(() => homeScoutInspectionRequests.id, {
+      onDelete: "set null",
+    }),
+    visibility: varchar("visibility", { length: 16, enum: ["public", "private"] })
+      .notNull()
+      .default("public"),
+    status: varchar("status", { length: 16, enum: ["published", "removed"] })
+      .notNull()
+      .default("published"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_homescout_inspection_reports_listing_visibility").on(
+      table.listingId,
+      table.visibility,
+      table.status
+    ),
+    index("idx_homescout_inspection_reports_submitter").on(table.submittedByUserId),
+  ]
+);
+
+export type HomeScoutInspectionReport = typeof homeScoutInspectionReports.$inferSelect;
+export type InsertHomeScoutInspectionReport = typeof homeScoutInspectionReports.$inferInsert;
+
+export const homeScoutInspectionServiceRequests = pgTable(
+  "home_scout_inspection_service_requests",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    reportId: varchar("report_id")
+      .notNull()
+      .references(() => homeScoutInspectionReports.id, { onDelete: "cascade" }),
+    listingId: varchar("listing_id")
+      .notNull()
+      .references(() => homeScoutListings.id, { onDelete: "cascade" }),
+    requesterUserId: varchar("requester_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
+    stateCode: varchar("state_code", { length: 2 })
+      .notNull()
+      .references(() => states.code),
+    serviceCategory: varchar("service_category", { length: 64 }).notNull(),
+    serviceDescription: text("service_description").notNull(),
+    status: varchar("status", {
+      length: 16,
+      enum: [...HOME_SCOUT_INSPECTION_SERVICE_REQUEST_STATUSES],
+    })
+      .notNull()
+      .default("open"),
+    workRequestId: varchar("work_request_id").references(() => workRequests.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_homescout_inspection_service_requests_report").on(table.reportId),
+    index("idx_homescout_inspection_service_requests_requester").on(table.requesterUserId),
+    index("idx_homescout_inspection_service_requests_status").on(table.status),
+    index("idx_homescout_inspection_service_requests_county").on(table.countyFips, table.stateCode),
+  ]
+);
+
+export type HomeScoutInspectionServiceRequest =
+  typeof homeScoutInspectionServiceRequests.$inferSelect;
+export type InsertHomeScoutInspectionServiceRequest =
+  typeof homeScoutInspectionServiceRequests.$inferInsert;
+
 export const marketplaceInquiries = pgTable("marketplace_inquiries", {
   id: varchar("id")
     .primaryKey()

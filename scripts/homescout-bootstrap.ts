@@ -50,6 +50,7 @@ async function ensureHomeScoutSchema() {
     "migrations/0035_homescout_search_indexes.sql",
     "migrations/0036_homescout_reports.sql",
     "migrations/0037_homescout_ingestion.sql",
+    "migrations/0039_homescout_inspections.sql",
   ];
 
   for (const f of files) {
