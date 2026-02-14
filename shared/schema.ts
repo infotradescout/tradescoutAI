@@ -4305,6 +4305,139 @@ export type HomeScoutInspectionServiceRequest =
 export type InsertHomeScoutInspectionServiceRequest =
   typeof homeScoutInspectionServiceRequests.$inferInsert;
 
+// ---------------------------------------------------------------------------
+// Commercial directory projects + bids + campaign landing pages
+// ---------------------------------------------------------------------------
+
+export const COMMERCIAL_PROJECT_STATUSES = [
+  "draft",
+  "open",
+  "closed",
+  "awarded",
+  "archived",
+] as const;
+
+export const COMMERCIAL_BID_STATUSES = [
+  "submitted",
+  "shortlisted",
+  "accepted",
+  "rejected",
+  "withdrawn",
+] as const;
+
+export const commercialProjects = pgTable(
+  "commercial_projects",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    createdByUserId: varchar("created_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
+    stateCode: varchar("state_code", { length: 2 })
+      .notNull()
+      .references(() => states.code),
+    title: varchar("title", { length: 220 }).notNull(),
+    slug: varchar("slug", { length: 260 }).notNull().unique(),
+    summary: text("summary").notNull(),
+    scopeOfWork: text("scope_of_work").notNull(),
+    requirements: text("requirements").notNull(),
+    budgetMin: numeric("budget_min", { precision: 14, scale: 2 }),
+    budgetMax: numeric("budget_max", { precision: 14, scale: 2 }),
+    bidDueAt: timestamp("bid_due_at"),
+    projectStartAt: timestamp("project_start_at"),
+    status: varchar("status", { length: 24, enum: [...COMMERCIAL_PROJECT_STATUSES] })
+      .notNull()
+      .default("open"),
+    winningBidId: varchar("winning_bid_id"),
+    campaignEnabled: boolean("campaign_enabled").notNull().default(false),
+    campaignHeadline: varchar("campaign_headline", { length: 220 }),
+    campaignBody: text("campaign_body"),
+    heroImageUrl: varchar("hero_image_url", { length: 500 }),
+    publishedAt: timestamp("published_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_commercial_projects_county_status").on(
+      table.countyFips,
+      table.status,
+      table.createdAt
+    ),
+    index("idx_commercial_projects_slug").on(table.slug),
+  ]
+);
+
+export type CommercialProject = typeof commercialProjects.$inferSelect;
+export type InsertCommercialProject = typeof commercialProjects.$inferInsert;
+
+export const commercialProjectDocuments = pgTable(
+  "commercial_project_documents",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    projectId: varchar("project_id")
+      .notNull()
+      .references(() => commercialProjects.id, { onDelete: "cascade" }),
+    uploadedByUserId: varchar("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    fileUrl: varchar("file_url", { length: 600 }).notNull(),
+    mimeType: varchar("mime_type", { length: 120 }),
+    fileSizeBytes: integer("file_size_bytes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_commercial_project_documents_project").on(table.projectId, table.createdAt),
+  ]
+);
+
+export type CommercialProjectDocument = typeof commercialProjectDocuments.$inferSelect;
+export type InsertCommercialProjectDocument = typeof commercialProjectDocuments.$inferInsert;
+
+export const commercialProjectBids = pgTable(
+  "commercial_project_bids",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    projectId: varchar("project_id")
+      .notNull()
+      .references(() => commercialProjects.id, { onDelete: "cascade" }),
+    contractorId: varchar("contractor_id")
+      .notNull()
+      .references(() => contractors.id),
+    bidderUserId: varchar("bidder_user_id")
+      .notNull()
+      .references(() => users.id),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    timelineDays: integer("timeline_days"),
+    proposal: text("proposal").notNull(),
+    status: varchar("status", { length: 24, enum: [...COMMERCIAL_BID_STATUSES] })
+      .notNull()
+      .default("submitted"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_commercial_project_bid_per_contractor").on(table.projectId, table.contractorId),
+    index("idx_commercial_project_bids_project_status").on(
+      table.projectId,
+      table.status,
+      table.createdAt
+    ),
+    index("idx_commercial_project_bids_bidder").on(table.bidderUserId, table.createdAt),
+  ]
+);
+
+export type CommercialProjectBid = typeof commercialProjectBids.$inferSelect;
+export type InsertCommercialProjectBid = typeof commercialProjectBids.$inferInsert;
+
 export const marketplaceInquiries = pgTable("marketplace_inquiries", {
   id: varchar("id")
     .primaryKey()

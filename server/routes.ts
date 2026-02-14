@@ -15,6 +15,7 @@ import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerHardrockRoutes } from "./routes/hardrock";
+import { registerCommercialDirectoryRoutes } from "./routes/commercial-directory";
 import { geographicCoverageRouter } from "./routes/geographic-coverage";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
@@ -17250,6 +17251,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register Hardrock commercial landing + staff directory routes
   registerHardrockRoutes(app);
+  // Register commercial project board + campaign landing routes
+  registerCommercialDirectoryRoutes(app);
 
   // Public geographic coverage endpoints used by county pages
   app.use("/api/geographic-coverage", geographicCoverageRouter);

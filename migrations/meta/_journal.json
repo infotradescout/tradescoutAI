@@ -41,6 +41,7 @@
     { "idx": 36, "version": "7", "when": 1754963020776, "tag": "0036_homescout_reports", "breakpoints": false },
     { "idx": 37, "version": "7", "when": 1754964020776, "tag": "0037_homescout_ingestion", "breakpoints": false },
     { "idx": 38, "version": "7", "when": 1754965020776, "tag": "0038_county_intelligence_containers", "breakpoints": false },
-    { "idx": 39, "version": "7", "when": 1754966020776, "tag": "0039_homescout_inspections", "breakpoints": false }
+    { "idx": 39, "version": "7", "when": 1754966020776, "tag": "0039_homescout_inspections", "breakpoints": false },
+    { "idx": 40, "version": "7", "when": 1754967020776, "tag": "0040_commercial_directory_projects", "breakpoints": false }
   ]
 }

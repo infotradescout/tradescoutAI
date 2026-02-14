@@ -144,6 +144,7 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
+const AdminCommercialDirectoryPage = React.lazy(() => import("./pages/admin-commercial-directory"));
 
 // Marketplace & Social
 const ContractorLeads = React.lazy(() => import("./pages/contractor-leads"));
@@ -201,6 +202,8 @@ const PaymentSuccess = React.lazy(() => import("./pages/payment-success"));
 const PaymentHistory = React.lazy(() => import("./pages/payment-history"));
 const Wallet = React.lazy(() => import("./pages/wallet"));
 const RequestQuote = React.lazy(() => import("./pages/request-quote"));
+const CommercialDirectoryPage = React.lazy(() => import("./pages/commercial-directory"));
+const CommercialProjectLandingPage = React.lazy(() => import("./pages/commercial-project-landing"));
 const SavedContractors = React.lazy(() => import("./pages/saved-contractors"));
 const Notifications = React.lazy(() => import("./pages/notifications"));
 const Settings = React.lazy(() => import("./pages/settings"));
@@ -567,6 +570,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/hardrock">
                     <LazyPage Component={HardrockLanding} />
                   </Route>
+                  <Route path="/commercial/p/:slug">
+                    <LazyPage Component={CommercialProjectLandingPage} />
+                  </Route>
 
                   {/* Auth routes — canonical signup is /create-account; all others redirect */}
                   <Route path="/login">
@@ -693,6 +699,16 @@ const AppLayout = memo(function AppLayout() {
                   {/* Business routes */}
                   <Route path="/contractor-board">
                     <RedirectTo to="/contractor-dashboard" />
+                  </Route>
+                  <Route path="/commercial-directory">
+                    <ProtectedRoute>
+                      <LazyPage Component={CommercialDirectoryPage} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/commercial-directory">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminCommercialDirectoryPage} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/contractor-apply">
                     <LazyPage Component={ContractorApply} />
