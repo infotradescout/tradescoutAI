@@ -270,6 +270,81 @@ export function registerCommercialDirectoryRoutes(app: Express) {
     }
   );
 
+  app.post(
+    "/api/admin/commercial-directory/projects/:id/documents",
+    isAuthenticated,
+    isAdmin,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = toUserId(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const projectId = String(req.params.id || "");
+        if (!projectId) return res.status(400).json({ message: "Project ID required" });
+
+        const [project] = await db
+          .select({ id: commercialProjects.id })
+          .from(commercialProjects)
+          .where(eq(commercialProjects.id, projectId))
+          .limit(1);
+        if (!project) return res.status(404).json({ message: "Project not found" });
+
+        const multer = (await import("multer")).default;
+        const crypto = await import("crypto");
+        const uploadRoot = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+        const projectRoot = path.join(uploadRoot, "commercial-projects");
+        ensureDir(projectRoot);
+
+        const upload = multer({
+          storage: multer.diskStorage({
+            destination: (_req, _file, cb) => cb(null, projectRoot),
+            filename: (_req, file, cb) => {
+              const ext = path.extname(file.originalname || "").slice(0, 16);
+              const hash = crypto.randomBytes(8).toString("hex");
+              cb(null, `cp_${Date.now()}_${hash}${ext}`);
+            },
+          }),
+          limits: {
+            files: 12,
+            fileSize:
+              Number.parseInt(process.env.MAX_COMMERCIAL_PROJECT_UPLOAD_BYTES || "", 10) ||
+              20 * 1024 * 1024,
+          },
+        }).array("files", 12);
+
+        upload(req as any, res as any, async (err) => {
+          if (err) {
+            return res.status(400).json({ message: err?.message || "Upload failed" });
+          }
+          try {
+            const files = Array.isArray((req as any).files)
+              ? ((req as any).files as Express.Multer.File[])
+              : [];
+            if (!files.length) return res.status(400).json({ message: "No files uploaded" });
+
+            await attachProjectDocuments(projectId, userId, files);
+            await db
+              .update(commercialProjects)
+              .set({ updatedAt: new Date() })
+              .where(eq(commercialProjects.id, projectId));
+
+            const docs = await db
+              .select()
+              .from(commercialProjectDocuments)
+              .where(eq(commercialProjectDocuments.projectId, projectId))
+              .orderBy(desc(commercialProjectDocuments.createdAt));
+            return res.status(201).json({ documents: docs });
+          } catch (inner: any) {
+            console.error("Error attaching project docs:", inner);
+            return res.status(500).json({ message: "Failed to attach documents" });
+          }
+        });
+      } catch (error: any) {
+        console.error("Error attaching project docs:", error);
+        res.status(500).json({ message: "Failed to attach documents" });
+      }
+    }
+  );
+
   app.put(
     "/api/admin/commercial-directory/projects/:id",
     isAuthenticated,
@@ -514,6 +589,85 @@ export function registerCommercialDirectoryRoutes(app: Express) {
       } catch (error: any) {
         console.error("Error fetching commercial directory board:", error);
         res.status(500).json({ message: "Failed to load commercial board" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/commercial-directory/projects/:id",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = toUserId(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const projectId = String(req.params.id || "");
+        if (!projectId) return res.status(400).json({ message: "Project ID required" });
+
+        const role = String(req.user?.role || "");
+        const isAdminRole = role === "ops_admin" || role === "super_admin" || role === "head_admin";
+
+        let contractorId: string | null = null;
+        if (!isAdminRole) {
+          const contractor = await getVerifiedContractorForUser(userId);
+          if (!contractor) {
+            return res.status(403).json({
+              message:
+                "Commercial directory access requires verified contractor status (license + insurance).",
+            });
+          }
+          contractorId = String((contractor as any).id);
+        }
+
+        const [project] = await db
+          .select()
+          .from(commercialProjects)
+          .where(eq(commercialProjects.id, projectId))
+          .limit(1);
+        if (!project) return res.status(404).json({ message: "Project not found" });
+
+        const docs = await db
+          .select({
+            id: commercialProjectDocuments.id,
+            fileName: commercialProjectDocuments.fileName,
+            fileUrl: commercialProjectDocuments.fileUrl,
+            mimeType: commercialProjectDocuments.mimeType,
+            fileSizeBytes: commercialProjectDocuments.fileSizeBytes,
+            createdAt: commercialProjectDocuments.createdAt,
+          })
+          .from(commercialProjectDocuments)
+          .where(eq(commercialProjectDocuments.projectId, projectId))
+          .orderBy(desc(commercialProjectDocuments.createdAt));
+
+        const [stats] = await db
+          .select({ bidsCount: sql<number>`count(*)::int` })
+          .from(commercialProjectBids)
+          .where(eq(commercialProjectBids.projectId, projectId));
+
+        const myBid =
+          contractorId != null
+            ? (
+                await db
+                  .select()
+                  .from(commercialProjectBids)
+                  .where(
+                    and(
+                      eq(commercialProjectBids.projectId, projectId),
+                      eq(commercialProjectBids.contractorId, contractorId)
+                    )
+                  )
+                  .limit(1)
+              )[0] || null
+            : null;
+
+        return res.json({
+          project,
+          documents: docs,
+          bidsCount: stats?.bidsCount || 0,
+          myBid,
+        });
+      } catch (error: any) {
+        console.error("Error fetching commercial project details:", error);
+        return res.status(500).json({ message: "Failed to load project details" });
       }
     }
   );
