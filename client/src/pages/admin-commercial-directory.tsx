@@ -23,10 +23,31 @@ type AdminProjectRow = {
   docsCount: number;
 };
 
+type ProjectBidRow = {
+  bid: {
+    id: string;
+    projectId: string;
+    contractorId: string;
+    amount: string;
+    timelineDays?: number | null;
+    proposal: string;
+    status: "submitted" | "shortlisted" | "accepted" | "rejected" | "withdrawn";
+    createdAt: string;
+  };
+  contractor: {
+    id: string;
+    companyName: string;
+    slug: string;
+    verifiedLicensed?: boolean | null;
+    verifiedInsured?: boolean | null;
+  } | null;
+};
+
 export default function AdminCommercialDirectoryPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [files, setFiles] = useState<File[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [form, setForm] = useState({
     title: "",
     summary: "",
@@ -47,6 +68,13 @@ export default function AdminCommercialDirectoryPage() {
   const { data, isLoading } = useQuery<AdminProjectRow[]>({
     queryKey: ["/api/admin/commercial-directory/projects"],
     queryFn: () => apiRequest("GET", "/api/admin/commercial-directory/projects"),
+  });
+
+  const { data: projectBids, isLoading: bidsLoading } = useQuery<ProjectBidRow[]>({
+    queryKey: ["/api/admin/commercial-directory/projects/bids", selectedProjectId],
+    queryFn: () =>
+      apiRequest("GET", `/api/admin/commercial-directory/projects/${selectedProjectId}/bids`),
+    enabled: Boolean(selectedProjectId),
   });
 
   const createMutation = useMutation({
@@ -99,6 +127,37 @@ export default function AdminCommercialDirectoryPage() {
     onError: (err: any) => {
       toast({
         title: "Create failed",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bidActionMutation = useMutation({
+    mutationFn: async (input: { bidId: string; action: "shortlist" | "reject" | "accept" }) => {
+      if (!selectedProjectId) throw new Error("Select a project");
+      return apiRequest(
+        "PUT",
+        `/api/admin/commercial-directory/projects/${selectedProjectId}/bids/${input.bidId}`,
+        { action: input.action }
+      );
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/commercial-directory/projects"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/commercial-directory/projects/bids", selectedProjectId],
+      });
+      toast({
+        title: "Bid updated",
+        description:
+          vars.action === "accept"
+            ? "Bid accepted and project marked as awarded."
+            : `Bid ${vars.action}ed.`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Bid action failed",
         description: err?.message || "Please try again.",
         variant: "destructive",
       });
@@ -269,7 +328,16 @@ export default function AdminCommercialDirectoryPage() {
               <div key={row.project.id} className="rounded border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-medium">{row.project.title}</div>
-                  <div className="text-sm">{row.project.status}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm">{row.project.status}</div>
+                    <Button
+                      size="sm"
+                      variant={selectedProjectId === row.project.id ? "default" : "outline"}
+                      onClick={() => setSelectedProjectId(row.project.id)}
+                    >
+                      {selectedProjectId === row.project.id ? "Viewing bids" : "Manage bids"}
+                    </Button>
+                  </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {row.project.stateCode}-{row.project.countyFips} | bids: {row.bidsCount} | docs:{" "}
@@ -287,6 +355,67 @@ export default function AdminCommercialDirectoryPage() {
           </div>
         </CardContent>
       </Card>
+
+      {selectedProjectId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bid Management</CardTitle>
+            <CardDescription>Project ID: {selectedProjectId}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {bidsLoading && <p>Loading bids...</p>}
+            {!bidsLoading && !projectBids?.length && <p>No bids yet.</p>}
+            {(projectBids || []).map((row) => (
+              <div key={row.bid.id} className="border rounded p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium">
+                    {row.contractor?.companyName || "Unknown contractor"}
+                  </div>
+                  <div className="text-sm">{row.bid.status}</div>
+                </div>
+                <div className="text-sm">
+                  Amount: ${Number(row.bid.amount).toLocaleString()} | Timeline:{" "}
+                  {row.bid.timelineDays || "n/a"} days
+                </div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {row.bid.proposal}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={bidActionMutation.isPending || row.bid.status === "accepted"}
+                    onClick={() =>
+                      bidActionMutation.mutate({ bidId: row.bid.id, action: "shortlist" })
+                    }
+                  >
+                    Shortlist
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={bidActionMutation.isPending || row.bid.status === "accepted"}
+                    onClick={() =>
+                      bidActionMutation.mutate({ bidId: row.bid.id, action: "reject" })
+                    }
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={bidActionMutation.isPending || row.bid.status === "accepted"}
+                    onClick={() =>
+                      bidActionMutation.mutate({ bidId: row.bid.id, action: "accept" })
+                    }
+                  >
+                    Accept & Award
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

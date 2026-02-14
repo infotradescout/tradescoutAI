@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import path from "path";
 import fs from "fs";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isAdmin, isAuthenticated } from "../auth";
 import { db } from "../db";
@@ -55,6 +55,10 @@ const createBidSchema = z.object({
   amount: z.coerce.number().positive(),
   timelineDays: z.coerce.number().int().positive().max(3650).optional(),
   proposal: z.string().min(20),
+});
+
+const adminBidActionSchema = z.object({
+  action: z.enum(["shortlist", "reject", "accept"]),
 });
 
 function ensureDir(dir: string) {
@@ -355,6 +359,100 @@ export function registerCommercialDirectoryRoutes(app: Express) {
       } catch (error: any) {
         console.error("Error fetching commercial project bids:", error);
         res.status(500).json({ message: "Failed to load project bids" });
+      }
+    }
+  );
+
+  app.put(
+    "/api/admin/commercial-directory/projects/:projectId/bids/:bidId",
+    isAuthenticated,
+    isAdmin,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const projectId = String(req.params.projectId || "");
+        const bidId = String(req.params.bidId || "");
+        const { action } = adminBidActionSchema.parse(req.body ?? {});
+
+        const result = await db.transaction(async (tx) => {
+          const [project] = await tx
+            .select()
+            .from(commercialProjects)
+            .where(eq(commercialProjects.id, projectId))
+            .limit(1);
+          if (!project) {
+            return { status: 404 as const, body: { message: "Project not found" } };
+          }
+
+          const [bid] = await tx
+            .select()
+            .from(commercialProjectBids)
+            .where(
+              and(
+                eq(commercialProjectBids.id, bidId),
+                eq(commercialProjectBids.projectId, projectId)
+              )
+            )
+            .limit(1);
+          if (!bid) {
+            return { status: 404 as const, body: { message: "Bid not found" } };
+          }
+
+          const now = new Date();
+          if (action === "shortlist") {
+            const [updated] = await tx
+              .update(commercialProjectBids)
+              .set({ status: "shortlisted", updatedAt: now })
+              .where(eq(commercialProjectBids.id, bidId))
+              .returning();
+            return { status: 200 as const, body: { bid: updated, project } };
+          }
+
+          if (action === "reject") {
+            const [updated] = await tx
+              .update(commercialProjectBids)
+              .set({ status: "rejected", updatedAt: now })
+              .where(eq(commercialProjectBids.id, bidId))
+              .returning();
+            return { status: 200 as const, body: { bid: updated, project } };
+          }
+
+          // action === "accept"
+          await tx
+            .update(commercialProjectBids)
+            .set({ status: "rejected", updatedAt: now })
+            .where(
+              and(
+                eq(commercialProjectBids.projectId, projectId),
+                inArray(commercialProjectBids.status, ["submitted", "shortlisted"] as any)
+              )
+            );
+
+          const [accepted] = await tx
+            .update(commercialProjectBids)
+            .set({ status: "accepted", updatedAt: now })
+            .where(eq(commercialProjectBids.id, bidId))
+            .returning();
+
+          const [updatedProject] = await tx
+            .update(commercialProjects)
+            .set({
+              status: "awarded",
+              winningBidId: bidId,
+              updatedAt: now,
+            })
+            .where(eq(commercialProjects.id, projectId))
+            .returning();
+
+          return { status: 200 as const, body: { bid: accepted, project: updatedProject } };
+        });
+
+        return res.status(result.status).json(result.body);
+      } catch (error: any) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: "Invalid payload", errors: error.flatten() });
+        }
+        console.error("Error updating commercial bid status:", error);
+        return res.status(500).json({ message: "Failed to update bid status" });
       }
     }
   );
