@@ -11,6 +11,7 @@ import {
   commercialProjectDocuments,
   commercialProjects,
   contractors,
+  verificationDocuments,
   type CommercialProject,
 } from "@shared/schema";
 
@@ -59,6 +60,11 @@ const createBidSchema = z.object({
 
 const adminBidActionSchema = z.object({
   action: z.enum(["shortlist", "reject", "accept"]),
+});
+
+const reviewVerificationDocumentSchema = z.object({
+  approved: z.coerce.boolean(),
+  notes: z.string().max(1000).optional(),
 });
 
 function ensureDir(dir: string) {
@@ -113,8 +119,18 @@ async function getVerifiedContractorForUser(userId: string) {
   const hasLicense = verification.hasLicense || Boolean((contractor as any).verifiedLicensed);
   const hasInsurance = verification.hasInsurance || Boolean((contractor as any).verifiedInsured);
   const isActive = (contractor as any).isActive !== false;
+  const docs = await getContractorVerificationDocumentState(String((contractor as any).id));
 
-  if (!hasLicense || !hasInsurance || !isActive) {
+  const hasApprovedLicenseDoc = docs.hasApprovedLicenseDoc;
+  const hasApprovedInsuranceDoc = docs.hasApprovedInsuranceDoc;
+
+  if (
+    !hasLicense ||
+    !hasInsurance ||
+    !isActive ||
+    !hasApprovedLicenseDoc ||
+    !hasApprovedInsuranceDoc
+  ) {
     return null;
   }
   return contractor;
@@ -131,6 +147,8 @@ type BidEligibilitySnapshot = {
 function toBidEligibilitySnapshot(input: {
   contractor: any | null;
   verification: { hasLicense?: boolean; hasInsurance?: boolean } | null | undefined;
+  hasApprovedLicenseDoc?: boolean;
+  hasApprovedInsuranceDoc?: boolean;
 }): BidEligibilitySnapshot {
   const contractor = input.contractor;
   if (!contractor) {
@@ -144,9 +162,11 @@ function toBidEligibilitySnapshot(input: {
   }
 
   const hasLicense =
-    Boolean(input.verification?.hasLicense) || Boolean((contractor as any).verifiedLicensed);
+    (Boolean(input.verification?.hasLicense) || Boolean((contractor as any).verifiedLicensed)) &&
+    (input.hasApprovedLicenseDoc ?? true);
   const hasInsurance =
-    Boolean(input.verification?.hasInsurance) || Boolean((contractor as any).verifiedInsured);
+    (Boolean(input.verification?.hasInsurance) || Boolean((contractor as any).verifiedInsured)) &&
+    (input.hasApprovedInsuranceDoc ?? true);
   const isActive = (contractor as any).isActive !== false;
 
   if (!isActive) {
@@ -160,6 +180,45 @@ function toBidEligibilitySnapshot(input: {
   }
 
   return { isEligible: true, reason: "ok", hasLicense, hasInsurance, isActive };
+}
+
+async function getContractorVerificationDocumentState(contractorId: string) {
+  const docs = await db
+    .select({
+      id: verificationDocuments.id,
+      type: verificationDocuments.type,
+      status: verificationDocuments.status,
+      expiresAt: verificationDocuments.expiresAt,
+      createdAt: verificationDocuments.createdAt,
+      fileName: verificationDocuments.fileName,
+      fileUrl: verificationDocuments.fileUrl,
+      reviewNotes: verificationDocuments.reviewNotes,
+      reviewedBy: verificationDocuments.reviewedBy,
+      reviewedAt: verificationDocuments.reviewedAt,
+    })
+    .from(verificationDocuments)
+    .where(eq(verificationDocuments.contractorId, contractorId))
+    .orderBy(desc(verificationDocuments.createdAt));
+
+  const now = Date.now();
+  const hasApprovedLicenseDoc = docs.some(
+    (doc) =>
+      doc.type === "license" &&
+      doc.status === "approved" &&
+      (!doc.expiresAt || new Date(doc.expiresAt).getTime() > now)
+  );
+  const hasApprovedInsuranceDoc = docs.some(
+    (doc) =>
+      doc.type === "insurance" &&
+      doc.status === "approved" &&
+      (!doc.expiresAt || new Date(doc.expiresAt).getTime() > now)
+  );
+
+  return {
+    docs,
+    hasApprovedLicenseDoc,
+    hasApprovedInsuranceDoc,
+  };
 }
 
 async function attachProjectDocuments(
@@ -182,6 +241,255 @@ async function attachProjectDocuments(
 }
 
 export function registerCommercialDirectoryRoutes(app: Express) {
+  app.get(
+    "/api/commercial-directory/verification/status",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = toUserId(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        if (!contractor || !contractor.id) {
+          return res.status(404).json({
+            message: "Contractor profile not found.",
+            isEligible: false,
+            requires: ["contractor_profile"],
+          });
+        }
+
+        const docsState = await getContractorVerificationDocumentState(String(contractor.id));
+        const requires: string[] = [];
+        if (!docsState.hasApprovedLicenseDoc) requires.push("approved_license");
+        if (!docsState.hasApprovedInsuranceDoc) requires.push("approved_insurance");
+
+        return res.json({
+          contractorId: contractor.id,
+          verifiedLicensed: Boolean((contractor as any).verifiedLicensed),
+          verifiedInsured: Boolean((contractor as any).verifiedInsured),
+          hasApprovedLicenseDoc: docsState.hasApprovedLicenseDoc,
+          hasApprovedInsuranceDoc: docsState.hasApprovedInsuranceDoc,
+          isEligible: requires.length === 0,
+          requires,
+          documents: docsState.docs,
+        });
+      } catch (error: any) {
+        console.error("Error fetching contractor verification status:", error);
+        return res.status(500).json({ message: "Failed to load verification status" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/commercial-directory/verification/documents",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = toUserId(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const contractor = await storage.getContractorByUserId(userId);
+        if (!contractor || !contractor.id) {
+          return res.status(404).json({ message: "Contractor profile not found." });
+        }
+
+        const multer = (await import("multer")).default;
+        const crypto = await import("crypto");
+        const uploadRoot = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+        const verificationRoot = path.join(uploadRoot, "contractor-verification");
+        ensureDir(verificationRoot);
+
+        const upload = multer({
+          storage: multer.diskStorage({
+            destination: (_req, _file, cb) => cb(null, verificationRoot),
+            filename: (_req, file, cb) => {
+              const ext = path.extname(file.originalname || "").slice(0, 16);
+              const hash = crypto.randomBytes(8).toString("hex");
+              cb(null, `cv_${Date.now()}_${hash}${ext}`);
+            },
+          }),
+          limits: {
+            files: 2,
+            fileSize:
+              Number.parseInt(process.env.MAX_CONTRACTOR_VERIFICATION_UPLOAD_BYTES || "", 10) ||
+              20 * 1024 * 1024,
+          },
+        }).fields([
+          { name: "licenseFile", maxCount: 1 },
+          { name: "insuranceFile", maxCount: 1 },
+        ]);
+
+        upload(req as any, res as any, async (err) => {
+          if (err) {
+            return res.status(400).json({ message: err?.message || "Upload failed" });
+          }
+
+          try {
+            const files = ((req as any).files || {}) as Record<string, Express.Multer.File[]>;
+            const licenseFile = Array.isArray(files.licenseFile) ? files.licenseFile[0] : null;
+            const insuranceFile = Array.isArray(files.insuranceFile)
+              ? files.insuranceFile[0]
+              : null;
+
+            if (!licenseFile || !insuranceFile) {
+              return res.status(400).json({
+                message:
+                  "Both license and insurance documents are required for commercial contractor verification.",
+              });
+            }
+
+            const rawLicenseExpiry = String((req.body?.licenseExpiresAt || "") as string).trim();
+            const rawInsuranceExpiry = String(
+              (req.body?.insuranceExpiresAt || "") as string
+            ).trim();
+            const licenseExpiresAt =
+              rawLicenseExpiry.length > 0 && !Number.isNaN(Date.parse(rawLicenseExpiry))
+                ? new Date(rawLicenseExpiry)
+                : null;
+            const insuranceExpiresAt =
+              rawInsuranceExpiry.length > 0 && !Number.isNaN(Date.parse(rawInsuranceExpiry))
+                ? new Date(rawInsuranceExpiry)
+                : null;
+
+            await db.insert(verificationDocuments).values([
+              {
+                contractorId: String(contractor.id),
+                type: "license",
+                fileName: licenseFile.originalname || licenseFile.filename,
+                fileUrl: `/uploads/contractor-verification/${licenseFile.filename}`,
+                status: "pending",
+                expiresAt: licenseExpiresAt,
+              },
+              {
+                contractorId: String(contractor.id),
+                type: "insurance",
+                fileName: insuranceFile.originalname || insuranceFile.filename,
+                fileUrl: `/uploads/contractor-verification/${insuranceFile.filename}`,
+                status: "pending",
+                expiresAt: insuranceExpiresAt,
+              },
+            ]);
+
+            await db
+              .update(contractors)
+              .set({
+                verifiedLicensed: false,
+                verifiedInsured: false,
+                insuranceDocUrl: `/uploads/contractor-verification/${insuranceFile.filename}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(contractors.id, String(contractor.id)));
+
+            return res.status(201).json({
+              message:
+                "Verification documents submitted. Human review is required before commercial access is granted.",
+            });
+          } catch (inner: any) {
+            console.error("Error submitting contractor verification documents:", inner);
+            return res.status(500).json({ message: "Failed to submit verification documents" });
+          }
+        });
+      } catch (error: any) {
+        console.error("Error submitting contractor verification documents:", error);
+        return res.status(500).json({ message: "Failed to submit verification documents" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/commercial-directory/verification/pending",
+    isAuthenticated,
+    isAdmin,
+    async (_req: AuthedRequest, res: Response) => {
+      try {
+        const rows = await db
+          .select({
+            document: verificationDocuments,
+            contractor: {
+              id: contractors.id,
+              companyName: contractors.companyName,
+              slug: contractors.slug,
+              verifiedLicensed: contractors.verifiedLicensed,
+              verifiedInsured: contractors.verifiedInsured,
+            },
+          })
+          .from(verificationDocuments)
+          .leftJoin(contractors, eq(contractors.id, verificationDocuments.contractorId))
+          .where(
+            and(
+              eq(verificationDocuments.status, "pending"),
+              inArray(verificationDocuments.type, ["license", "insurance"] as any)
+            )
+          )
+          .orderBy(desc(verificationDocuments.createdAt));
+
+        return res.json(rows);
+      } catch (error: any) {
+        console.error("Error loading pending contractor verification docs:", error);
+        return res.status(500).json({ message: "Failed to load pending verification docs" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/commercial-directory/verification/documents/:id/review",
+    isAuthenticated,
+    isAdmin,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const adminId = toUserId(req);
+        if (!adminId) return res.status(401).json({ message: "Unauthorized" });
+        const documentId = String(req.params.id || "");
+        if (!documentId) return res.status(400).json({ message: "Document ID required" });
+        const payload = reviewVerificationDocumentSchema.parse(req.body ?? {});
+
+        const [doc] = await db
+          .select()
+          .from(verificationDocuments)
+          .where(eq(verificationDocuments.id, documentId))
+          .limit(1);
+        if (!doc) return res.status(404).json({ message: "Verification document not found" });
+
+        const [updatedDoc] = await db
+          .update(verificationDocuments)
+          .set({
+            status: payload.approved ? "approved" : "rejected",
+            reviewNotes: payload.notes || null,
+            reviewedBy: adminId,
+            reviewedAt: new Date(),
+          })
+          .where(eq(verificationDocuments.id, documentId))
+          .returning();
+
+        const contractorId = String(doc.contractorId || "");
+        if (contractorId) {
+          const docsState = await getContractorVerificationDocumentState(contractorId);
+          await db
+            .update(contractors)
+            .set({
+              verifiedLicensed: docsState.hasApprovedLicenseDoc,
+              verifiedInsured: docsState.hasApprovedInsuranceDoc,
+              lastVerified:
+                docsState.hasApprovedLicenseDoc && docsState.hasApprovedInsuranceDoc
+                  ? new Date()
+                  : null,
+              updatedAt: new Date(),
+            })
+            .where(eq(contractors.id, contractorId));
+        }
+
+        return res.json({ document: updatedDoc });
+      } catch (error: any) {
+        if (error instanceof z.ZodError) {
+          return res
+            .status(400)
+            .json({ message: "Invalid review payload", errors: error.flatten() });
+        }
+        console.error("Error reviewing contractor verification doc:", error);
+        return res.status(500).json({ message: "Failed to review verification document" });
+      }
+    }
+  );
+
   app.get(
     "/api/admin/commercial-directory/projects",
     isAuthenticated,
@@ -485,6 +793,25 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const verificationSummary =
           bidderUserIds.length > 0 ? await storage.getUserVerificationSummary(bidderUserIds) : {};
 
+        const contractorIds = Array.from(
+          new Set(
+            bids
+              .map((row) => String((row.contractor as any)?.id || "").trim())
+              .filter((value) => value.length > 0)
+          )
+        );
+        const docsStateByContractorId = new Map<
+          string,
+          { hasApprovedLicenseDoc: boolean; hasApprovedInsuranceDoc: boolean }
+        >();
+        for (const contractorId of contractorIds) {
+          const state = await getContractorVerificationDocumentState(contractorId);
+          docsStateByContractorId.set(contractorId, {
+            hasApprovedLicenseDoc: state.hasApprovedLicenseDoc,
+            hasApprovedInsuranceDoc: state.hasApprovedInsuranceDoc,
+          });
+        }
+
         const withEligibility = bids.map((row) => {
           const bidderUserId = String((row.bid as any).bidderUserId || "").trim();
           const verification =
@@ -495,9 +822,13 @@ export function registerCommercialDirectoryRoutes(app: Express) {
                   hasEin: false,
                 }
               : null;
+          const contractorId = String((row.contractor as any)?.id || "").trim();
+          const docState = contractorId ? docsStateByContractorId.get(contractorId) : null;
           const eligibility = toBidEligibilitySnapshot({
             contractor: row.contractor,
             verification,
+            hasApprovedLicenseDoc: docState?.hasApprovedLicenseDoc,
+            hasApprovedInsuranceDoc: docState?.hasApprovedInsuranceDoc,
           });
 
           return {

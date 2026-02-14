@@ -77,6 +77,25 @@ type ProjectDetailPayload = {
   bidsCount: number;
 };
 
+type PendingVerificationDocRow = {
+  document: {
+    id: string;
+    contractorId: string;
+    type: "license" | "insurance" | string;
+    fileName: string;
+    fileUrl: string;
+    status: string;
+    createdAt?: string;
+  };
+  contractor: {
+    id: string;
+    companyName: string;
+    slug: string;
+    verifiedLicensed?: boolean | null;
+    verifiedInsured?: boolean | null;
+  } | null;
+};
+
 function renderBudget(min?: string | null, max?: string | null): string {
   const a = min ? Number(min).toLocaleString() : null;
   const b = max ? Number(max).toLocaleString() : null;
@@ -126,6 +145,13 @@ export default function AdminCommercialDirectoryPage() {
   const { data, isLoading } = useQuery<AdminProjectRow[]>({
     queryKey: ["/api/admin/commercial-directory/projects"],
     queryFn: () => apiRequest("GET", "/api/admin/commercial-directory/projects"),
+  });
+
+  const { data: pendingVerificationDocs, isLoading: pendingVerificationLoading } = useQuery<
+    PendingVerificationDocRow[]
+  >({
+    queryKey: ["/api/admin/commercial-directory/verification/pending"],
+    queryFn: () => apiRequest("GET", "/api/admin/commercial-directory/verification/pending"),
   });
 
   const { data: details, isLoading: detailsLoading } = useQuery<ProjectDetailPayload>({
@@ -308,6 +334,35 @@ export default function AdminCommercialDirectoryPage() {
     },
   });
 
+  const reviewVerificationMutation = useMutation({
+    mutationFn: async (input: { documentId: string; approved: boolean }) => {
+      return apiRequest(
+        "POST",
+        `/api/admin/commercial-directory/verification/documents/${input.documentId}/review`,
+        { approved: input.approved }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/commercial-directory/verification/pending"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/commercial-directory/projects/bids"],
+      });
+      toast({
+        title: "Verification reviewed",
+        description: "Contractor verification document status updated.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Review failed",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const canSubmit = useMemo(() => {
     return (
       form.title.trim().length >= 3 &&
@@ -333,6 +388,74 @@ export default function AdminCommercialDirectoryPage() {
           and award verified contractor bids.
         </p>
       </section>
+
+      <Card className="border-slate-700 bg-slate-950/70">
+        <CardHeader>
+          <CardTitle>Verification Review Queue</CardTitle>
+          <CardDescription>
+            Human review for contractor license and insurance documents required for commercial
+            access.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pendingVerificationLoading && <p>Loading pending verification docs...</p>}
+          {!pendingVerificationLoading && !pendingVerificationDocs?.length && (
+            <p>No pending verification documents.</p>
+          )}
+          {(pendingVerificationDocs || []).map((row) => (
+            <div
+              key={row.document.id}
+              className="rounded border border-slate-700 bg-slate-900/60 p-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-medium">
+                    {row.contractor?.companyName || "Unknown contractor"} - {row.document.type}
+                  </div>
+                  <div className="text-xs text-slate-400">{row.document.fileName}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={reviewVerificationMutation.isPending}
+                    onClick={() =>
+                      reviewVerificationMutation.mutate({
+                        documentId: row.document.id,
+                        approved: false,
+                      })
+                    }
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={reviewVerificationMutation.isPending}
+                    onClick={() =>
+                      reviewVerificationMutation.mutate({
+                        documentId: row.document.id,
+                        approved: true,
+                      })
+                    }
+                  >
+                    Approve
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-2">
+                <a
+                  href={row.document.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm underline text-emerald-200"
+                >
+                  Open document
+                </a>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
         <Card className="border-slate-700 bg-slate-950/70">

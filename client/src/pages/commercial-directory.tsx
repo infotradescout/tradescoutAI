@@ -56,6 +56,26 @@ type ProjectDetails = {
   } | null;
 };
 
+type VerificationStatusPayload = {
+  contractorId: string;
+  verifiedLicensed: boolean;
+  verifiedInsured: boolean;
+  hasApprovedLicenseDoc: boolean;
+  hasApprovedInsuranceDoc: boolean;
+  isEligible: boolean;
+  requires: string[];
+  documents: Array<{
+    id: string;
+    type: string;
+    status: string;
+    fileName: string;
+    fileUrl: string;
+    expiresAt?: string | null;
+    createdAt?: string | null;
+    reviewNotes?: string | null;
+  }>;
+};
+
 export default function CommercialDirectoryPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,6 +84,15 @@ export default function CommercialDirectoryPage() {
   const [amount, setAmount] = useState("");
   const [timelineDays, setTimelineDays] = useState("");
   const [proposal, setProposal] = useState("");
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [licenseExpiresAt, setLicenseExpiresAt] = useState("");
+  const [insuranceExpiresAt, setInsuranceExpiresAt] = useState("");
+
+  const { data: verificationStatus } = useQuery<VerificationStatusPayload>({
+    queryKey: ["/api/commercial-directory/verification/status"],
+    queryFn: () => apiRequest("GET", "/api/commercial-directory/verification/status"),
+  });
 
   const { data, isLoading, error } = useQuery<BoardProject[]>({
     queryKey: ["/api/commercial-directory/projects", countyFilter],
@@ -132,6 +161,49 @@ export default function CommercialDirectoryPage() {
     },
   });
 
+  const uploadVerificationMutation = useMutation({
+    mutationFn: async () => {
+      if (!licenseFile || !insuranceFile) {
+        throw new Error("Both license and insurance documents are required.");
+      }
+      const fd = new FormData();
+      fd.append("licenseFile", licenseFile);
+      fd.append("insuranceFile", insuranceFile);
+      if (licenseExpiresAt) fd.append("licenseExpiresAt", licenseExpiresAt);
+      if (insuranceExpiresAt) fd.append("insuranceExpiresAt", insuranceExpiresAt);
+
+      const res = await fetch("/api/commercial-directory/verification/documents", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.message || "Upload failed");
+      return body;
+    },
+    onSuccess: () => {
+      setLicenseFile(null);
+      setInsuranceFile(null);
+      setLicenseExpiresAt("");
+      setInsuranceExpiresAt("");
+      toast({
+        title: "Verification documents submitted",
+        description: "Your license and insurance are now pending human review.",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/commercial-directory/verification/status"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/commercial-directory/projects"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Upload failed",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       <div className="rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-900 to-blue-950 p-6">
@@ -144,6 +216,86 @@ export default function CommercialDirectoryPage() {
           official workflow.
         </p>
       </div>
+
+      <Card className="border-slate-700 bg-slate-950/70">
+        <CardHeader>
+          <CardTitle>Commercial Verification Gate</CardTitle>
+          <CardDescription>
+            Commercial job access requires approved license and insurance documents reviewed by
+            staff.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="rounded border border-slate-700 p-3">
+              License:{" "}
+              {verificationStatus?.hasApprovedLicenseDoc ? (
+                <span className="text-emerald-300">approved</span>
+              ) : (
+                <span className="text-amber-300">required</span>
+              )}
+            </div>
+            <div className="rounded border border-slate-700 p-3">
+              Insurance:{" "}
+              {verificationStatus?.hasApprovedInsuranceDoc ? (
+                <span className="text-emerald-300">approved</span>
+              ) : (
+                <span className="text-amber-300">required</span>
+              )}
+            </div>
+          </div>
+
+          {!verificationStatus?.isEligible && (
+            <div className="space-y-3 rounded border border-amber-500/50 bg-amber-500/10 p-3">
+              <p className="text-sm text-amber-100">
+                Upload both documents to enter review. Bids and open-job access remain blocked until
+                approval.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label>License Document</Label>
+                  <Input
+                    type="file"
+                    onChange={(e) => setLicenseFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+                <div>
+                  <Label>Insurance Document</Label>
+                  <Input
+                    type="file"
+                    onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+                <div>
+                  <Label>License Expiration (optional)</Label>
+                  <Input
+                    type="date"
+                    value={licenseExpiresAt}
+                    onChange={(e) => setLicenseExpiresAt(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Insurance Expiration (optional)</Label>
+                  <Input
+                    type="date"
+                    value={insuranceExpiresAt}
+                    onChange={(e) => setInsuranceExpiresAt(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                disabled={uploadVerificationMutation.isPending || !licenseFile || !insuranceFile}
+                onClick={() => uploadVerificationMutation.mutate()}
+              >
+                {uploadVerificationMutation.isPending
+                  ? "Submitting..."
+                  : "Submit License and Insurance for Review"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
         <Card className="border-slate-700 bg-slate-950/70">
