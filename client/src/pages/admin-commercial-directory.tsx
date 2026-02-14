@@ -387,6 +387,11 @@ export default function AdminCommercialDirectoryPage() {
           Publish official commercial project packages, control campaign exposure, issue addenda,
           and award verified contractor bids.
         </p>
+        <div className="mt-4">
+          <a href="/admin/commercial-contractors" className="text-sm underline text-emerald-200">
+            Open separate Commercial Contractor Management portal
+          </a>
+        </div>
       </section>
 
       <Card className="border-slate-700 bg-slate-950/70">

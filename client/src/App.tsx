@@ -145,6 +145,9 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 const AdminShell = React.lazy(() => import("./pages/admin"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
 const AdminCommercialDirectoryPage = React.lazy(() => import("./pages/admin-commercial-directory"));
+const AdminCommercialContractorsPage = React.lazy(
+  () => import("./pages/admin-commercial-contractors")
+);
 
 // Marketplace & Social
 const ContractorLeads = React.lazy(() => import("./pages/contractor-leads"));
@@ -708,6 +711,11 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin/commercial-directory">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={AdminCommercialDirectoryPage} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/commercial-contractors">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminCommercialContractorsPage} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/contractor-apply">

@@ -67,6 +67,10 @@ const reviewVerificationDocumentSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
+const updateCommercialContractorStatusSchema = z.object({
+  isActive: z.coerce.boolean(),
+});
+
 function ensureDir(dir: string) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
@@ -486,6 +490,148 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         }
         console.error("Error reviewing contractor verification doc:", error);
         return res.status(500).json({ message: "Failed to review verification document" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/commercial-directory/contractors",
+    isAuthenticated,
+    isAdmin,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const search = String(req.query.search || "")
+          .trim()
+          .toLowerCase();
+        const statusFilter = String(req.query.status || "all")
+          .trim()
+          .toLowerCase();
+
+        const allContractors = await db
+          .select({
+            id: contractors.id,
+            userId: contractors.userId,
+            companyName: contractors.companyName,
+            slug: contractors.slug,
+            email: contractors.email,
+            phone: contractors.phone,
+            isActive: contractors.isActive,
+            verifiedLicensed: contractors.verifiedLicensed,
+            verifiedInsured: contractors.verifiedInsured,
+            createdAt: contractors.createdAt,
+            updatedAt: contractors.updatedAt,
+          })
+          .from(contractors)
+          .orderBy(desc(contractors.createdAt));
+
+        const filteredBySearch =
+          search.length > 0
+            ? allContractors.filter((c) => {
+                const haystack = `${c.companyName || ""} ${c.email || ""} ${c.phone || ""} ${
+                  c.slug || ""
+                }`.toLowerCase();
+                return haystack.includes(search);
+              })
+            : allContractors;
+
+        const userIds = Array.from(
+          new Set(
+            filteredBySearch
+              .map((c) => String(c.userId || "").trim())
+              .filter((value) => value.length > 0)
+          )
+        );
+        const verificationSummary =
+          userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
+
+        const rows = await Promise.all(
+          filteredBySearch.map(async (c) => {
+            const docsState = await getContractorVerificationDocumentState(String(c.id));
+            const verification = c.userId
+              ? verificationSummary[String(c.userId)] || {
+                  hasLicense: false,
+                  hasInsurance: false,
+                  hasEin: false,
+                }
+              : { hasLicense: false, hasInsurance: false, hasEin: false };
+
+            const hasLicense =
+              (verification?.hasLicense || Boolean(c.verifiedLicensed)) &&
+              docsState.hasApprovedLicenseDoc;
+            const hasInsurance =
+              (verification?.hasInsurance || Boolean(c.verifiedInsured)) &&
+              docsState.hasApprovedInsuranceDoc;
+            const isActive = c.isActive !== false;
+            const eligibleForCommercial = hasLicense && hasInsurance && isActive;
+
+            const pendingDocs = docsState.docs.filter((d) => d.status === "pending").length;
+            const rejectedDocs = docsState.docs.filter((d) => d.status === "rejected").length;
+
+            return {
+              contractor: c,
+              verification: {
+                hasLicense,
+                hasInsurance,
+                hasApprovedLicenseDoc: docsState.hasApprovedLicenseDoc,
+                hasApprovedInsuranceDoc: docsState.hasApprovedInsuranceDoc,
+                isActive,
+                eligibleForCommercial,
+                pendingDocs,
+                rejectedDocs,
+              },
+              documents: docsState.docs.filter(
+                (d) => d.type === "license" || d.type === "insurance"
+              ),
+            };
+          })
+        );
+
+        const filteredByStatus =
+          statusFilter === "all"
+            ? rows
+            : rows.filter((row) => {
+                if (statusFilter === "eligible") return row.verification.eligibleForCommercial;
+                if (statusFilter === "ineligible") return !row.verification.eligibleForCommercial;
+                if (statusFilter === "pending") return row.verification.pendingDocs > 0;
+                if (statusFilter === "suspended") return !row.verification.isActive;
+                return true;
+              });
+
+        return res.json(filteredByStatus);
+      } catch (error: any) {
+        console.error("Error loading commercial contractors:", error);
+        return res.status(500).json({ message: "Failed to load commercial contractors" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/admin/commercial-directory/contractors/:id/status",
+    isAuthenticated,
+    isAdmin,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const contractorId = String(req.params.id || "");
+        if (!contractorId) return res.status(400).json({ message: "Contractor ID required" });
+        const payload = updateCommercialContractorStatusSchema.parse(req.body ?? {});
+
+        const [updated] = await db
+          .update(contractors)
+          .set({
+            isActive: payload.isActive,
+            updatedAt: new Date(),
+          })
+          .where(eq(contractors.id, contractorId))
+          .returning();
+
+        if (!updated) return res.status(404).json({ message: "Contractor not found" });
+        return res.json(updated);
+      } catch (error: any) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: "Invalid payload", errors: error.flatten() });
+        }
+        console.error("Error updating commercial contractor status:", error);
+        return res.status(500).json({ message: "Failed to update contractor status" });
       }
     }
   );
