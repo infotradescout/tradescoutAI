@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS "idx_homescout_county_status_price_changed_at"
   ON "home_scout_listings" ("county_fips", "status", "price_changed_at" DESC);
 
 -- ---------------------------------------------------------------------------
--- Precomputed “similar homes” buckets (jobs write; UI reads)
+-- Precomputed "similar homes" buckets (jobs write; UI reads)
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS "home_scout_market_buckets" (

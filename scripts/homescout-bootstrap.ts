@@ -42,7 +42,7 @@ async function applySqlFile(relPath: string) {
 
 async function ensureHomeScoutSchema() {
   // We intentionally apply repo SQL migrations directly here because:
-  // - drizzle-kit migrate is not reliable in this repo (journal may be out of date)
+  // - direct SQL is deterministic even when local Drizzle metadata drifts
   // - drizzle-kit push can prompt interactively (rename detection)
   const files = [
     "migrations/0038_county_intelligence_containers.sql",
