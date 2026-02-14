@@ -120,6 +120,48 @@ async function getVerifiedContractorForUser(userId: string) {
   return contractor;
 }
 
+type BidEligibilitySnapshot = {
+  isEligible: boolean;
+  reason: "ok" | "missing_contractor" | "inactive" | "missing_license" | "missing_insurance";
+  hasLicense: boolean;
+  hasInsurance: boolean;
+  isActive: boolean;
+};
+
+function toBidEligibilitySnapshot(input: {
+  contractor: any | null;
+  verification: { hasLicense?: boolean; hasInsurance?: boolean } | null | undefined;
+}): BidEligibilitySnapshot {
+  const contractor = input.contractor;
+  if (!contractor) {
+    return {
+      isEligible: false,
+      reason: "missing_contractor",
+      hasLicense: false,
+      hasInsurance: false,
+      isActive: false,
+    };
+  }
+
+  const hasLicense =
+    Boolean(input.verification?.hasLicense) || Boolean((contractor as any).verifiedLicensed);
+  const hasInsurance =
+    Boolean(input.verification?.hasInsurance) || Boolean((contractor as any).verifiedInsured);
+  const isActive = (contractor as any).isActive !== false;
+
+  if (!isActive) {
+    return { isEligible: false, reason: "inactive", hasLicense, hasInsurance, isActive };
+  }
+  if (!hasLicense) {
+    return { isEligible: false, reason: "missing_license", hasLicense, hasInsurance, isActive };
+  }
+  if (!hasInsurance) {
+    return { isEligible: false, reason: "missing_insurance", hasLicense, hasInsurance, isActive };
+  }
+
+  return { isEligible: true, reason: "ok", hasLicense, hasInsurance, isActive };
+}
+
 async function attachProjectDocuments(
   projectId: string,
   uploadedByUserId: string,
@@ -420,8 +462,10 @@ export function registerCommercialDirectoryRoutes(app: Express) {
             bid: commercialProjectBids,
             contractor: {
               id: contractors.id,
+              userId: contractors.userId,
               companyName: contractors.companyName,
               slug: contractors.slug,
+              isActive: contractors.isActive,
               verifiedLicensed: contractors.verifiedLicensed,
               verifiedInsured: contractors.verifiedInsured,
             },
@@ -430,7 +474,39 @@ export function registerCommercialDirectoryRoutes(app: Express) {
           .leftJoin(contractors, eq(contractors.id, commercialProjectBids.contractorId))
           .where(eq(commercialProjectBids.projectId, id))
           .orderBy(desc(commercialProjectBids.createdAt));
-        res.json(bids);
+
+        const bidderUserIds = Array.from(
+          new Set(
+            bids
+              .map((row) => String((row.bid as any).bidderUserId || "").trim())
+              .filter((value) => value.length > 0)
+          )
+        );
+        const verificationSummary =
+          bidderUserIds.length > 0 ? await storage.getUserVerificationSummary(bidderUserIds) : {};
+
+        const withEligibility = bids.map((row) => {
+          const bidderUserId = String((row.bid as any).bidderUserId || "").trim();
+          const verification =
+            bidderUserId.length > 0
+              ? verificationSummary[bidderUserId] || {
+                  hasLicense: false,
+                  hasInsurance: false,
+                  hasEin: false,
+                }
+              : null;
+          const eligibility = toBidEligibilitySnapshot({
+            contractor: row.contractor,
+            verification,
+          });
+
+          return {
+            ...row,
+            eligibility,
+          };
+        });
+
+        res.json(withEligibility);
       } catch (error: any) {
         console.error("Error fetching commercial project bids:", error);
         res.status(500).json({ message: "Failed to load project bids" });
@@ -470,6 +546,22 @@ export function registerCommercialDirectoryRoutes(app: Express) {
             .limit(1);
           if (!bid) {
             return { status: 404 as const, body: { message: "Bid not found" } };
+          }
+
+          if (action !== "reject") {
+            const bidderUserId = String((bid as any).bidderUserId || "");
+            const contractorId = String((bid as any).contractorId || "");
+            const activeContractor = bidderUserId
+              ? await getVerifiedContractorForUser(bidderUserId)
+              : null;
+            if (!activeContractor || String((activeContractor as any).id) !== contractorId) {
+              return {
+                status: 400 as const,
+                body: {
+                  message: "Contractor is no longer verified and cannot be shortlisted or awarded.",
+                },
+              };
+            }
           }
 
           const now = new Date();

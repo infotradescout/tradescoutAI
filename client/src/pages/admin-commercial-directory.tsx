@@ -41,6 +41,13 @@ type ProjectBidRow = {
     verifiedLicensed?: boolean | null;
     verifiedInsured?: boolean | null;
   } | null;
+  eligibility?: {
+    isEligible: boolean;
+    reason: "ok" | "missing_contractor" | "inactive" | "missing_license" | "missing_insurance";
+    hasLicense: boolean;
+    hasInsurance: boolean;
+    isActive: boolean;
+  };
 };
 
 type ProjectDetailPayload = {
@@ -77,6 +84,16 @@ function renderBudget(min?: string | null, max?: string | null): string {
   if (a) return `From $${a}`;
   if (b) return `Up to $${b}`;
   return "Budget on request";
+}
+
+function renderEligibilityReason(
+  reason: "ok" | "missing_contractor" | "inactive" | "missing_license" | "missing_insurance"
+): string {
+  if (reason === "missing_contractor") return "Contractor profile missing";
+  if (reason === "inactive") return "Contractor is inactive";
+  if (reason === "missing_license") return "License verification missing";
+  if (reason === "missing_insurance") return "Insurance verification missing";
+  return "Eligible";
 }
 
 export default function AdminCommercialDirectoryPage() {
@@ -670,6 +687,12 @@ export default function AdminCommercialDirectoryPage() {
                     key={row.bid.id}
                     className="border border-slate-700 rounded p-3 space-y-2 bg-slate-900/60"
                   >
+                    {row.eligibility && !row.eligibility.isEligible && (
+                      <div className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-xs text-amber-200">
+                        Ineligible for shortlist/award:{" "}
+                        {renderEligibilityReason(row.eligibility.reason)}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       <div className="font-medium">
                         {row.contractor?.companyName || "Unknown contractor"}
@@ -689,7 +712,11 @@ export default function AdminCommercialDirectoryPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={bidActionMutation.isPending || row.bid.status === "accepted"}
+                        disabled={
+                          bidActionMutation.isPending ||
+                          row.bid.status === "accepted" ||
+                          row.eligibility?.isEligible === false
+                        }
                         onClick={() =>
                           bidActionMutation.mutate({ bidId: row.bid.id, action: "shortlist" })
                         }
@@ -708,7 +735,11 @@ export default function AdminCommercialDirectoryPage() {
                       </Button>
                       <Button
                         size="sm"
-                        disabled={bidActionMutation.isPending || row.bid.status === "accepted"}
+                        disabled={
+                          bidActionMutation.isPending ||
+                          row.bid.status === "accepted" ||
+                          row.eligibility?.isEligible === false
+                        }
                         onClick={() =>
                           bidActionMutation.mutate({ bidId: row.bid.id, action: "accept" })
                         }
