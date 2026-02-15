@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BadgeCheck, FileClock, ShieldAlert, UserCog } from "lucide-react";
+import {
+  BadgeCheck,
+  Clock3,
+  FileClock,
+  Gauge,
+  ListChecks,
+  ShieldAlert,
+  UserCog,
+} from "lucide-react";
 
 type CommercialContractorRow = {
   contractor: {
@@ -96,6 +104,8 @@ export default function AdminCommercialContractorsPage() {
       suspended: rows.filter((r) => !r.verification.isActive).length,
     };
   }, [data]);
+  const reviewReadinessPct =
+    stats.total > 0 ? Math.round(((stats.total - stats.pending) / stats.total) * 100) : 100;
 
   useEffect(() => {
     if (!selected?.documents?.length) {
@@ -199,7 +209,9 @@ export default function AdminCommercialContractorsPage() {
   }, [selectedDocument, reviewDocMutation]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="relative max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_20%,rgba(20,184,166,0.14),transparent_42%),radial-gradient(circle_at_85%_0%,rgba(14,116,144,0.12),transparent_34%)]" />
+
       <section className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950 p-7 shadow-[0_25px_80px_rgba(2,6,23,0.55)]">
         <p className="text-xs tracking-[0.2em] uppercase text-teal-200">
           Commercial Contractors Admin
@@ -211,6 +223,20 @@ export default function AdminCommercialContractorsPage() {
           Dedicated portal for commercial contractor eligibility, document review, and activation
           controls.
         </p>
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-teal-200" />
+            Human review queue
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2">
+            <Clock3 className="h-4 w-4 text-cyan-200" />
+            License + insurance enforcement
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-emerald-200" />
+            Access gate automation
+          </div>
+        </div>
       </section>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -243,6 +269,27 @@ export default function AdminCommercialContractorsPage() {
           </div>
         </div>
       </div>
+
+      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-base">Verification Throughput</CardTitle>
+          <CardDescription>
+            Percent of commercial contractors not blocked by pending document reviews.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-300">Readiness score</span>
+            <span className="font-semibold">{reviewReadinessPct}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-teal-400 to-emerald-400"
+              style={{ width: `${reviewReadinessPct}%` }}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
         <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
@@ -439,7 +486,10 @@ export default function AdminCommercialContractorsPage() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <div className="font-medium text-sm">
-                            {doc.type} -{" "}
+                            <span className="uppercase text-[10px] tracking-[0.15em] text-slate-400 mr-1">
+                              {doc.type}
+                            </span>
+                            -{" "}
                             <span
                               className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
                                 doc.status === "approved"
@@ -453,6 +503,10 @@ export default function AdminCommercialContractorsPage() {
                             </span>
                           </div>
                           <div className="text-xs text-slate-400">{doc.fileName}</div>
+                          <div className="text-[11px] text-slate-500 mt-1">
+                            Uploaded{" "}
+                            {doc.createdAt ? new Date(doc.createdAt).toLocaleString() : "unknown"}
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <a
