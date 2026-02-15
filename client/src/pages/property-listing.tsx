@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,10 +27,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Home, MapPin, DollarSign, Camera, Building, Info } from "lucide-react";
+import { Home, MapPin, DollarSign, Building, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CountyRequiredGate } from "@/components/CountyRequiredGate";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { StateCountySelector } from "@/components/state-county-selector";
 
 // Property listing form schema
 const propertyListingSchema = z.object({
@@ -96,11 +95,8 @@ export default function PropertyListing() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
-  const locationContext = useLocationContext();
-
-  const countyFips =
-    typeof locationContext.countyFips === "string" ? locationContext.countyFips : "";
-  const stateCode = typeof locationContext.stateCode === "string" ? locationContext.stateCode : "";
+  const [propertyStateCode, setPropertyStateCode] = useState<string>("");
+  const [propertyCountyFips, setPropertyCountyFips] = useState<string>("");
 
   const form = useForm<PropertyListingForm>({
     resolver: zodResolver(propertyListingSchema),
@@ -114,22 +110,18 @@ export default function PropertyListing() {
     },
   });
 
-  // Keep the visible state field aligned with the committed county context.
-  // The server uses the committed stateCode, not this input.
-  useEffect(() => {
-    if (stateCode && stateCode.length === 2) {
-      form.setValue("state", stateCode, { shouldDirty: false, shouldValidate: true });
-    }
-  }, [form, stateCode]);
-
   const createListingMutation = useMutation({
     mutationFn: async (data: PropertyListingForm) => {
+      if (!propertyStateCode || !propertyCountyFips) {
+        throw new Error("Select the property state and county.");
+      }
+
       const listingData = {
         title: data.title,
         description: data.description,
         price: parseFloat(data.price),
-        countyFips,
-        stateCode,
+        countyFips: propertyCountyFips,
+        stateCode: propertyStateCode,
         city: data.city,
         zipCode: data.zipCode,
         address1: data.address,
@@ -178,418 +170,425 @@ export default function PropertyListing() {
   };
 
   return (
-    <CountyRequiredGate surface="homescout">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Home className="h-8 w-8 text-orange-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-orange-500">List Your Property</h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                HomeScout is county-first. Your listing will be attached to your committed county.
-              </p>
-            </div>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <Home className="h-8 w-8 text-orange-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-orange-500">List Your Property</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              List any property location. Select the state and county where the property is located.
+            </p>
           </div>
         </div>
-
-        {/* Approval Notice */}
-        <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
-          <Info className="h-4 w-4 text-blue-400" />
-          <AlertDescription className="text-blue-100">
-            <strong>Approval Process:</strong> All property listings require admin approval before
-            going live. This ensures accuracy and helps maintain our trusted marketplace
-            environment. You'll be notified once your listing is reviewed.
-          </AlertDescription>
-        </Alert>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-orange-600" />
-              Property Details
-            </CardTitle>
-            <CardDescription>
-              Provide comprehensive information to help buyers understand your property's value
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-orange-500">Basic Information</h3>
-
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Property Title</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Beautiful 3BR Home in Prime Location"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe your property's features, location benefits, and what makes it special..."
-                            className="min-h-32"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="propertyType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Property Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select property type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {propertyTypes.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="condition"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Condition</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select condition" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {conditionOptions.map((condition) => (
-                                <SelectItem key={condition.value} value={condition.value}>
-                                  {condition.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-orange-600" />
-                    Location
-                  </h3>
-
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Input placeholder="123 Main Street" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input placeholder="City" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State (from Settings)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="CA" {...field} disabled />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="zipCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Zip Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="90210" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Property Details */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-orange-500">Property Details</h3>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="bedrooms"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bedrooms</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="3" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="bathrooms"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bathrooms</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.5" placeholder="2.5" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="squareFeet"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Square Feet</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="2000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="yearBuilt"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Year Built</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="2020" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="lotSize"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Lot Size</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.25 acres or 10,000 sq ft" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Pricing */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-orange-600" />
-                    Pricing
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sale Price</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="500000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="priceType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="fixed">Fixed Price</SelectItem>
-                              <SelectItem value="negotiable">Negotiable</SelectItem>
-                              <SelectItem value="best_offer">Best Offer</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <FormField
-                      control={form.control}
-                      name="isForSale"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                          <FormLabel>For Sale</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="isForRent"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                          <FormLabel>For Rent</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {form.watch("isForRent") && (
-                    <FormField
-                      control={form.control}
-                      name="monthlyRent"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Monthly Rent</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="3000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-
-                {/* Property Features */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-orange-500">Property Features</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Select features that make your property special
-                  </p>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {propertyFeatures.map((feature) => (
-                      <div key={feature} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={feature}
-                          checked={selectedFeatures.includes(feature)}
-                          onCheckedChange={() => handleFeatureToggle(feature)}
-                        />
-                        <label
-                          htmlFor={feature}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {feature}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-between pt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setLocation("/marketplace")}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createListingMutation.isPending}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    {createListingMutation.isPending
-                      ? "Creating HomeScout Listing..."
-                      : "List on HomeScout"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
       </div>
-    </CountyRequiredGate>
+
+      {/* Approval Notice */}
+      <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
+        <Info className="h-4 w-4 text-blue-400" />
+        <AlertDescription className="text-blue-100">
+          <strong>Approval Process:</strong> All property listings require admin approval before
+          going live. This ensures accuracy and helps maintain our trusted marketplace environment.
+          You'll be notified once your listing is reviewed.
+        </AlertDescription>
+      </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-orange-600" />
+            Property Details
+          </CardTitle>
+          <CardDescription>
+            Provide comprehensive information to help buyers understand your property's value
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-orange-500">Basic Information</h3>
+
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Property Title</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Beautiful 3BR Home in Prime Location"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Describe your property's features, location benefits, and what makes it special..."
+                          className="min-h-32"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="propertyType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Property Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select property type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {propertyTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="condition"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Condition</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select condition" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {conditionOptions.map((condition) => (
+                              <SelectItem key={condition.value} value={condition.value}>
+                                {condition.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-orange-600" />
+                  Location
+                </h3>
+
+                <StateCountySelector
+                  selectedState={propertyStateCode}
+                  selectedCounty={propertyCountyFips}
+                  onStateChange={(nextStateCode) => {
+                    setPropertyStateCode(nextStateCode);
+                    form.setValue("state", nextStateCode, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                  onCountyChange={setPropertyCountyFips}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main Street" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="City" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input placeholder="CA" {...field} disabled />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zip Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="90210" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Property Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-orange-500">Property Details</h3>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="bedrooms"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bedrooms</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="3" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="bathrooms"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bathrooms</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.5" placeholder="2.5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="squareFeet"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Square Feet</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="2000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="yearBuilt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Year Built</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="2020" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="lotSize"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lot Size</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0.25 acres or 10,000 sq ft" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Pricing */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-orange-600" />
+                  Pricing
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sale Price</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="500000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="priceType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed Price</SelectItem>
+                            <SelectItem value="negotiable">Negotiable</SelectItem>
+                            <SelectItem value="best_offer">Best Offer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <FormField
+                    control={form.control}
+                    name="isForSale"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <FormLabel>For Sale</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="isForRent"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <FormLabel>For Rent</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {form.watch("isForRent") && (
+                  <FormField
+                    control={form.control}
+                    name="monthlyRent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Monthly Rent</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="3000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* Property Features */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-orange-500">Property Features</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Select features that make your property special
+                </p>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {propertyFeatures.map((feature) => (
+                    <div key={feature} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={feature}
+                        checked={selectedFeatures.includes(feature)}
+                        onCheckedChange={() => handleFeatureToggle(feature)}
+                      />
+                      <label
+                        htmlFor={feature}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {feature}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button type="button" variant="outline" onClick={() => setLocation("/marketplace")}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createListingMutation.isPending}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {createListingMutation.isPending
+                    ? "Creating HomeScout Listing..."
+                    : "List on HomeScout"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
