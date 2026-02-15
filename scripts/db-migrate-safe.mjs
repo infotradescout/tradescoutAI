@@ -1,0 +1,84 @@
+import { spawn } from "node:child_process";
+import dotenv from "dotenv";
+import pg from "pg";
+
+dotenv.config();
+
+const { Client } = pg;
+
+function run(command, args, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      stdio: "inherit",
+      shell: true,
+      ...options,
+    });
+
+    child.on("close", (code) => resolve(code ?? 1));
+  });
+}
+
+async function migrationCount() {
+  const dbUrl = process.env.DATABASE_URL ?? process.env.TEST_DATABASE_URL;
+  if (!dbUrl) return null;
+
+  const client = new Client({ connectionString: dbUrl });
+  await client.connect();
+  try {
+    await client.query("create schema if not exists drizzle");
+    await client.query(`
+      create table if not exists drizzle.__drizzle_migrations (
+        id serial primary key,
+        hash text not null,
+        created_at bigint
+      )
+    `);
+    const result = await client.query(
+      "select count(*)::int as count from drizzle.__drizzle_migrations"
+    );
+    return Number(result.rows?.[0]?.count ?? 0);
+  } finally {
+    await client.end();
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const autoRepair = !args.includes("--no-repair");
+
+  const first = await run("drizzle-kit", ["migrate"]);
+  if (first === 0) {
+    process.exit(0);
+  }
+
+  if (!autoRepair) {
+    process.exit(first);
+  }
+
+  const count = await migrationCount();
+  if (count !== 0) {
+    console.error(
+      `[db:migrate] Failed and auto-repair is skipped because drizzle.__drizzle_migrations has ${count} row(s).`
+    );
+    process.exit(first);
+  }
+
+  console.warn(
+    "[db:migrate] Initial migrate failed with empty migration history. Attempting baseline + retry..."
+  );
+
+  const baseline = await run("node", ["scripts/db-baseline-drizzle.mjs"]);
+  if (baseline !== 0) {
+    console.error("[db:migrate] Baseline failed. Migration not retried.");
+    process.exit(first);
+  }
+
+  const retry = await run("drizzle-kit", ["migrate"]);
+  process.exit(retry);
+}
+
+main().catch((err) => {
+  console.error("[db:migrate] Unexpected failure:", err instanceof Error ? err.message : String(err));
+  process.exit(1);
+});
+

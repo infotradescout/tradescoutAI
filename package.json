@@ -32,7 +32,7 @@
     "verify:no-vite": "node scripts/verify-no-vite-in-dist.mjs",
     "db:push": "drizzle-kit push",
     "db:push:test": "node scripts/withTestDb.mjs drizzle-kit push",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node scripts/db-migrate-safe.mjs",
     "db:baseline": "node scripts/db-baseline-drizzle.mjs",
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
     "test:run:db": "npm run db:push:test && npm run test:run",
