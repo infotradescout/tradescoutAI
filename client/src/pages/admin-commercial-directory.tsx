@@ -134,6 +134,8 @@ export default function AdminCommercialDirectoryPage() {
   const [selectedVerificationDocId, setSelectedVerificationDocId] = useState<string>("");
   const [statusControl, setStatusControl] = useState<string>("open");
   const [campaignControl, setCampaignControl] = useState<boolean>(false);
+  const [compactMode, setCompactMode] = useState(false);
+  const [bidStatusFilter, setBidStatusFilter] = useState("all");
 
   const [form, setForm] = useState({
     title: "",
@@ -432,6 +434,11 @@ export default function AdminCommercialDirectoryPage() {
   }, [form]);
 
   const selectedRow = (data || []).find((row) => row.project.id === selectedProjectId) || null;
+  const filteredProjectBids = useMemo(() => {
+    const rows = projectBids || [];
+    if (bidStatusFilter === "all") return rows;
+    return rows.filter((row) => row.bid.status === bidStatusFilter);
+  }, [projectBids, bidStatusFilter]);
   const dashboardStats = useMemo(() => {
     const rows = data || [];
     return {
@@ -577,6 +584,14 @@ export default function AdminCommercialDirectoryPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={compactMode}
+                onChange={(e) => setCompactMode(e.target.checked)}
+              />
+              Compact list mode
+            </label>
             {isLoading && <p>Loading projects...</p>}
             {!isLoading && !data?.length && <p>No projects yet.</p>}
             <div className="space-y-2 max-h-[620px] overflow-y-auto pr-1">
@@ -585,14 +600,18 @@ export default function AdminCommercialDirectoryPage() {
                   key={row.project.id}
                   type="button"
                   onClick={() => setSelectedProjectId(row.project.id)}
-                  className={`w-full text-left rounded-xl border p-3 transition ${
+                  className={`w-full text-left rounded-xl border transition ${
                     selectedProjectId === row.project.id
                       ? "border-emerald-500 bg-emerald-500/10"
                       : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
-                  }`}
+                  } ${compactMode ? "p-2" : "p-3"}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium text-sm line-clamp-1">{row.project.title}</div>
+                    <div
+                      className={`${compactMode ? "text-xs" : "font-medium text-sm"} line-clamp-1`}
+                    >
+                      {row.project.title}
+                    </div>
                     <span
                       className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-1 border ${projectStatusPill(
                         row.project.status
@@ -601,10 +620,14 @@ export default function AdminCommercialDirectoryPage() {
                       {row.project.status}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1">
+                  <div
+                    className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-slate-400 mt-1`}
+                  >
                     {row.project.stateCode}-{row.project.countyFips}
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-2">
+                  <div
+                    className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-slate-400 mt-2`}
+                  >
                     bids: {row.bidsCount} | docs: {row.docsCount}
                   </div>
                 </button>
@@ -918,12 +941,28 @@ export default function AdminCommercialDirectoryPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-sm">Filter:</div>
+                  <select
+                    value={bidStatusFilter}
+                    onChange={(e) => setBidStatusFilter(e.target.value)}
+                    className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
+                  >
+                    <option value="all">all</option>
+                    <option value="submitted">submitted</option>
+                    <option value="shortlisted">shortlisted</option>
+                    <option value="accepted">accepted</option>
+                    <option value="rejected">rejected</option>
+                  </select>
+                </div>
                 {bidsLoading && <p>Loading bids...</p>}
                 {!bidsLoading && !projectBids?.length && <p>No bids yet.</p>}
-                {(projectBids || []).map((row) => (
+                {filteredProjectBids.map((row) => (
                   <div
                     key={row.bid.id}
-                    className="border border-slate-700 rounded p-3 space-y-2 bg-slate-900/60"
+                    className={`border border-slate-700 rounded space-y-2 bg-slate-900/60 ${
+                      compactMode ? "p-2" : "p-3"
+                    }`}
                   >
                     {row.eligibility && !row.eligibility.isEligible && (
                       <div className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-xs text-amber-200">
