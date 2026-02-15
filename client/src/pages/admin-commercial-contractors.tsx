@@ -48,6 +48,15 @@ type CommercialContractorRow = {
   }>;
 };
 
+type ReviewDocOptimisticContext = {
+  previous?: CommercialContractorRow[];
+  key?: (string | number)[];
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function statusPill(eligible: boolean, isActive: boolean): { label: string; className: string } {
   if (!isActive) {
     return {
@@ -154,13 +163,13 @@ export default function AdminCommercialContractorsPage() {
       });
       toast({ title: "Verification updated" });
     },
-    onError: (err: any, _vars, ctx) => {
+    onError: (err: unknown, _vars, ctx: ReviewDocOptimisticContext | undefined) => {
       if (ctx?.previous && ctx?.key) {
         queryClient.setQueryData(ctx.key, ctx.previous);
       }
       toast({
         title: "Review failed",
-        description: err?.message || "Please try again.",
+        description: getErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -178,10 +187,10 @@ export default function AdminCommercialContractorsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/commercial-directory/contractors"] });
       toast({ title: "Contractor status updated" });
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast({
         title: "Status update failed",
-        description: err?.message || "Please try again.",
+        description: getErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -192,7 +201,10 @@ export default function AdminCommercialContractorsPage() {
       if (!selectedDocument || reviewDocMutation.isPending) return;
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName?.toLowerCase();
-      const editable = tag === "input" || tag === "textarea" || (target as any)?.isContentEditable;
+      const editable =
+        tag === "input" ||
+        tag === "textarea" ||
+        (target instanceof HTMLElement && target.isContentEditable);
       if (editable) return;
 
       const key = event.key.toLowerCase();

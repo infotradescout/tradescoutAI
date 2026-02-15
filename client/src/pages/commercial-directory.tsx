@@ -90,6 +90,10 @@ type VerificationStatusPayload = {
   }>;
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function CommercialDirectoryPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -195,10 +199,10 @@ export default function CommercialDirectoryPage() {
         queryKey: ["/api/commercial-directory/projects/detail", selectedProjectId],
       });
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast({
         title: "Bid failed",
-        description: err?.message || "Please try again.",
+        description: getErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -238,10 +242,10 @@ export default function CommercialDirectoryPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/commercial-directory/projects"] });
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast({
         title: "Upload failed",
-        description: err?.message || "Please try again.",
+        description: getErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },

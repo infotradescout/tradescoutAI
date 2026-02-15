@@ -6,9 +6,9 @@ dotenv.config();
 
 const { Client } = pg;
 
-function run(command, args, options = {}) {
+function run(commandLine, options = {}) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, {
+    const child = spawn(commandLine, {
       stdio: "inherit",
       shell: true,
       ...options,
@@ -46,7 +46,7 @@ async function main() {
   const args = process.argv.slice(2);
   const autoRepair = !args.includes("--no-repair");
 
-  const first = await run("drizzle-kit", ["migrate"]);
+  const first = await run("drizzle-kit migrate");
   if (first === 0) {
     process.exit(0);
   }
@@ -67,13 +67,13 @@ async function main() {
     "[db:migrate] Initial migrate failed with empty migration history. Attempting baseline + retry..."
   );
 
-  const baseline = await run("node", ["scripts/db-baseline-drizzle.mjs"]);
+  const baseline = await run("node scripts/db-baseline-drizzle.mjs");
   if (baseline !== 0) {
     console.error("[db:migrate] Baseline failed. Migration not retried.");
     process.exit(first);
   }
 
-  const retry = await run("drizzle-kit", ["migrate"]);
+  const retry = await run("drizzle-kit migrate");
   process.exit(retry);
 }
 
@@ -81,4 +81,3 @@ main().catch((err) => {
   console.error("[db:migrate] Unexpected failure:", err instanceof Error ? err.message : String(err));
   process.exit(1);
 });
-
