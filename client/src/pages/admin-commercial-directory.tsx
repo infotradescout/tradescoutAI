@@ -364,7 +364,15 @@ export default function AdminCommercialDirectoryPage() {
         { approved: input.approved }
       );
     },
-    onSuccess: () => {
+    onSuccess: (_result, vars) => {
+      if (pendingVerificationDocs?.length) {
+        const idx = pendingVerificationDocs.findIndex((row) => row.document.id === vars.documentId);
+        const next =
+          pendingVerificationDocs[idx + 1]?.document.id ||
+          pendingVerificationDocs[idx - 1]?.document.id ||
+          "";
+        setSelectedVerificationDocId(next);
+      }
       queryClient.invalidateQueries({
         queryKey: ["/api/admin/commercial-directory/verification/pending"],
       });

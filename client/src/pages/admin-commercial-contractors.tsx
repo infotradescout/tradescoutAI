@@ -132,7 +132,12 @@ export default function AdminCommercialContractorsPage() {
       );
       return { previous, key };
     },
-    onSuccess: () => {
+    onSuccess: (_result, vars) => {
+      if (selected?.documents?.length) {
+        const idx = selected.documents.findIndex((d) => d.id === vars.documentId);
+        const next = selected.documents[idx + 1] || selected.documents[idx - 1] || null;
+        setSelectedDocumentId(next?.id || "");
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/commercial-directory/contractors"] });
       queryClient.invalidateQueries({
         queryKey: ["/api/admin/commercial-directory/verification/pending"],
@@ -386,6 +391,40 @@ export default function AdminCommercialContractorsPage() {
                       approve, <kbd className="px-1 rounded border border-slate-600">R</kbd> reject
                     </div>
                   </div>
+                  {selectedDocument && (
+                    <div className="rounded border border-teal-500/40 bg-teal-500/10 p-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-xs">
+                        Selected: <span className="font-medium">{selectedDocument.fileName}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={reviewDocMutation.isPending}
+                          onClick={() =>
+                            reviewDocMutation.mutate({
+                              documentId: selectedDocument.id,
+                              approved: false,
+                            })
+                          }
+                        >
+                          Reject Selected
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={reviewDocMutation.isPending}
+                          onClick={() =>
+                            reviewDocMutation.mutate({
+                              documentId: selectedDocument.id,
+                              approved: true,
+                            })
+                          }
+                        >
+                          Approve Selected
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {!selected.documents.length && <p>No verification documents yet.</p>}
                   {selected.documents.map((doc) => (
                     <div
