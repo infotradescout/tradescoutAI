@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { BriefcaseBusiness, ClipboardCheck, FileStack, Gavel } from "lucide-react";
 
 type AdminProjectRow = {
   project: {
@@ -375,10 +376,19 @@ export default function AdminCommercialDirectoryPage() {
   }, [form]);
 
   const selectedRow = (data || []).find((row) => row.project.id === selectedProjectId) || null;
+  const dashboardStats = useMemo(() => {
+    const rows = data || [];
+    return {
+      totalProjects: rows.length,
+      openProjects: rows.filter((r) => r.project.status === "open").length,
+      totalBids: rows.reduce((acc, row) => acc + row.bidsCount, 0),
+      totalDocs: rows.reduce((acc, row) => acc + row.docsCount, 0),
+    };
+  }, [data]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      <section className="rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6">
+      <section className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-7 shadow-[0_25px_80px_rgba(2,6,23,0.55)]">
         <p className="text-xs tracking-[0.2em] uppercase text-emerald-200">
           Commercial Procurement Command
         </p>
@@ -394,7 +404,38 @@ export default function AdminCommercialDirectoryPage() {
         </div>
       </section>
 
-      <Card className="border-slate-700 bg-slate-950/70">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Projects</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <BriefcaseBusiness className="h-4 w-4 text-emerald-200" />
+            {dashboardStats.totalProjects}
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Open</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-cyan-200" />
+            {dashboardStats.openProjects}
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Bids</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <Gavel className="h-4 w-4 text-blue-200" />
+            {dashboardStats.totalBids}
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Documents</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <FileStack className="h-4 w-4 text-amber-200" />
+            {dashboardStats.totalDocs}
+          </div>
+        </div>
+      </div>
+
+      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
         <CardHeader>
           <CardTitle>Verification Review Queue</CardTitle>
           <CardDescription>
@@ -463,7 +504,7 @@ export default function AdminCommercialDirectoryPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-        <Card className="border-slate-700 bg-slate-950/70">
+        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
           <CardHeader>
             <CardTitle>Project Registry</CardTitle>
             <CardDescription>
@@ -504,7 +545,7 @@ export default function AdminCommercialDirectoryPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-slate-700 bg-slate-950/70">
+          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
             <CardHeader>
               <CardTitle>Selected Project Control</CardTitle>
               <CardDescription>
@@ -654,7 +695,7 @@ export default function AdminCommercialDirectoryPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-700 bg-slate-950/70">
+          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
             <CardHeader>
               <CardTitle>Create New Solicitation Package</CardTitle>
               <CardDescription>
@@ -800,7 +841,7 @@ export default function AdminCommercialDirectoryPage() {
           </Card>
 
           {selectedProjectId && (
-            <Card className="border-slate-700 bg-slate-950/70">
+            <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
               <CardHeader>
                 <CardTitle>Bid Adjudication Board</CardTitle>
                 <CardDescription>

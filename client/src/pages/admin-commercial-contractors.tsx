@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { BadgeCheck, FileClock, ShieldAlert, UserCog } from "lucide-react";
 
 type CommercialContractorRow = {
   contractor: {
@@ -61,6 +62,15 @@ export default function AdminCommercialContractorsPage() {
     () => (data || []).find((row) => row.contractor.id === selectedContractorId) || null,
     [data, selectedContractorId]
   );
+  const stats = useMemo(() => {
+    const rows = data || [];
+    return {
+      total: rows.length,
+      eligible: rows.filter((r) => r.verification.eligibleForCommercial).length,
+      pending: rows.filter((r) => r.verification.pendingDocs > 0).length,
+      suspended: rows.filter((r) => !r.verification.isActive).length,
+    };
+  }, [data]);
 
   const reviewDocMutation = useMutation({
     mutationFn: async (input: { documentId: string; approved: boolean }) => {
@@ -109,7 +119,7 @@ export default function AdminCommercialContractorsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      <section className="rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950 p-6">
+      <section className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950 p-7 shadow-[0_25px_80px_rgba(2,6,23,0.55)]">
         <p className="text-xs tracking-[0.2em] uppercase text-teal-200">
           Commercial Contractors Admin
         </p>
@@ -122,8 +132,39 @@ export default function AdminCommercialContractorsPage() {
         </p>
       </section>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Total</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <UserCog className="h-4 w-4 text-teal-200" />
+            {stats.total}
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Eligible</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <BadgeCheck className="h-4 w-4 text-emerald-200" />
+            {stats.eligible}
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Pending</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <FileClock className="h-4 w-4 text-amber-200" />
+            {stats.pending}
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="text-xs uppercase tracking-wide text-slate-400">Suspended</div>
+          <div className="mt-1 text-xl font-semibold flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-rose-200" />
+            {stats.suspended}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
-        <Card className="border-slate-700 bg-slate-950/70">
+        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
           <CardHeader>
             <CardTitle>Commercial Contractor Roster</CardTitle>
             <CardDescription>Separate from other user-type verification queues.</CardDescription>
@@ -183,7 +224,7 @@ export default function AdminCommercialContractorsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-700 bg-slate-950/70">
+        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
           <CardHeader>
             <CardTitle>Contractor Detail and Verification Controls</CardTitle>
             <CardDescription>

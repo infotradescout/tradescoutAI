@@ -7,6 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Building2,
+  CalendarClock,
+  FileCheck2,
+  Gavel,
+  MapPin,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 
 type BoardProject = {
   project: {
@@ -205,21 +214,42 @@ export default function CommercialDirectoryPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      <div className="rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-900 to-blue-950 p-6">
-        <p className="text-xs tracking-[0.18em] uppercase text-blue-200">
+    <div className="relative max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_20%,rgba(56,189,248,0.14),transparent_40%),radial-gradient(circle_at_85%_0%,rgba(16,185,129,0.12),transparent_32%)]" />
+
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900 via-slate-950 to-cyan-950 p-7 shadow-[0_25px_80px_rgba(2,6,23,0.6)]">
+        <p className="text-xs tracking-[0.22em] uppercase text-cyan-200">
           Commercial Opportunity Exchange
         </p>
-        <h1 className="text-3xl font-semibold mt-2">Verified Contractor Bidding Portal</h1>
-        <p className="text-sm text-slate-300 mt-2 max-w-3xl">
-          Formal commercial job requests, full scope packages, and documented bid submissions in one
-          official workflow.
+        <h1 className="text-3xl md:text-4xl font-semibold mt-3 leading-tight">
+          Verified Contractor Bidding Portal
+        </h1>
+        <p className="text-sm text-slate-300 mt-3 max-w-3xl">
+          Formal solicitations, controlled qualification, and auditable bid submissions in one
+          modern procurement workflow.
         </p>
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
+            <Building2 className="h-4 w-4 text-cyan-200" />
+            <div>County-scoped opportunities</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
+            <ShieldCheck className="h-4 w-4 text-emerald-200" />
+            <div>Verification-gated access</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
+            <Gavel className="h-4 w-4 text-blue-200" />
+            <div>Formal bid adjudication</div>
+          </div>
+        </div>
       </div>
 
-      <Card className="border-slate-700 bg-slate-950/70">
+      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
         <CardHeader>
-          <CardTitle>Commercial Verification Gate</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileCheck2 className="h-5 w-5 text-cyan-200" />
+            Commercial Verification Gate
+          </CardTitle>
           <CardDescription>
             Commercial job access requires approved license and insurance documents reviewed by
             staff.
@@ -227,7 +257,7 @@ export default function CommercialDirectoryPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="rounded border border-slate-700 p-3">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               License:{" "}
               {verificationStatus?.hasApprovedLicenseDoc ? (
                 <span className="text-emerald-300">approved</span>
@@ -235,7 +265,7 @@ export default function CommercialDirectoryPage() {
                 <span className="text-amber-300">required</span>
               )}
             </div>
-            <div className="rounded border border-slate-700 p-3">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               Insurance:{" "}
               {verificationStatus?.hasApprovedInsuranceDoc ? (
                 <span className="text-emerald-300">approved</span>
@@ -246,7 +276,7 @@ export default function CommercialDirectoryPage() {
           </div>
 
           {!verificationStatus?.isEligible && (
-            <div className="space-y-3 rounded border border-amber-500/50 bg-amber-500/10 p-3">
+            <div className="space-y-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
               <p className="text-sm text-amber-100">
                 Upload both documents to enter review. Bids and open-job access remain blocked until
                 approval.
@@ -298,9 +328,12 @@ export default function CommercialDirectoryPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
-        <Card className="border-slate-700 bg-slate-950/70">
+        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
           <CardHeader>
-            <CardTitle>Open Opportunities</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-cyan-200" />
+              Open Opportunities
+            </CardTitle>
             <CardDescription>Filter by county FIPS and select a project package.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -329,8 +362,8 @@ export default function CommercialDirectoryPage() {
                   onClick={() => setSelectedProjectId(row.project.id)}
                   className={`w-full text-left rounded-xl border p-3 transition ${
                     selectedProjectId === row.project.id
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
+                      ? "border-cyan-400 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
+                      : "border-white/10 bg-white/[0.03] hover:border-cyan-500/40"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -350,7 +383,27 @@ export default function CommercialDirectoryPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-slate-700 bg-slate-950/70">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="text-xs uppercase tracking-wide text-slate-400">Bid Count</div>
+              <div className="text-lg font-semibold">{details?.bidsCount ?? 0}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="text-xs uppercase tracking-wide text-slate-400">Budget</div>
+              <div className="text-sm font-medium">{budgetLabel}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="text-xs uppercase tracking-wide text-slate-400">Bid Due</div>
+              <div className="text-sm font-medium flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-cyan-200" />
+                {details?.project?.bidDueAt
+                  ? new Date(details.project.bidDueAt).toLocaleDateString()
+                  : "TBD"}
+              </div>
+            </div>
+          </div>
+
+          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
             <CardHeader>
               <CardTitle>Project Package</CardTitle>
               <CardDescription>
@@ -364,7 +417,7 @@ export default function CommercialDirectoryPage() {
               {!detailsLoading && !details?.project && <p>No project selected.</p>}
               {details?.project && (
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-slate-700 p-3 bg-slate-900/70">
+                  <div className="rounded-xl border border-white/10 p-4 bg-white/[0.03]">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h2 className="text-xl font-semibold">{details.project.title}</h2>
                       <div className="text-xs uppercase tracking-wide text-blue-200">
@@ -393,7 +446,7 @@ export default function CommercialDirectoryPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-lg border border-slate-700 p-3 bg-slate-900/60">
+                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
                       <h3 className="text-sm uppercase tracking-wide text-slate-300">
                         Scope of Work
                       </h3>
@@ -401,7 +454,7 @@ export default function CommercialDirectoryPage() {
                         {details.project.scopeOfWork}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-slate-700 p-3 bg-slate-900/60">
+                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
                       <h3 className="text-sm uppercase tracking-wide text-slate-300">
                         Requirements
                       </h3>
@@ -412,7 +465,7 @@ export default function CommercialDirectoryPage() {
                   </div>
 
                   {!!details.documents.length && (
-                    <div className="rounded-lg border border-slate-700 p-3 bg-slate-900/60">
+                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
                       <h3 className="text-sm uppercase tracking-wide text-slate-300">
                         Bid Package Documents
                       </h3>
@@ -437,9 +490,12 @@ export default function CommercialDirectoryPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-700 bg-slate-950/70">
+          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
             <CardHeader>
-              <CardTitle>Submit Formal Bid</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-cyan-200" />
+                Submit Formal Bid
+              </CardTitle>
               <CardDescription>
                 {details?.myBid
                   ? `Existing bid status: ${details.myBid.status}. Update and resubmit if needed.`
