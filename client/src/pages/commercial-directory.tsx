@@ -8,11 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
+  CheckCircle2,
+  Clock3,
   Building2,
   CalendarClock,
   FileCheck2,
+  FileText,
   Gavel,
+  Lock,
   MapPin,
+  ShieldAlert,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
@@ -103,6 +108,7 @@ export default function CommercialDirectoryPage() {
     queryFn: () => apiRequest("GET", "/api/commercial-directory/verification/status"),
   });
   const canAccessBoard = verificationStatus?.isEligible ?? true;
+  const verificationDocs = verificationStatus?.documents || [];
 
   const { data, isLoading, error } = useQuery<BoardProject[]>({
     queryKey: ["/api/commercial-directory/projects", countyFilter],
@@ -146,6 +152,32 @@ export default function CommercialDirectoryPage() {
     if (max) return `Up to $${max}`;
     return "Budget on request";
   }, [details]);
+
+  const readiness = useMemo(() => {
+    const rows = [
+      {
+        id: "license",
+        label: "Approved license",
+        done: Boolean(verificationStatus?.hasApprovedLicenseDoc),
+      },
+      {
+        id: "insurance",
+        label: "Approved insurance",
+        done: Boolean(verificationStatus?.hasApprovedInsuranceDoc),
+      },
+      {
+        id: "portal",
+        label: "Commercial board unlocked",
+        done: Boolean(canAccessBoard),
+      },
+    ];
+    const doneCount = rows.filter((r) => r.done).length;
+    return {
+      rows,
+      doneCount,
+      pct: Math.round((doneCount / rows.length) * 100),
+    };
+  }, [verificationStatus, canAccessBoard]);
 
   const bidMutation = useMutation({
     mutationFn: async () => {
@@ -258,6 +290,39 @@ export default function CommercialDirectoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Readiness</div>
+                <div className="text-sm text-slate-200 mt-1">
+                  {readiness.doneCount}/{readiness.rows.length} gates complete
+                </div>
+              </div>
+              <div className="text-xl font-semibold">{readiness.pct}%</div>
+            </div>
+            <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+                style={{ width: `${readiness.pct}%` }}
+              />
+            </div>
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+              {readiness.rows.map((step) => (
+                <div
+                  key={step.id}
+                  className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-xs flex items-center gap-2"
+                >
+                  {step.done ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <Clock3 className="h-3.5 w-3.5 text-amber-300" />
+                  )}
+                  <span className="text-slate-200">{step.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               License:{" "}
@@ -276,6 +341,41 @@ export default function CommercialDirectoryPage() {
               )}
             </div>
           </div>
+
+          {!!verificationDocs.length && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-2">
+              <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                Verification Documents
+              </div>
+              {verificationDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5 flex flex-wrap items-center justify-between gap-2"
+                >
+                  <div>
+                    <div className="text-sm text-slate-200">
+                      {doc.type} - {doc.fileName}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Uploaded{" "}
+                      {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "n/a"}
+                    </div>
+                  </div>
+                  <div
+                    className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-1 border ${
+                      doc.status === "approved"
+                        ? "text-emerald-200 bg-emerald-500/15 border-emerald-500/40"
+                        : doc.status === "rejected"
+                          ? "text-rose-200 bg-rose-500/15 border-rose-500/40"
+                          : "text-amber-200 bg-amber-500/15 border-amber-500/40"
+                    }`}
+                  >
+                    {doc.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {!verificationStatus?.isEligible && (
             <div className="space-y-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
@@ -324,6 +424,10 @@ export default function CommercialDirectoryPage() {
                   ? "Submitting..."
                   : "Submit License and Insurance for Review"}
               </Button>
+              <div className="text-xs text-amber-100/80 flex items-center gap-2">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                Manual review by staff is required before job visibility is enabled.
+              </div>
             </div>
           )}
         </CardContent>
@@ -332,7 +436,10 @@ export default function CommercialDirectoryPage() {
       {!canAccessBoard && (
         <Card className="border-amber-500/40 bg-amber-500/10 backdrop-blur">
           <CardHeader>
-            <CardTitle>Commercial Board Locked</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-amber-200" />
+              Commercial Board Locked
+            </CardTitle>
             <CardDescription>
               Your account must have approved license and insurance documents before open jobs and
               bid workflows are unlocked.
@@ -464,6 +571,26 @@ export default function CommercialDirectoryPage() {
                         <div>
                           <div className="text-slate-400 text-xs">Submitted Bids</div>
                           <div>{details.bidsCount}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
+                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                        Procurement Timeline
+                      </h3>
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2 flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 text-cyan-200" />
+                          Package Published
+                        </div>
+                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 flex items-center gap-2">
+                          <Gavel className="h-3.5 w-3.5 text-blue-200" />
+                          Bid Window Active
+                        </div>
+                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" />
+                          Admin Adjudication
                         </div>
                       </div>
                     </div>
