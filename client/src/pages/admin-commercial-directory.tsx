@@ -116,6 +116,14 @@ function renderEligibilityReason(
   return "Eligible";
 }
 
+function projectStatusPill(status: string): string {
+  if (status === "open") return "text-emerald-200 bg-emerald-500/15 border-emerald-500/40";
+  if (status === "awarded") return "text-blue-200 bg-blue-500/15 border-blue-500/40";
+  if (status === "closed") return "text-amber-200 bg-amber-500/15 border-amber-500/40";
+  if (status === "archived") return "text-slate-300 bg-slate-500/10 border-slate-500/30";
+  return "text-slate-200 bg-slate-500/10 border-slate-500/30";
+}
+
 export default function AdminCommercialDirectoryPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -528,7 +536,11 @@ export default function AdminCommercialDirectoryPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="font-medium text-sm line-clamp-1">{row.project.title}</div>
-                    <span className="text-[10px] uppercase tracking-wide text-slate-300">
+                    <span
+                      className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-1 border ${projectStatusPill(
+                        row.project.status
+                      )}`}
+                    >
                       {row.project.status}
                     </span>
                   </div>
@@ -866,7 +878,17 @@ export default function AdminCommercialDirectoryPage() {
                       <div className="font-medium">
                         {row.contractor?.companyName || "Unknown contractor"}
                       </div>
-                      <div className="text-xs uppercase tracking-wide text-slate-300">
+                      <div
+                        className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-1 border ${
+                          row.bid.status === "accepted"
+                            ? "text-blue-200 bg-blue-500/15 border-blue-500/40"
+                            : row.bid.status === "shortlisted"
+                              ? "text-cyan-200 bg-cyan-500/15 border-cyan-500/40"
+                              : row.bid.status === "rejected"
+                                ? "text-rose-200 bg-rose-500/15 border-rose-500/40"
+                                : "text-slate-300 bg-slate-500/10 border-slate-500/30"
+                        }`}
+                      >
                         {row.bid.status}
                       </div>
                     </div>

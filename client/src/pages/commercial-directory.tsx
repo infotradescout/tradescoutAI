@@ -102,6 +102,7 @@ export default function CommercialDirectoryPage() {
     queryKey: ["/api/commercial-directory/verification/status"],
     queryFn: () => apiRequest("GET", "/api/commercial-directory/verification/status"),
   });
+  const canAccessBoard = verificationStatus?.isEligible ?? true;
 
   const { data, isLoading, error } = useQuery<BoardProject[]>({
     queryKey: ["/api/commercial-directory/projects", countyFilter],
@@ -109,6 +110,7 @@ export default function CommercialDirectoryPage() {
       const qs = countyFilter.trim().length === 5 ? `?countyFips=${countyFilter.trim()}` : "";
       return apiRequest("GET", `/api/commercial-directory/projects${qs}`);
     },
+    enabled: canAccessBoard,
   });
 
   const { data: details, isLoading: detailsLoading } = useQuery<ProjectDetails>({
@@ -327,226 +329,256 @@ export default function CommercialDirectoryPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+      {!canAccessBoard && (
+        <Card className="border-amber-500/40 bg-amber-500/10 backdrop-blur">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-cyan-200" />
-              Open Opportunities
-            </CardTitle>
-            <CardDescription>Filter by county FIPS and select a project package.</CardDescription>
+            <CardTitle>Commercial Board Locked</CardTitle>
+            <CardDescription>
+              Your account must have approved license and insurance documents before open jobs and
+              bid workflows are unlocked.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <Label>County Filter (FIPS)</Label>
-              <Input
-                value={countyFilter}
-                onChange={(e) => setCountyFilter(e.target.value.slice(0, 5))}
-                placeholder="22105"
-              />
-            </div>
-
-            {isLoading && <p>Loading board...</p>}
-            {error && (
-              <p className="text-sm text-red-400">
-                {(error as Error)?.message || "Failed to load board."}
-              </p>
-            )}
-            {!isLoading && !data?.length && <p>No open projects right now.</p>}
-
-            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-              {(data || []).map((row) => (
-                <button
-                  key={row.project.id}
-                  type="button"
-                  onClick={() => setSelectedProjectId(row.project.id)}
-                  className={`w-full text-left rounded-xl border p-3 transition ${
-                    selectedProjectId === row.project.id
-                      ? "border-cyan-400 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
-                      : "border-white/10 bg-white/[0.03] hover:border-cyan-500/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium text-sm">{row.project.title}</div>
-                    <div className="text-[11px] text-slate-300">
-                      {row.project.stateCode}-{row.project.countyFips}
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{row.project.summary}</p>
-                  <div className="text-[11px] text-slate-400 mt-2">
-                    bids: {row.bidsCount} | docs: {row.docsCount}
-                  </div>
-                </button>
-              ))}
-            </div>
+          <CardContent>
+            <p className="text-sm text-amber-100">
+              Submit both documents above and wait for human review. Once approved, this board
+              unlocks automatically.
+            </p>
           </CardContent>
         </Card>
+      )}
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-xs uppercase tracking-wide text-slate-400">Bid Count</div>
-              <div className="text-lg font-semibold">{details?.bidsCount ?? 0}</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-xs uppercase tracking-wide text-slate-400">Budget</div>
-              <div className="text-sm font-medium">{budgetLabel}</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-xs uppercase tracking-wide text-slate-400">Bid Due</div>
-              <div className="text-sm font-medium flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-cyan-200" />
-                {details?.project?.bidDueAt
-                  ? new Date(details.project.bidDueAt).toLocaleDateString()
-                  : "TBD"}
-              </div>
-            </div>
-          </div>
-
-          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
-            <CardHeader>
-              <CardTitle>Project Package</CardTitle>
-              <CardDescription>
-                {selectedProjectId
-                  ? `Project ID: ${selectedProjectId}`
-                  : "Select an opportunity to review scope."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {detailsLoading && <p>Loading package...</p>}
-              {!detailsLoading && !details?.project && <p>No project selected.</p>}
-              {details?.project && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-white/10 p-4 bg-white/[0.03]">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h2 className="text-xl font-semibold">{details.project.title}</h2>
-                      <div className="text-xs uppercase tracking-wide text-blue-200">
-                        {details.project.status}
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-300 mt-2">{details.project.summary}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm">
-                      <div>
-                        <div className="text-slate-400 text-xs">Budget</div>
-                        <div>{budgetLabel}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-400 text-xs">Bid Due</div>
-                        <div>
-                          {details.project.bidDueAt
-                            ? new Date(details.project.bidDueAt).toLocaleString()
-                            : "Not specified"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-slate-400 text-xs">Submitted Bids</div>
-                        <div>{details.bidsCount}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
-                        Scope of Work
-                      </h3>
-                      <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
-                        {details.project.scopeOfWork}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
-                        Requirements
-                      </h3>
-                      <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
-                        {details.project.requirements}
-                      </p>
-                    </div>
-                  </div>
-
-                  {!!details.documents.length && (
-                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
-                        Bid Package Documents
-                      </h3>
-                      <ul className="mt-2 space-y-1">
-                        {details.documents.map((doc) => (
-                          <li key={doc.id}>
-                            <a
-                              className="underline text-sm text-blue-200"
-                              href={doc.fileUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {doc.fileName}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+      {canAccessBoard && (
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
           <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-cyan-200" />
-                Submit Formal Bid
+                <MapPin className="h-5 w-5 text-cyan-200" />
+                Open Opportunities
               </CardTitle>
-              <CardDescription>
-                {details?.myBid
-                  ? `Existing bid status: ${details.myBid.status}. Update and resubmit if needed.`
-                  : "Submit your proposal package for this project."}
-              </CardDescription>
+              <CardDescription>Filter by county FIPS and select a project package.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Bid Amount (USD)</Label>
-                  <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Timeline (days)</Label>
-                  <Input
-                    type="number"
-                    value={timelineDays}
-                    onChange={(e) => setTimelineDays(e.target.value)}
-                  />
-                </div>
-              </div>
+            <CardContent className="space-y-3">
               <div>
-                <Label>Technical / Execution Proposal</Label>
-                <Textarea value={proposal} onChange={(e) => setProposal(e.target.value)} rows={7} />
+                <Label>County Filter (FIPS)</Label>
+                <Input
+                  value={countyFilter}
+                  onChange={(e) => setCountyFilter(e.target.value.slice(0, 5))}
+                  placeholder="22105"
+                />
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => bidMutation.mutate()}
-                  disabled={
-                    bidMutation.isPending ||
-                    !selectedProjectId ||
-                    !amount ||
-                    Number(amount) <= 0 ||
-                    proposal.trim().length < 20
-                  }
-                >
-                  {bidMutation.isPending ? "Submitting..." : "Submit Bid Package"}
-                </Button>
-                {details?.project && (
-                  <a
-                    className="inline-flex items-center text-sm underline text-blue-200"
-                    href={`/commercial/p/${details.project.slug}`}
+
+              {isLoading && <p>Loading board...</p>}
+              {error && (
+                <p className="text-sm text-red-400">
+                  {(error as Error)?.message || "Failed to load board."}
+                </p>
+              )}
+              {!isLoading && !data?.length && <p>No open projects right now.</p>}
+
+              <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+                {(data || []).map((row) => (
+                  <button
+                    key={row.project.id}
+                    type="button"
+                    onClick={() => setSelectedProjectId(row.project.id)}
+                    className={`w-full text-left rounded-xl border p-3 transition ${
+                      selectedProjectId === row.project.id
+                        ? "border-cyan-400 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
+                        : "border-white/10 bg-white/[0.03] hover:border-cyan-500/40"
+                    }`}
                   >
-                    Open Campaign Landing
-                  </a>
-                )}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium text-sm">{row.project.title}</div>
+                      <div className="text-[11px] text-slate-300">
+                        {row.project.stateCode}-{row.project.countyFips}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      {row.project.summary}
+                    </p>
+                    <div className="text-[11px] text-slate-400 mt-2">
+                      bids: {row.bidsCount} | docs: {row.docsCount}
+                    </div>
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Bid Count</div>
+                <div className="text-lg font-semibold">{details?.bidsCount ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Budget</div>
+                <div className="text-sm font-medium">{budgetLabel}</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Bid Due</div>
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-cyan-200" />
+                  {details?.project?.bidDueAt
+                    ? new Date(details.project.bidDueAt).toLocaleDateString()
+                    : "TBD"}
+                </div>
+              </div>
+            </div>
+
+            <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+              <CardHeader>
+                <CardTitle>Project Package</CardTitle>
+                <CardDescription>
+                  {selectedProjectId
+                    ? `Project ID: ${selectedProjectId}`
+                    : "Select an opportunity to review scope."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {detailsLoading && <p>Loading package...</p>}
+                {!detailsLoading && !details?.project && <p>No project selected.</p>}
+                {details?.project && (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-white/10 p-4 bg-white/[0.03]">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-xl font-semibold">{details.project.title}</h2>
+                        <div className="text-xs uppercase tracking-wide text-blue-200">
+                          {details.project.status}
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-300 mt-2">{details.project.summary}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm">
+                        <div>
+                          <div className="text-slate-400 text-xs">Budget</div>
+                          <div>{budgetLabel}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400 text-xs">Bid Due</div>
+                          <div>
+                            {details.project.bidDueAt
+                              ? new Date(details.project.bidDueAt).toLocaleString()
+                              : "Not specified"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400 text-xs">Submitted Bids</div>
+                          <div>{details.bidsCount}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
+                        <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                          Scope of Work
+                        </h3>
+                        <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
+                          {details.project.scopeOfWork}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
+                        <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                          Requirements
+                        </h3>
+                        <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
+                          {details.project.requirements}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!!details.documents.length && (
+                      <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
+                        <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                          Bid Package Documents
+                        </h3>
+                        <ul className="mt-2 space-y-1">
+                          {details.documents.map((doc) => (
+                            <li key={doc.id}>
+                              <a
+                                className="underline text-sm text-blue-200"
+                                href={doc.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {doc.fileName}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-cyan-200" />
+                  Submit Formal Bid
+                </CardTitle>
+                <CardDescription>
+                  {details?.myBid
+                    ? `Existing bid status: ${details.myBid.status}. Update and resubmit if needed.`
+                    : "Submit your proposal package for this project."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Bid Amount (USD)</Label>
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Timeline (days)</Label>
+                    <Input
+                      type="number"
+                      value={timelineDays}
+                      onChange={(e) => setTimelineDays(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Technical / Execution Proposal</Label>
+                  <Textarea
+                    value={proposal}
+                    onChange={(e) => setProposal(e.target.value)}
+                    rows={7}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => bidMutation.mutate()}
+                    disabled={
+                      bidMutation.isPending ||
+                      !selectedProjectId ||
+                      !amount ||
+                      Number(amount) <= 0 ||
+                      proposal.trim().length < 20
+                    }
+                  >
+                    {bidMutation.isPending ? "Submitting..." : "Submit Bid Package"}
+                  </Button>
+                  {details?.project && (
+                    <a
+                      className="inline-flex items-center text-sm underline text-blue-200"
+                      href={`/commercial/p/${details.project.slug}`}
+                    >
+                      Open Campaign Landing
+                    </a>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

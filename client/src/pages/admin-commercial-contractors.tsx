@@ -40,6 +40,25 @@ type CommercialContractorRow = {
   }>;
 };
 
+function statusPill(eligible: boolean, isActive: boolean): { label: string; className: string } {
+  if (!isActive) {
+    return {
+      label: "suspended",
+      className: "text-rose-200 bg-rose-500/15 border border-rose-500/40",
+    };
+  }
+  if (eligible) {
+    return {
+      label: "eligible",
+      className: "text-emerald-200 bg-emerald-500/15 border border-emerald-500/40",
+    };
+  }
+  return {
+    label: "blocked",
+    className: "text-amber-200 bg-amber-500/15 border border-amber-500/40",
+  };
+}
+
 export default function AdminCommercialContractorsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -197,29 +216,37 @@ export default function AdminCommercialContractorsPage() {
             {!isLoading && !(data || []).length && <p>No commercial contractors found.</p>}
 
             <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
-              {(data || []).map((row) => (
-                <button
-                  key={row.contractor.id}
-                  type="button"
-                  onClick={() => setSelectedContractorId(row.contractor.id)}
-                  className={`w-full text-left rounded-xl border p-3 transition ${
-                    selectedContractorId === row.contractor.id
-                      ? "border-teal-500 bg-teal-500/10"
-                      : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium text-sm">{row.contractor.companyName}</div>
-                    <div className="text-[11px] uppercase text-slate-300">
-                      {row.verification.eligibleForCommercial ? "eligible" : "blocked"}
+              {(data || []).map((row) => {
+                const pill = statusPill(
+                  row.verification.eligibleForCommercial,
+                  row.verification.isActive
+                );
+                return (
+                  <button
+                    key={row.contractor.id}
+                    type="button"
+                    onClick={() => setSelectedContractorId(row.contractor.id)}
+                    className={`w-full text-left rounded-xl border p-3 transition ${
+                      selectedContractorId === row.contractor.id
+                        ? "border-teal-500 bg-teal-500/10"
+                        : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium text-sm">{row.contractor.companyName}</div>
+                      <div
+                        className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-1 ${pill.className}`}
+                      >
+                        {pill.label}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-1">
-                    pending: {row.verification.pendingDocs} | rejected:{" "}
-                    {row.verification.rejectedDocs}
-                  </div>
-                </button>
-              ))}
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      pending: {row.verification.pendingDocs} | rejected:{" "}
+                      {row.verification.rejectedDocs}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
