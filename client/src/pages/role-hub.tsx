@@ -55,12 +55,9 @@ export default function RoleHubPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2 space-y-4">
             <div className="rounded-2xl border border-tsBorder bg-slate-900/60 p-4 md:p-5">
-              <h2 className="text-sm font-medium text-white mb-2">How Scout uses this role</h2>
+              <h2 className="text-sm font-medium text-white mb-2">Role profile</h2>
               <p className="text-xs md:text-sm text-tsTextMuted">
-                This role tells Scout which playbooks, tools, and local signals to prioritize when
-                you ask questions or browse the platform. You can combine multiple roles for a
-                blended experience (for example: homeowner + contractor, realtor + content creator,
-                car dealer + business owner, or restaurant owner + nonprofit).
+                Active role settings for your account.
               </p>
             </div>
 
@@ -93,8 +90,7 @@ export default function RoleHubPage() {
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-tsTextMuted">
-                  This role does not define any special features yet, but Scout still uses it to
-                  tune your answers.
+                  No role-specific features are enabled yet.
                 </p>
               )}
             </div>
@@ -103,11 +99,7 @@ export default function RoleHubPage() {
           <aside className="space-y-4">
             <div className="rounded-2xl border border-tsBorder bg-slate-900/60 p-4 md:p-5">
               <h3 className="text-sm font-medium text-white mb-2">Next steps</h3>
-              <p className="text-xs md:text-sm text-tsTextMuted mb-3">
-                Use this hub as a starting point. Scout will route your questions through the tools
-                that match your roles and location, whether you're a local business, restaurant
-                owner, service provider, or community builder.
-              </p>
+              <p className="text-xs md:text-sm text-tsTextMuted mb-3">Quick actions.</p>
               <div className="space-y-2 text-xs md:text-sm">
                 <Link
                   href="/"
