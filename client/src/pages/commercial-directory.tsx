@@ -100,6 +100,7 @@ export default function CommercialDirectoryPage() {
   const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [countyFilter, setCountyFilter] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
   const [amount, setAmount] = useState("");
   const [timelineDays, setTimelineDays] = useState("");
   const [proposal, setProposal] = useState("");
@@ -112,7 +113,7 @@ export default function CommercialDirectoryPage() {
     queryKey: ["/api/commercial-directory/verification/status"],
     queryFn: () => apiRequest("GET", "/api/commercial-directory/verification/status"),
   });
-  const canAccessBoard = verificationStatus?.isEligible ?? true;
+  const canAccessBoard = verificationStatus?.isEligible ?? false;
   const verificationDocs = verificationStatus?.documents || [];
 
   const { data, isLoading, error } = useQuery<BoardProject[]>({
@@ -130,11 +131,33 @@ export default function CommercialDirectoryPage() {
     enabled: Boolean(selectedProjectId),
   });
 
+  const boardRows = useMemo(() => {
+    const rows = data || [];
+    const mockPattern = /\b(mock|demo|sample|test|placeholder)\b/i;
+    return rows.filter((row) => {
+      const title = row.project.title || "";
+      const summary = row.project.summary || "";
+      const slug = row.project.slug || "";
+      if (mockPattern.test(title) || mockPattern.test(summary) || mockPattern.test(slug)) {
+        return false;
+      }
+      if (projectSearch.trim().length > 0) {
+        const haystack = `${title} ${summary} ${slug}`.toLowerCase();
+        return haystack.includes(projectSearch.trim().toLowerCase());
+      }
+      return true;
+    });
+  }, [data, projectSearch]);
+
   useEffect(() => {
-    if (!selectedProjectId && data && data.length > 0) {
-      setSelectedProjectId(data[0].project.id);
+    if (!selectedProjectId && boardRows.length > 0) {
+      setSelectedProjectId(boardRows[0].project.id);
+      return;
     }
-  }, [data, selectedProjectId]);
+    if (selectedProjectId && !boardRows.some((row) => row.project.id === selectedProjectId)) {
+      setSelectedProjectId(boardRows[0]?.project.id || "");
+    }
+  }, [boardRows, selectedProjectId]);
 
   useEffect(() => {
     if (details?.myBid) {
@@ -263,10 +286,6 @@ export default function CommercialDirectoryPage() {
         <h1 className="text-3xl md:text-4xl font-semibold mt-3 leading-tight">
           Verified Contractor Bidding Portal
         </h1>
-        <p className="text-sm text-slate-300 mt-3 max-w-3xl">
-          Formal solicitations, controlled qualification, and auditable bid submissions in one
-          modern procurement workflow.
-        </p>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <Building2 className="h-4 w-4 text-cyan-200" />
@@ -467,16 +486,26 @@ export default function CommercialDirectoryPage() {
                 <MapPin className="h-5 w-5 text-cyan-200" />
                 Open Opportunities
               </CardTitle>
-              <CardDescription>Filter by county FIPS and select a project package.</CardDescription>
+              <CardDescription>Live board only. Verified contractors only.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <Label>Search</Label>
+                  <Input
+                    value={projectSearch}
+                    onChange={(e) => setProjectSearch(e.target.value)}
+                    placeholder="Project title or keyword"
+                  />
+                </div>
+                <div>
                 <Label>County Filter (FIPS)</Label>
                 <Input
                   value={countyFilter}
                   onChange={(e) => setCountyFilter(e.target.value.slice(0, 5))}
-                  placeholder="22105"
+                  placeholder="5-digit county FIPS"
                 />
+              </div>
               </div>
 
               {isLoading && <p>Loading board...</p>}
@@ -485,31 +514,41 @@ export default function CommercialDirectoryPage() {
                   {(error as Error)?.message || "Failed to load board."}
                 </p>
               )}
-              {!isLoading && !data?.length && <p>No open projects right now.</p>}
+              {!isLoading && !boardRows.length && <p>No live opportunities found.</p>}
 
               <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-                {(data || []).map((row) => (
+                {boardRows.map((row) => (
                   <button
                     key={row.project.id}
                     type="button"
                     onClick={() => setSelectedProjectId(row.project.id)}
                     className={`w-full text-left rounded-xl border p-3 transition ${
                       selectedProjectId === row.project.id
-                        ? "border-cyan-400 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
-                        : "border-white/10 bg-white/[0.03] hover:border-cyan-500/40"
+                        ? "border-cyan-300 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]"
+                        : "border-white/10 bg-slate-900/40 hover:border-cyan-500/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium text-sm">{row.project.title}</div>
-                      <div className="text-[11px] text-slate-300">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-semibold text-sm leading-snug">{row.project.title}</div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-300">
                         {row.project.stateCode}-{row.project.countyFips}
                       </div>
                     </div>
                     <p className="text-xs text-slate-400 mt-1 line-clamp-2">
                       {row.project.summary}
                     </p>
-                    <div className="text-[11px] text-slate-400 mt-2">
-                      bids: {row.bidsCount} | docs: {row.docsCount}
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                      <span className="rounded-full border border-white/15 bg-white/[0.03] px-2 py-1 text-slate-300">
+                        bids {row.bidsCount}
+                      </span>
+                      <span className="rounded-full border border-white/15 bg-white/[0.03] px-2 py-1 text-slate-300">
+                        docs {row.docsCount}
+                      </span>
+                      {row.project.bidDueAt && (
+                        <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-cyan-200">
+                          due {new Date(row.project.bidDueAt).toLocaleDateString()}
+                        </span>
+                      )}
                     </div>
                   </button>
                 ))}
