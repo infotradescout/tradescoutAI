@@ -580,7 +580,9 @@ export default function PropertyListing() {
                     disabled={createListingMutation.isPending}
                     className="bg-orange-600 hover:bg-orange-700"
                   >
-                    {createListingMutation.isPending ? "Creating Listing..." : "List Property"}
+                    {createListingMutation.isPending
+                      ? "Creating HomeScout Listing..."
+                      : "List on HomeScout"}
                   </Button>
                 </div>
               </form>

@@ -240,10 +240,10 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Link href="/property-listing">
+              <Link href="/homescout/new">
                 <Button className="bg-orange-500 hover:bg-orange-600 text-black font-semibold">
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  List a home
+                  List on HomeScout
                 </Button>
               </Link>
               <Button
@@ -462,9 +462,9 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   it will appear after admin review.
                 </p>
                 <div className="flex gap-2">
-                  <Link href="/property-listing">
+                  <Link href="/homescout/new">
                     <Button className="bg-orange-500 hover:bg-orange-600 text-black font-semibold">
-                      List a home
+                      List on HomeScout
                     </Button>
                   </Link>
                 </div>

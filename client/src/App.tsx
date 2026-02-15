@@ -755,10 +755,13 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/homescout/:stateCode/:countyFips">
                     <LazyPage Component={HomeScoutCounty} />
                   </Route>
-                  <Route path="/property-listing">
+                  <Route path="/homescout/new">
                     <ProtectedRoute>
                       <LazyPage Component={PropertyListing} />
                     </ProtectedRoute>
+                  </Route>
+                  <Route path="/property-listing">
+                    <RedirectTo to="/homescout/new" />
                   </Route>
                   <Route path="/handmade-marketplace">
                     <LazyPage Component={HandmadeMarketplace} />

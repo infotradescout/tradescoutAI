@@ -146,7 +146,7 @@ const SimpleHome = memo(function SimpleHome() {
                   </Badge>
                 </div>
                 <div className="text-2xl font-bold text-white mb-1">{stats.realEstateListings}</div>
-                <p className="text-xs text-slate-200">Property Listings</p>
+                <p className="text-xs text-slate-200">HomeScout Listings</p>
               </CardContent>
             </Card>
           )}
@@ -247,7 +247,7 @@ const SimpleHome = memo(function SimpleHome() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
                     <Building className="h-5 w-5 text-orange-500" />
-                    My Property Listings
+                    My HomeScout Listings
                   </CardTitle>
                   <Link href="/real-estate-marketplace">
                     <Button variant="ghost" size="sm">
@@ -276,7 +276,7 @@ const SimpleHome = memo(function SimpleHome() {
                   ) : (
                     <div className="text-center py-8">
                       <Building className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-300 mb-4">No property listings yet</p>
+                      <p className="text-slate-300 mb-4">No HomeScout listings yet</p>
                       <Link href="/real-estate-marketplace">
                         <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                           Create Listing

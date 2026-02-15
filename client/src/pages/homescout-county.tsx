@@ -173,10 +173,10 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/property-listing">
+            <Link href="/homescout/new">
               <Button className="bg-orange-500 hover:bg-orange-600 text-black font-semibold">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                List a home
+                List on HomeScout
               </Button>
             </Link>
           </div>
@@ -339,9 +339,9 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             </CardHeader>
             <CardContent className="text-sm text-slate-300 space-y-3">
               <p>Be the first to submit a listing for this county.</p>
-              <Link href="/property-listing">
+              <Link href="/homescout/new">
                 <Button className="bg-orange-500 hover:bg-orange-600 text-black font-semibold">
-                  List a home
+                  List on HomeScout
                 </Button>
               </Link>
             </CardContent>

@@ -223,7 +223,7 @@ const featuredCategories = [
   },
   {
     id: "property_listings",
-    name: "Property Listings",
+    name: "HomeScout Listings",
     icon: "home",
     color: "violet",
     description: "Quality homes and properties from trusted sellers",
@@ -1107,7 +1107,7 @@ export default function Marketplace() {
             </Card>
           )}
 
-          {/* Property Listings Notice */}
+          {/* HomeScout Listings Notice */}
           {selectedCategory === "property_listings" && (
             <Card className="mb-6 border-violet-200 bg-violet-50 dark:bg-violet-900/20 dark:border-violet-800">
               <CardContent className="p-6">
@@ -1117,7 +1117,7 @@ export default function Marketplace() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-violet-900 dark:text-violet-100 mb-2">
-                      Property Listings & Real Estate
+                      HomeScout Real Estate
                     </h3>
                     <p className="text-violet-800 dark:text-violet-200 text-sm mb-4">
                       Quality homes and properties listed by trusted community members and real
