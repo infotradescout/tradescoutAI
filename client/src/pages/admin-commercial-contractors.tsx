@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +65,8 @@ export default function AdminCommercialContractorsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedContractorId, setSelectedContractorId] = useState<string>("");
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
+  const [compactMode, setCompactMode] = useState(false);
 
   const { data, isLoading } = useQuery<CommercialContractorRow[]>({
     queryKey: ["/api/admin/commercial-directory/contractors", search, statusFilter],
@@ -81,6 +83,10 @@ export default function AdminCommercialContractorsPage() {
     () => (data || []).find((row) => row.contractor.id === selectedContractorId) || null,
     [data, selectedContractorId]
   );
+  const selectedDocument = useMemo(
+    () => selected?.documents.find((doc) => doc.id === selectedDocumentId) || null,
+    [selected, selectedDocumentId]
+  );
   const stats = useMemo(() => {
     const rows = data || [];
     return {
@@ -91,6 +97,17 @@ export default function AdminCommercialContractorsPage() {
     };
   }, [data]);
 
+  useEffect(() => {
+    if (!selected?.documents?.length) {
+      setSelectedDocumentId("");
+      return;
+    }
+    const exists = selected.documents.some((doc) => doc.id === selectedDocumentId);
+    if (exists) return;
+    const pending = selected.documents.find((doc) => doc.status === "pending");
+    setSelectedDocumentId((pending || selected.documents[0]).id);
+  }, [selected, selectedDocumentId]);
+
   const reviewDocMutation = useMutation({
     mutationFn: async (input: { documentId: string; approved: boolean }) => {
       return apiRequest(
@@ -99,6 +116,22 @@ export default function AdminCommercialContractorsPage() {
         { approved: input.approved }
       );
     },
+    onMutate: async (vars) => {
+      const key = ["/api/admin/commercial-directory/contractors", search, statusFilter];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<CommercialContractorRow[]>(key);
+      queryClient.setQueryData<CommercialContractorRow[]>(key, (curr) =>
+        (curr || []).map((row) => ({
+          ...row,
+          documents: row.documents.map((doc) =>
+            doc.id === vars.documentId
+              ? { ...doc, status: vars.approved ? "approved" : "rejected" }
+              : doc
+          ),
+        }))
+      );
+      return { previous, key };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/commercial-directory/contractors"] });
       queryClient.invalidateQueries({
@@ -106,7 +139,10 @@ export default function AdminCommercialContractorsPage() {
       });
       toast({ title: "Verification updated" });
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, ctx) => {
+      if (ctx?.previous && ctx?.key) {
+        queryClient.setQueryData(ctx.key, ctx.previous);
+      }
       toast({
         title: "Review failed",
         description: err?.message || "Please try again.",
@@ -135,6 +171,27 @@ export default function AdminCommercialContractorsPage() {
       });
     },
   });
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!selectedDocument || reviewDocMutation.isPending) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const editable = tag === "input" || tag === "textarea" || (target as any)?.isContentEditable;
+      if (editable) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "a") {
+        event.preventDefault();
+        reviewDocMutation.mutate({ documentId: selectedDocument.id, approved: true });
+      } else if (key === "r") {
+        event.preventDefault();
+        reviewDocMutation.mutate({ documentId: selectedDocument.id, approved: false });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedDocument, reviewDocMutation]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -211,6 +268,14 @@ export default function AdminCommercialContractorsPage() {
                 <option value="suspended">suspended</option>
               </select>
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={compactMode}
+                onChange={(e) => setCompactMode(e.target.checked)}
+              />
+              Compact list mode
+            </label>
 
             {isLoading && <p>Loading contractors...</p>}
             {!isLoading && !(data || []).length && <p>No commercial contractors found.</p>}
@@ -226,21 +291,25 @@ export default function AdminCommercialContractorsPage() {
                     key={row.contractor.id}
                     type="button"
                     onClick={() => setSelectedContractorId(row.contractor.id)}
-                    className={`w-full text-left rounded-xl border p-3 transition ${
+                    className={`w-full text-left rounded-xl border transition ${
                       selectedContractorId === row.contractor.id
                         ? "border-teal-500 bg-teal-500/10"
                         : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
-                    }`}
+                    } ${compactMode ? "p-2" : "p-3"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium text-sm">{row.contractor.companyName}</div>
+                      <div className={`${compactMode ? "text-xs" : "font-medium text-sm"}`}>
+                        {row.contractor.companyName}
+                      </div>
                       <div
                         className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-1 ${pill.className}`}
                       >
                         {pill.label}
                       </div>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-1">
+                    <div
+                      className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-slate-400 mt-1`}
+                    >
                       pending: {row.verification.pendingDocs} | rejected:{" "}
                       {row.verification.rejectedDocs}
                     </div>
@@ -308,19 +377,41 @@ export default function AdminCommercialContractorsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="text-sm uppercase tracking-wide text-slate-300">
-                    License and Insurance Documents
-                  </h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                      License and Insurance Documents
+                    </h3>
+                    <div className="text-[11px] text-slate-400">
+                      Shortcuts: <kbd className="px-1 rounded border border-slate-600">A</kbd>{" "}
+                      approve, <kbd className="px-1 rounded border border-slate-600">R</kbd> reject
+                    </div>
+                  </div>
                   {!selected.documents.length && <p>No verification documents yet.</p>}
                   {selected.documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="rounded border border-slate-700 p-3 bg-slate-900/60"
+                      className={`rounded border p-3 bg-slate-900/60 ${
+                        selectedDocumentId === doc.id
+                          ? "border-teal-500 shadow-[0_0_0_1px_rgba(20,184,166,0.35)]"
+                          : "border-slate-700"
+                      }`}
+                      onClick={() => setSelectedDocumentId(doc.id)}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <div className="font-medium text-sm">
-                            {doc.type} - {doc.status}
+                            {doc.type} -{" "}
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
+                                doc.status === "approved"
+                                  ? "text-emerald-200 bg-emerald-500/15 border border-emerald-500/40"
+                                  : doc.status === "rejected"
+                                    ? "text-rose-200 bg-rose-500/15 border border-rose-500/40"
+                                    : "text-amber-200 bg-amber-500/15 border border-amber-500/40"
+                              }`}
+                            >
+                              {doc.status}
+                            </span>
                           </div>
                           <div className="text-xs text-slate-400">{doc.fileName}</div>
                         </div>
