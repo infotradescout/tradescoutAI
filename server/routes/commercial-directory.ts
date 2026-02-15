@@ -91,6 +91,15 @@ function slugify(input: string): string {
     .slice(0, 200);
 }
 
+const COMMERCIAL_FORBIDDEN_TEXT_PATTERN = /\b(mock|demo|sample|test|placeholder)\b/i;
+
+function containsForbiddenCommercialSeedText(...values: Array<string | null | undefined>): boolean {
+  return values.some((value) => {
+    if (!value) return false;
+    return COMMERCIAL_FORBIDDEN_TEXT_PATTERN.test(String(value));
+  });
+}
+
 async function ensureUniqueProjectSlug(baseTitle: string): Promise<string> {
   const base = slugify(baseTitle) || "commercial-project";
   let candidate = base;
@@ -657,6 +666,13 @@ export function registerCommercialDirectoryRoutes(app: Express) {
             commercialProjectDocuments,
             eq(commercialProjectDocuments.projectId, commercialProjects.id)
           )
+          .where(
+            sql`NOT (
+              ${commercialProjects.title} ~* '(mock|demo|sample|test|placeholder)'
+              OR ${commercialProjects.summary} ~* '(mock|demo|sample|test|placeholder)'
+              OR ${commercialProjects.slug} ~* '(mock|demo|sample|test|placeholder)'
+            )`
+          )
           .groupBy(commercialProjects.id)
           .orderBy(desc(commercialProjects.createdAt));
 
@@ -708,6 +724,21 @@ export function registerCommercialDirectoryRoutes(app: Express) {
 
           try {
             const parsed = createCommercialProjectSchema.parse(req.body ?? {});
+            if (
+              containsForbiddenCommercialSeedText(
+                parsed.title,
+                parsed.summary,
+                parsed.scopeOfWork,
+                parsed.requirements,
+                parsed.campaignHeadline,
+                parsed.campaignBody
+              )
+            ) {
+              return res.status(400).json({
+                message:
+                  "Mock/demo/sample/test content is not allowed in commercial project records.",
+              });
+            }
             const slug = await ensureUniqueProjectSlug(parsed.title);
             const now = new Date();
             const publishedAt = parsed.campaignEnabled ? now : null;
@@ -1131,9 +1162,21 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const whereClause = countyFips
           ? and(
               eq(commercialProjects.status, "open"),
-              eq(commercialProjects.countyFips, countyFips)
+              eq(commercialProjects.countyFips, countyFips),
+              sql`NOT (
+                ${commercialProjects.title} ~* '(mock|demo|sample|test|placeholder)'
+                OR ${commercialProjects.summary} ~* '(mock|demo|sample|test|placeholder)'
+                OR ${commercialProjects.slug} ~* '(mock|demo|sample|test|placeholder)'
+              )`
             )
-          : eq(commercialProjects.status, "open");
+          : and(
+              eq(commercialProjects.status, "open"),
+              sql`NOT (
+                ${commercialProjects.title} ~* '(mock|demo|sample|test|placeholder)'
+                OR ${commercialProjects.summary} ~* '(mock|demo|sample|test|placeholder)'
+                OR ${commercialProjects.slug} ~* '(mock|demo|sample|test|placeholder)'
+              )`
+            );
 
         const rows = await db
           .select({
@@ -1193,6 +1236,15 @@ export function registerCommercialDirectoryRoutes(app: Express) {
           .where(eq(commercialProjects.id, projectId))
           .limit(1);
         if (!project) return res.status(404).json({ message: "Project not found" });
+        if (
+          containsForbiddenCommercialSeedText(
+            (project as any).title,
+            (project as any).summary,
+            (project as any).slug
+          )
+        ) {
+          return res.status(404).json({ message: "Project not found" });
+        }
 
         const docs = await db
           .select({
@@ -1330,6 +1382,15 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         .where(and(eq(commercialProjects.slug, slug), eq(commercialProjects.campaignEnabled, true)))
         .limit(1);
       if (!project) return res.status(404).json({ message: "Not found" });
+      if (
+        containsForbiddenCommercialSeedText(
+          (project as any).title,
+          (project as any).summary,
+          (project as any).slug
+        )
+      ) {
+        return res.status(404).json({ message: "Not found" });
+      }
 
       const docs = await db
         .select({
