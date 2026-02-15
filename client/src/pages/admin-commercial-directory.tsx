@@ -131,6 +131,7 @@ export default function AdminCommercialDirectoryPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [addendaFiles, setAddendaFiles] = useState<File[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedVerificationDocId, setSelectedVerificationDocId] = useState<string>("");
   const [statusControl, setStatusControl] = useState<string>("open");
   const [campaignControl, setCampaignControl] = useState<boolean>(false);
 
@@ -188,6 +189,18 @@ export default function AdminCommercialDirectoryPage() {
       setCampaignControl(Boolean(details.project.campaignEnabled));
     }
   }, [details]);
+
+  useEffect(() => {
+    if (!pendingVerificationDocs?.length) {
+      setSelectedVerificationDocId("");
+      return;
+    }
+    const exists = pendingVerificationDocs.some(
+      (row) => row.document.id === selectedVerificationDocId
+    );
+    if (exists) return;
+    setSelectedVerificationDocId(pendingVerificationDocs[0].document.id);
+  }, [pendingVerificationDocs, selectedVerificationDocId]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -372,6 +385,33 @@ export default function AdminCommercialDirectoryPage() {
     },
   });
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!selectedVerificationDocId || reviewVerificationMutation.isPending) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const editable = tag === "input" || tag === "textarea" || (target as any)?.isContentEditable;
+      if (editable) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "a") {
+        event.preventDefault();
+        reviewVerificationMutation.mutate({
+          documentId: selectedVerificationDocId,
+          approved: true,
+        });
+      } else if (key === "r") {
+        event.preventDefault();
+        reviewVerificationMutation.mutate({
+          documentId: selectedVerificationDocId,
+          approved: false,
+        });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [reviewVerificationMutation, selectedVerificationDocId]);
+
   const canSubmit = useMemo(() => {
     return (
       form.title.trim().length >= 3 &&
@@ -452,6 +492,10 @@ export default function AdminCommercialDirectoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="text-[11px] text-slate-400">
+            Shortcuts: <kbd className="px-1 rounded border border-slate-600">A</kbd> approve,{" "}
+            <kbd className="px-1 rounded border border-slate-600">R</kbd> reject
+          </div>
           {pendingVerificationLoading && <p>Loading pending verification docs...</p>}
           {!pendingVerificationLoading && !pendingVerificationDocs?.length && (
             <p>No pending verification documents.</p>
@@ -459,7 +503,12 @@ export default function AdminCommercialDirectoryPage() {
           {(pendingVerificationDocs || []).map((row) => (
             <div
               key={row.document.id}
-              className="rounded border border-slate-700 bg-slate-900/60 p-3"
+              className={`rounded border bg-slate-900/60 p-3 ${
+                selectedVerificationDocId === row.document.id
+                  ? "border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]"
+                  : "border-slate-700"
+              }`}
+              onClick={() => setSelectedVerificationDocId(row.document.id)}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
