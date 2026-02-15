@@ -76,7 +76,9 @@ export async function buildAffiliateUrl(
 
     const pathname = url.pathname || "";
     const looksLikePublicProfile =
-      pathname.startsWith("/profile/") || pathname.startsWith("/business/");
+      pathname.startsWith("/profile/") ||
+      pathname.startsWith("/business/") ||
+      pathname.startsWith("/u/");
 
     // Special rule: public profile links should stay clean (no ?ref=...),
     // but still count as referrals server-side via clean attribution.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,21 +47,28 @@ type PublicProfileResponse = {
 };
 
 export default function ProfileSiteView() {
-  const [, params] = useRoute("/p/:slug");
+  const [, paramsU] = useRoute("/u/:slug");
+  const [matchP, paramsP] = useRoute("/p/:slug");
+  const [, navigate] = useLocation();
+  const slug = (paramsU?.slug || paramsP?.slug || "").trim();
   const [data, setData] = useState<PublicProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    const slug = params?.slug;
     if (!slug) return;
+
+    if (matchP) {
+      navigate(`/u/${encodeURIComponent(slug)}`, { replace: true });
+      return;
+    }
 
     const run = async () => {
       try {
         setLoading(true);
         setNotFound(false);
 
-        const response = await fetch(`/api/p/${encodeURIComponent(slug)}`);
+        const response = await fetch(`/api/u/${encodeURIComponent(slug)}`);
         if (response.status === 404) {
           setNotFound(true);
           return;
@@ -78,7 +85,7 @@ export default function ProfileSiteView() {
     };
 
     run();
-  }, [params?.slug]);
+  }, [slug, matchP, navigate]);
 
   if (loading) {
     return (
@@ -126,7 +133,7 @@ export default function ProfileSiteView() {
           profile.headline ||
           `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`
         }
-        canonical={`${window.location.origin}/p/${encodeURIComponent(profile.slug)}`}
+        canonical={`${window.location.origin}/u/${encodeURIComponent(profile.slug)}`}
         ogType="profile"
       />
       <div className="container mx-auto px-4 max-w-5xl">

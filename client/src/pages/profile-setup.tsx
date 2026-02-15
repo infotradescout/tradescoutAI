@@ -8,7 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,7 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
 
 const profileSetupSchema = z.object({
-  role: z.enum(['homeowner', 'contractor_user', 'realtor', 'vehicle_dealer', 'helper']),
+  role: z.enum(["homeowner", "contractor_user", "realtor", "vehicle_dealer", "helper"]),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -41,20 +48,22 @@ export default function ProfileSetup() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [selectedRole, setSelectedRole] = useState<'homeowner' | 'contractor_user' | 'realtor' | 'vehicle_dealer' | 'helper' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<
+    "homeowner" | "contractor_user" | "realtor" | "vehicle_dealer" | "helper" | null
+  >(null);
 
   const form = useForm<ProfileSetupData>({
     resolver: zodResolver(profileSetupSchema),
     defaultValues: {
-      role: selectedRole || 'homeowner',
-      phone: '',
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      companyName: '',
-      businessDescription: '',
-      licenseNumber: '',
+      role: selectedRole || "homeowner",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      companyName: "",
+      businessDescription: "",
+      licenseNumber: "",
       yearsInBusiness: 0,
       serviceAreas: [],
       isGeneralContractor: false,
@@ -71,30 +80,31 @@ export default function ProfileSetup() {
     onSuccess: (result: any) => {
       toast({
         title: "Profile Setup Complete!",
-        description: selectedRole === 'contractor_user' 
-          ? "Welcome to TradeScout! Your contractor profile has been created."
-          : selectedRole === 'realtor'
-          ? "Welcome to TradeScout! Your realtor profile has been created."
-          : selectedRole === 'vehicle_dealer'
-          ? "Welcome to TradeScout! Your dealer profile has been created."
-          : selectedRole === 'helper'
-          ? "Welcome to TradeScout! Your helper profile has been created."
-          : "Welcome to TradeScout! You can now find and connect with contractors.",
+        description:
+          selectedRole === "contractor_user"
+            ? "Welcome to TradeScout! Your contractor profile has been created."
+            : selectedRole === "realtor"
+              ? "Welcome to TradeScout! Your realtor profile has been created."
+              : selectedRole === "vehicle_dealer"
+                ? "Welcome to TradeScout! Your dealer profile has been created."
+                : selectedRole === "helper"
+                  ? "Welcome to TradeScout! Your helper profile has been created."
+                  : "Welcome to TradeScout! You can now find and connect with contractors.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Redirect to Profile Editor (website surface)
       const profileSlug = result?.createdProfileSlug;
       if (profileSlug) {
-        setLocation(`/p/${profileSlug}/edit`);
+        setLocation(`/u/${profileSlug}/edit`);
         return;
       }
 
       // Fallbacks if API didn't return a slug
-      if (selectedRole === 'contractor_user') setLocation('/contractor-dashboard');
-      else if (selectedRole === 'realtor') setLocation('/realtor-dashboard');
-      else if (selectedRole === 'vehicle_dealer') setLocation('/dealer-dashboard');
-      else if (selectedRole === 'helper') setLocation('/helper-dashboard');
-      else setLocation('/homeowner-dashboard');
+      if (selectedRole === "contractor_user") setLocation("/contractor-dashboard");
+      else if (selectedRole === "realtor") setLocation("/realtor-dashboard");
+      else if (selectedRole === "vehicle_dealer") setLocation("/dealer-dashboard");
+      else if (selectedRole === "helper") setLocation("/helper-dashboard");
+      else setLocation("/homeowner-dashboard");
     },
     onError: (error: any) => {
       toast({
@@ -105,9 +115,11 @@ export default function ProfileSetup() {
     },
   });
 
-  const handleRoleSelection = (role: 'homeowner' | 'contractor_user' | 'realtor' | 'vehicle_dealer' | 'helper') => {
+  const handleRoleSelection = (
+    role: "homeowner" | "contractor_user" | "realtor" | "vehicle_dealer" | "helper"
+  ) => {
     setSelectedRole(role);
-    form.setValue('role', role);
+    form.setValue("role", role);
   };
 
   const onSubmit = (data: ProfileSetupData) => {
@@ -117,7 +129,9 @@ export default function ProfileSetup() {
   if (!user) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-foreground">Please log in to complete your profile setup.</div>
+        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-foreground">
+          Please log in to complete your profile setup.
+        </div>
       </div>
     );
   }
@@ -127,14 +141,16 @@ export default function ProfileSetup() {
       <div className="container mx-auto px-4 max-w-4xl ts-surface px-4 py-6 md:px-10 md:py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Complete Your Profile</h1>
-          <p className="text-muted-foreground">Tell us about yourself to get the best TradeScout experience</p>
+          <p className="text-muted-foreground">
+            Tell us about yourself to get the best TradeScout experience
+          </p>
         </div>
 
         {!selectedRole ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <Card 
+            <Card
               className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
-              onClick={() => handleRoleSelection('homeowner')}
+              onClick={() => handleRoleSelection("homeowner")}
             >
               <CardHeader className="text-center">
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -155,9 +171,9 @@ export default function ProfileSetup() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
-              onClick={() => handleRoleSelection('contractor_user')}
+              onClick={() => handleRoleSelection("contractor_user")}
             >
               <CardHeader className="text-center">
                 <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
@@ -178,9 +194,9 @@ export default function ProfileSetup() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
-              onClick={() => handleRoleSelection('realtor')}
+              onClick={() => handleRoleSelection("realtor")}
               data-testid="card-select-realtor"
             >
               <CardHeader className="text-center">
@@ -202,9 +218,9 @@ export default function ProfileSetup() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
-              onClick={() => handleRoleSelection('vehicle_dealer')}
+              onClick={() => handleRoleSelection("vehicle_dealer")}
               data-testid="card-select-vehicle-dealer"
             >
               <CardHeader className="text-center">
@@ -226,9 +242,9 @@ export default function ProfileSetup() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
-              onClick={() => handleRoleSelection('helper')}
+              onClick={() => handleRoleSelection("helper")}
               data-testid="card-select-helper"
             >
               <CardHeader className="text-center">
@@ -254,22 +270,22 @@ export default function ProfileSetup() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-card-foreground flex items-center gap-2">
-                {selectedRole === 'contractor_user' ? (
+                {selectedRole === "contractor_user" ? (
                   <>
                     <HardHat className="w-5 h-5" />
                     Contractor Profile Setup
                   </>
-                ) : selectedRole === 'realtor' ? (
+                ) : selectedRole === "realtor" ? (
                   <>
                     <Building className="w-5 h-5" />
                     Realtor Profile Setup
                   </>
-                ) : selectedRole === 'vehicle_dealer' ? (
+                ) : selectedRole === "vehicle_dealer" ? (
                   <>
                     <Car className="w-5 h-5" />
                     Vehicle Dealer Profile Setup
                   </>
-                ) : selectedRole === 'helper' ? (
+                ) : selectedRole === "helper" ? (
                   <>
                     <Wrench className="w-5 h-5" />
                     Helper Profile Setup
@@ -282,16 +298,15 @@ export default function ProfileSetup() {
                 )}
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                {selectedRole === 'contractor_user' 
+                {selectedRole === "contractor_user"
                   ? "Tell us about your contracting business"
-                  : selectedRole === 'realtor'
-                  ? "Tell us about your real estate business"
-                  : selectedRole === 'vehicle_dealer'
-                  ? "Tell us about your dealership"
-                  : selectedRole === 'helper'
-                  ? "Tell us about your skills and availability"
-                  : "Tell us about your home improvement needs"
-                }
+                  : selectedRole === "realtor"
+                    ? "Tell us about your real estate business"
+                    : selectedRole === "vehicle_dealer"
+                      ? "Tell us about your dealership"
+                      : selectedRole === "helper"
+                        ? "Tell us about your skills and availability"
+                        : "Tell us about your home improvement needs"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -400,21 +415,23 @@ export default function ProfileSetup() {
                   </div>
 
                   {/* Contractor-specific fields */}
-                  {selectedRole === 'contractor_user' && (
+                  {selectedRole === "contractor_user" && (
                     <>
                       <div className="border-t border-border pt-6">
                         <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                           <Building className="w-5 h-5" />
                           Business Information
                         </h3>
-                        
+
                         <div className="grid md:grid-cols-2 gap-4 mb-4">
                           <FormField
                             control={form.control}
                             name="companyName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-muted-foreground">Company Name</FormLabel>
+                                <FormLabel className="text-muted-foreground">
+                                  Company Name
+                                </FormLabel>
                                 <FormControl>
                                   <Input
                                     placeholder="ABC Construction LLC"
@@ -432,7 +449,9 @@ export default function ProfileSetup() {
                             name="licenseNumber"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-muted-foreground">License Number</FormLabel>
+                                <FormLabel className="text-muted-foreground">
+                                  License Number
+                                </FormLabel>
                                 <FormControl>
                                   <Input
                                     placeholder="Professional license ID"
@@ -451,7 +470,9 @@ export default function ProfileSetup() {
                           name="businessDescription"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-muted-foreground">Business Description</FormLabel>
+                              <FormLabel className="text-muted-foreground">
+                                Business Description
+                              </FormLabel>
                               <FormControl>
                                 <Textarea
                                   placeholder="Tell us about your services, specialties, and what makes your business unique..."
@@ -466,9 +487,13 @@ export default function ProfileSetup() {
 
                         {/* Contractor Type */}
                         <div className="border-t border-border pt-4">
-                          <h4 className="text-md font-semibold text-foreground mb-3">Contractor Type</h4>
-                          <p className="text-muted-foreground text-sm mb-4">Select all that apply to describe your business</p>
-                          
+                          <h4 className="text-md font-semibold text-foreground mb-3">
+                            Contractor Type
+                          </h4>
+                          <p className="text-muted-foreground text-sm mb-4">
+                            Select all that apply to describe your business
+                          </p>
+
                           <div className="space-y-3">
                             <FormField
                               control={form.control}
@@ -486,13 +511,14 @@ export default function ProfileSetup() {
                                       General Contractor
                                     </FormLabel>
                                     <p className="text-sm text-muted-foreground">
-                                      I manage complete construction projects and coordinate with other trades
+                                      I manage complete construction projects and coordinate with
+                                      other trades
                                     </p>
                                   </div>
                                 </FormItem>
                               )}
                             />
-                            
+
                             <FormField
                               control={form.control}
                               name="isResidentialContractor"
@@ -515,7 +541,7 @@ export default function ProfileSetup() {
                                 </FormItem>
                               )}
                             />
-                            
+
                             <FormField
                               control={form.control}
                               name="acceptsSubcontractWork"
@@ -558,7 +584,7 @@ export default function ProfileSetup() {
                       disabled={setupProfileMutation.isPending}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                      {setupProfileMutation.isPending ? 'Setting up...' : 'Complete Setup'}
+                      {setupProfileMutation.isPending ? "Setting up..." : "Complete Setup"}
                     </Button>
                   </div>
                 </form>

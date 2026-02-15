@@ -13,7 +13,7 @@ type PublicProfileData = {
     displayName: string;
     headline?: string | null;
     roleContext?: string | null;
-    seoMeta?: { title?: string; description?: string; imageUrl?: string };
+    seoMeta?: { title?: string; description?: string; imageUrl?: string; customDomain?: string };
   };
   business?: {
     name?: string;
@@ -45,7 +45,7 @@ function injectJsonLd(html: string, jsonLd: object) {
 }
 
 function buildJsonLd(profile: PublicProfileData, origin: string) {
-  const profileUrl = `${origin}/p/${encodeURIComponent(profile.profile.slug)}`;
+  const profileUrl = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
   const description =
     profile.profile.seoMeta?.description ||
@@ -84,7 +84,7 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     profile.profile.roleContext ||
     "TradeScout public profile";
   const imageUrl = profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-logo.jpg`;
-  const canonical = `${origin}/p/${encodeURIComponent(profile.profile.slug)}`;
+  const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
 
   return {
     title,

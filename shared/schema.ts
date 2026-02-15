@@ -752,6 +752,7 @@ export const profiles = pgTable(
         title?: string;
         description?: string;
         imageUrl?: string;
+        customDomain?: string;
       }>()
       .default(sql`'{}'::jsonb`),
     status: profileStatusEnum("status").notNull().default("draft"),

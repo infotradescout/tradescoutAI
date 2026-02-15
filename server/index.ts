@@ -21,8 +21,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
-import { affiliateAccounts } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { affiliateAccounts, profiles, users } from "@shared/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 // ES module equivalent of __dirname
@@ -149,7 +149,10 @@ app.use((req, res, next) => {
 // Custom domains: treat any user-owned domain as a referral entrypoint.
 // We do not serve the full app on custom domains; we redirect to the canonical host
 // with ?ref=... attached so everything stays on one origin.
-const CUSTOM_DOMAIN_CACHE = new Map<string, { ref: string; at: number }>();
+const CUSTOM_DOMAIN_CACHE = new Map<
+  string,
+  { kind: "affiliate"; ref: string; at: number } | { kind: "profile"; slug: string; at: number }
+>();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 app.use(async (req, res, next) => {
@@ -171,11 +174,49 @@ app.use(async (req, res, next) => {
     const now = Date.now();
     const cached = CUSTOM_DOMAIN_CACHE.get(host);
     if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
+      if (cached.kind === "profile") {
+        const path = req.path || "/";
+        if (path === "/" || path === "") {
+          return res.redirect(
+            301,
+            `/u/${encodeURIComponent(cached.slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+          );
+        }
+        return next();
+      }
+
       const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
       const targetHost = "www.thetradescout.com";
       const url = new URL(`${protocol}://${targetHost}${req.originalUrl || "/"}`);
       if (!url.searchParams.has("ref")) url.searchParams.set("ref", cached.ref);
       return res.redirect(301, url.toString());
+    }
+
+    // Profile custom domains are defined in profile seoMeta.customDomain.
+    const [profileDomain] = await db
+      .select({ slug: profiles.slug })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .where(
+        and(
+          eq(profiles.status, "published" as any),
+          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+          sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${host}`
+        )
+      )
+      .limit(1);
+
+    const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
+    if (profileSlug) {
+      CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, at: now });
+      const path = req.path || "/";
+      if (path === "/" || path === "") {
+        return res.redirect(
+          301,
+          `/u/${encodeURIComponent(profileSlug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+        );
+      }
+      return next();
     }
 
     const [account] = await db
@@ -187,7 +228,7 @@ app.use(async (req, res, next) => {
     const ref = typeof account?.referralCode === "string" ? account.referralCode.trim() : "";
     if (!ref) return next();
 
-    CUSTOM_DOMAIN_CACHE.set(host, { ref, at: now });
+    CUSTOM_DOMAIN_CACHE.set(host, { kind: "affiliate", ref, at: now });
 
     const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
     const targetHost = "www.thetradescout.com";
@@ -575,7 +616,7 @@ app.use((req, res, next) => {
               );
 
               // Public profile pages: server-rendered HTML for crawlability
-              app.get("/p/:slug", async (req, res) => {
+              app.get(["/u/:slug", "/p/:slug"], async (req, res) => {
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
@@ -587,17 +628,23 @@ app.use((req, res, next) => {
                   const host = req.headers.host || "www.thetradescout.com";
                   const origin = `${protocol}://${host}`;
 
-                  const html = await buildPublicProfileHtml({
-                    slug: String(req.params.slug || ""),
-                    origin,
-                    templateHtml,
-                  });
+                  const slug = String(req.params.slug || "");
+
+                  // Keep /p/:slug as legacy path but canonicalize to /u/:slug.
+                  if (req.path.startsWith("/p/")) {
+                    return res.redirect(301, `${origin}/u/${encodeURIComponent(slug)}`);
+                  }
+
+                  const html = await buildPublicProfileHtml({ slug, origin, templateHtml });
 
                   if (!html) {
                     return res.status(404).send("Profile not found");
                   }
 
-                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering public profile HTML:", err);

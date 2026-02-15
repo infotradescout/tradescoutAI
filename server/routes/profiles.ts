@@ -54,6 +54,11 @@ const profileSeoSchema = z
     title: z.string().max(120).optional(),
     description: z.string().max(500).optional(),
     imageUrl: z.string().max(500).optional(),
+    customDomain: z
+      .string()
+      .max(255)
+      .regex(/^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i, "Invalid domain format")
+      .optional(),
   })
   .strict();
 
@@ -252,51 +257,62 @@ router.get("/api/profiles/public-search", async (req, res) => {
   }
 });
 
-// Public website read: returns public Profile + public Business subset if linked.
-router.get("/api/p/:slug", async (req, res) => {
+const sendPublicProfileBySlug = async (slug: string, res: any) => {
+  const profile = await storage.getProfileBySlugPublic(slug);
+
+  if (!profile) {
+    return res.status(404).json({ message: "Profile not found" });
+  }
+
+  const business = profile.businessId
+    ? await storage.getBusinessPublicById(profile.businessId)
+    : undefined;
+  const safeBusiness = business
+    ? {
+        id: business.id,
+        name: business.name,
+        categories: business.categories || [],
+        serviceAreas: business.serviceAreas || [],
+      }
+    : null;
+
+  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  return res.json({
+    profile: {
+      id: profile.id,
+      slug: profile.slug,
+      roleContext: profile.roleContext,
+      displayName: profile.displayName,
+      headline: profile.headline,
+      contentBlocks: profile.contentBlocks,
+      ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
+      seoMeta: profile.seoMeta,
+      profileSections: profile.profileSections || null,
+      contactPolicy: {
+        mode: "direct_connect_only",
+        requiresTradeScoutAccount: true,
+        reason: "Spam prevention",
+      },
+    },
+    business: safeBusiness,
+  });
+};
+
+// Public website read (canonical): returns public Profile + public Business subset if linked.
+router.get("/api/u/:slug", async (req, res) => {
   try {
     const slug = String(req.params.slug);
-    const profile = await storage.getProfileBySlugPublic(slug);
-
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const business = profile.businessId
-      ? await storage.getBusinessPublicById(profile.businessId)
-      : undefined;
-    const safeBusiness = business
-      ? {
-          id: business.id,
-          name: business.name,
-          categories: business.categories || [],
-          serviceAreas: business.serviceAreas || [],
-        }
-      : null;
-
-    res.json({
-      profile: {
-        id: profile.id,
-        slug: profile.slug,
-        roleContext: profile.roleContext,
-        displayName: profile.displayName,
-        headline: profile.headline,
-        contentBlocks: profile.contentBlocks,
-        ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
-        seoMeta: profile.seoMeta,
-        profileSections: profile.profileSections || null,
-        contactPolicy: {
-          mode: "direct_connect_only",
-          requiresTradeScoutAccount: true,
-          reason: "Spam prevention",
-        },
-      },
-      business: safeBusiness,
-    });
+    return await sendPublicProfileBySlug(slug, res);
   } catch (error: any) {
     console.error("Error fetching public profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
   }
+});
+
+// Legacy alias for backward compatibility.
+router.get("/api/p/:slug", async (req, res) => {
+  const slug = String(req.params.slug || "");
+  return res.redirect(301, `/api/u/${encodeURIComponent(slug)}`);
 });
 
 router.get("/robots.txt", async (req, res) => {
@@ -307,6 +323,7 @@ router.get("/robots.txt", async (req, res) => {
     [
       "User-agent: *",
       "Allow: /p/",
+      "Allow: /u/",
       "Allow: /contractors/",
       "Allow: /profile/",
       "Allow: /business/",
@@ -417,7 +434,7 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
         : new Date().toISOString().slice(0, 10);
       return `
   <url>
-    <loc>${baseUrl}/p/${encodeURIComponent(profile.slug)}</loc>
+    <loc>${baseUrl}/u/${encodeURIComponent(profile.slug)}</loc>
     <lastmod>${lastmod}</lastmod>
   </url>`;
     });

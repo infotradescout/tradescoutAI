@@ -7,24 +7,36 @@ import { UserBadges } from "@/components/user-badges";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { USER_TYPES } from "@shared/userTypes";
 import { getUserColorScheme } from "@shared/colorPresets";
-import { 
-  MapPin, Calendar, Building, Award, Star, Settings, 
-  Eye, Share2, Edit, ExternalLink, Globe, Copy, Check, Shield
+import {
+  MapPin,
+  Calendar,
+  Building,
+  Award,
+  Star,
+  Settings,
+  Eye,
+  Share2,
+  Edit,
+  ExternalLink,
+  Globe,
+  Copy,
+  Check,
+  Shield,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { share } from "@/utils/share";
 
 function getDefaultHomePageLabel(value?: string) {
-  if (!value || value === 'llm') return 'Scout';
+  if (!value || value === "llm") return "Scout";
   const map: Record<string, string> = {
-    dashboard: 'My Dashboard',
-    marketplace: 'Marketplace',
-    'contractor-board': 'Contractor Board',
-    profile: 'My Profile',
-    community: 'Community',
+    dashboard: "My Dashboard",
+    marketplace: "Marketplace",
+    "contractor-board": "Contractor Board",
+    profile: "My Profile",
+    community: "Community",
   };
-  return map[value] || 'Scout';
+  return map[value] || "Scout";
 }
 
 type OwnedProfile = {
@@ -54,9 +66,7 @@ export default function ProfilePage() {
 
         const activeProfileId = (user as any).activeProfileId as string | undefined;
 
-        let active = activeProfileId
-          ? list.find((p) => p.id === activeProfileId)
-          : undefined;
+        let active = activeProfileId ? list.find((p) => p.id === activeProfileId) : undefined;
 
         if (!active) {
           active = list.find((p) => (p as any).status === "published") || list[0];
@@ -87,40 +97,42 @@ export default function ProfilePage() {
     );
   }
 
-  const displayName = user.firstName && user.lastName
-    ? `${user.firstName} ${user.lastName}`
-    : user.firstName || 'TradeScout User';
+  const displayName =
+    user.firstName && user.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user.firstName || "TradeScout User";
 
-  const location = user.city && user.state
-    ? `${user.city}, ${user.state}`
-    : user.city || user.state || 'Location not set';
+  const location =
+    user.city && user.state
+      ? `${user.city}, ${user.state}`
+      : user.city || user.state || "Location not set";
 
   const badges = user.badges || [];
   const distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
   const showBadges = user.preferences?.badges?.show !== false;
-  const hasCommunityBuilder = (user.roles || []).includes('community_builder');
+  const hasCommunityBuilder = (user.roles || []).includes("community_builder");
 
   const colorScheme = getUserColorScheme(user.preferences);
   const profileThemeVars = {
     // Scope these to the profile page so we don't globally override the app.
-    ['--user-primary' as any]: colorScheme.primary,
-    ['--user-secondary' as any]: colorScheme.secondary,
-    ['--user-background' as any]: colorScheme.background,
-    ['--user-text' as any]: colorScheme.text,
-    ['--user-accent' as any]: colorScheme.accent || colorScheme.primary,
-    ['--user-border' as any]: colorScheme.border || colorScheme.background,
+    ["--user-primary" as any]: colorScheme.primary,
+    ["--user-secondary" as any]: colorScheme.secondary,
+    ["--user-background" as any]: colorScheme.background,
+    ["--user-text" as any]: colorScheme.text,
+    ["--user-accent" as any]: colorScheme.accent || colorScheme.primary,
+    ["--user-border" as any]: colorScheme.border || colorScheme.background,
   } as React.CSSProperties;
 
   const profileUrl = profileSlug
-    ? `${window.location.origin}/p/${profileSlug}`
+    ? `${window.location.origin}/u/${profileSlug}`
     : `${window.location.origin}/profile/${user.id}`;
-  const isPublic = user.preferences?.profileVisibility === 'public';
+  const isPublic = user.preferences?.profileVisibility === "public";
 
   const copyProfileUrl = async () => {
     await share({
       url: profileUrl,
       title: `${displayName}'s TradeScout profile`,
-      contextLabel: 'Profile link',
+      contextLabel: "Profile link",
     });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -131,8 +143,8 @@ export default function ProfilePage() {
       className="min-h-screen transition-colors duration-300"
       style={{
         ...profileThemeVars,
-        backgroundColor: 'var(--user-background)',
-        color: 'var(--user-text)',
+        backgroundColor: "var(--user-background)",
+        color: "var(--user-text)",
       }}
     >
       <div className="container mx-auto py-8 space-y-6 max-w-6xl">
@@ -140,8 +152,9 @@ export default function ProfilePage() {
         <div
           className="rounded-lg p-8 shadow-lg border"
           style={{
-            backgroundColor: 'color-mix(in srgb, var(--user-background) 92%, var(--user-border) 8%)',
-            borderColor: 'var(--user-border)',
+            backgroundColor:
+              "color-mix(in srgb, var(--user-background) 92%, var(--user-border) 8%)",
+            borderColor: "var(--user-border)",
           }}
         >
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
@@ -150,12 +163,12 @@ export default function ProfilePage() {
                 src={user.profileImageUrl}
                 alt={displayName}
                 className="w-32 h-32 rounded-full object-cover border-4"
-                style={{ borderColor: 'var(--user-primary)' }}
+                style={{ borderColor: "var(--user-primary)" }}
               />
             ) : (
               <div
                 className="w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white"
-                style={{ backgroundColor: 'var(--user-primary)' }}
+                style={{ backgroundColor: "var(--user-primary)" }}
               >
                 {displayName.charAt(0).toUpperCase()}
               </div>
@@ -164,7 +177,9 @@ export default function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-4xl font-bold text-tsTextMain mb-2 break-words">{displayName}</h1>
+                  <h1 className="text-4xl font-bold text-tsTextMain mb-2 break-words">
+                    {displayName}
+                  </h1>
                   <div className="flex flex-wrap gap-3 text-sm text-tsTextMuted">
                     {location && (
                       <div className="flex items-center gap-1">
@@ -195,10 +210,10 @@ export default function ProfilePage() {
                 </div>
 
                 <Button
-                  onClick={() => setLocation('/profile-settings')}
+                  onClick={() => setLocation("/profile-settings")}
                   variant="outline"
                   className="border hover:text-white"
-                  style={{ borderColor: 'var(--user-primary)', color: 'var(--user-primary)' }}
+                  style={{ borderColor: "var(--user-primary)", color: "var(--user-primary)" }}
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Edit Profile
@@ -225,14 +240,18 @@ export default function ProfilePage() {
                 <div
                   className="border rounded-lg p-4"
                   style={{
-                    backgroundColor: 'color-mix(in srgb, var(--user-background) 90%, var(--user-border) 10%)',
-                    borderColor: 'var(--user-border)',
+                    backgroundColor:
+                      "color-mix(in srgb, var(--user-background) 90%, var(--user-border) 10%)",
+                    borderColor: "var(--user-border)",
                   }}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-tsTextMuted mb-1">Your Public Profile URL</p>
-                      <code className="text-sm truncate block" style={{ color: 'var(--user-primary)' }}>
+                      <code
+                        className="text-sm truncate block"
+                        style={{ color: "var(--user-primary)" }}
+                      >
                         {profileUrl}
                       </code>
                     </div>
@@ -242,7 +261,7 @@ export default function ProfilePage() {
                         variant="outline"
                         onClick={copyProfileUrl}
                         className="border hover:text-white"
-                        style={{ borderColor: 'var(--user-primary)', color: 'var(--user-primary)' }}
+                        style={{ borderColor: "var(--user-primary)", color: "var(--user-primary)" }}
                       >
                         {copied ? (
                           <>
@@ -258,9 +277,9 @@ export default function ProfilePage() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => window.open(profileUrl, '_blank')}
+                        onClick={() => window.open(profileUrl, "_blank")}
                         className="text-white"
-                        style={{ backgroundColor: 'var(--user-primary)' }}
+                        style={{ backgroundColor: "var(--user-primary)" }}
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
                         View
@@ -353,37 +372,37 @@ export default function ProfilePage() {
               </Card>
 
               {/* Preferences */}
-            <Card className="bg-tsCard border-tsBorder">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-tsTextMain">
-                  <Settings className="h-5 w-5 text-tsAccent" />
-                  Preferences
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-tsTextMain">
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-tsTextMuted">Default Home Page</span>
-                    <span className="font-medium">
-                      {getDefaultHomePageLabel(user.preferences?.defaultHomePage)}
-                    </span>
-                  </div>
+              <Card className="bg-tsCard border-tsBorder">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-tsTextMain">
+                    <Settings className="h-5 w-5 text-tsAccent" />
+                    Preferences
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-tsTextMain">
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-tsTextMuted">Default Home Page</span>
+                      <span className="font-medium">
+                        {getDefaultHomePageLabel(user.preferences?.defaultHomePage)}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-tsTextMuted">Profile Visibility</span>
                       <span className="font-medium capitalize">
-                        {user.preferences?.profileVisibility || 'public'}
+                        {user.preferences?.profileVisibility || "public"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-tsTextMuted">Color Scheme</span>
                       <span className="font-medium capitalize">
-                        {user.preferences?.colorScheme?.preset || 'default'}
+                        {user.preferences?.colorScheme?.preset || "default"}
                       </span>
                     </div>
                   </div>
                   <Button
                     className="w-full mt-4 bg-tsAccent text-white hover:bg-tsAccent/90"
-                    onClick={() => setLocation('/profile-settings')}
+                    onClick={() => setLocation("/profile-settings")}
                   >
                     Customize Settings
                   </Button>
@@ -401,16 +420,20 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-tsAccent">{user?.stats?.listings ?? '—'}</div>
+                      <div className="text-2xl font-bold text-tsAccent">
+                        {user?.stats?.listings ?? "—"}
+                      </div>
                       <div className="text-xs text-tsTextMuted">Listings</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-tsAccent">{user?.stats?.reviews ?? '—'}</div>
+                      <div className="text-2xl font-bold text-tsAccent">
+                        {user?.stats?.reviews ?? "—"}
+                      </div>
                       <div className="text-xs text-tsTextMuted">RECOMMENDATIONS</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-tsAccent flex items-center justify-center gap-1">
-                        {user?.stats?.rating ?? '—'} <Star className="h-4 w-4 fill-current" />
+                        {user?.stats?.rating ?? "—"} <Star className="h-4 w-4 fill-current" />
                       </div>
                       <div className="text-xs text-tsTextMuted">Rating</div>
                     </div>
@@ -482,11 +505,11 @@ export default function ProfilePage() {
                     Make Your Profile Public
                   </h3>
                   <p className="text-sm text-tsTextMuted mb-4">
-                    Turn your profile into a public website that can be found by potential clients and Scout.
-                    Share your URL instead of maintaining a separate website.
+                    Turn your profile into a public website that can be found by potential clients
+                    and Scout. Share your URL instead of maintaining a separate website.
                   </p>
                   <Button
-                    onClick={() => setLocation('/profile-settings')}
+                    onClick={() => setLocation("/profile-settings")}
                     className="bg-tsAccent text-white hover:bg-tsAccent/90"
                   >
                     Enable Public Profile

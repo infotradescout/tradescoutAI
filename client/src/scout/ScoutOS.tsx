@@ -904,7 +904,7 @@ export default function ScoutOS() {
               const fallbackToSearch = "/community";
 
               const targetTo = best?.slug
-                ? `/p/${encodeURIComponent(best.slug)}`
+                ? `/u/${encodeURIComponent(best.slug)}`
                 : fallbackToSearch;
 
               const msg: ScoutMessage = {

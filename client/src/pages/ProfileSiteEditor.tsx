@@ -28,10 +28,11 @@ type ProfileDetail = OwnedProfile & {
 export default function ProfileSiteEditor() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [, params] = useRoute("/p/:slug/edit");
+  const [matchU, paramsU] = useRoute("/u/:slug/edit");
+  const [, paramsP] = useRoute("/p/:slug/edit");
   const [, setLocation] = useLocation();
 
-  const slug = params?.slug;
+  const slug = (paramsU?.slug || paramsP?.slug || "").trim();
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileDetail | null>(null);
@@ -41,6 +42,7 @@ export default function ProfileSiteEditor() {
   const [contentBlocksText, setContentBlocksText] = useState("[]");
   const [ctaConfigText, setCtaConfigText] = useState("{}");
   const [seoMetaText, setSeoMetaText] = useState("{}");
+  const [customDomain, setCustomDomain] = useState("");
 
   const profileVisibility = user?.preferences?.profileVisibility || "private";
 
@@ -66,6 +68,7 @@ export default function ProfileSiteEditor() {
         setContentBlocksText(JSON.stringify(detail.contentBlocks ?? [], null, 2));
         setCtaConfigText(JSON.stringify(detail.ctaConfig ?? {}, null, 2));
         setSeoMetaText(JSON.stringify(detail.seoMeta ?? {}, null, 2));
+        setCustomDomain(String(detail.seoMeta?.customDomain || ""));
       } catch (error: any) {
         console.error("Error loading profile:", error);
         toast({
@@ -80,6 +83,11 @@ export default function ProfileSiteEditor() {
 
     load();
   }, [slug, toast]);
+
+  useEffect(() => {
+    if (matchU || !slug) return;
+    setLocation(`/u/${encodeURIComponent(slug)}/edit`);
+  }, [matchU, setLocation, slug]);
 
   const parsedPayload = useMemo(() => {
     try {
@@ -105,10 +113,23 @@ export default function ProfileSiteEditor() {
     }
 
     try {
+      const seoMetaFromText =
+        parsedPayload.seoMeta && typeof parsedPayload.seoMeta === "object"
+          ? { ...(parsedPayload.seoMeta as Record<string, unknown>) }
+          : {};
+      const normalizedDomain = customDomain.trim().toLowerCase();
+      if (normalizedDomain) {
+        seoMetaFromText.customDomain = normalizedDomain;
+      } else {
+        delete (seoMetaFromText as any).customDomain;
+      }
+
       const res = await apiRequest("PUT", `/api/profiles/${profile.id}`, {
         displayName,
         headline: headline || null,
-        ...parsedPayload,
+        contentBlocks: parsedPayload.contentBlocks,
+        ctaConfig: parsedPayload.ctaConfig,
+        seoMeta: seoMetaFromText,
       });
       const updated = (await res.json()) as ProfileDetail;
       setProfile(updated);
@@ -162,7 +183,7 @@ export default function ProfileSiteEditor() {
     try {
       await apiRequest("PATCH", "/api/users/profile-visibility", { profileVisibility: next });
       toast({ title: "Updated", description: `Profile visibility set to ${next}.` });
-      setLocation(`/p/${slug}/edit`);
+      setLocation(`/u/${slug}/edit`);
     } catch (error: any) {
       toast({
         title: "Update failed",
@@ -210,7 +231,7 @@ export default function ProfileSiteEditor() {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="flex flex-wrap gap-2">
-              <Link href={`/p/${profile.slug}`}>
+              <Link href={`/u/${profile.slug}`}>
                 <Button variant="outline" className="border-navy-500 text-gray-200">
                   View public page
                 </Button>
@@ -276,6 +297,18 @@ export default function ProfileSiteEditor() {
                 onChange={(e) => setSeoMetaText(e.target.value)}
                 rows={6}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-200">Custom domain (optional)</Label>
+              <Input
+                value={customDomain}
+                onChange={(e) => setCustomDomain(e.target.value)}
+                placeholder="profile.yourdomain.com"
+              />
+              <p className="text-gray-400 text-xs">
+                When configured in DNS, this domain will resolve to this public profile.
+              </p>
             </div>
 
             <div className="pt-2 border-t border-navy-700">

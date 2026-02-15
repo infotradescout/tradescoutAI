@@ -682,10 +682,18 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/profile/:userId">
                     <LazyPage Component={PublicProfileView} />
                   </Route>
+                  <Route path="/u/:slug">
+                    <LazyPage Component={ProfileSiteView} />
+                  </Route>
                   <Route path="/p/:slug">
                     <LazyPage Component={ProfileSiteView} />
                   </Route>
                   <Route path="/p/:slug/edit">
+                    <ProtectedRoute>
+                      <LazyPage Component={ProfileSiteEditor} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/u/:slug/edit">
                     <ProtectedRoute>
                       <LazyPage Component={ProfileSiteEditor} />
                     </ProtectedRoute>
