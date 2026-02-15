@@ -656,11 +656,7 @@ export default function AccountingWorkspace() {
           <CardHeader className="pb-3 flex items-center justify-between gap-2">
             <div>
               <CardTitle className="text-sm font-semibold text-white">Finances</CardTitle>
-              {!navCollapsed && (
-                <CardDescription className="text-xs">
-                  Navigate your money workspace: jobs, invoices, expenses, and more.
-                </CardDescription>
-              )}
+              {!navCollapsed && <CardDescription className="text-xs">Workspace</CardDescription>}
             </div>
             <button
               type="button"
@@ -717,9 +713,7 @@ export default function AccountingWorkspace() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Dashboard</h1>
-              <p className="text-sm text-slate-400">
-                Welcome back! Here's an overview of your contracting business.
-              </p>
+              <p className="text-sm text-slate-400">Overview</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -739,7 +733,7 @@ export default function AccountingWorkspace() {
                 <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
                   Total Billed
                 </CardTitle>
-                <CardDescription>Lifetime revenue across all job records.</CardDescription>
+                <CardDescription>Lifetime</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-semibold text-white">
@@ -779,14 +773,14 @@ export default function AccountingWorkspace() {
                 <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
                   Total Expenses
                 </CardTitle>
-                <CardDescription>Recorded costs tied to your jobs and business.</CardDescription>
+                <CardDescription>Tracked costs</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-semibold text-emerald-300">
                   {formatCurrency(lifetime?.totalExpenses ?? 0)}
                 </div>
                 <p className="mt-1 text-[11px] text-slate-400">
-                  Recorded expenses across this standalone finances workspace.
+                  {expenses.length.toLocaleString()} recorded
                 </p>
               </CardContent>
             </Card>
@@ -971,9 +965,7 @@ export default function AccountingWorkspace() {
                 <CardTitle className="text-sm font-semibold text-slate-100">
                   Recent money activity
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
-                  Paid invoices show up as positive inflows; everything else stays as open work.
-                </CardDescription>
+                <CardDescription className="text-xs text-slate-400">Cash timeline</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {recentInvoices.length === 0 ? (
@@ -1036,9 +1028,7 @@ export default function AccountingWorkspace() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-slate-100">Clients</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Roll-up of who you've billed through this workspace.
-              </CardDescription>
+              <CardDescription className="text-xs text-slate-400">Billed clients</CardDescription>
             </CardHeader>
             <CardContent className="pt-1">
               {invoices.length === 0 ? (
@@ -1600,16 +1590,11 @@ export default function AccountingWorkspace() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-slate-100">Employees</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                High-level view of people doing the work. Detailed hiring and team tools live
-                elsewhere in TradeScout.
-              </CardDescription>
+              <CardDescription className="text-xs text-slate-400">Team snapshot</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-slate-400">
-                Use your contractor dashboard and Worker Marketplace to add or manage crew. As
-                payroll and time tracking tighten into Finances, this tab will show headcount,
-                roles, and pay summaries.
+                Manage hiring and crew from contractor tools.
               </p>
             </CardContent>
           </Card>
@@ -1619,21 +1604,10 @@ export default function AccountingWorkspace() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-slate-100">Payroll</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Summaries of payouts and tax statements driven by your wallet and external payroll
-                tools.
-              </CardDescription>
+              <CardDescription className="text-xs text-slate-400">Payout summary</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-[11px] text-slate-400">
-              <p>
-                Today, TradeScout Wallet and your tax statements provide the source of truth for
-                on-platform payouts. Use the Wallet page to download period statements for
-                bookkeeping and tax prep.
-              </p>
-              <p>
-                As payroll integrations are wired, this tab will surface gross vs. net, employer
-                taxes, and links into your payroll provider.
-              </p>
+              <p>Use Wallet statements and payroll exports for reconciliation.</p>
             </CardContent>
           </Card>
         </section>
@@ -1770,15 +1744,11 @@ export default function AccountingWorkspace() {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-slate-100">Vendors</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Suppliers, subs, and services you rely on to get jobs done.
-              </CardDescription>
+              <CardDescription className="text-xs text-slate-400">Supplier records</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-slate-400">
-                TradeScout already tracks HOA vendors and verified providers. As business-vendor
-                tooling lands here, this tab will connect those records to your job and expense
-                history.
+                Vendor tooling available in upcoming updates.
               </p>
             </CardContent>
           </Card>
@@ -1792,8 +1762,7 @@ export default function AccountingWorkspace() {
                   Bank accounts
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
-                  TradeScout tracks job money flows today. Direct bank connections will plug in here
-                  when enabled.
+                  Connection status
                 </CardDescription>
               </div>
               <Button
@@ -1807,9 +1776,7 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-slate-400">
-                For now, use invoice records, Wallet, and the money workspace to keep your
-                off-platform jobs organized. When live, connected accounts will surface balances and
-                recent bank activity here.
+                Bank sync is not enabled for this workspace.
               </p>
             </CardContent>
           </Card>
@@ -1820,9 +1787,7 @@ export default function AccountingWorkspace() {
             <CardHeader className="flex flex-row items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-semibold text-slate-100">Reports</CardTitle>
-                <CardDescription className="text-xs text-slate-400">
-                  High-level breakdowns of billed vs. collected revenue over time.
-                </CardDescription>
+                <CardDescription className="text-xs text-slate-400">Performance</CardDescription>
               </div>
               <Button
                 variant="outline"
@@ -1836,11 +1801,7 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent className="space-y-4">
               {!summary ? (
-                <p className="text-[11px] text-slate-400">
-                  The Dashboard gives you month-over-month revenue trends, while Wallet tax
-                  statements summarize income for specific periods. When more data is available,
-                  this Reports tab will surface exportable breakdowns and accountant-friendly views.
-                </p>
+                <p className="text-[11px] text-slate-400">No report data yet.</p>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
@@ -1877,9 +1838,7 @@ export default function AccountingWorkspace() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xs font-semibold text-slate-200">Monthly breakdown</h3>
-                        <p className="text-[10px] text-slate-500">
-                          Use this to see how work and cash collection move month to month.
-                        </p>
+                        <p className="text-[10px] text-slate-500">Month to month</p>
                       </div>
                       <div className="overflow-x-auto -mx-2">
                         <Table className="min-w-full text-[11px]">
@@ -1923,17 +1882,10 @@ export default function AccountingWorkspace() {
               <CardTitle className="text-sm font-semibold text-slate-100">
                 Financial settings
               </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Control currency defaults, numbering, and export preferences for your Finances
-                workspace.
-              </CardDescription>
+              <CardDescription className="text-xs text-slate-400">Preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-[11px] text-slate-400">
-                As the accounting engine deepens, this tab will let you tune invoice numbering, tax
-                settings, and export destinations so TradeScout matches how your bookkeeper and CPA
-                work.
-              </p>
+              <p className="text-[11px] text-slate-400">Configure defaults and export settings.</p>
             </CardContent>
           </Card>
         </section>

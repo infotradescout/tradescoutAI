@@ -574,10 +574,7 @@ export default function Exchange() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] text-orange-300">Exchange</p>
-            <h1 className="text-xl sm:text-2xl font-bold text-white mt-1">Local-first listings</h1>
-            <p className="text-slate-300 mt-2 max-w-2xl text-xs sm:text-sm">
-              Listings are always sorted by locality when your county is set. No location gating.
-            </p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mt-1">Listings</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="border-slate-600 text-slate-200">

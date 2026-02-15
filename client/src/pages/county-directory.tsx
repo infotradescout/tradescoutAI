@@ -95,9 +95,7 @@ const CountyDirectory = memo(function CountyDirectory() {
             <MapPin className="h-8 w-8 text-[color:var(--theme-accent-primary,#ff6600)]" />
             <h1 className="text-4xl font-bold">County Directory</h1>
           </div>
-          <p className="text-tsTextMuted text-lg">
-            Browse counties by state. This page pulls from real data sources (no mock counts).
-          </p>
+          <p className="text-tsTextMuted text-lg">Browse counties by state.</p>
         </div>
 
         <Card className="bg-tsCard border border-tsBorder backdrop-blur-sm mb-8">
