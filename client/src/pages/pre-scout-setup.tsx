@@ -286,22 +286,22 @@ export default function PreScoutSetup() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-3 py-6 md:px-4 md:py-10 text-tsTextMain">
+      <div className="min-h-screen flex items-center justify-center px-3 py-4 md:px-4 md:py-8 text-tsTextMain">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.05fr_minmax(0,1fr)] gap-4 md:gap-6">
           <div className="space-y-3 md:space-y-4">
             <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-tsAccentSoft">
               Step 1 of 2
             </div>
             <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
-              Sign in or create account.
+              Sign in. Get local.
             </h1>
           </div>
 
           <Card className="bg-tsCard border border-tsBorder">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-xl text-tsTextMain">Access TradeScout</CardTitle>
+              <CardTitle className="text-xl text-tsTextMain">Access</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -347,7 +347,7 @@ export default function PreScoutSetup() {
               </div>
 
               {authMode === "signin" ? (
-                <form onSubmit={handleSignIn} className="space-y-2.5">
+                <form onSubmit={handleSignIn} className="space-y-2">
                   <div>
                     <Label className="text-sm">Email</Label>
                     <Input
@@ -381,7 +381,7 @@ export default function PreScoutSetup() {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleCreateAccount} className="space-y-2">
+                <form onSubmit={handleCreateAccount} className="space-y-1.5">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-sm">First name</Label>
@@ -450,9 +450,7 @@ export default function PreScoutSetup() {
                       onChange={(e) => setAcceptTerms(e.target.checked)}
                       className="mt-0.5"
                     />
-                    <span className="text-xs text-tsTextMuted">
-                      I agree to the Terms and Privacy Policy.
-                    </span>
+                    <span className="text-xs text-tsTextMuted">Agree to Terms + Privacy.</span>
                   </label>
                   <div className="flex justify-end">
                     <Button type="submit" disabled={authSubmitting}>
@@ -469,14 +467,14 @@ export default function PreScoutSetup() {
   }
 
   return (
-    <div className="min-h-screen flex justify-center px-3 py-6 md:px-4 md:py-10 text-tsTextMain">
+    <div className="min-h-screen flex justify-center px-3 py-4 md:px-4 md:py-8 text-tsTextMain">
       <div className="w-full max-w-3xl space-y-3">
         <Button
           variant="ghost"
           onClick={() => navigate("/scout")}
           className="px-0 text-tsTextMuted hover:text-white hover:bg-transparent"
         >
-          Back
+          Back to Scout
         </Button>
 
         <Card className="bg-tsCard border border-tsBorder">
@@ -492,9 +490,9 @@ export default function PreScoutSetup() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div className="space-y-2">
-                <Label className="text-sm">Account mode</Label>
+                <Label className="text-sm">Mode</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"

@@ -39,8 +39,8 @@ export default function CheckEmail() {
         next: safeNext || "/pre-scout-setup",
       });
       toast({
-        title: "Verification email requested",
-        description: resp?.message || "If an account exists, a new link has been sent.",
+        title: "Email sent",
+        description: resp?.message || "If the account exists, a new link was sent.",
       });
       if (resp?.verificationToken) {
         console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
@@ -76,9 +76,7 @@ export default function CheckEmail() {
       <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-2xl font-bold text-tsTextMain">Check your email</CardTitle>
-          <p className="text-sm text-tsTextMuted">
-            We sent a verification link. Open it to confirm your email, then come back here.
-          </p>
+          <p className="text-sm text-tsTextMuted">Open the link, then return here.</p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
@@ -91,19 +89,19 @@ export default function CheckEmail() {
             />
           </div>
           <Button className="w-full" onClick={resend} disabled={isSending}>
-            {isSending ? "Sending..." : "Resend verification email"}
+            {isSending ? "Sending..." : "Resend email"}
           </Button>
           <Button variant="outline" className="w-full" onClick={continueAfterVerify}>
             I verified my email
           </Button>
           <div className="text-center text-xs text-tsTextMuted">
-            Need a different email?{" "}
+            Different email?{" "}
             <button
               type="button"
               className="text-tsAccent hover:underline"
               onClick={() => navigate("/pre-scout-setup?mode=create")}
             >
-              Use a different account
+              Use another account
             </button>
           </div>
         </CardContent>

@@ -13,7 +13,7 @@ export default function VerifyEmail() {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [state, setState] = useState<VerifyState>("loading");
-  const [message, setMessage] = useState("Verifying your email...");
+  const [message, setMessage] = useState("Verifying...");
   const [verifiedEmail, setVerifiedEmail] = useState<string>("");
 
   useEffect(() => {
@@ -33,11 +33,11 @@ export default function VerifyEmail() {
       .then((resp) => {
         if (!alive) return;
         setState("success");
-        setMessage(resp?.message || "Email verified successfully.");
+        setMessage(resp?.message || "Email verified.");
         setVerifiedEmail(typeof resp?.email === "string" ? resp.email : "");
         toast({
           title: "Email verified",
-          description: "Verified. Routing you to the next step...",
+          description: "Verified. Routing now...",
         });
 
         // Persist `next` in the URL so the follow-up effect + Continue button share the same value.
@@ -54,7 +54,7 @@ export default function VerifyEmail() {
       .catch((error: any) => {
         if (!alive) return;
         setState("error");
-        setMessage(error?.message || "Verification failed. Please request a new link.");
+        setMessage(error?.message || "Verification failed. Request a new link.");
       });
 
     return () => {
@@ -85,7 +85,7 @@ export default function VerifyEmail() {
     <div className="min-h-screen flex items-center justify-center px-4 py-10 text-tsTextMain">
       <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-tsTextMain">Verify Email</CardTitle>
+          <CardTitle className="text-2xl font-bold text-tsTextMain">Email verification</CardTitle>
           <p className="text-sm text-tsTextMuted">{message}</p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -125,14 +125,14 @@ export default function VerifyEmail() {
                 className="w-full"
                 onClick={() => setLocation("/pre-scout-setup?mode=signin")}
               >
-                Go to login
+                Sign in
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => setLocation("/pre-scout-setup?mode=create")}
               >
-                Create a new account
+                Create account
               </Button>
             </>
           )}

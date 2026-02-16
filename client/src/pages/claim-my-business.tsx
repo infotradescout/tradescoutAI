@@ -37,8 +37,7 @@ export default function ClaimMyBusinessPage() {
             Claim My Business
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
-            Claim your business during signup. You'll still need to finish your profile and complete
-            verification (insurance, license, etc).
+            Claim during signup. Finish profile and verification after.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -60,8 +59,7 @@ export default function ClaimMyBusinessPage() {
           </Button>
 
           <div className="text-xs text-[color:var(--text-secondary)]">
-            TradeScout will attempt to verify and attach the business using the email/phone you sign
-            up with.
+            We match and attach using your signup email/phone.
           </div>
         </CardContent>
       </Card>
