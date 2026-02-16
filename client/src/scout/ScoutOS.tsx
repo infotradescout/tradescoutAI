@@ -1255,7 +1255,7 @@ export default function ScoutOS() {
                   type: "PREFILL_INPUT",
                   label: "Just looking around",
                   payload: {
-                    text: "I am just looking aroundâ€”suggest a quick tour of TradeScout.",
+                    text: "I am just looking around - suggest a quick tour of TradeScout.",
                   },
                 },
               ],
@@ -2093,43 +2093,36 @@ export default function ScoutOS() {
 
           const contactClusters: ScoutCluster[] = [
             {
-              id: "contact-email",
-              title: "Email Us",
+              id: "contact-request",
+              title: "Request Support",
               kind: "generic",
-              body: "Send us a detailed message at info.tradescout@gmail.com",
+              body: "Start a tracked support request in TradeScout.",
               primaryAction: {
-                type: "EXTERNAL_LINK",
-                label: "Send Email",
-                to: "mailto:info.tradescout@gmail.com",
+                type: "NAVIGATE",
+                label: "Open Support Tickets",
+                to: "/support-tickets",
               },
-            },
-            {
-              id: "contact-phone",
-              title: "Call or Text",
-              kind: "generic",
-              body: "(850) 543-0748\nAvailable 24/7",
-              actions: [
-                {
-                  type: "EXTERNAL_LINK",
-                  label: "Call Now",
-                  to: "tel:+18505430748",
-                },
-                {
-                  type: "EXTERNAL_LINK",
-                  label: "Text Us",
-                  to: "sms:+18505430748",
-                },
-              ],
             },
             {
               id: "contact-help-center",
               title: "Help Center",
               kind: "generic",
-              body: "Browse FAQs and guides",
+              body: "Quick answers for setup, jobs, and account actions.",
               primaryAction: {
                 type: "NAVIGATE",
                 label: "Open Help",
                 to: "/help",
+              },
+            },
+            {
+              id: "contact-request-quote",
+              title: "Request Quote",
+              kind: "generic",
+              body: "Need project help? Send one request and route it through Scout.",
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Open Request Quote",
+                to: "/request-quote",
               },
             },
           ];
@@ -2137,7 +2130,7 @@ export default function ScoutOS() {
           const msg: ScoutMessage = {
             id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: "assistant",
-            content: "Here's how to reach our support team:",
+            content: "Choose the fastest support path:",
             timestamp: new Date().toISOString(),
             clusters: contactClusters,
             memoryDelta: {
