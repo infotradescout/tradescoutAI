@@ -78,6 +78,7 @@ import {
   workRequestEvents,
   workRequestAssignments,
   addressVerifications,
+  listingImportStaging,
   insertRealtorProfileSchema,
   insertCarSalesmanProfileSchema,
   insertGeneratedStorySchema,
@@ -7873,7 +7874,7 @@ export async function registerRoutes(app: any) {
             contactType: "message",
             content: initialMessage,
             intent: "hire",
-            authorityGate: "user_search",
+            authorityGate: "scout_recommendation",
             decisionScope: `marketplace_listing:${listingId}`,
           },
         });
@@ -7894,7 +7895,7 @@ export async function registerRoutes(app: any) {
         sellerId,
         status: "active",
         intent: "hire",
-        authorityGate: "user_search",
+        authorityGate: "scout_recommendation",
         decisionScope: `marketplace_listing:${listingId}`,
       } as any);
 
@@ -9854,6 +9855,74 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       res.status(500).json({ message: error?.message || "Failed to import businesses" });
     }
   });
+
+  // Admin: list import batches from staging table with status counts
+  app.get(
+    "/api/admin/businesses/import/batches",
+    isAuthenticated,
+    isAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const result = (await db.execute(sql`
+          select
+            batch_id as "batchId",
+            source,
+            count(*)::int as "totalRows",
+            count(*) filter (where status = 'pending')::int as "pendingRows",
+            count(*) filter (where status = 'merged')::int as "mergedRows",
+            count(*) filter (where status = 'failed')::int as "failedRows",
+            count(*) filter (where status = 'skipped_duplicate')::int as "skippedRows",
+            max(created_at) as "latestCreatedAt"
+          from listing_import_staging
+          group by batch_id, source
+          order by max(created_at) desc
+          limit 50
+        `)) as any;
+
+        const batches = Array.isArray(result?.rows) ? result.rows : [];
+        return res.json({ batches });
+      } catch (error: any) {
+        console.error("Error listing import batches:", error);
+        return res.status(500).json({ message: "Failed to list import batches" });
+      }
+    }
+  );
+
+  // Admin: view staged rows for one batch (with optional status filter)
+  app.get(
+    "/api/admin/businesses/import/batches/:batchId",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const batchId = String(req.params.batchId || "").trim();
+        if (!batchId) {
+          return res.status(400).json({ message: "batchId is required" });
+        }
+
+        const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
+        const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 100;
+        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, limitRaw)) : 100;
+
+        const predicates = [eq(listingImportStaging.batchId, batchId)];
+        if (status) {
+          predicates.push(eq(listingImportStaging.status, status as any));
+        }
+
+        const rows = await db
+          .select()
+          .from(listingImportStaging)
+          .where(and(...predicates))
+          .orderBy(desc(listingImportStaging.createdAt))
+          .limit(limit);
+
+        return res.json({ rows });
+      } catch (error: any) {
+        console.error("Error loading import batch rows:", error);
+        return res.status(500).json({ message: "Failed to load import batch rows" });
+      }
+    }
+  );
 
   // Public: Claim My Business (send password set/reset link for the account behind a business slug)
   app.get("/api/business-claim/search", async (req: Request, res: Response) => {

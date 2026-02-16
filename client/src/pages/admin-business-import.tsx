@@ -1,5 +1,5 @@
-﻿import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,20 +38,88 @@ type ImportResponse = {
   }>;
 };
 
+type ImportBatchSummary = {
+  batchId: string;
+  source: string;
+  totalRows: number;
+  pendingRows: number;
+  mergedRows: number;
+  failedRows: number;
+  skippedRows: number;
+  latestCreatedAt: string | null;
+};
+
+type StagedImportRow = {
+  id: string;
+  batchId: string;
+  source: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  stateCode: string | null;
+  countyFips: string | null;
+  status: string;
+  mergeNotes: string | null;
+  mergedBusinessId: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export default function AdminBusinessImport() {
   const { toast } = useToast();
   const [content, setContent] = useState("");
+  const [source, setSource] = useState("csv_manual");
   const [dryRun, setDryRun] = useState(false);
   const [sendActivationEmails, setSendActivationEmails] = useState(false);
   const [includeActivationLinks, setIncludeActivationLinks] = useState(false);
   const [defaultCountyFips, setDefaultCountyFips] = useState("");
   const [defaultStateCode, setDefaultStateCode] = useState("");
+  const [selectedBatchId, setSelectedBatchId] = useState("");
+  const [selectedBatchStatus, setSelectedBatchStatus] = useState("all");
   const [result, setResult] = useState<ImportResponse | null>(null);
+
+  const {
+    data: batchData,
+    isLoading: batchesLoading,
+    refetch: refetchBatches,
+  } = useQuery({
+    queryKey: ["/api/admin/businesses/import/batches"],
+    queryFn: async () =>
+      ((await apiRequest("GET", "/api/admin/businesses/import/batches")) as {
+        batches?: ImportBatchSummary[];
+      }) || { batches: [] },
+  });
+  const batches = batchData?.batches || [];
+  const effectiveBatchId = selectedBatchId || batches[0]?.batchId || "";
+
+  const {
+    data: batchRowsData,
+    isLoading: batchRowsLoading,
+    refetch: refetchBatchRows,
+  } = useQuery({
+    queryKey: ["/api/admin/businesses/import/batches", effectiveBatchId, selectedBatchStatus],
+    enabled: Boolean(effectiveBatchId),
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("limit", "200");
+      if (selectedBatchStatus !== "all") {
+        params.set("status", selectedBatchStatus);
+      }
+      return (
+        ((await apiRequest(
+          "GET",
+          `/api/admin/businesses/import/batches/${encodeURIComponent(effectiveBatchId)}?${params.toString()}`
+        )) as { rows?: StagedImportRow[] }) || { rows: [] }
+      );
+    },
+  });
+  const batchRows = batchRowsData?.rows || [];
 
   const importMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/businesses/import", {
         content,
+        source: source.trim() || "csv_manual",
         dryRun,
         sendActivationEmails,
         includeActivationLinks,
@@ -62,6 +130,8 @@ export default function AdminBusinessImport() {
     },
     onSuccess: (data) => {
       setResult(data);
+      void refetchBatches();
+      void refetchBatchRows();
       toast({
         title: "Import complete",
         description: `Rows: ${data.totals.rows} - Users created: ${data.totals.createdUsers} - Businesses created: ${data.totals.createdBusinesses}`,
@@ -129,6 +199,15 @@ export default function AdminBusinessImport() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
+              <label className="text-xs text-slate-400">Source label</label>
+              <Input
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                placeholder="e.g., county_open_data"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+              />
+            </div>
+            <div>
               <label className="text-xs text-slate-400">Default county FIPS (optional)</label>
               <Input
                 value={defaultCountyFips}
@@ -189,6 +268,103 @@ export default function AdminBusinessImport() {
               className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardHeader>
+          <CardTitle className="text-white">Recent Import Batches</CardTitle>
+          <CardDescription className="text-[color:var(--text-secondary)]">
+            Review staged rows before or after merge. This is admin-only visibility.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Batch</label>
+              <select
+                value={selectedBatchId}
+                onChange={(e) => setSelectedBatchId(e.target.value)}
+                className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-slate-950/40 px-3 text-sm text-slate-100"
+              >
+                <option value="">Latest batch</option>
+                {batches.map((batch) => (
+                  <option key={batch.batchId} value={batch.batchId}>
+                    {batch.batchId} - {batch.source} ({batch.totalRows})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Status filter</label>
+              <select
+                value={selectedBatchStatus}
+                onChange={(e) => setSelectedBatchStatus(e.target.value)}
+                className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-slate-950/40 px-3 text-sm text-slate-100"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="merged">Merged</option>
+                <option value="failed">Failed</option>
+                <option value="skipped_duplicate">Skipped duplicate</option>
+              </select>
+            </div>
+          </div>
+
+          {batchesLoading ? (
+            <div className="text-xs text-slate-400">Loading batches...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {batches.slice(0, 8).map((batch) => (
+                <button
+                  type="button"
+                  key={`${batch.batchId}-${batch.source}`}
+                  onClick={() => setSelectedBatchId(batch.batchId)}
+                  className="text-left rounded border border-[color:var(--border-subtle)] bg-slate-950/30 p-2 text-xs text-slate-200 hover:border-orange-500/40"
+                >
+                  <div className="font-medium text-slate-100">
+                    {batch.batchId} - {batch.source}
+                  </div>
+                  <div className="mt-1 text-slate-300">
+                    Total {batch.totalRows}, Pending {batch.pendingRows}, Merged {batch.mergedRows},
+                    Failed {batch.failedRows}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {batchRowsLoading ? (
+            <div className="text-xs text-slate-400">Loading staged rows...</div>
+          ) : batchRows.length > 0 ? (
+            <div className="space-y-2">
+              {batchRows.slice(0, 40).map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded border border-[color:var(--border-subtle)] bg-slate-950/30 p-3 text-xs text-slate-200"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="truncate">
+                      {row.name} {row.email ? `(${row.email})` : ""}
+                    </div>
+                    <div className="text-slate-300">{row.status}</div>
+                  </div>
+                  <div className="mt-1 text-slate-400">
+                    {row.stateCode || "--"} / {row.countyFips || "--"}{" "}
+                    {row.phone ? `- ${row.phone}` : ""}
+                  </div>
+                  {row.mergeNotes ? (
+                    <div className="mt-1 text-amber-200">{row.mergeNotes}</div>
+                  ) : null}
+                </div>
+              ))}
+              {batchRows.length > 40 ? (
+                <div className="text-xs text-slate-400">Showing first 40 rows.</div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400">No staged rows found for this batch.</div>
+          )}
         </CardContent>
       </Card>
 
