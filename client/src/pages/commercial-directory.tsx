@@ -276,17 +276,17 @@ export default function CommercialDirectoryPage() {
   });
 
   return (
-    <div className="relative max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="relative max-w-7xl mx-auto px-4 py-4 md:py-6 space-y-4 md:space-y-6">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_20%,rgba(56,189,248,0.14),transparent_40%),radial-gradient(circle_at_85%_0%,rgba(16,185,129,0.12),transparent_32%)]" />
 
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900 via-slate-950 to-cyan-950 p-7 shadow-[0_25px_80px_rgba(2,6,23,0.6)]">
+      <div className="rounded-2xl md:rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900 via-slate-950 to-cyan-950 p-4 md:p-7 shadow-[0_25px_80px_rgba(2,6,23,0.6)]">
         <p className="text-xs tracking-[0.22em] uppercase text-cyan-200">
           Commercial Opportunity Exchange
         </p>
-        <h1 className="text-3xl md:text-4xl font-semibold mt-3 leading-tight">
+        <h1 className="text-2xl md:text-4xl font-semibold mt-2 md:mt-3 leading-tight">
           Verified Contractor Bidding Portal
         </h1>
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <div className="mt-3 md:mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 text-xs sm:text-sm">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <Building2 className="h-4 w-4 text-cyan-200" />
             <div>County-scoped opportunities</div>
@@ -313,8 +313,8 @@ export default function CommercialDirectoryPage() {
             staff.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 md:p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Readiness</div>
@@ -322,7 +322,7 @@ export default function CommercialDirectoryPage() {
                   {readiness.doneCount}/{readiness.rows.length} gates complete
                 </div>
               </div>
-              <div className="text-xl font-semibold">{readiness.pct}%</div>
+              <div className="text-lg md:text-xl font-semibold">{readiness.pct}%</div>
             </div>
             <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden">
               <div
@@ -367,7 +367,7 @@ export default function CommercialDirectoryPage() {
           </div>
 
           {!!verificationDocs.length && (
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-2">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 md:p-4 space-y-2">
               <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
                 Verification Documents
               </div>
@@ -402,7 +402,7 @@ export default function CommercialDirectoryPage() {
           )}
 
           {!verificationStatus?.isEligible && (
-            <div className="space-y-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
+            <div className="space-y-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 md:p-4">
               <p className="text-sm text-amber-100">
                 Upload both documents to enter review. Bids and open-job access remain blocked until
                 approval.
@@ -479,7 +479,7 @@ export default function CommercialDirectoryPage() {
       )}
 
       {canAccessBoard && (
-        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 md:gap-6">
           <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -499,13 +499,13 @@ export default function CommercialDirectoryPage() {
                   />
                 </div>
                 <div>
-                <Label>County Filter (FIPS)</Label>
-                <Input
-                  value={countyFilter}
-                  onChange={(e) => setCountyFilter(e.target.value.slice(0, 5))}
-                  placeholder="5-digit county FIPS"
-                />
-              </div>
+                  <Label>County Filter (FIPS)</Label>
+                  <Input
+                    value={countyFilter}
+                    onChange={(e) => setCountyFilter(e.target.value.slice(0, 5))}
+                    placeholder="5-digit county FIPS"
+                  />
+                </div>
               </div>
 
               {isLoading && <p>Loading board...</p>}
@@ -556,7 +556,7 @@ export default function CommercialDirectoryPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                 <div className="text-xs uppercase tracking-wide text-slate-400">Bid Count</div>
@@ -591,7 +591,7 @@ export default function CommercialDirectoryPage() {
                 {!detailsLoading && !details?.project && <p>No project selected.</p>}
                 {details?.project && (
                   <div className="space-y-4">
-                    <div className="rounded-xl border border-white/10 p-4 bg-white/[0.03]">
+                    <div className="rounded-xl border border-white/10 p-3 md:p-4 bg-white/[0.03]">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-xl font-semibold">{details.project.title}</h2>
                         <div className="text-xs uppercase tracking-wide text-blue-200">
@@ -639,7 +639,7 @@ export default function CommercialDirectoryPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                       <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
                         <h3 className="text-sm uppercase tracking-wide text-slate-300">
                           Scope of Work
@@ -696,8 +696,8 @@ export default function CommercialDirectoryPage() {
                     : "Submit your proposal package for this project."}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3 md:space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div>
                     <Label>Bid Amount (USD)</Label>
                     <Input

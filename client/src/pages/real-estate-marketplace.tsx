@@ -224,12 +224,12 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   return (
     <RealEstateMarketplaceShell>
       <CountyRequiredGate surface="homescout" allowBypass={allowBypass}>
-        <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
+        <div className="max-w-6xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
+            <div className="space-y-0.5 md:space-y-1">
               <div className="flex items-center gap-3">
-                <Home className="h-7 w-7 text-orange-400" />
-                <h1 className="text-3xl md:text-4xl font-bold text-white">HomeScout</h1>
+                <Home className="h-6 w-6 md:h-7 md:w-7 text-orange-400" />
+                <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
               </div>
               <p className="text-sm md:text-base text-slate-300">
                 County-first real estate, with intent-gated contact.
@@ -239,14 +239,15 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 <span>{ctx.label || "Your county context"}</span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex w-full md:w-auto gap-2">
               <Link href="/homescout/new">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-semibold">
+                <Button className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-black font-semibold">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   List on HomeScout
                 </Button>
               </Link>
               <Button
+                className="w-full md:w-auto"
                 variant="secondary"
                 onClick={() => saveSearchMutation.mutate()}
                 disabled={saveSearchMutation.isPending}
@@ -257,8 +258,8 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
           </div>
 
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <CardContent className="p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
@@ -369,7 +370,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {listings.map((listing) => {
               const photos = safePhotos(listing.photos);
               const hero = photos.length > 0 ? photos[0] : null;
@@ -386,27 +387,27 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                         <img
                           src={hero}
                           alt={listing.title}
-                          className="w-full h-56 object-cover"
+                          className="w-full h-44 sm:h-52 md:h-56 object-cover"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-56 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+                        <div className="w-full h-44 sm:h-52 md:h-56 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
                           <div className="text-slate-400 text-sm">No photo</div>
                         </div>
                       )}
-                      <div className="absolute top-4 left-4">
+                      <div className="absolute top-3 md:top-4 left-3 md:left-4">
                         <Badge className="bg-orange-600 hover:bg-orange-700">For Sale</Badge>
                       </div>
-                      <div className="absolute top-4 right-4">
+                      <div className="absolute top-3 md:top-4 right-3 md:right-4">
                         <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-md">
                           {formatCurrency(listing.price)}
                         </div>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-5 space-y-3">
+                  <CardContent className="p-4 md:p-5 space-y-2.5 md:space-y-3">
                     <div className="space-y-1">
-                      <div className="text-lg font-semibold text-white leading-snug">
+                      <div className="text-base md:text-lg font-semibold text-white leading-snug">
                         {listing.title}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-300">

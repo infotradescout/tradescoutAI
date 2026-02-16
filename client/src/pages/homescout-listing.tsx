@@ -377,12 +377,12 @@ export default function HomeScoutListingPage() {
     "Seller/Agent";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="max-w-5xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Home className="h-5 w-5 text-orange-500" />
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-100">{listing.title}</h1>
+            <h1 className="text-xl md:text-3xl font-bold text-slate-100">{listing.title}</h1>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-300">
             <MapPin className="h-4 w-4 text-slate-400" />
@@ -393,24 +393,24 @@ export default function HomeScoutListingPage() {
           <Badge variant="outline" className="border-slate-700 text-slate-200">
             {statusLabel}
           </Badge>
-          <div className="text-xl font-semibold text-slate-100">
+          <div className="text-lg md:text-xl font-semibold text-slate-100">
             {formatCurrency(listing.price)}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
         <div className="lg:col-span-3 space-y-4">
           <Card className="bg-slate-950/60 border-slate-800 overflow-hidden">
             {primaryPhoto ? (
               <img
                 src={primaryPhoto}
                 alt={listing.title}
-                className="w-full h-72 md:h-96 object-cover"
+                className="w-full h-56 sm:h-64 md:h-96 object-cover"
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-72 md:h-96 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+              <div className="w-full h-56 sm:h-64 md:h-96 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
                 <div className="text-slate-400 text-sm">No photos yet</div>
               </div>
             )}
@@ -438,7 +438,8 @@ export default function HomeScoutListingPage() {
                 priceEvents.map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-3">
                     <div className="text-slate-200">
-                      {formatCurrency((e.payload as any)?.from ?? 0)} →{" "}
+                      {formatCurrency((e.payload as any)?.from ?? 0)}
+                      {" -> "}
                       <span className="font-semibold">
                         {formatCurrency((e.payload as any)?.to ?? 0)}
                       </span>
