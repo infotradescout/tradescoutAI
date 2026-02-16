@@ -458,7 +458,10 @@ export default function Register() {
               <div className="mt-6 text-center">
                 <p className="text-sm text-tsTextMuted">
                   Already have an account?{" "}
-                  <Link href="/login" className="text-tsAccent hover:text-orange-400 font-medium">
+                  <Link
+                    href="/pre-scout-setup?mode=signin"
+                    className="text-tsAccent hover:text-orange-400 font-medium"
+                  >
                     Sign in here
                   </Link>
                   .

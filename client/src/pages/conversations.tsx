@@ -142,7 +142,7 @@ export default function Conversations() {
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Connect with buyers and sellers to discuss your marketplace items
             </p>
-            <Link href="/login">
+            <Link href="/pre-scout-setup?mode=signin">
               <Button>Sign In</Button>
             </Link>
           </CardContent>

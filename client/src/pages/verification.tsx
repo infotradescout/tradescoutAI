@@ -94,10 +94,10 @@ const Verification = memo(function Verification() {
                     size="sm"
                     className="bg-orange-500 hover:bg-orange-600 text-black"
                   >
-                    <Link href="/login">Sign In</Link>
+                    <Link href="/pre-scout-setup?mode=signin">Sign In</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline">
-                    <Link href="/create-account">Create Account</Link>
+                    <Link href="/pre-scout-setup?mode=create">Create Account</Link>
                   </Button>
                 </div>
               </div>

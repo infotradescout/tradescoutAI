@@ -74,7 +74,9 @@ export default function VerifyEmail() {
       }
       const emailParam = verifiedEmail ? `?email=${encodeURIComponent(verifiedEmail)}` : "";
       const nextQ = safeNext ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}` : "";
-      setLocation(`/login${emailParam}${nextQ}`);
+      setLocation(
+        `/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}${nextQ ? `&${nextQ.slice(1)}` : ""}`
+      );
     }, 900);
     return () => window.clearTimeout(t);
   }, [state, isAuthenticated, setLocation, verifiedEmail]);
@@ -109,7 +111,9 @@ export default function VerifyEmail() {
                 const nextQ = safeNext
                   ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}`
                   : "";
-                setLocation(`/login${emailParam}${nextQ}`);
+                setLocation(
+                  `/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}${nextQ ? `&${nextQ.slice(1)}` : ""}`
+                );
               }}
             >
               Continue
@@ -117,13 +121,16 @@ export default function VerifyEmail() {
           )}
           {state === "error" && (
             <>
-              <Button className="w-full" onClick={() => setLocation("/login")}>
+              <Button
+                className="w-full"
+                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
+              >
                 Go to login
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => setLocation("/create-account")}
+                onClick={() => setLocation("/pre-scout-setup?mode=create")}
               >
                 Create a new account
               </Button>

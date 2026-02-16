@@ -145,7 +145,7 @@ export function EmailPasswordAuth() {
       <div className="mt-3 space-y-1 text-center">
         <p className="text-xs text-tsTextMuted">New here?</p>
         <Link
-          href="/create-account"
+          href="/pre-scout-setup?mode=create"
           className="inline-flex items-center justify-center rounded-full border border-tsAccent/60 px-3 py-1 text-xs font-medium text-tsAccent hover:bg-tsAccent hover:text-black transition"
         >
           Create a free TradeScout account

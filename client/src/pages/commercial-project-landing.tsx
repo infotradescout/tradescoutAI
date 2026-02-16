@@ -99,7 +99,7 @@ export default function CommercialProjectLandingPage() {
             <Link href="/commercial-directory">Enter Contractor Portal</Link>
           </Button>
           <Button asChild variant="outline">
-            <a href="/create-account">Create Account</a>
+            <a href="/pre-scout-setup?mode=create">Create Account</a>
           </Button>
         </div>
       </section>

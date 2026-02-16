@@ -55,7 +55,7 @@ export default function OnboardingIntent() {
 
   const handleChoose = (intent: StartIntent | null) => {
     if (!isAuthenticated) {
-      navigate("/create-account");
+      navigate("/pre-scout-setup?mode=create");
       return;
     }
 

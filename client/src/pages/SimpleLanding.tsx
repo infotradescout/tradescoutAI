@@ -157,7 +157,10 @@ const SimpleLanding = memo(function SimpleLanding() {
 
             {/* Already have account */}
             <div className="text-center mb-8">
-              <a href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+              <a
+                href="/pre-scout-setup?mode=signin"
+                className="text-sm text-gray-400 hover:text-white transition-colors"
+              >
                 Already have an account? <span className="underline">Sign in</span>
               </a>
             </div>

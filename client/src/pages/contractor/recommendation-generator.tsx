@@ -1,10 +1,10 @@
-import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import RecommendationGenerator from '@/components/RecommendationGenerator';
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
+import React from "react";
+import { useAuth } from "@/hooks/useAuth";
+import RecommendationGenerator from "@/components/RecommendationGenerator";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function RecommendationGeneratorPage() {
   const { user, isLoading } = useAuth();
@@ -36,7 +36,7 @@ export default function RecommendationGeneratorPage() {
               Please log in to access the Smart Recommendation Generator.
             </p>
             <Button asChild>
-              <Link href="/login">Log In</Link>
+              <Link href="/pre-scout-setup?mode=signin">Log In</Link>
             </Button>
           </CardContent>
         </Card>
@@ -44,7 +44,7 @@ export default function RecommendationGeneratorPage() {
     );
   }
 
-  if (user.role !== 'contractor_user') {
+  if (user.role !== "contractor_user") {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -52,8 +52,9 @@ export default function RecommendationGeneratorPage() {
             <AlertCircle className="mx-auto h-12 w-12 text-orange-400 mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Contractor Access Only</h2>
             <p className="text-gray-600 mb-6">
-              The Smart Recommendation Generator is exclusively available to contractors. 
-              This powerful tool helps contractors analyze their performance, set goals, and create automated campaigns to increase customer recommendations.
+              The Smart Recommendation Generator is exclusively available to contractors. This
+              powerful tool helps contractors analyze their performance, set goals, and create
+              automated campaigns to increase customer recommendations.
             </p>
             <div className="flex gap-4 justify-center">
               <Button variant="outline" asChild>
@@ -62,7 +63,7 @@ export default function RecommendationGeneratorPage() {
                   Go Home
                 </Link>
               </Button>
-              {user.role === 'homeowner' && (
+              {user.role === "homeowner" && (
                 <Button asChild>
                   <Link href="/contractors">Find Contractors</Link>
                 </Button>
@@ -75,13 +76,13 @@ export default function RecommendationGeneratorPage() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "var(--surface-app-bg)" }}
-    >
+    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-app-bg)" }}>
       <div
         className="border-b"
-        style={{ backgroundColor: "var(--surface-frame)", borderColor: "var(--surface-frame-border)" }}
+        style={{
+          backgroundColor: "var(--surface-frame)",
+          borderColor: "var(--surface-frame-border)",
+        }}
       >
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
@@ -93,13 +94,15 @@ export default function RecommendationGeneratorPage() {
             </Button>
             <div className="h-6 w-px bg-gray-300" />
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">Smart Recommendation Generator</h1>
+              <h1 className="text-lg font-semibold text-gray-900">
+                Smart Recommendation Generator
+              </h1>
               <p className="text-sm text-gray-600">Grow your business with data-driven insights</p>
             </div>
           </div>
         </div>
       </div>
-      
+
       <RecommendationGenerator />
     </div>
   );

@@ -6,26 +6,37 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Shield } from "lucide-react";
 
-const masterAdminSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(12, "Master password must be at least 12 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-  confirmPassword: z.string(),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const masterAdminSchema = z
+  .object({
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(12, "Master password must be at least 12 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    confirmPassword: z.string(),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type MasterAdminFormData = z.infer<typeof masterAdminSchema>;
 
@@ -44,8 +55,8 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
     queryKey: ["/auth/check-master"],
     queryFn: async () => {
       try {
-        const response = await fetch('/auth/setup-master', {
-          method: 'HEAD',
+        const response = await fetch("/auth/setup-master", {
+          method: "HEAD",
         });
         return response.status === 403; // Master admin exists
       } catch {
@@ -111,9 +122,9 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              className="w-full" 
-              onClick={() => window.location.href = '/login'}
+            <Button
+              className="w-full"
+              onClick={() => (window.location.href = "/pre-scout-setup?mode=signin")}
             >
               Continue to Login
             </Button>
@@ -137,8 +148,8 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
           <Alert className="mb-6">
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              This creates the master administrator with full platform control. 
-              Choose a very strong password and keep these credentials secure.
+              This creates the master administrator with full platform control. Choose a very strong
+              password and keep these credentials secure.
             </AlertDescription>
           </Alert>
 
@@ -158,7 +169,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="lastName"
@@ -181,11 +192,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
                   <FormItem>
                     <FormLabel>Admin Email</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="admin@tradescout.com" 
-                        {...field} 
-                      />
+                      <Input type="email" placeholder="admin@tradescout.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -258,11 +265,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
                 )}
               />
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={setupMutation.isPending}
-              >
+              <Button type="submit" className="w-full" disabled={setupMutation.isPending}>
                 {setupMutation.isPending ? "Creating Master Admin..." : "Setup Master Admin"}
               </Button>
             </form>

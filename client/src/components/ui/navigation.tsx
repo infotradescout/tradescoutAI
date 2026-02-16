@@ -3,17 +3,17 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  Home, 
-  Calculator, 
-  Users, 
-  Building, 
-  BarChart3, 
-  Menu, 
+import {
+  Home,
+  Calculator,
+  Users,
+  Building,
+  BarChart3,
+  Menu,
   X,
   Settings,
   Gift,
-  Crown
+  Crown,
 } from "lucide-react";
 
 export default function Navigation() {
@@ -21,8 +21,10 @@ export default function Navigation() {
   const { isAuthenticated, user } = useAuth();
   const [location] = useLocation();
 
-  const isContractor = user?.role === 'contractor_user';
-  const isAdmin = user?.role ? ['owner', 'ops_admin', 'super_admin', 'analytics_read'].includes(user.role) : false;
+  const isContractor = user?.role === "contractor_user";
+  const isAdmin = user?.role
+    ? ["owner", "ops_admin", "super_admin", "analytics_read"].includes(user.role)
+    : false;
 
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
@@ -92,16 +94,14 @@ export default function Navigation() {
                       Welcome, {user.firstName || user.email}
                     </span>
                     {isContractor && (
-                      <Badge className="bg-orange-500/20 text-orange-400 text-xs">
-                        Contractor
-                      </Badge>
+                      <Badge className="bg-orange-500/20 text-orange-400 text-xs">Contractor</Badge>
                     )}
                   </div>
                 )}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.location.href = "/"}
+                  onClick={() => (window.location.href = "/")}
                   className="border-gray-600 text-gray-300 hover:bg-navy-700"
                 >
                   Sign Out
@@ -110,13 +110,17 @@ export default function Navigation() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/contractors/apply">
-                  <Button variant="outline" size="sm" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                  >
                     Join as Contractor
                   </Button>
                 </Link>
                 <Button
                   size="sm"
-                  onClick={() => window.location.href = "/login"}
+                  onClick={() => (window.location.href = "/pre-scout-setup?mode=signin")}
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   Sign In
@@ -163,7 +167,7 @@ export default function Navigation() {
               );
             })}
           </div>
-          
+
           {/* Mobile Auth Actions */}
           <div className="px-2 py-3 border-t border-navy-600">
             {isAuthenticated ? (
@@ -181,7 +185,7 @@ export default function Navigation() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.location.href = "/"}
+                  onClick={() => (window.location.href = "/")}
                   className="w-full mt-2 border-gray-600 text-gray-300 hover:bg-navy-600"
                 >
                   Sign Out
@@ -190,9 +194,9 @@ export default function Navigation() {
             ) : (
               <div className="space-y-2">
                 <Link href="/contractors/apply">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
                     onClick={() => setIsOpen(false)}
                   >
@@ -203,7 +207,7 @@ export default function Navigation() {
                   size="sm"
                   onClick={() => {
                     setIsOpen(false);
-                    window.location.href = "/login";
+                    window.location.href = "/pre-scout-setup?mode=signin";
                   }}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 >

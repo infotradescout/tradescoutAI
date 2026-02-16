@@ -3,7 +3,20 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, Target, BarChart3, Users, Star, ArrowRight, Phone, Mail, MessageCircle, Shield } from "lucide-react";
+import {
+  Check,
+  Crown,
+  Zap,
+  Target,
+  BarChart3,
+  Users,
+  Star,
+  ArrowRight,
+  Phone,
+  Mail,
+  MessageCircle,
+  Shield,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -11,18 +24,24 @@ import { useToast } from "@/hooks/use-toast";
 export default function ContractorAccelerator() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
   const [showVerificationRequired, setShowVerificationRequired] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user && user.role === 'contractor_user' && user.verificationStatus !== 'verified') {
+    if (
+      !isLoading &&
+      isAuthenticated &&
+      user &&
+      user.role === "contractor_user" &&
+      user.verificationStatus !== "verified"
+    ) {
       setShowVerificationRequired(true);
     }
   }, [isAuthenticated, user, isLoading]);
 
   const enrollMutation = useMutation({
     mutationFn: async (planType: string) => {
-      const response = await apiRequest('POST', '/api/accelerator/enroll', { planType });
+      const response = await apiRequest("POST", "/api/accelerator/enroll", { planType });
       return response.json();
     },
     onSuccess: () => {
@@ -37,7 +56,7 @@ export default function ContractorAccelerator() {
         description: "Please try again or contact support.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const handleEnroll = (planType: string) => {
@@ -45,7 +64,13 @@ export default function ContractorAccelerator() {
   };
 
   // Show verification required message for unverified contractors
-  if (!isLoading && isAuthenticated && user && user.role === 'contractor_user' && user.verificationStatus !== 'verified') {
+  if (
+    !isLoading &&
+    isAuthenticated &&
+    user &&
+    user.role === "contractor_user" &&
+    user.verificationStatus !== "verified"
+  ) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="bg-amber-900/20 border-amber-500/50">
@@ -55,12 +80,13 @@ export default function ContractorAccelerator() {
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">Verification Required</h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              To join the Accelerator program, you need to be a verified contractor. Complete your verification process first.
+              To join the Accelerator program, you need to be a verified contractor. Complete your
+              verification process first.
             </p>
-            
+
             <div className="space-y-4">
-              <Button 
-                onClick={() => window.location.href = '/contractors/apply'}
+              <Button
+                onClick={() => (window.location.href = "/contractors/apply")}
                 className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3"
               >
                 Complete Verification
@@ -86,18 +112,19 @@ export default function ContractorAccelerator() {
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">Contractor Account Required</h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              The Accelerator program is exclusively for verified contractors. Create your contractor account to get started.
+              The Accelerator program is exclusively for verified contractors. Create your
+              contractor account to get started.
             </p>
-            
+
             <div className="space-y-4">
-              <Button 
-                onClick={() => window.location.href = '/create-account'}
+              <Button
+                onClick={() => (window.location.href = "/pre-scout-setup?mode=create")}
                 className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3"
               >
                 Create Contractor Account
               </Button>
-              <Button 
-                onClick={() => window.location.href = '/login'}
+              <Button
+                onClick={() => (window.location.href = "/pre-scout-setup?mode=signin")}
                 variant="outline"
                 className="border-navy-600 text-gray-200 hover:bg-navy-700 px-8 py-3"
               >
@@ -124,10 +151,10 @@ export default function ContractorAccelerator() {
           Supercharge Your <span className="text-purple-500">Growth</span>
         </h1>
         <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-          Join TradeScout's elite contractor program for premium leads, advanced tools, 
-          and priority placement. Transform your business with our most powerful platform.
+          Join TradeScout's elite contractor program for premium leads, advanced tools, and priority
+          placement. Transform your business with our most powerful platform.
         </p>
-        
+
         <div className="flex justify-center gap-8 mb-8">
           <div className="text-center">
             <div className="text-3xl font-bold text-purple-500">3x</div>
@@ -151,21 +178,21 @@ export default function ContractorAccelerator() {
           <div className="flex justify-center">
             <div className="bg-navy-700 p-1 rounded-lg flex">
               <button
-                onClick={() => setSelectedPlan('monthly')}
+                onClick={() => setSelectedPlan("monthly")}
                 className={`px-6 py-2 rounded-md transition-all ${
-                  selectedPlan === 'monthly' 
-                    ? 'bg-purple-500 text-white' 
-                    : 'text-gray-300 hover:text-white'
+                  selectedPlan === "monthly"
+                    ? "bg-purple-500 text-white"
+                    : "text-gray-300 hover:text-white"
                 }`}
               >
                 Monthly
               </button>
               <button
-                onClick={() => setSelectedPlan('annual')}
+                onClick={() => setSelectedPlan("annual")}
                 className={`px-6 py-2 rounded-md transition-all ${
-                  selectedPlan === 'annual' 
-                    ? 'bg-purple-500 text-white' 
-                    : 'text-gray-300 hover:text-white'
+                  selectedPlan === "annual"
+                    ? "bg-purple-500 text-white"
+                    : "text-gray-300 hover:text-white"
                 }`}
               >
                 Annual
@@ -177,11 +204,13 @@ export default function ContractorAccelerator() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Monthly Plan */}
-          <Card className={`border-2 transition-all ${
-            selectedPlan === 'monthly' 
-              ? 'border-purple-500 bg-purple-500/5' 
-              : 'border-navy-600 bg-navy-700'
-          }`}>
+          <Card
+            className={`border-2 transition-all ${
+              selectedPlan === "monthly"
+                ? "border-purple-500 bg-purple-500/5"
+                : "border-navy-600 bg-navy-700"
+            }`}
+          >
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-white text-2xl">Monthly Access</CardTitle>
               <div className="text-4xl font-bold text-purple-500 mt-2">
@@ -208,27 +237,29 @@ export default function ContractorAccelerator() {
                   <span className="text-gray-300">24/7 priority support</span>
                 </div>
               </div>
-              <Button 
-                onClick={() => handleEnroll('monthly')}
+              <Button
+                onClick={() => handleEnroll("monthly")}
                 disabled={enrollMutation.isPending}
                 className={`w-full py-3 font-semibold transition-all ${
-                  selectedPlan === 'monthly'
-                    ? 'bg-purple-500 hover:bg-purple-600 glow-effect'
-                    : 'bg-navy-600 hover:bg-navy-500'
+                  selectedPlan === "monthly"
+                    ? "bg-purple-500 hover:bg-purple-600 glow-effect"
+                    : "bg-navy-600 hover:bg-navy-500"
                 }`}
               >
-                {enrollMutation.isPending ? 'Processing...' : 'Start Monthly Plan'}
+                {enrollMutation.isPending ? "Processing..." : "Start Monthly Plan"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
 
           {/* Annual Plan */}
-          <Card className={`border-2 transition-all relative ${
-            selectedPlan === 'annual' 
-              ? 'border-purple-500 bg-purple-500/5' 
-              : 'border-navy-600 bg-navy-700'
-          }`}>
+          <Card
+            className={`border-2 transition-all relative ${
+              selectedPlan === "annual"
+                ? "border-purple-500 bg-purple-500/5"
+                : "border-navy-600 bg-navy-700"
+            }`}
+          >
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
               <Badge className="bg-green-500 text-white px-3 py-1">Most Popular</Badge>
             </div>
@@ -259,16 +290,16 @@ export default function ContractorAccelerator() {
                   <span className="text-gray-300">Free business consultation</span>
                 </div>
               </div>
-              <Button 
-                onClick={() => handleEnroll('annual')}
+              <Button
+                onClick={() => handleEnroll("annual")}
                 disabled={enrollMutation.isPending}
                 className={`w-full py-3 font-semibold transition-all ${
-                  selectedPlan === 'annual'
-                    ? 'bg-purple-500 hover:bg-purple-600 glow-effect'
-                    : 'bg-navy-600 hover:bg-navy-500'
+                  selectedPlan === "annual"
+                    ? "bg-purple-500 hover:bg-purple-600 glow-effect"
+                    : "bg-navy-600 hover:bg-navy-500"
                 }`}
               >
-                {enrollMutation.isPending ? 'Processing...' : 'Start Annual Plan'}
+                {enrollMutation.isPending ? "Processing..." : "Start Annual Plan"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
@@ -287,7 +318,8 @@ export default function ContractorAccelerator() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Priority Project Access</h3>
               <p className="text-gray-300">
-                Get first access to the highest-quality project requests in your service area before standard members.
+                Get first access to the highest-quality project requests in your service area before
+                standard members.
               </p>
             </CardContent>
           </Card>
@@ -299,7 +331,8 @@ export default function ContractorAccelerator() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Advanced Analytics</h3>
               <p className="text-gray-300">
-                Deep insights into project performance, conversion rates, and ROI optimization tools.
+                Deep insights into project performance, conversion rates, and ROI optimization
+                tools.
               </p>
             </CardContent>
           </Card>
@@ -370,7 +403,8 @@ export default function ContractorAccelerator() {
                 </div>
               </div>
               <p className="text-gray-300 text-sm mb-4">
-                "Accelerator increased our monthly revenue by 180% in just 6 months. The quality of leads is exceptional."
+                "Accelerator increased our monthly revenue by 180% in just 6 months. The quality of
+                leads is exceptional."
               </p>
               <div className="text-purple-500 font-semibold">+180% Revenue Growth</div>
             </CardContent>
@@ -388,7 +422,8 @@ export default function ContractorAccelerator() {
                 </div>
               </div>
               <p className="text-gray-300 text-sm mb-4">
-                "The territory protection feature eliminated competition and allowed us to dominate our market."
+                "The territory protection feature eliminated competition and allowed us to dominate
+                our market."
               </p>
               <div className="text-purple-500 font-semibold">95% Lead Close Rate</div>
             </CardContent>
@@ -406,7 +441,8 @@ export default function ContractorAccelerator() {
                 </div>
               </div>
               <p className="text-gray-300 text-sm mb-4">
-                "The analytics helped us optimize our bidding strategy. We're winning more jobs at better margins."
+                "The analytics helped us optimize our bidding strategy. We're winning more jobs at
+                better margins."
               </p>
               <div className="text-purple-500 font-semibold">+40% Profit Margins</div>
             </CardContent>
@@ -422,21 +458,27 @@ export default function ContractorAccelerator() {
             <p className="text-xl text-gray-300 mb-8">
               Join hundreds of contractors who've transformed their business with Accelerator.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Button className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 text-lg glow-effect">
                 <Phone className="h-5 w-5 mr-2" />
                 Schedule a Call
               </Button>
-              <Button variant="outline" className="border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg">
+              <Button
+                variant="outline"
+                className="border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg"
+              >
                 <Mail className="h-5 w-5 mr-2" />
                 Get More Info
               </Button>
             </div>
-            
+
             <p className="text-gray-400 text-sm">
-              Questions? Contact our Accelerator team at 
-              <a href="mailto:accelerator@tradescout.com" className="text-purple-500 hover:underline ml-1">
+              Questions? Contact our Accelerator team at
+              <a
+                href="mailto:accelerator@tradescout.com"
+                className="text-purple-500 hover:underline ml-1"
+              >
                 accelerator@tradescout.com
               </a>
             </p>

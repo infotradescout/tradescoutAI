@@ -47,7 +47,7 @@ export default function OnboardingProfile() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      navigate("/create-account");
+      navigate("/pre-scout-setup?mode=create");
     }
   }, [isAuthenticated, isLoading, navigate]);
 

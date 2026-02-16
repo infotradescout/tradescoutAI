@@ -132,12 +132,12 @@ export default function HardrockLanding() {
             work. You can create a TradeScout account anytime to manage opportunities faster.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Link href="/create-account">
+            <Link href="/pre-scout-setup?mode=create">
               <Button className="bg-tsAccent hover:bg-tsAccent/90 text-black font-semibold">
                 Create a TradeScout account
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/pre-scout-setup?mode=signin">
               <Button variant="outline">Sign in</Button>
             </Link>
           </div>
@@ -198,7 +198,7 @@ export default function HardrockLanding() {
               >
                 Submit your info here
               </Button>
-              <Link href="/create-account">
+              <Link href="/pre-scout-setup?mode=create">
                 <Button variant="outline">Create account (optional)</Button>
               </Link>
             </div>

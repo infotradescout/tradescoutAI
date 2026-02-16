@@ -909,7 +909,7 @@ export default function Exchange() {
                                 }`}
                                 onClick={() => {
                                   if (!isAuthenticated) {
-                                    navigate("/login");
+                                    navigate("/pre-scout-setup?mode=signin");
                                     return;
                                   }
                                   const wasSaved = favoriteListingIds.has(String(item.id));
@@ -944,7 +944,7 @@ export default function Exchange() {
                                 className="h-8 px-2.5 bg-orange-500 hover:bg-orange-600 text-xs"
                                 onClick={() => {
                                   if (!isAuthenticated) {
-                                    navigate("/login");
+                                    navigate("/pre-scout-setup?mode=signin");
                                     return;
                                   }
                                   setContactItem(item);

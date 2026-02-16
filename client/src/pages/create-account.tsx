@@ -287,7 +287,7 @@ export default function CreateAccountPortal() {
           description: "Account created. Please log in to continue.",
         });
         const emailParam = email ? `?email=${encodeURIComponent(email)}` : "";
-        navigate(`/login${emailParam}`);
+        navigate(`/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}`);
         return;
       }
 
@@ -307,7 +307,7 @@ export default function CreateAccountPortal() {
         setTimeout(() => {
           const email = (lastSignupEmailRef.current || "").trim();
           const emailParam = email ? `?email=${encodeURIComponent(email)}` : "";
-          navigate(`/login${emailParam}`);
+          navigate(`/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}`);
         }, 1500);
         return;
       }
@@ -882,7 +882,7 @@ export default function CreateAccountPortal() {
                 Already have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
                   className="text-tsAccent hover:underline"
                 >
                   Log in

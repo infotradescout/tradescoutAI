@@ -181,7 +181,7 @@ export default function RealtorApplication() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/login";
+          window.location.href = "/pre-scout-setup?mode=signin";
         }, 500);
         return;
       }
@@ -214,7 +214,7 @@ export default function RealtorApplication() {
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
             <p className="text-gray-600 mb-4">You need to be logged in to apply as a realtor.</p>
             <Button asChild className="bg-orange-600 hover:bg-orange-700">
-              <Link href="/login">Log In</Link>
+              <Link href="/pre-scout-setup?mode=signin">Log In</Link>
             </Button>
           </CardContent>
         </Card>

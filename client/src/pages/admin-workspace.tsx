@@ -148,7 +148,7 @@ export default function AdminWorkspace() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/login";
+          window.location.href = "/pre-scout-setup?mode=signin";
         }, 500);
         return;
       }

@@ -32,14 +32,18 @@ export default function SavedAds() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/login";
+        window.location.href = "/pre-scout-setup?mode=signin";
       }, 500);
       return;
     }
   }, [isAuthenticated, authLoading, toast]);
 
   // Fetch saved ads
-  const { data: savedAds, isLoading, error } = useQuery<SavedAdvertisement[]>({
+  const {
+    data: savedAds,
+    isLoading,
+    error,
+  } = useQuery<SavedAdvertisement[]>({
     queryKey: ["/api/saved-ads"],
     enabled: isAuthenticated,
   });
@@ -48,9 +52,9 @@ export default function SavedAds() {
   const removeMutation = useMutation({
     mutationFn: async (adId: string) => {
       const response = await fetch(`/api/ads/save/${adId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('Failed to remove ad');
+      if (!response.ok) throw new Error("Failed to remove ad");
     },
     onSuccess: () => {
       toast({
@@ -65,19 +69,19 @@ export default function SavedAds() {
         description: "Failed to remove ad. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const handleAdClick = (ad: SavedAdvertisement) => {
     if (ad.linkUrl) {
       // Track click from Saved Ads surface
-      fetch('/api/ads/track-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId: ad.id, source: 'saved' }),
+      fetch("/api/ads/track-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adId: ad.id, source: "saved" }),
       }).catch(() => undefined);
 
-      window.open(ad.linkUrl, '_blank');
+      window.open(ad.linkUrl, "_blank");
     }
   };
 
@@ -103,7 +107,7 @@ export default function SavedAds() {
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-navy-600 rounded w-48"></div>
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-32 bg-navy-600 rounded"></div>
             ))}
           </div>
@@ -133,7 +137,9 @@ export default function SavedAds() {
         <Card className="bg-red-900/20 border-red-500/50">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Saved Ads</h2>
-            <p className="text-gray-300">There was an error loading your saved advertisements. Please try again later.</p>
+            <p className="text-gray-300">
+              There was an error loading your saved advertisements. Please try again later.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -147,9 +153,7 @@ export default function SavedAds() {
           <Bookmark className="h-8 w-8 mr-3 text-orange-500" />
           Saved Ads
         </h1>
-        <p className="text-gray-300">
-          Your collection of saved sponsor messages and TradeDeals
-        </p>
+        <p className="text-gray-300">Your collection of saved sponsor messages and TradeDeals</p>
       </div>
 
       {!savedAds || savedAds.length === 0 ? (
@@ -185,8 +189,8 @@ export default function SavedAds() {
                 <div className="pr-12">
                   {ad.imageUrl && (
                     <div className="mb-4">
-                      <img 
-                        src={ad.imageUrl} 
+                      <img
+                        src={ad.imageUrl}
                         alt={ad.title}
                         className="w-full h-48 object-cover rounded-lg"
                       />
@@ -194,9 +198,7 @@ export default function SavedAds() {
                   )}
 
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-xl font-semibold text-white">
-                      {ad.title}
-                    </h3>
+                    <h3 className="text-xl font-semibold text-white">{ad.title}</h3>
                     {ad.isAffiliate && (
                       <Badge variant="outline" className="text-blue-400 border-blue-400">
                         Sponsored
@@ -204,9 +206,7 @@ export default function SavedAds() {
                     )}
                   </div>
 
-                  <p className="text-gray-300 mb-4">
-                    {ad.content}
-                  </p>
+                  <p className="text-gray-300 mb-4">{ad.content}</p>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center text-sm text-gray-400">
@@ -216,7 +216,7 @@ export default function SavedAds() {
 
                     <div className="flex items-center gap-3">
                       {ad.linkUrl && (
-                        <Button 
+                        <Button
                           onClick={() => handleAdClick(ad)}
                           className="bg-orange-500 hover:bg-orange-600 text-white"
                           size="sm"
@@ -265,7 +265,7 @@ export default function SavedAds() {
 
           <div className="text-center pt-6">
             <p className="text-gray-400 text-sm">
-              {savedAds.length} saved ad{savedAds.length !== 1 ? 's' : ''} total
+              {savedAds.length} saved ad{savedAds.length !== 1 ? "s" : ""} total
             </p>
           </div>
         </div>

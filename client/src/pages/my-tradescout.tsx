@@ -175,7 +175,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
           <p className="text-sm text-slate-300">
             Sign in to see what TradeScout already knows about your projects and community.
           </p>
-          <Link href="/login">
+          <Link href="/pre-scout-setup?mode=signin">
             <Button className="w-full mt-2">Sign in</Button>
           </Link>
         </div>

@@ -22,7 +22,7 @@ export default function ClaimMyBusinessPage() {
     if (!slug) return;
     // Keep the legacy entry point but route users into the single signup surface.
     navigate(
-      `/create-account?claim=${encodeURIComponent(slug)}&next=${encodeURIComponent(
+      `/pre-scout-setup?mode=create&claim=${encodeURIComponent(slug)}&next=${encodeURIComponent(
         "/pre-scout-setup"
       )}`
     );
@@ -50,7 +50,9 @@ export default function ClaimMyBusinessPage() {
 
           <Button
             className="bg-orange-500 hover:bg-orange-600 w-full"
-            onClick={() => navigate(`/create-account?claim=${encodeURIComponent(slug)}`)}
+            onClick={() =>
+              navigate(`/pre-scout-setup?mode=create&claim=${encodeURIComponent(slug)}`)
+            }
             disabled={!slug}
           >
             <ArrowRight className="h-4 w-4 mr-2" />

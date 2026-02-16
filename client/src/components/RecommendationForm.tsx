@@ -5,10 +5,23 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,16 +30,16 @@ import { ThumbsUp, ThumbsDown, Clock, MessageSquare, Star } from "lucide-react";
 import { Link } from "wouter";
 
 const recommendationSchema = z.object({
-  recommendationType: z.enum(['positive', 'negative']),
-  comment: z.string().min(10, 'Please provide at least 10 characters of feedback'),
+  recommendationType: z.enum(["positive", "negative"]),
+  comment: z.string().min(10, "Please provide at least 10 characters of feedback"),
   projectType: z.string().optional(),
   projectValue: z.string().optional(),
   workQuality: z.number().min(1).max(5).optional(),
   timeliness: z.number().min(1).max(5).optional(),
   communication: z.number().min(1).max(5).optional(),
   wouldHireAgain: z.boolean().optional(),
-  customerName: z.string().min(2, 'Name is required'),
-  customerEmail: z.string().email('Valid email is required'),
+  customerName: z.string().min(2, "Name is required"),
+  customerEmail: z.string().email("Valid email is required"),
   customerPhone: z.string().optional(),
 });
 
@@ -38,7 +51,11 @@ interface RecommendationFormProps {
   onSuccess?: () => void;
 }
 
-export function RecommendationForm({ contractorId, contractorName, onSuccess }: RecommendationFormProps) {
+export function RecommendationForm({
+  contractorId,
+  contractorName,
+  onSuccess,
+}: RecommendationFormProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -47,41 +64,42 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
   const form = useForm<RecommendationFormData>({
     resolver: zodResolver(recommendationSchema),
     defaultValues: {
-      recommendationType: 'positive',
-      customerName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : '',
-      customerEmail: user?.email || '',
-      comment: '',
-      projectType: '',
-      projectValue: '',
+      recommendationType: "positive",
+      customerName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "",
+      customerEmail: user?.email || "",
+      comment: "",
+      projectType: "",
+      projectValue: "",
       workQuality: 5,
       timeliness: 5,
       communication: 5,
       wouldHireAgain: true,
-      customerPhone: '',
+      customerPhone: "",
     },
   });
 
   const submitRecommendation = useMutation({
     mutationFn: async (data: RecommendationFormData) => {
       const response = await fetch(`/api/contractors/${contractorId}/recommendations`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to submit recommendation');
+        throw new Error(error.message || "Failed to submit recommendation");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Recommendation Submitted",
-        description: "Your recommendation has been submitted and will be reviewed before publishing.",
+        description:
+          "Your recommendation has been submitted and will be reviewed before publishing.",
       });
       form.reset();
       setShowForm(false);
@@ -91,7 +109,7 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
     },
     onError: (error: any) => {
       toast({
-        title: "Submission Failed", 
+        title: "Submission Failed",
         description: error.message || "Failed to submit recommendation. Please try again.",
         variant: "destructive",
       });
@@ -108,8 +126,11 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
             <p className="text-gray-300 mb-4">
               Help other homeowners by sharing your experience with {contractorName}
             </p>
-            <Link href="/login">
-              <Button className="bg-orange-500 hover:bg-orange-600" data-testid="button-login-to-recommend">
+            <Link href="/pre-scout-setup?mode=signin">
+              <Button
+                className="bg-orange-500 hover:bg-orange-600"
+                data-testid="button-login-to-recommend"
+              >
                 Sign In to Leave Recommendation
               </Button>
             </Link>
@@ -129,7 +150,7 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
             <p className="text-gray-300 mb-4">
               Help other homeowners by sharing your experience with {contractorName}
             </p>
-            <Button 
+            <Button
               onClick={() => setShowForm(true)}
               className="bg-orange-500 hover:bg-orange-600"
               data-testid="button-write-recommendation"
@@ -152,7 +173,10 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
       </CardHeader>
       <CardContent className="p-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => submitRecommendation.mutate(data))} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit((data) => submitRecommendation.mutate(data))}
+            className="space-y-6"
+          >
             {/* Recommendation Type */}
             <FormField
               control={form.control}
@@ -169,14 +193,20 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="positive" id="positive" />
-                        <label htmlFor="positive" className="flex items-center text-green-400 cursor-pointer">
+                        <label
+                          htmlFor="positive"
+                          className="flex items-center text-green-400 cursor-pointer"
+                        >
                           <ThumbsUp className="h-4 w-4 mr-1" />
                           Yes, I recommend
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="negative" id="negative" />
-                        <label htmlFor="negative" className="flex items-center text-red-400 cursor-pointer">
+                        <label
+                          htmlFor="negative"
+                          className="flex items-center text-red-400 cursor-pointer"
+                        >
                           <ThumbsDown className="h-4 w-4 mr-1" />
                           No, I don't recommend
                         </label>
@@ -197,8 +227,8 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                   <FormItem>
                     <FormLabel className="text-white">Your Name</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         className="bg-navy-800 border-navy-600 text-white"
                         data-testid="input-customer-name"
                       />
@@ -215,8 +245,8 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                   <FormItem>
                     <FormLabel className="text-white">Your Email</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         type="email"
                         className="bg-navy-800 border-navy-600 text-white"
                         data-testid="input-customer-email"
@@ -237,8 +267,8 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                   <FormItem>
                     <FormLabel className="text-white">Project Type</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         placeholder="e.g., Kitchen Remodel, Roof Repair"
                         className="bg-navy-800 border-navy-600 text-white"
                         data-testid="input-project-type"
@@ -257,7 +287,10 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                     <FormLabel className="text-white">Project Value (Optional)</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-navy-800 border-navy-600 text-white" data-testid="select-project-value">
+                        <SelectTrigger
+                          className="bg-navy-800 border-navy-600 text-white"
+                          data-testid="select-project-value"
+                        >
                           <SelectValue placeholder="Select range" />
                         </SelectTrigger>
                       </FormControl>
@@ -296,10 +329,10 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
             />
 
             {/* Optional Ratings */}
-            {form.watch('recommendationType') === 'positive' && (
+            {form.watch("recommendationType") === "positive" && (
               <div className="space-y-4">
                 <h4 className="text-white font-medium">Rate Your Experience (Optional)</h4>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
@@ -308,14 +341,20 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                       <FormItem>
                         <FormLabel className="text-white text-sm">Work Quality</FormLabel>
                         <FormControl>
-                          <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
-                            <SelectTrigger className="bg-navy-800 border-navy-600 text-white" data-testid="select-work-quality">
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            defaultValue={field.value?.toString()}
+                          >
+                            <SelectTrigger
+                              className="bg-navy-800 border-navy-600 text-white"
+                              data-testid="select-work-quality"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[5,4,3,2,1].map(num => (
+                              {[5, 4, 3, 2, 1].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
-                                  {num} Star{num !== 1 ? 's' : ''}
+                                  {num} Star{num !== 1 ? "s" : ""}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -332,14 +371,20 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                       <FormItem>
                         <FormLabel className="text-white text-sm">Timeliness</FormLabel>
                         <FormControl>
-                          <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
-                            <SelectTrigger className="bg-navy-800 border-navy-600 text-white" data-testid="select-timeliness">
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            defaultValue={field.value?.toString()}
+                          >
+                            <SelectTrigger
+                              className="bg-navy-800 border-navy-600 text-white"
+                              data-testid="select-timeliness"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[5,4,3,2,1].map(num => (
+                              {[5, 4, 3, 2, 1].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
-                                  {num} Star{num !== 1 ? 's' : ''}
+                                  {num} Star{num !== 1 ? "s" : ""}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -356,14 +401,20 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
                       <FormItem>
                         <FormLabel className="text-white text-sm">Communication</FormLabel>
                         <FormControl>
-                          <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
-                            <SelectTrigger className="bg-navy-800 border-navy-600 text-white" data-testid="select-communication">
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            defaultValue={field.value?.toString()}
+                          >
+                            <SelectTrigger
+                              className="bg-navy-800 border-navy-600 text-white"
+                              data-testid="select-communication"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[5,4,3,2,1].map(num => (
+                              {[5, 4, 3, 2, 1].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
-                                  {num} Star{num !== 1 ? 's' : ''}
+                                  {num} Star{num !== 1 ? "s" : ""}
                                 </SelectItem>
                               ))}
                             </SelectContent>

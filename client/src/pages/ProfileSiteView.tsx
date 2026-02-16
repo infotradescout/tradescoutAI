@@ -198,7 +198,7 @@ export default function ProfileSiteView() {
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch gap-3">
                     <Link
-                      href={`/create-account?next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
+                      href={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
                     >
                       <Button className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
@@ -206,7 +206,7 @@ export default function ProfileSiteView() {
                       </Button>
                     </Link>
                     <Link
-                      href={`/auth/login?next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
+                      href={`/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
                     >
                       <Button variant="outline" className="border-navy-500 text-gray-200">
                         Sign in

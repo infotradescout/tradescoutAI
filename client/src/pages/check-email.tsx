@@ -66,7 +66,9 @@ export default function CheckEmail() {
     const nextParam = safeNext
       ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}`
       : "";
-    navigate(`/login${emailParam}${nextParam}`);
+    navigate(
+      `/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}${nextParam ? `&${nextParam.slice(1)}` : ""}`
+    );
   };
 
   return (
@@ -99,7 +101,7 @@ export default function CheckEmail() {
             <button
               type="button"
               className="text-tsAccent hover:underline"
-              onClick={() => navigate("/create-account")}
+              onClick={() => navigate("/pre-scout-setup?mode=create")}
             >
               Use a different account
             </button>

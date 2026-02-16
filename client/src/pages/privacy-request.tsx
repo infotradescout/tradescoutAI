@@ -65,7 +65,7 @@ export default function PrivacyRequest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <Link href="/login">
+            <Link href="/pre-scout-setup?mode=signin">
               <Button className="btn-primary">Sign In</Button>
             </Link>
           </CardContent>
@@ -93,7 +93,8 @@ export default function PrivacyRequest() {
                 <h2 className="text-white font-semibold">Download my data</h2>
               </div>
               <p className="text-sm text-gray-300">
-                This downloads a ZIP containing your profile, messages, conversations, leads, and privacy settings.
+                This downloads a ZIP containing your profile, messages, conversations, leads, and
+                privacy settings.
               </p>
               <Button asChild className="btn-primary">
                 <a href={downloadHref}>
@@ -116,7 +117,8 @@ export default function PrivacyRequest() {
               </div>
 
               <p className="text-sm text-gray-300">
-                This submits a deletion request for review. Once approved, we will delete your account and associated data.
+                This submits a deletion request for review. Once approved, we will delete your
+                account and associated data.
               </p>
 
               <div className="space-y-2">
@@ -136,7 +138,8 @@ export default function PrivacyRequest() {
                   className="border-navy-600"
                 />
                 <div className="text-sm text-gray-300">
-                  I understand this will start the account deletion process and may not be reversible once approved.
+                  I understand this will start the account deletion process and may not be
+                  reversible once approved.
                 </div>
               </div>
 

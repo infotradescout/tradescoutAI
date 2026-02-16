@@ -44,8 +44,28 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
     const raw = String(location || "");
     const restIdx = raw.search(/[?#]/);
     const rest = restIdx >= 0 ? raw.slice(restIdx) : "";
-    const hasRestInTo = /[?#]/.test(to);
-    const target = rest && !hasRestInTo ? `${to}${rest}` : to;
+    const mergeTargetWithRest = (target: string, sourceRest: string) => {
+      if (!sourceRest) return target;
+      if (sourceRest.startsWith("#")) return `${target}${sourceRest}`;
+      if (!sourceRest.startsWith("?")) return target;
+
+      const [targetBase, targetHash = ""] = target.split("#", 2);
+      const [targetPath, targetQuery = ""] = targetBase.split("?", 2);
+      const targetParams = new URLSearchParams(targetQuery);
+      const sourceParams = new URLSearchParams(sourceRest.slice(1));
+
+      sourceParams.forEach((value, key) => {
+        if (!targetParams.has(key)) {
+          targetParams.set(key, value);
+        }
+      });
+
+      const mergedQuery = targetParams.toString();
+      const mergedBase = mergedQuery ? `${targetPath}?${mergedQuery}` : targetPath;
+      return targetHash ? `${mergedBase}#${targetHash}` : mergedBase;
+    };
+
+    const target = mergeTargetWithRest(to, rest);
     if (raw !== target) navigate(target);
   }, [location, navigate, to]);
 

@@ -266,7 +266,7 @@ export default function Chat() {
             <p className="text-gray-300 mb-6">
               Please sign in to access your conversations and chat with contractors.
             </p>
-            <Link href="/login">
+            <Link href="/pre-scout-setup?mode=signin">
               <Button className="btn-primary">Sign In</Button>
             </Link>
           </CardContent>

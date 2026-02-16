@@ -2,8 +2,8 @@
 export const ROUTES = {
   // Public routes
   HOME: "/",
-  LOGIN: "/login",
-  REGISTER: "/create-account",
+  LOGIN: "/pre-scout-setup?mode=signin",
+  REGISTER: "/pre-scout-setup?mode=create",
   FIND_CONTRACTORS: "/contractors",
   CONTRACTORS: "/contractors",
   MARKETPLACE: "/marketplace",

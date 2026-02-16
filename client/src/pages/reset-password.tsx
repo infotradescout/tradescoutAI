@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
-      navigate("/login");
+      navigate("/pre-scout-setup?mode=signin");
     },
     onError: (error: any) => {
       toast({

@@ -11,16 +11,16 @@ interface ChatButtonProps {
   children?: React.ReactNode;
 }
 
-export function ChatButton({ 
-  contractorId, 
-  leadId, 
+export function ChatButton({
+  contractorId,
+  leadId,
   className = "",
   children = (
     <>
       <MessageCircle className="h-4 w-4 mr-2" />
       Start Chat
     </>
-  )
+  ),
 }: ChatButtonProps) {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -39,7 +39,7 @@ export function ChatButton({
         description: "Please sign in to start Direct Connect.",
         variant: "destructive",
       });
-      setLocation(`/auth/login?next=${encodeURIComponent(directConnectHref)}`);
+      setLocation(`/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`);
       return;
     }
 
@@ -47,11 +47,7 @@ export function ChatButton({
   };
 
   return (
-    <Button
-      onClick={handleStartChat}
-      disabled={false}
-      className={`btn-primary ${className}`}
-    >
+    <Button onClick={handleStartChat} disabled={false} className={`btn-primary ${className}`}>
       {children}
     </Button>
   );

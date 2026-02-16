@@ -1,19 +1,19 @@
-import { memo, lazy, Suspense, useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useLocation } from 'wouter';
-import { Loader2 } from 'lucide-react';
-import { trackShellEvent } from '@/lib/analytics';
-import { OrientationCard } from '@/components/orientation/OrientationCard';
+import { memo, lazy, Suspense, useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
+import { Loader2 } from "lucide-react";
+import { trackShellEvent } from "@/lib/analytics";
+import { OrientationCard } from "@/components/orientation/OrientationCard";
 
 // Import dashboards
-const SimpleHome = lazy(() => import('@/pages/SimpleHome'));
-const ContractorDashboard = lazy(() => import('@/pages/contractor-dashboard'));
-const RealtorDashboard = lazy(() => import('@/pages/realtor-dashboard'));
-const HOADashboard = lazy(() => import('@/pages/hoa-dashboard'));
-const BusinessOwnerDashboard = lazy(() => import('@/pages/business-owner-dashboard'));
-const AdminDashboard = lazy(() => import('@/pages/admin-dashboard'));
-const StaffDashboard = lazy(() => import('@/pages/staff-dashboard'));
-const HelperDashboard = lazy(() => import('@/pages/helper-dashboard'));
+const SimpleHome = lazy(() => import("@/pages/SimpleHome"));
+const ContractorDashboard = lazy(() => import("@/pages/contractor-dashboard"));
+const RealtorDashboard = lazy(() => import("@/pages/realtor-dashboard"));
+const HOADashboard = lazy(() => import("@/pages/hoa-dashboard"));
+const BusinessOwnerDashboard = lazy(() => import("@/pages/business-owner-dashboard"));
+const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
+const StaffDashboard = lazy(() => import("@/pages/staff-dashboard"));
+const HelperDashboard = lazy(() => import("@/pages/helper-dashboard"));
 
 const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const { user, isLoading } = useAuth();
@@ -28,13 +28,13 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   // For community-first users, skip this banner entirely so the
   // dashboard feels like an optional tools surface, not required setup.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     if (!user || isCommunityFirst) return;
 
-    const countKey = 'ts_dashboard_session_count';
-    const dismissedKey = 'ts_dashboard_first_banner_dismissed';
+    const countKey = "ts_dashboard_session_count";
+    const dismissedKey = "ts_dashboard_first_banner_dismissed";
 
-    if (sessionStorage.getItem(dismissedKey) === '1') {
+    if (sessionStorage.getItem(dismissedKey) === "1") {
       return;
     }
 
@@ -49,35 +49,35 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       const roles: string[] = Array.isArray((user as any)?.roles)
         ? (user as any).roles
         : (user as any)?.role
-        ? [(user as any).role]
-        : [];
+          ? [(user as any).role]
+          : [];
 
       trackShellEvent({
-        type: 'dashboard_banner_shown',
+        type: "dashboard_banner_shown",
         sessionCount: next,
         userTypes: roles,
-        route: '/dashboard',
+        route: "/dashboard",
       });
     }
   }, [user, isCommunityFirst]);
 
   // One-time post-onboarding orientation card via ?orientation=1
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     if (!user) return;
 
     try {
-      const search = typeof window !== 'undefined' ? window.location.search : '';
-      const params = new URLSearchParams(search || '');
-      const shouldShow = params.get('orientation') === '1';
+      const search = typeof window !== "undefined" ? window.location.search : "";
+      const params = new URLSearchParams(search || "");
+      const shouldShow = params.get("orientation") === "1";
 
       if (shouldShow) {
         setShowOrientation(true);
 
         trackShellEvent({
-          type: 'scout_query',
+          type: "scout_query",
           payload: {
-            event: 'orientation_shown_post_onboarding',
+            event: "orientation_shown_post_onboarding",
             capabilityBundles: (user as any)?.capabilityBundles ?? [],
             ts: new Date().toISOString(),
           },
@@ -85,9 +85,9 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
           // ignore analytics failures
         });
 
-        params.delete('orientation');
+        params.delete("orientation");
         const nextSearch = params.toString();
-        const nextPath = nextSearch ? `/dashboard?${nextSearch}` : '/dashboard';
+        const nextPath = nextSearch ? `/dashboard?${nextSearch}` : "/dashboard";
         setLocation(nextPath, { replace: true } as any);
       }
     } catch {
@@ -104,7 +104,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   }
 
   if (!user) {
-    setLocation('/login');
+    setLocation("/pre-scout-setup?mode=signin");
     return null;
   }
 
@@ -113,17 +113,17 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   // and no longer routed here.
   const getDashboardComponent = () => {
     // Legacy admin roles still get their specific dashboards
-    if (user.role === 'super_admin' || user.role === 'head_admin') {
+    if (user.role === "super_admin" || user.role === "head_admin") {
       return AdminDashboard;
     }
-    
-    if (user.role === 'ops_admin' || user.role === 'territory_manager') {
+
+    if (user.role === "ops_admin" || user.role === "territory_manager") {
       return StaffDashboard;
     }
-    
+
     // Everyone else (homeowners, contractors, realtors, etc.) gets the unified Dashboard
     // This Dashboard shows content based on user activity and interests, not role
-    return lazy(() => import('@/pages/Dashboard'));
+    return lazy(() => import("@/pages/Dashboard"));
   };
 
   const DashboardComponent = getDashboardComponent();
@@ -133,22 +133,22 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       {showOrientation && (
         <div className="max-w-5xl mx-auto mt-4 px-3">
           <OrientationCard
-            roleLabel={String(user?.role || 'participant')}
+            roleLabel={String(user?.role || "participant")}
             sendToScout={(prompt, options) => {
               try {
-                window.localStorage.setItem('scout:prefill:scout-main', prompt);
+                window.localStorage.setItem("scout:prefill:scout-main", prompt);
                 window.localStorage.setItem(
-                  'scout:help-intent',
+                  "scout:help-intent",
                   JSON.stringify({
                     prompt,
-                    source: options?.source || 'dashboard-orientation',
+                    source: options?.source || "dashboard-orientation",
                     ts: new Date().toISOString(),
                   })
                 );
               } catch {
                 // ignore
               }
-              setLocation('/scout');
+              setLocation("/scout");
             }}
             contextSource="post-onboarding"
           />
@@ -170,24 +170,25 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
               aria-label="Dismiss profile tip"
               onClick={() => {
                 setShowFirstSessionBanner(false);
-                if (typeof window !== 'undefined') {
-                  sessionStorage.setItem('ts_dashboard_first_banner_dismissed', '1');
+                if (typeof window !== "undefined") {
+                  sessionStorage.setItem("ts_dashboard_first_banner_dismissed", "1");
                 }
 
                 const roles: string[] = Array.isArray((user as any)?.roles)
                   ? (user as any).roles
                   : (user as any)?.role
-                  ? [(user as any).role]
-                  : [];
+                    ? [(user as any).role]
+                    : [];
 
                 trackShellEvent({
-                  type: 'dashboard_banner_dismissed',
+                  type: "dashboard_banner_dismissed",
                   sessionCount:
-                    typeof window !== 'undefined'
-                      ? parseInt(sessionStorage.getItem('ts_dashboard_session_count') || '1', 10) || 1
+                    typeof window !== "undefined"
+                      ? parseInt(sessionStorage.getItem("ts_dashboard_session_count") || "1", 10) ||
+                        1
                       : 1,
                   userTypes: roles,
-                  route: '/dashboard',
+                  route: "/dashboard",
                 });
               }}
               className="ml-2 text-slate-400 hover:text-white"
@@ -199,14 +200,14 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       )}
 
       <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
-        </div>
-      }
-    >
-      <DashboardComponent />
-    </Suspense>
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+          </div>
+        }
+      >
+        <DashboardComponent />
+      </Suspense>
     </>
   );
 });
