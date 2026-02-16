@@ -1,11 +1,17 @@
-import { memo, useState } from 'react';
-import { Car, Search, Filter, MapPin, Calendar, Fuel, Users, Star, Heart, Eye } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { VehicleMarketplaceShell } from '@/shells/VehicleMarketplaceShell';
+import { memo, useState } from "react";
+import { Car, Search, Filter, MapPin, Calendar, Fuel, Users, Star, Heart, Eye } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { VehicleMarketplaceShell } from "@/shells/VehicleMarketplaceShell";
 
 const VehicleMarketplace = memo(function VehicleMarketplace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,7 +37,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       fuel: "Gasoline",
       transmission: "Automatic",
       views: 145,
-      saved: 23
+      saved: 23,
     },
     {
       id: 2,
@@ -50,7 +56,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       fuel: "Hybrid",
       transmission: "CVT",
       views: 89,
-      saved: 17
+      saved: 17,
     },
     {
       id: 3,
@@ -69,7 +75,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       fuel: "Gasoline",
       transmission: "Automatic",
       views: 203,
-      saved: 31
+      saved: 31,
     },
     {
       id: 4,
@@ -88,236 +94,276 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       fuel: "Electric",
       transmission: "Single Speed",
       views: 267,
-      saved: 45
-    }
+      saved: 45,
+    },
   ];
 
   return (
     <VehicleMarketplaceShell>
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Car className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Vehicle Marketplace</h1>
-          </div>
-          <p className="text-gray-300 text-lg">
-            Find quality pre-owned vehicles from trusted dealers in your area
-          </p>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <Car className="h-8 w-8 text-orange-400" />
+          <h1 className="text-4xl font-bold text-white">Vehicle Marketplace</h1>
         </div>
+        <p className="text-gray-300 text-lg">
+          Find quality pre-owned vehicles from trusted dealers in your area
+        </p>
+      </div>
 
-        {/* Professional Seller Tools */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-orange-400">
-              <Car className="h-5 w-5" />
-              Car Sales Professional Tools
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <a href="/car-salesman-dashboard" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                  <Car className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-sm font-medium text-white">Dashboard</div>
-              </a>
-              <a href="/car-sales-new-listing" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <div className="text-sm font-medium text-white">New Listing</div>
-              </a>
-              <a href="/car-sales-customers" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                  <Users className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-sm font-medium text-white">Customers</div>
-              </a>
-              <a href="/car-sales-financing" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                </div>
-                <div className="text-sm font-medium text-white">Financing</div>
-              </a>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Search and Filters */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search vehicles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-navy-700 border-navy-600 text-white"
-                />
+      {/* Professional Seller Tools */}
+      <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-orange-400">
+            <Car className="h-5 w-5" />
+            Car Sales Professional Tools
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a
+              href="/car-salesman-dashboard"
+              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+            >
+              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                <Car className="h-5 w-5 text-white" />
               </div>
-              
-              <Select value={priceRange} onValueChange={setPriceRange}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                  <SelectValue placeholder="Price Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
-                  <SelectItem value="under-25k">Under $25,000</SelectItem>
-                  <SelectItem value="25k-35k">$25,000 - $35,000</SelectItem>
-                  <SelectItem value="35k-50k">$35,000 - $50,000</SelectItem>
-                  <SelectItem value="over-50k">Over $50,000</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={vehicleType} onValueChange={setVehicleType}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                  <SelectValue placeholder="Vehicle Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="sedan">Sedan</SelectItem>
-                  <SelectItem value="suv">SUV</SelectItem>
-                  <SelectItem value="truck">Truck</SelectItem>
-                  <SelectItem value="hybrid">Hybrid/Electric</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  <SelectItem value="los-angeles">Los Angeles</SelectItem>
-                  <SelectItem value="orange-county">Orange County</SelectItem>
-                  <SelectItem value="riverside">Riverside</SelectItem>
-                  <SelectItem value="san-diego">San Diego</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-400 text-sm">{vehicles.length} vehicles found</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vehicle Listings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-          {Array.isArray(vehicles) ? vehicles.map((vehicle) => (
-            <Card key={vehicle.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
-              <CardHeader className="p-0">
-                <div className="relative">
-                  <img
-                    src={vehicle.image}
-                    alt={vehicle.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
+              <div className="text-sm font-medium text-white">Dashboard</div>
+            </a>
+            <a
+              href="/car-sales-new-listing"
+              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+            >
+              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
                   />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-orange-600 hover:bg-orange-700">
-                      {vehicle.condition}
-                    </Badge>
-                  </div>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <Button size="sm" variant="secondary" className="p-2">
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="secondary" className="p-2">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h2 className="text-xl font-semibold text-white mb-1">{vehicle.title}</h2>
-                    <p className="text-gray-400 text-sm">{vehicle.year} {vehicle.make} {vehicle.model}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-orange-400">{vehicle.price}</p>
-                    <div className="flex items-center gap-1 justify-end mt-1">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
+                </svg>
+              </div>
+              <div className="text-sm font-medium text-white">New Listing</div>
+            </a>
+            <a
+              href="/car-sales-customers"
+              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+            >
+              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-sm font-medium text-white">Customers</div>
+            </a>
+            <a
+              href="/car-sales-financing"
+              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+            >
+              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                  />
+                </svg>
+              </div>
+              <div className="text-sm font-medium text-white">Financing</div>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Search and Filters */}
+      <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search vehicles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-navy-700 border-navy-600 text-white"
+              />
+            </div>
+
+            <Select value={priceRange} onValueChange={setPriceRange}>
+              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectValue placeholder="Price Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Prices</SelectItem>
+                <SelectItem value="under-25k">Under $25,000</SelectItem>
+                <SelectItem value="25k-35k">$25,000 - $35,000</SelectItem>
+                <SelectItem value="35k-50k">$35,000 - $50,000</SelectItem>
+                <SelectItem value="over-50k">Over $50,000</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={vehicleType} onValueChange={setVehicleType}>
+              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectValue placeholder="Vehicle Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="sedan">Sedan</SelectItem>
+                <SelectItem value="suv">SUV</SelectItem>
+                <SelectItem value="truck">Truck</SelectItem>
+                <SelectItem value="hybrid">Hybrid/Electric</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={location} onValueChange={setLocation}>
+              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectValue placeholder="Location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="los-angeles">Los Angeles</SelectItem>
+                <SelectItem value="orange-county">Orange County</SelectItem>
+                <SelectItem value="riverside">Riverside</SelectItem>
+                <SelectItem value="san-diego">San Diego</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-400 text-sm">{vehicles.length} vehicles found</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Vehicle Listings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        {Array.isArray(vehicles)
+          ? vehicles.map((vehicle) => (
+              <Card
+                key={vehicle.id}
+                className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors"
+              >
+                <CardHeader className="p-0">
+                  <div className="relative">
+                    <img
+                      src={vehicle.image}
+                      alt={vehicle.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-orange-600 hover:bg-orange-700">
+                        {vehicle.condition}
+                      </Badge>
+                    </div>
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <Button size="sm" variant="secondary" className="p-2">
+                        <Heart className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="secondary" className="p-2">
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </CardHeader>
 
-                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Calendar className="h-4 w-4" />
-                    {vehicle.year}
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h2 className="text-xl font-semibold text-white mb-1">{vehicle.title}</h2>
+                      <p className="text-gray-400 text-sm">
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-orange-400">{vehicle.price}</p>
+                      <div className="flex items-center gap-1 justify-end mt-1">
+                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <MapPin className="h-4 w-4" />
-                    {vehicle.mileage} miles
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Fuel className="h-4 w-4" />
-                    {vehicle.fuel}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Users className="h-4 w-4" />
-                    {vehicle.transmission}
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-gray-400 text-sm">
-                    <MapPin className="h-4 w-4" />
-                    {vehicle.location}
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Calendar className="h-4 w-4" />
+                      {vehicle.year}
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <MapPin className="h-4 w-4" />
+                      {vehicle.mileage} miles
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Fuel className="h-4 w-4" />
+                      {vehicle.fuel}
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Users className="h-4 w-4" />
+                      {vehicle.transmission}
+                    </div>
                   </div>
-                  <div className="text-gray-400 text-sm">
-                    {vehicle.views} views • {vehicle.saved} saved
+
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                      <MapPin className="h-4 w-4" />
+                      {vehicle.location}
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {vehicle.views} views • {vehicle.saved} saved
+                    </div>
                   </div>
-                </div>
 
-                <div className="mb-4">
-                  <p className="text-gray-400 text-sm mb-2">Key Features:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {vehicle.features.slice(0, 3).map((feature, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {feature}
-                      </Badge>
-                    ))}
-                    {vehicle.features.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{vehicle.features.length - 3} more
-                      </Badge>
-                    )}
+                  <div className="mb-4">
+                    <p className="text-gray-400 text-sm mb-2">Key Features:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {vehicle.features.slice(0, 3).map((feature, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {feature}
+                        </Badge>
+                      ))}
+                      {vehicle.features.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{vehicle.features.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
-                    Contact Dealer
-                  </Button>
-                  <Button variant="outline" className="flex-1 border-orange-600 text-orange-400 hover:bg-orange-600/20">
-                    View Details
-                  </Button>
-                </div>
+                  <div className="flex gap-2">
+                    <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                      Request Quote
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                    >
+                      View Details
+                    </Button>
+                  </div>
 
-                <div className="mt-3 pt-3 border-t border-navy-600">
-                  <p className="text-gray-400 text-sm">
-                    Listed by <span className="text-orange-400">{vehicle.dealer}</span>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )) : null}
-        </div>
+                  <div className="mt-3 pt-3 border-t border-navy-600">
+                    <p className="text-gray-400 text-sm">
+                      Listed by <span className="text-orange-400">{vehicle.dealer}</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          : null}
+      </div>
 
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <Button className="bg-orange-600 hover:bg-orange-700 px-8">
-            Load More Vehicles
-          </Button>
-        </div>
+      {/* Load More */}
+      <div className="text-center mt-8">
+        <Button className="bg-orange-600 hover:bg-orange-700 px-8">Load More Vehicles</Button>
+      </div>
     </VehicleMarketplaceShell>
   );
 });

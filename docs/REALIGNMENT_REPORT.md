@@ -36,15 +36,15 @@ Date: 2026-02-16
 
 ## Violations
 
-### V1 (Medium): `authorityGate` still uses `user_search` in marketplace thread metadata
+### V1 (Medium): Authority gate enum still includes legacy `user_search`
 - Evidence:
-  - `server/routes.ts` (`/api/marketplace/conversations`) sets `authorityGate: "user_search"`.
+  - `shared/schema.ts` includes `authority_gate` enum value `user_search`.
 - Why this matters:
-  - Runtime behavior is request-gated, but metadata naming drifts from decision-first language.
+  - Runtime marketplace flow now uses `scout_recommendation`, but schema still advertises a legacy gate label that can leak into future writes.
 
 ### V2 (Medium): Legacy/static pages still contain direct-contact language patterns
 - Evidence (examples):
-  - `client/src/pages/vehicle-marketplace.tsx` ("Contact Dealer")
+  - `client/src/pages/vehicle-marketplace.tsx` (now fixed in this pass)
   - Several legacy mock/demo pages include static phone/email strings.
 - Why this matters:
   - UX language drift can confuse users about request-gated contract.
@@ -57,9 +57,9 @@ Date: 2026-02-16
 
 ## Proposed Fixes (file-level pointers)
 
-1. Normalize authority metadata language
-- Update `server/routes.ts` marketplace request metadata from `user_search` to a request/decision-aligned gate label.
-- Update any enum/docs references in `shared/schema.ts` and `docs/INTERACTION_CONTRACT.md`.
+1. Normalize authority metadata vocabulary
+- Keep runtime gate value as `scout_recommendation`/decision-card flow.
+- Remove or deprecate `user_search` in `shared/schema.ts` enum and migration follow-up.
 
 2. Sweep user-facing copy for direct-contact phrasing
 - Prioritize high-traffic pages under `client/src/pages/`:
@@ -76,7 +76,7 @@ Date: 2026-02-16
 ## Prioritized Plan
 
 ### P0
-1. Remove remaining `user_search` metadata drift in marketplace request flow.
+1. Remove/deprecate `user_search` enum drift in schema.
 2. Complete copy sweep on top traffic discovery pages.
 
 ### P1
@@ -88,8 +88,7 @@ Date: 2026-02-16
 2. Add smoke test for map feature-flag off/on behavior.
 
 ## Minimal Change Set
-1. `server/routes.ts`: replace marketplace `authorityGate` metadata value with request/decision-aligned label.
-2. `shared/schema.ts`: align enum/typing if gate label is normalized.
-3. `client/src/pages/vehicle-marketplace.tsx`: remove direct contact wording.
-4. `server/routes/admin.ts` (or existing admin route module): expose import batch summary endpoint for `listing_import_staging`.
-5. `client/src/pages/admin-business-import.tsx`: add batch review state indicators (pending/merged/failed/skipped).
+1. `shared/schema.ts`: deprecate/remove `user_search` from `authority_gate` enum path.
+2. `client/src/pages/vehicle-marketplace.tsx`: remove direct-contact wording (`Contact Dealer` -> `Request Quote`).
+3. `server/routes/admin.ts` (or existing admin route module): expose import batch summary endpoint for `listing_import_staging`.
+4. `client/src/pages/admin-business-import.tsx`: add batch review state indicators (pending/merged/failed/skipped).
