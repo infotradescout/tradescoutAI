@@ -10,6 +10,7 @@ import {
   Heart,
   Share2,
   Compass,
+  Map,
   Menu,
   UserPlus,
   LogIn,
@@ -79,6 +80,11 @@ const buildFeatureNav = (isSuperAdmin: boolean, isAuthenticated: boolean): NavIt
       label: "HomeScout",
       href: "/real-estate-marketplace",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    },
+    {
+      label: "Maps",
+      href: "/maps",
+      icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Commercial",

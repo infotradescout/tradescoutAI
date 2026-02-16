@@ -69,6 +69,8 @@ import {
   postComments,
   recommendations,
   contractors,
+  contractorTrades,
+  trades,
   workers,
   tasks,
   taskApplications,
@@ -1084,6 +1086,7 @@ export async function registerRoutes(app: any) {
             .select({
               id: businesses.id,
               ownerUserId: businesses.ownerUserId,
+              claimStatus: businesses.claimStatus,
               status: businesses.status,
               profileData: businesses.profileData,
             })
@@ -1094,7 +1097,7 @@ export async function registerRoutes(app: any) {
           const biz = rows[0] as any;
           if (!biz || biz.status === "suspended") {
             claim = { status: "not_found" };
-          } else if (biz.ownerUserId) {
+          } else if (biz.ownerUserId || biz.claimStatus !== "unclaimed") {
             claim = { status: "already_claimed", businessId: biz.id };
           } else {
             const normalizePhone = (value: unknown) => String(value || "").replace(/\D/g, "");
@@ -5451,6 +5454,174 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Maps v1: awareness-only provider discovery (no direct contact data)
+  app.get("/api/map/providers", async (req: Request, res: Response) => {
+    try {
+      const mapsV1Enabled = String(process.env.FEATURE_MAPS_V1 || "false").toLowerCase() === "true";
+      if (!mapsV1Enabled) {
+        return res.status(404).json({ message: "Maps v1 is disabled", code: "FEATURE_DISABLED" });
+      }
+
+      const bboxRaw = typeof req.query.bbox === "string" ? req.query.bbox.trim() : "";
+      const bboxParts = bboxRaw
+        .split(",")
+        .map((part) => Number(part.trim()))
+        .filter((value) => Number.isFinite(value));
+
+      if (bboxParts.length !== 4) {
+        return res
+          .status(400)
+          .json({ message: "Invalid bbox. Expected minLng,minLat,maxLng,maxLat." });
+      }
+
+      const [minLng, minLat, maxLng, maxLat] = bboxParts;
+      if (minLng < -180 || maxLng > 180 || minLat < -90 || maxLat > 90) {
+        return res.status(400).json({ message: "Invalid bbox bounds." });
+      }
+      if (minLng >= maxLng || minLat >= maxLat) {
+        return res.status(400).json({ message: "Invalid bbox order." });
+      }
+
+      const tradeFilter =
+        typeof req.query.trade === "string" ? req.query.trade.trim().toLowerCase() : "";
+      const verifiedOnly =
+        String(req.query.verified || "false")
+          .trim()
+          .toLowerCase() === "true";
+      const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 1000;
+      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(2000, limitRaw)) : 1000;
+
+      const providerRoles = [
+        "contractor",
+        "handyman",
+        "service_provider",
+        "specialty_tradesperson",
+        "realtor",
+        "insurance_agent",
+        "mortgage_broker",
+        "car_dealer",
+        "auto_service",
+        "inspector",
+        "business_owner",
+        "commercial_property",
+      ] as const;
+
+      const predicates: any[] = [
+        sql`${users.latitude} is not null`,
+        sql`${users.longitude} is not null`,
+        sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
+        sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
+        or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
+      ];
+
+      if (tradeFilter) {
+        predicates.push(
+          or(
+            sql`lower(${trades.slug}) = ${tradeFilter}`,
+            sql`lower(${trades.name}) = ${tradeFilter}`
+          )
+        );
+      }
+
+      if (verifiedOnly) {
+        predicates.push(
+          or(
+            eq(contractors.verifiedLicensed, true),
+            eq(contractors.verifiedInsured, true),
+            eq(users.verificationStatus, "approved" as any)
+          )
+        );
+      }
+
+      const rows = await db
+        .select({
+          providerId: users.id,
+          displayName: sql<string>`
+            coalesce(
+              nullif(${contractors.companyName}, ''),
+              nullif(trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')), ''),
+              'TradeScout Provider'
+            )
+          `,
+          lat: users.latitude,
+          lng: users.longitude,
+          countyId: users.countyId,
+          countyFips: users.countyFips,
+          countyName: users.countyName,
+          role: users.role,
+          verifiedLicensed: contractors.verifiedLicensed,
+          verifiedInsured: contractors.verifiedInsured,
+          userVerificationStatus: users.verificationStatus,
+          tradeCategories: sql<
+            string[]
+          >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
+        })
+        .from(users)
+        .leftJoin(contractors, eq(contractors.userId, users.id))
+        .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
+        .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
+        .where(and(...predicates))
+        .groupBy(
+          users.id,
+          users.firstName,
+          users.lastName,
+          users.countyId,
+          users.countyFips,
+          users.countyName,
+          users.role,
+          users.latitude,
+          users.longitude,
+          users.verificationStatus,
+          contractors.id,
+          contractors.companyName,
+          contractors.verifiedLicensed,
+          contractors.verifiedInsured
+        )
+        .limit(limit);
+
+      const providers = rows
+        .map((row) => {
+          const lat = Number(row.lat);
+          const lng = Number(row.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+          const contractorVerified = row.verifiedLicensed === true || row.verifiedInsured === true;
+          const userVerified =
+            String(row.userVerificationStatus || "").toLowerCase() === "approved";
+          const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
+
+          return {
+            id: row.providerId,
+            displayName: row.displayName,
+            lat,
+            lng,
+            countyId: row.countyId ?? null,
+            countyFips: row.countyFips ?? null,
+            countyName: row.countyName ?? null,
+            tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
+            verifiedStatus,
+            role: row.role ?? null,
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => row !== null);
+
+      return res.json({
+        providers,
+        meta: {
+          count: providers.length,
+          bbox: { minLng, minLat, maxLng, maxLat },
+          filters: {
+            trade: tradeFilter || null,
+            verifiedOnly,
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching map providers:", error);
+      return res.status(500).json({ message: "Failed to fetch map providers" });
+    }
+  });
+
   // County contractors endpoint
   app.get("/api/contractors/by-county", async (req: any, res: any) => {
     try {
@@ -9061,6 +9232,8 @@ export async function registerRoutes(app: any) {
         typeof body.defaultCountyFips === "string" ? body.defaultCountyFips.trim() : "";
       const defaultStateCode =
         typeof body.defaultStateCode === "string" ? body.defaultStateCode.trim() : "";
+      const sourceLabelRaw = typeof body.source === "string" ? body.source.trim() : "";
+      const sourceLabel = (sourceLabelRaw || "admin_import").toLowerCase().slice(0, 64);
 
       if (!content.trim()) {
         return res.status(400).json({ message: "content is required" });
@@ -9486,6 +9659,7 @@ export async function registerRoutes(app: any) {
                     email,
                     importExtras: Object.keys(importExtras).length ? importExtras : undefined,
                   },
+                  sources: [sourceLabel],
                   status: "draft" as any,
                   countyIds,
                 } as any);
@@ -9562,6 +9736,19 @@ export async function registerRoutes(app: any) {
 
               if (existingUnclaimed.length > 0) {
                 businessId = existingUnclaimed[0].id;
+                await db.execute(sql`
+                  update businesses
+                  set sources = (
+                    select coalesce(jsonb_agg(distinct source_value), '[]'::jsonb)
+                    from (
+                      select jsonb_array_elements_text(coalesce(businesses.sources, '[]'::jsonb)) as source_value
+                      union all
+                      select ${sourceLabel}
+                    ) dedupe
+                  ),
+                  updated_at = now()
+                  where businesses.id = ${businessId}
+                `);
                 updatedUnclaimedBusinesses++;
               } else {
                 const createdBiz = await storage.createUnclaimedBusiness({
@@ -9576,6 +9763,7 @@ export async function registerRoutes(app: any) {
                     phone: phone || undefined,
                     importExtras: Object.keys(importExtras).length ? importExtras : undefined,
                   },
+                  sources: [sourceLabel],
                   status: "draft" as any,
                   countyIds,
                 } as any);
@@ -9690,6 +9878,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           b.slug,
           b.type,
           b.status,
+          b.claim_status as "claimStatus",
+          b.sources,
           coalesce(
             json_agg(distinct jsonb_build_object(
               'fips', co.fips,
@@ -9703,6 +9893,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         left join counties co on co.id = bc.county_id
         where b.status <> 'suspended'
           and b.owner_user_id is null
+          and b.claim_status = 'unclaimed'
           and (
             lower(b.name) like ${likeQ}
             or lower(b.slug) like ${likeQ}

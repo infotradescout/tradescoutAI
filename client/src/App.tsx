@@ -267,6 +267,7 @@ const ProjectTracker = React.lazy(() => import("./pages/lead-management"));
 // Additional Missing Pages
 const CountyHub = React.lazy(() => import("./pages/county-hub"));
 const CountyPage = React.lazy(() => import("./pages/county/CountyPage"));
+const MapsPage = React.lazy(() => import("./pages/maps"));
 const Verification = React.lazy(() => import("./pages/verification"));
 const InsuranceVerification = React.lazy(() => import("./pages/insurance-verification"));
 const LicenseVerification = React.lazy(() => import("./pages/license-verification"));
@@ -1144,6 +1145,9 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/county-hub">
                     <LazyPage Component={CountyHub} />
+                  </Route>
+                  <Route path="/maps">
+                    <LazyPage Component={MapsPage} />
                   </Route>
                   <Route path="/leaderboard">
                     <LazyPage Component={Leaderboard} />
