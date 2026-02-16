@@ -869,7 +869,18 @@ export async function registerRoutes(app: any) {
         return next(err);
       }
       if (!user) {
-        return res.status(401).json({ message: info?.message || "Login failed" });
+        const rawMessage = typeof info?.message === "string" ? info.message.trim() : "";
+        const lowered = rawMessage.toLowerCase();
+        let message = rawMessage || "Login failed";
+
+        if (!message || lowered.includes("missing credentials")) {
+          message = "Email and password are required";
+        }
+
+        return res.status(401).json({
+          message,
+          code: "AUTH_INVALID_CREDENTIALS",
+        });
       }
       req.logIn(user, (loginErr: any) => {
         if (loginErr) {

@@ -67,18 +67,29 @@ export async function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy({ usernameField: "email" }, async (email, password, done) => {
       try {
-        const user = await storage.getUserByEmail(email);
+        const normalizedEmail = String(email || "")
+          .trim()
+          .toLowerCase();
+
+        if (!normalizedEmail || !password) {
+          return done(null, false, { message: "Email and password are required" });
+        }
+
+        const user = await storage.getUserByEmail(normalizedEmail);
         if (!user) {
-          return done(null, false, { message: "Invalid email or password" });
+          return done(null, false, { message: "No account found for this email" });
         }
 
         if (!user.password) {
-          return done(null, false, { message: "No password set for this account" });
+          return done(null, false, {
+            message:
+              "This account uses social login. Sign in with Google/Facebook or reset your password.",
+          });
         }
 
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-          return done(null, false, { message: "Invalid email or password" });
+          return done(null, false, { message: "Incorrect password" });
         }
 
         return done(null, user);
