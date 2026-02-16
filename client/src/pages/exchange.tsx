@@ -554,8 +554,14 @@ export default function Exchange() {
     }
   }, [route]);
 
-  const hasLocationContext = countyCommitted;
   const activeCategoryMeta = EXCHANGE_CATEGORIES.find((cat) => cat.id === selectedCategory);
+  const localLabel = (() => {
+    if (!countyCommitted) return "Set home county";
+    if (locationCtx.countyName && stateCode) return `${locationCtx.countyName}, ${stateCode}`;
+    if (locationCtx.label) return locationCtx.label;
+    if (stateCode) return stateCode;
+    return "Home county set";
+  })();
 
   const formatListedTime = (dateLike: string) => {
     const ts = new Date(dateLike).getTime();
@@ -570,15 +576,15 @@ export default function Exchange() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-7 py-4 sm:py-6">
-      <div className="mb-4 rounded-2xl border border-tsBorder bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-3 sm:p-5">
+      <div className="mb-4 rounded-xl border border-slate-800 bg-slate-950/65 p-3 sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-orange-300">Exchange</p>
-            <h1 className="text-xl sm:text-2xl font-bold text-white mt-1">Listings</h1>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Exchange</p>
+            <h1 className="mt-1 text-xl sm:text-2xl font-semibold text-slate-100">Listings</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="border-slate-600 text-slate-200">
-              Mode: Local-first
+            <Badge variant="outline" className="border-slate-700 text-slate-300">
+              Nearby results prioritized
             </Badge>
             <Badge
               variant="outline"
@@ -589,9 +595,7 @@ export default function Exchange() {
                   : "Set your county to prioritize local listings"
               }
             >
-              {countyCommitted && countyFips && stateCode
-                ? `Local: ${countyFips}, ${stateCode}`
-                : "Local: not set"}
+              {localLabel}
             </Badge>
           </div>
         </div>
