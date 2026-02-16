@@ -186,14 +186,14 @@ export function AppShell({ children, footer }: AppShellProps) {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => navigate("/create-account")}
+              onClick={() => navigate("/pre-scout-setup?mode=create")}
               className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.85rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
             >
               Create free account
             </button>
             <button
               type="button"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/pre-scout-setup?mode=signin")}
               className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.85rem] font-medium hover:text-white transition"
               style={{
                 borderColor: "var(--border-primary)",
@@ -320,7 +320,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate("/create-account")}
+                  onClick={() => navigate("/pre-scout-setup?mode=create")}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -332,7 +332,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -391,14 +391,14 @@ export function AppShell({ children, footer }: AppShellProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate("/create-account")}
+                  onClick={() => navigate("/pre-scout-setup?mode=create")}
                   className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40 focus:outline-none"
                 >
                   Create free account
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
                   className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.7rem] font-medium hover:text-white transition focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
