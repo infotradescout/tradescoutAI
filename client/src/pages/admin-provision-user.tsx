@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -27,6 +28,17 @@ export default function AdminProvisionUser() {
   const [password, setPassword] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
   const [result, setResult] = useState<ProvisionResponse | null>(null);
+  const [targetUserEmail, setTargetUserEmail] = useState("");
+  const [targetUserId, setTargetUserId] = useState("");
+  const [requestTitle, setRequestTitle] = useState("");
+  const [requestDescription, setRequestDescription] = useState("");
+  const [requestCategory, setRequestCategory] = useState("");
+  const [requestTradeId, setRequestTradeId] = useState("");
+  const [requestCountyFips, setRequestCountyFips] = useState("");
+  const [requestStateCode, setRequestStateCode] = useState("");
+  const [requestBudgetMin, setRequestBudgetMin] = useState("");
+  const [requestBudgetMax, setRequestBudgetMax] = useState("");
+  const [targetContractorIds, setTargetContractorIds] = useState("");
 
   const provision = useMutation({
     mutationFn: async () => {
@@ -50,6 +62,56 @@ export default function AdminProvisionUser() {
       toast({
         title: "Provision failed",
         description: e?.message || "Failed to provision user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createDirectConnectRequest = useMutation({
+    mutationFn: async () => {
+      const contractorIds = targetContractorIds
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      const payload: Record<string, unknown> = {
+        title: requestTitle.trim(),
+        description: requestDescription.trim(),
+      };
+
+      if (targetUserId.trim()) payload.targetUserId = targetUserId.trim();
+      if (targetUserEmail.trim()) payload.targetEmail = targetUserEmail.trim().toLowerCase();
+      if (requestCategory.trim()) payload.category = requestCategory.trim();
+      if (requestTradeId.trim()) payload.tradeId = requestTradeId.trim();
+      if (requestCountyFips.trim()) payload.countyFips = requestCountyFips.trim();
+      if (requestStateCode.trim()) payload.stateCode = requestStateCode.trim().toUpperCase();
+      if (requestBudgetMin.trim()) payload.budgetMin = Number(requestBudgetMin);
+      if (requestBudgetMax.trim()) payload.budgetMax = Number(requestBudgetMax);
+      if (contractorIds.length > 0) payload.targetContractorIds = contractorIds;
+
+      return apiRequest("POST", "/api/admin/direct-connect/requests", payload);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Direct Connect request created",
+        description: `Request created for ${data?.createdForUser?.email || "target user"}.`,
+      });
+      setTargetUserId("");
+      setTargetUserEmail("");
+      setRequestTitle("");
+      setRequestDescription("");
+      setRequestCategory("");
+      setRequestTradeId("");
+      setRequestCountyFips("");
+      setRequestStateCode("");
+      setRequestBudgetMin("");
+      setRequestBudgetMax("");
+      setTargetContractorIds("");
+    },
+    onError: (e: any) => {
+      toast({
+        title: "Failed to create request",
+        description: e?.message || "Could not create Direct Connect request",
         variant: "destructive",
       });
     },
@@ -145,6 +207,147 @@ export default function AdminProvisionUser() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardHeader>
+          <CardTitle className="text-white">Create Direct Connect Request for User</CardTitle>
+          <CardDescription className="text-[color:var(--text-secondary)]">
+            Staff/admin can create a request on behalf of an existing user. This still enters the
+            normal Direct Connect request lifecycle.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Target user email</label>
+              <Input
+                value={targetUserEmail}
+                onChange={(e) => setTargetUserEmail(e.target.value)}
+                placeholder="user@example.com"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Target user ID (optional)</label>
+              <Input
+                value={targetUserId}
+                onChange={(e) => setTargetUserId(e.target.value)}
+                placeholder="uuid..."
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Request title</label>
+              <Input
+                value={requestTitle}
+                onChange={(e) => setRequestTitle(e.target.value)}
+                placeholder="Roof leak repair request"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Category (optional)</label>
+              <Input
+                value={requestCategory}
+                onChange={(e) => setRequestCategory(e.target.value)}
+                placeholder="repair"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400">Description</label>
+            <Textarea
+              value={requestDescription}
+              onChange={(e) => setRequestDescription(e.target.value)}
+              placeholder="Describe the job details"
+              className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 min-h-24"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Trade ID (optional)</label>
+              <Input
+                value={requestTradeId}
+                onChange={(e) => setRequestTradeId(e.target.value)}
+                placeholder="roofing"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">County FIPS (optional)</label>
+              <Input
+                value={requestCountyFips}
+                onChange={(e) => setRequestCountyFips(e.target.value)}
+                placeholder="22105"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">State code (optional)</label>
+              <Input
+                value={requestStateCode}
+                onChange={(e) => setRequestStateCode(e.target.value)}
+                placeholder="LA"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Budget min (optional)</label>
+              <Input
+                value={requestBudgetMin}
+                onChange={(e) => setRequestBudgetMin(e.target.value)}
+                placeholder="500"
+                type="number"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Budget max (optional)</label>
+              <Input
+                value={requestBudgetMax}
+                onChange={(e) => setRequestBudgetMax(e.target.value)}
+                placeholder="2500"
+                type="number"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400">
+              Target contractor IDs (optional, comma-separated)
+            </label>
+            <Input
+              value={targetContractorIds}
+              onChange={(e) => setTargetContractorIds(e.target.value)}
+              placeholder="contractor-id-1, contractor-id-2"
+              className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+            />
+          </div>
+
+          <Button
+            onClick={() => createDirectConnectRequest.mutate()}
+            disabled={
+              createDirectConnectRequest.isPending ||
+              !requestTitle.trim() ||
+              !requestDescription.trim() ||
+              (!targetUserEmail.trim() && !targetUserId.trim())
+            }
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            {createDirectConnectRequest.isPending ? "Creating request..." : "Create request"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

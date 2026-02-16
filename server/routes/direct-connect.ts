@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { isAuthenticated } from "../auth";
+import { isAuthenticated, isStaff } from "../auth";
 import { db } from "../db";
 import {
   type WorkRequest,
@@ -30,6 +30,16 @@ const directConnectRequestSchema = z.object({
   stateCode: z.string().length(2).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
 });
+
+const adminDirectConnectRequestSchema = directConnectRequestSchema
+  .extend({
+    targetUserId: z.string().min(1).optional(),
+    targetEmail: z.string().email().optional(),
+  })
+  .refine((data) => Boolean(data.targetUserId || data.targetEmail), {
+    message: "targetUserId or targetEmail is required",
+    path: ["targetUserId"],
+  });
 
 const assignmentResponseSchema = z.object({
   decision: z.enum(["accept", "decline"]),
@@ -824,6 +834,191 @@ export function registerDirectConnectRoutes(app: Express) {
       } catch (error: any) {
         console.error("Error creating direct connect request:", error);
         res.status(500).json({ message: error?.message || "Failed to create request" });
+      }
+    }
+  );
+
+  // Staff-facing: create a Direct Connect request for a user account
+  app.post(
+    "/api/admin/direct-connect/requests",
+    isAuthenticated,
+    isStaff,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const actorUserId = req.user?.id || req.user?.claims?.sub;
+        if (!actorUserId) return res.status(401).json({ message: "Unauthorized" });
+
+        const parse = adminDirectConnectRequestSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid request body", issues: parse.error.flatten() });
+        }
+
+        const body = parse.data;
+        let targetUser = null as any;
+        if (body.targetUserId) {
+          targetUser = await storage.getUser(body.targetUserId);
+        } else if (body.targetEmail) {
+          targetUser = await storage.getUserByEmail(body.targetEmail.toLowerCase());
+        }
+
+        if (!targetUser) {
+          return res.status(404).json({ message: "Target user not found" });
+        }
+
+        const budgetMinNumber = body.budgetMin ?? NaN;
+        const budgetMaxNumber = body.budgetMax ?? NaN;
+
+        let budgetMin: string | undefined;
+        let budgetMax: string | undefined;
+        if (Number.isFinite(budgetMinNumber) && budgetMinNumber > 0) {
+          budgetMin = String(budgetMinNumber);
+        }
+        if (Number.isFinite(budgetMaxNumber) && budgetMaxNumber > 0) {
+          budgetMax = String(budgetMaxNumber);
+        }
+
+        // Default location from target user; body fields can override.
+        let countyFips: string | undefined;
+        let stateCode: string | undefined;
+        const vState = (targetUser as any).stateCode || (targetUser as any).state_code;
+        const vCounty = (targetUser as any).countyFips || (targetUser as any).county_fips;
+        if (typeof vState === "string" && vState.length === 2) stateCode = vState;
+        if (typeof vCounty === "string" && vCounty.length > 0) countyFips = vCounty;
+
+        const bodyCounty = typeof body.countyFips === "string" ? body.countyFips : undefined;
+        const bodyState =
+          typeof body.stateCode === "string" ? body.stateCode.toUpperCase() : undefined;
+        if (bodyCounty) countyFips = bodyCounty;
+        if (bodyState) stateCode = bodyState;
+
+        const [created] = await db
+          .insert(workRequests)
+          .values({
+            createdByUserId: String(targetUser.id),
+            title: body.title.trim(),
+            description: body.description.trim(),
+            category: body.category,
+            countyFips,
+            stateCode,
+            scope: "community",
+            source: "direct_connect" as any,
+            status: "open",
+            visibility: "community",
+            exposureMode: "guided",
+            competitionMode: "none",
+            budgetMin,
+            budgetMax,
+            tradeId: body.tradeId,
+          })
+          .returning();
+
+        if (created) {
+          try {
+            await db.insert(workRequestEvents).values({
+              workRequestId: created.id,
+              type: "created",
+              actorUserId: String(actorUserId),
+              metadata: {
+                source: "direct_connect_admin",
+                createdForUserId: String(targetUser.id),
+              },
+            });
+          } catch (e) {
+            console.warn("[direct-connect] Failed to record admin-created request event", e);
+          }
+        }
+
+        if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
+          try {
+            const requestedIds = Array.from(new Set(body.targetContractorIds));
+            const invitedContractors = await db
+              .select()
+              .from(contractors)
+              .where(inArray(contractors.id, requestedIds));
+
+            if (invitedContractors.length > 0) {
+              const now = new Date();
+              const assignments = invitedContractors.map((contractor) => ({
+                workRequestId: created.id,
+                contractorId: contractor.id,
+                status: "invited" as const,
+                createdAt: now,
+                updatedAt: now,
+              }));
+
+              await db.insert(workRequestAssignments).values(assignments);
+
+              await db
+                .update(workRequests)
+                .set({ status: "routed", updatedAt: now })
+                .where(eq(workRequests.id, created.id));
+
+              try {
+                await db.insert(workRequestEvents).values(
+                  invitedContractors.map((contractor) => ({
+                    workRequestId: created.id,
+                    type: "provider_invited" as const,
+                    actorUserId: String(actorUserId),
+                    metadata: {
+                      contractorId: contractor.id,
+                      contractorUserId: contractor.userId ?? null,
+                      source: "direct_connect_admin",
+                      createdForUserId: String(targetUser.id),
+                    },
+                  }))
+                );
+              } catch (e) {
+                console.warn(
+                  "[direct-connect] Failed to record provider_invited events for admin-created request",
+                  e
+                );
+              }
+
+              try {
+                await Promise.all(
+                  invitedContractors.map(async (contractor) => {
+                    if (!contractor.userId) return;
+                    await notificationService.createNotification({
+                      userId: contractor.userId,
+                      type: "new_project_request",
+                      title: "New Direct Connect request",
+                      message: `You have a new Direct Connect request: ${created.title}`,
+                      actionUrl: "/direct-connect/inbox",
+                      actionText: "View in Direct Connect",
+                      iconName: "briefcase",
+                      iconColor: "orange",
+                      deliveryMethods: ["in_app", "push"],
+                    });
+                  })
+                );
+              } catch (e) {
+                console.error(
+                  "[direct-connect] Failed to notify invited contractors for admin-created request",
+                  e
+                );
+              }
+            }
+          } catch (e) {
+            console.error(
+              "[direct-connect] Failed to invite target contractors for admin-created request",
+              e
+            );
+          }
+        }
+
+        return res.status(201).json({
+          request: created ?? null,
+          createdForUser: {
+            id: String(targetUser.id),
+            email: String(targetUser.email || ""),
+          },
+          createdByStaffUserId: String(actorUserId),
+        });
+      } catch (error: any) {
+        console.error("Error creating admin direct connect request:", error);
+        return res.status(500).json({ message: error?.message || "Failed to create request" });
       }
     }
   );
