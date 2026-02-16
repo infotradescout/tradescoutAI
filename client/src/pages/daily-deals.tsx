@@ -100,8 +100,10 @@ const DailyDeals = memo(function DailyDeals() {
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-4">📞</div>
-                <h3 className="text-lg font-semibold mb-2">Contact Contractor</h3>
-                <p className="text-gray-300">Reach out directly to claim your discount</p>
+                <h3 className="text-lg font-semibold mb-2">Request Quote</h3>
+                <p className="text-gray-300">
+                  Submit a request and wait for acceptance before contact
+                </p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-4">✅</div>
