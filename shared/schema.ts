@@ -3436,7 +3436,7 @@ export const marketplaceConversations = pgTable("marketplace_conversations", {
   // D1: Messaging Authority Contract metadata (immutable after creation)
   intent: varchar("intent", { enum: ["hire", "advise", "collaborate", "reconnect"] }), // Why contact was made
   authorityGate: varchar("authority_gate", {
-    enum: ["decision_card", "scout_recommendation", "user_search"],
+    enum: ["decision_card", "scout_recommendation"],
   }), // How contact was authorized
   sourceDecisionCardId: varchar("source_decision_card_id"), // If from Decision Card outcome
   sourceScoutRecommendationId: varchar("source_scout_recommendation_id"), // If from Scout recommendation

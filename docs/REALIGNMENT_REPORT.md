@@ -36,11 +36,10 @@ Date: 2026-02-16
 
 ## Violations
 
-### V1 (Medium): Authority gate enum still includes legacy `user_search`
-- Evidence:
-  - `shared/schema.ts` includes `authority_gate` enum value `user_search`.
-- Why this matters:
-  - Runtime marketplace flow now uses `scout_recommendation`, but schema still advertises a legacy gate label that can leak into future writes.
+### V1 (Resolved in latest pass): Legacy `user_search` authority gate deprecated
+- Resolution:
+  - `shared/schema.ts` now limits `authority_gate` to `decision_card | scout_recommendation`.
+  - `migrations/0043_deprecate_user_search_authority_gate.sql` rewrites legacy rows and tightens DB check constraint.
 
 ### V2 (Medium): Legacy/static pages still contain direct-contact language patterns
 - Evidence (examples):
@@ -76,8 +75,8 @@ Date: 2026-02-16
 ## Prioritized Plan
 
 ### P0
-1. Remove/deprecate `user_search` enum drift in schema.
-2. Complete copy sweep on top traffic discovery pages.
+1. Complete copy sweep on top traffic discovery pages.
+2. Verify migration `0043_deprecate_user_search_authority_gate.sql` applied in each environment.
 
 ### P1
 1. Add lightweight admin import batch review endpoint.
@@ -89,6 +88,7 @@ Date: 2026-02-16
 
 ## Minimal Change Set
 1. `shared/schema.ts`: deprecate/remove `user_search` from `authority_gate` enum path.
-2. `client/src/pages/vehicle-marketplace.tsx`: remove direct-contact wording (`Contact Dealer` -> `Request Quote`).
-3. `server/routes/admin.ts` (or existing admin route module): expose import batch summary endpoint for `listing_import_staging`.
-4. `client/src/pages/admin-business-import.tsx`: add batch review state indicators (pending/merged/failed/skipped).
+2. `migrations/0043_deprecate_user_search_authority_gate.sql`: normalize legacy rows + enforce updated check constraint.
+3. `client/src/pages/vehicle-marketplace.tsx`: remove direct-contact wording (`Contact Dealer` -> `Request Quote`).
+4. `server/routes/admin.ts` (or existing admin route module): expose import batch summary endpoint for `listing_import_staging`.
+5. `client/src/pages/admin-business-import.tsx`: add batch review state indicators (pending/merged/failed/skipped).

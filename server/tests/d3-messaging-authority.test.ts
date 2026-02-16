@@ -6,7 +6,7 @@
  * Test Categories:
  * 1. Immutability Tests (intent, authorityGate, metadata locked)
  * 2. Idempotency Tests (same decision → same thread)
- * 3. Authority Gate Tests (decision_card, scout_recommendation, user_search)
+ * 3. Authority Gate Tests (decision_card, scout_recommendation)
  * 4. Role Validation Tests (homeowner→homeowner blocked)
  * 5. Verification Tests (both parties must be verified)
  * 6. Confidence Blocking Tests (<30% confidence blocked)
