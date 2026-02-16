@@ -35,6 +35,13 @@ TradeScout core interaction contract is:
   - Conversation list payload returns participant-safe profile fields only.
   - No raw participant phone/email is returned in this API shape.
 
+### Authority gate vocabulary hardening
+- `shared/schema.ts`
+  - `authority_gate` typing is now limited to `decision_card | scout_recommendation`.
+- `migrations/0043_deprecate_user_search_authority_gate.sql`
+  - Legacy rows with `user_search` are normalized to `scout_recommendation`.
+  - DB check constraint is tightened to the active allowlist.
+
 ## UI Contract Updates
 
 - `client/src/components/conversation-starter.tsx`
