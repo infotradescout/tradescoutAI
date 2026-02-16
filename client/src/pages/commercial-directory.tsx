@@ -14,7 +14,6 @@ import {
   Building2,
   CalendarClock,
   FileCheck2,
-  FileText,
   Gavel,
   Lock,
   MapPin,
