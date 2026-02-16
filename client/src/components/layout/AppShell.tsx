@@ -150,6 +150,17 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
 
+  // Mobile density layer: applies global spacing/typography tweaks for small screens.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isMobile) document.body.classList.add("ts-mobile-density");
+    else document.body.classList.remove("ts-mobile-density");
+
+    return () => {
+      document.body.classList.remove("ts-mobile-density");
+    };
+  }, [isMobile]);
+
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
     <section className="px-4 py-3 md:hidden">

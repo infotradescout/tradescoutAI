@@ -802,6 +802,87 @@ html {
     height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   }
 
+  /* ------------------------------------------------------------------------
+     Mobile Density Mode (small screens + in-app browsers)
+     Applies only when AppShell sets body.ts-mobile-density.
+     ------------------------------------------------------------------------ */
+  @media (max-width: 480px) {
+    body.ts-mobile-density .min-h-screen {
+      min-height: var(--app-height) !important;
+    }
+
+    body.ts-mobile-density .h-screen {
+      height: var(--app-height) !important;
+    }
+
+    body.ts-mobile-density .app-page {
+      padding: 10px 12px 64px;
+    }
+
+    body.ts-mobile-density .app-page--auth {
+      padding-bottom: 24px;
+    }
+
+    /* Common tailwind spacing classes (scoped) */
+    body.ts-mobile-density .p-8 {
+      padding: 1.25rem !important;
+    }
+
+    body.ts-mobile-density .p-6 {
+      padding: 1rem !important;
+    }
+
+    body.ts-mobile-density .p-4 {
+      padding: 0.875rem !important;
+    }
+
+    body.ts-mobile-density .px-4 {
+      padding-left: 0.875rem !important;
+      padding-right: 0.875rem !important;
+    }
+
+    body.ts-mobile-density .py-6 {
+      padding-top: 1rem !important;
+      padding-bottom: 1rem !important;
+    }
+
+    body.ts-mobile-density .gap-6 {
+      gap: 0.875rem !important;
+    }
+
+    body.ts-mobile-density .gap-4 {
+      gap: 0.75rem !important;
+    }
+
+    body.ts-mobile-density .space-y-8 > * + * {
+      margin-top: 1.25rem !important;
+    }
+
+    body.ts-mobile-density .space-y-6 > * + * {
+      margin-top: 1rem !important;
+    }
+
+    body.ts-mobile-density .space-y-4 > * + * {
+      margin-top: 0.75rem !important;
+    }
+
+    /* Headline scale: keep readable but tighter */
+    body.ts-mobile-density .text-4xl {
+      font-size: 1.75rem !important;
+      line-height: 2.05rem !important;
+    }
+
+    body.ts-mobile-density .text-3xl {
+      font-size: 1.5rem !important;
+      line-height: 1.85rem !important;
+    }
+
+    body.ts-mobile-density .text-2xl {
+      font-size: 1.25rem !important;
+      line-height: 1.65rem !important;
+    }
+  }
+
   /* Engagement animations */
   .pulse-glow {
     animation: pulseGlow 2s ease-in-out infinite;
