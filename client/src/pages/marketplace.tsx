@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProfessionalBadge, ProfessionalNetworkLinks } from "@/components/professional-badges";
-import { ConversationStarter, QuickContactButton } from "@/components/conversation-starter";
+import { QuickContactButton } from "@/components/conversation-starter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -281,7 +281,7 @@ const sortOptions = [
 
 export default function Marketplace() {
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -343,33 +343,6 @@ export default function Marketplace() {
     onError: () => {
       toast({
         title: "Could not save listing",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Boost listing mutation
-  const boostListingMutation = useMutation({
-    mutationFn: async (listingId: string) => {
-      const response = await apiRequest("POST", `/api/marketplace/listings/${listingId}/boost`);
-      return response as any;
-    },
-    onSuccess: (data: any) => {
-      const checkoutUrl = data?.checkoutUrl as string | undefined;
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
-        return;
-      }
-
-      if (data?.transactionId) {
-        const fallbackUrl = `/checkout/marketplace/${data.transactionId}?amount=50.00&description=${encodeURIComponent("Boost your listing for 7 days")}`;
-        window.location.href = fallbackUrl;
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Could not start boost",
         description: "Please try again.",
         variant: "destructive",
       });
@@ -502,8 +475,7 @@ export default function Marketplace() {
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xl">
                 The Marketplace never runs outside ads. Every placement is a real listing from
-                someone in the TradeScout network, and boosts only change how community listings are
-                ordered and highlighted, never what you see from third parties.
+                someone in the TradeScout network, and listing order does not use paid boosts.
               </p>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <div className="flex items-center text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-2 rounded-lg">
@@ -1255,18 +1227,6 @@ export default function Marketplace() {
                             <Badge variant="secondary" className="text-xs">
                               {listing.condition}
                             </Badge>
-                            {listing.isPromoted &&
-                              listing.promotedUntil &&
-                              new Date(listing.promotedUntil) > new Date() && (
-                                <div className="mt-1">
-                                  <Badge
-                                    variant="default"
-                                    className="text-[10px] bg-amber-500 text-black"
-                                  >
-                                    Boosted
-                                  </Badge>
-                                </div>
-                              )}
                           </div>
                           <div className="absolute top-2 right-2">
                             <button
@@ -1321,23 +1281,8 @@ export default function Marketplace() {
                                 {listing.viewCount || 0}
                               </div>
                             </div>
-                            {isAuthenticated && user?.id === listing.sellerId && (
-                              <div
-                                className="flex items-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-500 px-3 py-1 text-[11px] text-amber-600 hover:bg-amber-500/10"
-                                  onClick={() => boostListingMutation.mutate(listing.id)}
-                                  disabled={boostListingMutation.isPending}
-                                >
-                                  Boost for $50
-                                </button>
-                              </div>
-                            )}
                           </div>
-                          {/* Contact Seller Button */}
+                          {/* Request Quote Button */}
                           <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                             <QuickContactButton
                               listing={listing}
@@ -1391,7 +1336,7 @@ export default function Marketplace() {
                                     {listing.condition}
                                   </Badge>
                                 </div>
-                                {/* Contact Seller Button */}
+                                {/* Request Quote Button */}
                                 <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                                   <QuickContactButton
                                     listing={listing}

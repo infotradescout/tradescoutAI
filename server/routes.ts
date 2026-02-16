@@ -7629,38 +7629,113 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/marketplace/conversations", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = (req.user as any)?.id;
-      const { listingId, sellerId, initialMessage } = req.body;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const listingId = String(req.body?.listingId || "").trim();
+      const initialMessage = String(req.body?.initialMessage || "").trim();
 
-      // Check if conversation already exists
-      const existingConversation = await storage.getMarketplaceConversationByParticipants(
-        listingId,
-        userId,
-        sellerId
-      );
-
-      if (existingConversation) {
-        return res.status(400).json({ message: "Conversation already exists" });
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      if (!listingId) {
+        return res.status(400).json({ message: "Listing is required" });
+      }
+      if (!initialMessage) {
+        return res.status(400).json({ message: "Request message is required" });
       }
 
-      // Create conversation
+      const listing = await storage.getMarketplaceListing(listingId);
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      if (String(listing.status || "") !== "active") {
+        return res.status(410).json({ message: "Listing is not available for requests" });
+      }
+
+      const buyerId = String(userId);
+      const sellerId = String(listing.sellerId || "");
+      if (!sellerId) {
+        return res.status(400).json({ message: "Listing seller unavailable" });
+      }
+      if (buyerId === sellerId) {
+        return res.status(400).json({ message: "Cannot request your own listing" });
+      }
+
+      // Keep one conversation per listing + buyer + seller.
+      const existingConversation = await storage.getMarketplaceConversationByParticipants(
+        listingId,
+        buyerId,
+        sellerId
+      );
+      if (existingConversation) {
+        return res.status(200).json({
+          ...existingConversation,
+          created: false,
+          message: "Conversation already exists",
+        });
+      }
+
+      // Enforce request/decision flow before opening direct conversation.
+      const { getContactPermission, ensureContactRequest } =
+        await import("./utils/contactRequests");
+      const permission = await getContactPermission(buyerId, sellerId);
+      if (permission?.status === "pending") {
+        return res.status(202).json({
+          created: false,
+          pending: true,
+          requestId: permission.lastRequestNotificationId || null,
+          message: "Request already pending seller decision.",
+        });
+      }
+      if (permission?.status === "declined" || permission?.status === "blocked") {
+        return res.status(403).json({
+          created: false,
+          reasonCode: "CONTACT_DECLINED",
+          message: "Seller declined this contact request.",
+        });
+      }
+      if (permission?.status !== "accepted") {
+        const ensure = await ensureContactRequest({
+          requesterId: buyerId,
+          targetUserId: sellerId,
+          preview: initialMessage,
+          metadata: {
+            contactType: "message",
+            content: initialMessage,
+            intent: "hire",
+            authorityGate: "user_search",
+            decisionScope: `marketplace_listing:${listingId}`,
+          },
+        });
+
+        if (ensure.status === "pending") {
+          return res.status(202).json({
+            created: false,
+            pending: true,
+            requestId: ensure.requestId || null,
+            message: "Request sent. Seller must accept before chat opens.",
+          });
+        }
+      }
+
       const conversation = await storage.createMarketplaceConversation({
         listingId,
-        buyerId: userId,
+        buyerId,
         sellerId,
         status: "active",
-      });
+        intent: "hire",
+        authorityGate: "user_search",
+        decisionScope: `marketplace_listing:${listingId}`,
+      } as any);
 
-      // Send initial message
       await storage.createMarketplaceMessage({
         conversationId: conversation.id,
-        senderId: userId,
+        senderId: buyerId,
         senderType: "buyer",
         content: initialMessage,
         messageType: "text",
       });
 
-      res.json(conversation);
+      res.status(201).json({ ...conversation, created: true });
     } catch (error: any) {
       console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });
@@ -9922,13 +9997,16 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               id: contractor.id,
               companyName: contractor.companyName,
               slug: contractor.slug,
-              phone: contractor.phone,
-              email: contractor.email,
               about: contractor.about,
               photos: contractor.photos,
               yearsInBusiness: contractor.yearsInBusiness,
               verifiedLicensed: contractor.verifiedLicensed,
               verifiedInsured: contractor.verifiedInsured,
+              contactAccess: {
+                mode: "request_required",
+                ctaLabel: "Request Quote",
+                ctaPath: "/request-quote",
+              },
             }
           : null,
       });
@@ -10465,57 +10543,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Create a paid visibility boost for a specific marketplace listing
   app.post("/api/marketplace/listings/:id/boost", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
-
-      const listing = await storage.getMarketplaceListing(id);
-      if (!listing) {
-        return res.status(404).json({ message: "Listing not found" });
-      }
-
-      if (listing.sellerId !== user?.id) {
-        return res.status(403).json({ message: "Not authorized to boost this listing" });
-      }
-
-      const BOOST_AMOUNT = 50;
-
-      // Create a marketplace transaction representing the boost purchase
-      const transaction = await storage.createMarketplaceTransaction({
-        listingId: listing.id,
-        buyerId: user.id,
-        sellerId: listing.sellerId,
-        totalAmount: BOOST_AMOUNT.toString(),
-        sellerAmount: "0",
-        paymentMethod: "on_platform_stripe",
-        isOffPlatform: false,
-        status: "pending",
-        notes: "Marketplace listing visibility boost (7 days)",
-        buyerPreferredContact: "platform_messages",
-        sellerPreferredContact: "platform_messages",
-      } as any);
-
-      // Create a pending listing boost tied to this transaction
-      const boost = await storage.createListingBoost({
-        listingId: listing.id,
-        sellerId: listing.sellerId,
-        transactionId: transaction.id,
-        amount: transaction.totalAmount,
-        status: "pending_payment",
-      } as any);
-
-      const description = `Boost your listing "${listing.title}" for 7 days`;
-      const checkoutUrl = `/checkout/marketplace/${transaction.id}?amount=${BOOST_AMOUNT.toFixed(2)}&description=${encodeURIComponent(description)}`;
-
-      res.status(201).json({
-        transactionId: transaction.id,
-        boostId: boost.id,
-        checkoutUrl,
-      });
-    } catch (error: any) {
-      console.error("Error creating listing boost:", error);
-      res.status(500).json({ message: "Failed to create listing boost" });
-    }
+    return res.status(410).json({
+      message:
+        "Listing boosts are disabled. TradeScout does not allow paid ranking in marketplace results.",
+      reasonCode: "PAID_RANKING_DISABLED",
+    });
   });
 
   app.put("/api/marketplace/listings/:id", isAuthenticated, async (req: any, res: any) => {
@@ -10689,6 +10721,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       const inquiry = await storage.createMarketplaceInquiry({
         ...validatedData,
+        buyerPhone: null,
+        buyerEmail: null,
+        preferredContactMethod: "message",
         buyerId: user?.id,
         sellerId: listing.sellerId,
       });

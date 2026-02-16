@@ -438,8 +438,8 @@ export default function Exchange() {
     },
     onSuccess: () => {
       toast({
-        title: "Message sent",
-        description: "Your message was sent to the seller.",
+        title: "Request sent",
+        description: "Your request is now waiting for seller review.",
       });
       setContactItem(null);
       setInquiryMessage("");
@@ -447,7 +447,7 @@ export default function Exchange() {
     },
     onError: (error: any) => {
       toast({
-        title: "Could not send message",
+        title: "Could not send request",
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
@@ -949,11 +949,11 @@ export default function Exchange() {
                                   }
                                   setContactItem(item);
                                   setInquiryMessage(
-                                    `Hi, is "${item.title}" still available? I'm interested.`
+                                    `Hi, I would like a quote for \"${item.title}\".`
                                   );
                                 }}
                               >
-                                Message
+                                Request Quote
                               </Button>
                             </div>
                           </div>
@@ -1125,7 +1125,7 @@ export default function Exchange() {
                               navigate("/messages");
                             }}
                           >
-                            {promo.ctaLabel || "Contact Business"}
+                            {promo.ctaLabel || "View Offer"}
                           </Button>
                         </div>
                       </div>
@@ -1701,7 +1701,7 @@ export default function Exchange() {
       >
         <DialogContent className="bg-tsCard border-tsBorder">
           <DialogHeader>
-            <DialogTitle className="text-white">Message Seller</DialogTitle>
+            <DialogTitle className="text-white">Request Quote</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -1711,12 +1711,12 @@ export default function Exchange() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white">Message</Label>
+              <Label className="text-white">Request</Label>
               <Textarea
                 value={inquiryMessage}
                 onChange={(e) => setInquiryMessage(e.target.value)}
                 className="bg-slate-800 border-slate-700 text-white"
-                placeholder="Ask about condition, pickup time, payment, or availability..."
+                placeholder="Tell the seller what you need and ask for a quote..."
               />
             </div>
 
@@ -1760,7 +1760,7 @@ export default function Exchange() {
                   });
                 }}
               >
-                {inquiryMutation.isPending ? "Sending..." : "Send Message"}
+                {inquiryMutation.isPending ? "Sending..." : "Send Request"}
               </Button>
             </div>
           </div>

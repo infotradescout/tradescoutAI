@@ -4740,8 +4740,6 @@ export class DatabaseStorage implements IStorage {
       .from(marketplaceListings)
       .where(whereClause)
       .orderBy(
-        desc(marketplaceListings.isPromoted),
-        desc(marketplaceListings.promotedUntil),
         ...(countyRankClause ? [countyRankClause] : []),
         ...(stateRankClause ? [stateRankClause] : []),
         orderByClause
@@ -8492,6 +8490,24 @@ export class DatabaseStorage implements IStorage {
           .where(inArray(users.id, userIds as string[]))
       : [];
     const userMap = new Map(usersLookup.map((u: any) => [u.id, u]));
+    const toParticipant = (participantUserId: string) => {
+      const raw = userMap.get(participantUserId);
+      if (!raw) {
+        return {
+          id: participantUserId,
+          firstName: "TradeScout",
+          lastName: "Member",
+          profileImageUrl: null,
+        };
+      }
+
+      return {
+        id: raw.id,
+        firstName: raw.firstName || null,
+        lastName: raw.lastName || null,
+        profileImageUrl: raw.profileImageUrl || null,
+      };
+    };
 
     // Get last message and unread count for each conversation
     const conversationsWithDetails = await Promise.all(
@@ -8517,8 +8533,8 @@ export class DatabaseStorage implements IStorage {
         return {
           ...conv.conversation,
           listing: conv.listing,
-          buyer: userMap.get(conv.conversation.buyerId),
-          seller: userMap.get(conv.conversation.sellerId),
+          buyer: toParticipant(conv.conversation.buyerId),
+          seller: toParticipant(conv.conversation.sellerId),
           lastMessage,
           unreadCount: unreadCount?.count || 0,
         };
