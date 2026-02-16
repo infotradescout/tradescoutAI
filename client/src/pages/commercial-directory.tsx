@@ -284,7 +284,7 @@ export default function CommercialDirectoryPage() {
           Commercial Opportunity Exchange
         </p>
         <h1 className="text-2xl md:text-4xl font-semibold mt-2 md:mt-3 leading-tight">
-          Verified Contractor Bidding Portal
+          Commercial Opportunities
         </h1>
         <div className="mt-3 md:mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 text-xs sm:text-sm">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
@@ -306,11 +306,10 @@ export default function CommercialDirectoryPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 text-cyan-200" />
-            Commercial Verification Requirements
+            Commercial Access Status
           </CardTitle>
           <CardDescription>
-            Commercial job access requires approved license and insurance documents reviewed by
-            staff.
+            License and insurance must be approved before live bidding is enabled.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
@@ -319,7 +318,7 @@ export default function CommercialDirectoryPage() {
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Readiness</div>
                 <div className="text-sm text-slate-200 mt-1">
-                  {readiness.doneCount}/{readiness.rows.length} requirements complete
+                  {readiness.doneCount}/{readiness.rows.length} ready
                 </div>
               </div>
               <div className="text-lg md:text-xl font-semibold">{readiness.pct}%</div>
@@ -404,8 +403,7 @@ export default function CommercialDirectoryPage() {
           {!verificationStatus?.isEligible && (
             <div className="space-y-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 md:p-4">
               <p className="text-sm text-amber-100">
-                Upload both documents to enter review. Bids and open-job access remain blocked until
-                approval.
+                Upload both documents to start review. Bidding unlocks after approval.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -444,13 +442,11 @@ export default function CommercialDirectoryPage() {
                 disabled={uploadVerificationMutation.isPending || !licenseFile || !insuranceFile}
                 onClick={() => uploadVerificationMutation.mutate()}
               >
-                {uploadVerificationMutation.isPending
-                  ? "Submitting..."
-                  : "Submit License and Insurance for Review"}
+                {uploadVerificationMutation.isPending ? "Submitting..." : "Submit for Review"}
               </Button>
               <div className="text-xs text-amber-100/80 flex items-center gap-2">
                 <ShieldAlert className="h-3.5 w-3.5" />
-                Manual review by staff is required before job visibility is enabled.
+                Staff review required.
               </div>
             </div>
           )}
@@ -462,15 +458,13 @@ export default function CommercialDirectoryPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-amber-200" />
-              Commercial board unavailable
+              Board Unavailable
             </CardTitle>
-            <CardDescription>
-              Approved license and insurance are required before you can open jobs and submit bids.
-            </CardDescription>
+            <CardDescription>License and insurance approval is required.</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-amber-100">
-              Submit both documents above. Access unlocks automatically after review.
+              Submit documents above. Access updates automatically.
             </p>
           </CardContent>
         </Card>
@@ -482,9 +476,9 @@ export default function CommercialDirectoryPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-cyan-200" />
-                Open Opportunities
+                Opportunities
               </CardTitle>
-              <CardDescription>Live board only. Verified contractors only.</CardDescription>
+              <CardDescription>Live projects in your operating area.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -579,9 +573,7 @@ export default function CommercialDirectoryPage() {
               <CardHeader>
                 <CardTitle>Project Package</CardTitle>
                 <CardDescription>
-                  {selectedProjectId
-                    ? `Project ID: ${selectedProjectId}`
-                    : "Select an opportunity to review scope."}
+                  {selectedProjectId ? `Project ID: ${selectedProjectId}` : "Select a project."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -613,26 +605,6 @@ export default function CommercialDirectoryPage() {
                         <div>
                           <div className="text-slate-400 text-xs">Submitted Bids</div>
                           <div>{details.bidsCount}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
-                        Procurement Timeline
-                      </h3>
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                        <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2 flex items-center gap-2">
-                          <FileText className="h-3.5 w-3.5 text-cyan-200" />
-                          Package Published
-                        </div>
-                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 flex items-center gap-2">
-                          <Gavel className="h-3.5 w-3.5 text-blue-200" />
-                          Bid Window Active
-                        </div>
-                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 flex items-center gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" />
-                          Admin Adjudication
                         </div>
                       </div>
                     </div>
@@ -686,12 +658,12 @@ export default function CommercialDirectoryPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-cyan-200" />
-                  Submit Formal Bid
+                  Submit Bid
                 </CardTitle>
                 <CardDescription>
                   {details?.myBid
-                    ? `Existing bid status: ${details.myBid.status}. Update and resubmit if needed.`
-                    : "Submit your proposal package for this project."}
+                    ? `Current status: ${details.myBid.status}.`
+                    : "Send your proposal for this project."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 md:space-y-4">
@@ -718,7 +690,7 @@ export default function CommercialDirectoryPage() {
                   <Textarea
                     value={proposal}
                     onChange={(e) => setProposal(e.target.value)}
-                    rows={7}
+                    rows={5}
                   />
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -732,7 +704,7 @@ export default function CommercialDirectoryPage() {
                       proposal.trim().length < 20
                     }
                   >
-                    {bidMutation.isPending ? "Submitting..." : "Submit Bid Package"}
+                    {bidMutation.isPending ? "Submitting..." : "Submit Bid"}
                   </Button>
                   {details?.project && (
                     <a
