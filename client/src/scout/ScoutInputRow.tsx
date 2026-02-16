@@ -31,35 +31,42 @@ export function ScoutInputRow({
   onToggleAutoRoute,
 }: ScoutInputRowProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
           {heroLocationLabel && (
-            <div className="flex items-center gap-2">
+            <>
+              <span className="inline-flex items-center rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 text-[11px] text-slate-300">
+                Area: {heroLocationLabel}
+              </span>
               <button
                 type="button"
                 onClick={onOpenLocationSettings}
-                className="text-[12px] px-2.5 py-1 rounded-md transition-all hover:opacity-80"
-                style={{
-                  backgroundColor:
-                    "color-mix(in srgb, var(--bg-secondary) 70%, var(--theme-accent-primary) 30%)",
-                  border: "none",
-                  color: "var(--text-secondary)",
-                }}
+                className="inline-flex items-center rounded-md border border-slate-700/70 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
               >
-                Location: {heroLocationLabel}
+                Change
               </button>
               <button
                 type="button"
                 onClick={onUseDeviceLocation}
                 disabled={isUpdatingGeo}
-                className="text-[11px] transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-default"
-                style={{ color: "var(--text-secondary)" }}
+                className="inline-flex items-center rounded-md border border-slate-700/70 px-2 py-1 text-[11px] text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200 disabled:opacity-50 disabled:cursor-default"
               >
-                Use my location
+                {isUpdatingGeo ? "Updating..." : "Use device"}
               </button>
-            </div>
+            </>
           )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="inline-flex items-center gap-1.5 rounded-md border border-slate-700/70 px-2 py-1 text-[11px] text-slate-400">
+            <input
+              type="checkbox"
+              checked={autoRouteEnabled}
+              onChange={(e) => onToggleAutoRoute(e.target.checked)}
+              className="h-3.5 w-3.5 accent-slate-200"
+            />
+            Auto-open high-confidence routes
+          </label>
         </div>
       </div>
       <ScoutInput

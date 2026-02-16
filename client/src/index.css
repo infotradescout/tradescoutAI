@@ -373,30 +373,27 @@ html {
   }
 }
 
-/* Scout suggestion buttons - TradeScout dark blueprint style */
+/* Scout suggestion buttons - restrained */
 .scout-suggestion {
-  background-color: var(--theme-accent-primary);
-  border: 1px solid var(--theme-accent-secondary);
-  color: var(--theme-text-primary);
+  background-color: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  color: var(--text-primary);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  opacity: 0.15;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  box-shadow: none;
+  opacity: 1;
 }
 
 .scout-suggestion:hover {
-  background-color: var(--theme-accent-tertiary, var(--theme-accent-primary));
-  border-color: var(--theme-accent-primary);
-  color: var(--theme-text-primary);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
-  opacity: 0.3;
-  transform: translateY(-1px);
+  background-color: rgba(15, 23, 42, 0.92);
+  border-color: rgba(148, 163, 184, 0.38);
+  color: var(--text-primary);
+  transform: none;
 }
 
 .scout-suggestion:active {
-  background-color: var(--theme-accent-secondary);
-  opacity: 0.4;
+  opacity: 0.95;
   transform: translateY(0);
 }
 
@@ -1605,55 +1602,41 @@ html, body {
 
 /* Scout cards - tonal separation only, no borders */
 .scout-card {
-  background-color: color-mix(
-    in srgb,
-    #11161f 94%,
-    white 6%
-  );
-  border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .scout-card:hover {
-  background-color: color-mix(
-    in srgb,
-    #11161f 92%,
-    white 8%
-  );
+  background: rgba(2, 6, 23, 0.68);
+  border-color: rgba(148, 163, 184, 0.22);
 }
 
-/* Scout input - embedded surface, no borders */
+/* Scout input - restrained, low-noise */
 .scout-input {
-  background-color: color-mix(
-    in srgb,
-    #11161f 90%,
-    black 10%
-  );
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .scout-input:focus-within {
-  background-color: color-mix(
-    in srgb,
-    #11161f 88%,
-    black 12%
-  );
+  border-color: rgba(148, 163, 184, 0.34);
+  background: rgba(2, 6, 23, 0.68);
 }
 
 .scout-input:focus-within textarea,
 .scout-input:focus-within input {
-  outline: none !important;
-  border: none !important;
+  border-color: rgba(148, 163, 184, 0.34) !important;
+  box-shadow: none !important;
 }
 
-/* Scout message blocks - no containers, just text */
+/* Scout message blocks - minimal chat cards */
 .scout-message {
   line-height: 1.5;
-  padding: 0;
+  padding: 10px 12px;
   margin: 0 0 14px 0;
-  border: none;
-  background: none;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.55);
+  border-radius: 12px;
   animation: slideInMessage 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -1672,41 +1655,38 @@ html, body {
   color: var(--text-primary);
   margin-left: auto;
   max-width: 68ch;
+  background: rgba(30, 41, 59, 0.72);
+  border-color: rgba(148, 163, 184, 0.26);
 }
 
 .scout-message.assistant {
   color: var(--text-primary);
   max-width: 72ch;
+  background: rgba(2, 6, 23, 0.6);
+  border-color: rgba(148, 163, 184, 0.18);
 }
 
 /* Scout action buttons - quiet, minimal */
 .scout-action-button {
-  background: color-mix(
-    in srgb,
-    #11161f 96%,
-    var(--orange-primary) 4%
-  );
-  color: var(--orange-primary);
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text-primary);
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
   display: inline-block;
 }
 
 .scout-action-button:hover {
-  background: color-mix(
-    in srgb,
-    #11161f 94%,
-    var(--orange-primary) 6%
-  );
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(148, 163, 184, 0.34);
 }
 
 .scout-action-button:active {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 
@@ -1824,22 +1804,22 @@ html, body {
 
 /* Scout suggestion pills - elevated with subtle contrast */
 .scout-suggestion {
-  background-color: #161e2b;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.24);
   color: var(--text-primary);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.9;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  opacity: 1;
 }
 
 .scout-suggestion:hover {
-  opacity: 1;
-  border-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(15, 23, 42, 0.92);
+  border-color: rgba(148, 163, 184, 0.38);
 }
 
 .scout-suggestion:active {
-  transform: translateY(0);
+  opacity: 0.95;
 }
 
 .scout-suggestion:disabled {

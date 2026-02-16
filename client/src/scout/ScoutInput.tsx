@@ -199,7 +199,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
   const isButtonDisabled = disabled || isSubmitting || (!value.trim() && !isTypingDemo);
 
   return (
-    <div className="space-y-1.5 scout-input">
+    <div className="space-y-2 scout-input rounded-xl border border-slate-800/90 bg-slate-950/55 p-2 md:p-3">
       <textarea
         ref={textareaRef}
         value={value}
@@ -207,13 +207,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-lg px-4 py-3 text-[15px] min-h-[96px] transition-all"
-        style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          border: "none",
-          outline: "none",
-        }}
+        className="w-full min-h-[92px] resize-none rounded-lg border border-slate-800/80 bg-slate-950/80 px-3 py-2.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-500 transition-colors focus:border-slate-600 focus:outline-none"
       />
       <div
         className={`flex w-full ${handedness === "left" ? "justify-start" : "justify-end"} mt-1`}
@@ -222,14 +216,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60"
-          style={{
-            backgroundColor: "var(--theme-accent-primary)",
-            color: "white",
-            boxShadow: isButtonDisabled
-              ? "none"
-              : "0 4px 12px color-mix(in oklab, var(--theme-accent-primary) 35%, transparent)",
-          }}
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-100 px-4 py-1.5 text-sm font-medium text-slate-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-400"
         >
           <Send className="h-4 w-4" />
           <span>{isSubmitting ? "Sending..." : "Send"}</span>

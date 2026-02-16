@@ -17,19 +17,25 @@ export function ScoutHeader({
   const communityText = hasSpecificLocation && cityOnly ? cityOnly : "your area";
 
   return (
-    <header className="space-y-2 text-center">
-      <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
+    <header className="space-y-1.5 text-center">
+      <h1
+        className="text-xl md:text-2xl font-medium tracking-tight"
+        style={{ color: "var(--text-primary)" }}
+      >
         {hasSpecificLocation && communityText
-          ? `What can Scout help you get done in ${communityText}?`
-          : "What do you need help with today?"}
+          ? `What do you need help with in ${communityText}?`
+          : "What do you need help with?"}
       </h1>
-      {!isAuthenticated && (
-        <p className="text-[13px] max-w-md mx-auto" style={{ color: "var(--text-muted)" }}>
-          {isFirstGuestVisit
-            ? "Explore freely. Sign in to save or contact."
-            : "Sign in to save or contact."}
-        </p>
-      )}
+      <p
+        className="text-[12px] md:text-[13px] max-w-md mx-auto"
+        style={{ color: "var(--text-muted)" }}
+      >
+        {isAuthenticated
+          ? "Ask plainly. Scout will route you to the right next step."
+          : isFirstGuestVisit
+            ? "Explore first. Sign in when you want to save or contact."
+            : "Sign in when you want to save or contact."}
+      </p>
     </header>
   );
 }

@@ -3085,11 +3085,11 @@ export default function ScoutOS() {
   );
 
   return (
-    <div className="scout-shell flex flex-col flex-1 min-h-0 w-full items-center text-white overflow-hidden">
+    <div className="scout-shell flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-2.5 pt-0.5 pb-14" : "max-w-5xl px-4 pt-2 pb-8"
+            isMobile ? "px-2.5 pt-1 pb-14" : "max-w-6xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
             paddingBottom: isMobile ? "calc(4.25rem + env(safe-area-inset-bottom))" : undefined,
@@ -3100,10 +3100,10 @@ export default function ScoutOS() {
             className={
               isMobile
                 ? "max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0"
-                : "mx-auto w-full flex flex-1 min-h-0 max-w-5xl gap-4"
+                : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
-            <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl">
+            <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl border border-slate-800/80 bg-slate-950/45 px-3 md:px-4 py-3 shadow-[0_12px_36px_rgba(2,6,23,0.45)]">
               <ScoutHeader
                 isAuthenticated={isAuthenticated}
                 isFirstGuestVisit={isFirstGuestVisit}
@@ -3245,7 +3245,7 @@ export default function ScoutOS() {
                     You can explore freely.{" "}
                     <button
                       type="button"
-                      className="text-tsAccent hover:text-orange-400 font-medium"
+                      className="font-medium underline underline-offset-2 text-slate-200 hover:text-white"
                       onClick={() => navigate("/login")}
                     >
                       Sign in
@@ -3263,9 +3263,9 @@ export default function ScoutOS() {
                         setHasGuestInteracted(true);
                         handleActionTile(tile);
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-0.5 text-[10px] font-medium text-slate-200 transition-colors hover:border-orange-400/70 hover:text-orange-200"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/90 bg-slate-900/70 px-2.5 py-1 text-[10px] font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
                     >
-                      <span className="text-orange-300">{tile.label}</span>
+                      <span>{tile.label}</span>
                     </button>
                   ))}
                 </div>
@@ -3287,13 +3287,13 @@ export default function ScoutOS() {
                         className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        Controller
+                        Start
                       </p>
                       <p
                         className="text-[11px] md:text-sm"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        Pick one action to start, or ask Scout directly.
+                        Choose an action or type your request.
                       </p>
                     </div>
 
@@ -3307,10 +3307,10 @@ export default function ScoutOS() {
                               setHasGuestInteracted(true);
                               handleActionTile(tile);
                             }}
-                            className="flex flex-col items-start justify-between rounded-xl border border-slate-800 bg-slate-900/75 px-2.5 py-2.5 text-left hover:border-orange-400/80 hover:bg-slate-900 transition-colors"
+                            className="flex flex-col items-start justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-2.5 py-2.5 text-left transition-colors hover:border-slate-600 hover:bg-slate-900/75"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-300">
+                            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                               {(() => {
                                 const meta = tileMetaById[tile.id];
                                 if (!meta) return null;
@@ -3328,7 +3328,7 @@ export default function ScoutOS() {
                                 {tile.description}
                               </span>
                             )}
-                            <span className="mt-2 text-[10px] text-orange-300/90 font-medium">
+                            <span className="mt-2 text-[10px] text-slate-300 font-medium">
                               Open
                             </span>
                           </button>
@@ -3347,7 +3347,7 @@ export default function ScoutOS() {
                           <Button
                             type="button"
                             size="sm"
-                            className="h-7 px-3 text-[11px] bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                            className="h-7 px-3 text-[11px] bg-slate-100 hover:bg-white text-slate-900 font-medium"
                             onClick={() => navigate(ROUTES.SETTINGS)}
                           >
                             Set my county
@@ -3399,14 +3399,14 @@ export default function ScoutOS() {
                 />
 
                 {autoRoutePending && (
-                  <Card className="bg-tsCard border-tsBorder shadow-sm">
+                  <Card className="border-slate-800 bg-slate-950/70 shadow-sm">
                     <div className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-tsTextMain">
+                        <div className="text-sm font-semibold text-slate-100">
                           Smart navigation {autoRouteEnabled ? "on" : "off"} •{" "}
                           {Math.round(autoRoutePending.confidence * 100)}%
                         </div>
-                        <div className="text-xs text-tsTextMuted mt-0.5">
+                        <div className="text-xs text-slate-400 mt-0.5">
                           {autoRouteEnabled &&
                           autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
                             ? `Opening ${autoRoutePending.label}...`
@@ -3419,7 +3419,7 @@ export default function ScoutOS() {
                           autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
                           <Button
                             size="sm"
-                            className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                            className="bg-slate-100 text-slate-900 hover:bg-white"
                             onClick={() => {
                               cancelAutoRoute();
                               navigate(autoRoutePending.to);
@@ -3431,7 +3431,7 @@ export default function ScoutOS() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-tsBorder text-tsText hover:bg-tsCardMuted"
+                          className="border-slate-700 text-slate-200 hover:bg-slate-900"
                           onClick={cancelAutoRoute}
                         >
                           {autoRouteEnabled &&
