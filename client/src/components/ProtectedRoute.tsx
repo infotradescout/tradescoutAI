@@ -12,6 +12,17 @@ interface ProtectedRouteProps {
   adminOnly?: boolean;
 }
 
+function isAdminLikeUser(user: any): boolean {
+  if (!user) return false;
+  if (user.isAdmin === true || user.isSuperAdmin === true) return true;
+  if (user.role === "super_admin" || user.role === "head_admin") return true;
+
+  const roles: string[] = Array.isArray(user.roles)
+    ? user.roles.filter((r: unknown): r is string => typeof r === "string")
+    : [];
+  return roles.some((r) => r.includes("admin"));
+}
+
 /**
  * ProtectedRoute wraps components that require authentication and specific roles.
  *
@@ -29,14 +40,14 @@ export function ProtectedRoute({
   adminOnly = false,
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // Determine if user has required role
   const hasAccess = useMemo(() => {
     if (!isAuthenticated || !user) return false;
 
     // Unified admin model: boolean flag from backend
-    const isAdmin = user.isAdmin === true;
+    const isAdmin = isAdminLikeUser(user);
 
     // Admin-only routes: rely solely on isAdmin flag
     if (adminOnly) return isAdmin;
@@ -60,14 +71,25 @@ export function ProtectedRoute({
     }
 
     // Check profile normalization needs
-    const isAdmin = user?.isAdmin === true;
+    const isAdmin = isAdminLikeUser(user);
     const role = (user as any)?.role as string | undefined;
     const isSuperAdminLike = role === "super_admin" || role === "head_admin";
     const profileVersion =
       typeof (user as any)?.profileVersion === "number" ? (user as any).profileVersion : 0;
 
-    if (!isAdmin && !isSuperAdminLike && user && profileVersion < CURRENT_PROFILE_VERSION) {
-      setLocation("/onboarding/profile");
+    const isSetupRoute =
+      location.startsWith("/pre-scout-setup") ||
+      location.startsWith("/onboarding/profile") ||
+      location.startsWith("/profile-setup");
+
+    if (
+      !isAdmin &&
+      !isSuperAdminLike &&
+      user &&
+      profileVersion < CURRENT_PROFILE_VERSION &&
+      !isSetupRoute
+    ) {
+      setLocation("/pre-scout-setup");
       return;
     }
 
@@ -75,11 +97,17 @@ export function ProtectedRoute({
     if (!hasAccess) {
       setLocation("/unauthorized");
     }
-  }, [isLoading, isAuthenticated, user, hasAccess, setLocation]);
+  }, [isLoading, isAuthenticated, user, hasAccess, location, setLocation]);
 
   // Loading state
   if (isLoading) {
-    return fallback || <SkeletonBlock />;
+    return (
+      fallback || (
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <SkeletonBlock className="h-6 w-40" />
+        </div>
+      )
+    );
   }
 
   // Not authenticated or no access - show nothing while redirecting
@@ -102,7 +130,7 @@ export function useCanAccess(requiredRoles: string[] = []) {
   const canAccess = useMemo(() => {
     if (!isAuthenticated || !user) return false;
 
-    const isAdmin = user.isAdmin === true;
+    const isAdmin = isAdminLikeUser(user);
 
     if (requiredRoles.length === 0) return true;
 

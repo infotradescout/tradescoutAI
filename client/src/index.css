@@ -266,24 +266,30 @@ html {
 /* Unified page frame */
 .app-page{
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 12px 14px 72px;
+  padding: 10px 12px calc(76px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px){
+  .app-page{
+    padding: 12px 16px 88px;
+  }
 }
 
 @media (min-width: 1024px){
   .app-page{
-    padding: 16px 20px 84px;
+    padding: 14px 20px 92px;
   }
 }
 
 .app-page--auth{
-  padding-bottom: 32px;
+  padding-bottom: 28px;
 }
 
 @media (min-width: 1024px){
   .app-page--auth{
-    padding-bottom: 40px;
+    padding-bottom: 36px;
   }
 }
 
@@ -813,11 +819,11 @@ html {
     }
 
     body.ts-mobile-density .app-page {
-      padding: 10px 12px 64px;
+      padding: 8px 10px calc(70px + env(safe-area-inset-bottom, 0px));
     }
 
     body.ts-mobile-density .app-page--auth {
-      padding-bottom: 24px;
+      padding-bottom: 20px;
     }
 
     /* Common tailwind spacing classes (scoped) */
@@ -826,29 +832,29 @@ html {
     }
 
     body.ts-mobile-density .p-6 {
-      padding: 1rem !important;
-    }
-
-    body.ts-mobile-density .p-4 {
       padding: 0.875rem !important;
     }
 
+    body.ts-mobile-density .p-4 {
+      padding: 0.75rem !important;
+    }
+
     body.ts-mobile-density .px-4 {
-      padding-left: 0.875rem !important;
-      padding-right: 0.875rem !important;
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
     }
 
     body.ts-mobile-density .py-6 {
-      padding-top: 1rem !important;
-      padding-bottom: 1rem !important;
+      padding-top: 0.875rem !important;
+      padding-bottom: 0.875rem !important;
     }
 
     body.ts-mobile-density .gap-6 {
-      gap: 0.875rem !important;
+      gap: 0.75rem !important;
     }
 
     body.ts-mobile-density .gap-4 {
-      gap: 0.75rem !important;
+      gap: 0.625rem !important;
     }
 
     body.ts-mobile-density .space-y-8 > * + * {

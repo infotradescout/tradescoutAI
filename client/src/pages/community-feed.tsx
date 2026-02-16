@@ -794,12 +794,12 @@ const CommunityFeed = memo(function CommunityFeed() {
   const renderFeedList = () => (
     <div className="space-y-3 md:space-y-5">
       {postsLoading ? (
-        <div className="text-center py-12">
+        <div className="text-center py-10">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          <p className="text-gray-400 mt-4">Loading posts...</p>
+          <p className="mt-3 text-sm text-[color:var(--text-secondary)]">Loading posts...</p>
         </div>
       ) : tabSortedPosts.length === 0 ? (
-        <Card className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <Card className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 md:p-8 text-center">
             <h3 className="text-lg md:text-xl font-semibold text-white">Community feed is live</h3>
             <p className="mt-2 text-sm text-[color:var(--text-secondary)]">
@@ -816,7 +816,7 @@ const CommunityFeed = memo(function CommunityFeed() {
             return (
               <Card
                 key={post.id}
-                className={`rounded-2xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors shadow-sm hover:shadow-md hover:shadow-black/40 ${
+                className={`rounded-xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors ${
                   isSystemPost
                     ? "bg-[color:var(--surface-intermediate)]"
                     : "bg-[color:var(--surface-card)]"
@@ -882,7 +882,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <div className="flex items-center gap-2 text-xs md:text-sm">
                       <div className="flex items-center gap-1">
                         {getPostTypeIcon(post.type || post.postType)}
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-[color:var(--text-secondary)]">
                           {getPostTypeLabel(post.type || post.postType)}
                         </span>
                       </div>
@@ -892,7 +892,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-gray-400 hover:text-white"
+                            className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
@@ -956,7 +956,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         variant="ghost"
                         size="sm"
                         disabled={isGlobalView}
-                        className={`text-gray-400 hover:text-red-400 disabled:opacity-50 disabled:pointer-events-none ${post.liked ? "text-red-400" : ""}`}
+                        className={`text-[color:var(--text-secondary)] hover:text-red-400 disabled:opacity-50 disabled:pointer-events-none ${post.liked ? "text-red-400" : ""}`}
                         onClick={() => handleLikePost(post.id)}
                         data-testid={`button-like-${post.id}`}
                       >
@@ -969,7 +969,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         variant="ghost"
                         size="sm"
                         disabled={isGlobalView}
-                        className="text-gray-400 hover:text-orange-400 disabled:opacity-50 disabled:pointer-events-none"
+                        className="text-[color:var(--text-secondary)] hover:text-orange-400 disabled:opacity-50 disabled:pointer-events-none"
                         data-testid={`button-comment-${post.id}`}
                         onClick={() => {
                           if (!isAuthenticated) {
@@ -1001,7 +1001,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-gray-400 hover:text-green-400"
+                        className="text-[color:var(--text-secondary)] hover:text-green-400"
                         onClick={() => handleSharePost(post)}
                         data-testid={`button-share-${post.id}`}
                       >
@@ -1014,7 +1014,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         variant="ghost"
                         size="sm"
                         disabled={isGlobalView}
-                        className={`text-gray-400 hover:text-orange-300 disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-orange-300" : ""}`}
+                        className={`text-[color:var(--text-secondary)] hover:text-orange-300 disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-orange-300" : ""}`}
                         onClick={() => handleToggleSavePost(post.id)}
                         data-testid={`button-save-${post.id}`}
                       >
@@ -1291,25 +1291,25 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   return (
-    <div className="">
+    <div className="community-feed-page">
       <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
-        <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
+        <div className="mx-auto w-full max-w-[1024px] px-2.5 py-2 md:px-3 md:py-3 overflow-x-hidden">
           <CommunityTopNav />
           <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-            <CardContent className="p-3 md:p-4 h-[20vh] min-h-[150px] max-h-[220px] overflow-y-hidden">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-orange-300">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-orange-300">
                     Community
                   </p>
-                  <h1 className="mt-1 text-base md:text-xl font-semibold text-white truncate">
-                    Local conversation, clean and useful
+                  <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
+                    Useful local conversation
                   </h1>
-                  <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)] truncate">
+                  <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
                     Ask, recommend, and coordinate with people in your area.
                   </p>
-                  <p className="mt-1 text-[11px] md:text-xs text-slate-400 truncate">
-                    Active today: {communityStats.activeToday} · Posts today:{" "}
+                  <p className="mt-1 text-[11px] md:text-xs text-slate-400">
+                    Active today: {communityStats.activeToday} | Posts today:{" "}
                     {communityStats.postsToday}
                   </p>
                 </div>
@@ -1317,37 +1317,37 @@ const CommunityFeed = memo(function CommunityFeed() {
 
               <div className="mt-3 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
                 <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
-                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Members</p>
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-sm font-semibold text-white">
                       {communityStats.totalMembers}
                     </p>
                   </div>
-                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">
                       Verified pros
                     </p>
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-sm font-semibold text-white">
                       {communityStats.verifiedPros ?? 0}
                     </p>
                   </div>
-                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Recs (7d)</p>
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-sm font-semibold text-white">
                       {communityStats.recommendations7d ?? 0}
                     </p>
                   </div>
-                  <div className="snap-start shrink-0 w-[150px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">Help (7d)</p>
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-sm font-semibold text-white">
                       {communityStats.helpRequests7d ?? 0}
                     </p>
                   </div>
-                  <div className="snap-start shrink-0 w-[170px] rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                  <div className="snap-start shrink-0 w-[148px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400">
                       Median reply (7d)
                     </p>
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-sm font-semibold text-white">
                       {formatMinutesCompact(communityStats.medianFirstReplyMinutes7d)}
                     </p>
                   </div>
@@ -1407,13 +1407,13 @@ const CommunityFeed = memo(function CommunityFeed() {
           </Card>
           {/* Phase 1: Global Community Toggle (read-only visibility) */}
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-full p-1">
+            <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-lg p-1">
               <button
                 onClick={() => handleScopeToggle("local")}
                 aria-pressed={!isGlobalView}
-                className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   !isGlobalView
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                    ? "bg-orange-500 text-white"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                 }`}
               >
@@ -1423,9 +1423,9 @@ const CommunityFeed = memo(function CommunityFeed() {
               <button
                 onClick={() => handleScopeToggle("global")}
                 aria-pressed={isGlobalView}
-                className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   isGlobalView
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                    ? "bg-orange-500 text-white"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                 }`}
               >
@@ -1449,28 +1449,28 @@ const CommunityFeed = memo(function CommunityFeed() {
                 className="w-full"
               >
                 <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2">
-                  <TabsList className="flex items-center gap-2 bg-transparent p-0 overflow-x-auto">
+                  <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
                     <TabsTrigger
                       value="forYou"
-                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
                     >
                       For You
                     </TabsTrigger>
                     <TabsTrigger
                       value="recent"
-                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
                     >
                       Recent
                     </TabsTrigger>
                     <TabsTrigger
                       value="nearby"
-                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
                     >
                       Nearby
                     </TabsTrigger>
                     <TabsTrigger
                       value="vault"
-                      className="rounded-full px-4 py-2 text-xs font-semibold"
+                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
                     >
                       Saved
                     </TabsTrigger>
@@ -1478,7 +1478,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 </div>
                 {/* Inline composer (local-only; global view is read-only) */}
                 {!isGlobalView ? (
-                  <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
+                  <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] mb-3 md:mb-5 md:sticky md:top-16">
                     <CardContent className="p-3 md:p-5">
                       <div className="flex gap-4">
                         <Avatar className="w-10 h-10 md:w-11 md:h-11">
@@ -1588,9 +1588,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 type="button"
                                 onClick={() => setSelectedCategory(key)}
                                 title={intent}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                                   selectedCategory === key
-                                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                                    ? "bg-orange-500 text-white"
                                     : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
                                 }`}
                               >
@@ -1674,7 +1674,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             </div>
 
                             <Button
-                              className="bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25 w-full sm:w-auto"
+                              className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
                               onClick={handleCreatePost}
                               disabled={!newPostContent.trim() || createPostMutation.isPending}
                               data-testid="button-submit-post"
