@@ -28,22 +28,25 @@ function sanitizePostSetupNext(next: string) {
 export default function PreScoutSetup() {
   const { user, isAuthenticated, refetch } = useAuth();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
 
   const searchParams = useMemo(() => {
     try {
-      return new URLSearchParams(window.location.search);
+      const query = String(location || "").split("?")[1] || "";
+      return new URLSearchParams(query);
     } catch {
       return new URLSearchParams();
     }
-  }, []);
+  }, [location]);
   const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
   const safeNextQuery = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
   const prefilledEmail = (searchParams.get("email") || "").trim();
+  const requestedAuthMode: AuthMode =
+    String(searchParams.get("mode") || "").toLowerCase() === "signin" ? "signin" : "create";
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
@@ -57,7 +60,7 @@ export default function PreScoutSetup() {
   const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
   const [submitting, setSubmitting] = useState(false);
 
-  const [authMode, setAuthMode] = useState<AuthMode>("create");
+  const [authMode, setAuthMode] = useState<AuthMode>(requestedAuthMode);
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
   const [signInEmail, setSignInEmail] = useState(prefilledEmail);
@@ -79,6 +82,10 @@ export default function PreScoutSetup() {
     setCountyName(existingDraft.countyName);
     setBusinessName(existingDraft.businessName || "");
   }, [existingDraft]);
+
+  useEffect(() => {
+    setAuthMode(requestedAuthMode);
+  }, [requestedAuthMode]);
 
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;

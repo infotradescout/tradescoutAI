@@ -578,21 +578,21 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={CommercialProjectLandingPage} />
                   </Route>
 
-                  {/* Auth routes — canonical signup is /create-account; all others redirect */}
+                  {/* Auth routes. Canonical entry is /pre-scout-setup; aliases map to explicit modes. */}
                   <Route path="/login">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=signin" />
                   </Route>
                   <Route path="/login/legacy">
                     <LazyPage Component={Login} />
                   </Route>
                   <Route path="/register">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/signup">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/create-account">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/create-account/legacy">
                     <LazyPage Component={CreateAccount} />
@@ -612,23 +612,23 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/pre-scout-setup">
                     <LazyPage Component={PreScoutSetup} />
                   </Route>
-                  {/* DEPRECATED: Old onboarding routes → Pre-Scout gate */}
+                  {/* Deprecated onboarding aliases routed into pre-scout setup. */}
                   <Route path="/onboarding/intent">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/onboarding/profile">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/profile-setup">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
 
-                  {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
+                  {/* Legacy auth URLs map directly to mode-specific pre-scout entry. */}
                   <Route path="/auth/login">
-                    <RedirectTo to="/login" />
+                    <RedirectTo to="/pre-scout-setup?mode=signin" />
                   </Route>
                   <Route path="/auth/signup">
-                    <RedirectTo to="/pre-scout-setup" />
+                    <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/address-verification">
                     <LazyPage Component={AddressVerification} />
