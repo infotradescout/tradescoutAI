@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from 'react';
+import { memo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,8 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, DollarSign, Calendar, MapPin, CheckCircle2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MessageSquare, Calendar, MapPin, CheckCircle2 } from "lucide-react";
 import { useHandedness } from "@/hooks/useHandedness";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocationContext } from "@/hooks/useLocationContext";
@@ -22,39 +28,36 @@ const RequestQuote = memo(function RequestQuote() {
   const [lastLeadId, setLastLeadId] = useState<string | null>(null);
   const leadInitiatedAtRef = useRef<number | null>(null);
   const handedness = useHandedness();
-  const [sendToCount, setSendToCount] = useState<string>('3'); // '1', '3', or 'manual'
+  const [sendToCount, setSendToCount] = useState<string>("3"); // '1', '3', or 'manual'
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
-    projectType: '',
-    description: '',
-    budget: '',
-    timeline: '',
-    location: user?.address || '',
-    contactMethod: 'email'
+    projectType: "",
+    description: "",
+    budget: "",
+    timeline: "",
+    location: user?.address || "",
+    contactMethod: "email",
   });
 
-  const isManualSelection = sendToCount === 'manual';
+  const isManualSelection = sendToCount === "manual";
 
   const locationCtx = useLocationContext();
   const stateCode = locationCtx.stateCode as string | undefined;
   const countyFips = locationCtx.countyFips as string | undefined;
 
-  const {
-    data: localContractors = [],
-    isLoading: localContractorsLoading,
-  } = useQuery({
-    queryKey: ['local-contractors', user?.county, formData.projectType],
+  const { data: localContractors = [], isLoading: localContractorsLoading } = useQuery({
+    queryKey: ["local-contractors", user?.county, formData.projectType],
     enabled: !!user?.county && !!formData.projectType && isManualSelection,
     queryFn: async () => {
       if (!user?.county || !formData.projectType) return [] as any[];
       const params = new URLSearchParams({
         county: String(user.county),
         trade: String(formData.projectType),
-        limit: '50',
-        sort: 'verified',
+        limit: "50",
+        sort: "verified",
       });
-      const res = await apiRequest('GET', `/api/contractors/search?${params.toString()}`);
+      const res = await apiRequest("GET", `/api/contractors/search?${params.toString()}`);
       return (res as any[]) || [];
     },
   });
@@ -63,19 +66,19 @@ const RequestQuote = memo(function RequestQuote() {
     mutationFn: async (data: typeof formData) => {
       // Map the friendly form fields into the lead schema used by /api/leads
       const payload = {
-        projectType: data.projectType || 'general',
+        projectType: data.projectType || "general",
         description: data.description,
-        routingType: isManualSelection ? 'manual' : 'top3',
+        routingType: isManualSelection ? "manual" : "top3",
         maxAssignees: isManualSelection
-          ? (selectedContractorIds.length || 1)
-          : (Number(sendToCount) || 3),
+          ? selectedContractorIds.length || 1
+          : Number(sendToCount) || 3,
         manualContractorIds: isManualSelection ? selectedContractorIds : undefined,
         // Use best-effort locality from the user's stored profile/address
-        countyId: (user as any)?.countyId || (user as any)?.county || 'unknown',
-        tradeId: data.projectType || 'general',
+        countyId: (user as any)?.countyId || (user as any)?.county || "unknown",
+        tradeId: data.projectType || "general",
         estimatedValue: null,
-        urgency: data.timeline || 'planning',
-        contactPreference: data.contactMethod || 'email',
+        urgency: data.timeline || "planning",
+        contactPreference: data.contactMethod || "email",
         // Allow backend to attach UTM / calculator / locality data later
         calculatorData: {
           budgetRange: data.budget || null,
@@ -84,7 +87,7 @@ const RequestQuote = memo(function RequestQuote() {
         },
       };
 
-      return apiRequest('POST', '/api/leads', payload);
+      return apiRequest("POST", "/api/leads", payload);
     },
     onSuccess: (created: any) => {
       setLastLeadId(created?.id ?? null);
@@ -100,7 +103,7 @@ const RequestQuote = memo(function RequestQuote() {
         description: "Failed to submit quote request. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,7 +113,8 @@ const RequestQuote = memo(function RequestQuote() {
       if (!user?.county) {
         toast({
           title: "Add your location first",
-          description: "Set your county in profile settings so we can show local pros, or choose a best-matched option instead.",
+          description:
+            "Set your county in profile settings so we can show local pros, or choose a best-matched option instead.",
           variant: "destructive",
         });
         return;
@@ -118,7 +122,8 @@ const RequestQuote = memo(function RequestQuote() {
       if (!selectedContractorIds.length) {
         toast({
           title: "Pick at least one pro",
-          description: "Select one or more local contractors, or switch back to a best-matched option.",
+          description:
+            "Select one or more local contractors, or switch back to a best-matched option.",
           variant: "destructive",
         });
         return;
@@ -141,22 +146,23 @@ const RequestQuote = memo(function RequestQuote() {
                     <CheckCircle2 className="h-10 w-10 text-primary" />
                   </div>
                 </div>
-                <h2 className="text-3xl font-bold text-foreground mb-4">Quote Request Submitted!</h2>
+                <h2 className="text-3xl font-bold text-foreground mb-4">
+                  Quote Request Submitted!
+                </h2>
                 <p className="text-muted-foreground text-lg mb-8">
-                  Your request has been sent to qualified contractors in your area. 
-                  You'll receive responses within 24-48 hours.
+                  Your request was sent. You will get responses here.
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button 
+                  <Button
                     onClick={() => setSubmitted(false)}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     Submit Another Request
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     className="border-border text-muted-foreground hover:bg-muted"
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => (window.location.href = "/")}
                   >
                     Back to Dashboard
                   </Button>
@@ -189,9 +195,11 @@ const RequestQuote = memo(function RequestQuote() {
                 <MessageSquare className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-3xl lg:text-5xl font-bold text-foreground mb-1">Request a Quote</h1>
+                <h1 className="text-3xl lg:text-5xl font-bold text-foreground mb-1">
+                  Request a Quote
+                </h1>
                 <p className="text-lg text-muted-foreground">
-                  Tell us about your project and get matched with qualified contractors
+                  Share the project. We handle routing.
                 </p>
               </div>
             </div>
@@ -201,9 +209,6 @@ const RequestQuote = memo(function RequestQuote() {
           <Card className="bg-card border-border shadow-xl">
             <CardHeader className="border-b border-border pb-6">
               <CardTitle className="text-xl text-foreground">Project Details</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Provide information about your project to receive accurate quotes
-              </p>
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit}>
@@ -214,7 +219,9 @@ const RequestQuote = memo(function RequestQuote() {
                     </Label>
                     <Select
                       value={formData.projectType}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, projectType: value }))
+                      }
                     >
                       <SelectTrigger className="bg-background border-input text-foreground h-11">
                         <SelectValue placeholder="Select project type" />
@@ -240,7 +247,9 @@ const RequestQuote = memo(function RequestQuote() {
                     <Textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, description: e.target.value }))
+                      }
                       className="bg-background border-input text-foreground min-h-[120px] focus:border-primary transition-colors resize-none"
                       placeholder="Describe your project in detail..."
                       required
@@ -254,7 +263,7 @@ const RequestQuote = memo(function RequestQuote() {
                     </Label>
                     <Select
                       value={formData.budget}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, budget: value }))}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, budget: value }))}
                     >
                       <SelectTrigger className="bg-background border-input text-foreground h-11">
                         <SelectValue placeholder="Select budget range" />
@@ -271,13 +280,18 @@ const RequestQuote = memo(function RequestQuote() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="timeline" className="text-foreground font-medium flex items-center gap-2">
+                    <Label
+                      htmlFor="timeline"
+                      className="text-foreground font-medium flex items-center gap-2"
+                    >
                       <Calendar className="h-4 w-4 text-primary" />
                       Timeline
                     </Label>
                     <Select
                       value={formData.timeline}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, timeline: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, timeline: value }))
+                      }
                     >
                       <SelectTrigger className="bg-background border-input text-foreground h-11">
                         <SelectValue placeholder="When do you need this done?" />
@@ -294,7 +308,10 @@ const RequestQuote = memo(function RequestQuote() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="location" className="text-foreground font-medium flex items-center gap-2">
+                    <Label
+                      htmlFor="location"
+                      className="text-foreground font-medium flex items-center gap-2"
+                    >
                       <MapPin className="h-4 w-4 text-primary" />
                       Project Location
                     </Label>
@@ -302,7 +319,9 @@ const RequestQuote = memo(function RequestQuote() {
                       id="location"
                       type="text"
                       value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, location: e.target.value }))
+                      }
                       className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                       placeholder="Enter project address"
                       required
@@ -315,7 +334,9 @@ const RequestQuote = memo(function RequestQuote() {
                     </Label>
                     <Select
                       value={formData.contactMethod}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, contactMethod: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, contactMethod: value }))
+                      }
                     >
                       <SelectTrigger className="bg-background border-input text-foreground h-11">
                         <SelectValue />
@@ -336,7 +357,7 @@ const RequestQuote = memo(function RequestQuote() {
                       value={sendToCount}
                       onValueChange={(value) => {
                         setSendToCount(value);
-                        if (value !== 'manual') {
+                        if (value !== "manual") {
                           setSelectedContractorIds([]);
                         }
                       }}
@@ -353,29 +374,33 @@ const RequestQuote = memo(function RequestQuote() {
                     {isManualSelection ? (
                       <div className="mt-3 space-y-2 border border-border rounded-lg p-3 bg-background">
                         <p className="text-xs text-muted-foreground mb-1">
-                          Pick which local contractors should receive this request. We'll still track it as a normal
-                          lead, but only the pros you choose will be notified.
+                          Pick the exact local pros to notify.
                         </p>
                         {!user?.county && (
                           <p className="text-xs text-destructive">
-                            Add your county in your profile settings so we can list local contractors, or switch back to a best-match option.
+                            Add your county in your profile settings so we can list local
+                            contractors, or switch back to a best-match option.
                           </p>
                         )}
                         {user?.county && (
                           <div className="max-h-56 overflow-y-auto space-y-2">
                             {localContractorsLoading && (
-                              <p className="text-xs text-muted-foreground">Loading local pros…</p>
+                              <p className="text-xs text-muted-foreground">Loading local pros...</p>
                             )}
-                            {!localContractorsLoading && (!localContractors || (localContractors as any[]).length === 0) && (
-                              <p className="text-xs text-muted-foreground">
-                                No active contractors found for your county and trade yet. Try a different project type
-                                or use the best-matched routing.
-                              </p>
-                            )}
+                            {!localContractorsLoading &&
+                              (!localContractors || (localContractors as any[]).length === 0) && (
+                                <p className="text-xs text-muted-foreground">
+                                  No active contractors found for your county and trade yet. Try a
+                                  different project type or use the best-matched routing.
+                                </p>
+                              )}
                             {(localContractors as any[]).map((contractor: any) => {
                               const checked = selectedContractorIds.includes(contractor.id);
-                              const label = contractor.companyName || contractor.name || 'Local contractor';
-                              const locationBits = [contractor.city, contractor.state].filter(Boolean).join(', ');
+                              const label =
+                                contractor.companyName || contractor.name || "Local contractor";
+                              const locationBits = [contractor.city, contractor.state]
+                                .filter(Boolean)
+                                .join(", ");
                               return (
                                 <label
                                   key={contractor.id}
@@ -395,9 +420,13 @@ const RequestQuote = memo(function RequestQuote() {
                                     }}
                                   />
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-foreground truncate">{label}</p>
+                                    <p className="text-xs font-medium text-foreground truncate">
+                                      {label}
+                                    </p>
                                     {locationBits && (
-                                      <p className="text-[11px] text-muted-foreground truncate">{locationBits}</p>
+                                      <p className="text-[11px] text-muted-foreground truncate">
+                                        {locationBits}
+                                      </p>
                                     )}
                                   </div>
                                 </label>
@@ -408,9 +437,7 @@ const RequestQuote = memo(function RequestQuote() {
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        We rank pros by verification, experience, and completeness, then send your request to the
-                        top 1 or 3 matches in your area. If you don't hand-pick specific providers, we'll still route
-                        your request automatically to the best-matched pros for you.
+                        We auto-route to the best 1 or 3 local matches.
                       </p>
                     )}
                   </div>
@@ -423,7 +450,7 @@ const RequestQuote = memo(function RequestQuote() {
                     className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-lg"
                     data-testid="button-submitQuote"
                   >
-                    {submitQuoteMutation.isPending ? 'Submitting...' : 'Submit Quote Request'}
+                    {submitQuoteMutation.isPending ? "Submitting..." : "Submit Quote Request"}
                   </Button>
                   <Button
                     type="button"
@@ -437,43 +464,6 @@ const RequestQuote = memo(function RequestQuote() {
               </form>
             </CardContent>
           </Card>
-
-          {/* Info Section */}
-          <div className="mt-8 grid md:grid-cols-3 gap-4">
-            <Card className="bg-card border-border">
-              <CardContent className="pt-6 text-center">
-                <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <MessageSquare className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-foreground font-semibold mb-1">Fast Responses</h3>
-                <p className="text-sm text-muted-foreground">
-                  Get quotes from contractors within 24-48 hours
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="pt-6 text-center">
-                <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle2 className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-foreground font-semibold mb-1">Verified Pros</h3>
-                <p className="text-sm text-muted-foreground">
-                  All contractors are vetted and verified
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="pt-6 text-center">
-                <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <DollarSign className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-foreground font-semibold mb-1">100% Free</h3>
-                <p className="text-sm text-muted-foreground">
-                  No cost to request quotes or compare contractors
-                </p>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>
