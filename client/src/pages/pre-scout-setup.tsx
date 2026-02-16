@@ -286,11 +286,8 @@ export default function PreScoutSetup() {
               Step 1 of 2
             </div>
             <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
-              Start account access, then lock your local setup.
+              Sign in or create account.
             </h1>
-            <p className="text-sm text-tsTextMuted max-w-xl">
-              One entry flow for sign in and account creation.
-            </p>
           </div>
 
           <Card className="bg-tsCard border border-tsBorder">
@@ -308,7 +305,7 @@ export default function PreScoutSetup() {
                       : "border-tsBorder text-tsTextMuted"
                   }`}
                 >
-                  Create account
+                  Create
                 </button>
                 <button
                   type="button"
@@ -377,7 +374,7 @@ export default function PreScoutSetup() {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleCreateAccount} className="space-y-2.5">
+                <form onSubmit={handleCreateAccount} className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-sm">First name</Label>
@@ -450,13 +447,7 @@ export default function PreScoutSetup() {
                       I agree to the Terms and Privacy Policy.
                     </span>
                   </label>
-                  <div className="flex items-center justify-between gap-3">
-                    <a
-                      href="/create-account/legacy"
-                      className="text-xs text-tsTextMuted hover:text-tsTextMain underline-offset-2 hover:underline"
-                    >
-                      Advanced signup
-                    </a>
+                  <div className="flex justify-end">
                     <Button type="submit" disabled={authSubmitting}>
                       {authSubmitting ? "Creating..." : "Create account"}
                     </Button>
@@ -485,7 +476,7 @@ export default function PreScoutSetup() {
           <CardHeader className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-0.5">
-                <CardTitle className="text-xl text-tsTextMain">Set your home county</CardTitle>
+                <CardTitle className="text-xl text-tsTextMain">Local setup</CardTitle>
               </div>
               <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">
                 Step 2/2
@@ -554,7 +545,7 @@ export default function PreScoutSetup() {
                   {canContinue ? "Ready." : "Select state and county."}
                 </p>
                 <Button type="submit" disabled={!canContinue || submitting}>
-                  {submitting ? "Saving..." : "Save and continue"}
+                  {submitting ? "Saving..." : "Continue"}
                 </Button>
               </div>
             </form>
