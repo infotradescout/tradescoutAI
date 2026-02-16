@@ -29,7 +29,7 @@ export default function MessagesPage() {
 
   return (
     <div className="">
-      <div className="h-[calc(100vh-7rem)] max-w-6xl mx-auto w-full">
+      <div className="h-[calc(var(--app-height)-7rem)] max-w-6xl mx-auto w-full">
         <MessagesPanel />
       </div>
     </div>

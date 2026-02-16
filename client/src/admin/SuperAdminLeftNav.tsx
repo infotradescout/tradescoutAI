@@ -67,8 +67,8 @@ export function SuperAdminLeftNav({
       <nav
         className={
           density === "compact"
-            ? "space-y-3 max-h-[calc(100vh-110px)] overflow-y-auto pr-1"
-            : "space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto pr-1"
+            ? "space-y-3 max-h-[calc(var(--app-height)-110px)] overflow-y-auto pr-1"
+            : "space-y-4 max-h-[calc(var(--app-height)-120px)] overflow-y-auto pr-1"
         }
       >
         {sections.map((section) => (

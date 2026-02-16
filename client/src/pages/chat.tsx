@@ -278,7 +278,7 @@ export default function Chat() {
   return (
     <div>
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-8rem)]">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(var(--app-height)-8rem)]">
           {/* Conversations Sidebar */}
           <div className="lg:col-span-1">
             <Card className="bg-navy-700 border-navy-600 h-full">
@@ -289,7 +289,7 @@ export default function Chat() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-12rem)]">
+                <ScrollArea className="h-[calc(var(--app-height)-12rem)]">
                   {conversations.length === 0 ? (
                     <div className="p-4 text-center">
                       <p className="text-gray-400 text-sm">No conversations yet</p>

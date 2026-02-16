@@ -73,7 +73,9 @@ html {
 }
 @layer base {
   :root {
-    --app-height: 100%;
+    /* Default: stable height token. On mobile, JS sets --vh, which drives --app-height. */
+    --vh: 1vh;
+    --app-height: calc(var(--vh) * 100);
     --bottom-nav-height: 64px;
 
     /* Charcoal foundations (mapped to theme tokens) */
@@ -137,6 +139,7 @@ html {
 
   @supports (height: 100dvh) {
     :root {
+      /* Prefer dynamic viewport units when available (handles URL bar collapse better). */
       --app-height: 100dvh;
     }
   }
