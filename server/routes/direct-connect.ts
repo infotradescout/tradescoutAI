@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { isAuthenticated, isStaff } from "../auth";
 import { db } from "../db";
+import { randomBytes } from "crypto";
 import {
   type WorkRequest,
   workRequests,
@@ -14,6 +15,7 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { notificationService } from "../notification-service";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
+import { buildWorkRequestScopeSummary, formatBudgetRange } from "../utils/workRequestShare";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
@@ -49,6 +51,17 @@ const assignmentResponseSchema = z.object({
 });
 
 export function registerDirectConnectRoutes(app: Express) {
+  const makeShareToken = () => randomBytes(16).toString("hex");
+
+  const resolveOrigin = (req: Request) => {
+    const protoHeader = String(req.headers["x-forwarded-proto"] || "")
+      .split(",")[0]
+      .trim();
+    const proto = protoHeader || req.protocol || "https";
+    const host = req.get("host") || "www.thetradescout.com";
+    return `${proto}://${host}`;
+  };
+
   // Requester-facing: route an open Direct Connect request to top contractors
   app.post(
     "/api/direct-connect/requests/:id/route",
@@ -487,6 +500,129 @@ export function registerDirectConnectRoutes(app: Express) {
       }
     }
   );
+
+  // Requester-facing: create/fetch a public share URL for a Direct Connect request
+  app.get(
+    "/api/direct-connect/requests/:id/share",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const requestId = String(req.params.id);
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res
+            .status(400)
+            .json({ message: "Only Direct Connect requests can be shared here" });
+        }
+
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only share your own requests" });
+        }
+
+        let shareToken = String((requestRow as any).shareToken || "");
+        if (!shareToken) {
+          let attempts = 0;
+          while (!shareToken && attempts < 5) {
+            attempts += 1;
+            const candidate = makeShareToken();
+            try {
+              await db
+                .update(workRequests)
+                .set({ shareToken: candidate, updatedAt: new Date() })
+                .where(eq(workRequests.id, requestId));
+              shareToken = candidate;
+            } catch {
+              // Retry on collision/constraint issues.
+            }
+          }
+        }
+
+        if (!shareToken) {
+          return res.status(500).json({ message: "Failed to create share link" });
+        }
+
+        const origin = resolveOrigin(req);
+        const shareUrl = `${origin}/r/${encodeURIComponent(shareToken)}`;
+
+        return res.status(200).json({
+          shareToken,
+          shareUrl,
+          policy: "scope_only_join_and_verify_required",
+        });
+      } catch (error: any) {
+        console.error("Error creating direct connect share link:", error);
+        return res.status(500).json({ message: error?.message || "Failed to create share link" });
+      }
+    }
+  );
+
+  // Public redacted payload for a shared Direct Connect request
+  app.get("/api/direct-connect/share/:token", async (req: Request, res: Response) => {
+    try {
+      const token = String(req.params.token || "").trim();
+      if (!token) {
+        return res.status(400).json({ message: "Share token is required" });
+      }
+
+      const [requestRow] = await db
+        .select()
+        .from(workRequests)
+        .where(eq(workRequests.shareToken, token));
+
+      if (!requestRow || (requestRow.source as string | null) !== "direct_connect") {
+        return res.status(404).json({ message: "Shared request not found" });
+      }
+
+      const trade = requestRow.tradeId
+        ? await storage.getTradeBySlug(String(requestRow.tradeId))
+        : null;
+      const county = requestRow.countyFips
+        ? await storage.getCountyByFips(String(requestRow.countyFips))
+        : null;
+
+      const tradeLabel = String((trade as any)?.name || requestRow.tradeId || "Project");
+      const countyName = String((county as any)?.name || "");
+      const stateCode = requestRow.stateCode ? String(requestRow.stateCode) : "";
+      const locationLabel = countyName
+        ? stateCode
+          ? `${countyName}, ${stateCode}`
+          : countyName
+        : stateCode || "Local area";
+
+      const scopeSummary = buildWorkRequestScopeSummary(String(requestRow.description || ""));
+      const budgetRange = formatBudgetRange(requestRow.budgetMin, requestRow.budgetMax);
+
+      return res.status(200).json({
+        id: requestRow.id,
+        title: String(requestRow.title || "Shared request"),
+        scopeSummary,
+        category: requestRow.category || null,
+        tradeLabel,
+        locationLabel,
+        budgetRange,
+        postedAt: requestRow.createdAt,
+        gating: {
+          contactLocked: true,
+          claimLocked: true,
+          requiresJoinAndVerification: true,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching shared direct connect request:", error);
+      return res.status(500).json({ message: error?.message || "Failed to load shared request" });
+    }
+  });
 
   // Requester-facing: cancel an in-progress or routed Direct Connect request
   app.post(

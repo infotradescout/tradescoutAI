@@ -21,6 +21,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
+import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -649,6 +650,41 @@ app.use((req, res, next) => {
                 } catch (err) {
                   console.error("Error rendering public profile HTML:", err);
                   res.status(500).send("Failed to render profile");
+                }
+              });
+
+              // Shared Direct Connect request pages: server-rendered metadata for social preview
+              app.get("/r/:shareToken", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(404).send("Application files not found");
+                  }
+
+                  const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+                  const host = req.headers.host || "www.thetradescout.com";
+                  const origin = `${protocol}://${host}`;
+                  const shareToken = String(req.params.shareToken || "");
+
+                  const html = await buildWorkRequestShareHtml({
+                    shareToken,
+                    origin,
+                    templateHtml,
+                  });
+
+                  if (!html) {
+                    return res.status(404).send("Shared request not found");
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=180, stale-while-revalidate=3600"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering shared work request HTML:", err);
+                  res.status(500).send("Failed to render shared request");
                 }
               });
 

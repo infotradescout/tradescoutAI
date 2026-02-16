@@ -15,6 +15,7 @@ import { WhyThisJobModal } from "./WhyThisJobModal";
 import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
+import { share, shareToPlatform } from "@/utils/share";
 import {
   ClipboardPlus,
   LayoutList,
@@ -22,6 +23,7 @@ import {
   Users,
   BriefcaseBusiness,
   ShieldCheck,
+  Share2,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "inbox", "pros", "engagements"] as const;
@@ -691,6 +693,93 @@ function MyDirectConnectRequests() {
     },
   });
 
+  const fetchShareUrl = async (requestId: string): Promise<string> => {
+    const response = await fetch(
+      `/api/direct-connect/requests/${encodeURIComponent(requestId)}/share`,
+      {
+        credentials: "include",
+      }
+    );
+    if (!response.ok) {
+      let message = "Unable to create share link";
+      try {
+        const body = await response.json();
+        if (body?.message) message = body.message;
+      } catch {
+        // no-op
+      }
+      throw new Error(message);
+    }
+    const payload = await response.json();
+    const url = String(payload?.shareUrl || "");
+    if (!url) throw new Error("Share URL unavailable");
+    return url;
+  };
+
+  const shareRequest = async (
+    requestId: string,
+    requestTitle: string,
+    channel: "native" | "facebook" | "messenger" | "sms"
+  ) => {
+    try {
+      const url = await fetchShareUrl(requestId);
+      const text =
+        "Shared TradeScout request preview. Contact and claim are locked until join + verification.";
+
+      if (channel === "native") {
+        await share({
+          url,
+          title: requestTitle,
+          text,
+          contextLabel: "Request link",
+          suppressRef: true,
+        });
+        return;
+      }
+
+      if (channel === "facebook") {
+        await shareToPlatform({
+          platform: "facebook",
+          url,
+          title: requestTitle,
+          text,
+          suppressRef: true,
+        });
+        return;
+      }
+
+      if (channel === "sms") {
+        if (typeof window !== "undefined") {
+          const body = encodeURIComponent(`${requestTitle}\n${text}\n${url}`);
+          window.location.href = `sms:?&body=${body}`;
+        }
+        return;
+      }
+
+      // messenger
+      if (typeof window !== "undefined") {
+        const encodedUrl = encodeURIComponent(url);
+        const fbFallback = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        const ua = (window.navigator?.userAgent || "").toLowerCase();
+        const isMobile = /android|iphone|ipad|ipod/.test(ua);
+        if (isMobile) {
+          window.location.href = `fb-messenger://share/?link=${encodedUrl}`;
+          window.setTimeout(() => {
+            window.open(fbFallback, "_blank", "noopener,noreferrer");
+          }, 700);
+        } else {
+          window.open(fbFallback, "_blank", "noopener,noreferrer");
+        }
+      }
+    } catch (err: any) {
+      toast({
+        title: "Share failed",
+        description: err?.message || "Could not create share link right now.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -820,6 +909,35 @@ function MyDirectConnectRequests() {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => shareRequest(r.id, r.title, "native")}
+                >
+                  <Share2 className="mr-1 h-3.5 w-3.5" />
+                  Share
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => shareRequest(r.id, r.title, "facebook")}
+                >
+                  Facebook
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => shareRequest(r.id, r.title, "messenger")}
+                >
+                  Messenger
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => shareRequest(r.id, r.title, "sms")}
+                >
+                  SMS
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
