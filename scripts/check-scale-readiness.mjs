@@ -29,6 +29,20 @@ async function countRepoMigrations() {
     .length;
 }
 
+async function getRepoMigrationJournalState() {
+  const journalPath = path.resolve("migrations", "meta", "_journal.json");
+  const raw = await fs.readFile(journalPath, "utf8");
+  const journal = JSON.parse(raw);
+  const entries = Array.isArray(journal?.entries) ? journal.entries : [];
+  const latest = entries.length > 0 ? entries[entries.length - 1] : null;
+
+  return {
+    count: entries.length,
+    latestTag: latest?.tag ?? null,
+    latestWhen: latest ? Number(latest.when) : null,
+  };
+}
+
 async function run() {
   const checks = [];
   const dbUrl = process.env.DATABASE_URL ?? process.env.TEST_DATABASE_URL;
@@ -77,12 +91,17 @@ async function run() {
       )
     `);
 
-    const [dbMigrationCountRes, repoMigrationCount] = await Promise.all([
+    const [dbMigrationCountRes, dbMigrationLatestRes, repoMigrationState, repoMigrationCount] = await Promise.all([
       client.query("select count(*)::int as n from drizzle.__drizzle_migrations"),
+      client.query(
+        "select created_at from drizzle.__drizzle_migrations order by created_at desc nulls last limit 1"
+      ),
+      getRepoMigrationJournalState(),
       countRepoMigrations(),
     ]);
 
     const dbMigrationCount = Number(dbMigrationCountRes.rows?.[0]?.n ?? 0);
+    const dbLatestCreatedAt = Number(dbMigrationLatestRes.rows?.[0]?.created_at ?? 0);
     if (dbMigrationCount < repoMigrationCount) {
       const markerRes = await client.query(`
         select
@@ -97,12 +116,22 @@ async function run() {
         Boolean(marker.has_commercial_bids);
 
       if (hasMarkers) {
-        checks.push(
-          warn(
-            "migration_state",
-            `Baselined DB detected (${dbMigrationCount}/${repoMigrationCount}) with required schema markers present`
-          )
-        );
+        const latestRepoWhen = Number(repoMigrationState.latestWhen ?? 0);
+        if (latestRepoWhen > 0 && dbLatestCreatedAt >= latestRepoWhen) {
+          checks.push(
+            ok(
+              "migration_state",
+              `Baselined DB ledger is aligned to latest repo migration (${repoMigrationState.latestTag})`
+            )
+          );
+        } else {
+          checks.push(
+            warn(
+              "migration_state",
+              `Baselined DB detected (${dbMigrationCount}/${repoMigrationCount}) with required schema markers present`
+            )
+          );
+        }
       } else {
         checks.push(
           fail(
