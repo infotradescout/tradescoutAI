@@ -217,7 +217,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
               </>
             ) : (
               <>
-                <Link href="/login">
+                <Link href="/pre-scout-setup?mode=signin">
                   <Button variant="ghost" size="sm" data-testid="button-login">
                     Log In
                   </Button>

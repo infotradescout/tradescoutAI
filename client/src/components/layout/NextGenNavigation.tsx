@@ -360,12 +360,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         <div className="flex items-center space-x-3">
           {!isAuthenticated && (
             <div className="hidden md:flex items-center gap-2">
-              <Link href="/create-account">
+              <Link href="/pre-scout-setup?mode=create">
                 <Button className="h-8 rounded-full bg-orange-500 px-3 text-xs font-semibold text-slate-950 hover:bg-orange-400">
                   Create free account
                 </Button>
               </Link>
-              <Link href="/login">
+              <Link href="/pre-scout-setup?mode=signin">
                 <Button
                   variant="outline"
                   className="h-8 rounded-full border-slate-600 px-3 text-xs text-slate-200"
@@ -511,7 +511,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
                 {!isAuthenticated && (
                   <div className="border-t border-slate-700 pt-6 space-y-2">
-                    <Link href="/create-account">
+                    <Link href="/pre-scout-setup?mode=create">
                       <Button
                         className="w-full bg-orange-500 text-slate-950 hover:bg-orange-400"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -519,7 +519,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         Create free account
                       </Button>
                     </Link>
-                    <Link href="/login">
+                    <Link href="/pre-scout-setup?mode=signin">
                       <Button
                         variant="outline"
                         className="w-full border-slate-600 text-slate-200"

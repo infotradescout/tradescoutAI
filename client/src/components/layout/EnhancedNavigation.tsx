@@ -115,7 +115,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <UserMenu />
           ) : (
             <div className="hidden md:flex items-center space-x-3">
-              <Link href="/login">
+              <Link href="/pre-scout-setup?mode=signin">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -220,7 +220,10 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                     <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
                       Account
                     </h3>
-                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link
+                      href="/pre-scout-setup?mode=signin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"

@@ -6,40 +6,42 @@ export default function SafeLanding() {
           <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
             TradeScout Social Platform
           </h1>
-          
+
           <p className="text-xl mb-8 text-gray-300">
             Connect with your community, find trusted contractors, and build lasting relationships
           </p>
-          
+
           <div className="grid md:grid-cols-3 gap-8 mb-12">
             <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
               <div className="text-4xl mb-4">🏠</div>
               <h3 className="text-xl font-semibold mb-2">Community Feed</h3>
-              <p className="text-gray-400">Share updates, ask questions, and connect with neighbors</p>
+              <p className="text-gray-400">
+                Share updates, ask questions, and connect with neighbors
+              </p>
             </div>
-            
+
             <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
               <div className="text-4xl mb-4">🔨</div>
               <h3 className="text-xl font-semibold mb-2">Find Contractors</h3>
               <p className="text-gray-400">Discover verified local contractors for your projects</p>
             </div>
-            
+
             <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
               <div className="text-4xl mb-4">💬</div>
               <h3 className="text-xl font-semibold mb-2">Marketplace</h3>
               <p className="text-gray-400">Buy, sell, and trade with your community</p>
             </div>
           </div>
-          
+
           <div className="space-x-4">
-            <a 
-              href="/login" 
+            <a
+              href="/pre-scout-setup?mode=signin"
               className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
             >
               Get Started
             </a>
-            <a 
-              href="/community" 
+            <a
+              href="/community"
               className="inline-block border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors"
             >
               Explore Community

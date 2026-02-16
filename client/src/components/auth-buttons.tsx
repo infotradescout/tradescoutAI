@@ -63,11 +63,11 @@ export function AuthButtons({
   };
 
   const handleEmailSignUp = () => {
-    setLocation("/create-account");
+    setLocation("/pre-scout-setup?mode=create");
   };
 
   const handleEmailLogin = () => {
-    setLocation("/login");
+    setLocation("/pre-scout-setup?mode=signin");
   };
 
   return (
