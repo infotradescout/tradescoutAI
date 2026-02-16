@@ -64,33 +64,21 @@ export default function OnboardingIntent() {
   };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
-        <div className="space-y-6">
+    <div className="min-h-screen flex justify-center px-3 py-6 text-tsTextMain">
+      <div className="w-full max-w-xl space-y-2.5">
+        <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate(INTENT_ROUTES.community)}
-            className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
+            className="px-0 text-tsTextMuted hover:text-white hover:bg-transparent"
           >
-            <span className="text-sm">Skip for now</span>
+            Skip
           </Button>
-
-          <div className="space-y-4">
-            <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-              WHAT DO YOU WANT TO DO FIRST?
-            </div>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
-              What would you like to focus on right now?
-            </h1>
-            <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              This doesn't lock you into a role or limit what you can do. It just tells Scout what
-              to open first - you can always explore everything from the navigation.
-            </p>
-          </div>
+          <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">Step 2/2</div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl">
-          <CardHeader className="space-y-3">
+        <Card className="bg-tsCard border border-tsBorder">
+          <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
@@ -99,75 +87,63 @@ export default function OnboardingIntent() {
                 </span>
               </div>
             </div>
-            <CardTitle className="text-lg font-semibold text-tsTextMain">
-              Choose a starting point
-            </CardTitle>
+            <CardTitle className="text-lg font-semibold text-tsTextMain">Pick your start</CardTitle>
           </CardHeader>
 
           <CardContent>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleChoose("community")}
-                className="text-left rounded-xl border px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
               >
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Explore my neighborhood</span>
+                  <span className="font-medium text-tsTextMain">Community</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  See posts, updates, and activity from people near you.
-                </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChoose("services")}
-                className="text-left rounded-xl border px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
               >
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Find local pros</span>
+                  <span className="font-medium text-tsTextMain">Find pros</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  Browse licensed and verified pros for projects and repairs.
-                </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChoose("business")}
-                className="text-left rounded-xl border px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
               >
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex items-center gap-2">
                   <MessageCircle className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Share my work or business</span>
+                  <span className="font-medium text-tsTextMain">Business</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  Start from your business tools and dashboards.
-                </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChoose("tools")}
-                className="text-left rounded-xl border px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
               >
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex items-center gap-2">
                   <SlidersHorizontal className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Use Scout tools</span>
+                  <span className="font-medium text-tsTextMain">Scout</span>
                 </div>
-                <p className="text-xs text-tsTextMuted">
-                  Jump into dashboards, notes, and planners.
-                </p>
               </button>
+            </div>
 
+            <div className="mt-3">
               <button
                 type="button"
                 onClick={() => handleChoose(null)}
-                className="mt-2 text-xs text-tsTextMuted underline-offset-2 hover:underline text-left"
+                className="text-xs text-tsTextMuted underline-offset-2 hover:underline text-left"
               >
-                Just take me to the community
+                Open community
               </button>
             </div>
           </CardContent>

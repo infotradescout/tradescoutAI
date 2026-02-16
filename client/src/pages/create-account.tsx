@@ -401,24 +401,9 @@ export default function CreateAccountPortal() {
   });
 
   return (
-    <div className="h-full min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-4 text-tsTextMain">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
-        <div className="space-y-6 order-2 lg:order-1">
-          <div className="space-y-4">
-            <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-              ACCOUNT SETUP
-            </div>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
-              Create your TradeScout account.
-            </h1>
-            <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              Join your local community in one step. Scout is your AI guide to everything happening
-              nearby-deals, contractors, discussions, and more.
-            </p>
-          </div>
-        </div>
-
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl order-1 lg:order-2">
+    <div className="h-full min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-3 py-3 text-tsTextMain">
+      <div className="w-full max-w-xl">
+        <Card className="bg-tsCard border border-tsBorder">
           <CardHeader className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -433,14 +418,14 @@ export default function CreateAccountPortal() {
 
           <CardContent>
             {/* OAuth Buttons */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-2.5 mb-4">
               {providers.facebook && (
                 <Button
                   type="button"
                   onClick={() =>
                     (window.location.href = `${apiBaseUrl}/api/auth/facebook?next=${encodeURIComponent(oauthNext)}`)
                   }
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
                   <Facebook className="w-5 h-5 mr-3" />
                   Continue with Facebook
@@ -454,7 +439,7 @@ export default function CreateAccountPortal() {
                     (window.location.href = `${apiBaseUrl}/api/auth/google?next=${encodeURIComponent(oauthNext)}`)
                   }
                   variant="outline"
-                  className="w-full border-tsBorder text-tsTextMain hover:bg-tsCard/80 font-medium py-6"
+                  className="w-full border-tsBorder text-tsTextMain hover:bg-tsCard/80 font-medium"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path
@@ -481,15 +466,15 @@ export default function CreateAccountPortal() {
 
             {/* Divider */}
             {(providers.facebook || providers.google) && (
-              <div className="relative mb-6">
+              <div className="relative mb-4">
                 <Separator className="bg-tsBorder" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-tsCard px-3 text-sm text-tsTextMuted">or</span>
+                  <span className="bg-tsCard px-2 text-xs text-tsTextMuted">or</span>
                 </div>
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
               {/* Email */}
               <div>
                 <Label htmlFor="email" className="text-sm text-tsTextMain">
@@ -649,60 +634,8 @@ export default function CreateAccountPortal() {
                   <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
                 )}
               </div>
-              {/* Primary Focus (Role-aware, not role-locked) */}
-              <div>
-                <Label className="text-sm text-tsTextMain mb-2 block">Primary focus</Label>
-                <p className="text-xs text-tsTextMuted mb-3">
-                  Pick one starting point. You can change this later in your profile.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryFocus("hire")}
-                    className={`rounded-lg border px-3 py-2 text-left transition ${
-                      primaryFocus === "hire"
-                        ? "border-tsAccent bg-tsAccent/10"
-                        : "border-tsBorder hover:border-tsAccent/60"
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-tsTextMain">I need help</div>
-                    <div className="text-xs text-tsTextMuted">Hire verified pros for work.</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryFocus("offer")}
-                    className={`rounded-lg border px-3 py-2 text-left transition ${
-                      primaryFocus === "offer"
-                        ? "border-tsAccent bg-tsAccent/10"
-                        : "border-tsBorder hover:border-tsAccent/60"
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-tsTextMain">I offer services</div>
-                    <div className="text-xs text-tsTextMuted">
-                      Find verified local opportunities.
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryFocus("both")}
-                    className={`rounded-lg border px-3 py-2 text-left transition ${
-                      primaryFocus === "both"
-                        ? "border-tsAccent bg-tsAccent/10"
-                        : "border-tsBorder hover:border-tsAccent/60"
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-tsTextMain">I do both</div>
-                    <div className="text-xs text-tsTextMuted">Hire and offer services.</div>
-                  </button>
-                </div>
-                <p className="text-[11px] text-tsTextMuted mt-2">
-                  Scout uses this as your initial routing signal. Full role details can be edited
-                  later.
-                </p>
-              </div>
-
-              {/* Terms & Permissions */}
-              <div className="space-y-3 bg-tsBg/50 rounded-lg p-4 border border-tsBorder/50">
+              {/* Terms */}
+              <div className="space-y-2 rounded-lg border border-tsBorder/50 p-3">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <Controller
                     name="acceptTerms"
@@ -727,190 +660,214 @@ export default function CreateAccountPortal() {
                 {errors.acceptTerms && (
                   <p className="text-xs text-red-500">{errors.acceptTerms.message}</p>
                 )}
-
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <Controller
-                    name="allowPhoneCalls"
-                    control={control}
-                    render={({ field }) => (
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    )}
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm text-tsTextMuted">
-                      I agree to receive phone calls from verified contractors (optional)
-                    </span>
-                  </div>
-                </label>
               </div>
 
               {/* Submit */}
               <Button
                 type="submit"
                 disabled={signupMutation.isPending}
-                className="w-full mt-6 bg-tsAccent hover:bg-tsAccent/90 text-black font-semibold"
+                className="w-full mt-1 bg-tsAccent hover:bg-tsAccent/90 text-black font-semibold"
               >
                 {signupMutation.isPending ? "Creating account..." : "Create account"}
               </Button>
 
-              {/* Claim My Business (optional) */}
-              <div className="mt-4 rounded-lg border border-tsBorder/60 bg-black/30 p-4">
-                <button
-                  type="button"
-                  onClick={() => setClaimOpen((v) => !v)}
-                  className="w-full flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-tsAccent" />
-                    <div className="text-left">
-                      <div className="text-sm font-semibold text-tsTextMain">
-                        Claim an existing business (optional)
-                      </div>
-                      <div className="text-xs text-tsTextMuted">
-                        If your business was imported, claim it instead of creating a duplicate.
-                      </div>
-                    </div>
+              <details className="rounded-lg border border-tsBorder/60 bg-black/20 p-2.5">
+                <summary className="cursor-pointer list-none text-xs font-medium text-tsTextMuted select-none">
+                  More options
+                </summary>
+                <div className="mt-2.5 space-y-3">
+                  <div className="grid grid-cols-3 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryFocus("hire")}
+                      className={`rounded-md border px-2 py-1.5 text-xs transition ${
+                        primaryFocus === "hire"
+                          ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
+                          : "border-tsBorder text-tsTextMuted"
+                      }`}
+                    >
+                      Hire
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryFocus("offer")}
+                      className={`rounded-md border px-2 py-1.5 text-xs transition ${
+                        primaryFocus === "offer"
+                          ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
+                          : "border-tsBorder text-tsTextMuted"
+                      }`}
+                    >
+                      Offer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryFocus("both")}
+                      className={`rounded-md border px-2 py-1.5 text-xs transition ${
+                        primaryFocus === "both"
+                          ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
+                          : "border-tsBorder text-tsTextMuted"
+                      }`}
+                    >
+                      Both
+                    </button>
                   </div>
-                  <div className="text-xs text-tsTextMuted">{claimOpen ? "Hide" : "Show"}</div>
-                </button>
 
-                {claimOpen && (
-                  <div className="mt-4 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      <div className="md:col-span-2">
-                        <Label className="text-xs text-tsTextMuted">Business name</Label>
-                        <Input
-                          value={claimQuery}
-                          onChange={(e) => setClaimQuery(e.target.value)}
-                          placeholder="Search by business name"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-tsTextMuted">County FIPS (optional)</Label>
-                        <Input
-                          value={claimCountyFips}
-                          onChange={(e) => setClaimCountyFips(e.target.value)}
-                          placeholder="48201"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Controller
+                      name="allowPhoneCalls"
+                      control={control}
+                      render={({ field }) => (
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      )}
+                    />
+                    <span className="text-xs text-tsTextMuted">
+                      Allow calls from verified contractors
+                    </span>
+                  </label>
 
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <Label className="text-xs text-tsTextMuted">State (optional)</Label>
-                        <Input
-                          value={claimStateCode}
-                          onChange={(e) => setClaimStateCode(e.target.value)}
-                          placeholder="TX"
-                          className="mt-1"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-tsBorder"
-                        disabled={
-                          searchBusinessesMutation.isPending || claimQuery.trim().length < 2
-                        }
-                        onClick={() => {
-                          setSelectedClaimBusinessId(null);
-                          setSelectedClaimBusinessSlug(null);
-                          searchBusinessesMutation.mutate();
-                        }}
-                      >
-                        <Search className="h-4 w-4 mr-2" />
-                        {searchBusinessesMutation.isPending ? "Searching..." : "Search"}
-                      </Button>
-                    </div>
-
-                    {claimResults.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-xs text-tsTextMuted">Select your business:</div>
-                        <div className="space-y-2">
-                          {claimResults.slice(0, 8).map((b) => {
-                            const counties = Array.isArray((b as any).counties)
-                              ? (b as any).counties
-                              : [];
-                            const countyLabel = counties
-                              .filter((c: any) => c && c.name && c.stateCode)
-                              .slice(0, 2)
-                              .map((c: any) => `${c.name}, ${c.stateCode}`)
-                              .join(" - ");
-                            return (
-                              <button
-                                key={b.id || b.slug}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedClaimBusinessId(String((b as any).id || ""));
-                                  setSelectedClaimBusinessSlug(String((b as any).slug || ""));
-                                }}
-                                className={`w-full rounded-lg border px-3 py-2 text-left transition ${
-                                  selectedClaimBusinessId === String((b as any).id || "")
-                                    ? "border-tsAccent bg-tsAccent/10"
-                                    : "border-tsBorder hover:border-tsAccent/60"
-                                }`}
-                              >
-                                <div className="text-sm font-medium text-tsTextMain">{b.name}</div>
-                                <div className="text-[11px] text-tsTextMuted">
-                                  /business/{b.slug}
-                                  {countyLabel ? ` - ${countyLabel}` : ""}
-                                </div>
-                              </button>
-                            );
-                          })}
+                  <div className="rounded-lg border border-tsBorder/60 bg-black/30 p-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setClaimOpen((v) => !v)}
+                      className="w-full flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-tsAccent" />
+                        <div className="text-left text-xs font-semibold text-tsTextMain">
+                          Claim existing business
                         </div>
                       </div>
-                    )}
+                      <div className="text-xs text-tsTextMuted">{claimOpen ? "Hide" : "Show"}</div>
+                    </button>
 
-                    {selectedClaimBusinessId && selectedClaimBusinessSlug && (
-                      <div className="space-y-2 rounded-lg border border-tsBorder/60 bg-black/20 p-3">
-                        <div className="flex items-center gap-2 text-xs text-tsTextMuted">
-                          <ShieldCheck className="h-4 w-4 text-tsAccent" />
-                          TradeScout will attempt to verify and attach this business during signup
-                          using your email/phone.
+                    {claimOpen && (
+                      <div className="mt-2.5 space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div className="md:col-span-2">
+                            <Label className="text-xs text-tsTextMuted">Business</Label>
+                            <Input
+                              value={claimQuery}
+                              onChange={(e) => setClaimQuery(e.target.value)}
+                              placeholder="Name"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-tsTextMuted">FIPS</Label>
+                            <Input
+                              value={claimCountyFips}
+                              onChange={(e) => setClaimCountyFips(e.target.value)}
+                              placeholder="48201"
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
-                        <div className="text-[11px] text-tsTextMuted">
-                          Selected: /business/{selectedClaimBusinessSlug}
-                        </div>
-                        <div className="text-[11px] text-tsTextMuted">
-                          After claiming, you'll still need to verify email and insurance.
-                        </div>
-                        <div className="flex items-center gap-2">
+
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <Label className="text-xs text-tsTextMuted">State</Label>
+                            <Input
+                              value={claimStateCode}
+                              onChange={(e) => setClaimStateCode(e.target.value)}
+                              placeholder="TX"
+                              className="mt-1"
+                            />
+                          </div>
                           <Button
                             type="button"
                             variant="outline"
                             className="border-tsBorder"
+                            disabled={
+                              searchBusinessesMutation.isPending || claimQuery.trim().length < 2
+                            }
                             onClick={() => {
                               setSelectedClaimBusinessId(null);
                               setSelectedClaimBusinessSlug(null);
+                              searchBusinessesMutation.mutate();
                             }}
                           >
-                            Clear selection
+                            <Search className="h-4 w-4 mr-1" />
+                            {searchBusinessesMutation.isPending ? "..." : "Search"}
                           </Button>
                         </div>
+
+                        {claimResults.length > 0 && (
+                          <div className="space-y-1.5">
+                            {claimResults.slice(0, 4).map((b) => {
+                              const counties = Array.isArray((b as any).counties)
+                                ? (b as any).counties
+                                : [];
+                              const countyLabel = counties
+                                .filter((c: any) => c && c.name && c.stateCode)
+                                .slice(0, 2)
+                                .map((c: any) => `${c.name}, ${c.stateCode}`)
+                                .join(" - ");
+                              return (
+                                <button
+                                  key={b.id || b.slug}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedClaimBusinessId(String((b as any).id || ""));
+                                    setSelectedClaimBusinessSlug(String((b as any).slug || ""));
+                                  }}
+                                  className={`w-full rounded-lg border px-2.5 py-2 text-left transition ${
+                                    selectedClaimBusinessId === String((b as any).id || "")
+                                      ? "border-tsAccent bg-tsAccent/10"
+                                      : "border-tsBorder hover:border-tsAccent/60"
+                                  }`}
+                                >
+                                  <div className="text-xs font-medium text-tsTextMain">
+                                    {b.name}
+                                  </div>
+                                  <div className="text-[11px] text-tsTextMuted">
+                                    {countyLabel || b.slug}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {selectedClaimBusinessId && selectedClaimBusinessSlug && (
+                          <div className="rounded-lg border border-tsBorder/60 bg-black/20 p-2">
+                            <div className="flex items-center justify-between gap-2 text-xs text-tsTextMuted">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ShieldCheck className="h-4 w-4 text-tsAccent shrink-0" />
+                                <span className="truncate">
+                                  /business/{selectedClaimBusinessSlug}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="border-tsBorder h-8"
+                                onClick={() => {
+                                  setSelectedClaimBusinessId(null);
+                                  setSelectedClaimBusinessSlug(null);
+                                }}
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              <div className="mt-4 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={resendVerification}
-                  disabled={isResendingVerification}
-                  className="text-xs text-tsAccent hover:underline disabled:opacity-60"
-                >
-                  {isResendingVerification
-                    ? "Sending verification email..."
-                    : "Resend verification email"}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={resendVerification}
+                    disabled={isResendingVerification}
+                    className="text-xs text-tsAccent hover:underline disabled:opacity-60"
+                  >
+                    {isResendingVerification ? "Sending..." : "Resend verification email"}
+                  </button>
+                </div>
+              </details>
 
               {/* Login Link */}
-              <p className="text-xs text-tsTextMuted text-center mt-4">
+              <p className="text-xs text-tsTextMuted text-center mt-3">
                 Already have an account?{" "}
                 <button
                   type="button"

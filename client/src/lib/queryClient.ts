@@ -1,51 +1,61 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// Get API URL from environment variables  
+// Get API URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // Enhanced API request function with better error handling
 export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
-export async function apiRequest(url: string, options?: { method?: string; body?: any; data?: any } | any): Promise<any>;
-export async function apiRequest(methodOrUrl: string, urlOrData?: string | Record<string, any>, data?: any) {
+export async function apiRequest(
+  url: string,
+  options?: { method?: string; body?: any; data?: any } | any
+): Promise<any>;
+export async function apiRequest(
+  methodOrUrl: string,
+  urlOrData?: string | Record<string, any>,
+  data?: any
+) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     // Normalize arguments to support both apiRequest(method, url, data) and apiRequest(url, options)
-    let method = 'GET';
-    let url = '';
+    let method = "GET";
+    let url = "";
     let payload: any;
 
-    if (typeof urlOrData === 'string') {
-      method = methodOrUrl?.toUpperCase?.() || 'GET';
+    if (typeof urlOrData === "string") {
+      method = methodOrUrl?.toUpperCase?.() || "GET";
       url = urlOrData;
       payload = data;
     } else {
       url = methodOrUrl;
-      method = (urlOrData as any)?.method?.toUpperCase?.() || 'GET';
+      method = (urlOrData as any)?.method?.toUpperCase?.() || "GET";
       payload = (urlOrData as any)?.body ?? (urlOrData as any)?.data;
 
       // If no explicit body provided but options look like payload, send it for non-GET
-      if (payload === undefined && urlOrData && typeof urlOrData === 'object' && method !== 'GET') {
+      if (payload === undefined && urlOrData && typeof urlOrData === "object" && method !== "GET") {
         payload = urlOrData;
       }
     }
 
     const config: RequestInit = {
       method,
-      credentials: 'include',
+      credentials: "include",
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
     };
 
-    if (payload && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
+    if (
+      payload &&
+      (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE")
+    ) {
       config.body = JSON.stringify(payload);
     }
 
-    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+    const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
     const response = await fetch(fullUrl, config);
     clearTimeout(timeoutId);
 
@@ -65,7 +75,7 @@ export async function apiRequest(methodOrUrl: string, urlOrData?: string | Recor
 
       if (response.status === 403 && errorCode === "ONBOARDING_REQUIRED") {
         if (typeof window !== "undefined") {
-          window.location.href = "/onboarding/profile";
+          window.location.href = "/pre-scout-setup";
         }
         throw new Error("Please finish updating your profile before continuing.");
       }
@@ -84,11 +94,11 @@ export async function apiRequest(methodOrUrl: string, urlOrData?: string | Recor
     }
   } catch (error) {
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out');
+      if (error.name === "AbortError") {
+        throw new Error("Request timed out");
       }
-      if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-        throw new Error('Network error - please check your connection');
+      if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
+        throw new Error("Network error - please check your connection");
       }
     }
     throw error;
@@ -114,12 +124,14 @@ export const queryClient = new QueryClient({
         }
 
         // Make raw fetch call and return Response for React Query to handle
-        const fullUrl = url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL || ""}${url}`;
+        const fullUrl = url.startsWith("http")
+          ? url
+          : `${import.meta.env.VITE_API_URL || ""}${url}`;
         const response = await fetch(fullUrl, {
-          credentials: 'include',
+          credentials: "include",
           headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
+            Accept: "application/json",
+            "Content-Type": "application/json",
           },
         });
 
@@ -136,7 +148,7 @@ export const queryClient = new QueryClient({
 
           if (response.status === 403 && code === "ONBOARDING_REQUIRED") {
             if (typeof window !== "undefined") {
-              window.location.href = "/onboarding/profile";
+              window.location.href = "/pre-scout-setup";
             }
             throw new Error("Please finish updating your profile before continuing.");
           }
@@ -148,7 +160,7 @@ export const queryClient = new QueryClient({
       },
       retry: (failureCount, error: any) => {
         // Only retry on network errors
-        if (failureCount < 2 && error?.message?.includes('fetch')) {
+        if (failureCount < 2 && error?.message?.includes("fetch")) {
           return true;
         }
         return false;
@@ -161,7 +173,7 @@ export const queryClient = new QueryClient({
     mutations: {
       retry: (failureCount, error) => {
         // Only retry mutations on network errors
-        if (failureCount < 1 && error?.message?.includes('fetch')) {
+        if (failureCount < 1 && error?.message?.includes("fetch")) {
           return true;
         }
         return false;
@@ -172,7 +184,7 @@ export const queryClient = new QueryClient({
 });
 
 // Listen for low memory events and clear cache
-window.addEventListener('lowMemory', () => {
+window.addEventListener("lowMemory", () => {
   queryClient.clear();
-  console.log('Query cache cleared due to low memory');
+  console.log("Query cache cleared due to low memory");
 });

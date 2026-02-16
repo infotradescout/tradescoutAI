@@ -15,11 +15,12 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
       // Redirect to the canonical profile update flow if profile basics
       // have not been normalized onto the current schema version.
       const anyUser: any = user;
-      const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
-      const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
+      const profileVersion: number =
+        typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+      const isSuperAdminLike = anyUser.role === "super_admin" || anyUser.role === "head_admin";
 
       if (!isAdmin && !isSuperAdminLike && profileVersion < CURRENT_PROFILE_VERSION) {
-        setLocation('/onboarding/profile');
+        setLocation("/pre-scout-setup");
       }
     }
   }, [user, isLoading, setLocation]);
@@ -27,10 +28,17 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
   // Show children if user has completed onboarding, is admin, or is still loading
   const isAdmin = user?.isAdmin === true;
   const anyUser: any = user || {};
-  const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
-  const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
+  const profileVersion: number =
+    typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+  const isSuperAdminLike = anyUser.role === "super_admin" || anyUser.role === "head_admin";
 
-  if (isLoading || !user || profileVersion >= CURRENT_PROFILE_VERSION || isAdmin || isSuperAdminLike) {
+  if (
+    isLoading ||
+    !user ||
+    profileVersion >= CURRENT_PROFILE_VERSION ||
+    isAdmin ||
+    isSuperAdminLike
+  ) {
     return <>{children}</>;
   }
 

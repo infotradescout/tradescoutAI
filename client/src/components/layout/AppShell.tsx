@@ -140,10 +140,14 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/create-account") ||
     location.startsWith("/login") ||
     location.startsWith("/register");
+  const isSetupSurface =
+    location.startsWith("/pre-scout-setup") ||
+    location.startsWith("/onboarding/profile") ||
+    location.startsWith("/profile-setup");
   const isSuperAdmin = (user as any)?.isSuperAdmin === true;
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
-    enabled: Boolean(isAuthenticated),
+    enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
     queryFn: () => apiRequest("GET", "/api/social/conversations/requests/incoming"),
   });
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
@@ -163,15 +167,15 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
-    <section className="px-4 py-3 md:hidden">
-      <h1 className="text-xl font-semibold">
+    <section className="px-3 py-2 md:hidden">
+      <h1 className="text-lg font-semibold leading-tight">
         Get help with your <span className="text-accent">next project</span>
       </h1>
-      <p className="mt-2 text-sm text-secondary">
-        Tell Scout what you need, then jump straight to the right part of the app.
+      <p className="mt-1 text-xs text-secondary">
+        Tell Scout what you need and jump to the right page.
       </p>
       {!isLoggedIn && (
-        <div className="mt-4 space-y-2">
+        <div className="mt-2 space-y-1.5">
           <p className="text-[11px] text-secondary">Contact requires an account to prevent spam.</p>
           <div className="flex gap-2">
             <button
@@ -202,8 +206,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   // Set CSS variables for nav sizing (Step 2)
   useEffect(() => {
     const root = document.documentElement;
-    const topNavHeight = isMobile ? "calc(52px + env(safe-area-inset-top))" : "56px";
-    const bottomNavHeight = isMobile ? "calc(68px + env(safe-area-inset-bottom))" : "68px";
+    const topNavHeight = isMobile ? "calc(48px + env(safe-area-inset-top))" : "56px";
+    const bottomNavHeight = isMobile ? "calc(62px + env(safe-area-inset-bottom))" : "68px";
 
     root.style.setProperty("--top-nav-h", topNavHeight);
     root.style.setProperty("--bottom-nav-h", bottomNavHeight);
@@ -290,7 +294,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         <header
           className="fixed top-0 inset-x-0 z-50 flex items-center px-3 md:hidden"
           style={{
-            height: "calc(52px + env(safe-area-inset-top))",
+            height: "calc(48px + env(safe-area-inset-top))",
             paddingTop: "env(safe-area-inset-top)",
             background: "var(--surface-frame)",
             borderBottom: "1px solid var(--border-primary)",
@@ -334,15 +338,17 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
               </>
             )}
-            {isAuthenticated && <NotificationCenter />}
-            <button
-              type="button"
-              onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
-              aria-label="Open profile & tools panel"
-            >
-              <Menu className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
-            </button>
+            {!isSetupSurface && isAuthenticated && <NotificationCenter />}
+            {!isSetupSurface && (
+              <button
+                type="button"
+                onClick={() => setIsToolsOpen(true)}
+                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                aria-label="Open profile & tools panel"
+              >
+                <Menu className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+              </button>
+            )}
           </div>
         </header>
       ) : (
@@ -399,44 +405,51 @@ export function AppShell({ children, footer }: AppShellProps) {
               </>
             )}
 
-            {/* Messages quick icon */}
-            <button
-              type="button"
-              onClick={() => navigate("/messages")}
-              className="relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
-              aria-label="Messages and helpers"
-            >
-              <MessageCircle className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
-              {contactRequestCount > 0 && (
-                <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white px-1">
-                  {contactRequestCount > 9 ? "9+" : contactRequestCount}
-                </span>
-              )}
-            </button>
+            {!isSetupSurface && (
+              <>
+                {/* Messages quick icon */}
+                <button
+                  type="button"
+                  onClick={() => navigate("/messages")}
+                  className="relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                  aria-label="Messages and helpers"
+                >
+                  <MessageCircle
+                    className="h-4 w-4"
+                    style={{ color: "var(--theme-accent-primary)" }}
+                  />
+                  {contactRequestCount > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white px-1">
+                      {contactRequestCount > 9 ? "9+" : contactRequestCount}
+                    </span>
+                  )}
+                </button>
 
-            {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
-            {isAuthenticated ? (
-              <NotificationCenter />
-            ) : (
-              <button
-                type="button"
-                onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
-              </button>
+                {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
+                {isAuthenticated ? (
+                  <NotificationCenter />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/notifications")}
+                    className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                    aria-label="Notifications"
+                  >
+                    <Bell className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                  </button>
+                )}
+
+                {/* Tools / profile panel (user-specific stuff) */}
+                <button
+                  type="button"
+                  onClick={() => setIsToolsOpen(true)}
+                  className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                  aria-label="Open profile & tools panel"
+                >
+                  <Menu className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                </button>
+              </>
             )}
-
-            {/* Tools / profile panel (user-specific stuff) */}
-            <button
-              type="button"
-              onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
-              aria-label="Open profile & tools panel"
-            >
-              <Menu className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
-            </button>
           </div>
         </header>
       )}
@@ -469,7 +482,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       </main>
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
-      {!isMobile && (
+      {!isMobile && !isSetupSurface && (
         <aside
           className="hidden lg:block fixed z-40"
           style={{
@@ -502,10 +515,10 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
-      {isMobile && isToolsOpen && (
+      {isMobile && isToolsOpen && !isSetupSurface && (
         <div
           className="fixed inset-x-0 top-0 z-40 flex"
-          style={{ bottom: "calc(68px + env(safe-area-inset-bottom))" }}
+          style={{ bottom: "calc(62px + env(safe-area-inset-bottom))" }}
         >
           <button
             type="button"

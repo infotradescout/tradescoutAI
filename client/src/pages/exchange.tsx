@@ -579,12 +579,11 @@ export default function Exchange() {
       <div className="mb-4 rounded-xl border border-slate-800 bg-slate-950/65 p-3 sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Exchange</p>
-            <h1 className="mt-1 text-xl sm:text-2xl font-semibold text-slate-100">Listings</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-100">Exchange listings</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="border-slate-700 text-slate-300">
-              Nearby results prioritized
+              Local results
             </Badge>
             <Badge
               variant="outline"
@@ -595,7 +594,7 @@ export default function Exchange() {
                   : "Set your county to prioritize local listings"
               }
             >
-              {localLabel}
+              Area: {localLabel}
             </Badge>
           </div>
         </div>
@@ -607,21 +606,21 @@ export default function Exchange() {
             value="browse"
             className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
           >
-            Browse Items
+            Browse
           </TabsTrigger>
           <TabsTrigger
             value="promotions"
             className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
           >
             <Megaphone className="h-3 w-3 mr-1" />
-            <span>Promotions</span>
+            <span>Promos</span>
           </TabsTrigger>
           <TabsTrigger
             value="sales"
             className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative"
           >
             <Tag className="h-3 w-3 mr-1" />
-            <span>Store Sales</span>
+            <span>Sales</span>
             <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5">
               HOT
             </Badge>
@@ -636,7 +635,7 @@ export default function Exchange() {
             value="sell"
             className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
           >
-            Sell Item
+            Sell
           </TabsTrigger>
         </TabsList>
 

@@ -104,43 +104,21 @@ export default function OnboardingProfile() {
   const canContinue = !!firstName.trim() && !!lastName.trim() && !!stateCode && !!countyFips;
 
   return (
-    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
-        <div className="space-y-6">
+    <div className="min-h-screen flex justify-center px-3 py-6 text-tsTextMain">
+      <div className="w-full max-w-2xl space-y-2.5">
+        <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate("/scout")}
-            className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
+            className="px-0 text-tsTextMuted hover:text-white hover:bg-transparent"
           >
-            <span className="text-sm">Back to Scout</span>
+            Back
           </Button>
-
-          <div className="space-y-4">
-            <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-              PROFILE UPDATE
-            </div>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
-              We've improved how profiles work.
-            </h1>
-            <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              TradeScout now uses a simpler, more flexible profile setup that better reflects how
-              people actually use the platform. This quick update helps reduce duplicate badges, fix
-              location issues, and make your profile clearer to others.
-            </p>
-
-            <div className="rounded-2xl border border-tsBorder bg-black/30 p-4 text-xs text-tsTextMuted">
-              <p className="mb-2 font-semibold text-tsTextMain">This takes about 30 seconds.</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Confirm your name so people recognize you.</li>
-                <li>Set a single, trusted location for local activity.</li>
-                <li>Keep everything else - badges, posts, jobs, and messages - exactly as-is.</li>
-              </ul>
-            </div>
-          </div>
+          <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">Step 1/2</div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl">
-          <CardHeader className="space-y-3">
+        <Card className="bg-tsCard border border-tsBorder">
+          <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
@@ -155,8 +133,8 @@ export default function OnboardingProfile() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-sm">First name</Label>
                   <Input
@@ -175,24 +153,24 @@ export default function OnboardingProfile() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm">Where are you active locally?</Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Primary county</Label>
                 <StateCountySelector
                   selectedState={stateCode}
                   selectedCounty={countyFips}
                   onStateChange={setStateCode}
                   onCountyChange={setCountyFips}
+                  className="gap-2"
                   onCountySelected={(county) => setCountyName(county?.name)}
                 />
               </div>
 
-              <div className="flex justify-between items-center pt-2">
-                <p className="text-[11px] text-tsTextMuted max-w-xs">
-                  We only use this to power local feeds and matching. You can change it anytime in
-                  Settings.
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] text-tsTextMuted">
+                  {canContinue ? "Ready." : "Complete name and county."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
-                  {updateProfile.isPending ? "Saving..." : "Update profile"}
+                  {updateProfile.isPending ? "Saving..." : "Save and continue"}
                 </Button>
               </div>
             </form>

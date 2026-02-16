@@ -5,7 +5,7 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
 interface AuthFlowProps {
   onComplete: () => void;
-  initialType?: 'homeowner' | 'professional';
+  initialType?: "homeowner" | "professional";
 }
 
 export function AuthFlow({ onComplete }: AuthFlowProps) {
@@ -18,12 +18,13 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
     if (!user) return;
 
     const anyUser: any = user;
-    const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+    const profileVersion: number =
+      typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
     if (profileVersion >= CURRENT_PROFILE_VERSION) {
       onComplete();
     } else {
-      navigate("/onboarding/profile");
+      navigate("/pre-scout-setup");
     }
   }, [isAuthenticated, user, navigate, onComplete]);
 

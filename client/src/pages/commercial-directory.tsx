@@ -293,7 +293,7 @@ export default function CommercialDirectoryPage() {
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <ShieldCheck className="h-4 w-4 text-emerald-200" />
-            <div>Verification-required access</div>
+            <div>Verified access only</div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <Gavel className="h-4 w-4 text-blue-200" />
@@ -462,17 +462,15 @@ export default function CommercialDirectoryPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-amber-200" />
-              Commercial Board Locked
+              Commercial board unavailable
             </CardTitle>
             <CardDescription>
-              Your account must have approved license and insurance documents before open jobs and
-              bid workflows are unlocked.
+              Approved license and insurance are required before you can open jobs and submit bids.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-amber-100">
-              Submit both documents above and wait for human review. Once approved, this board
-              unlocks automatically.
+              Submit both documents above. Access unlocks automatically after review.
             </p>
           </CardContent>
         </Card>

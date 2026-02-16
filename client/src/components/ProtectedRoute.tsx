@@ -66,7 +66,7 @@ export function ProtectedRoute({
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      setLocation("/create-account");
+      setLocation("/pre-scout-setup");
       return;
     }
 

@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 
 interface State {
   code: string;
   name: string;
-  subdivisionType: 'county' | 'parish' | 'borough' | 'census area' | 'municipality' | 'district';
+  subdivisionType: "county" | "parish" | "borough" | "census area" | "municipality" | "district";
 }
 
 interface County {
@@ -35,35 +41,44 @@ export function StateCountySelector({
   onCountyChange,
   onCountySelected,
   disabled = false,
-  className = ""
+  className = "",
 }: StateCountySelectorProps) {
-  const [currentState, setCurrentState] = useState(selectedState || '');
-  const [currentCounty, setCurrentCounty] = useState(selectedCounty || '');
+  const [currentState, setCurrentState] = useState(selectedState || "");
+  const [currentCounty, setCurrentCounty] = useState(selectedCounty || "");
 
   // Fetch all states
-  const { data: states = [], isLoading: statesLoading } = useQuery<State[]>({
-    queryKey: ['/api/states'],
-    queryFn: async () => apiRequest('GET', '/api/states'),
+  const {
+    data: states = [],
+    isLoading: statesLoading,
+    error: statesError,
+  } = useQuery<State[]>({
+    queryKey: ["/api/states"],
+    queryFn: async () => apiRequest("GET", "/api/states"),
   });
 
   // Fetch counties for selected state
-  const { data: counties = [], isLoading: countiesLoading } = useQuery<County[]>({
-    queryKey: ['/api/counties', currentState],
+  const {
+    data: counties = [],
+    isLoading: countiesLoading,
+    error: countiesError,
+  } = useQuery<County[]>({
+    queryKey: ["/api/counties", currentState],
     enabled: !!currentState,
     queryFn: async () =>
-      apiRequest('GET', `/api/counties?state=${encodeURIComponent(currentState)}`),
+      apiRequest("GET", `/api/counties?state=${encodeURIComponent(currentState)}`),
   });
 
   // Get subdivision type for selected state
-  const selectedStateData = states.find(s => s.code === currentState);
-  const subdivisionType = selectedStateData?.subdivisionType || 'county';
-  const subdivisionTypeCapitalized = subdivisionType.charAt(0).toUpperCase() + subdivisionType.slice(1);
+  const selectedStateData = states.find((s) => s.code === currentState);
+  const subdivisionType = selectedStateData?.subdivisionType || "county";
+  const subdivisionTypeCapitalized =
+    subdivisionType.charAt(0).toUpperCase() + subdivisionType.slice(1);
 
   const handleStateChange = (stateCode: string) => {
     setCurrentState(stateCode);
-    setCurrentCounty(''); // Reset county when state changes
+    setCurrentCounty(""); // Reset county when state changes
     onStateChange(stateCode);
-    onCountyChange(''); // Clear county selection
+    onCountyChange(""); // Clear county selection
     if (onCountySelected) {
       onCountySelected(null);
     }
@@ -81,13 +96,13 @@ export function StateCountySelector({
   // Update internal state when props change
   useEffect(() => {
     if (selectedState !== currentState) {
-      setCurrentState(selectedState || '');
+      setCurrentState(selectedState || "");
     }
   }, [selectedState]);
 
   useEffect(() => {
     if (selectedCounty !== currentCounty) {
-      setCurrentCounty(selectedCounty || '');
+      setCurrentCounty(selectedCounty || "");
     }
   }, [selectedCounty]);
 
@@ -95,14 +110,22 @@ export function StateCountySelector({
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
       {/* State Selector */}
       <div>
-        <Label className="block text-sm font-medium text-gray-300 mb-2">State</Label>
-        <Select 
-          value={currentState} 
+        <Label className="block text-sm font-medium text-tsTextMuted mb-2">State</Label>
+        <Select
+          value={currentState}
           onValueChange={handleStateChange}
-          disabled={disabled || statesLoading}
+          disabled={disabled || statesLoading || Boolean(statesError)}
         >
           <SelectTrigger className="form-field">
-            <SelectValue placeholder={statesLoading ? "Loading states..." : "Select State"} />
+            <SelectValue
+              placeholder={
+                statesLoading
+                  ? "Loading states..."
+                  : statesError
+                    ? "Unable to load states"
+                    : "Select state"
+              }
+            />
           </SelectTrigger>
           <SelectContent className="max-h-80">
             {states.map((state) => (
@@ -112,27 +135,34 @@ export function StateCountySelector({
             ))}
           </SelectContent>
         </Select>
+        {statesError && (
+          <p className="mt-1 text-[11px] text-red-300">
+            Could not load states. Refresh and try again.
+          </p>
+        )}
       </div>
 
       {/* County Selector */}
       <div>
-        <Label className="block text-sm font-medium text-gray-300 mb-2">
+        <Label className="block text-sm font-medium text-tsTextMuted mb-2">
           {subdivisionTypeCapitalized}
         </Label>
-        <Select 
-          value={currentCounty} 
+        <Select
+          value={currentCounty}
           onValueChange={handleCountyChange}
-          disabled={disabled || !currentState || countiesLoading}
+          disabled={disabled || !currentState || countiesLoading || Boolean(countiesError)}
         >
           <SelectTrigger className="form-field">
-            <SelectValue 
+            <SelectValue
               placeholder={
-                !currentState 
-                  ? `Select state first` 
-                  : countiesLoading 
-                    ? `Loading ${subdivisionType}s...` 
-                    : `Select ${subdivisionTypeCapitalized}`
-              } 
+                !currentState
+                  ? `Select state first`
+                  : countiesError
+                    ? `Unable to load ${subdivisionType}s`
+                    : countiesLoading
+                      ? `Loading ${subdivisionType}s...`
+                      : `Select ${subdivisionTypeCapitalized}`
+              }
             />
           </SelectTrigger>
           <SelectContent className="max-h-80">
@@ -143,6 +173,11 @@ export function StateCountySelector({
             ))}
           </SelectContent>
         </Select>
+        {countiesError && currentState && (
+          <p className="mt-1 text-[11px] text-red-300">
+            Could not load {subdivisionType}s for this state.
+          </p>
+        )}
       </div>
     </div>
   );

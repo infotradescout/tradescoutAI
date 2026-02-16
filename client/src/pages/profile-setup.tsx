@@ -141,13 +141,11 @@ export default function ProfileSetup() {
       <div className="container mx-auto px-4 max-w-4xl ts-surface px-4 py-6 md:px-10 md:py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Complete Your Profile</h1>
-          <p className="text-muted-foreground">
-            Tell us about yourself to get the best TradeScout experience
-          </p>
+          <p className="text-muted-foreground">Choose your primary role to continue</p>
         </div>
 
         {!selectedRole ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="role-pick-grid grid md:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
             <Card
               className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
               onClick={() => handleRoleSelection("homeowner")}
@@ -161,7 +159,7 @@ export default function ProfileSetup() {
                   I need contractors for home improvement projects
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Find verified local contractors</li>
                   <li>• Get free project estimates</li>
@@ -184,7 +182,7 @@ export default function ProfileSetup() {
                   I provide home improvement services
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Get qualified project connections</li>
                   <li>• Build your online presence</li>
@@ -208,7 +206,7 @@ export default function ProfileSetup() {
                   I help clients buy and sell properties
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Connect with trusted contractors</li>
                   <li>• Refer clients to quality professionals</li>
@@ -232,7 +230,7 @@ export default function ProfileSetup() {
                   I sell cars, trucks, and other vehicles
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Connect with homeowner customers</li>
                   <li>• Partner with contractors for financing</li>
@@ -256,7 +254,7 @@ export default function ProfileSetup() {
                   I help with tasks and projects
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Find flexible work opportunities</li>
                   <li>• Help residents, pros, and local teams</li>

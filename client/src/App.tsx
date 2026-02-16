@@ -99,8 +99,8 @@ const RootLanding = memo(function RootLanding() {
     const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
 
     if (!isAuthenticated) {
-      // Non-authenticated users go to create account/login page
-      navigate("/create-account");
+      // Non-authenticated users go straight to the unified auth/setup flow
+      navigate("/pre-scout-setup");
     } else if (needsPreScoutSetup) {
       navigate("/pre-scout-setup");
     } else if (isSuperAdmin) {
@@ -579,15 +579,21 @@ const AppLayout = memo(function AppLayout() {
 
                   {/* Auth routes — canonical signup is /create-account; all others redirect */}
                   <Route path="/login">
+                    <RedirectTo to="/pre-scout-setup" />
+                  </Route>
+                  <Route path="/login/legacy">
                     <LazyPage Component={Login} />
                   </Route>
                   <Route path="/register">
-                    <RedirectTo to="/create-account" />
+                    <RedirectTo to="/pre-scout-setup" />
                   </Route>
                   <Route path="/signup">
-                    <RedirectTo to="/create-account" />
+                    <RedirectTo to="/pre-scout-setup" />
                   </Route>
                   <Route path="/create-account">
+                    <RedirectTo to="/pre-scout-setup" />
+                  </Route>
+                  <Route path="/create-account/legacy">
                     <LazyPage Component={CreateAccount} />
                   </Route>
                   <Route path="/claim-my-business">
@@ -603,9 +609,7 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={CheckEmail} />
                   </Route>
                   <Route path="/pre-scout-setup">
-                    <ProtectedRoute>
-                      <LazyPage Component={PreScoutSetup} />
-                    </ProtectedRoute>
+                    <LazyPage Component={PreScoutSetup} />
                   </Route>
                   {/* DEPRECATED: Old onboarding routes → Pre-Scout gate */}
                   <Route path="/onboarding/intent">
@@ -623,7 +627,7 @@ const AppLayout = memo(function AppLayout() {
                     <RedirectTo to="/login" />
                   </Route>
                   <Route path="/auth/signup">
-                    <RedirectTo to="/create-account" />
+                    <RedirectTo to="/pre-scout-setup" />
                   </Route>
                   <Route path="/address-verification">
                     <LazyPage Component={AddressVerification} />

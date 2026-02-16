@@ -83,17 +83,12 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   }, [rotatingItems]);
 
   const membersCount = snapshot?.membersCount ?? 0;
-  const membersLabel = membersCount > 0
-    ? `${membersCount.toLocaleString()} members`
-    : "Neighbors are joining";
+  const membersLabel =
+    membersCount > 0 ? `${membersCount.toLocaleString()} members` : "Neighbors are joining";
 
-  // Track shell usage for analytics only
   React.useEffect(() => {
     const u: any = user;
-    const locationSet = !!(
-      u &&
-      (u.locationCommitted || (u.stateCode && u.countyFips))
-    );
+    const locationSet = !!(u && (u.locationCommitted || (u.stateCode && u.countyFips)));
 
     trackShellEvent({
       type: "community_shell_load",
@@ -104,16 +99,11 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     });
   }, [location, notificationsCount, user]);
 
-  // CommunityShell owns the CommunityOS header (identity row + snapshot row)
-  // but leaves global site navigation to AppShell.
-  
   const activeHighlight = rotatingItems[highlightIndex] ?? rotatingItems[0];
 
   return (
     <div className="flex flex-col w-full">
-      {/* CommunityOS header: identity row + snapshot row */}
-      <div className="border-b border-slate-800 bg-slate-950 px-3 md:px-4 py-1.5 space-y-0.5">
-        {/* Tier 1 – Identity & section nav */}
+      <div className="border-b border-slate-800 bg-slate-950 px-3 md:px-4 py-1 space-y-0.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-300 truncate">
@@ -124,73 +114,64 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
             <Link href="/community-feed" className="hover:text-orange-400 transition-colors">
               Community
             </Link>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-600">-</span>
             <Link href="/groups" className="hover:text-orange-400 transition-colors">
               Groups
             </Link>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-600">-</span>
             <Link href="/marketplace" className="hover:text-orange-400 transition-colors">
               Marketplace
             </Link>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-600">-</span>
             <Link href="/direct-connect" className="hover:text-orange-400 transition-colors">
               Direct Connect
             </Link>
           </nav>
         </div>
 
-        {/* Tier 2 – Snapshot row (informational, not buttons) */}
         {showSnapshot && (
-        <div className="mt-0.5 text-[11px] text-slate-400">
-          {/* Desktop/large: colorful inline snapshot band */}
-          <div className="hidden md:flex items-center gap-3 min-w-0 rounded-full bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-1 border border-slate-800">
-            <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <Users2 className="h-3.5 w-3.5 text-slate-100" />
-              <span className="truncate text-slate-100">{membersLabel}</span>
-            </div>
-            <span className="text-slate-500">·</span>
-            <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <Landmark className="h-3.5 w-3.5 text-orange-300" />
-              <span className="truncate text-slate-100">County Vault snapshot</span>
-            </div>
-            {activeHighlight && (
-              <>
-                <span className="text-slate-500">·</span>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {activeHighlight.icon}
-                  <span className="truncate text-slate-200">{activeHighlight.label}</span>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Mobile: compact stacked snapshot card */}
-          <div className="md:hidden mt-0.5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-2 border border-slate-800 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+          <div className="mt-0.5 text-[11px] text-slate-400">
+            <div className="hidden md:flex items-center gap-3 min-w-0 rounded-full bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-1 border border-slate-800">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <Users2 className="h-3.5 w-3.5 text-slate-100" />
                 <span className="truncate text-slate-100">{membersLabel}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Landmark className="h-3.5 w-3.5 text-orange-300" />
-              <span className="truncate text-slate-200">County Vault snapshot for your area</span>
-            </div>
-            {activeHighlight && (
-              <div className="flex items-center gap-1.5 min-w-0">
-                {activeHighlight.icon}
-                <span className="truncate text-slate-200">{activeHighlight.label}</span>
+              <span className="text-slate-500">-</span>
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                <Landmark className="h-3.5 w-3.5 text-orange-300" />
+                <span className="truncate text-slate-100">County snapshot</span>
               </div>
-            )}
+              {activeHighlight && (
+                <>
+                  <span className="text-slate-500">-</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {activeHighlight.icon}
+                    <span className="truncate text-slate-200">{activeHighlight.label}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="md:hidden mt-0.5 rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <Users2 className="h-3.5 w-3.5 text-slate-100 shrink-0" />
+                <span className="truncate text-slate-100">{membersLabel}</span>
+                <span className="text-slate-500 shrink-0">-</span>
+                <Landmark className="h-3.5 w-3.5 text-orange-300 shrink-0" />
+                <span className="truncate text-slate-200">County snapshot</span>
+              </div>
+              {activeHighlight && (
+                <div className="mt-1 flex items-center gap-1.5 min-w-0">
+                  {activeHighlight.icon}
+                  <span className="truncate text-slate-200">{activeHighlight.label}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         )}
       </div>
 
-      {/* Content area - keep community views within viewport on mobile */}
-      <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
-        {children}
-      </div>
+      <div className="w-full max-w-full overflow-x-hidden bg-slate-950">{children}</div>
     </div>
   );
 };

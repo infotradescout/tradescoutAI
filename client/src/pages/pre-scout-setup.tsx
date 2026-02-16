@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +11,39 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 
+type AuthMode = "create" | "signin";
+
+function sanitizePostSetupNext(next: string) {
+  if (!next.startsWith("/")) return "/scout?onboarding=true";
+  if (
+    next.startsWith("/login") ||
+    next.startsWith("/create-account") ||
+    next.startsWith("/pre-scout-setup")
+  ) {
+    return "/scout?onboarding=true";
+  }
+  return next;
+}
+
 export default function PreScoutSetup() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, refetch } = useAuth();
+  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+
+  const searchParams = useMemo(() => {
+    try {
+      return new URLSearchParams(window.location.search);
+    } catch {
+      return new URLSearchParams();
+    }
+  }, []);
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const nextParam = (searchParams.get("next") || "").trim();
+  const safeNext = nextParam.startsWith("/") ? nextParam : "";
+  const postSetupNext = sanitizePostSetupNext(safeNext);
+  const safeNextQuery = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
+  const prefilledEmail = (searchParams.get("email") || "").trim();
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
@@ -24,39 +54,177 @@ export default function PreScoutSetup() {
   const [stateCode, setStateCode] = useState(existingDraft?.stateCode || "");
   const [countyFips, setCountyFips] = useState(existingDraft?.countyFips || "");
   const [countyName, setCountyName] = useState<string | undefined>(existingDraft?.countyName);
-  const [city, setCity] = useState(existingDraft?.city || "");
   const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
-  const [businessCategory, setBusinessCategory] = useState(existingDraft?.businessCategory || "");
-  const [website, setWebsite] = useState(existingDraft?.website || "");
-  const [description, setDescription] = useState(existingDraft?.description || "");
   const [submitting, setSubmitting] = useState(false);
+
+  const [authMode, setAuthMode] = useState<AuthMode>("create");
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+
+  const [signInEmail, setSignInEmail] = useState(prefilledEmail);
+  const [signInPassword, setSignInPassword] = useState("");
+
+  const [createFirstName, setCreateFirstName] = useState("");
+  const [createLastName, setCreateLastName] = useState("");
+  const [createEmail, setCreateEmail] = useState(prefilledEmail);
+  const [createPhone, setCreatePhone] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createConfirmPassword, setCreateConfirmPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
     if (!existingDraft) return;
-
     setPresenceType(existingDraft.presenceType || "personal");
     setStateCode(existingDraft.stateCode || "");
     setCountyFips(existingDraft.countyFips || "");
     setCountyName(existingDraft.countyName);
-    setCity(existingDraft.city || "");
     setBusinessName(existingDraft.businessName || "");
-    setBusinessCategory(existingDraft.businessCategory || "");
-    setWebsite(existingDraft.website || "");
-    setDescription(existingDraft.description || "");
   }, [existingDraft]);
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) {
-      navigate("/create-account");
-    }
-  }, [isAuthenticated, isLoading, navigate]);
 
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;
     if (presenceType === "represent_business" && !businessName.trim()) return false;
     return true;
   }, [presenceType, stateCode, countyFips, businessName]);
+
+  const beginOAuth = (provider: "google" | "facebook") => {
+    const next = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
+    window.location.assign(`${apiBaseUrl}/api/auth/${provider}?next=${next}`);
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authSubmitting) return;
+
+    const email = signInEmail.trim();
+    const password = signInPassword;
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Enter email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAuthSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/auth/login", { email, password });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      try {
+        await refetch?.();
+      } catch {
+        // fail-soft
+      }
+      toast({ title: "Signed in", description: "Continue with local setup." });
+      navigate(`/pre-scout-setup${safeNextQuery}`);
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authSubmitting) return;
+
+    const email = createEmail.trim();
+    const phone = createPhone.trim();
+    const firstName = createFirstName.trim();
+    const lastName = createLastName.trim();
+
+    if (!firstName || !lastName || !email || !phone || !createPassword) {
+      toast({
+        title: "Missing fields",
+        description: "Complete all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (createPassword !== createConfirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "Passwords must match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (createPassword.length < 8) {
+      toast({
+        title: "Weak password",
+        description: "Use at least 8 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!acceptTerms) {
+      toast({
+        title: "Terms required",
+        description: "Accept the Terms of Service to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAuthSubmitting(true);
+    try {
+      const resp: any = await apiRequest("POST", "/api/auth/register", {
+        firstName,
+        lastName,
+        email,
+        phone,
+        password: createPassword,
+        userTypes: [],
+        userIntent: "",
+        acceptTerms: true,
+        allowPhoneCalls: false,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      try {
+        await refetch?.();
+      } catch {
+        // fail-soft
+      }
+
+      if (resp?.emailVerificationRequired === true) {
+        const emailParam = `email=${encodeURIComponent(email)}`;
+        const nextValue = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
+        navigate(`/check-email?${emailParam}&next=${nextValue}`);
+        return;
+      }
+
+      toast({ title: "Account created", description: "Continue with local setup." });
+      navigate(`/pre-scout-setup${safeNextQuery}`);
+    } catch (error: any) {
+      const message = error?.message || "Unable to create account.";
+      if (String(message).toLowerCase().includes("already exists")) {
+        toast({
+          title: "Account exists",
+          description: "Sign in to continue.",
+        });
+        setAuthMode("signin");
+        setSignInEmail(email);
+      } else {
+        toast({
+          title: "Create account failed",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,15 +233,12 @@ export default function PreScoutSetup() {
     setSubmitting(true);
     try {
       const draft: ProfileDraft = {
+        ...(existingDraft || {}),
         presenceType,
         stateCode,
         countyFips,
         countyName: countyName || undefined,
-        city: city.trim() || undefined,
         businessName: presenceType === "represent_business" ? businessName.trim() : undefined,
-        businessCategory: businessCategory.trim() || undefined,
-        website: website.trim() || undefined,
-        description: description.trim() || undefined,
         serviceAreas: [
           {
             countyFips,
@@ -96,13 +261,12 @@ export default function PreScoutSetup() {
       });
 
       toast({
-        title: "Saved",
-        description: "Thanks. Scout will tailor the next steps to this setup.",
+        title: "Setup saved",
+        description: "Opening your workspace.",
       });
 
-      navigate("/scout?onboarding=true");
+      navigate(postSetupNext);
     } catch (error: any) {
-      console.error("[PRE_SCOUT_SETUP] Failed to save", error);
       toast({
         title: "Couldn't save",
         description: error?.message || "Please try again.",
@@ -113,142 +277,284 @@ export default function PreScoutSetup() {
     }
   };
 
-  return (
-    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
-        <div className="space-y-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/scout")}
-            className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
-          >
-            <span className="text-sm">Back to Scout</span>
-          </Button>
-
-          <div className="space-y-4">
-            <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-              Step 2 of 2
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-3 py-6 md:px-4 md:py-10 text-tsTextMain">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.05fr_minmax(0,1fr)] gap-4 md:gap-6">
+          <div className="space-y-3 md:space-y-4">
+            <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-tsAccentSoft">
+              Step 1 of 2
             </div>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
-              Set your local setup before Scout takes over.
+            <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
+              Start account access, then lock your local setup.
             </h1>
-            <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              This quick check locks in where you operate and whether you&apos;re here as yourself
-              or representing a business. Scout uses it to show only relevant actions and deals.
+            <p className="text-sm text-tsTextMuted max-w-xl">
+              One entry flow for sign in and account creation.
             </p>
-
-            <div className="rounded-2xl border border-tsBorder bg-black/30 p-4 text-xs text-tsTextMuted space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-full bg-tsBorder/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-tsAccent" style={{ width: "60%" }} />
-                </div>
-                <span className="text-[11px] uppercase tracking-[0.2em] text-tsAccentSoft">
-                  Setup
-                </span>
-              </div>
-              <p>
-                We only use this for routing and relevance. It does not publish or share your
-                details until you choose to.
-              </p>
-            </div>
           </div>
-        </div>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl">
-          <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">
-                  Pre-Scout setup
-                </span>
-                <CardTitle className="text-lg font-semibold text-tsTextMain">
-                  Your starting point
-                </CardTitle>
+          <Card className="bg-tsCard border border-tsBorder">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-xl text-tsTextMain">Access TradeScout</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("create")}
+                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                    authMode === "create"
+                      ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
+                      : "border-tsBorder text-tsTextMuted"
+                  }`}
+                >
+                  Create account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("signin")}
+                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                    authMode === "signin"
+                      ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
+                      : "border-tsBorder text-tsTextMuted"
+                  }`}
+                >
+                  Sign in
+                </button>
               </div>
-              <div className="text-xs text-tsTextMuted">Required</div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => beginOAuth("google")}
+                >
+                  Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => beginOAuth("facebook")}
+                >
+                  Facebook
+                </Button>
+              </div>
+
+              {authMode === "signin" ? (
+                <form onSubmit={handleSignIn} className="space-y-2.5">
+                  <div>
+                    <Label className="text-sm">Email</Label>
+                    <Input
+                      type="email"
+                      value={signInEmail}
+                      onChange={(e) => setSignInEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Password</Label>
+                    <Input
+                      type="password"
+                      value={signInPassword}
+                      onChange={(e) => setSignInPassword(e.target.value)}
+                      placeholder="Your password"
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <a
+                      href="/reset-password"
+                      className="text-xs text-tsTextMuted hover:text-tsTextMain underline-offset-2 hover:underline"
+                    >
+                      Forgot password
+                    </a>
+                    <Button type="submit" disabled={authSubmitting}>
+                      {authSubmitting ? "Signing in..." : "Sign in"}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleCreateAccount} className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-sm">First name</Label>
+                      <Input
+                        value={createFirstName}
+                        onChange={(e) => setCreateFirstName(e.target.value)}
+                        placeholder="First"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Last name</Label>
+                      <Input
+                        value={createLastName}
+                        onChange={(e) => setCreateLastName(e.target.value)}
+                        placeholder="Last"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm">Email</Label>
+                    <Input
+                      type="email"
+                      value={createEmail}
+                      onChange={(e) => setCreateEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Phone</Label>
+                    <Input
+                      value={createPhone}
+                      onChange={(e) => setCreatePhone(e.target.value)}
+                      placeholder="(555) 555-5555"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-sm">Password</Label>
+                      <Input
+                        type="password"
+                        value={createPassword}
+                        onChange={(e) => setCreatePassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Confirm</Label>
+                      <Input
+                        type="password"
+                        value={createConfirmPassword}
+                        onChange={(e) => setCreateConfirmPassword(e.target.value)}
+                        placeholder="Repeat password"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={acceptTerms}
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs text-tsTextMuted">
+                      I agree to the Terms and Privacy Policy.
+                    </span>
+                  </label>
+                  <div className="flex items-center justify-between gap-3">
+                    <a
+                      href="/create-account/legacy"
+                      className="text-xs text-tsTextMuted hover:text-tsTextMain underline-offset-2 hover:underline"
+                    >
+                      Advanced signup
+                    </a>
+                    <Button type="submit" disabled={authSubmitting}>
+                      {authSubmitting ? "Creating..." : "Create account"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex justify-center px-3 py-6 md:px-4 md:py-10 text-tsTextMain">
+      <div className="w-full max-w-3xl space-y-3">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/scout")}
+          className="px-0 text-tsTextMuted hover:text-white hover:bg-transparent"
+        >
+          Back
+        </Button>
+
+        <Card className="bg-tsCard border border-tsBorder">
+          <CardHeader className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-0.5">
+                <CardTitle className="text-xl text-tsTextMain">Set your home county</CardTitle>
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">
+                Step 2/2
+              </div>
             </div>
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <Label className="text-sm">How are you showing up today?</Label>
-                <div className="grid grid-cols-1 gap-3">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Account mode</Label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setPresenceType("personal")}
-                    className={`w-full text-left rounded-lg border px-4 py-3 transition ${
+                    className={`w-full text-center rounded-lg border px-3 py-2.5 transition ${
                       presenceType === "personal"
                         ? "border-tsAccent bg-tsAccent/10"
                         : "border-tsBorder hover:border-tsAccent/60"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-tsTextMain">Just me</div>
-                    <div className="text-xs text-tsTextMuted">
-                      Plan projects, browse, and ask for help.
-                    </div>
+                    <div className="text-sm font-semibold text-tsTextMain">Personal</div>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPresenceType("represent_business")}
-                    className={`w-full text-left rounded-lg border px-4 py-3 transition ${
+                    className={`w-full text-center rounded-lg border px-3 py-2.5 transition ${
                       presenceType === "represent_business"
                         ? "border-tsAccent bg-tsAccent/10"
                         : "border-tsBorder hover:border-tsAccent/60"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-tsTextMain">
-                      I&apos;m representing a business
-                    </div>
-                    <div className="text-xs text-tsTextMuted">
-                      Share services, deals, or hiring needs.
-                    </div>
+                    <div className="text-sm font-semibold text-tsTextMain">Business</div>
                   </button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm">Where is this activity based?</Label>
+                <Label className="text-sm">Primary county</Label>
                 <StateCountySelector
                   selectedState={stateCode}
                   selectedCounty={countyFips}
                   onStateChange={setStateCode}
                   onCountyChange={setCountyFips}
+                  className="gap-2"
                   onCountySelected={(county) => {
                     setCountyName(county?.name);
                   }}
                 />
-                <p className="text-[11px] text-tsTextMuted">
-                  County is required so Scout can keep results local.
-                </p>
               </div>
 
               {presenceType === "represent_business" && (
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm">Business name</Label>
-                    <Input
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder="e.g., Northside Builders"
-                      required
-                    />
-                  </div>
-
-                  <div className="rounded-lg border border-dashed border-tsBorder/80 bg-black/20 p-3 text-xs text-tsTextMuted">
-                    Service area defaults to this county. Add category, website, and description
-                    later in profile settings.
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Business name</Label>
+                  <Input
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="Business name"
+                    required
+                  />
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] text-tsTextMuted max-w-xs">
-                  This is required so Scout can do its job. Nothing is shared publicly unless you
-                  choose to publish.
-                </div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] text-tsTextMuted">
+                  {canContinue ? "Ready." : "Select state and county."}
+                </p>
                 <Button type="submit" disabled={!canContinue || submitting}>
-                  {submitting ? "Saving..." : "Continue to Scout"}
+                  {submitting ? "Saving..." : "Save and continue"}
                 </Button>
               </div>
             </form>

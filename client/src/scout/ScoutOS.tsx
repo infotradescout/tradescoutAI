@@ -3089,10 +3089,10 @@ export default function ScoutOS() {
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-2.5 pt-1 pb-14" : "max-w-6xl px-4 pt-3 pb-8"
+            isMobile ? "px-2 pt-1 pb-12" : "max-w-6xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
-            paddingBottom: isMobile ? "calc(4.25rem + env(safe-area-inset-bottom))" : undefined,
+            paddingBottom: isMobile ? "calc(3.9rem + env(safe-area-inset-bottom))" : undefined,
           }}
         >
           {/* Main conversation layout: used for all users, including first-time guests. */}
@@ -3103,7 +3103,7 @@ export default function ScoutOS() {
                 : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
-            <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl border border-slate-800/80 bg-slate-950/45 px-3 md:px-4 py-3 shadow-[0_12px_36px_rgba(2,6,23,0.45)]">
+            <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl border border-slate-800/80 bg-slate-950/45 px-2.5 md:px-4 py-2.5 shadow-[0_12px_36px_rgba(2,6,23,0.45)]">
               <ScoutHeader
                 isAuthenticated={isAuthenticated}
                 isFirstGuestVisit={isFirstGuestVisit}
@@ -3113,7 +3113,7 @@ export default function ScoutOS() {
               {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
               {onboarding.flowState.phase === "confirming" &&
                 onboarding.flowState.confirmationCard && (
-                  <div className="mt-4 mb-6 flex justify-center">
+                  <div className="mt-3 mb-4 flex justify-center">
                     <ClaimConfirmationCardComponent
                       data={onboarding.flowState.confirmationCard}
                       onConfirm={(selectedClaims: ClaimType[]) => {
@@ -3161,7 +3161,7 @@ export default function ScoutOS() {
 
               {/* Show loading state during inference */}
               {onboarding.flowState.phase === "inferring" && (
-                <div className="mt-4 mb-6 flex justify-center">
+                <div className="mt-3 mb-4 flex justify-center">
                   <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
                     <div className="flex items-center gap-3">
                       <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
@@ -3175,7 +3175,7 @@ export default function ScoutOS() {
 
               {/* Show writing state */}
               {onboarding.flowState.phase === "writing" && (
-                <div className="mt-4 mb-6 flex justify-center">
+                <div className="mt-3 mb-4 flex justify-center">
                   <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
                     <div className="flex items-center gap-3">
                       <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
@@ -3189,7 +3189,7 @@ export default function ScoutOS() {
 
               {/* Show error if any */}
               {onboarding.flowState.error && (
-                <div className="mt-4 mb-6 flex justify-center">
+                <div className="mt-3 mb-4 flex justify-center">
                   <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
                     <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
                   </Card>
@@ -3198,7 +3198,7 @@ export default function ScoutOS() {
 
               {/* PHASE 3d-B: Post-Onboarding Action Card (deterministic action selection) */}
               {scoutModeHook.scoutMode === "post_onboarding" && scoutModeHook.confirmedClaims && (
-                <div className="mt-4 mb-6 flex justify-center">
+                <div className="mt-3 mb-4 flex justify-center">
                   <PostOnboardingActionCard
                     claims={scoutModeHook.confirmedClaims as ClaimType[]}
                     actions={resolvePostOnboardingActions(
@@ -3216,7 +3216,7 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              <div className="mt-1.5 mb-2.5">
+              <div className="mt-1 mb-2">
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
@@ -3242,7 +3242,7 @@ export default function ScoutOS() {
 
                 {!isAuthenticated && (
                   <div className="mt-2 text-xs text-slate-300/90">
-                    You can explore freely.{" "}
+                    Explore first.{" "}
                     <button
                       type="button"
                       className="font-medium underline underline-offset-2 text-slate-200 hover:text-white"
@@ -3250,12 +3250,12 @@ export default function ScoutOS() {
                     >
                       Sign in
                     </button>{" "}
-                    to save, post, or message.
+                    to save and message.
                   </div>
                 )}
 
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {resolvedTiles.slice(0, 4).map((tile) => (
+                  {resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
                     <button
                       key={`dock-${tile.id}`}
                       type="button"
@@ -3282,24 +3282,16 @@ export default function ScoutOS() {
               >
                 {!hasUserMessages && (
                   <div className="flex flex-col gap-2.5 py-2 px-0.5">
-                    <div className="space-y-1">
-                      <p
-                        className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        Start
-                      </p>
-                      <p
-                        className="text-[11px] md:text-sm"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        Choose an action or type your request.
-                      </p>
-                    </div>
+                    <p
+                      className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Quick start
+                    </p>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
                     {countyCommitted ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      <div className="grid grid-cols-2 gap-2 mt-0.5">
                         {resolvedTiles.map((tile) => (
                           <button
                             key={tile.id}
@@ -3307,7 +3299,7 @@ export default function ScoutOS() {
                               setHasGuestInteracted(true);
                               handleActionTile(tile);
                             }}
-                            className="flex flex-col items-start justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-2.5 py-2.5 text-left transition-colors hover:border-slate-600 hover:bg-slate-900/75"
+                            className="flex flex-col items-start justify-between rounded-lg border border-slate-800 bg-slate-950/60 px-2 py-2 text-left transition-colors hover:border-slate-600 hover:bg-slate-900/75"
                             style={{ color: "var(--text-primary)" }}
                           >
                             <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
@@ -3320,7 +3312,7 @@ export default function ScoutOS() {
                               <span>{tileMetaById[tile.id]?.eyebrow || "Scout"}</span>
                             </div>
                             <span className="font-semibold text-[13px] mb-1">{tile.label}</span>
-                            {tile.description && (
+                            {!isMobile && tile.description && (
                               <span
                                 className="text-[11px]"
                                 style={{ color: "var(--text-secondary)" }}
@@ -3328,20 +3320,19 @@ export default function ScoutOS() {
                                 {tile.description}
                               </span>
                             )}
-                            <span className="mt-2 text-[10px] text-slate-300 font-medium">
+                            <span className="mt-1 text-[10px] text-slate-300 font-medium">
                               Open
                             </span>
                           </button>
                         ))}
                       </div>
                     ) : (
-                      <div className="mt-2 space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3">
+                      <div className="mt-1.5 space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2.5">
                         <p
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          You&apos;re viewing nearby activity. Set your home county to unlock fully
-                          local pros, posts, and jobs.
+                          Set your home county to unlock local pros, posts, and jobs.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
