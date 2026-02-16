@@ -1593,6 +1593,9 @@ export class DatabaseStorage implements IStorage {
   ): Promise<Business> {
     const slug = await this.generateUniqueBusinessSlug(data.slug || data.name);
     const countyIds = data.countyIds || [];
+    const nextSources = Array.isArray((data as any).sources)
+      ? Array.from(new Set(((data as any).sources as string[]).filter(Boolean)))
+      : [];
 
     const created = await db.transaction(async (tx) => {
       const inserted = await tx
@@ -1601,6 +1604,8 @@ export class DatabaseStorage implements IStorage {
           ...data,
           ownerUserId,
           slug,
+          claimStatus: "claimed",
+          sources: nextSources,
         } as any)
         .returning();
 
@@ -1632,6 +1637,9 @@ export class DatabaseStorage implements IStorage {
   ): Promise<Business> {
     const slug = await this.generateUniqueBusinessSlug(data.slug || data.name);
     const countyIds = data.countyIds || [];
+    const nextSources = Array.isArray((data as any).sources)
+      ? Array.from(new Set(((data as any).sources as string[]).filter(Boolean)))
+      : [];
 
     const created = await db.transaction(async (tx) => {
       const inserted = await tx
@@ -1640,6 +1648,8 @@ export class DatabaseStorage implements IStorage {
           ...data,
           ownerUserId: null,
           slug,
+          claimStatus: "unclaimed",
+          sources: nextSources,
         } as any)
         .returning();
 
@@ -1667,7 +1677,7 @@ export class DatabaseStorage implements IStorage {
   async claimUnclaimedBusinessForUser(businessId: string, userId: string): Promise<Business> {
     const rows = await db
       .update(businesses)
-      .set({ ownerUserId: userId, updatedAt: new Date() } as any)
+      .set({ ownerUserId: userId, claimStatus: "claimed", updatedAt: new Date() } as any)
       .where(and(eq(businesses.id, businessId), isNull(businesses.ownerUserId)))
       .returning();
     const business = rows[0];

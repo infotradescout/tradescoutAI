@@ -520,6 +520,11 @@ export const businesses = pgTable(
         importExtras?: Record<string, string>;
       }>()
       .default(sql`'{}'::jsonb`),
+    claimStatus: varchar("claim_status", { length: 32 }).notNull().default("unclaimed"),
+    sources: jsonb("sources")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     status: businessStatusEnum("status").notNull().default("draft"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -528,6 +533,51 @@ export const businesses = pgTable(
     index("business_owner_idx").on(table.ownerUserId),
     index("business_role_ctx_idx").on(table.roleContext),
     index("business_status_idx").on(table.status),
+    index("business_claim_status_idx").on(table.claimStatus),
+  ]
+);
+
+// Staging table for preload/import pipeline before canonical merge.
+export const listingImportStaging = pgTable(
+  "listing_import_staging",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    batchId: varchar("batch_id", { length: 64 }).notNull(),
+    source: varchar("source", { length: 64 }).notNull(),
+    externalId: varchar("external_id"),
+    name: varchar("name", { length: 255 }).notNull(),
+    normalizedName: varchar("normalized_name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 64 }),
+    email: varchar("email", { length: 255 }),
+    website: varchar("website", { length: 512 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    countyFips: varchar("county_fips", { length: 5 }),
+    countyName: varchar("county_name", { length: 128 }),
+    lat: decimal("lat", { precision: 9, scale: 6 }),
+    lng: decimal("lng", { precision: 9, scale: 6 }),
+    tradeCategories: jsonb("trade_categories")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    dedupeKey: varchar("dedupe_key", { length: 255 }).notNull(),
+    rawPayload: jsonb("raw_payload").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    mergedBusinessId: varchar("merged_business_id"),
+    mergeNotes: text("merge_notes"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("listing_import_staging_batch_idx").on(table.batchId),
+    index("listing_import_staging_status_idx").on(table.status),
+    index("listing_import_staging_dedupe_idx").on(table.dedupeKey),
+    uniqueIndex("listing_import_staging_batch_external_idx").on(
+      table.batchId,
+      table.source,
+      table.externalId
+    ),
   ]
 );
 
@@ -1112,6 +1162,8 @@ export const businessVerifications = pgTable("business_verifications", {
 
 export type InsertBusiness = typeof businesses.$inferInsert;
 export type Business = typeof businesses.$inferSelect;
+export type InsertListingImportStaging = typeof listingImportStaging.$inferInsert;
+export type ListingImportStaging = typeof listingImportStaging.$inferSelect;
 export type InsertBusinessCounty = typeof businessCounties.$inferInsert;
 export type BusinessCounty = typeof businessCounties.$inferSelect;
 

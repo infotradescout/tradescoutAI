@@ -335,6 +335,8 @@ export default function CreateAccountPortal() {
       id: string;
       name: string;
       slug: string;
+      claimStatus?: string;
+      sources?: string[];
       counties?: Array<{ fips: string; stateCode: string; name: string }>;
     }>
   >([]);
@@ -802,6 +804,9 @@ export default function CreateAccountPortal() {
                                 .slice(0, 2)
                                 .map((c: any) => `${c.name}, ${c.stateCode}`)
                                 .join(" - ");
+                              const sourceList = Array.isArray((b as any).sources)
+                                ? ((b as any).sources as string[]).filter(Boolean).slice(0, 2)
+                                : [];
                               return (
                                 <button
                                   key={b.id || b.slug}
@@ -821,6 +826,12 @@ export default function CreateAccountPortal() {
                                   </div>
                                   <div className="text-[11px] text-tsTextMuted">
                                     {countyLabel || b.slug}
+                                  </div>
+                                  <div className="mt-1 text-[10px] text-tsTextMuted/80">
+                                    {(b as any).claimStatus === "unclaimed"
+                                      ? "Unclaimed listing"
+                                      : "Claimable listing"}
+                                    {sourceList.length ? ` - Source: ${sourceList.join(", ")}` : ""}
                                   </div>
                                 </button>
                               );

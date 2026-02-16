@@ -38,6 +38,8 @@
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
     "test:run:db": "npm run db:push:test && npm run test:run",
     "seed:test-user": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-test-user.ts",
+    "import:stage": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/import/stage-business-csv.ts",
+    "import:merge": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/import/merge-staged-businesses.ts",
     "seed:states": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-states.ts",
     "seed:counties": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-counties.ts",
     "seed:geo": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-geographic-storage.ts",
