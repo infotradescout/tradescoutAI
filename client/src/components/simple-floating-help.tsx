@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, X, BookOpen, Play, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { HelpCircle, X, BookOpen, Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 export function SimpleFloatingHelp() {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,20 +11,20 @@ export function SimpleFloatingHelp() {
 
   const helpOptions = [
     {
-      id: 'contractor-search',
-      title: 'Find Contractors',
-      description: 'Learn how to search and filter contractors'
+      id: "contractor-search",
+      title: "Find Contractors",
+      description: "Learn how to search and filter contractors",
     },
     {
-      id: 'messaging',
-      title: 'Contact Contractors',
-      description: 'How to connect with contractors'
+      id: "messaging",
+      title: "Request Quotes",
+      description: "How request flow works before contact is granted",
     },
     {
-      id: 'daily-deals',
-      title: 'TradeDeals',
-      description: 'Understand how exclusive TradeDeals work'
-    }
+      id: "daily-deals",
+      title: "TradeDeals",
+      description: "Understand how exclusive TradeDeals work",
+    },
   ];
 
   const handleStartTour = (tourId: string) => {
@@ -94,7 +94,7 @@ export function SimpleFloatingHelp() {
                       size="sm"
                       className="w-full border-gray-500 text-gray-300 hover:bg-slate-700"
                       onClick={() => {
-                        toast({ title: 'Opening help center...' });
+                        toast({ title: "Opening help center..." });
                         setIsOpen(false);
                       }}
                     >

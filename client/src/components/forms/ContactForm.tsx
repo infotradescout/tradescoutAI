@@ -5,10 +5,17 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessagingTooltip, ContextualTooltip } from "@/components/ui/contextual-tooltip";
-import { Send, Phone, Mail, MessageSquare } from "lucide-react";
+import { Send, ClipboardList, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const contactFormSchema = z.object({
@@ -17,7 +24,7 @@ const contactFormSchema = z.object({
   phone: z.string().optional(),
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   message: z.string().min(20, "Message must be at least 20 characters"),
-  projectType: z.string().optional()
+  projectType: z.string().optional(),
 });
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
@@ -25,13 +32,17 @@ type ContactFormData = z.infer<typeof contactFormSchema>;
 interface ContactFormProps {
   contractorId?: string;
   className?: string;
-  variant?: 'default' | 'compact';
+  variant?: "default" | "compact";
 }
 
-export function ContactForm({ contractorId, className = "", variant = 'default' }: ContactFormProps) {
+export function ContactForm({
+  contractorId,
+  className = "",
+  variant = "default",
+}: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
@@ -40,8 +51,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
       phone: "",
       subject: "",
       message: "",
-      projectType: ""
-    }
+      projectType: "",
+    },
   });
 
   const onSubmit = async (data: ContactFormData) => {
@@ -61,7 +72,7 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
           message: data.message,
           projectType: data.projectType,
           contractorId: contractorId || null,
-          source: "TradeScout Contact Form"
+          source: "TradeScout Contact Form",
         }),
       });
 
@@ -124,8 +135,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         className="bg-navy-700 border-navy-600 text-white"
                         placeholder="John Smith"
                       />
@@ -150,8 +161,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         type="email"
                         className="bg-navy-700 border-navy-600 text-white"
                         placeholder="john@example.com"
@@ -179,8 +190,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         type="tel"
                         className="bg-navy-700 border-navy-600 text-white"
                         placeholder="(555) 123-4567"
@@ -206,8 +217,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         className="bg-navy-700 border-navy-600 text-white"
                         placeholder="Kitchen remodel, deck repair, etc."
                       />
@@ -233,8 +244,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
                     />
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       className="bg-navy-700 border-navy-600 text-white"
                       placeholder="Need quote for bathroom renovation"
                     />
@@ -261,8 +272,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
                     </MessagingTooltip>
                   </FormLabel>
                   <FormControl>
-                    <Textarea 
-                      {...field} 
+                    <Textarea
+                      {...field}
                       className="bg-navy-700 border-navy-600 text-white min-h-32"
                       placeholder="Describe your project in detail: room size, current condition, timeline, budget range, specific requirements..."
                     />
@@ -273,8 +284,8 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
             />
 
             <div className="flex justify-end pt-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 flex items-center gap-2"
               >
@@ -289,17 +300,17 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
           </form>
         </Form>
 
-        {/* Contact alternatives */}
+        {/* Request alternatives */}
         <div className="mt-6 pt-6 border-t border-navy-600">
-          <p className="text-sm text-gray-400 mb-3">Prefer to contact directly?</p>
+          <p className="text-sm text-gray-400 mb-3">Prefer request-based routing?</p>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm" className="border-navy-600 text-gray-300 hover:text-white">
-              <Phone className="h-4 w-4 mr-2" />
-              Call Now
-            </Button>
-            <Button variant="outline" size="sm" className="border-navy-600 text-gray-300 hover:text-white">
-              <Mail className="h-4 w-4 mr-2" />
-              Send Email
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-navy-600 text-gray-300 hover:text-white"
+            >
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Request Quote
             </Button>
           </div>
         </div>
