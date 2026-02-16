@@ -172,7 +172,9 @@ function SectionNav({
   counts?: Partial<Record<Section, number>>;
   mobile?: boolean;
 }) {
-  const wrapperClass = mobile ? "flex gap-2 overflow-x-auto pb-1" : "space-y-1.5";
+  const wrapperClass = mobile
+    ? "flex gap-1.5 overflow-x-auto pb-1.5 -mx-0.5 px-0.5"
+    : "space-y-1.5";
 
   return (
     <div className={wrapperClass}>
@@ -188,7 +190,7 @@ function SectionNav({
             className={cn(
               "group text-left transition-all",
               mobile
-                ? "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs whitespace-nowrap"
+                ? "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] whitespace-nowrap"
                 : "w-full rounded-xl border px-3 py-2"
             )}
             style={{
@@ -199,11 +201,13 @@ function SectionNav({
               color: active ? "var(--text-primary)" : "var(--text-secondary)",
             }}
           >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[color:var(--border-subtle)]">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-[color:var(--border-subtle)]">
               {SECTION_ICONS[section]}
             </span>
             <span className="flex-1">
-              <span className="text-sm font-medium">{SECTION_LABELS[section]}</span>
+              <span className={cn("font-medium", mobile ? "text-xs" : "text-sm")}>
+                {SECTION_LABELS[section]}
+              </span>
             </span>
             {count > 0 && (
               <Badge variant="secondary" className="text-[10px]">
@@ -264,7 +268,7 @@ function DirectConnectInbox() {
   if (!isAuthenticated || !user) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
+        <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
           Sign in with a contractor profile to view Direct Connect opportunities sent to you.
         </CardContent>
       </Card>
@@ -274,7 +278,7 @@ function DirectConnectInbox() {
   if (isLoading) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="space-y-3 p-6">
+        <CardContent className="space-y-3 p-4 md:p-6">
           <div className="h-4 w-52 rounded bg-[color:var(--surface-intermediate)]" />
           <div className="h-24 rounded bg-[color:var(--surface-intermediate)]" />
           <div className="h-24 rounded bg-[color:var(--surface-intermediate)]" />
@@ -291,7 +295,7 @@ function DirectConnectInbox() {
   if (!items.length) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
+        <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
           No opportunities yet. When homeowners send jobs to you through Direct Connect, they will
           appear here.
         </CardContent>
@@ -357,7 +361,7 @@ function DirectConnectInbox() {
             key={assignment.id}
             className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
           >
-            <CardContent className="space-y-4 p-5">
+            <CardContent className="space-y-3 p-4 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
@@ -464,7 +468,7 @@ function DirectConnectInbox() {
 
       {!filteredItems.length && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
+          <CardContent className="p-4 md:p-6 text-center text-sm text-[color:var(--text-secondary)]">
             No items in this filter.
           </CardContent>
         </Card>
@@ -690,7 +694,7 @@ function MyDirectConnectRequests() {
   if (!isAuthenticated) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
+        <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
           Sign in to see your Direct Connect requests and progress.
         </CardContent>
       </Card>
@@ -700,7 +704,7 @@ function MyDirectConnectRequests() {
   if (isLoading) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="space-y-3 p-6">
+        <CardContent className="space-y-3 p-4 md:p-6">
           <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
           <div className="h-24 rounded bg-[color:var(--surface-intermediate)]" />
           <div className="h-24 rounded bg-[color:var(--surface-intermediate)]" />
@@ -721,7 +725,7 @@ function MyDirectConnectRequests() {
   if (!requests.length) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-8 text-center text-sm text-[color:var(--text-secondary)]">
+        <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
           No requests yet. Start with "Post Request" to post your first Direct Connect job.
         </CardContent>
       </Card>
@@ -774,7 +778,7 @@ function MyDirectConnectRequests() {
             key={r.id}
             className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
           >
-            <CardContent className="space-y-4 p-5">
+            <CardContent className="space-y-3 p-4 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
@@ -875,7 +879,7 @@ function MyDirectConnectRequests() {
 
       {!filteredRequests.length && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
+          <CardContent className="p-4 md:p-6 text-center text-sm text-[color:var(--text-secondary)]">
             No requests in this filter.
           </CardContent>
         </Card>
@@ -952,23 +956,23 @@ export default function DirectConnectShell() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-7xl space-y-4 px-3 py-4 md:px-6 md:py-6">
+      <div className="mx-auto w-full max-w-7xl space-y-3 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="p-5 md:p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] px-3 py-1 text-[11px] uppercase tracking-wide text-[color:var(--text-secondary)]">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   Get work done
                 </div>
-                <h1 className="text-2xl font-semibold text-[color:var(--text-primary)] md:text-3xl">
+                <h1 className="text-xl font-semibold text-[color:var(--text-primary)] md:text-3xl">
                   Direct Connect
                 </h1>
                 <p className="max-w-2xl text-sm text-[color:var(--text-secondary)]">
                   Post work requests, discover local providers, and manage everything in one place.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
                   <div className="text-[color:var(--text-secondary)]">Pending in inbox</div>
                   <div className="mt-1 text-lg font-semibold text-[color:var(--text-primary)]">

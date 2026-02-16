@@ -3089,10 +3089,10 @@ export default function ScoutOS() {
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-3 pt-1 pb-16" : "max-w-5xl px-4 pt-2 pb-8"
+            isMobile ? "px-2.5 pt-0.5 pb-14" : "max-w-5xl px-4 pt-2 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
-            paddingBottom: isMobile ? "calc(4.75rem + env(safe-area-inset-bottom))" : undefined,
+            paddingBottom: isMobile ? "calc(4.25rem + env(safe-area-inset-bottom))" : undefined,
           }}
         >
           {/* Main conversation layout: used for all users, including first-time guests. */}
@@ -3216,7 +3216,7 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              <div className="mt-2 mb-3">
+              <div className="mt-1.5 mb-2.5">
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
@@ -3254,7 +3254,7 @@ export default function ScoutOS() {
                   </div>
                 )}
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   {resolvedTiles.slice(0, 4).map((tile) => (
                     <button
                       key={`dock-${tile.id}`}
@@ -3263,7 +3263,7 @@ export default function ScoutOS() {
                         setHasGuestInteracted(true);
                         handleActionTile(tile);
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-slate-200 transition-colors hover:border-orange-400/70 hover:text-orange-200"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-0.5 text-[10px] font-medium text-slate-200 transition-colors hover:border-orange-400/70 hover:text-orange-200"
                     >
                       <span className="text-orange-300">{tile.label}</span>
                     </button>
@@ -3275,13 +3275,13 @@ export default function ScoutOS() {
                   the bottom of the viewport, with the input pinned just above
                   the global bottom nav. */}
               <div
-                className={`mt-2 flex flex-col flex-1 min-h-0 ${
+                className={`mt-1.5 flex flex-col flex-1 min-h-0 ${
                   isMobile ? "space-y-2" : "space-y-2"
                 }`}
-                style={{ paddingBottom: isMobile ? "1rem" : "1rem" }}
+                style={{ paddingBottom: isMobile ? "0.75rem" : "1rem" }}
               >
                 {!hasUserMessages && (
-                  <div className="flex flex-col gap-3 py-3 px-1">
+                  <div className="flex flex-col gap-2.5 py-2 px-0.5">
                     <div className="space-y-1">
                       <p
                         className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
@@ -3289,7 +3289,10 @@ export default function ScoutOS() {
                       >
                         Controller
                       </p>
-                      <p className="text-xs md:text-sm" style={{ color: "var(--text-secondary)" }}>
+                      <p
+                        className="text-[11px] md:text-sm"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         Pick one action to start, or ask Scout directly.
                       </p>
                     </div>
@@ -3304,7 +3307,7 @@ export default function ScoutOS() {
                               setHasGuestInteracted(true);
                               handleActionTile(tile);
                             }}
-                            className="flex flex-col items-start justify-between rounded-xl border border-slate-800 bg-slate-900/75 px-3 py-3 text-left hover:border-orange-400/80 hover:bg-slate-900 transition-colors"
+                            className="flex flex-col items-start justify-between rounded-xl border border-slate-800 bg-slate-900/75 px-2.5 py-2.5 text-left hover:border-orange-400/80 hover:bg-slate-900 transition-colors"
                             style={{ color: "var(--text-primary)" }}
                           >
                             <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-300">
@@ -3316,7 +3319,7 @@ export default function ScoutOS() {
                               })()}
                               <span>{tileMetaById[tile.id]?.eyebrow || "Scout"}</span>
                             </div>
-                            <span className="font-semibold text-sm mb-1">{tile.label}</span>
+                            <span className="font-semibold text-[13px] mb-1">{tile.label}</span>
                             {tile.description && (
                               <span
                                 className="text-[11px]"
