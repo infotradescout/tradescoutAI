@@ -294,7 +294,7 @@ export default function Chat() {
                     <div className="p-4 text-center">
                       <p className="text-gray-400 text-sm">No conversations yet</p>
                       <p className="text-gray-500 text-xs mt-1">
-                        Start through Scout or Direct Connect to keep contact intent-gated.
+                        Start through Scout or Direct Connect to keep contact intent-based.
                       </p>
                       <div className="mt-3 flex flex-wrap justify-center gap-2">
                         <Link href="/direct-connect">

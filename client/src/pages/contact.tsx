@@ -17,7 +17,7 @@ export default function ContactGatePage() {
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-orange-500" />
-            Contact Is Intent-Gated
+            Contact Requires Intent Confirmation
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             TradeScout routes outreach through Scout and Direct Connect to prevent spam and preserve

@@ -132,13 +132,13 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
             <div className="text-center mb-8 md:mb-16">
               <h1 className="text-2xl md:text-4xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
-                Local trust + routing — decisions before contact.
+                Local trust + routing - decisions before contact.
               </h1>
               <div className="max-w-2xl mx-auto mb-6 md:mb-8">
                 <ul className="text-base md:text-lg text-gray-300 space-y-2">
-                  <li>• Contact is gated by Decision Cards.</li>
-                  <li>• Claims can be verified (VAC) where available.</li>
-                  <li>• Routing favors proof, not ads.</li>
+                  <li>- Contact requires a Decision Card.</li>
+                  <li>- Claims can be verified (VAC) where available.</li>
+                  <li>- Routing favors proof, not ads.</li>
                 </ul>
               </div>
 

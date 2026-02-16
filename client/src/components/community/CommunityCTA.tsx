@@ -52,7 +52,7 @@ async function checkCTAAuthority(
       allowed: false,
       action: "DEFER",
       ctaMode: "ask_scout",
-      explanation: "Scout check unavailable. Use Ask Scout to keep contact intent-gated.",
+      explanation: "Scout check unavailable. Use Ask Scout to keep contact intent-based.",
       label: "Ask Scout first",
     };
   }

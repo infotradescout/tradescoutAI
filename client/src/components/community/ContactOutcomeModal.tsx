@@ -208,7 +208,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           </h2>
           <p className="text-sm text-slate-600">Decision: {outcome.decisionTitle}</p>
           <p className="text-xs text-slate-500">
-            Contact remains intent-gated until this authority-confirmed step is completed.
+            Contact remains intent-based until this authority-confirmed step is completed.
           </p>
         </div>
 

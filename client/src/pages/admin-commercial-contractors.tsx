@@ -247,7 +247,7 @@ export default function AdminCommercialContractorsPage() {
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2">
             <Gauge className="h-4 w-4 text-emerald-200" />
-            Access gate automation
+            Access requirement automation
           </div>
         </div>
       </section>
@@ -398,13 +398,13 @@ export default function AdminCommercialContractorsPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                   <div className="rounded border border-slate-700 p-3">
-                    License gate:{" "}
+                    License requirement:{" "}
                     {selected.verification.hasApprovedLicenseDoc
                       ? "approved doc"
                       : "missing approved doc"}
                   </div>
                   <div className="rounded border border-slate-700 p-3">
-                    Insurance gate:{" "}
+                    Insurance requirement:{" "}
                     {selected.verification.hasApprovedInsuranceDoc
                       ? "approved doc"
                       : "missing approved doc"}

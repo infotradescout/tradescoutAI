@@ -27,11 +27,19 @@ export function ProofMetricsSnapshot() {
       <CardContent className="p-4 md:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Metric label="Counties indexed" value={data?.countiesIndexed} isLoading={isLoading} />
-          <Metric label="Decisions (7 days)" value={data?.decisionsLast7Days} isLoading={isLoading} />
-          <Metric label="Verified claims (30 days)" value={data?.verifiedClaimsLast30Days} isLoading={isLoading} />
+          <Metric
+            label="Decisions (7 days)"
+            value={data?.decisionsLast7Days}
+            isLoading={isLoading}
+          />
+          <Metric
+            label="Verified claims (30 days)"
+            value={data?.verifiedClaimsLast30Days}
+            isLoading={isLoading}
+          />
         </div>
         <p className="text-xs text-secondary mt-3">
-          Counts are anonymized. Contact is gated by a Decision Card.
+          Counts are anonymized. Contact requires a Decision Card.
         </p>
       </CardContent>
     </Card>

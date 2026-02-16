@@ -188,7 +188,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                     signals
                   </li>
                   <li>
-                    <strong>Trust-gated</strong>: Only verified contractors can receive requests
+                    <strong>Trust-verified</strong>: Only verified contractors can receive requests
                   </li>
                 </ul>
                 <p className="text-tsTextSecondary mt-4">

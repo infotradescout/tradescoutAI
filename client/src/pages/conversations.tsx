@@ -195,7 +195,7 @@ export default function Conversations() {
                       <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                       <h3 className="font-medium text-orange-500 mb-2">No conversations yet</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Start through Scout or Direct Connect to keep contact intent-gated.
+                        Start through Scout or Direct Connect to keep contact intent-based.
                       </p>
                       <div className="flex flex-wrap justify-center gap-2">
                         <Link href="/direct-connect">

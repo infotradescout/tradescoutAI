@@ -232,7 +232,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
               </div>
               <p className="text-sm md:text-base text-slate-300">
-                County-first real estate, with intent-gated contact.
+                County-first real estate, with intent-based contact.
               </p>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <MapPin className="h-3.5 w-3.5" />
@@ -435,7 +435,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
 
                     <div className="pt-2 flex items-center justify-between">
                       <div className="text-xs text-slate-400">
-                        Contact is intent-gated (Decision Card required).
+                        Contact requires intent confirmation (Decision Card required).
                       </div>
                       <Link href={`/homescout/listings/${listing.id}`}>
                         <Button

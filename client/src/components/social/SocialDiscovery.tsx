@@ -76,14 +76,14 @@ export const SocialDiscovery = () => {
       const roleLabel = targetUser.role ? ` (${targetUser.role})` : "";
       const prompt = [
         `I want to ${intent} with ${targetUser.name}${roleLabel}.`,
-        "Please run the authority gate and open the correct intent-gated contact path if approved.",
+        "Please run the authority check and open the correct intent-based contact path if approved.",
       ].join(" ");
       navigate(`/scout?prompt=${encodeURIComponent(prompt)}`);
       return { ok: true };
     },
     onSuccess: () => {
       toast({
-        title: "Scout Gate Started",
+        title: "Scout Check Started",
         description: "Scout will evaluate intent and route contact if approved.",
       });
       setIntentModal({ isOpen: false });

@@ -12,7 +12,7 @@ import { Zap, Target, Shield, Users, ArrowRight } from "lucide-react";
  *
  * Topics:
  * - How Direct Connect routing works
- * - Trust-gated matching (only verified contractors)
+ * - Trust-verified matching (only verified contractors)
  * - No lead spam (1-3 qualified matches, not dozens)
  * - Context-aware requests (Scout includes job details)
  * - What's different from lead-buying platforms
@@ -212,11 +212,11 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                 </p>
               </div>
 
-              {/* Trust-Gated */}
+              {/* Trust-Verified */}
               <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
-                <h3 className="text-lg font-semibold mb-2">Trust-Gated</h3>
+                <h3 className="text-lg font-semibold mb-2">Trust-Verified Access</h3>
                 <p className="text-tsTextSecondary">
-                  Only contractors with CVS ≥ 60 (verified, licensed, insured) can receive Direct
+                  Only contractors with CVS at least 60 (verified, licensed, insured) can receive
                   Connect requests.
                 </p>
                 <p className="text-tsTextSecondary mt-2">

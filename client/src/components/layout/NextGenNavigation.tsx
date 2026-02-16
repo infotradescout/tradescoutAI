@@ -529,7 +529,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                       </Button>
                     </Link>
                     <p className="text-[11px] text-slate-400">
-                      Contact is account-gated for spam prevention.
+                      Contact requires an account to prevent spam.
                     </p>
                   </div>
                 )}

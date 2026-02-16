@@ -834,8 +834,9 @@ export default function Settings() {
                     <div className="space-y-2">
                       <Label className="text-white font-medium">Home region (authoritative)</Label>
                       <p className="text-xs text-slate-400">
-                        Scout uses this saved county to unlock county-gated pages and match you with
-                        the right local feeds. Changing it here updates your location everywhere.
+                        Scout uses this saved county to unlock county-specific pages and match you
+                        with the right local feeds. Changing it here updates your location
+                        everywhere.
                       </p>
                     </div>
                     <StateCountySelector

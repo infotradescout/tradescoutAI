@@ -172,9 +172,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       </p>
       {!isLoggedIn && (
         <div className="mt-4 space-y-2">
-          <p className="text-[11px] text-secondary">
-            Contact is account-gated for spam prevention.
-          </p>
+          <p className="text-[11px] text-secondary">Contact requires an account to prevent spam.</p>
           <div className="flex gap-2">
             <button
               type="button"

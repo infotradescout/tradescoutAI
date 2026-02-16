@@ -8,8 +8,24 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Lock, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Shield,
+  Lock,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Info,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DecisionCardMetrics {
@@ -79,7 +95,7 @@ export function AuthorityOperations() {
         title: "Observation Mode Updated",
         description: observationLock?.enabled
           ? "System unlocked - experimental surfaces now allowed"
-          : "System locked - authority gated to actions only",
+          : "System locked - authority limited to actions only",
       });
     },
   });
@@ -132,13 +148,21 @@ export function AuthorityOperations() {
 
   const getInterpretationBadge = (interpretation: string) => {
     if (interpretation.includes("justified")) {
-      return <Badge variant="default" className="bg-green-700">Authority Justified</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-700">
+          Authority Justified
+        </Badge>
+      );
     }
     if (interpretation.includes("too strict")) {
       return <Badge variant="error">Authority Too Strict</Badge>;
     }
     if (interpretation.includes("tone mismatch")) {
-      return <Badge variant="outline" className="text-amber-500 border-amber-500">Tone Mismatch</Badge>;
+      return (
+        <Badge variant="outline" className="text-amber-500 border-amber-500">
+          Tone Mismatch
+        </Badge>
+      );
     }
     return <Badge variant="secondary">{interpretation}</Badge>;
   };
@@ -206,7 +230,8 @@ export function AuthorityOperations() {
 
               {observationLock?.lastChangedAt && (
                 <div className="text-sm text-slate-500">
-                  Last changed by <span className="text-white">{observationLock.lastChangedBy}</span> on{" "}
+                  Last changed by{" "}
+                  <span className="text-white">{observationLock.lastChangedBy}</span> on{" "}
                   {new Date(observationLock.lastChangedAt).toLocaleString()}
                 </div>
               )}
@@ -215,8 +240,8 @@ export function AuthorityOperations() {
                 <div className="flex items-start gap-2 p-4 bg-red-950/50 border border-red-800 rounded-lg">
                   <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
                   <div className="text-sm text-red-200">
-                    <strong>Warning:</strong> Observation mode disabled. Experimental surfaces are now allowed.
-                    This may contaminate early authority data.
+                    <strong>Warning:</strong> Observation mode disabled. Experimental surfaces are
+                    now allowed. This may contaminate early authority data.
                   </div>
                 </div>
               )}
@@ -377,7 +402,9 @@ export function AuthorityOperations() {
                   <TableRow className="border-slate-700">
                     <TableHead className="text-slate-400">Scout Action</TableHead>
                     <TableHead className="text-slate-400 text-right">Overrides</TableHead>
-                    <TableHead className="text-slate-400 text-right">Regret After Override</TableHead>
+                    <TableHead className="text-slate-400 text-right">
+                      Regret After Override
+                    </TableHead>
                     <TableHead className="text-slate-400">Interpretation</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -415,7 +442,8 @@ export function AuthorityOperations() {
             <CardHeader>
               <CardTitle className="text-white">Cancel Signal Monitor</CardTitle>
               <CardDescription>
-                Cancel ≠ failure. Cancel = decision clarity. Rising cancel after context exposure is often success.
+                Cancel ≠ failure. Cancel = decision clarity. Rising cancel after context exposure is
+                often success.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -489,7 +517,9 @@ export function AuthorityOperations() {
                       <Label className="text-slate-400 text-xs">Unlock Condition</Label>
                       <Textarea
                         value={unlockNotes[item.phase] ?? item.condition}
-                        onChange={(e) => setUnlockNotes({ ...unlockNotes, [item.phase]: e.target.value })}
+                        onChange={(e) =>
+                          setUnlockNotes({ ...unlockNotes, [item.phase]: e.target.value })
+                        }
                         className="mt-2 bg-slate-950 border-slate-700 text-white text-sm min-h-[80px]"
                         placeholder="Define unlock condition (e.g., ≥ N overrides with ≥ M regret confirmations)"
                       />

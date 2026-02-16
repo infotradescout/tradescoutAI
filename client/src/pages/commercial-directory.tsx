@@ -293,7 +293,7 @@ export default function CommercialDirectoryPage() {
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <ShieldCheck className="h-4 w-4 text-emerald-200" />
-            <div>Verification-gated access</div>
+            <div>Verification-required access</div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <Gavel className="h-4 w-4 text-blue-200" />
@@ -306,7 +306,7 @@ export default function CommercialDirectoryPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 text-cyan-200" />
-            Commercial Verification Gate
+            Commercial Verification Requirements
           </CardTitle>
           <CardDescription>
             Commercial job access requires approved license and insurance documents reviewed by
@@ -319,7 +319,7 @@ export default function CommercialDirectoryPage() {
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Readiness</div>
                 <div className="text-sm text-slate-200 mt-1">
-                  {readiness.doneCount}/{readiness.rows.length} gates complete
+                  {readiness.doneCount}/{readiness.rows.length} requirements complete
                 </div>
               </div>
               <div className="text-lg md:text-xl font-semibold">{readiness.pct}%</div>
