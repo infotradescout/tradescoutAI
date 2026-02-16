@@ -36,7 +36,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen  text-tsTextMain flex items-center justify-center px-4 py-10">
+    <div className="min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] text-tsTextMain flex items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
         <CardHeader className="text-center space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-tsAccent to-orange-700 flex items-center justify-center shadow-lg shadow-orange-500/30">
@@ -70,9 +70,9 @@ export default function Login() {
                 Facebook
               </button>
             </div>
-            {isLoading && <div className="mt-2 text-xs text-slate-400">Checking session…</div>}
+            {isLoading && <div className="mt-2 text-xs text-slate-400">Checking session...</div>}
           </div>
-          <div className="bg-tsBg border border-tsBorder rounded-xl p-4">
+          <div className="bg-tsBg border border-tsBorder rounded-xl p-4 mt-3">
             <EmailPasswordAuth />
           </div>
         </CardContent>

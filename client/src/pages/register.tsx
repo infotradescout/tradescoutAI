@@ -123,9 +123,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] flex items-center justify-center px-4 py-8 text-tsTextMain">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
-        <div className="space-y-6">
+        <div className="space-y-6 order-2 lg:order-1">
           <Link href="/">
             <Button
               variant="ghost"
@@ -179,7 +179,7 @@ export default function Register() {
           </div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl">
+        <Card className="bg-tsCard border border-tsBorder shadow-2xl order-1 lg:order-2">
           <CardHeader className="text-center space-y-3">
             <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/30">
               <UserPlus className="h-6 w-6 text-white" />

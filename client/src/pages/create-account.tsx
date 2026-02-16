@@ -401,9 +401,9 @@ export default function CreateAccountPortal() {
   });
 
   return (
-    <div className="h-full min-h-[calc(100dvh-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-4 text-tsTextMain">
+    <div className="h-full min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] bg-transparent flex items-start justify-center px-4 py-4 text-tsTextMain">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
-        <div className="space-y-6">
+        <div className="space-y-6 order-2 lg:order-1">
           <div className="space-y-4">
             <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
               ACCOUNT SETUP
@@ -418,7 +418,7 @@ export default function CreateAccountPortal() {
           </div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl">
+        <Card className="bg-tsCard border border-tsBorder shadow-2xl order-1 lg:order-2">
           <CardHeader className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -503,6 +503,8 @@ export default function CreateAccountPortal() {
                       {...field}
                       id="email"
                       type="email"
+                      inputMode="email"
+                      autoComplete="email"
                       placeholder="you@example.com"
                       className="mt-1"
                     />
@@ -527,6 +529,7 @@ export default function CreateAccountPortal() {
                         {...field}
                         id="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
                         placeholder="At least 8 characters"
                       />
                     )}
@@ -558,6 +561,7 @@ export default function CreateAccountPortal() {
                         {...field}
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
+                        autoComplete="new-password"
                         placeholder="Confirm your password"
                       />
                     )}
@@ -585,7 +589,13 @@ export default function CreateAccountPortal() {
                     name="firstName"
                     control={control}
                     render={({ field }) => (
-                      <Input {...field} id="firstName" placeholder="First" className="mt-1" />
+                      <Input
+                        {...field}
+                        id="firstName"
+                        autoComplete="given-name"
+                        placeholder="First"
+                        className="mt-1"
+                      />
                     )}
                   />
                   {errors.firstName && (
@@ -600,7 +610,13 @@ export default function CreateAccountPortal() {
                     name="lastName"
                     control={control}
                     render={({ field }) => (
-                      <Input {...field} id="lastName" placeholder="Last" className="mt-1" />
+                      <Input
+                        {...field}
+                        id="lastName"
+                        autoComplete="family-name"
+                        placeholder="Last"
+                        className="mt-1"
+                      />
                     )}
                   />
                   {errors.lastName && (
@@ -622,6 +638,8 @@ export default function CreateAccountPortal() {
                       {...field}
                       id="phone"
                       type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       placeholder="(555) 123-4567"
                       className="mt-1"
                     />
@@ -877,14 +895,6 @@ export default function CreateAccountPortal() {
                   </div>
                 )}
               </div>
-
-              <Button
-                type="submit"
-                className="w-full font-semibold py-6"
-                disabled={signupMutation.isPending}
-              >
-                {signupMutation.isPending ? "Creating account..." : "Create account"}
-              </Button>
 
               <div className="mt-4 flex items-center justify-center">
                 <button
