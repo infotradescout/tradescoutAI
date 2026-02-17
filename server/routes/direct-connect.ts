@@ -15,7 +15,11 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { notificationService } from "../notification-service";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
-import { buildWorkRequestScopeSummary, formatBudgetRange } from "../utils/workRequestShare";
+import {
+  buildWorkRequestPreviewTitle,
+  buildWorkRequestScopeSummary,
+  formatBudgetRange,
+} from "../utils/workRequestShare";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
@@ -605,7 +609,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
       return res.status(200).json({
         id: requestRow.id,
-        title: String(requestRow.title || "Shared request"),
+        title: buildWorkRequestPreviewTitle(String(requestRow.title || ""), "Shared request"),
         scopeSummary,
         category: requestRow.category || null,
         tradeLabel,

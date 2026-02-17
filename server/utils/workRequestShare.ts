@@ -12,6 +12,13 @@ export function buildWorkRequestScopeSummary(input: string, maxLength = 220): st
   return `${redacted.slice(0, maxLength - 1).trimEnd()}...`;
 }
 
+export function buildWorkRequestPreviewTitle(input: string, fallback = "Shared request"): string {
+  const cleaned = redactContactDetails(input).replace(/\s+/g, " ").trim();
+  if (!cleaned) return fallback;
+  if (cleaned.length <= 90) return cleaned;
+  return `${cleaned.slice(0, 89).trimEnd()}...`;
+}
+
 function formatCurrencyValue(raw: unknown): string | null {
   if (raw == null) return null;
   const n = Number(raw);

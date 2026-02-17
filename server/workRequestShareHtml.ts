@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { workRequests } from "@shared/schema";
 import { storage } from "./storage";
-import { buildWorkRequestScopeSummary, formatBudgetRange } from "./utils/workRequestShare";
+import {
+  buildWorkRequestPreviewTitle,
+  buildWorkRequestScopeSummary,
+  formatBudgetRange,
+} from "./utils/workRequestShare";
 
 type WorkRequestShareHtmlOptions = {
   shareToken: string;
@@ -66,7 +70,8 @@ export async function buildWorkRequestShareHtml({
   const scopeSummary = buildWorkRequestScopeSummary(String(requestRow.description || ""));
   const budgetLabel = formatBudgetRange(requestRow.budgetMin, requestRow.budgetMax);
 
-  const title = `${String(requestRow.title || tradeLabel)} | TradeScout request`;
+  const previewTitle = buildWorkRequestPreviewTitle(String(requestRow.title || ""), tradeLabel);
+  const title = `${previewTitle} | TradeScout request`;
   const descriptionParts = [
     `${tradeLabel} scope in ${locationLabel}.`,
     scopeSummary || "Shared project scope available.",
@@ -81,7 +86,7 @@ export async function buildWorkRequestShareHtml({
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
-    name: String(requestRow.title || tradeLabel),
+    name: previewTitle,
     description,
     url: canonical,
     areaServed: locationLabel,

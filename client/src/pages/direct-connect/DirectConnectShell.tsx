@@ -49,35 +49,35 @@ const SECTION_META: Record<
 > = {
   post: {
     title: "Post a request",
-    description: "Share what you need done once, then track it in one place.",
+    description: "Post once. Track status in one place.",
     hint: "Best for: new work requests",
     actionLabel: "Go to My Requests",
     actionTarget: "engagements",
   },
   board: {
     title: "Job board",
-    description: "Browse open local requests and see what needs attention.",
+    description: "Browse open local requests.",
     hint: "Best for: browsing active demand",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
   },
   inbox: {
     title: "Provider inbox",
-    description: "Review incoming opportunities and respond quickly.",
+    description: "Review opportunities and respond.",
     hint: "Best for: accept/decline decisions",
     actionLabel: "View My Requests",
     actionTarget: "engagements",
   },
   pros: {
     title: "Pro directory",
-    description: "Browse local pros and reach out when you find a good fit.",
+    description: "Browse local pros and start a request.",
     hint: "Best for: pre-request research",
     actionLabel: "Post Request",
     actionTarget: "post",
   },
   engagements: {
     title: "My requests",
-    description: "Track progress from first post to completed work.",
+    description: "Track status and next steps.",
     hint: "Best for: managing active requests",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
@@ -271,7 +271,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in with a contractor profile to view Direct Connect opportunities sent to you.
+          Sign in as a provider to view Direct Connect opportunities.
         </CardContent>
       </Card>
     );
@@ -298,8 +298,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No opportunities yet. When homeowners send jobs to you through Direct Connect, they will
-          appear here.
+          No opportunities yet.
         </CardContent>
       </Card>
     );
@@ -310,13 +309,13 @@ function DirectConnectInbox() {
   const currentAcceptedForInvoice = items.find((i) => i.assignment.id === creatingInvoice);
 
   const getSlaCopy = (snapshot?: DirectConnectInboxItem["assignment"]["scoreSnapshot"] | null) => {
-    if (!snapshot) return "Fast response improves your selection odds.";
+    if (!snapshot) return "Reply fast to stay prioritized.";
     if (typeof snapshot.responseRate === "number") {
       if (snapshot.responseRate >= 0.8) return "Most providers respond within about 30 minutes.";
       if (snapshot.responseRate >= 0.5) return "Most providers respond within a few hours.";
       return "Response windows are longer right now; fast replies still help.";
     }
-    return "Fast response improves your selection odds.";
+    return "Reply fast to stay prioritized.";
   };
 
   return (
@@ -373,7 +372,7 @@ function DirectConnectInbox() {
                     {request?.description ||
                       "A homeowner sent this opportunity through Direct Connect."}
                   </p>
-                  <p className="text-[11px] text-[color:var(--text-secondary)]">
+                  <p className="hidden text-[11px] text-[color:var(--text-secondary)] md:block">
                     {getSlaCopy(snapshot)}
                   </p>
                 </div>
@@ -419,7 +418,7 @@ function DirectConnectInbox() {
                       Full details
                     </Button>
                   </div>
-                  <p>{primaryReasons.join(" Â· ")}</p>
+                  <p>{primaryReasons.join(" • ")}</p>
                 </div>
               )}
 
@@ -784,7 +783,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to see your Direct Connect requests and progress.
+          Sign in to see your Direct Connect requests.
         </CardContent>
       </Card>
     );
@@ -815,7 +814,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No requests yet. Start with "Post Request" to post your first Direct Connect job.
+          No requests yet. Use Post Request to start.
         </CardContent>
       </Card>
     );
@@ -891,15 +890,15 @@ function MyDirectConnectRequests() {
                     ? `Sent to ${suggested} provider${suggested === 1 ? "" : "s"}`
                     : status === "open"
                       ? "Not sent yet"
-                      : "No providers suggested yet"}
+                      : "No providers suggested"}
                 </span>
-                {status === "open" && !canSend && (
-                  <span>Pick a county and trade to send this to local pros.</span>
-                )}
+                {status === "open" && !canSend && <span>Add a county and trade to send.</span>}
                 {status === "open" && suggested === 0 && (
                   <WhyLink to={getHelpLink("directConnect")} />
                 )}
-                <Badge variant="outline">Protected contact flow</Badge>
+                <Badge variant="outline" className="hidden sm:inline-flex">
+                  Protected contact flow
+                </Badge>
                 {hasAccepted && <Badge variant="outline">Accepted by a provider</Badge>}
                 {lastEventAt && (
                   <span>
@@ -958,7 +957,7 @@ function MyDirectConnectRequests() {
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
-                  Send to local pros
+                  Send request
                 </Button>
                 <Button
                   size="sm"
@@ -1087,7 +1086,7 @@ export default function DirectConnectShell() {
                   Direct Connect
                 </h1>
                 <p className="max-w-2xl text-sm text-[color:var(--text-secondary)]">
-                  Post work requests, discover local providers, and manage everything in one place.
+                  Post requests, discover local providers, and manage progress.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -1138,7 +1137,7 @@ export default function DirectConnectShell() {
                   <h2 className="text-base font-semibold text-[color:var(--text-primary)]">
                     {sectionMeta.title}
                   </h2>
-                  <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                  <p className="mt-1 hidden text-xs text-[color:var(--text-secondary)] sm:block">
                     {sectionMeta.description}
                   </p>
                 </div>
