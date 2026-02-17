@@ -113,7 +113,7 @@ function statusTone(status: string) {
   if (value === "declined" || value === "cancelled") {
     return "bg-rose-500/15 text-rose-200 border-rose-400/40";
   }
-  if (value === "routed" || value === "suggested") {
+  if (value === "routed" || value === "suggested" || value === "invited") {
     return "bg-orange-500/15 text-orange-200 border-orange-400/40";
   }
   return "bg-slate-500/15 text-slate-200 border-slate-400/40";
@@ -290,8 +290,12 @@ function DirectConnectInbox() {
   }
 
   const items = data || [];
+  const normalizeInboxStatus = (status: string | null | undefined) => {
+    const value = String(status || "suggested").toLowerCase();
+    return value === "invited" ? "suggested" : value;
+  };
   const filteredItems = items.filter((i) =>
-    inboxFilter === "all" ? true : String(i.assignment.status || "suggested") === inboxFilter
+    inboxFilter === "all" ? true : normalizeInboxStatus(i.assignment.status) === inboxFilter
   );
 
   if (!items.length) {
@@ -326,7 +330,7 @@ function DirectConnectInbox() {
             const count =
               f === "all"
                 ? items.length
-                : items.filter((i) => String(i.assignment.status || "suggested") === f).length;
+                : items.filter((i) => normalizeInboxStatus(i.assignment.status) === f).length;
             const active = inboxFilter === f;
             return (
               <button
@@ -351,7 +355,9 @@ function DirectConnectInbox() {
 
       {filteredItems.map((item) => {
         const { assignment, request } = item;
-        const status = assignment.status || "suggested";
+        const assignmentStatusRaw = String(assignment.status || "suggested").toLowerCase();
+        const canRespond = assignmentStatusRaw === "suggested" || assignmentStatusRaw === "invited";
+        const status = assignmentStatusRaw;
         const snapshot = assignment.scoreSnapshot || undefined;
         const createdAt = assignment.createdAt || request?.createdAt;
         const reasons = snapshot?.reasons || [];
@@ -362,13 +368,13 @@ function DirectConnectInbox() {
             key={assignment.id}
             className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
           >
-            <CardContent className="space-y-3 p-4 md:p-5">
+            <CardContent className="space-y-3 p-3 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                     {request?.title || "Direct Connect opportunity"}
                   </h3>
-                  <p className="line-clamp-2 text-xs text-[color:var(--text-secondary)]">
+                  <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
                     {request?.description ||
                       "A homeowner sent this opportunity through Direct Connect."}
                   </p>
@@ -389,7 +395,9 @@ function DirectConnectInbox() {
                 {request?.countyFips && (
                   <Badge variant="outline">County: {request.countyFips}</Badge>
                 )}
-                <Badge variant="outline">Protected contact flow</Badge>
+                <Badge variant="outline" className="hidden sm:inline-flex">
+                  Protected contact flow
+                </Badge>
                 {typeof snapshot?.score === "number" && (
                   <Badge variant="outline">Score: {Math.round(snapshot.score)}</Badge>
                 )}
@@ -447,7 +455,7 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   className="bg-emerald-600 text-white hover:bg-emerald-500"
-                  disabled={status !== "suggested" || respondMutation.isPending}
+                  disabled={!canRespond || respondMutation.isPending}
                   onClick={() => handleRespond(assignment.id, "accept")}
                 >
                   Accept
@@ -456,7 +464,7 @@ function DirectConnectInbox() {
                   size="sm"
                   variant="outline"
                   className="border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                  disabled={status !== "suggested" || respondMutation.isPending}
+                  disabled={!canRespond || respondMutation.isPending}
                   onClick={() => setDeclineAssignmentId(assignment.id)}
                 >
                   Decline
@@ -866,13 +874,13 @@ function MyDirectConnectRequests() {
             key={r.id}
             className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
           >
-            <CardContent className="space-y-3 p-4 md:p-5">
+            <CardContent className="space-y-3 p-3 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                     {r.title}
                   </h3>
-                  <p className="mt-1 line-clamp-2 text-xs text-[color:var(--text-secondary)]">
+                  <p className="mt-1 line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
                     {r.description}
                   </p>
                 </div>
@@ -919,6 +927,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "facebook")}
                 >
                   Facebook
@@ -926,6 +935,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "messenger")}
                 >
                   Messenger
@@ -933,6 +943,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "sms")}
                 >
                   SMS
