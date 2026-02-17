@@ -65,6 +65,7 @@ export default function PreScoutSetup() {
 
   const [signInEmail, setSignInEmail] = useState(prefilledEmail);
   const [signInPassword, setSignInPassword] = useState("");
+  const [signInError, setSignInError] = useState<string | null>(null);
 
   const [createFirstName, setCreateFirstName] = useState("");
   const [createLastName, setCreateLastName] = useState("");
@@ -85,6 +86,7 @@ export default function PreScoutSetup() {
 
   useEffect(() => {
     setAuthMode(requestedAuthMode);
+    setSignInError(null);
   }, [requestedAuthMode]);
 
   const canContinue = useMemo(() => {
@@ -101,13 +103,16 @@ export default function PreScoutSetup() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authSubmitting) return;
+    setSignInError(null);
 
     const email = signInEmail.trim();
     const password = signInPassword;
     if (!email || !password) {
+      const message = "Enter email and password.";
+      setSignInError(message);
       toast({
         title: "Missing fields",
-        description: "Enter email and password.",
+        description: message,
         variant: "destructive",
       });
       return;
@@ -126,9 +131,11 @@ export default function PreScoutSetup() {
       toast({ title: "Signed in", description: "Continue with local setup." });
       navigate(`/pre-scout-setup${safeNextQuery}`);
     } catch (error: any) {
+      const message = error?.message || "Please try again.";
+      setSignInError(message);
       toast({
         title: "Sign in failed",
-        description: error?.message || "Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -353,7 +360,10 @@ export default function PreScoutSetup() {
                     <Input
                       type="email"
                       value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
+                      onChange={(e) => {
+                        setSignInEmail(e.target.value);
+                        if (signInError) setSignInError(null);
+                      }}
                       placeholder="you@example.com"
                       required
                     />
@@ -363,10 +373,18 @@ export default function PreScoutSetup() {
                     <Input
                       type="password"
                       value={signInPassword}
-                      onChange={(e) => setSignInPassword(e.target.value)}
+                      onChange={(e) => {
+                        setSignInPassword(e.target.value);
+                        if (signInError) setSignInError(null);
+                      }}
                       placeholder="Your password"
                       required
                     />
+                    {signInError && (
+                      <p role="alert" className="mt-1 text-xs text-destructive">
+                        {signInError}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <a

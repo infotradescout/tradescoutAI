@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const params = useMemo(() => {
@@ -27,6 +28,7 @@ export function EmailPasswordAuth() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setAuthError(null);
 
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") ?? "").trim();
@@ -62,9 +64,11 @@ export function EmailPasswordAuth() {
       window.location.href = isSuperAdmin ? "/admin" : "/scout";
     } catch (error) {
       console.error("Authentication error:", error);
+      const message = error instanceof Error ? error.message : "Please try again.";
+      setAuthError(message);
       toast({
         title: "Authentication failed",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -126,7 +130,15 @@ export function EmailPasswordAuth() {
           required
           autoComplete="current-password"
           placeholder="Your password"
+          onChange={() => {
+            if (authError) setAuthError(null);
+          }}
         />
+        {authError && (
+          <p role="alert" className="text-sm text-destructive">
+            {authError}
+          </p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Signing in..." : "Sign in"}
