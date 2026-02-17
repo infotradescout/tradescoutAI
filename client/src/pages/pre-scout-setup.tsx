@@ -358,12 +358,15 @@ export default function PreScoutSetup() {
                   <div>
                     <Label className="text-sm">Email</Label>
                     <Input
+                      id="signin-email"
+                      name="email"
                       type="email"
                       value={signInEmail}
                       onChange={(e) => {
                         setSignInEmail(e.target.value);
                         if (signInError) setSignInError(null);
                       }}
+                      autoComplete="email"
                       placeholder="you@example.com"
                       required
                     />
@@ -371,12 +374,15 @@ export default function PreScoutSetup() {
                   <div>
                     <Label className="text-sm">Password</Label>
                     <Input
+                      id="signin-password"
+                      name="password"
                       type="password"
                       value={signInPassword}
                       onChange={(e) => {
                         setSignInPassword(e.target.value);
                         if (signInError) setSignInError(null);
                       }}
+                      autoComplete="current-password"
                       placeholder="Your password"
                       required
                     />
@@ -404,8 +410,11 @@ export default function PreScoutSetup() {
                     <div>
                       <Label className="text-sm">First name</Label>
                       <Input
+                        id="create-first-name"
+                        name="firstName"
                         value={createFirstName}
                         onChange={(e) => setCreateFirstName(e.target.value)}
+                        autoComplete="given-name"
                         placeholder="First"
                         required
                       />
@@ -413,8 +422,11 @@ export default function PreScoutSetup() {
                     <div>
                       <Label className="text-sm">Last name</Label>
                       <Input
+                        id="create-last-name"
+                        name="lastName"
                         value={createLastName}
                         onChange={(e) => setCreateLastName(e.target.value)}
+                        autoComplete="family-name"
                         placeholder="Last"
                         required
                       />
@@ -423,9 +435,12 @@ export default function PreScoutSetup() {
                   <div>
                     <Label className="text-sm">Email</Label>
                     <Input
+                      id="create-email"
+                      name="email"
                       type="email"
                       value={createEmail}
                       onChange={(e) => setCreateEmail(e.target.value)}
+                      autoComplete="email"
                       placeholder="you@example.com"
                       required
                     />
@@ -433,8 +448,11 @@ export default function PreScoutSetup() {
                   <div>
                     <Label className="text-sm">Phone</Label>
                     <Input
+                      id="create-phone"
+                      name="phone"
                       value={createPhone}
                       onChange={(e) => setCreatePhone(e.target.value)}
+                      autoComplete="tel"
                       placeholder="(555) 555-5555"
                       required
                     />
@@ -443,9 +461,12 @@ export default function PreScoutSetup() {
                     <div>
                       <Label className="text-sm">Password</Label>
                       <Input
+                        id="create-password"
+                        name="password"
                         type="password"
                         value={createPassword}
                         onChange={(e) => setCreatePassword(e.target.value)}
+                        autoComplete="new-password"
                         placeholder="At least 8 characters"
                         required
                       />
@@ -453,9 +474,12 @@ export default function PreScoutSetup() {
                     <div>
                       <Label className="text-sm">Confirm</Label>
                       <Input
+                        id="create-confirm-password"
+                        name="confirmPassword"
                         type="password"
                         value={createConfirmPassword}
                         onChange={(e) => setCreateConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
                         placeholder="Repeat password"
                         required
                       />
