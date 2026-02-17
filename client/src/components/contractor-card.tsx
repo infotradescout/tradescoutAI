@@ -23,12 +23,14 @@ interface ContractorCardProps {
   contractor: ContractorCardContractor;
   showCallToAction?: boolean;
   compact?: boolean;
+  requestOnly?: boolean;
 }
 
 export default function ContractorCard({
   contractor,
   showCallToAction = true,
   compact = false,
+  requestOnly = false,
 }: ContractorCardProps) {
   // Generate company initials for avatar
   const companyInitials =
@@ -90,15 +92,23 @@ export default function ContractorCard({
         </div>
 
         {/* Company Name */}
-        <Link href={`/contractors/${contractor.slug}`}>
+        {requestOnly ? (
           <h3
-            className={`font-semibold mb-2 transition-colors cursor-pointer ts-accent-text-muted ${
-              compact ? "text-base" : "text-lg"
-            }`}
+            className={`font-semibold mb-2 ts-accent-text-muted ${compact ? "text-base" : "text-lg"}`}
           >
             {contractor.companyName}
           </h3>
-        </Link>
+        ) : (
+          <Link href={`/contractors/${contractor.slug}`}>
+            <h3
+              className={`font-semibold mb-2 transition-colors cursor-pointer ts-accent-text-muted ${
+                compact ? "text-base" : "text-lg"
+              }`}
+            >
+              {contractor.companyName}
+            </h3>
+          </Link>
+        )}
 
         {/* Trade Badges (derived from contractor flags) */}
         <div className="flex flex-wrap gap-2 mb-3">
@@ -210,23 +220,25 @@ export default function ContractorCard({
           <div className="flex space-x-2">
             <Link
               href={`/direct-connect?intent=hire&contractor=${encodeURIComponent(contractor.slug)}`}
-              className="flex-1"
+              className={requestOnly ? "w-full" : "flex-1"}
             >
               <Button className="w-full ts-accent-btn transition-all duration-300">
                 <MessageSquare className="h-4 w-4 mr-1" />
-                Start Direct Connect
+                {requestOnly ? "Request Quote" : "Start Direct Connect"}
               </Button>
             </Link>
 
-            <Link href={`/contractors/${contractor.slug}`} className="flex-1">
-              <Button
-                variant="outline"
-                className="w-full border-navy-500 text-white hover:bg-navy-500"
-              >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                View Profile
-              </Button>
-            </Link>
+            {!requestOnly && (
+              <Link href={`/contractors/${contractor.slug}`} className="flex-1">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-500 text-white hover:bg-navy-500"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  View Profile
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
           <Link href={`/contractors/${contractor.slug}`}>

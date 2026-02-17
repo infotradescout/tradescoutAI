@@ -76,20 +76,18 @@ export default function DirectConnectPros() {
 
   const hintText = useMemo(() => {
     if (!countyCommitted) return "Choose a county to see local pros.";
-    if (!tradeSlug && !searchQuery) {
-      return "Showing all local pros. Add a trade or search to narrow results.";
-    }
-    return "Tap a pro to start a Direct Connect request.";
+    if (!tradeSlug && !searchQuery) return "Filtered by county. Add trade or keyword to narrow.";
+    return "Request-only browsing. Contact unlocks after request flow.";
   }, [countyCommitted, tradeSlug, searchQuery]);
 
   return (
     <div className="space-y-4">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-1">
           <CardTitle className="text-sm">Browse local pros</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-[color:var(--text-secondary)]">{hintText}</p>
+        <CardContent className="space-y-3">
+          <p className="text-[11px] text-[color:var(--text-secondary)]">{hintText}</p>
 
           <StateCountySelector
             selectedState={stateCode}
@@ -147,7 +145,7 @@ export default function DirectConnectPros() {
       {hasResults && (
         <div className="grid gap-4 lg:grid-cols-2">
           {(contractors as any[]).map((contractor) => (
-            <ContractorCard key={contractor.id} contractor={contractor} compact />
+            <ContractorCard key={contractor.id} contractor={contractor} compact requestOnly />
           ))}
         </div>
       )}
