@@ -307,16 +307,6 @@ function DirectConnectInbox() {
     ?.assignment.scoreSnapshot;
   const currentAcceptedForInvoice = items.find((i) => i.assignment.id === creatingInvoice);
 
-  const getSlaCopy = (snapshot?: DirectConnectInboxItem["assignment"]["scoreSnapshot"] | null) => {
-    if (!snapshot) return "Reply fast to stay prioritized.";
-    if (typeof snapshot.responseRate === "number") {
-      if (snapshot.responseRate >= 0.8) return "Most providers respond within about 30 minutes.";
-      if (snapshot.responseRate >= 0.5) return "Most providers respond within a few hours.";
-      return "Response windows are longer right now; fast replies still help.";
-    }
-    return "Reply fast to stay prioritized.";
-  };
-
   return (
     <div className="space-y-3">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -373,9 +363,6 @@ function DirectConnectInbox() {
                     {request?.description ||
                       "A homeowner sent this opportunity through Direct Connect."}
                   </p>
-                  <p className="hidden text-[11px] text-[color:var(--text-secondary)] md:block">
-                    {getSlaCopy(snapshot)}
-                  </p>
                 </div>
                 <Badge
                   variant="outline"
@@ -386,10 +373,8 @@ function DirectConnectInbox() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                {request?.tradeId && <Badge variant="outline">Trade: {request.tradeId}</Badge>}
-                {request?.countyFips && (
-                  <Badge variant="outline">County: {request.countyFips}</Badge>
-                )}
+                {request?.tradeId && <span>Trade: {request.tradeId}</span>}
+                {request?.countyFips && <span>County: {request.countyFips}</span>}
                 <Badge variant="outline" className="hidden md:inline-flex">
                   Protected contact flow
                 </Badge>
@@ -404,31 +389,29 @@ function DirectConnectInbox() {
                     Routed {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
                   </span>
                 )}
+                {reasons.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-[11px]"
+                    onClick={() => setWhyJobAssignmentId(assignment.id)}
+                  >
+                    Why this matched
+                  </Button>
+                )}
               </div>
 
-              {reasons.length > 0 && (
-                <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-[color:var(--text-secondary)]">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="font-medium text-[color:var(--text-primary)]">
-                      Why this came to you
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7"
-                      onClick={() => setWhyJobAssignmentId(assignment.id)}
-                    >
-                      Full details
-                    </Button>
-                  </div>
-                  <p>{primaryReasons.join(" • ")}</p>
-                </div>
+              {primaryReasons.length > 0 && (
+                <p className="line-clamp-1 text-[11px] text-[color:var(--text-secondary)]">
+                  {primaryReasons.join(" • ")}
+                </p>
               )}
 
               <div className="flex flex-wrap justify-end gap-2">
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:inline-flex"
                   disabled={status !== "accepted"}
                   onClick={() => {
                     const threadId = item.conversationThreadId;
@@ -442,10 +425,25 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:inline-flex"
                   disabled={status !== "accepted" || !!creatingInvoice}
                   onClick={() => status === "accepted" && setCreatingInvoice(assignment.id)}
                 >
                   Create invoice
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="sm:hidden"
+                  disabled={status !== "accepted"}
+                  onClick={() => {
+                    const threadId = item.conversationThreadId;
+                    window.location.href = threadId
+                      ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                      : "/messages";
+                  }}
+                >
+                  Messages
                 </Button>
                 <Button
                   size="sm"

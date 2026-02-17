@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -74,12 +74,6 @@ export default function DirectConnectPros() {
     }
   };
 
-  const hintText = useMemo(() => {
-    if (!countyCommitted) return "Choose a county to see local pros.";
-    if (!tradeSlug && !searchQuery) return "Filtered by county. Add trade or keyword to narrow.";
-    return "Request-only browsing. Contact unlocks after request flow.";
-  }, [countyCommitted, tradeSlug, searchQuery]);
-
   return (
     <div className="space-y-4">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -87,8 +81,6 @@ export default function DirectConnectPros() {
           <CardTitle className="text-sm">Browse local pros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-[11px] text-[color:var(--text-secondary)]">{hintText}</p>
-
           <StateCountySelector
             selectedState={stateCode}
             selectedCounty={countyFips}
