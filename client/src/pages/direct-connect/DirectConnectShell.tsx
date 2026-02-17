@@ -24,6 +24,8 @@ import {
   BriefcaseBusiness,
   ShieldCheck,
   Share2,
+  MessageCircle,
+  Smartphone,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "inbox", "pros", "engagements"] as const;
@@ -916,6 +918,26 @@ function MyDirectConnectRequests() {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex w-full gap-2 sm:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => shareRequest(r.id, r.title, "messenger")}
+                  >
+                    <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                    Messenger
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => shareRequest(r.id, r.title, "sms")}
+                  >
+                    <Smartphone className="mr-1 h-3.5 w-3.5" />
+                    SMS
+                  </Button>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"

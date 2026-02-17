@@ -145,6 +145,13 @@ export default function TasksHub({
 
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
   const [prefillProviderId, setPrefillProviderId] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    description?: string;
+    pay?: string;
+    county?: string;
+    form?: string;
+  }>({});
 
   useEffect(() => {
     if (embedded) {
@@ -288,14 +295,19 @@ export default function TasksHub({
 
   const createTaskMutation = useMutation({
     mutationFn: async () => {
-      if (!taskTitle.trim()) throw new Error("Title is required");
-      if (!taskDescription.trim()) throw new Error("Description is required");
+      const nextErrors: typeof fieldErrors = {};
+      if (!taskTitle.trim()) nextErrors.title = "Add a short title.";
+      if (!taskDescription.trim()) nextErrors.description = "Add project details.";
       const hasPayAmount = taskPayAmount.trim().length > 0;
       const payAmount = hasPayAmount ? Number(taskPayAmount) : NaN;
       if (hasPayAmount && (!Number.isFinite(payAmount) || payAmount <= 0)) {
-        throw new Error("Pay amount must be a positive number");
+        nextErrors.pay = "Enter a valid pay amount.";
       }
-      if (!selectedCountyFips) throw new Error("County is required");
+      if (!selectedCountyFips) nextErrors.county = "Set a county before posting.";
+      if (Object.keys(nextErrors).length > 0) {
+        setFieldErrors(nextErrors);
+        throw new Error("Fix the highlighted fields.");
+      }
 
       return apiRequest("POST", "/api/direct-connect/requests", {
         title: taskTitle.trim(),
@@ -322,6 +334,7 @@ export default function TasksHub({
         return;
       }
 
+      setFieldErrors({});
       toast({
         title: "Direct Connect request posted",
         description: "This is now on your Direct Connect board.",
@@ -337,9 +350,19 @@ export default function TasksHub({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
     },
     onError: (err: any) => {
+      const message = String(err?.message || "Please try again.");
+      if (/non-contact project details/i.test(message)) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          description: message,
+          form: message,
+        }));
+      } else {
+        setFieldErrors((prev) => ({ ...prev, form: message }));
+      }
       toast({
         title: "Couldn't create Direct Connect request",
-        description: err?.message || "Please try again.",
+        description: message,
         variant: "destructive",
       });
     },
@@ -591,7 +614,16 @@ export default function TasksHub({
                           <Label>Title</Label>
                           <Input
                             value={taskTitle}
-                            onChange={(e) => setTaskTitle(e.target.value)}
+                            onChange={(e) => {
+                              setTaskTitle(e.target.value);
+                              if (fieldErrors.title || fieldErrors.form) {
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  title: undefined,
+                                  form: undefined,
+                                }));
+                              }
+                            }}
                             className="bg-navy-700 border-navy-600 text-white"
                             placeholder={
                               isJobListing
@@ -599,13 +631,27 @@ export default function TasksHub({
                                 : "e.g., Help moving a couch"
                             }
                           />
+                          {fieldErrors.title && (
+                            <p role="alert" className="text-xs text-destructive">
+                              {fieldErrors.title}
+                            </p>
+                          )}
                         </div>
 
                         <div className="grid gap-2">
                           <Label>Description</Label>
                           <Textarea
                             value={taskDescription}
-                            onChange={(e) => setTaskDescription(e.target.value)}
+                            onChange={(e) => {
+                              setTaskDescription(e.target.value);
+                              if (fieldErrors.description || fieldErrors.form) {
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  description: undefined,
+                                  form: undefined,
+                                }));
+                              }
+                            }}
                             className="bg-navy-700 border-navy-600 text-white"
                             placeholder={
                               isJobListing
@@ -613,6 +659,11 @@ export default function TasksHub({
                                 : "What needs to be done, when, and any requirements"
                             }
                           />
+                          {fieldErrors.description && (
+                            <p role="alert" className="text-xs text-destructive">
+                              {fieldErrors.description}
+                            </p>
+                          )}
                         </div>
 
                         <div className="rounded-md border border-navy-600 bg-navy-800/60 p-4">
@@ -753,11 +804,25 @@ export default function TasksHub({
                             <Label>Pay amount</Label>
                             <Input
                               value={taskPayAmount}
-                              onChange={(e) => setTaskPayAmount(e.target.value)}
+                              onChange={(e) => {
+                                setTaskPayAmount(e.target.value);
+                                if (fieldErrors.pay || fieldErrors.form) {
+                                  setFieldErrors((prev) => ({
+                                    ...prev,
+                                    pay: undefined,
+                                    form: undefined,
+                                  }));
+                                }
+                              }}
                               className="bg-navy-700 border-navy-600 text-white"
                               placeholder="e.g., 150"
                               inputMode="decimal"
                             />
+                            {fieldErrors.pay && (
+                              <p role="alert" className="text-xs text-destructive">
+                                {fieldErrors.pay}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -792,11 +857,25 @@ export default function TasksHub({
                                 type="button"
                                 variant="outline"
                                 className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
-                                onClick={() => setShowCountySelector(true)}
+                                onClick={() => {
+                                  if (fieldErrors.county || fieldErrors.form) {
+                                    setFieldErrors((prev) => ({
+                                      ...prev,
+                                      county: undefined,
+                                      form: undefined,
+                                    }));
+                                  }
+                                  setShowCountySelector(true);
+                                }}
                               >
                                 {selectedCountyFips ? "Change" : "Set"}
                               </Button>
                             </div>
+                            {fieldErrors.county && (
+                              <p role="alert" className="text-xs text-destructive">
+                                {fieldErrors.county}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -950,6 +1029,11 @@ export default function TasksHub({
                       </Button>
 
                       <div className="flex items-center gap-2">
+                        {fieldErrors.form && (
+                          <p role="alert" className="mr-2 text-xs text-destructive">
+                            {fieldErrors.form}
+                          </p>
+                        )}
                         {postStep > 0 && (
                           <Button
                             variant="outline"
