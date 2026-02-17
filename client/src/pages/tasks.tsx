@@ -408,11 +408,8 @@ export default function TasksHub({
     <div className="">
       <div className={shellClass}>
         {!embedded && (
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
-            <p className="text-lg text-gray-300 max-w-3xl">
-              Post work requests, find local providers, and track progress in one place.
-            </p>
+          <div className="mb-5">
+            <h1 className="text-3xl font-bold text-white">Direct Connect</h1>
           </div>
         )}
 
@@ -434,14 +431,11 @@ export default function TasksHub({
           )}
 
           <TabsContent value="browse" className={contentSpacing}>
-            <Card className="bg-navy-800 border-navy-700 mb-6">
-              <CardHeader className="pb-4">
+            <Card className="bg-navy-800 border-navy-700 mb-4">
+              <CardHeader className="pb-2">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
                     <h2 className="text-lg font-semibold text-white">Live requests</h2>
-                    <p className="text-sm text-gray-300 max-w-xl mt-1">
-                      Track what you've posted and move each request forward.
-                    </p>
                   </div>
                   {selectedCountyFips && (
                     <Button
@@ -512,10 +506,7 @@ export default function TasksHub({
                   <h3 className="text-lg font-semibold text-white mb-2">
                     Sign in to use Direct Connect
                   </h3>
-                  <p className="text-gray-300">
-                    Direct Connect helps you organize local work in one place. Once you sign in, you
-                    can post requests, browse pros, and track progress here.
-                  </p>
+                  <p className="text-gray-300">Post requests, route them, and track responses.</p>
                 </CardContent>
               </Card>
             ) : requestsLoading ? (
@@ -570,9 +561,7 @@ export default function TasksHub({
                       <CardContent className="p-8 text-center">
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-white mb-2">No requests yet</h3>
-                        <p className="text-gray-300">
-                          Post your first request to start tracking responses and progress.
-                        </p>
+                        <p className="text-gray-300">Create your first request.</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -591,8 +580,8 @@ export default function TasksHub({
                     </h2>
                     <p className="text-sm text-gray-300">
                       {isJobListing
-                        ? "Share a clear role listing. TradeScout will route it through Direct Connect."
-                        : "Describe the work once. Your request will appear in Direct Connect so you can review responses and choose next steps."}
+                        ? "Role details and requirements."
+                        : "Scope, budget, and county."}
                     </p>
                   </div>
                   <div className="text-xs text-gray-400">
@@ -602,10 +591,7 @@ export default function TasksHub({
               </CardHeader>
               <CardContent>
                 {!isAuthenticated ? (
-                  <p className="text-sm text-gray-300">
-                    You need an account to create Direct Connect requests. Please sign in or create
-                    an account first.
-                  </p>
+                  <p className="text-sm text-gray-300">Sign in to create a request.</p>
                 ) : (
                   <div className="grid gap-6">
                     {postStep === 0 && (
@@ -704,11 +690,8 @@ export default function TasksHub({
                           </div>
                           {!postIntentLocked && inferredIntent !== postIntent && (
                             <p className="text-xs text-gray-400 mt-2">
-                              Based on your description, this looks like{" "}
-                              {inferredIntent === "job_listing"
-                                ? "a job listing"
-                                : "a work request"}
-                              .
+                              Auto-detected:{" "}
+                              {inferredIntent === "job_listing" ? "job listing" : "work request"}.
                             </p>
                           )}
                         </div>
@@ -881,10 +864,7 @@ export default function TasksHub({
 
                         {!isJobListing && (
                           <div className="grid gap-2">
-                            <Label>
-                              Optional: send this Direct Connect request directly to recommended
-                              providers
-                            </Label>
+                            <Label>Optional: invite recommended providers</Label>
                             {prefillProviderId && contractorPrefill && (
                               <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
                                 <div className="text-xs text-gray-400">Direct invite</div>
@@ -933,30 +913,21 @@ export default function TasksHub({
                             )}
                             {!isAuthenticated || !user?.countyFips ? (
                               <p className="text-sm text-gray-300">
-                                We'll post this on your Direct Connect board. Sign in with a saved
-                                home location to see tailored provider suggestions.
+                                Add your county on profile to see suggestions.
                               </p>
                             ) : providersLoading ? (
-                              <p className="text-sm text-gray-300">
-                                Loading recommended providers...
-                              </p>
+                              <p className="text-sm text-gray-300">Loading providers...</p>
                             ) : !tradeSlugForCategory ? (
                               <p className="text-sm text-gray-300">
-                                We don't have a direct provider match for this category yet. Your
-                                request will go to your Direct Connect board for any eligible
-                                provider to respond.
+                                No direct match yet. Request will still post to your board.
                               </p>
                             ) : (recommendedProviders || []).length === 0 ? (
                               <p className="text-sm text-gray-300">
-                                No specific providers surfaced yet for this combination of category
-                                and location. We'll post this on your Direct Connect board.
+                                No recommendations yet for this trade and county.
                               </p>
                             ) : (
                               <div className="space-y-3">
-                                <p className="text-xs text-gray-300">
-                                  Based on your category and home county, you can also send this
-                                  directly to:
-                                </p>
+                                <p className="text-xs text-gray-300">Also send directly to:</p>
                                 <div className="space-y-2">
                                   {recommendedProviders!.map((provider) => {
                                     const checked = selectedProviderIds.includes(provider.id);
@@ -1000,8 +971,7 @@ export default function TasksHub({
                                   })}
                                 </div>
                                 <p className="text-[11px] text-gray-400">
-                                  If you don't pick anyone here, your request will just post to your
-                                  Direct Connect board and any eligible provider can respond.
+                                  If none are selected, this still posts to your board.
                                 </p>
                               </div>
                             )}
@@ -1088,10 +1058,6 @@ export default function TasksHub({
                 <span className="font-semibold text-orange-300">
                   {selectedCountyFips || "Not set"}
                 </span>
-              </p>
-              <p className="text-xs text-gray-400">
-                Enter a county FIPS code to see contractors and requests for a different area. You
-                can always change this again.
               </p>
               <Input
                 type="text"
