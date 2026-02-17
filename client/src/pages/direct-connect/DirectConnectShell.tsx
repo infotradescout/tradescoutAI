@@ -25,6 +25,7 @@ import {
   Share2,
   MessageCircle,
   Smartphone,
+  MoreHorizontal,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "inbox", "pros", "engagements"] as const;
@@ -224,6 +225,8 @@ function DirectConnectInbox() {
   const [whyJobAssignmentId, setWhyJobAssignmentId] = useState<string | null>(null);
   const [declineAssignmentId, setDeclineAssignmentId] = useState<string | null>(null);
   const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
+  const [mobileActionAssignmentId, setMobileActionAssignmentId] = useState<string | null>(null);
   const [inboxFilter, setInboxFilter] = useState<"all" | "suggested" | "accepted" | "declined">(
     "all"
   );
@@ -310,7 +313,7 @@ function DirectConnectInbox() {
   return (
     <div className="space-y-3">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="flex flex-wrap items-center gap-2 p-3">
+        <CardContent className="flex gap-1.5 overflow-x-auto p-2">
           {(["all", "suggested", "accepted", "declined"] as const).map((f) => {
             const count =
               f === "all"
@@ -322,7 +325,7 @@ function DirectConnectInbox() {
                 key={f}
                 type="button"
                 onClick={() => setInboxFilter(f)}
-                className="rounded-full border px-3 py-1 text-xs"
+                className="shrink-0 rounded-full border px-2.5 py-1 text-[11px]"
                 style={{
                   borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                   color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -347,6 +350,8 @@ function DirectConnectInbox() {
         const createdAt = assignment.createdAt || request?.createdAt;
         const reasons = snapshot?.reasons || [];
         const primaryReasons = reasons.slice(0, 2);
+        const isExpanded = expandedAssignmentId === assignment.id;
+        const isMobileActionOpen = mobileActionAssignmentId === assignment.id;
 
         return (
           <Card
@@ -372,12 +377,46 @@ function DirectConnectInbox() {
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                <span className="truncate">
+                  {[request?.tradeId ? `Trade ${request.tradeId}` : null, request?.countyFips]
+                    .filter(Boolean)
+                    .join(" • ") || "Local match"}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-1.5 text-[11px] md:hidden"
+                  onClick={() =>
+                    setExpandedAssignmentId((current) =>
+                      current === assignment.id ? null : assignment.id
+                    )
+                  }
+                >
+                  {isExpanded ? "Less" : "More"}
+                </Button>
+              </div>
+
+              {(isExpanded || false) && (
+                <div className="space-y-1 text-[11px] text-[color:var(--text-secondary)] md:hidden">
+                  {createdAt && (
+                    <div>
+                      Routed {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+                    </div>
+                  )}
+                  {typeof snapshot?.score === "number" && (
+                    <div>Score {Math.round(snapshot.score)}</div>
+                  )}
+                  {typeof snapshot?.distanceMiles === "number" && (
+                    <div>{snapshot.distanceMiles.toFixed(1)} mi away</div>
+                  )}
+                </div>
+              )}
+
+              <div className="hidden flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)] md:flex">
                 {request?.tradeId && <span>Trade: {request.tradeId}</span>}
                 {request?.countyFips && <span>County: {request.countyFips}</span>}
-                <Badge variant="outline" className="hidden md:inline-flex">
-                  Protected contact flow
-                </Badge>
+                <Badge variant="outline">Protected contact flow</Badge>
                 {typeof snapshot?.score === "number" && (
                   <Badge variant="outline">Score: {Math.round(snapshot.score)}</Badge>
                 )}
@@ -462,7 +501,51 @@ function DirectConnectInbox() {
                 >
                   Decline
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs sm:hidden"
+                  onClick={() =>
+                    setMobileActionAssignmentId((current) =>
+                      current === assignment.id ? null : assignment.id
+                    )
+                  }
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
               </div>
+
+              {isMobileActionOpen && (
+                <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                  {reasons.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => {
+                        setMobileActionAssignmentId(null);
+                        setWhyJobAssignmentId(assignment.id);
+                      }}
+                    >
+                      Why matched
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    disabled={status !== "accepted" || !!creatingInvoice}
+                    onClick={() => {
+                      setMobileActionAssignmentId(null);
+                      if (status === "accepted") {
+                        setCreatingInvoice(assignment.id);
+                      }
+                    }}
+                  >
+                    Invoice
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -596,6 +679,8 @@ function MyDirectConnectRequests() {
   const [requestFilter, setRequestFilter] = useState<"all" | "active" | "cancelled" | "accepted">(
     "all"
   );
+  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  const [mobileActionRequestId, setMobileActionRequestId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<DirectConnectRequest[]>({
     queryKey: ["/api/direct-connect/requests", "my"],
@@ -824,7 +909,7 @@ function MyDirectConnectRequests() {
   return (
     <div className="space-y-3">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="flex flex-wrap items-center gap-2 p-3">
+        <CardContent className="flex gap-1.5 overflow-x-auto p-2">
           {(["all", "active", "accepted", "cancelled"] as const).map((f) => {
             const count = requests.filter((r) => {
               const status = String(r.status || "").toLowerCase();
@@ -839,7 +924,7 @@ function MyDirectConnectRequests() {
                 key={f}
                 type="button"
                 onClick={() => setRequestFilter(f)}
-                className="rounded-full border px-3 py-1 text-xs"
+                className="shrink-0 rounded-full border px-2.5 py-1 text-[11px]"
                 style={{
                   borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                   color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -861,6 +946,8 @@ function MyDirectConnectRequests() {
         const hasAccepted = Boolean(r.dcAcceptedAssignmentId);
         const lastEventAt = r.dcLastEventAt || r.createdAt || null;
         const canSend = status === "open" && Boolean(r.tradeId) && Boolean(r.countyFips);
+        const isExpanded = expandedRequestId === r.id;
+        const isMobileActionOpen = mobileActionRequestId === r.id;
 
         return (
           <Card
@@ -885,7 +972,39 @@ function MyDirectConnectRequests() {
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                <span className="truncate">
+                  {suggested > 0
+                    ? `${suggested} provider${suggested === 1 ? "" : "s"} routed`
+                    : status === "open"
+                      ? "Not sent yet"
+                      : "No providers suggested"}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-1.5 text-[11px] md:hidden"
+                  onClick={() =>
+                    setExpandedRequestId((current) => (current === r.id ? null : r.id))
+                  }
+                >
+                  {isExpanded ? "Less" : "More"}
+                </Button>
+              </div>
+
+              {(isExpanded || false) && (
+                <div className="space-y-1 text-[11px] text-[color:var(--text-secondary)] md:hidden">
+                  {status === "open" && !canSend && <div>Add a county and trade to send.</div>}
+                  {hasAccepted && <div>Accepted by a provider</div>}
+                  {lastEventAt && (
+                    <div>
+                      Updated {formatDistanceToNow(new Date(lastEventAt), { addSuffix: true })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="hidden flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)] sm:flex">
                 <span>
                   {suggested > 0
                     ? `Sent to ${suggested} provider${suggested === 1 ? "" : "s"}`
@@ -897,9 +1016,7 @@ function MyDirectConnectRequests() {
                 {status === "open" && suggested === 0 && (
                   <WhyLink to={getHelpLink("directConnect")} />
                 )}
-                <Badge variant="outline" className="hidden sm:inline-flex">
-                  Protected contact flow
-                </Badge>
+                <Badge variant="outline">Protected contact flow</Badge>
                 {hasAccepted && <Badge variant="outline">Accepted by a provider</Badge>}
                 {lastEventAt && (
                   <span>
@@ -951,6 +1068,16 @@ function MyDirectConnectRequests() {
                     onClick={() => routeMutation.mutate(r.id)}
                   >
                     Send
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() =>
+                      setMobileActionRequestId((current) => (current === r.id ? null : r.id))
+                    }
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
                   </Button>
                 </div>
                 <Button
@@ -1039,6 +1166,56 @@ function MyDirectConnectRequests() {
                   Reopen request
                 </Button>
               </div>
+
+              {isMobileActionOpen && (
+                <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => shareRequest(r.id, r.title, "native")}
+                  >
+                    Share
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => shareRequest(r.id, r.title, "facebook")}
+                  >
+                    Facebook
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    disabled={status !== "routed" || expandMutation.isPending}
+                    onClick={() => expandMutation.mutate(r.id)}
+                  >
+                    Expand
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                    disabled={
+                      (status !== "in_progress" && status !== "routed") || cancelMutation.isPending
+                    }
+                    onClick={() => cancelMutation.mutate(r.id)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                    disabled={status !== "cancelled" || reopenMutation.isPending}
+                    onClick={() => reopenMutation.mutate(r.id)}
+                  >
+                    Reopen
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
