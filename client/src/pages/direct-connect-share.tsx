@@ -53,7 +53,7 @@ export default function DirectConnectSharePage() {
     <div className="mx-auto w-full max-w-2xl px-4 py-8 text-tsTextMain">
       <SEOHelmet title={title} description={description} canonical={window.location.href} />
 
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+      <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="space-y-3">
           <Badge variant="outline" className="w-fit">
             Shared request preview
@@ -89,21 +89,21 @@ export default function DirectConnectSharePage() {
           <div className="flex flex-wrap gap-2 pt-2">
             {!isAuthenticated && (
               <a href={joinHref}>
-                <Button className="bg-orange-500 text-white hover:bg-orange-600">
+                <Button className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90">
                   Join to request access
                 </Button>
               </a>
             )}
             {isAuthenticated && !addressVerified && (
               <a href={verifyHref}>
-                <Button className="bg-orange-500 text-white hover:bg-orange-600">
+                <Button className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90">
                   Verify to unlock
                 </Button>
               </a>
             )}
             {isAuthenticated && addressVerified && (
               <a href={openHref}>
-                <Button className="bg-orange-500 text-white hover:bg-orange-600">
+                <Button className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90">
                   Open in Direct Connect
                 </Button>
               </a>

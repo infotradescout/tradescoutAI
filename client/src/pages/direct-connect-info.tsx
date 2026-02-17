@@ -4,7 +4,7 @@ import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
 import { Zap, Target, Shield, Users, ArrowRight } from "lucide-react";
 
 /**
- * /direct-connect-info — AI-safe foundation page
+ * /direct-connect-info - AI-safe foundation page
  *
  * NOTE: This is the informational page about Direct Connect.
  * The actual Direct Connect tool lives at /direct-connect (DirectConnectShell).
@@ -26,7 +26,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "What is Direct Connect?",
       answer:
-        "Direct Connect is TradeScout's matching system. When you request a contractor, Scout analyzes your job context (type, location, urgency, budget) and routes your request directly to 1-3 qualified, verified pros — not dozens of lead-buyers.",
+        "Direct Connect is TradeScout's matching system. When you request a contractor, Scout analyzes your job context (type, location, urgency, budget) and routes your request directly to 1-3 qualified, verified pros - not dozens of lead-buyers.",
     },
     {
       question: "How is this different from Angi or HomeAdvisor?",
@@ -36,7 +36,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "Do contractors pay to receive my request?",
       answer:
-        "No. Direct Connect matches are based on trust, relevance, and availability — not payment. Contractors pay TradeScout only when work is completed (transaction fee), not per lead.",
+        "No. Direct Connect matches are based on trust, relevance, and availability - not payment. Contractors pay TradeScout only when work is completed (transaction fee), not per lead.",
     },
     {
       question: "What information does Scout send to contractors?",
@@ -53,8 +53,8 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
   return (
     <>
       <SEOHelmet
-        title="Direct Connect – Trust-First Matching | TradeScout"
-        description="TradeScout Direct Connect routes your request to 1-3 verified contractors based on trust and relevance, not payment. No lead spam, no bidding wars — just qualified matches."
+        title="Direct Connect - Trust-First Matching | TradeScout"
+        description="TradeScout Direct Connect routes your request to 1-3 verified contractors based on trust and relevance, not payment. No lead spam, no bidding wars - just qualified matches."
         keywords="direct connect, contractor matching, no lead spam, trust-verified contractors, no bidding wars, qualified matches"
         canonical="https://www.thetradescout.com/direct-connect-info"
         structuredData={createFAQStructuredData(faqs)}
@@ -110,7 +110,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     <p className="text-tsTextSecondary mb-2">Scout filters contractors by:</p>
                     <ul className="list-disc list-inside space-y-1 text-tsTextSecondary ml-4">
                       <li>
-                        <strong>Trust</strong>: CVS ≥ 60 (verified, licensed, insured)
+                        <strong>Trust</strong>: CVS &gt;= 60 (verified, licensed, insured)
                       </li>
                       <li>
                         <strong>Trade match</strong>: Licensed for roofing
@@ -261,7 +261,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
                   <span>
-                    <strong>Full context upfront</strong>: Job details, budget, urgency — no
+                    <strong>Full context upfront</strong>: Job details, budget, urgency - no
                     surprises
                   </span>
                 </li>
@@ -321,13 +321,13 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
             <h3 className="text-lg font-semibold mb-4">Learn More</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <Link href="/how-it-works">
-                <a className="text-tsAccent hover:underline">How TradeScout Works →</a>
+                <a className="text-tsAccent hover:underline">How TradeScout Works -&gt;</a>
               </Link>
               <Link href="/trust-model">
-                <a className="text-tsAccent hover:underline">Trust Model →</a>
+                <a className="text-tsAccent hover:underline">Trust Model -&gt;</a>
               </Link>
               <Link href="/compare/angi">
-                <a className="text-tsAccent hover:underline">Compare: Angi →</a>
+                <a className="text-tsAccent hover:underline">Compare: Angi -&gt;</a>
               </Link>
             </div>
           </nav>

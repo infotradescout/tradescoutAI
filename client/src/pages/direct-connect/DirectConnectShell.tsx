@@ -110,7 +110,7 @@ function statusTone(status: string) {
     return "bg-rose-500/15 text-rose-200 border-rose-400/40";
   }
   if (value === "routed" || value === "suggested" || value === "invited") {
-    return "bg-orange-500/15 text-orange-200 border-orange-400/40";
+    return "bg-tsAccent/15 text-tsTextMain border-tsAccent/40";
   }
   return "bg-slate-500/15 text-slate-200 border-slate-400/40";
 }
@@ -590,7 +590,7 @@ function DirectConnectInbox() {
               </Button>
               <Button
                 size="sm"
-                className="bg-orange-500 text-white hover:bg-orange-600"
+                className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                 onClick={() => {
                   const title = currentAcceptedForInvoice?.request?.title || "Direct Connect job";
                   const clientName =
@@ -1037,7 +1037,7 @@ function MyDirectConnectRequests() {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1 h-8 px-2 text-xs bg-orange-500 text-white hover:bg-orange-600"
+                    className="flex-1 h-8 px-2 text-xs bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                     disabled={!canSend || routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
@@ -1104,7 +1104,7 @@ function MyDirectConnectRequests() {
                 {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
                 <Button
                   size="sm"
-                  className="hidden h-8 px-2 text-xs bg-orange-500 text-white hover:bg-orange-600 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90 sm:inline-flex"
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
@@ -1113,7 +1113,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden h-8 px-2 text-xs border-orange-500/60 text-orange-200 hover:bg-orange-500/10 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs border-tsBorder text-tsTextMain hover:bg-black/25 sm:inline-flex"
                   disabled={status !== "routed" || expandMutation.isPending}
                   onClick={() => expandMutation.mutate(r.id)}
                 >

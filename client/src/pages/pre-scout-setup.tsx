@@ -74,6 +74,8 @@ export default function PreScoutSetup() {
   const [createPassword, setCreatePassword] = useState("");
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const authInputClass =
+    "mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent [-webkit-text-fill-color:theme(colors.slate.100)] [&:-webkit-autofill]:shadow-[0_0_0px_1000px_rgba(5,12,22,0.96)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:theme(colors.slate.100)]";
 
   useEffect(() => {
     if (!existingDraft) return;
@@ -131,7 +133,15 @@ export default function PreScoutSetup() {
       toast({ title: "Signed in", description: "Continue with local setup." });
       navigate(`/pre-scout-setup${safeNextQuery}`);
     } catch (error: any) {
-      const message = error?.message || "Please try again.";
+      const rawMessage = String(error?.message || "Please try again.");
+      const lowered = rawMessage.toLowerCase();
+      const message = lowered.includes("incorrect password")
+        ? "Incorrect password."
+        : lowered.includes("account not found")
+          ? "No account found for that email."
+          : lowered.includes("social login")
+            ? "This account uses Google/Facebook sign-in."
+            : rawMessage;
       setSignInError(message);
       toast({
         title: "Sign in failed",
@@ -302,9 +312,7 @@ export default function PreScoutSetup() {
             <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
               Sign in. Get local.
             </h1>
-            <p className="max-w-md text-sm text-tsTextMuted">
-              Access your account or create one in under a minute.
-            </p>
+            <p className="max-w-md text-sm text-tsTextMuted">Sign in or create your account.</p>
           </div>
 
           <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
@@ -380,7 +388,7 @@ export default function PreScoutSetup() {
                       }}
                       autoComplete="email"
                       placeholder="you@example.com"
-                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                      className={authInputClass}
                       required
                     />
                   </div>
@@ -399,7 +407,7 @@ export default function PreScoutSetup() {
                       }}
                       autoComplete="current-password"
                       placeholder="Your password"
-                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                      className={authInputClass}
                       required
                     />
                     {signInError && (
@@ -438,7 +446,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreateFirstName(e.target.value)}
                         autoComplete="given-name"
                         placeholder="First"
-                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                        className={authInputClass}
                         required
                       />
                     </div>
@@ -453,7 +461,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreateLastName(e.target.value)}
                         autoComplete="family-name"
                         placeholder="Last"
-                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                        className={authInputClass}
                         required
                       />
                     </div>
@@ -470,7 +478,7 @@ export default function PreScoutSetup() {
                       onChange={(e) => setCreateEmail(e.target.value)}
                       autoComplete="email"
                       placeholder="you@example.com"
-                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                      className={authInputClass}
                       required
                     />
                   </div>
@@ -485,7 +493,7 @@ export default function PreScoutSetup() {
                       onChange={(e) => setCreatePhone(e.target.value)}
                       autoComplete="tel"
                       placeholder="(555) 555-5555"
-                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                      className={authInputClass}
                       required
                     />
                   </div>
@@ -502,7 +510,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreatePassword(e.target.value)}
                         autoComplete="new-password"
                         placeholder="At least 8 characters"
-                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                        className={authInputClass}
                         required
                       />
                     </div>
@@ -518,7 +526,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreateConfirmPassword(e.target.value)}
                         autoComplete="new-password"
                         placeholder="Repeat password"
-                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                        className={authInputClass}
                         required
                       />
                     </div>

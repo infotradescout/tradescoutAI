@@ -76,7 +76,7 @@ export default function DirectConnectPros() {
 
   return (
     <div className="space-y-4">
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+      <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="pb-1">
           <CardTitle className="text-sm">Browse local pros</CardTitle>
         </CardHeader>
@@ -91,7 +91,7 @@ export default function DirectConnectPros() {
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <Select value={tradeSlug} onValueChange={setTradeSlug}>
-              <SelectTrigger className="bg-navy-700 text-white border border-navy-600">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a trade" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
@@ -104,11 +104,11 @@ export default function DirectConnectPros() {
             </Select>
 
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-tsTextMuted" />
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="pl-10 bg-navy-700 border-navy-600 text-white"
+                className="pl-10"
                 placeholder="Search by name or keyword"
               />
             </div>
