@@ -22,7 +22,6 @@ import {
   Inbox,
   Users,
   BriefcaseBusiness,
-  ShieldCheck,
   Share2,
   MessageCircle,
   Smartphone,
@@ -44,7 +43,6 @@ const SECTION_META: Record<
   {
     title: string;
     description: string;
-    hint: string;
     actionLabel: string;
     actionTarget: Section;
   }
@@ -52,35 +50,30 @@ const SECTION_META: Record<
   post: {
     title: "Post a request",
     description: "Post once. Track status in one place.",
-    hint: "Best for: new work requests",
     actionLabel: "Go to My Requests",
     actionTarget: "engagements",
   },
   board: {
     title: "Job board",
     description: "Browse open local requests.",
-    hint: "Best for: browsing active demand",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
   },
   inbox: {
     title: "Provider inbox",
     description: "Review opportunities and respond.",
-    hint: "Best for: accept/decline decisions",
     actionLabel: "View My Requests",
     actionTarget: "engagements",
   },
   pros: {
     title: "Pro directory",
     description: "Browse local pros and start a request.",
-    hint: "Best for: pre-request research",
     actionLabel: "Post Request",
     actionTarget: "post",
   },
   engagements: {
     title: "My requests",
     description: "Track status and next steps.",
-    hint: "Best for: managing active requests",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
   },
@@ -397,7 +390,7 @@ function DirectConnectInbox() {
                 {request?.countyFips && (
                   <Badge variant="outline">County: {request.countyFips}</Badge>
                 )}
-                <Badge variant="outline" className="hidden sm:inline-flex">
+                <Badge variant="outline" className="hidden md:inline-flex">
                   Protected contact flow
                 </Badge>
                 {typeof snapshot?.score === "number" && (
@@ -938,6 +931,30 @@ function MyDirectConnectRequests() {
                     SMS
                   </Button>
                 </div>
+                <div className="flex w-full gap-2 sm:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      const threadId = r.dcConversationThreadId;
+                      window.location.href = threadId
+                        ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                        : "/messages";
+                    }}
+                    disabled={!hasAccepted}
+                  >
+                    Messages
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+                    disabled={!canSend || routeMutation.isPending}
+                    onClick={() => routeMutation.mutate(r.id)}
+                  >
+                    Send
+                  </Button>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -973,6 +990,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:inline-flex"
                   onClick={() => {
                     const threadId = r.dcConversationThreadId;
                     window.location.href = threadId
@@ -986,7 +1004,7 @@ function MyDirectConnectRequests() {
                 {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
                 <Button
                   size="sm"
-                  className="bg-orange-500 text-white hover:bg-orange-600"
+                  className="hidden bg-orange-500 text-white hover:bg-orange-600 sm:inline-flex"
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
@@ -995,7 +1013,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-orange-500/60 text-orange-200 hover:bg-orange-500/10"
+                  className="hidden border-orange-500/60 text-orange-200 hover:bg-orange-500/10 sm:inline-flex"
                   disabled={status !== "routed" || expandMutation.isPending}
                   onClick={() => expandMutation.mutate(r.id)}
                 >
@@ -1004,7 +1022,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                  className="hidden border-rose-500/60 text-rose-200 hover:bg-rose-500/10 sm:inline-flex"
                   disabled={
                     (status !== "in_progress" && status !== "routed") || cancelMutation.isPending
                   }
@@ -1015,7 +1033,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                  className="hidden border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10 sm:inline-flex"
                   disabled={status !== "cancelled" || reopenMutation.isPending}
                   onClick={() => reopenMutation.mutate(r.id)}
                 >
@@ -1111,16 +1129,9 @@ export default function DirectConnectShell() {
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] px-3 py-1 text-[11px] uppercase tracking-wide text-[color:var(--text-secondary)]">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Get work done
-                </div>
                 <h1 className="text-xl font-semibold text-[color:var(--text-primary)] md:text-3xl">
                   Direct Connect
                 </h1>
-                <p className="max-w-2xl text-sm text-[color:var(--text-secondary)]">
-                  Post requests, discover local providers, and manage progress.
-                </p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
@@ -1170,9 +1181,6 @@ export default function DirectConnectShell() {
                   <h2 className="text-base font-semibold text-[color:var(--text-primary)]">
                     {sectionMeta.title}
                   </h2>
-                  <p className="mt-1 hidden text-xs text-[color:var(--text-secondary)] sm:block">
-                    {sectionMeta.description}
-                  </p>
                 </div>
                 {sectionMeta.actionTarget !== activeSection && (
                   <Button
