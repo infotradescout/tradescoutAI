@@ -425,7 +425,7 @@ export default function TasksHub({
                 Live requests
               </TabsTrigger>
               <TabsTrigger value="post" className="data-[state=active]:bg-orange-500">
-                Start a Direct Connect request
+                Post request
               </TabsTrigger>
             </TabsList>
           )}
@@ -484,14 +484,14 @@ export default function TasksHub({
                       className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
                       onClick={() => navigate("/direct-connect/pros")}
                     >
-                      Browse local pros
+                      Browse pros
                     </Button>
                     {isAuthenticated && (
                       <Button
                         className="bg-orange-500 hover:bg-orange-600"
                         onClick={() => setActiveTab("post")}
                       >
-                        Create request
+                        Post request
                       </Button>
                     )}
                   </div>
@@ -576,7 +576,7 @@ export default function TasksHub({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-white mb-1">
-                      {isJobListing ? "Post a job listing" : "Create request"}
+                      {isJobListing ? "Post a job listing" : "Post request"}
                     </h2>
                     <p className="text-sm text-gray-300">
                       {isJobListing
@@ -593,9 +593,9 @@ export default function TasksHub({
                 {!isAuthenticated ? (
                   <p className="text-sm text-gray-300">Sign in to create a request.</p>
                 ) : (
-                  <div className="grid gap-6">
+                  <div className="grid gap-4">
                     {postStep === 0 && (
-                      <div className="grid gap-4">
+                      <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label>Title</Label>
                           <Input
@@ -652,7 +652,7 @@ export default function TasksHub({
                           )}
                         </div>
 
-                        <div className="rounded-md border border-navy-600 bg-navy-800/60 p-4">
+                        <div className="rounded-md border border-navy-600 bg-navy-800/60 p-3">
                           <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">
                             Posting type
                           </div>
@@ -699,8 +699,8 @@ export default function TasksHub({
                     )}
 
                     {postStep === 1 && (
-                      <div className="grid gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="grid gap-2">
                             <Label>Category</Label>
                             <Select
@@ -764,8 +764,8 @@ export default function TasksHub({
                     )}
 
                     {postStep === 2 && (
-                      <div className="grid gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="grid gap-2">
                             <Label>Pay type</Label>
                             <Select
@@ -809,7 +809,7 @@ export default function TasksHub({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="grid gap-2">
                             <Label>{isJobListing ? "Start timing" : "Scheduling"}</Label>
                             <Select
@@ -926,9 +926,9 @@ export default function TasksHub({
                                 No recommendations yet for this trade and county.
                               </p>
                             ) : (
-                              <div className="space-y-3">
+                              <div className="space-y-2">
                                 <p className="text-xs text-gray-300">Also send directly to:</p>
-                                <div className="space-y-2">
+                                <div className="space-y-1.5">
                                   {recommendedProviders!.map((provider) => {
                                     const checked = selectedProviderIds.includes(provider.id);
                                     return (
@@ -1034,7 +1034,7 @@ export default function TasksHub({
                               ? "Posting..."
                               : isJobListing
                                 ? "Post job listing"
-                                : "Post Direct Connect request"}
+                                : "Post request"}
                           </Button>
                         )}
                       </div>

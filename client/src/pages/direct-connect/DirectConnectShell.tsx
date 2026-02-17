@@ -997,7 +997,7 @@ function MyDirectConnectRequests() {
                   }}
                   disabled={!hasAccepted}
                 >
-                  Open conversation
+                  Messages
                 </Button>
                 {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
                 <Button
@@ -1006,7 +1006,7 @@ function MyDirectConnectRequests() {
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
-                  Send request
+                  Send
                 </Button>
                 <Button
                   size="sm"
