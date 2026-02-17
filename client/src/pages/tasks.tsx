@@ -142,6 +142,7 @@ export default function TasksHub({
   const [postIntent, setPostIntent] = useState<PostIntent>("work_request");
   const [postIntentLocked, setPostIntentLocked] = useState(false);
   const [postStep, setPostStep] = useState(0);
+  const [showProviderInvites, setShowProviderInvites] = useState(false);
 
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
   const [prefillProviderId, setPrefillProviderId] = useState<string | null>(null);
@@ -204,6 +205,12 @@ export default function TasksHub({
       return [...prev, idFromQuery];
     });
   }, [contractorId, contractorPrefill]);
+
+  useEffect(() => {
+    if (prefillProviderId) {
+      setShowProviderInvites(true);
+    }
+  }, [prefillProviderId]);
 
   // Telemetry: Track when county defaults are applied from URL params (Phase 1)
   useEffect(() => {
@@ -271,6 +278,7 @@ export default function TasksHub({
     if (postIntent === "job_listing") {
       setSelectedProviderIds([]);
       setPrefillProviderId(null);
+      setShowProviderInvites(false);
     }
   }, [postIntent]);
 
@@ -346,6 +354,7 @@ export default function TasksHub({
       setSelectedProviderIds([]);
       setPostStep(0);
       setPostIntentLocked(false);
+      setShowProviderInvites(false);
       setActiveTab("browse");
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
     },
@@ -386,7 +395,7 @@ export default function TasksHub({
   }, [workRequests, searchQuery, selectedCategory]);
 
   const shellClass = embedded
-    ? "space-y-4"
+    ? "space-y-3"
     : "max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20";
   const contentSpacing = embedded ? "mt-0" : "mt-6";
   const postSteps = ["Basics", "Details", "Routing & review"];
@@ -431,11 +440,19 @@ export default function TasksHub({
           )}
 
           <TabsContent value="browse" className={contentSpacing}>
-            <Card className="bg-navy-800 border-navy-700 mb-4">
-              <CardHeader className="pb-2">
+            <Card className={`bg-navy-800 border-navy-700 ${embedded ? "mb-3" : "mb-4"}`}>
+              <CardHeader className={embedded ? "pb-1 pt-3 px-3" : "pb-2"}>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-white">Live requests</h2>
+                    <h2
+                      className={
+                        embedded
+                          ? "text-sm font-semibold text-white"
+                          : "text-lg font-semibold text-white"
+                      }
+                    >
+                      {embedded ? "Requests" : "Live requests"}
+                    </h2>
                   </div>
                   {selectedCountyFips && (
                     <Button
@@ -449,12 +466,18 @@ export default function TasksHub({
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className={embedded ? "pt-1 px-3 pb-3" : ""}>
+                <div
+                  className={
+                    embedded
+                      ? "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3"
+                      : "grid grid-cols-1 gap-4 md:grid-cols-3"
+                  }
+                >
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Search active requests..."
+                      placeholder={embedded ? "Search requests..." : "Search active requests..."}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 bg-navy-600 border-navy-500 text-white"
@@ -510,10 +533,16 @@ export default function TasksHub({
                 </CardContent>
               </Card>
             ) : requestsLoading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div
+                className={
+                  embedded
+                    ? "grid grid-cols-1 gap-3 lg:grid-cols-2"
+                    : "grid grid-cols-1 gap-6 lg:grid-cols-2"
+                }
+              >
                 {[...Array(4)].map((_, i) => (
                   <Card key={i} className="bg-navy-700 border-navy-600 animate-pulse">
-                    <CardContent className="p-6">
+                    <CardContent className={embedded ? "p-4" : "p-6"}>
                       <div className="h-4 bg-navy-600 rounded mb-4" />
                       <div className="h-20 bg-navy-600 rounded mb-4" />
                       <div className="h-4 bg-navy-600 rounded" />
@@ -522,11 +551,23 @@ export default function TasksHub({
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div
+                className={
+                  embedded
+                    ? "grid grid-cols-1 gap-3 lg:grid-cols-2"
+                    : "grid grid-cols-1 gap-6 lg:grid-cols-2"
+                }
+              >
                 {filteredRequests.map((request) => (
                   <Card key={request.id} className="bg-navy-700 border-navy-600">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+                    <CardContent className={embedded ? "p-3" : "p-4"}>
+                      <div
+                        className={
+                          embedded
+                            ? "mb-1.5 flex items-start justify-between"
+                            : "flex items-start justify-between mb-2"
+                        }
+                      >
                         <div className="flex-1">
                           <h3 className="text-sm font-semibold text-white mb-1">{request.title}</h3>
                           <p className="text-gray-300 text-xs line-clamp-1">
@@ -538,7 +579,13 @@ export default function TasksHub({
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between mt-3 text-[11px] text-gray-400">
+                      <div
+                        className={
+                          embedded
+                            ? "mt-2 flex items-center justify-between text-[10px] text-gray-400"
+                            : "flex items-center justify-between mt-3 text-[11px] text-gray-400"
+                        }
+                      >
                         <span>
                           Budget:{" "}
                           {request.budgetMin || request.budgetMax
@@ -558,7 +605,7 @@ export default function TasksHub({
                 {filteredRequests.length === 0 && (
                   <div className="col-span-full">
                     <Card className="bg-navy-700 border-navy-600">
-                      <CardContent className="p-8 text-center">
+                      <CardContent className={embedded ? "p-5 text-center" : "p-8 text-center"}>
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-white mb-2">No requests yet</h3>
                         <p className="text-gray-300">Create your first request.</p>
@@ -572,24 +619,30 @@ export default function TasksHub({
 
           <TabsContent value="post" className={contentSpacing}>
             <Card className="bg-navy-800 border-navy-700">
-              <CardHeader className="pb-4">
+              <CardHeader className={embedded ? "pb-2 pt-3 px-3" : "pb-4"}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-white mb-1">
+                    <h2
+                      className={
+                        embedded
+                          ? "text-base font-semibold text-white"
+                          : "text-lg font-semibold text-white mb-1"
+                      }
+                    >
                       {isJobListing ? "Post a job listing" : "Post request"}
                     </h2>
-                    <p className="text-sm text-gray-300">
+                    <p className={embedded ? "hidden" : "text-sm text-gray-300"}>
                       {isJobListing
                         ? "Role details and requirements."
                         : "Scope, budget, and county."}
                     </p>
                   </div>
                   <div className="text-xs text-gray-400">
-                    Step {postStep + 1} of {postSteps.length}: {postSteps[postStep]}
+                    Step {postStep + 1}/{postSteps.length} · {postSteps[postStep]}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className={embedded ? "pt-0 px-3 pb-3" : ""}>
                 {!isAuthenticated ? (
                   <p className="text-sm text-gray-300">Sign in to create a request.</p>
                 ) : (
@@ -864,116 +917,133 @@ export default function TasksHub({
 
                         {!isJobListing && (
                           <div className="grid gap-2">
-                            <Label>Optional: invite recommended providers</Label>
-                            {prefillProviderId && contractorPrefill && (
-                              <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
-                                <div className="text-xs text-gray-400">Direct invite</div>
-                                <div className="mt-1 flex items-center justify-between gap-2">
-                                  <span className="font-medium text-white">
-                                    {contractorPrefill.companyName ||
-                                      contractorPrefill.name ||
-                                      "Selected provider"}
-                                  </span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-gray-500 text-gray-300"
-                                    onClick={() => {
-                                      setSelectedProviderIds((prev) =>
-                                        prev.filter((id) => id !== prefillProviderId)
-                                      );
-                                      setPrefillProviderId(null);
-                                    }}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                            {prefillProviderId && !contractorPrefill && (
-                              <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
-                                <div className="text-xs text-gray-400">Direct invite</div>
-                                <div className="mt-1 flex items-center justify-between gap-2">
-                                  <span className="font-medium text-white">Selected provider</span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-gray-500 text-gray-300"
-                                    onClick={() => {
-                                      setSelectedProviderIds((prev) =>
-                                        prev.filter((id) => id !== prefillProviderId)
-                                      );
-                                      setPrefillProviderId(null);
-                                    }}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                            {!isAuthenticated || !user?.countyFips ? (
-                              <p className="text-sm text-gray-300">
-                                Add your county on profile to see suggestions.
-                              </p>
-                            ) : providersLoading ? (
-                              <p className="text-sm text-gray-300">Loading providers...</p>
-                            ) : !tradeSlugForCategory ? (
-                              <p className="text-sm text-gray-300">
-                                No direct match yet. Request will still post to your board.
-                              </p>
-                            ) : (recommendedProviders || []).length === 0 ? (
-                              <p className="text-sm text-gray-300">
-                                No recommendations yet for this trade and county.
-                              </p>
-                            ) : (
-                              <div className="space-y-2">
-                                <p className="text-xs text-gray-300">Also send directly to:</p>
-                                <div className="space-y-1.5">
-                                  {recommendedProviders!.map((provider) => {
-                                    const checked = selectedProviderIds.includes(provider.id);
-                                    return (
-                                      <label
-                                        key={provider.id}
-                                        className="flex items-start gap-3 rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 cursor-pointer"
+                            <div className="flex items-center justify-between">
+                              <Label>Invite providers (optional)</Label>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-gray-300"
+                                onClick={() => setShowProviderInvites((open) => !open)}
+                              >
+                                {showProviderInvites ? "Hide" : "Show"}
+                              </Button>
+                            </div>
+                            {showProviderInvites && (
+                              <>
+                                {prefillProviderId && contractorPrefill && (
+                                  <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
+                                    <div className="text-xs text-gray-400">Direct invite</div>
+                                    <div className="mt-1 flex items-center justify-between gap-2">
+                                      <span className="font-medium text-white">
+                                        {contractorPrefill.companyName ||
+                                          contractorPrefill.name ||
+                                          "Selected provider"}
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-gray-500 text-gray-300"
+                                        onClick={() => {
+                                          setSelectedProviderIds((prev) =>
+                                            prev.filter((id) => id !== prefillProviderId)
+                                          );
+                                          setPrefillProviderId(null);
+                                        }}
                                       >
-                                        <Checkbox
-                                          checked={checked}
-                                          onCheckedChange={(val) => {
-                                            setSelectedProviderIds((prev) => {
-                                              if (val) {
-                                                const next = [...prev, provider.id];
-                                                return Array.from(new Set(next));
-                                              }
-                                              return prev.filter((id) => id !== provider.id);
-                                            });
-                                          }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-sm text-white font-medium truncate">
-                                            {provider.businessName || "Local provider"}
-                                          </div>
-                                          <div className="text-xs text-gray-300">
-                                            {provider.presenceLabel}
-                                            {provider.county && provider.state
-                                              ? ` - ${provider.county}, ${provider.state}`
-                                              : null}
-                                          </div>
-                                          {provider.recommendationCount &&
-                                            provider.recommendationCount > 0 && (
-                                              <div className="text-[11px] text-gray-400 mt-0.5">
-                                                {provider.recommendationCount} neighbor
-                                                recommendations
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                                {prefillProviderId && !contractorPrefill && (
+                                  <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
+                                    <div className="text-xs text-gray-400">Direct invite</div>
+                                    <div className="mt-1 flex items-center justify-between gap-2">
+                                      <span className="font-medium text-white">
+                                        Selected provider
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-gray-500 text-gray-300"
+                                        onClick={() => {
+                                          setSelectedProviderIds((prev) =>
+                                            prev.filter((id) => id !== prefillProviderId)
+                                          );
+                                          setPrefillProviderId(null);
+                                        }}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                                {!isAuthenticated || !user?.countyFips ? (
+                                  <p className="text-sm text-gray-300">
+                                    Add your county on profile to see suggestions.
+                                  </p>
+                                ) : providersLoading ? (
+                                  <p className="text-sm text-gray-300">Loading providers...</p>
+                                ) : !tradeSlugForCategory ? (
+                                  <p className="text-sm text-gray-300">
+                                    No trade match yet. You can still post.
+                                  </p>
+                                ) : (recommendedProviders || []).length === 0 ? (
+                                  <p className="text-sm text-gray-300">
+                                    No recommendations yet for this trade and county.
+                                  </p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-gray-300">Also send directly to:</p>
+                                    <div className="space-y-1.5">
+                                      {recommendedProviders!.map((provider) => {
+                                        const checked = selectedProviderIds.includes(provider.id);
+                                        return (
+                                          <label
+                                            key={provider.id}
+                                            className="flex items-start gap-3 rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 cursor-pointer"
+                                          >
+                                            <Checkbox
+                                              checked={checked}
+                                              onCheckedChange={(val) => {
+                                                setSelectedProviderIds((prev) => {
+                                                  if (val) {
+                                                    const next = [...prev, provider.id];
+                                                    return Array.from(new Set(next));
+                                                  }
+                                                  return prev.filter((id) => id !== provider.id);
+                                                });
+                                              }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm text-white font-medium truncate">
+                                                {provider.businessName || "Local provider"}
                                               </div>
-                                            )}
-                                        </div>
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                                <p className="text-[11px] text-gray-400">
-                                  If none are selected, this still posts to your board.
-                                </p>
-                              </div>
+                                              <div className="text-xs text-gray-300">
+                                                {provider.presenceLabel}
+                                                {provider.county && provider.state
+                                                  ? ` - ${provider.county}, ${provider.state}`
+                                                  : null}
+                                              </div>
+                                              {provider.recommendationCount &&
+                                                provider.recommendationCount > 0 && (
+                                                  <div className="text-[11px] text-gray-400 mt-0.5">
+                                                    {provider.recommendationCount} neighbor
+                                                    recommendations
+                                                  </div>
+                                                )}
+                                            </div>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                    <p className="text-[11px] text-gray-400">
+                                      If none are selected, this still posts to your board.
+                                    </p>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         )}
@@ -992,6 +1062,7 @@ export default function TasksHub({
                           setSelectedProviderIds([]);
                           setPostStep(0);
                           setPostIntentLocked(false);
+                          setShowProviderInvites(false);
                         }}
                         disabled={createTaskMutation.isPending}
                       >

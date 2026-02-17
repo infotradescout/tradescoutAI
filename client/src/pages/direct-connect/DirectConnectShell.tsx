@@ -397,7 +397,7 @@ function DirectConnectInbox() {
                 </Button>
               </div>
 
-              {(isExpanded || false) && (
+              {isExpanded && (
                 <div className="space-y-1 text-[11px] text-[color:var(--text-secondary)] md:hidden">
                   {createdAt && (
                     <div>
@@ -992,7 +992,7 @@ function MyDirectConnectRequests() {
                 </Button>
               </div>
 
-              {(isExpanded || false) && (
+              {isExpanded && (
                 <div className="space-y-1 text-[11px] text-[color:var(--text-secondary)] md:hidden">
                   {status === "open" && !canSend && <div>Add a county and trade to send.</div>}
                   {hasAccepted && <div>Accepted by a provider</div>}
@@ -1031,26 +1031,6 @@ function MyDirectConnectRequests() {
                     size="sm"
                     variant="outline"
                     className="flex-1 h-8 px-2 text-xs"
-                    onClick={() => shareRequest(r.id, r.title, "messenger")}
-                  >
-                    <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    Msg
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 h-8 px-2 text-xs"
-                    onClick={() => shareRequest(r.id, r.title, "sms")}
-                  >
-                    <Smartphone className="mr-1 h-3.5 w-3.5" />
-                    SMS
-                  </Button>
-                </div>
-                <div className="flex w-full gap-2 sm:hidden">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 h-8 px-2 text-xs"
                     onClick={() => {
                       const threadId = r.dcConversationThreadId;
                       window.location.href = threadId
@@ -1083,7 +1063,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2 text-xs"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "native")}
                 >
                   <Share2 className="mr-1 h-3.5 w-3.5" />
@@ -1169,6 +1149,24 @@ function MyDirectConnectRequests() {
 
               {isMobileActionOpen && (
                 <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => shareRequest(r.id, r.title, "messenger")}
+                  >
+                    <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                    Msg
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => shareRequest(r.id, r.title, "sms")}
+                  >
+                    <Smartphone className="mr-1 h-3.5 w-3.5" />
+                    SMS
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1302,26 +1300,22 @@ export default function DirectConnectShell() {
     <div className="w-full max-w-full overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl space-y-3 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-1">
-                <h1 className="text-xl font-semibold text-[color:var(--text-primary)] md:text-3xl">
-                  Direct Connect
-                </h1>
+          <CardContent className="p-3 md:p-5">
+            <h1 className="text-lg font-semibold text-[color:var(--text-primary)] md:text-2xl">
+              Direct Connect
+            </h1>
+            <div className="mt-2 flex gap-1.5 overflow-x-auto text-[11px]">
+              <div className="shrink-0 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1 text-[color:var(--text-secondary)]">
+                Inbox{" "}
+                <span className="font-semibold text-[color:var(--text-primary)]">
+                  {navCounts.inbox || 0}
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                  <div className="text-[color:var(--text-secondary)]">Pending in inbox</div>
-                  <div className="mt-1 text-lg font-semibold text-[color:var(--text-primary)]">
-                    {navCounts.inbox || 0}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                  <div className="text-[color:var(--text-secondary)]">Active requests</div>
-                  <div className="mt-1 text-lg font-semibold text-[color:var(--text-primary)]">
-                    {navCounts.engagements || 0}
-                  </div>
-                </div>
+              <div className="shrink-0 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1 text-[color:var(--text-secondary)]">
+                Active{" "}
+                <span className="font-semibold text-[color:var(--text-primary)]">
+                  {navCounts.engagements || 0}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -1352,7 +1346,7 @@ export default function DirectConnectShell() {
 
           <div className="min-w-0 space-y-4">
             <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+              <CardContent className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between md:p-4">
                 <div>
                   <h2 className="text-base font-semibold text-[color:var(--text-primary)]">
                     {sectionMeta.title}
