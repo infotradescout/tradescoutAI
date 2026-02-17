@@ -18,6 +18,11 @@ TradeScout core interaction contract is:
 - `server/routes.ts:9878`
   - `GET /promo/:slug` no longer returns contractor `phone` or `email`.
   - Response includes request CTA metadata instead (`contactAccess`).
+- `server/routes/direct-connect.ts`
+  - `POST /api/direct-connect/requests` and `POST /api/admin/direct-connect/requests` now redact
+    phone/email from free-text title + description before persistence.
+  - Empty-after-redaction payloads are rejected with `400` to enforce request-first scope language.
+  - `GET /api/direct-connect/share/:token` returns redacted scope/title only with locked contact flags.
 
 ### Request object path (marketplace inquiry)
 - `server/routes.ts:10671`
@@ -64,8 +69,11 @@ TradeScout core interaction contract is:
 ## Change-set (minimal)
 
 - `server/routes.ts`
+- `server/routes/direct-connect.ts`
 - `server/storage.ts`
 - `client/src/components/conversation-starter.tsx`
+- `client/src/components/contractor-card.tsx`
+- `client/src/pages/direct-connect/DirectConnectPros.tsx`
 - `client/src/pages/exchange.tsx`
 - `client/src/pages/marketplace.tsx`
 - `docs/INTERACTION_CONTRACT.md`

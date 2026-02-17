@@ -16,6 +16,7 @@ import { storage } from "../storage";
 import { notificationService } from "../notification-service";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import {
+  redactContactDetails,
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
   formatBudgetRange,
@@ -56,6 +57,11 @@ const assignmentResponseSchema = z.object({
 
 export function registerDirectConnectRoutes(app: Express) {
   const makeShareToken = () => randomBytes(16).toString("hex");
+  const sanitizeWorkRequestText = (value: string, maxLength: number) =>
+    redactContactDetails(String(value || ""))
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, maxLength);
 
   const resolveOrigin = (req: Request) => {
     const protoHeader = String(req.headers["x-forwarded-proto"] || "")
@@ -805,6 +811,13 @@ export function registerDirectConnectRoutes(app: Express) {
             .json({ message: "Invalid request body", issues: parse.error.flatten() });
         }
         const body = parse.data;
+        const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
+        const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
+        if (!sanitizedTitle || !sanitizedDescription) {
+          return res.status(400).json({
+            message: "Please include non-contact project details in title and scope.",
+          });
+        }
 
         // C2-3: Verification gate - check homeowner address verification (REQUEST_CONTRACTOR_QUOTE action)
         const viewer = await storage.getUser(String(userId));
@@ -872,8 +885,8 @@ export function registerDirectConnectRoutes(app: Express) {
           .insert(workRequests)
           .values({
             createdByUserId: String(userId),
-            title: body.title.trim(),
-            description: body.description.trim(),
+            title: sanitizedTitle,
+            description: sanitizedDescription,
             category: body.category,
             countyFips,
             stateCode,
@@ -996,6 +1009,13 @@ export function registerDirectConnectRoutes(app: Express) {
         }
 
         const body = parse.data;
+        const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
+        const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
+        if (!sanitizedTitle || !sanitizedDescription) {
+          return res.status(400).json({
+            message: "Please include non-contact project details in title and scope.",
+          });
+        }
         let targetUser = null as any;
         if (body.targetUserId) {
           targetUser = await storage.getUser(body.targetUserId);
@@ -1037,8 +1057,8 @@ export function registerDirectConnectRoutes(app: Express) {
           .insert(workRequests)
           .values({
             createdByUserId: String(targetUser.id),
-            title: body.title.trim(),
-            description: body.description.trim(),
+            title: sanitizedTitle,
+            description: sanitizedDescription,
             category: body.category,
             countyFips,
             stateCode,
