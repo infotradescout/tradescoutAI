@@ -407,11 +407,11 @@ function DirectConnectInbox() {
                 </p>
               )}
 
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-1.5">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   disabled={status !== "accepted"}
                   onClick={() => {
                     const threadId = item.conversationThreadId;
@@ -425,7 +425,7 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   disabled={status !== "accepted" || !!creatingInvoice}
                   onClick={() => status === "accepted" && setCreatingInvoice(assignment.id)}
                 >
@@ -434,7 +434,7 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="sm:hidden"
+                  className="h-8 px-2 text-xs sm:hidden"
                   disabled={status !== "accepted"}
                   onClick={() => {
                     const threadId = item.conversationThreadId;
@@ -447,7 +447,7 @@ function DirectConnectInbox() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-emerald-600 text-white hover:bg-emerald-500"
+                  className="h-8 px-2 text-xs bg-emerald-600 text-white hover:bg-emerald-500"
                   disabled={!canRespond || respondMutation.isPending}
                   onClick={() => handleRespond(assignment.id, "accept")}
                 >
@@ -456,7 +456,7 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                  className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
                   disabled={!canRespond || respondMutation.isPending}
                   onClick={() => setDeclineAssignmentId(assignment.id)}
                 >
@@ -908,21 +908,21 @@ function MyDirectConnectRequests() {
                 )}
               </div>
 
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-1.5">
                 <div className="flex w-full gap-2 sm:hidden">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 h-8 px-2 text-xs"
                     onClick={() => shareRequest(r.id, r.title, "messenger")}
                   >
                     <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    Messenger
+                    Msg
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 h-8 px-2 text-xs"
                     onClick={() => shareRequest(r.id, r.title, "sms")}
                   >
                     <Smartphone className="mr-1 h-3.5 w-3.5" />
@@ -933,7 +933,7 @@ function MyDirectConnectRequests() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 h-8 px-2 text-xs"
                     onClick={() => {
                       const threadId = r.dcConversationThreadId;
                       window.location.href = threadId
@@ -946,7 +946,7 @@ function MyDirectConnectRequests() {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+                    className="flex-1 h-8 px-2 text-xs bg-orange-500 text-white hover:bg-orange-600"
                     disabled={!canSend || routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
@@ -956,6 +956,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="h-8 px-2 text-xs"
                   onClick={() => shareRequest(r.id, r.title, "native")}
                 >
                   <Share2 className="mr-1 h-3.5 w-3.5" />
@@ -964,7 +965,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "facebook")}
                 >
                   Facebook
@@ -972,7 +973,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "messenger")}
                 >
                   Messenger
@@ -980,7 +981,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   onClick={() => shareRequest(r.id, r.title, "sms")}
                 >
                   SMS
@@ -988,7 +989,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs sm:inline-flex"
                   onClick={() => {
                     const threadId = r.dcConversationThreadId;
                     window.location.href = threadId
@@ -1002,7 +1003,7 @@ function MyDirectConnectRequests() {
                 {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
                 <Button
                   size="sm"
-                  className="hidden bg-orange-500 text-white hover:bg-orange-600 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs bg-orange-500 text-white hover:bg-orange-600 sm:inline-flex"
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
@@ -1011,7 +1012,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden border-orange-500/60 text-orange-200 hover:bg-orange-500/10 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs border-orange-500/60 text-orange-200 hover:bg-orange-500/10 sm:inline-flex"
                   disabled={status !== "routed" || expandMutation.isPending}
                   onClick={() => expandMutation.mutate(r.id)}
                 >
@@ -1020,7 +1021,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden border-rose-500/60 text-rose-200 hover:bg-rose-500/10 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10 sm:inline-flex"
                   disabled={
                     (status !== "in_progress" && status !== "routed") || cancelMutation.isPending
                   }
@@ -1031,7 +1032,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10 sm:inline-flex"
                   disabled={status !== "cancelled" || reopenMutation.isPending}
                   onClick={() => reopenMutation.mutate(r.id)}
                 >

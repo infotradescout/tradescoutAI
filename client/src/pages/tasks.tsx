@@ -525,11 +525,11 @@ export default function TasksHub({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {filteredRequests.map((request) => (
                   <Card key={request.id} className="bg-navy-700 border-navy-600">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-3">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1">{request.title}</h3>
-                          <p className="text-gray-300 text-sm line-clamp-3">
+                          <h3 className="text-sm font-semibold text-white mb-1">{request.title}</h3>
+                          <p className="text-gray-300 text-xs line-clamp-1">
                             {request.description}
                           </p>
                         </div>
@@ -538,7 +538,7 @@ export default function TasksHub({
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between mt-4 text-xs text-gray-400">
+                      <div className="flex items-center justify-between mt-3 text-[11px] text-gray-400">
                         <span>
                           Budget:{" "}
                           {request.budgetMin || request.budgetMax
