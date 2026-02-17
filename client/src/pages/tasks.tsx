@@ -398,7 +398,7 @@ export default function TasksHub({
     ? "space-y-3"
     : "max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20";
   const contentSpacing = embedded ? "mt-0" : "mt-6";
-  const postSteps = ["Basics", "Details", "Routing & review"];
+  const postSteps = ["Basics", "Details", "Review"];
   const canAdvanceBasics = taskTitle.trim().length > 0 && taskDescription.trim().length > 0;
   const isJobListing = postIntent === "job_listing";
   const taskTypeOptions = isJobListing
@@ -526,10 +526,8 @@ export default function TasksHub({
               <Card className="bg-navy-700 border-navy-600">
                 <CardContent className="p-8 text-center">
                   <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    Sign in to use Direct Connect
-                  </h3>
-                  <p className="text-gray-300">Post requests, route them, and track responses.</p>
+                  <h3 className="text-lg font-semibold text-white mb-2">Sign in required</h3>
+                  <p className="text-gray-300">Sign in to post and manage requests.</p>
                 </CardContent>
               </Card>
             ) : requestsLoading ? (
@@ -608,7 +606,7 @@ export default function TasksHub({
                       <CardContent className={embedded ? "p-5 text-center" : "p-8 text-center"}>
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-white mb-2">No requests yet</h3>
-                        <p className="text-gray-300">Create your first request.</p>
+                        <p className="text-gray-300">Post your first request.</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -631,20 +629,15 @@ export default function TasksHub({
                     >
                       {isJobListing ? "Post a job listing" : "Post request"}
                     </h2>
-                    <p className={embedded ? "hidden" : "text-sm text-gray-300"}>
-                      {isJobListing
-                        ? "Role details and requirements."
-                        : "Scope, budget, and county."}
-                    </p>
                   </div>
                   <div className="text-xs text-gray-400">
-                    Step {postStep + 1}/{postSteps.length} · {postSteps[postStep]}
+                    Step {postStep + 1}/{postSteps.length} - {postSteps[postStep]}
                   </div>
                 </div>
               </CardHeader>
               <CardContent className={embedded ? "pt-0 px-3 pb-3" : ""}>
                 {!isAuthenticated ? (
-                  <p className="text-sm text-gray-300">Sign in to create a request.</p>
+                  <p className="text-sm text-gray-300">Sign in to post.</p>
                 ) : (
                   <div className="grid gap-4">
                     {postStep === 0 && (
@@ -723,7 +716,7 @@ export default function TasksHub({
                                 setPostIntentLocked(true);
                               }}
                             >
-                              I need work done
+                              Need work done
                             </Button>
                             <Button
                               type="button"
@@ -738,15 +731,9 @@ export default function TasksHub({
                                 setPostIntentLocked(true);
                               }}
                             >
-                              I am hiring
+                              Hiring
                             </Button>
                           </div>
-                          {!postIntentLocked && inferredIntent !== postIntent && (
-                            <p className="text-xs text-gray-400 mt-2">
-                              Auto-detected:{" "}
-                              {inferredIntent === "job_listing" ? "job listing" : "work request"}.
-                            </p>
-                          )}
                         </div>
                       </div>
                     )}
@@ -918,7 +905,7 @@ export default function TasksHub({
                         {!isJobListing && (
                           <div className="grid gap-2">
                             <div className="flex items-center justify-between">
-                              <Label>Invite providers (optional)</Label>
+                              <Label>Invite providers</Label>
                               <Button
                                 type="button"
                                 size="sm"
@@ -980,22 +967,16 @@ export default function TasksHub({
                                   </div>
                                 )}
                                 {!isAuthenticated || !user?.countyFips ? (
-                                  <p className="text-sm text-gray-300">
-                                    Add your county on profile to see suggestions.
-                                  </p>
+                                  <p className="text-sm text-gray-300">Set county on profile.</p>
                                 ) : providersLoading ? (
                                   <p className="text-sm text-gray-300">Loading providers...</p>
                                 ) : !tradeSlugForCategory ? (
-                                  <p className="text-sm text-gray-300">
-                                    No trade match yet. You can still post.
-                                  </p>
+                                  <p className="text-sm text-gray-300">Pick a trade for matches.</p>
                                 ) : (recommendedProviders || []).length === 0 ? (
-                                  <p className="text-sm text-gray-300">
-                                    No recommendations yet for this trade and county.
-                                  </p>
+                                  <p className="text-sm text-gray-300">No provider matches yet.</p>
                                 ) : (
                                   <div className="space-y-2">
-                                    <p className="text-xs text-gray-300">Also send directly to:</p>
+                                    <p className="text-xs text-gray-300">Suggested providers:</p>
                                     <div className="space-y-1.5">
                                       {recommendedProviders!.map((provider) => {
                                         const checked = selectedProviderIds.includes(provider.id);
@@ -1038,9 +1019,6 @@ export default function TasksHub({
                                         );
                                       })}
                                     </div>
-                                    <p className="text-[11px] text-gray-400">
-                                      If none are selected, this still posts to your board.
-                                    </p>
                                   </div>
                                 )}
                               </>

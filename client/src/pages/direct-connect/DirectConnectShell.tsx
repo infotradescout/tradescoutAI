@@ -269,7 +269,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in as a provider to view Direct Connect opportunities.
+          Sign in to view inbox.
         </CardContent>
       </Card>
     );
@@ -300,7 +300,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No opportunities yet.
+          No inbox items yet.
         </CardContent>
       </Card>
     );
@@ -365,8 +365,7 @@ function DirectConnectInbox() {
                     {request?.title || "Direct Connect opportunity"}
                   </h3>
                   <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
-                    {request?.description ||
-                      "A homeowner sent this opportunity through Direct Connect."}
+                    {request?.description || "Homeowner request."}
                   </p>
                 </div>
                 <Badge
@@ -416,7 +415,6 @@ function DirectConnectInbox() {
               <div className="hidden flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)] md:flex">
                 {request?.tradeId && <span>Trade: {request.tradeId}</span>}
                 {request?.countyFips && <span>County: {request.countyFips}</span>}
-                <Badge variant="outline">Protected contact flow</Badge>
                 {typeof snapshot?.score === "number" && (
                   <Badge variant="outline">Score: {Math.round(snapshot.score)}</Badge>
                 )}
@@ -554,7 +552,7 @@ function DirectConnectInbox() {
       {!filteredItems.length && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-4 md:p-6 text-center text-sm text-[color:var(--text-secondary)]">
-            No items in this filter.
+            No matches.
           </CardContent>
         </Card>
       )}
@@ -577,10 +575,7 @@ function DirectConnectInbox() {
             <SheetTitle className="text-sm">Create invoice for this Direct Connect job</SheetTitle>
           </SheetHeader>
           <div className="space-y-3 text-xs text-[color:var(--text-secondary)]">
-            <p>
-              This opens Finances so you can create an invoice for this engagement and record
-              payment if needed.
-            </p>
+            <p>Open Finances to create an invoice.</p>
             {currentAcceptedForInvoice?.request?.title && (
               <p>
                 <span className="font-semibold text-[color:var(--text-primary)]">
@@ -869,7 +864,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to see your Direct Connect requests.
+          Sign in to view requests.
         </CardContent>
       </Card>
     );
@@ -900,7 +895,7 @@ function MyDirectConnectRequests() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No requests yet. Use Post Request to start.
+          No requests yet.
         </CardContent>
       </Card>
     );
@@ -1016,7 +1011,6 @@ function MyDirectConnectRequests() {
                 {status === "open" && suggested === 0 && (
                   <WhyLink to={getHelpLink("directConnect")} />
                 )}
-                <Badge variant="outline">Protected contact flow</Badge>
                 {hasAccepted && <Badge variant="outline">Accepted by a provider</Badge>}
                 {lastEventAt && (
                   <span>
@@ -1222,7 +1216,7 @@ function MyDirectConnectRequests() {
       {!filteredRequests.length && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-4 md:p-6 text-center text-sm text-[color:var(--text-secondary)]">
-            No requests in this filter.
+            No matches.
           </CardContent>
         </Card>
       )}
