@@ -117,7 +117,7 @@ export default function OnboardingProfile() {
           <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">Step 1/2</div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder">
+        <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -136,25 +136,31 @@ export default function OnboardingProfile() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-sm">First name</Label>
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                    First name
+                  </Label>
                   <Input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="bg-slate-900 border-tsBorder text-tsTextMain"
+                    className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm">Last name</Label>
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                    Last name
+                  </Label>
                   <Input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="bg-slate-900 border-tsBorder text-tsTextMain"
+                    className="mt-1"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-sm">Primary county</Label>
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                  Primary county
+                </Label>
                 <StateCountySelector
                   selectedState={stateCode}
                   selectedCounty={countyFips}

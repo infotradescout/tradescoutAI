@@ -428,19 +428,27 @@ export default function TasksHub({
           className={embedded ? "" : "mb-8"}
         >
           {!embedded && (
-            <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
-              <TabsTrigger value="browse" className="data-[state=active]:bg-orange-500">
+            <TabsList className="grid w-full grid-cols-2 border border-tsBorder bg-black/35 p-1">
+              <TabsTrigger
+                value="browse"
+                className="text-tsTextMuted data-[state=active]:bg-tsAccent/20 data-[state=active]:text-tsTextMain"
+              >
                 <Briefcase className="h-4 w-4 mr-2" />
                 Live requests
               </TabsTrigger>
-              <TabsTrigger value="post" className="data-[state=active]:bg-orange-500">
+              <TabsTrigger
+                value="post"
+                className="text-tsTextMuted data-[state=active]:bg-tsAccent/20 data-[state=active]:text-tsTextMain"
+              >
                 Post request
               </TabsTrigger>
             </TabsList>
           )}
 
           <TabsContent value="browse" className={contentSpacing}>
-            <Card className={`bg-navy-800 border-navy-700 ${embedded ? "mb-3" : "mb-4"}`}>
+            <Card
+              className={`border-tsBorder bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)] ${embedded ? "mb-3" : "mb-4"}`}
+            >
               <CardHeader className={embedded ? "pb-1 pt-3 px-3" : "pb-2"}>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
@@ -458,7 +466,7 @@ export default function TasksHub({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-orange-500 text-orange-300 hover:bg-orange-500/10 md:w-auto"
+                      className="border-tsBorder text-tsTextMain hover:bg-black/30 md:w-auto"
                       onClick={() => setShowCountySelector(true)}
                     >
                       Change area
@@ -480,7 +488,7 @@ export default function TasksHub({
                       placeholder={embedded ? "Search requests..." : "Search active requests..."}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 bg-navy-600 border-navy-500 text-white"
+                      className="pl-10"
                     />
                   </div>
 
@@ -488,10 +496,10 @@ export default function TasksHub({
                     value={selectedCategory || "all"}
                     onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}
                   >
-                    <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
-                    <SelectContent className="bg-navy-600 border-navy-500 text-white">
+                    <SelectContent>
                       <SelectItem value="all">All categories</SelectItem>
                       {categories?.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
@@ -504,14 +512,14 @@ export default function TasksHub({
                   <div className="hidden md:flex items-center justify-end gap-2">
                     <Button
                       variant="outline"
-                      className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+                      className="border-tsBorder text-tsTextMain hover:bg-black/30"
                       onClick={() => navigate("/direct-connect/pros")}
                     >
                       Browse pros
                     </Button>
                     {isAuthenticated && (
                       <Button
-                        className="bg-orange-500 hover:bg-orange-600"
+                        className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                         onClick={() => setActiveTab("post")}
                       >
                         Post request
@@ -523,11 +531,11 @@ export default function TasksHub({
             </Card>
 
             {!isAuthenticated ? (
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="border-tsBorder bg-tsCard/90">
                 <CardContent className="p-8 text-center">
                   <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-white mb-2">Sign in required</h3>
-                  <p className="text-gray-300">Sign in to post and manage requests.</p>
+                  <p className="text-tsTextMuted">Sign in to post and manage requests.</p>
                 </CardContent>
               </Card>
             ) : requestsLoading ? (
@@ -539,11 +547,11 @@ export default function TasksHub({
                 }
               >
                 {[...Array(4)].map((_, i) => (
-                  <Card key={i} className="bg-navy-700 border-navy-600 animate-pulse">
+                  <Card key={i} className="border-tsBorder bg-tsCard/90 animate-pulse">
                     <CardContent className={embedded ? "p-4" : "p-6"}>
-                      <div className="h-4 bg-navy-600 rounded mb-4" />
-                      <div className="h-20 bg-navy-600 rounded mb-4" />
-                      <div className="h-4 bg-navy-600 rounded" />
+                      <div className="h-4 rounded bg-black/30 mb-4" />
+                      <div className="h-20 rounded bg-black/30 mb-4" />
+                      <div className="h-4 rounded bg-black/30" />
                     </CardContent>
                   </Card>
                 ))}
@@ -557,7 +565,7 @@ export default function TasksHub({
                 }
               >
                 {filteredRequests.map((request) => (
-                  <Card key={request.id} className="bg-navy-700 border-navy-600">
+                  <Card key={request.id} className="border-tsBorder bg-tsCard/90">
                     <CardContent className={embedded ? "p-3" : "p-4"}>
                       <div
                         className={
@@ -568,11 +576,11 @@ export default function TasksHub({
                       >
                         <div className="flex-1">
                           <h3 className="text-sm font-semibold text-white mb-1">{request.title}</h3>
-                          <p className="text-gray-300 text-xs line-clamp-1">
+                          <p className="text-tsTextMuted text-xs line-clamp-1">
                             {request.description}
                           </p>
                         </div>
-                        <span className="ml-3 text-xs px-2 py-1 rounded-full border border-orange-400 text-orange-300 bg-orange-500/10 capitalize">
+                        <span className="ml-3 text-xs px-2 py-1 rounded-full border border-tsBorder text-tsTextMain bg-black/25 capitalize">
                           {request.status?.replace("_", " ") || "open"}
                         </span>
                       </div>
@@ -602,11 +610,11 @@ export default function TasksHub({
                 ))}
                 {filteredRequests.length === 0 && (
                   <div className="col-span-full">
-                    <Card className="bg-navy-700 border-navy-600">
+                    <Card className="border-tsBorder bg-tsCard/90">
                       <CardContent className={embedded ? "p-5 text-center" : "p-8 text-center"}>
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-white mb-2">No requests yet</h3>
-                        <p className="text-gray-300">Post your first request.</p>
+                        <p className="text-tsTextMuted">Post your first request.</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -616,7 +624,7 @@ export default function TasksHub({
           </TabsContent>
 
           <TabsContent value="post" className={contentSpacing}>
-            <Card className="bg-navy-800 border-navy-700">
+            <Card className="border-tsBorder bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
               <CardHeader className={embedded ? "pb-2 pt-3 px-3" : "pb-4"}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -630,20 +638,22 @@ export default function TasksHub({
                       {isJobListing ? "Post a job listing" : "Post request"}
                     </h2>
                   </div>
-                  <div className="text-xs text-gray-400">
-                    Step {postStep + 1}/{postSteps.length} - {postSteps[postStep]}
+                  <div className="text-xs text-tsTextMuted">
+                    Step {postStep + 1}/{postSteps.length} · {postSteps[postStep]}
                   </div>
                 </div>
               </CardHeader>
               <CardContent className={embedded ? "pt-0 px-3 pb-3" : ""}>
                 {!isAuthenticated ? (
-                  <p className="text-sm text-gray-300">Sign in to post.</p>
+                  <p className="text-sm text-tsTextMuted">Sign in to post.</p>
                 ) : (
                   <div className="grid gap-4">
                     {postStep === 0 && (
                       <div className="grid gap-3">
                         <div className="grid gap-2">
-                          <Label>Title</Label>
+                          <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                            Title
+                          </Label>
                           <Input
                             value={taskTitle}
                             onChange={(e) => {
@@ -656,7 +666,7 @@ export default function TasksHub({
                                 }));
                               }
                             }}
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className=""
                             placeholder={
                               isJobListing
                                 ? "e.g., Lead Carpenter needed"
@@ -671,7 +681,9 @@ export default function TasksHub({
                         </div>
 
                         <div className="grid gap-2">
-                          <Label>Description</Label>
+                          <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                            Description
+                          </Label>
                           <Textarea
                             value={taskDescription}
                             onChange={(e) => {
@@ -684,7 +696,7 @@ export default function TasksHub({
                                 }));
                               }
                             }}
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className="min-h-[96px]"
                             placeholder={
                               isJobListing
                                 ? "Describe the role, experience, and how to apply"
@@ -698,8 +710,8 @@ export default function TasksHub({
                           )}
                         </div>
 
-                        <div className="rounded-md border border-navy-600 bg-navy-800/60 p-3">
-                          <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">
+                        <div className="rounded-xl border border-tsBorder bg-black/20 p-3">
+                          <div className="text-xs uppercase tracking-wide text-tsTextMuted mb-2">
                             Posting type
                           </div>
                           <div className="flex flex-col md:flex-row gap-2">
@@ -708,8 +720,8 @@ export default function TasksHub({
                               variant={postIntent === "work_request" ? "default" : "outline"}
                               className={
                                 postIntent === "work_request"
-                                  ? "bg-orange-500 hover:bg-orange-600"
-                                  : "border-gray-500 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                                  ? "bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                                  : "border-tsBorder text-tsTextMain hover:bg-black/30"
                               }
                               onClick={() => {
                                 setPostIntent("work_request");
@@ -723,8 +735,8 @@ export default function TasksHub({
                               variant={postIntent === "job_listing" ? "default" : "outline"}
                               className={
                                 postIntent === "job_listing"
-                                  ? "bg-orange-500 hover:bg-orange-600"
-                                  : "border-gray-500 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                                  ? "bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                                  : "border-tsBorder text-tsTextMain hover:bg-black/30"
                               }
                               onClick={() => {
                                 setPostIntent("job_listing");
@@ -742,15 +754,17 @@ export default function TasksHub({
                       <div className="grid gap-3">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="grid gap-2">
-                            <Label>Category</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              Category
+                            </Label>
                             <Select
                               value={taskCategoryId || "none"}
                               onValueChange={(v) => setTaskCategoryId(v === "none" ? "" : v)}
                             >
-                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                              <SelectTrigger>
                                 <SelectValue placeholder="Select a category" />
                               </SelectTrigger>
-                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                              <SelectContent>
                                 <SelectItem value="none">No category</SelectItem>
                                 {categories?.map((c) => (
                                   <SelectItem key={c.id} value={c.id}>
@@ -762,15 +776,17 @@ export default function TasksHub({
                           </div>
 
                           <div className="grid gap-2">
-                            <Label>{isJobListing ? "Role / Trade" : "Trade / Service"}</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              {isJobListing ? "Role / Trade" : "Trade / Service"}
+                            </Label>
                             <Select
                               value={selectedTradeSlug || "none"}
                               onValueChange={(v) => setSelectedTradeSlug(v === "none" ? "" : v)}
                             >
-                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                              <SelectTrigger>
                                 <SelectValue placeholder="Select a trade" />
                               </SelectTrigger>
-                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                              <SelectContent>
                                 <SelectItem value="none">No trade</SelectItem>
                                 {(trades as any[]).map((trade) => (
                                   <SelectItem key={trade.slug} value={trade.slug}>
@@ -782,15 +798,17 @@ export default function TasksHub({
                           </div>
 
                           <div className="grid gap-2">
-                            <Label>{isJobListing ? "Engagement type" : "Request type"}</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              {isJobListing ? "Engagement type" : "Request type"}
+                            </Label>
                             <Select
                               value={taskTaskType}
                               onValueChange={(v) => setTaskTaskType(v as any)}
                             >
-                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                              <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                              <SelectContent>
                                 {taskTypeOptions.map((option) => (
                                   <SelectItem key={option.value} value={option.value}>
                                     {option.label}
@@ -807,15 +825,17 @@ export default function TasksHub({
                       <div className="grid gap-3">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="grid gap-2">
-                            <Label>Pay type</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              Pay type
+                            </Label>
                             <Select
                               value={taskPayType}
                               onValueChange={(v) => setTaskPayType(v as any)}
                             >
-                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                              <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                              <SelectContent>
                                 <SelectItem value="fixed">Fixed</SelectItem>
                                 <SelectItem value="hourly">Hourly</SelectItem>
                                 <SelectItem value="per_task">Per job</SelectItem>
@@ -824,7 +844,9 @@ export default function TasksHub({
                           </div>
 
                           <div className="grid gap-2">
-                            <Label>Pay amount</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              Pay amount
+                            </Label>
                             <Input
                               value={taskPayAmount}
                               onChange={(e) => {
@@ -837,7 +859,7 @@ export default function TasksHub({
                                   }));
                                 }
                               }}
-                              className="bg-navy-700 border-navy-600 text-white"
+                              className=""
                               placeholder="e.g., 150"
                               inputMode="decimal"
                             />
@@ -851,15 +873,17 @@ export default function TasksHub({
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="grid gap-2">
-                            <Label>{isJobListing ? "Start timing" : "Scheduling"}</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              {isJobListing ? "Start timing" : "Scheduling"}
+                            </Label>
                             <Select
                               value={taskSchedulingType}
                               onValueChange={(v) => setTaskSchedulingType(v as any)}
                             >
-                              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                              <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                              <SelectContent>
                                 <SelectItem value="asap">ASAP</SelectItem>
                                 <SelectItem value="scheduled">Scheduled</SelectItem>
                                 <SelectItem value="flexible">Flexible</SelectItem>
@@ -868,18 +892,20 @@ export default function TasksHub({
                           </div>
 
                           <div className="grid gap-2">
-                            <Label>County</Label>
+                            <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                              County
+                            </Label>
                             <div className="flex items-center gap-2">
                               <Input
                                 readOnly
                                 value={selectedCountyFips || ""}
                                 placeholder="Set county"
-                                className="bg-navy-700 border-navy-600 text-white"
+                                className=""
                               />
                               <Button
                                 type="button"
                                 variant="outline"
-                                className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+                                className="border-tsBorder text-tsTextMain hover:bg-black/30"
                                 onClick={() => {
                                   if (fieldErrors.county || fieldErrors.form) {
                                     setFieldErrors((prev) => ({
@@ -905,12 +931,14 @@ export default function TasksHub({
                         {!isJobListing && (
                           <div className="grid gap-2">
                             <div className="flex items-center justify-between">
-                              <Label>Invite providers</Label>
+                              <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                                Invite providers
+                              </Label>
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 px-2 text-xs text-gray-300"
+                                className="h-7 px-2 text-xs text-tsTextMuted hover:text-tsTextMain"
                                 onClick={() => setShowProviderInvites((open) => !open)}
                               >
                                 {showProviderInvites ? "Hide" : "Show"}
@@ -919,8 +947,8 @@ export default function TasksHub({
                             {showProviderInvites && (
                               <>
                                 {prefillProviderId && contractorPrefill && (
-                                  <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
-                                    <div className="text-xs text-gray-400">Direct invite</div>
+                                  <div className="rounded-xl border border-tsBorder bg-black/20 px-3 py-2 text-sm text-tsTextMain">
+                                    <div className="text-xs text-tsTextMuted">Direct invite</div>
                                     <div className="mt-1 flex items-center justify-between gap-2">
                                       <span className="font-medium text-white">
                                         {contractorPrefill.companyName ||
@@ -930,7 +958,7 @@ export default function TasksHub({
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="border-gray-500 text-gray-300"
+                                        className="border-tsBorder text-tsTextMain hover:bg-black/30"
                                         onClick={() => {
                                           setSelectedProviderIds((prev) =>
                                             prev.filter((id) => id !== prefillProviderId)
@@ -944,8 +972,8 @@ export default function TasksHub({
                                   </div>
                                 )}
                                 {prefillProviderId && !contractorPrefill && (
-                                  <div className="rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 text-sm text-gray-200">
-                                    <div className="text-xs text-gray-400">Direct invite</div>
+                                  <div className="rounded-xl border border-tsBorder bg-black/20 px-3 py-2 text-sm text-tsTextMain">
+                                    <div className="text-xs text-tsTextMuted">Direct invite</div>
                                     <div className="mt-1 flex items-center justify-between gap-2">
                                       <span className="font-medium text-white">
                                         Selected provider
@@ -953,7 +981,7 @@ export default function TasksHub({
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="border-gray-500 text-gray-300"
+                                        className="border-tsBorder text-tsTextMain hover:bg-black/30"
                                         onClick={() => {
                                           setSelectedProviderIds((prev) =>
                                             prev.filter((id) => id !== prefillProviderId)
@@ -967,23 +995,27 @@ export default function TasksHub({
                                   </div>
                                 )}
                                 {!isAuthenticated || !user?.countyFips ? (
-                                  <p className="text-sm text-gray-300">Set county on profile.</p>
+                                  <p className="text-sm text-tsTextMuted">Set county on profile.</p>
                                 ) : providersLoading ? (
-                                  <p className="text-sm text-gray-300">Loading providers...</p>
+                                  <p className="text-sm text-tsTextMuted">Loading providers...</p>
                                 ) : !tradeSlugForCategory ? (
-                                  <p className="text-sm text-gray-300">Pick a trade for matches.</p>
+                                  <p className="text-sm text-tsTextMuted">
+                                    Pick a trade for matches.
+                                  </p>
                                 ) : (recommendedProviders || []).length === 0 ? (
-                                  <p className="text-sm text-gray-300">No provider matches yet.</p>
+                                  <p className="text-sm text-tsTextMuted">
+                                    No provider matches yet.
+                                  </p>
                                 ) : (
                                   <div className="space-y-2">
-                                    <p className="text-xs text-gray-300">Suggested providers:</p>
+                                    <p className="text-xs text-tsTextMuted">Suggested providers:</p>
                                     <div className="space-y-1.5">
                                       {recommendedProviders!.map((provider) => {
                                         const checked = selectedProviderIds.includes(provider.id);
                                         return (
                                           <label
                                             key={provider.id}
-                                            className="flex items-start gap-3 rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 cursor-pointer"
+                                            className="flex items-start gap-3 rounded-xl border border-tsBorder bg-black/20 px-3 py-2 cursor-pointer"
                                           >
                                             <Checkbox
                                               checked={checked}
@@ -1001,7 +1033,7 @@ export default function TasksHub({
                                               <div className="text-sm text-white font-medium truncate">
                                                 {provider.businessName || "Local provider"}
                                               </div>
-                                              <div className="text-xs text-gray-300">
+                                              <div className="text-xs text-tsTextMuted">
                                                 {provider.presenceLabel}
                                                 {provider.county && provider.state
                                                   ? ` - ${provider.county}, ${provider.state}`
@@ -1009,7 +1041,7 @@ export default function TasksHub({
                                               </div>
                                               {provider.recommendationCount &&
                                                 provider.recommendationCount > 0 && (
-                                                  <div className="text-[11px] text-gray-400 mt-0.5">
+                                                  <div className="text-[11px] text-tsTextMuted mt-0.5">
                                                     {provider.recommendationCount} neighbor
                                                     recommendations
                                                   </div>
@@ -1031,7 +1063,7 @@ export default function TasksHub({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <Button
                         variant="outline"
-                        className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                        className="border-tsBorder text-tsTextMain hover:bg-black/30"
                         onClick={() => {
                           setTaskTitle("");
                           setTaskDescription("");
@@ -1056,7 +1088,7 @@ export default function TasksHub({
                         {postStep > 0 && (
                           <Button
                             variant="outline"
-                            className="border-gray-500 text-gray-300"
+                            className="border-tsBorder text-tsTextMain hover:bg-black/30"
                             onClick={() => setPostStep((step) => Math.max(0, step - 1))}
                             disabled={createTaskMutation.isPending}
                           >
@@ -1065,7 +1097,7 @@ export default function TasksHub({
                         )}
                         {postStep < postSteps.length - 1 ? (
                           <Button
-                            className="bg-orange-500 hover:bg-orange-600"
+                            className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                             onClick={() =>
                               setPostStep((step) => Math.min(postSteps.length - 1, step + 1))
                             }
@@ -1075,7 +1107,7 @@ export default function TasksHub({
                           </Button>
                         ) : (
                           <Button
-                            className="bg-orange-500 hover:bg-orange-600"
+                            className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                             onClick={() => createTaskMutation.mutate()}
                             disabled={createTaskMutation.isPending}
                           >
@@ -1097,14 +1129,14 @@ export default function TasksHub({
 
         {/* County Selector Dialog - Phase 1 Telemetry Support */}
         <Dialog open={showCountySelector} onOpenChange={setShowCountySelector}>
-          <DialogContent className="bg-navy-900 border-navy-700">
+          <DialogContent className="border-tsBorder bg-[#0b111b]/95">
             <DialogHeader>
-              <DialogTitle className="text-white">Change your area</DialogTitle>
+              <DialogTitle className="text-tsTextMain">Change your area</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 text-sm text-gray-300">
+            <div className="space-y-4 text-sm text-tsTextMuted">
               <p>
                 Your current area:{" "}
-                <span className="font-semibold text-orange-300">
+                <span className="font-semibold text-tsTextMain">
                   {selectedCountyFips || "Not set"}
                 </span>
               </p>
@@ -1143,18 +1175,18 @@ export default function TasksHub({
                     }
                   }
                 }}
-                className="bg-navy-600 border-navy-500 text-white"
+                className=""
               />
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
-                  className="border-gray-500 text-gray-300"
+                  className="border-tsBorder text-tsTextMain hover:bg-black/30"
                   onClick={() => setShowCountySelector(false)}
                 >
                   Cancel
                 </Button>
                 <Button
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                   onClick={() => {
                     const input = document.querySelector(
                       'input[placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"]'

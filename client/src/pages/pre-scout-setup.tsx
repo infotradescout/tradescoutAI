@@ -302,21 +302,24 @@ export default function PreScoutSetup() {
             <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
               Sign in. Get local.
             </h1>
+            <p className="max-w-md text-sm text-tsTextMuted">
+              Access your account or create one in under a minute.
+            </p>
           </div>
 
-          <Card className="bg-tsCard border border-tsBorder">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-xl text-tsTextMain">Access</CardTitle>
+          <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+            <CardHeader className="space-y-1 pb-2">
+              <CardTitle className="text-lg font-semibold text-tsTextMain">Access</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-tsBorder bg-black/25 p-1">
                 <button
                   type="button"
                   onClick={() => setAuthMode("create")}
-                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                     authMode === "create"
-                      ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
-                      : "border-tsBorder text-tsTextMuted"
+                      ? "bg-tsAccent/20 text-tsTextMain"
+                      : "text-tsTextMuted hover:text-tsTextMain"
                   }`}
                 >
                   Create
@@ -324,10 +327,10 @@ export default function PreScoutSetup() {
                 <button
                   type="button"
                   onClick={() => setAuthMode("signin")}
-                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                     authMode === "signin"
-                      ? "border-tsAccent bg-tsAccent/10 text-tsTextMain"
-                      : "border-tsBorder text-tsTextMuted"
+                      ? "bg-tsAccent/20 text-tsTextMain"
+                      : "text-tsTextMuted hover:text-tsTextMain"
                   }`}
                 >
                   Sign in
@@ -338,7 +341,7 @@ export default function PreScoutSetup() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-9 w-full border-tsBorder bg-black/20 text-tsTextMain hover:bg-black/35"
                   onClick={() => beginOAuth("google")}
                 >
                   Google
@@ -346,17 +349,26 @@ export default function PreScoutSetup() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-9 w-full border-tsBorder bg-black/20 text-tsTextMain hover:bg-black/35"
                   onClick={() => beginOAuth("facebook")}
                 >
                   Facebook
                 </Button>
               </div>
 
+              <div className="relative py-0.5">
+                <div className="border-t border-tsBorder/70" />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-tsCard px-2 text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                  Email
+                </span>
+              </div>
+
               {authMode === "signin" ? (
-                <form onSubmit={handleSignIn} className="space-y-2">
+                <form onSubmit={handleSignIn} className="space-y-2.5">
                   <div>
-                    <Label className="text-sm">Email</Label>
+                    <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                      Email
+                    </Label>
                     <Input
                       id="signin-email"
                       name="email"
@@ -368,11 +380,14 @@ export default function PreScoutSetup() {
                       }}
                       autoComplete="email"
                       placeholder="you@example.com"
+                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                       required
                     />
                   </div>
                   <div>
-                    <Label className="text-sm">Password</Label>
+                    <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                      Password
+                    </Label>
                     <Input
                       id="signin-password"
                       name="password"
@@ -384,6 +399,7 @@ export default function PreScoutSetup() {
                       }}
                       autoComplete="current-password"
                       placeholder="Your password"
+                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                       required
                     />
                     {signInError && (
@@ -399,16 +415,22 @@ export default function PreScoutSetup() {
                     >
                       Forgot password
                     </a>
-                    <Button type="submit" disabled={authSubmitting}>
+                    <Button
+                      type="submit"
+                      disabled={authSubmitting}
+                      className="h-9 bg-tsAccent text-white hover:bg-tsAccent/90"
+                    >
                       {authSubmitting ? "Signing in..." : "Sign in"}
                     </Button>
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleCreateAccount} className="space-y-1.5">
-                  <div className="grid grid-cols-2 gap-2">
+                <form onSubmit={handleCreateAccount} className="space-y-2.5">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div>
-                      <Label className="text-sm">First name</Label>
+                      <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                        First name
+                      </Label>
                       <Input
                         id="create-first-name"
                         name="firstName"
@@ -416,11 +438,14 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreateFirstName(e.target.value)}
                         autoComplete="given-name"
                         placeholder="First"
+                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                         required
                       />
                     </div>
                     <div>
-                      <Label className="text-sm">Last name</Label>
+                      <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                        Last name
+                      </Label>
                       <Input
                         id="create-last-name"
                         name="lastName"
@@ -428,12 +453,15 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreateLastName(e.target.value)}
                         autoComplete="family-name"
                         placeholder="Last"
+                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                         required
                       />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm">Email</Label>
+                    <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                      Email
+                    </Label>
                     <Input
                       id="create-email"
                       name="email"
@@ -442,11 +470,14 @@ export default function PreScoutSetup() {
                       onChange={(e) => setCreateEmail(e.target.value)}
                       autoComplete="email"
                       placeholder="you@example.com"
+                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                       required
                     />
                   </div>
                   <div>
-                    <Label className="text-sm">Phone</Label>
+                    <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                      Phone
+                    </Label>
                     <Input
                       id="create-phone"
                       name="phone"
@@ -454,12 +485,15 @@ export default function PreScoutSetup() {
                       onChange={(e) => setCreatePhone(e.target.value)}
                       autoComplete="tel"
                       placeholder="(555) 555-5555"
+                      className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div>
-                      <Label className="text-sm">Password</Label>
+                      <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                        Password
+                      </Label>
                       <Input
                         id="create-password"
                         name="password"
@@ -468,11 +502,14 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreatePassword(e.target.value)}
                         autoComplete="new-password"
                         placeholder="At least 8 characters"
+                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                         required
                       />
                     </div>
                     <div>
-                      <Label className="text-sm">Confirm</Label>
+                      <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                        Confirm
+                      </Label>
                       <Input
                         id="create-confirm-password"
                         name="confirmPassword"
@@ -481,6 +518,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => setCreateConfirmPassword(e.target.value)}
                         autoComplete="new-password"
                         placeholder="Repeat password"
+                        className="mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                         required
                       />
                     </div>
@@ -490,12 +528,16 @@ export default function PreScoutSetup() {
                       type="checkbox"
                       checked={acceptTerms}
                       onChange={(e) => setAcceptTerms(e.target.checked)}
-                      className="mt-0.5"
+                      className="mt-0.5 h-4 w-4 rounded border-tsBorder bg-black/20 text-tsAccent focus:ring-tsAccent/60"
                     />
                     <span className="text-xs text-tsTextMuted">Agree to Terms + Privacy.</span>
                   </label>
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={authSubmitting}>
+                    <Button
+                      type="submit"
+                      disabled={authSubmitting}
+                      className="h-9 bg-tsAccent text-white hover:bg-tsAccent/90"
+                    >
                       {authSubmitting ? "Creating..." : "Create account"}
                     </Button>
                   </div>
@@ -519,7 +561,7 @@ export default function PreScoutSetup() {
           Back to Scout
         </Button>
 
-        <Card className="bg-tsCard border border-tsBorder">
+        <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
           <CardHeader className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-0.5">
@@ -534,7 +576,9 @@ export default function PreScoutSetup() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="space-y-2">
-                <Label className="text-sm">Mode</Label>
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                  Mode
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -562,7 +606,9 @@ export default function PreScoutSetup() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm">Primary county</Label>
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                  Primary county
+                </Label>
                 <StateCountySelector
                   selectedState={stateCode}
                   selectedCounty={countyFips}
@@ -577,11 +623,14 @@ export default function PreScoutSetup() {
 
               {presenceType === "represent_business" && (
                 <div className="space-y-1.5">
-                  <Label className="text-sm">Business name</Label>
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                    Business name
+                  </Label>
                   <Input
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="Business name"
+                    className="h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
                     required
                   />
                 </div>
