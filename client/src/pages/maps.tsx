@@ -227,7 +227,7 @@ export default function MapsPage() {
       <header className="rounded-xl border border-tsBorder bg-tsSurface p-3 md:p-4">
         <h1 className="text-base md:text-lg font-semibold text-white">Provider Map</h1>
         <p className="text-xs md:text-sm text-tsTextMuted mt-1">
-          Awareness-only discovery. Contact stays request-gated.
+          Awareness-only discovery. Contact stays request-only.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
           <label className="text-xs text-tsTextMuted">
