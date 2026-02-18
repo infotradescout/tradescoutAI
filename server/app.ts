@@ -165,7 +165,7 @@ export async function createApp() {
 
       res.on("finish", () => {
         const duration = Date.now() - start;
-        emitHttpStatus(res.statusCode);
+        emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
 
         if (path.startsWith("/api")) {
           let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;

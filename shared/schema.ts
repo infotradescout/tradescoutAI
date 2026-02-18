@@ -257,6 +257,37 @@ export const countyEntityStatusEnum = pgEnum("county_entity_status", [
   "pending",
 ]);
 
+// Canonical observation model enums (Phase 0A)
+export const observationSubjectTypeEnum = pgEnum("observation_subject_type", [
+  "property",
+  "business",
+  "road",
+  "area",
+  "org",
+  "person_unknown",
+  "other",
+]);
+
+export const observationSourceTypeEnum = pgEnum("observation_source_type", [
+  "permit",
+  "inspection",
+  "enforcement",
+  "agenda",
+  "ordinance",
+  "sensor",
+  "listing",
+  "other",
+]);
+
+export const observationConfidenceEnum = pgEnum("observation_confidence", ["official", "inferred"]);
+
+export const observationHealthStatusEnum = pgEnum("observation_health_status", [
+  "healthy",
+  "degraded",
+  "failing",
+  "idle",
+]);
+
 // Mission Control + Scout enums
 export const botUiFailureTypeEnum = pgEnum("bot_ui_failure_type", [
   "broken",
@@ -938,6 +969,69 @@ export const countyEntities = pgTable(
   ]
 );
 
+// Canonical observations: single normalized intake for all local reality signals
+export const observations = pgTable(
+  "observations",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    occurredAt: timestamp("occurred_at").notNull(),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
+    stateCode: varchar("state_code", { length: 2 })
+      .notNull()
+      .references(() => states.code),
+    city: varchar("city", { length: 120 }),
+    // Optional geo payload (point/shape) in JSON for portability without PostGIS dependency.
+    geoJson: jsonb("geo_json").$type<Record<string, unknown> | null>(),
+    subjectType: observationSubjectTypeEnum("subject_type").notNull(),
+    subjectRef: varchar("subject_ref", { length: 255 }),
+    actionType: varchar("action_type", { length: 64 }).notNull(),
+    sourceType: observationSourceTypeEnum("source_type").notNull(),
+    sourceRef: varchar("source_ref", { length: 255 }).notNull(),
+    attributesJson: jsonb("attributes_json").$type<Record<string, unknown>>().notNull().default({}),
+    confidence: observationConfidenceEnum("confidence").notNull().default("official"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_observations_county_occurred").on(table.countyFips, table.occurredAt),
+    index("idx_observations_source_occurred").on(table.sourceType, table.occurredAt),
+    index("idx_observations_action_occurred").on(table.actionType, table.occurredAt),
+    uniqueIndex("uq_observations_source_ref").on(table.sourceType, table.sourceRef),
+  ]
+);
+
+// Adapter health/cursor table for county + source ingestion tracking
+export const observationSources = pgTable(
+  "observation_sources",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    sourceType: observationSourceTypeEnum("source_type").notNull(),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips),
+    stateCode: varchar("state_code", { length: 2 })
+      .notNull()
+      .references(() => states.code),
+    lastSuccessAt: timestamp("last_success_at"),
+    lastRunAt: timestamp("last_run_at"),
+    cursorJson: jsonb("cursor_json").$type<Record<string, unknown> | null>(),
+    healthStatus: observationHealthStatusEnum("health_status").notNull().default("idle"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_observation_sources_type_county").on(table.sourceType, table.countyFips),
+    index("idx_observation_sources_health").on(table.healthStatus),
+    index("idx_observation_sources_county").on(table.countyFips),
+  ]
+);
+
 // Business service areas (many-to-many with counties)
 export const businessCounties = pgTable(
   "business_counties",
@@ -1135,6 +1229,10 @@ export type InsertCountyMetric = typeof countyMetrics.$inferInsert;
 export type CountyMetric = typeof countyMetrics.$inferSelect;
 export type InsertCountyEntity = typeof countyEntities.$inferInsert;
 export type CountyEntity = typeof countyEntities.$inferSelect;
+export type InsertObservation = typeof observations.$inferInsert;
+export type Observation = typeof observations.$inferSelect;
+export type InsertObservationSource = typeof observationSources.$inferInsert;
+export type ObservationSource = typeof observationSources.$inferSelect;
 
 // Business-level verification records (append-only)
 export const businessVerifications = pgTable("business_verifications", {

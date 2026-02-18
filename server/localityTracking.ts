@@ -3,13 +3,26 @@
  * All user interactions and analytics are tracked with geographic context
  */
 
-import { Request } from 'express';
+import { Request } from "express";
+import {
+  detectActorFromUserAgent,
+  getClientIp,
+  hashIp,
+  type ActorType,
+} from "./utils/requestActor";
 
 export interface LocalityContext {
+  actorType?: ActorType;
+  botName?: string;
+  ipHash?: string;
+  ipSource?: string;
+  city?: string;
   state?: string;
   stateCode?: string;
   county?: string;
   countyFips?: string;
+  asn?: string;
+  org?: string;
   ipLocation?: {
     state: string;
     county: string;
@@ -27,24 +40,24 @@ export interface UserInteraction {
   id: string;
   userId?: string;
   sessionId: string;
-  userType: 'homeowner' | 'contractor' | 'visitor';
-  interactionType: 
-    | 'page_view' 
-    | 'search' 
-    | 'quote_request' 
-    | 'contractor_view' 
-    | 'profile_create' 
-    | 'chat_message' 
-    | 'inquiry_assignment' 
-    | 'rating_submit'
-    | 'ad_view'
-    | 'ad_click'
-    | 'affiliate_click'
-    | 'accelerator_inquiry';
-  
+  userType: "homeowner" | "contractor" | "visitor";
+  interactionType:
+    | "page_view"
+    | "search"
+    | "quote_request"
+    | "contractor_view"
+    | "profile_create"
+    | "chat_message"
+    | "inquiry_assignment"
+    | "rating_submit"
+    | "ad_view"
+    | "ad_click"
+    | "affiliate_click"
+    | "accelerator_inquiry";
+
   // Geographic Context
   locality: LocalityContext;
-  
+
   // Interaction Details
   details: {
     page?: string;
@@ -58,7 +71,9 @@ export interface UserInteraction {
     affiliateProduct?: string;
     referrerUrl?: string;
   };
-  
+  actorType: ActorType;
+  botName?: string;
+
   timestamp: Date;
   deviceInfo?: {
     isMobile: boolean;
@@ -68,16 +83,23 @@ export interface UserInteraction {
 }
 
 export class LocalityTracker {
-  
   /**
    * Extract locality context from request
    */
   static extractLocalityFromRequest(req: Request): LocalityContext {
     const user = (req as any)?.user;
+    const userAgent = req.get("User-Agent");
+    const actor = detectActorFromUserAgent(userAgent);
+    const ipInfo = getClientIp(req);
+
     const locality: LocalityContext = {
       sessionId: (req as any).sessionID,
       userId: user?.id,
-      userAgent: req.get('User-Agent')
+      userAgent,
+      actorType: actor.actorType,
+      botName: actor.botName,
+      ipHash: hashIp(ipInfo.ip),
+      ipSource: ipInfo.source,
     };
 
     // Extract from query parameters (user selected)
@@ -102,11 +124,19 @@ export class LocalityTracker {
       locality.county = user.profile.county;
     }
 
-    // IP-based geolocation (fallback)
-    const clientIP = req.ip || (req as any).connection?.remoteAddress;
-    if (clientIP && !locality.stateCode) {
-      // In production, integrate with IP geolocation service
-      locality.ipLocation = this.getLocationFromIP(clientIP);
+    // Prefer provider geo headers when available (real proxy-enriched geo).
+    this.applyGeoFromProviderHeaders(req, locality);
+
+    // IP-based fallback, but skip crawler traffic to avoid meaningless data-center geo.
+    if (actor.actorType !== "bot" && ipInfo.ip && !locality.stateCode) {
+      const fallback = this.getLocationFromIP(ipInfo.ip);
+      if (fallback) {
+        locality.ipLocation = fallback;
+        locality.stateCode = locality.stateCode || fallback.state;
+        locality.state = locality.state || fallback.state;
+        locality.county = locality.county || fallback.county;
+        locality.city = locality.city || fallback.city;
+      }
     }
 
     return locality;
@@ -116,26 +146,28 @@ export class LocalityTracker {
    * Track user interaction with locality context
    */
   static async trackInteraction(
-    interactionType: UserInteraction['interactionType'],
+    interactionType: UserInteraction["interactionType"],
     req: Request,
-    details: UserInteraction['details'] = {}
+    details: UserInteraction["details"] = {}
   ): Promise<void> {
     const locality = this.extractLocalityFromRequest(req);
-    
+
     const interaction: UserInteraction = {
       id: this.generateInteractionId(),
       sessionId: req.sessionID,
       userId: (req as any).user?.id,
       userType: this.getUserType(req),
+      actorType: locality.actorType || "unknown",
+      botName: locality.botName,
       interactionType,
       locality,
       details: {
         ...details,
         page: req.path,
-        referrerUrl: req.get('Referer')
+        referrerUrl: req.get("Referer"),
       },
       timestamp: new Date(),
-      deviceInfo: this.extractDeviceInfo(req)
+      deviceInfo: this.extractDeviceInfo(req),
     };
 
     // Store interaction in database
@@ -149,25 +181,33 @@ export class LocalityTracker {
    * Get locality-specific metrics
    */
   static async getLocalityMetrics(
-    stateCode?: string, 
-    countyFips?: string, 
-    timeRange: '1d' | '7d' | '30d' | '90d' = '30d'
+    stateCode?: string,
+    countyFips?: string,
+    timeRange: "1d" | "7d" | "30d" | "90d" = "30d"
   ) {
     const filters: any = {};
-    
+
     if (stateCode) {
-      filters['locality.stateCode'] = stateCode;
+      filters["locality.stateCode"] = stateCode;
     }
     if (countyFips) {
-      filters['locality.countyFips'] = countyFips;
+      filters["locality.countyFips"] = countyFips;
     }
 
     const startDate = new Date();
     switch (timeRange) {
-      case '1d': startDate.setDate(startDate.getDate() - 1); break;
-      case '7d': startDate.setDate(startDate.getDate() - 7); break;
-      case '30d': startDate.setDate(startDate.getDate() - 30); break;
-      case '90d': startDate.setDate(startDate.getDate() - 90); break;
+      case "1d":
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case "7d":
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case "30d":
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case "90d":
+        startDate.setDate(startDate.getDate() - 90);
+        break;
     }
 
     filters.timestamp = { $gte: startDate };
@@ -185,7 +225,7 @@ export class LocalityTracker {
       topProjectTypes: [],
       deviceBreakdown: { mobile: 0, desktop: 0 },
       hourlyActivity: [],
-      conversionRate: 0
+      conversionRate: 0,
     };
   }
 
@@ -194,8 +234,8 @@ export class LocalityTracker {
    */
   static async getContractorLocalityPerformance(contractorId: string) {
     const filters = {
-      'details.contractorId': contractorId,
-      interactionType: { $in: ['contractor_view', 'quote_request', 'rating_submit'] }
+      "details.contractorId": contractorId,
+      interactionType: { $in: ["contractor_view", "quote_request", "rating_submit"] },
     };
 
     // Group by locality
@@ -205,7 +245,7 @@ export class LocalityTracker {
       totalViews: 0,
       totalQuoteRequests: 0,
       averageRating: 0,
-      responseRate: 0
+      responseRate: 0,
     };
   }
 
@@ -218,10 +258,10 @@ export class LocalityTracker {
     projectType: string,
     tradeType: string
   ) {
-    await this.trackInteraction('search', req, {
+    await this.trackInteraction("search", req, {
       searchQuery,
       projectType,
-      tradeType
+      tradeType,
     });
 
     // Update locality-specific search trends
@@ -234,15 +274,15 @@ export class LocalityTracker {
    */
   static async trackContractorLeadInteraction(
     req: Request,
-    action: 'lead_received' | 'lead_viewed' | 'quote_submitted' | 'lead_accepted',
+    action: "lead_received" | "lead_viewed" | "quote_submitted" | "lead_accepted",
     leadId: string,
     contractorId: string
   ) {
-    await this.trackInteraction('inquiry_assignment', req, {
+    await this.trackInteraction("inquiry_assignment", req, {
       contractorId,
-      projectType: 'customer_inquiry',
+      projectType: "customer_inquiry",
       searchQuery: action,
-      quoteAmount: leadId as any // Temporary mapping
+      quoteAmount: leadId as any, // Temporary mapping
     });
 
     // Update contractor locality performance
@@ -256,15 +296,15 @@ export class LocalityTracker {
   static async trackAdInteraction(
     req: Request,
     adId: string,
-    action: 'view' | 'click' | 'conversion',
+    action: "view" | "click" | "conversion",
     revenue?: number
   ) {
-    const interactionType = action === 'view' ? 'ad_view' : 'ad_click';
-    
+    const interactionType = action === "view" ? "ad_view" : "ad_click";
+
     await this.trackInteraction(interactionType, req, {
       adId,
       searchQuery: action,
-      quoteAmount: revenue
+      quoteAmount: revenue,
     });
 
     // Update ad performance metrics by locality
@@ -277,22 +317,22 @@ export class LocalityTracker {
    */
   static async getPopularProjectsByLocality(stateCode: string, countyFips?: string) {
     const filters: any = {
-      'locality.stateCode': stateCode,
-      interactionType: { $in: ['search', 'quote_request'] },
-      'details.projectType': { $exists: true }
+      "locality.stateCode": stateCode,
+      interactionType: { $in: ["search", "quote_request"] },
+      "details.projectType": { $exists: true },
     };
 
     if (countyFips) {
-      filters['locality.countyFips'] = countyFips;
+      filters["locality.countyFips"] = countyFips;
     }
 
     // Aggregate project types by frequency
     return [
-      { projectType: 'roof-replacement', count: 45, trend: 'up' },
-      { projectType: 'kitchen-remodel', count: 38, trend: 'up' },
-      { projectType: 'bathroom-renovation', count: 32, trend: 'stable' },
-      { projectType: 'flooring-installation', count: 28, trend: 'down' },
-      { projectType: 'hvac-installation', count: 25, trend: 'up' }
+      { projectType: "roof-replacement", count: 45, trend: "up" },
+      { projectType: "kitchen-remodel", count: 38, trend: "up" },
+      { projectType: "bathroom-renovation", count: 32, trend: "stable" },
+      { projectType: "flooring-installation", count: 28, trend: "down" },
+      { projectType: "hvac-installation", count: 25, trend: "up" },
     ];
   }
 
@@ -306,18 +346,18 @@ export class LocalityTracker {
   ) {
     // Get contractors with strong locality performance
     const contractors = await this.getTopLocalityContractors(stateCode, countyFips, projectType);
-    
+
     // Get locality-specific pricing insights
     const pricingInsights = await this.getLocalityPricing(stateCode, countyFips, projectType);
-    
+
     // Get seasonal trends for the locality
     const seasonalTrends = await this.getLocalitySeasonalTrends(stateCode, countyFips, projectType);
-    
+
     return {
       contractors,
       pricingInsights,
       seasonalTrends,
-      localDemand: 'high' // calculated from interaction frequency
+      localDemand: "high", // calculated from interaction frequency
     };
   }
 
@@ -326,62 +366,97 @@ export class LocalityTracker {
     return `int_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private static getUserType(req: Request): 'homeowner' | 'contractor' | 'visitor' {
+  private static getUserType(req: Request): "homeowner" | "contractor" | "visitor" {
     const user = (req as any).user;
-    if (!user) return 'visitor';
-    return user.role?.includes('contractor') ? 'contractor' : 'homeowner';
+    if (!user) return "visitor";
+    return user.role?.includes("contractor") ? "contractor" : "homeowner";
   }
 
   private static extractDeviceInfo(req: Request) {
-    const userAgent = req.get('User-Agent') || '';
-    
+    const userAgent = req.get("User-Agent") || "";
+
     return {
       isMobile: /Mobile|Android|iPhone|iPad/.test(userAgent),
       browser: this.extractBrowser(userAgent),
-      os: this.extractOS(userAgent)
+      os: this.extractOS(userAgent),
     };
   }
 
   private static extractBrowser(userAgent: string): string {
-    if (userAgent.includes('Chrome')) return 'Chrome';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari')) return 'Safari';
-    if (userAgent.includes('Edge')) return 'Edge';
-    return 'Other';
+    if (userAgent.includes("Chrome")) return "Chrome";
+    if (userAgent.includes("Firefox")) return "Firefox";
+    if (userAgent.includes("Safari")) return "Safari";
+    if (userAgent.includes("Edge")) return "Edge";
+    return "Other";
   }
 
   private static extractOS(userAgent: string): string {
-    if (userAgent.includes('Windows')) return 'Windows';
-    if (userAgent.includes('Mac')) return 'macOS';
-    if (userAgent.includes('Linux')) return 'Linux';
-    if (userAgent.includes('Android')) return 'Android';
-    if (userAgent.includes('iOS')) return 'iOS';
-    return 'Other';
+    if (userAgent.includes("Windows")) return "Windows";
+    if (userAgent.includes("Mac")) return "macOS";
+    if (userAgent.includes("Linux")) return "Linux";
+    if (userAgent.includes("Android")) return "Android";
+    if (userAgent.includes("iOS")) return "iOS";
+    return "Other";
   }
 
-  private static getLocationFromIP(ip: string) {
-    // Placeholder for IP geolocation service integration
-    // In production, integrate with MaxMind, IPinfo, or similar service
-    return {
-      state: 'Unknown',
-      county: 'Unknown',
-      city: 'Unknown',
-      latitude: 0,
-      longitude: 0
-    };
+  private static getLocationFromIP(_ip: string): {
+    state: string;
+    county: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+  } | null {
+    // Intentionally null by default unless a real GeoIP provider is wired.
+    // This avoids polluting analytics with Unknown/0,0 placeholders.
+    return null;
   }
 
   private static async storeInteraction(interaction: UserInteraction): Promise<void> {
     // In development, skip logging to reduce console noise
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== "production") {
       return;
     }
     // Store in database - implement with actual database connection
-    console.log('Storing interaction:', {
+    console.log("Storing interaction:", {
       type: interaction.interactionType,
+      actorType: interaction.actorType,
+      botName: interaction.botName,
       locality: interaction.locality,
-      timestamp: interaction.timestamp
+      timestamp: interaction.timestamp,
     });
+  }
+
+  private static applyGeoFromProviderHeaders(req: Request, locality: LocalityContext): void {
+    const vercelCountry = req.get("x-vercel-ip-country");
+    const vercelRegion = req.get("x-vercel-ip-country-region");
+    const vercelCity = req.get("x-vercel-ip-city");
+    const vercelLat = req.get("x-vercel-ip-latitude");
+    const vercelLong = req.get("x-vercel-ip-longitude");
+
+    if (vercelCountry || vercelRegion || vercelCity) {
+      locality.stateCode = locality.stateCode || vercelRegion || undefined;
+      locality.city = locality.city || vercelCity || undefined;
+      if (vercelRegion && !locality.state) locality.state = vercelRegion;
+      if (vercelLat && vercelLong) {
+        const lat = Number(vercelLat);
+        const long = Number(vercelLong);
+        if (Number.isFinite(lat) && Number.isFinite(long)) {
+          locality.ipLocation = {
+            state: locality.stateCode || locality.state || "",
+            county: locality.county || "",
+            city: locality.city || "",
+            latitude: lat,
+            longitude: long,
+          };
+        }
+      }
+      return;
+    }
+
+    const cfCountry = req.get("cf-ipcountry");
+    if (cfCountry && !locality.stateCode) {
+      locality.stateCode = cfCountry;
+    }
   }
 
   private static async processRealTimeAnalytics(interaction: UserInteraction): Promise<void> {
@@ -389,30 +464,33 @@ export class LocalityTracker {
     // Update locality-specific metrics, trends, and alerts
   }
 
-  private static async updateSearchTrends(locality: LocalityContext, searchData: any): Promise<void> {
+  private static async updateSearchTrends(
+    locality: LocalityContext,
+    searchData: any
+  ): Promise<void> {
     // Update locality-specific search trend data
   }
 
   private static async updateContractorLocalityPerformance(
-    contractorId: string, 
-    locality: LocalityContext, 
+    contractorId: string,
+    locality: LocalityContext,
     action: string
   ): Promise<void> {
     // Update contractor performance metrics by locality
   }
 
   private static async updateAdLocalityPerformance(
-    adId: string, 
-    locality: LocalityContext, 
-    action: string, 
+    adId: string,
+    locality: LocalityContext,
+    action: string,
     revenue?: number
   ): Promise<void> {
     // Update ad performance metrics by locality
   }
 
   private static async getTopLocalityContractors(
-    stateCode: string, 
-    countyFips: string, 
+    stateCode: string,
+    countyFips: string,
     projectType: string
   ) {
     // Get contractors with best performance in specific locality
@@ -420,28 +498,28 @@ export class LocalityTracker {
   }
 
   private static async getLocalityPricing(
-    stateCode: string, 
-    countyFips: string, 
+    stateCode: string,
+    countyFips: string,
     projectType: string
   ) {
     // Get pricing insights specific to locality
     return {
       averagePrice: 0,
       priceRange: { min: 0, max: 0 },
-      trend: 'stable'
+      trend: "stable",
     };
   }
 
   private static async getLocalitySeasonalTrends(
-    stateCode: string, 
-    countyFips: string, 
+    stateCode: string,
+    countyFips: string,
     projectType: string
   ) {
     // Get seasonal demand patterns for locality
     return {
-      peak: 'spring',
-      low: 'winter',
-      currentDemand: 'moderate'
+      peak: "spring",
+      low: "winter",
+      currentDemand: "moderate",
     };
   }
 }
@@ -452,15 +530,16 @@ export class LocalityTracker {
 export function localityTrackingMiddleware() {
   return async (req: any, res: any, next: any) => {
     // Only track actual HTML page loads, not assets or HMR
-    const isPageLoad = req.method === 'GET' 
-      && !req.path.startsWith('/api/')
-      && !req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$/i)
-      && !req.path.startsWith('/@vite')
-      && !req.path.startsWith('/node_modules')
-      && !req.path.startsWith('/src/');
-    
+    const isPageLoad =
+      req.method === "GET" &&
+      !req.path.startsWith("/api/") &&
+      !req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$/i) &&
+      !req.path.startsWith("/@vite") &&
+      !req.path.startsWith("/node_modules") &&
+      !req.path.startsWith("/src/");
+
     if (isPageLoad) {
-      await LocalityTracker.trackInteraction('page_view', req);
+      await LocalityTracker.trackInteraction("page_view", req);
     }
     next();
   };

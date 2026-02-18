@@ -350,7 +350,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
 
     // Emit HTTP status metrics (Phase 1: Observability)
-    emitHttpStatus(res.statusCode);
+    emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
 
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;

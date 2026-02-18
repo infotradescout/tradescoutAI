@@ -1,4 +1,10 @@
 import { recordJobError, recordJobSuccess } from "./alerts";
+import {
+  classifyRequestType,
+  detectActorFromUserAgent,
+  type ActorType,
+  type RequestType,
+} from "../utils/requestActor";
 /**
  * Metrics Emission Layer (Phase 1: Observability Hardening)
  *
@@ -42,6 +48,8 @@ export interface DbPoolMetrics {
 export interface HttpStatusMetrics {
   statusClass: "2xx" | "4xx" | "5xx";
   count: number;
+  actorType?: ActorType;
+  requestType?: RequestType;
 }
 
 // ============================================================================
@@ -54,6 +62,15 @@ const httpMetricsHistory: Map<string, number> = new Map([
   ["2xx", 0],
   ["4xx", 0],
   ["5xx", 0],
+  ["2xx:human", 0],
+  ["4xx:human", 0],
+  ["5xx:human", 0],
+  ["2xx:bot", 0],
+  ["4xx:bot", 0],
+  ["5xx:bot", 0],
+  ["2xx:unknown", 0],
+  ["4xx:unknown", 0],
+  ["5xx:unknown", 0],
 ]);
 
 // ============================================================================
@@ -94,11 +111,7 @@ export function emitJobStart(jobName: string): void {
  * Emit job completion event
  * Call at the end of each scheduled job run.
  */
-export function emitJobEnd(
-  jobName: string,
-  rowsWritten: number,
-  overlap: boolean = false
-): void {
+export function emitJobEnd(jobName: string, rowsWritten: number, overlap: boolean = false): void {
   try {
     const history = jobMetrics.get(jobName);
     if (!history || history.length === 0) {
@@ -116,8 +129,8 @@ export function emitJobEnd(
     lastRun.overlap = overlap;
     lastRun.error = false;
 
-      // Record success in alerts system
-      recordJobSuccess(jobName);
+    // Record success in alerts system
+    recordJobSuccess(jobName);
 
     // Structured logs (future: export to monitoring system)
     console.log(
@@ -166,8 +179,8 @@ export function emitJobError(jobName: string, error: any): void {
       lastRun.error = true;
     }
 
-      // Record error in alerts system
-      recordJobError(jobName);
+    // Record error in alerts system
+    recordJobError(jobName);
 
     console.log(
       JSON.stringify({
@@ -226,7 +239,10 @@ export function emitPoolMetrics(metrics: DbPoolMetrics): void {
  * Emit HTTP status class count
  * Call after each HTTP response (via middleware).
  */
-export function emitHttpStatus(statusCode: number): void {
+export function emitHttpStatus(
+  statusCode: number,
+  opts?: { userAgent?: string | null; actorType?: ActorType; path?: string | null }
+): void {
   try {
     let statusClass: "2xx" | "4xx" | "5xx";
 
@@ -242,12 +258,23 @@ export function emitHttpStatus(statusCode: number): void {
 
     const currentCount = httpMetricsHistory.get(statusClass) || 0;
     httpMetricsHistory.set(statusClass, currentCount + 1);
+    const actor = detectActorFromUserAgent(opts?.userAgent);
+    const actorType = opts?.actorType || actor.actorType;
+    const requestType = classifyRequestType(opts?.path);
+    const actorKey = `${statusClass}:${actorType}`;
+    const actorCount = httpMetricsHistory.get(actorKey) || 0;
+    httpMetricsHistory.set(actorKey, actorCount + 1);
 
     console.log(
       JSON.stringify({
         metric: "http_requests_total",
         status_class: statusClass,
         value: currentCount + 1,
+        status_code: statusCode,
+        actor_type: actorType,
+        bot_name: actor.botName,
+        request_type: requestType,
+        path: opts?.path || null,
         timestamp: new Date().toISOString(),
       })
     );
@@ -332,4 +359,13 @@ export function resetMetrics(): void {
   httpMetricsHistory.set("2xx", 0);
   httpMetricsHistory.set("4xx", 0);
   httpMetricsHistory.set("5xx", 0);
+  httpMetricsHistory.set("2xx:human", 0);
+  httpMetricsHistory.set("4xx:human", 0);
+  httpMetricsHistory.set("5xx:human", 0);
+  httpMetricsHistory.set("2xx:bot", 0);
+  httpMetricsHistory.set("4xx:bot", 0);
+  httpMetricsHistory.set("5xx:bot", 0);
+  httpMetricsHistory.set("2xx:unknown", 0);
+  httpMetricsHistory.set("4xx:unknown", 0);
+  httpMetricsHistory.set("5xx:unknown", 0);
 }

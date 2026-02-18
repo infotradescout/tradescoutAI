@@ -2607,6 +2607,33 @@ export async function registerRoutes(app: any) {
     }
   };
 
+  const getRuntimeOAuthCallbackUrl = (
+    req: Request,
+    provider: "google" | "facebook",
+    fallbackFromEnv?: string
+  ): string | undefined => {
+    try {
+      const host = String(req.get("host") || "").trim();
+      const protocolHeader = String(req.get("x-forwarded-proto") || "")
+        .trim()
+        .toLowerCase();
+      const protocol = protocolHeader === "https" ? "https" : req.protocol || "http";
+      const isLocalHost = /^localhost(:\d+)?$/i.test(host) || /^127\.0\.0\.1(:\d+)?$/i.test(host);
+
+      // Always prefer request host for local development, even when NODE_ENV=production.
+      if (host && isLocalHost) {
+        return `${protocol}://${host}/api/auth/${provider}/callback`;
+      }
+
+      if (host && process.env.NODE_ENV !== "production") {
+        return `${protocol}://${host}/api/auth/${provider}/callback`;
+      }
+    } catch {
+      // fall through to env value
+    }
+    return fallbackFromEnv;
+  };
+
   if (hasFacebookOAuth) {
     app.get("/api/auth/facebook", (req: Request, res: Response, next: any) => {
       try {
@@ -2625,7 +2652,15 @@ export async function registerRoutes(app: any) {
       } catch {
         // ignore
       }
-      return passport.authenticate("facebook", { scope: ["email"] })(req, res, next);
+      const callbackURL = getRuntimeOAuthCallbackUrl(
+        req,
+        "facebook",
+        process.env.FACEBOOK_CALLBACK_URL
+      );
+      return passport.authenticate("facebook", {
+        scope: ["email"],
+        callbackURL,
+      } as any)(req, res, next);
     });
     app.get(
       "/api/auth/facebook/callback",
@@ -2649,7 +2684,17 @@ export async function registerRoutes(app: any) {
         }
         return next();
       },
-      passport.authenticate("facebook", { failureRedirect: "/login" }),
+      (req: Request, res: Response, next: any) => {
+        const callbackURL = getRuntimeOAuthCallbackUrl(
+          req,
+          "facebook",
+          process.env.FACEBOOK_CALLBACK_URL
+        );
+        return passport.authenticate("facebook", {
+          failureRedirect: "/login",
+          callbackURL,
+        } as any)(req, res, next);
+      },
       (req: Request, res: Response) => {
         const user = req.user as any;
         const referralCodeFromCookie = getCookieValue(req, "ts_ref");
@@ -2705,10 +2750,16 @@ export async function registerRoutes(app: any) {
       } catch {
         // ignore
       }
+      const callbackURL = getRuntimeOAuthCallbackUrl(
+        req,
+        "google",
+        process.env.GOOGLE_CALLBACK_URL
+      );
       return passport.authenticate("google", {
         scope: ["openid", "email", "profile"],
         prompt: "select_account",
-      })(req, res, next);
+        callbackURL,
+      } as any)(req, res, next);
     });
     app.get(
       "/api/auth/google/callback",
@@ -2732,10 +2783,18 @@ export async function registerRoutes(app: any) {
         }
         return next();
       },
-      passport.authenticate("google", {
-        failureRedirect: "/login",
-        session: true,
-      }),
+      (req: Request, res: Response, next: any) => {
+        const callbackURL = getRuntimeOAuthCallbackUrl(
+          req,
+          "google",
+          process.env.GOOGLE_CALLBACK_URL
+        );
+        return passport.authenticate("google", {
+          failureRedirect: "/login",
+          session: true,
+          callbackURL,
+        } as any)(req, res, next);
+      },
       (req: Request, res: Response) => {
         const user = req.user as any;
         const referralCodeFromCookie = getCookieValue(req, "ts_ref");
