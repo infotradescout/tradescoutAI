@@ -1,13 +1,33 @@
 import type { Express, Request, Response } from "express";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
-import { objectives, objectiveEvents, workRequests, type Objective } from "@shared/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { objectives, objectiveEvents, workRequests } from "@shared/schema";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import type { Objective as ObjectiveDto } from "@shared/types/objective";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
 };
+
+type ObjectiveRow = typeof objectives.$inferSelect;
+
+function serializeObjective(row: ObjectiveRow): ObjectiveDto {
+  return {
+    id: row.id,
+    userId: row.userId,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date(0).toISOString(),
+    updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date(0).toISOString(),
+    status: (row.status ?? "active") as ObjectiveDto["status"],
+    intentClass: (row.intentClass ?? "unknown") as ObjectiveDto["intentClass"],
+    title: row.title,
+    summary: row.summary ?? null,
+    confidence: Number(row.confidence ?? 0),
+    context: (row.contextJson as Record<string, unknown> | null) ?? null,
+    linkedObjectType: row.linkedObjectType ?? null,
+    linkedObjectId: row.linkedObjectId ?? null,
+  };
+}
 
 // ============================================================================
 // SCHEMAS & TYPES
@@ -110,7 +130,7 @@ async function autoPausePreviousObjective(userId: string) {
  * Create a work request from an objective (Phase 1 promotion)
  */
 async function promoteToWorkRequest(
-  objective: Objective,
+  objective: ObjectiveRow,
   params: z.infer<typeof promoteObjectiveSchema>
 ) {
   // Extract minimum required fields from objective
@@ -122,25 +142,32 @@ async function promoteToWorkRequest(
   }
 
   // Create draft work request
-  const workRequestId = await db.insert(workRequests).values({
-    createdByUserId: objective.userId,
-    title: objective.title,
-    description: objective.summary || objective.title,
-    category: objective.contextJson?.category,
-    tradeId: params.tradeId,
-    countyFips,
-    stateCode,
-    addressId: objective.contextJson?.addressId,
-    scope: objective.contextJson?.scope || "personal",
-    source: "scout",
-    sourceRefId: objective.id, // Link back to objective
-    status: "draft",
-    visibility: objective.contextJson?.visibility || "private",
-    exposureMode: objective.contextJson?.exposureMode || "guided",
-    competitionMode: objective.contextJson?.competitionMode || "none",
-    budgetMin: params.budgetMin ? String(params.budgetMin) : undefined,
-    budgetMax: params.budgetMax ? String(params.budgetMax) : undefined,
-  });
+  const insertedWorkRequest = await db
+    .insert(workRequests)
+    .values({
+      createdByUserId: objective.userId,
+      title: objective.title,
+      description: objective.summary || objective.title,
+      category: objective.contextJson?.category,
+      tradeId: params.tradeId,
+      countyFips,
+      stateCode,
+      addressId: objective.contextJson?.addressId,
+      scope: objective.contextJson?.scope || "personal",
+      source: "scout",
+      sourceRefId: objective.id, // Link back to objective
+      status: "draft",
+      visibility: objective.contextJson?.visibility || "private",
+      exposureMode: objective.contextJson?.exposureMode || "guided",
+      competitionMode: objective.contextJson?.competitionMode || "none",
+      budgetMin: params.budgetMin ? String(params.budgetMin) : undefined,
+      budgetMax: params.budgetMax ? String(params.budgetMax) : undefined,
+    })
+    .returning({ id: workRequests.id });
+  const workRequestId = insertedWorkRequest[0]?.id;
+  if (!workRequestId) {
+    throw new Error("Failed to create work request");
+  }
 
   // Link objective to work request
   await db
@@ -185,7 +212,7 @@ export function registerObjectivesRoutes(app: Express) {
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const objective = await getUserActiveObjective(userId);
-      res.json({ objective });
+      res.json({ objective: objective ? serializeObjective(objective) : null });
     } catch (error) {
       console.error("Error fetching active objective:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -216,19 +243,19 @@ export function registerObjectivesRoutes(app: Express) {
       // Rate limit: max 3 new objectives per user per hour (Guardrail B)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       const recentCreations = await db
-        .select({ count: db.literal(1) })
+        .select({ count: count() })
         .from(objectiveEvents)
         .innerJoin(objectives, eq(objectiveEvents.objectiveId, objectives.id))
         .where(
           and(
             eq(objectives.userId, userId),
             eq(objectiveEvents.eventType, "created"),
-            db.sql`${objectiveEvents.createdAt} > ${oneHourAgo}`
+            sql`${objectiveEvents.createdAt} > ${oneHourAgo}`
           )
-        )
-        .then((r) => r.length);
+        );
+      const recentCreateCount = Number(recentCreations[0]?.count ?? 0);
 
-      if (recentCreations >= 3) {
+      if (recentCreateCount >= 3) {
         return res.status(429).json({
           error: "Too many objectives created recently. Max 3 per hour.",
           retryAfter: 3600,
@@ -239,15 +266,22 @@ export function registerObjectivesRoutes(app: Express) {
       await autoPausePreviousObjective(userId);
 
       // Create new objective
-      const objectiveId = await db.insert(objectives).values({
-        userId,
-        title: parsed.data.title,
-        summary: parsed.data.summary,
-        intentClass: parsed.data.intentClass,
-        confidence: String(parsed.data.confidence),
-        contextJson: parsed.data.contextJson || {},
-        status: "active",
-      });
+      const insertedObjective = await db
+        .insert(objectives)
+        .values({
+          userId,
+          title: parsed.data.title,
+          summary: parsed.data.summary,
+          intentClass: parsed.data.intentClass,
+          confidence: String(parsed.data.confidence),
+          contextJson: parsed.data.contextJson || {},
+          status: "active",
+        })
+        .returning({ id: objectives.id });
+      const objectiveId = insertedObjective[0]?.id;
+      if (!objectiveId) {
+        throw new Error("Failed to create objective");
+      }
 
       // Log creation event
       await db.insert(objectiveEvents).values({
@@ -263,7 +297,10 @@ export function registerObjectivesRoutes(app: Express) {
         .where(eq(objectives.id, objectiveId))
         .then((r) => r[0]);
 
-      res.json({ success: true, objective: newObjective });
+      res.json({
+        success: true,
+        objective: newObjective ? serializeObjective(newObjective) : null,
+      });
     } catch (error) {
       console.error("Error creating objective:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -297,7 +334,7 @@ export function registerObjectivesRoutes(app: Express) {
       }
 
       // Determine which event type to log
-      let eventType = "updated";
+      let eventType: "title_updated" | "summary_updated" | "status_changed" | null = null;
       if (parsed.data.title && parsed.data.title !== objective.title) {
         eventType = "title_updated";
       } else if (parsed.data.summary && parsed.data.summary !== objective.summary) {
@@ -321,16 +358,18 @@ export function registerObjectivesRoutes(app: Express) {
         .where(eq(objectives.id, id));
 
       // Log event
-      await db.insert(objectiveEvents).values({
-        objectiveId: id,
-        eventType: eventType as any,
-        actorUserId: userId,
-        actorType: "user",
-        metadata: {
-          previousStatus: objective.status,
-          newStatus: parsed.data.status,
-        },
-      });
+      if (eventType) {
+        await db.insert(objectiveEvents).values({
+          objectiveId: id,
+          eventType,
+          actorUserId: userId,
+          actorType: "user",
+          metadata: {
+            previousStatus: objective.status,
+            newStatus: parsed.data.status,
+          },
+        });
+      }
 
       const updated = await db
         .select()
@@ -338,7 +377,7 @@ export function registerObjectivesRoutes(app: Express) {
         .where(eq(objectives.id, id))
         .then((r) => r[0]);
 
-      res.json({ success: true, objective: updated });
+      res.json({ success: true, objective: updated ? serializeObjective(updated) : null });
     } catch (error) {
       console.error("Error updating objective:", error);
       res.status(500).json({ error: "Internal server error" });

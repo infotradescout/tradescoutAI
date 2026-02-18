@@ -51,6 +51,7 @@ import { fileURLToPath } from "url";
 import { createHash } from "crypto";
 import { govern, type GovernorDecision } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
+import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
 import { recordScoutInteraction } from "../services/missionControl";
 import { logCompletedAction } from "../services/preferredSource";
 import {
@@ -2456,6 +2457,47 @@ router.post("/", async (req: Request, res: Response) => {
       onboardingQuestionKey,
     } = rawBody as ScoutRequest;
 
+    const userRole = (req as any).user?.role || "user";
+    const normalizedStateCode =
+      typeof stateCode === "string" && stateCode.trim().length > 0
+        ? stateCode.trim().toUpperCase()
+        : undefined;
+    const syncObjectiveBestEffort = async (scoutResult?: { intent?: string | null }) => {
+      if (process.env.OBJECTIVES_ENABLED !== "true") return;
+      if (!userId || !normalizedMessage.trim()) return;
+      const inferredIntent = normalizeScoutIntent(
+        typeof scoutResult?.intent === "string" ? scoutResult.intent : intent,
+        normalizedMessage
+      );
+      try {
+        const syncResult = await syncObjectiveFromScoutMessage({
+          userId: String(userId),
+          messageText: normalizedMessage,
+          userRole,
+          scoutIntent: inferredIntent,
+          countyFips: normalizedFips,
+          stateCode: normalizedStateCode,
+        });
+        if (syncResult?.rateLimitedReuse) {
+          console.info("[Scout Objectives] Rate cap reuse", {
+            userId: String(userId),
+            intentClass: syncResult.intentClass,
+            confidence: syncResult.confidence,
+            topicShift: syncResult.wasTopicShift,
+          });
+        }
+      } catch (e) {
+        console.error("Objective sync failed", e);
+        console.error("[Scout Objectives] Sync telemetry", {
+          userId: String(userId),
+          intentClass: null,
+          confidence: null,
+          topicShift: false,
+          scoutIntent: inferredIntent,
+        });
+      }
+    };
+
     // D2-1: Detect and initialize onboarding session
     const userId = (req as any).user?.id;
     const clientSessionId = sessionId || `${userId || "guest"}_${Date.now()}`;
@@ -2487,6 +2529,7 @@ router.post("/", async (req: Request, res: Response) => {
     if (isIntroQuestion(message)) {
       try {
         const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
+        await syncObjectiveBestEffort({ intent });
         return res.json({
           message: synthesisResponse,
           actions: [],
@@ -2509,7 +2552,6 @@ router.post("/", async (req: Request, res: Response) => {
     const llmAvailable = llmProviders.some((p) => p.isConfigured());
 
     // Extract user information from session/request
-    const userRole = (req as any).user?.role || "user";
     const userCounty = (req as any).user?.county || countyCode;
     const userState = (req as any).user?.state || stateCode;
 
@@ -2646,6 +2688,7 @@ router.post("/", async (req: Request, res: Response) => {
         },
       };
 
+      await syncObjectiveBestEffort({ intent });
       return res.json({
         ...aiResponse,
         knowledge: {
@@ -2854,6 +2897,7 @@ router.post("/", async (req: Request, res: Response) => {
         metadata: deterministic.metadata as any,
       };
 
+      await syncObjectiveBestEffort({ intent });
       return res.json({
         ...aiResponse,
         knowledge: {
@@ -2992,6 +3036,7 @@ router.post("/", async (req: Request, res: Response) => {
         },
       };
 
+      await syncObjectiveBestEffort({ intent: synthesized.intent });
       return res.json({
         ...aiResponse,
         knowledge: {
@@ -4108,6 +4153,7 @@ router.post("/", async (req: Request, res: Response) => {
         }
       : undefined;
 
+    await syncObjectiveBestEffort({ intent: synthesized.intent });
     res.json({
       message: finalMessage,
       suggestedActions: aiResponse.suggestedActions ?? [],

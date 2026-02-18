@@ -7,7 +7,7 @@
 
 import { db } from "../db";
 import { objectives, objectiveEvents } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import {
   classifyUserIntent,
   detectTopicShift,
@@ -25,14 +25,29 @@ export interface ScoutObjectiveInput {
   addressId?: string;
 }
 
+export interface SyncObjectiveResult {
+  objectiveId: string;
+  isNew: boolean;
+  wasTopicShift: boolean;
+  intentClass: ObjectiveIntentClass;
+  confidence: number;
+  rateLimitedReuse?: boolean;
+}
+
 /**
  * Get or create user's active objective based on Scout message
  * - If no active objective exists, creates one
  * - If active objective exists and topic shifted, pauses old and creates new
  * - Otherwise, updates existing objective with new message context
  */
-export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) {
+export async function syncObjectiveFromScoutMessage(
+  input: ScoutObjectiveInput
+): Promise<SyncObjectiveResult | null> {
   try {
+    if (process.env.OBJECTIVES_ENABLED !== "true") {
+      return null;
+    }
+
     const { userId, messageText, userRole, scoutIntent, countyFips, stateCode, addressId } = input;
 
     // Classify intent from Scout output + message heuristics
@@ -46,14 +61,15 @@ export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) 
     const currentActive = await db
       .select()
       .from(objectives)
-      .where(objectives.userId === userId && objectives.status === "active")
-      .orderBy(objectives.createdAt)
+      .where(and(eq(objectives.userId, userId), eq(objectives.status, "active")))
+      .orderBy(asc(objectives.createdAt))
       .limit(1);
 
     const activeObjective = currentActive?.[0];
 
     // Detect topic shift if we have an active objective
     let shouldCreateNew = false;
+    let wasTopicShift = false;
     if (activeObjective) {
       const shifted = detectTopicShift(
         activeObjective.intentClass as ObjectiveIntentClass,
@@ -62,7 +78,40 @@ export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) 
       );
 
       if (shifted) {
-        // User switched topics: pause old, create new
+        wasTopicShift = true;
+        shouldCreateNew = true;
+      }
+    } else {
+      shouldCreateNew = true;
+    }
+
+    // Soft cap: at most 3 newly created objectives per user per hour.
+    // If exceeded, update/reuse an existing objective instead of creating a new one.
+    let rateLimitedReuse = false;
+    if (shouldCreateNew) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentCreations = await db
+        .select({ count: count() })
+        .from(objectiveEvents)
+        .innerJoin(objectives, eq(objectiveEvents.objectiveId, objectives.id))
+        .where(
+          and(
+            eq(objectives.userId, userId),
+            eq(objectiveEvents.eventType, "created"),
+            sql`${objectiveEvents.createdAt} > ${oneHourAgo}`
+          )
+        );
+      const recentCreateCount = Number(recentCreations[0]?.count ?? 0);
+      if (recentCreateCount >= 3) {
+        shouldCreateNew = false;
+        rateLimitedReuse = true;
+      }
+    }
+
+    // Create new objective if needed
+    if (shouldCreateNew || !activeObjective) {
+      if (wasTopicShift && activeObjective) {
+        // Only pause once we know we're actually creating a replacement objective.
         await db
           .update(objectives)
           .set({ status: "paused" })
@@ -78,15 +127,8 @@ export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) 
             newIntent: classification.intentClass,
           },
         });
-
-        shouldCreateNew = true;
       }
-    } else {
-      shouldCreateNew = true;
-    }
 
-    // Create new objective if needed
-    if (shouldCreateNew || !activeObjective) {
       const title = extractTitleFromMessage(messageText, classification.intentClass);
       const contextJson = buildContextJson({
         messageText,
@@ -96,16 +138,23 @@ export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) 
         addressId,
       });
 
-      const newObjectiveId = await db.insert(objectives).values({
-        userId,
-        title,
-        summary: messageText.substring(0, 500), // First 500 chars as summary
-        intentClass: classification.intentClass,
-        confidence: String(Math.min(classification.confidence * 100, 100) / 100), // Ensure 0-1
-        contextJson,
-        status: "active",
-        source: "scout",
-      });
+      const insertedObjective = await db
+        .insert(objectives)
+        .values({
+          userId,
+          title,
+          summary: messageText.substring(0, 500), // First 500 chars as summary
+          intentClass: classification.intentClass,
+          confidence: String(Math.min(classification.confidence * 100, 100) / 100), // Ensure 0-1
+          contextJson,
+          status: "active",
+          source: "scout",
+        })
+        .returning({ id: objectives.id });
+      const newObjectiveId = insertedObjective[0]?.id;
+      if (!newObjectiveId) {
+        throw new Error("Failed to create objective record");
+      }
 
       // Log creation
       await db.insert(objectiveEvents).values({
@@ -120,11 +169,62 @@ export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) 
         },
       });
 
-      return { objectiveId: newObjectiveId, isNew: true, wasTopicShift: !!activeObjective };
+      return {
+        objectiveId: newObjectiveId,
+        isNew: true,
+        wasTopicShift: !!activeObjective && wasTopicShift,
+        intentClass: classification.intentClass,
+        confidence: classification.confidence,
+      };
     } else {
-      // Update existing objective with refined context
+      // Update existing objective with refined context. If no active objective exists
+      // (e.g., rate-limited create), reuse the latest objective for this user.
+      let objectiveToUpdate = activeObjective;
+      if (!objectiveToUpdate) {
+        const latestExisting = await db
+          .select()
+          .from(objectives)
+          .where(eq(objectives.userId, userId))
+          .orderBy(desc(objectives.createdAt))
+          .limit(1);
+        objectiveToUpdate = latestExisting[0];
+      }
+
+      if (!objectiveToUpdate) {
+        // No prior objective to reuse; create a fallback objective.
+        const fallbackInserted = await db
+          .insert(objectives)
+          .values({
+            userId,
+            title: extractTitleFromMessage(messageText, classification.intentClass),
+            summary: messageText.substring(0, 500),
+            intentClass: classification.intentClass,
+            confidence: String(Math.min(classification.confidence * 100, 100) / 100),
+            contextJson: buildContextJson({
+              messageText,
+              userRole,
+              countyFips,
+              stateCode,
+              addressId,
+            }),
+            status: "active",
+            source: "scout",
+          })
+          .returning({ id: objectives.id });
+        const fallbackId = fallbackInserted[0]?.id;
+        if (!fallbackId) throw new Error("Failed to create fallback objective record");
+        return {
+          objectiveId: fallbackId,
+          isNew: true,
+          wasTopicShift,
+          intentClass: classification.intentClass,
+          confidence: classification.confidence,
+          rateLimitedReuse,
+        };
+      }
+
       const updatedContext = {
-        ...(activeObjective.contextJson as Record<string, any>),
+        ...((objectiveToUpdate.contextJson as Record<string, unknown> | null) ?? {}),
         ...buildContextJson({ messageText, userRole, countyFips, stateCode, addressId }),
         lastMessageText: messageText,
         lastMessageTs: new Date().toISOString(),
@@ -133,26 +233,40 @@ export async function syncObjectiveFromScoutMessage(input: ScoutObjectiveInput) 
       await db
         .update(objectives)
         .set({
+          title:
+            objectiveToUpdate.title ||
+            extractTitleFromMessage(messageText, classification.intentClass),
           summary: messageText.substring(0, 500),
           contextJson: updatedContext,
+          intentClass: classification.intentClass,
+          status: "active",
           confidence: String(Math.min(classification.confidence * 100, 100) / 100),
           updatedAt: new Date(),
         })
-        .where(eq(objectives.id, activeObjective.id));
+        .where(eq(objectives.id, objectiveToUpdate.id));
 
       // Log update
       await db.insert(objectiveEvents).values({
-        objectiveId: activeObjective.id,
-        eventType: "updated",
+        objectiveId: objectiveToUpdate.id,
+        eventType: "summary_updated",
         actorType: "system",
         metadata: {
           classificationSource: classification.source,
           intentClass: classification.intentClass,
           confidence: classification.confidence,
+          rateLimitedReuse,
+          wasTopicShift,
         },
       });
 
-      return { objectiveId: activeObjective.id, isNew: false, wasTopicShift: false };
+      return {
+        objectiveId: objectiveToUpdate.id,
+        isNew: false,
+        wasTopicShift,
+        intentClass: classification.intentClass,
+        confidence: classification.confidence,
+        rateLimitedReuse,
+      };
     }
   } catch (error) {
     console.error("[Scout Objectives] Error syncing objective:", error);

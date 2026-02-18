@@ -73,6 +73,8 @@ import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import type { ScoutMode as ScoutModeType } from "./scoutModeTypes";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
+import ObjectiveChip from "./ObjectiveChip";
+import type { Objective } from "@shared/types/objective";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -85,6 +87,7 @@ const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
 const AUTO_ROUTE_DEFAULT_ENABLED = true;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
+const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -325,6 +328,8 @@ export default function ScoutOS() {
     confidence: number;
     why?: string;
   }>(null);
+  const [activeObjective, setActiveObjective] = useState<Objective | null>(null);
+  const [objectiveBusy, setObjectiveBusy] = useState(false);
   const autoRouteTimerRef = useRef<number | null>(null);
   const introTimersRef = useRef<{
     typeTimer: number | null;
@@ -514,6 +519,65 @@ export default function ScoutOS() {
     () => state.messages.some((m) => m.role === "user"),
     [state.messages]
   );
+
+  const refreshObjective = useCallback(async () => {
+    if (!OBJECTIVES_ENABLED || !isAuthenticated) {
+      setActiveObjective(null);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/objectives/active", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        setActiveObjective(null);
+        return;
+      }
+
+      const payload = (await res.json()) as { objective?: Objective | null };
+      setActiveObjective(payload?.objective ?? null);
+    } catch {
+      setActiveObjective(null);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    void refreshObjective();
+  }, [refreshObjective]);
+
+  const updateObjective = useCallback(
+    async (patch: Partial<Pick<Objective, "title" | "status">>) => {
+      if (!OBJECTIVES_ENABLED || !activeObjective?.id) return;
+      setObjectiveBusy(true);
+      try {
+        await fetch(`/api/objectives/${encodeURIComponent(String(activeObjective.id))}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+      } finally {
+        await refreshObjective();
+        setObjectiveBusy(false);
+      }
+    },
+    [activeObjective?.id, refreshObjective]
+  );
+
+  const deleteObjective = useCallback(async () => {
+    if (!OBJECTIVES_ENABLED || !activeObjective?.id) return;
+    setObjectiveBusy(true);
+    try {
+      await fetch(`/api/objectives/${encodeURIComponent(String(activeObjective.id))}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+    } finally {
+      await refreshObjective();
+      setObjectiveBusy(false);
+    }
+  }, [activeObjective?.id, refreshObjective]);
 
   // Disable auto-demo typing so Scout never speaks before the user does.
   // Scout should only respond after an explicit user intent (typing or tile).
@@ -2488,6 +2552,7 @@ export default function ScoutOS() {
           error: err.message || "Unknown error",
         });
       } finally {
+        await refreshObjective();
         setStatus("idle");
       }
     },
@@ -2505,6 +2570,7 @@ export default function ScoutOS() {
       setPrefillKey,
       state.messages,
       queueAutoRoute,
+      refreshObjective,
       userRoles,
     ]
   );
@@ -2582,6 +2648,7 @@ export default function ScoutOS() {
         setError(err.message || "Failed to process onboarding");
         console.error("[Onboarding Error]", err);
       } finally {
+        await refreshObjective();
         setStatus("idle");
       }
     },
@@ -2594,6 +2661,7 @@ export default function ScoutOS() {
       location,
       applyServerResponse,
       recordUserMessage,
+      refreshObjective,
       setStatus,
       setError,
       recordActivity,
@@ -3340,6 +3408,25 @@ export default function ScoutOS() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {activeObjective && (
+                  <ObjectiveChip
+                    objective={activeObjective}
+                    isLoading={objectiveBusy}
+                    onRename={async (_id, newTitle) => {
+                      await updateObjective({ title: newTitle });
+                    }}
+                    onPause={async (_id) => {
+                      await updateObjective({ status: "paused" });
+                    }}
+                    onComplete={async (_id) => {
+                      await updateObjective({ status: "completed" });
+                    }}
+                    onDelete={async (_id) => {
+                      await deleteObjective();
+                    }}
+                  />
                 )}
 
                 <ScoutThread

@@ -506,6 +506,56 @@ app.use((req, res, next) => {
     // Track the last port we attempted so we can increment it if needed.
     let currentPort = PORT;
 
+    const warnOnAuthOriginMismatch = (activePort: number) => {
+      const envKeys = [
+        "GOOGLE_CALLBACK_URL",
+        "FACEBOOK_CALLBACK_URL",
+        "CLIENT_ORIGIN",
+        "PUBLIC_BASE_URL",
+      ] as const;
+
+      const localhostHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+      const mismatches: Array<{ key: string; value: string; reason: string }> = [];
+
+      for (const key of envKeys) {
+        const raw = process.env[key];
+        if (!raw || !raw.trim()) continue;
+        try {
+          const parsed = new URL(raw);
+          const parsedPort =
+            parsed.port && parsed.port.trim().length > 0
+              ? Number(parsed.port)
+              : parsed.protocol === "https:"
+                ? 443
+                : 80;
+
+          if (localhostHosts.has(parsed.hostname.toLowerCase()) && parsedPort !== activePort) {
+            mismatches.push({
+              key,
+              value: raw,
+              reason: `uses ${parsed.hostname}:${parsedPort}, server bound to localhost:${activePort}`,
+            });
+          }
+        } catch {
+          mismatches.push({
+            key,
+            value: raw,
+            reason: "not a valid absolute URL",
+          });
+        }
+      }
+
+      if (mismatches.length > 0) {
+        console.warn("[AUTH ORIGIN WARNING] Callback/origin env mismatch detected.");
+        for (const item of mismatches) {
+          console.warn(`[AUTH ORIGIN WARNING] ${item.key}=${item.value} (${item.reason})`);
+        }
+        console.warn(
+          `[AUTH ORIGIN WARNING] Fix these env keys to match the active origin http://localhost:${activePort} and restart dev server.`
+        );
+      }
+    };
+
     const startHttpServer = (portToUse: number) => {
       currentPort = portToUse;
       server.listen(
@@ -515,6 +565,7 @@ app.use((req, res, next) => {
         },
         () => {
           log(`serving on port ${portToUse}`);
+          warnOnAuthOriginMismatch(portToUse);
 
           // Setup vite AFTER the server is listening so the port is available
           const isProduction =
