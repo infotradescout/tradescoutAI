@@ -119,8 +119,8 @@ const RootLanding = memo(function RootLanding() {
     const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
 
     if (!isAuthenticated) {
-      // Non-authenticated users go straight to the unified auth/setup flow
-      navigate("/pre-scout-setup");
+      // Public users land on the marketing surface; auth starts from CTA buttons.
+      navigate("/landing");
     } else if (needsPreScoutSetup) {
       navigate("/pre-scout-setup");
     } else if (isSuperAdmin) {
@@ -152,6 +152,7 @@ const VerifyEmail = React.lazy(() => import("./pages/verify-email"));
 const CheckEmail = React.lazy(() => import("./pages/check-email"));
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
+const Landing = React.lazy(() => import("./pages/landing"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
 const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
@@ -559,6 +560,9 @@ const AppLayout = memo(function AppLayout() {
                 <Switch>
                   {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
                   <Route path="/" component={RootLanding} />
+                  <Route path="/landing">
+                    <LazyPage Component={Landing} />
+                  </Route>
                   {/* Scout OS: primary AI controller surface */}
                   <Route path="/scout" component={ScoutOS} />
                   {/* Home routes */}
@@ -1429,6 +1433,9 @@ const AppLayout = memo(function AppLayout() {
                     <RedirectTo to="/county-hub" />
                   </Route>
                   <Route path="/contractors/signup">
+                    <RedirectTo to="/contractors/apply" />
+                  </Route>
+                  <Route path="/contractor-join">
                     <RedirectTo to="/contractors/apply" />
                   </Route>
                   <Route path="/contractors/accelerator">

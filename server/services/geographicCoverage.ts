@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { counties, countyEntities, countyNotes } from "../../shared/schema";
+import { counties, countyEntities, countyMetrics, countyNotes } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
 
 export type CountyCoverageStatus = "unassigned" | "partial" | "full";
@@ -17,6 +17,7 @@ export interface CountyCoverageRow {
   hasRiskNote: boolean;
   hasPartnerNote: boolean;
   lastNoteAt: string | null;
+  observations30d: number;
 }
 
 export interface CountyCoverageSummary {
@@ -126,6 +127,18 @@ export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary>
     notesByFips.set(row.countyFips, row);
   }
 
+  const observationMetricRows = await db
+    .select({
+      countyFips: countyMetrics.countyFips,
+      metricValue: countyMetrics.metricValue,
+    })
+    .from(countyMetrics)
+    .where(eq(countyMetrics.metricKey, "observations_30d"));
+  const observationsByFips = new Map<string, number>();
+  for (const row of observationMetricRows) {
+    observationsByFips.set(row.countyFips, Number(row.metricValue || 0));
+  }
+
   const rows: CountyCoverageRow[] = [];
 
   let unassignedCount = 0;
@@ -173,6 +186,7 @@ export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary>
       hasRiskNote: Boolean(notes?.hasRiskNote),
       hasPartnerNote: Boolean(notes?.hasPartnerNote),
       lastNoteAt: toIsoOrNull(notes?.lastNoteAt),
+      observations30d: Number(observationsByFips.get(county.countyFips) || 0),
     });
   }
 
@@ -249,6 +263,16 @@ export async function getCoverageForCounty(countyFips: string): Promise<CountyCo
     .groupBy(countyNotes.countyFips)
     .limit(1);
 
+  const [observationMetric] = await db
+    .select({
+      metricValue: countyMetrics.metricValue,
+    })
+    .from(countyMetrics)
+    .where(
+      sql`${countyMetrics.countyFips} = ${fips} AND ${countyMetrics.metricKey} = 'observations_30d'`
+    )
+    .limit(1);
+
   const hasTerritoryManager = Boolean(entity?.hasTerritoryManager);
   const hasAffiliateOrPartner = Boolean(entity?.hasAffiliateOrPartner);
   const coverageStatus = computeCoverageStatus(hasTerritoryManager, hasAffiliateOrPartner);
@@ -266,5 +290,6 @@ export async function getCoverageForCounty(countyFips: string): Promise<CountyCo
     hasRiskNote: Boolean(notes?.hasRiskNote),
     hasPartnerNote: Boolean(notes?.hasPartnerNote),
     lastNoteAt: toIsoOrNull(notes?.lastNoteAt),
+    observations30d: Number(observationMetric?.metricValue || 0),
   };
 }

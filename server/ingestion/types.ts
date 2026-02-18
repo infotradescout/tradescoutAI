@@ -20,6 +20,7 @@ export type ObservationAdapterContext = {
   stateCode: string;
   cursor?: Record<string, unknown> | null;
   limit?: number;
+  config?: Record<string, unknown>;
 };
 
 export type ObservationAdapterResult = {

@@ -9,6 +9,7 @@ export type RunObservationAdapterParams = {
   countyFips: string;
   stateCode: string;
   limit?: number;
+  config?: Record<string, unknown>;
 };
 
 export type RunObservationAdapterResult = {
@@ -88,6 +89,7 @@ export async function runObservationAdapter(
     stateCode,
     cursor: (existingSource?.cursorJson as Record<string, unknown> | null) ?? null,
     limit,
+    config: params.config ?? undefined,
   };
 
   await upsertObservationSourceState({

@@ -31,3 +31,10 @@ Each adapter:
 - Calls adapter.
 - Inserts into `observations` with dedupe (`on conflict do nothing`).
 - Updates `observation_sources` cursor + health.
+
+## CLI Execution
+
+`npm run ingest:observations -- --adapter <listing|permit|inspection> --countyFips <FIPS> --stateCode <STATE> [--inputFilePath <path>]`
+
+- `listing`: reads from existing HomeScout listing data.
+- `permit` and `inspection`: require `--inputFilePath` to a real JSON file (array or `{ records: [] }`).

@@ -2,7 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Map as MapIcon, Users, TrendingUp, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -100,6 +106,7 @@ type CountyCoverageRow = {
   coverageStatus: CountyCoverageStatus;
   territoryManagerCount: number;
   affiliateCount: number;
+  observations30d?: number;
 };
 
 type CountyCoverageResponse = {
@@ -201,7 +208,10 @@ function CountyHeatmapMap({
       <svg viewBox="0 0 975 610" className="w-full h-full">
         <g>
           {counties.map((c) => {
-            const fips = typeof c.id === "string" || typeof c.id === "number" ? String(c.id).padStart(5, "0") : "";
+            const fips =
+              typeof c.id === "string" || typeof c.id === "number"
+                ? String(c.id).padStart(5, "0")
+                : "";
             const coverage = fips && coverageByCounty ? coverageByCounty[fips] : undefined;
             const hasMetric = !!(fips && Object.prototype.hasOwnProperty.call(byCounty, fips));
             const count = fips && hasMetric ? byCounty[fips] || 0 : 0;
@@ -216,15 +226,17 @@ function CountyHeatmapMap({
               lens === "coverage"
                 ? getCoverageFillColor(coverage?.coverageStatus)
                 : hasMetric
-                ? getCountyFillColor(count)
-                : "var(--coverage-neutral)"; // neutral when metric not populated
+                  ? getCountyFillColor(count)
+                  : "var(--coverage-neutral)"; // neutral when metric not populated
 
             return (
               <path
                 key={fips || d}
                 d={d}
                 fill={fillColor}
-                stroke={isSelected ? "var(--heatmap-stroke-selected)" : "var(--heatmap-stroke-default)"}
+                stroke={
+                  isSelected ? "var(--heatmap-stroke-selected)" : "var(--heatmap-stroke-default)"
+                }
                 strokeWidth={isSelected ? 1 : 0.25}
                 onMouseEnter={(evt) => {
                   if (!fips || !info) return;
@@ -279,10 +291,14 @@ function CountyHeatmapMap({
           {hovered.lens === "coverage" ? (
             <>
               <div className="mt-1 text-slate-300">
-                Coverage: {hovered.coverageStatus ? hovered.coverageStatus.charAt(0).toUpperCase() + hovered.coverageStatus.slice(1) : "Not set"}
+                Coverage:{" "}
+                {hovered.coverageStatus
+                  ? hovered.coverageStatus.charAt(0).toUpperCase() + hovered.coverageStatus.slice(1)
+                  : "Not set"}
               </div>
               <div className="mt-1 text-slate-400 text-[11px]">
-                TM: {hovered.territoryManagerCount ?? 0} • Affiliate/partner: {hovered.affiliateCount ?? 0}
+                TM: {hovered.territoryManagerCount ?? 0} • Affiliate/partner:{" "}
+                {hovered.affiliateCount ?? 0}
               </div>
             </>
           ) : (
@@ -366,7 +382,11 @@ export function UserHeatmap() {
     error: countyError,
   } = useQuery<CountyHeatmapResponse>({
     queryKey: ["/api/admin/heatmap/users-by-county", timeframe, countyMetric],
-    queryFn: () => apiRequest("GET", `/api/admin/heatmap/users-by-county?timeframe=${timeframe}&metric=${countyMetric}`),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/admin/heatmap/users-by-county?timeframe=${timeframe}&metric=${countyMetric}`
+      ),
     enabled: isSuperAdmin && viewMode === "counties" && countyLens === "metric",
     retry: false,
   });
@@ -382,20 +402,14 @@ export function UserHeatmap() {
     retry: false,
   });
 
-  const {
-    data: countyNotes,
-    isLoading: notesLoading,
-  } = useQuery<CountyNote[]>({
+  const { data: countyNotes, isLoading: notesLoading } = useQuery<CountyNote[]>({
     queryKey: ["/api/admin/geo/counties", selectedCountyFips, "notes"],
     queryFn: () => apiRequest("GET", `/api/admin/geo/counties/${selectedCountyFips}/notes`),
     enabled: isSuperAdmin && viewMode === "counties" && !!selectedCountyFips,
     retry: false,
   });
 
-  const {
-    data: countyEntities,
-    isLoading: entitiesLoading,
-  } = useQuery<CountyEntity[]>({
+  const { data: countyEntities, isLoading: entitiesLoading } = useQuery<CountyEntity[]>({
     queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"],
     queryFn: () => apiRequest("GET", `/api/admin/geo/counties/${selectedCountyFips}/entities`),
     enabled: isSuperAdmin && viewMode === "counties" && !!selectedCountyFips,
@@ -409,7 +423,9 @@ export function UserHeatmap() {
     },
     onSuccess: () => {
       setNoteContent("");
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "notes"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/geo/counties", selectedCountyFips, "notes"],
+      });
     },
   });
 
@@ -426,23 +442,34 @@ export function UserHeatmap() {
   });
 
   const createEntityMutation = useMutation({
-    mutationFn: async (payload: { entityType: CountyEntity["entityType"]; label?: string; status?: CountyEntity["status"]; entityId?: string }) => {
+    mutationFn: async (payload: {
+      entityType: CountyEntity["entityType"];
+      label?: string;
+      status?: CountyEntity["status"];
+      entityId?: string;
+    }) => {
       if (!selectedCountyFips) throw new Error("No county selected");
       return apiRequest("POST", `/api/admin/geo/counties/${selectedCountyFips}/entities`, payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
   });
 
   const updateEntityStatusMutation = useMutation({
     mutationFn: async (payload: { entityId: string; status: CountyEntity["status"] }) => {
-      return apiRequest("PATCH", `/api/admin/geo/entities/${payload.entityId}`, { status: payload.status });
+      return apiRequest("PATCH", `/api/admin/geo/entities/${payload.entityId}`, {
+        status: payload.status,
+      });
     },
     onSuccess: () => {
       if (selectedCountyFips) {
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"],
+        });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
@@ -454,7 +481,9 @@ export function UserHeatmap() {
     },
     onSuccess: () => {
       if (selectedCountyFips) {
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"],
+        });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
@@ -480,7 +509,9 @@ export function UserHeatmap() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/heatmap/users-by-county"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/heatmap/users-by-county", timeframe, countyMetric] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/heatmap/users-by-county", timeframe, countyMetric],
+      });
       const summary = (data || {}) as { activeCountyCount?: number; metricsWritten?: number };
       const activeCountyCount = summary.activeCountyCount ?? 0;
       const metricsWritten = summary.metricsWritten ?? 0;
@@ -492,20 +523,29 @@ export function UserHeatmap() {
     onError: (error: any) => {
       toast({
         title: "Refresh failed",
-        description: error?.message ?? "Unable to refresh county metrics. Please try again in a minute.",
+        description:
+          error?.message ?? "Unable to refresh county metrics. Please try again in a minute.",
         variant: "destructive",
       });
     },
   });
 
-  const totalInteractions = heatmapData.reduce((sum: number, point: HeatmapDataPoint) => sum + point.interactions, 0);
-  const totalUsers = heatmapData.reduce((sum: number, point: HeatmapDataPoint) => sum + point.users, 0);
-  const topLocations = [...heatmapData].sort((a: HeatmapDataPoint, b: HeatmapDataPoint) => b.interactions - a.interactions).slice(0, 5);
+  const totalInteractions = heatmapData.reduce(
+    (sum: number, point: HeatmapDataPoint) => sum + point.interactions,
+    0
+  );
+  const totalUsers = heatmapData.reduce(
+    (sum: number, point: HeatmapDataPoint) => sum + point.users,
+    0
+  );
+  const topLocations = [...heatmapData]
+    .sort((a: HeatmapDataPoint, b: HeatmapDataPoint) => b.interactions - a.interactions)
+    .slice(0, 5);
 
   const getIntensityClass = (interactions: number) => {
     const maxInteractions = Math.max(...heatmapData.map((p: HeatmapDataPoint) => p.interactions));
     const intensity = interactions / maxInteractions;
-    
+
     if (intensity > 0.8) return "bg-red-500 text-white";
     if (intensity > 0.6) return "bg-orange-500 text-white";
     if (intensity > 0.4) return "bg-yellow-500 text-black";
@@ -524,6 +564,8 @@ export function UserHeatmap() {
         return "Contractors";
       case "affiliates_count":
         return "Affiliates";
+      case "observations_30d":
+        return "Observations (30d)";
       default:
         return "Value";
     }
@@ -570,7 +612,9 @@ export function UserHeatmap() {
             <MapIcon className="w-6 h-6 text-orange-500" />
             User Activity Heatmap
           </h2>
-          <p className="text-gray-400 mt-1">Geographic distribution of user interactions across the United States</p>
+          <p className="text-gray-400 mt-1">
+            Geographic distribution of user interactions across the United States
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {isSuperAdmin && (
@@ -642,6 +686,7 @@ export function UserHeatmap() {
                       <SelectItem value="businesses_total">Businesses</SelectItem>
                       <SelectItem value="homeowners_total">Homeowners</SelectItem>
                       <SelectItem value="tradedeals_active">TradeDeals (active)</SelectItem>
+                      <SelectItem value="observations_30d">Observations (30d)</SelectItem>
                       <SelectItem value="unmet_demand_score">Unmet demand score</SelectItem>
                     </SelectContent>
                   </Select>
@@ -660,7 +705,8 @@ export function UserHeatmap() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs">
-                        Recomputes county metrics from canonical data. No roles or permissions are changed.
+                        Recomputes county metrics from canonical data. No roles or permissions are
+                        changed.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -678,13 +724,15 @@ export function UserHeatmap() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-400">Total Interactions</p>
-                <p className="text-2xl font-bold text-white">{totalInteractions.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">
+                  {totalInteractions.toLocaleString()}
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -696,7 +744,7 @@ export function UserHeatmap() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -722,7 +770,9 @@ export function UserHeatmap() {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <MapIcon className="w-5 h-5" />
-                {viewMode === "counties" && isSuperAdmin ? "County Heatmap (Admin only)" : "Activity Heatmap"}
+                {viewMode === "counties" && isSuperAdmin
+                  ? "County Heatmap (Admin only)"
+                  : "Activity Heatmap"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -754,16 +804,19 @@ export function UserHeatmap() {
                       lens="metric"
                     />
                   )}
-                  {countyLens === "coverage" && countyCoverage && !coverageLoading && !coverageError && (
-                    <CountyHeatmapMap
-                      byCounty={{}}
-                      coverageByCounty={coverageByCounty}
-                      selectedFips={selectedCountyFips}
-                      onSelectCounty={(fips) => setSelectedCountyFips(fips)}
-                      metricLabel={"Coverage"}
-                      lens="coverage"
-                    />
-                  )}
+                  {countyLens === "coverage" &&
+                    countyCoverage &&
+                    !coverageLoading &&
+                    !coverageError && (
+                      <CountyHeatmapMap
+                        byCounty={{}}
+                        coverageByCounty={coverageByCounty}
+                        selectedFips={selectedCountyFips}
+                        onSelectCounty={(fips) => setSelectedCountyFips(fips)}
+                        metricLabel={"Coverage"}
+                        lens="coverage"
+                      />
+                    )}
                 </>
               ) : (
                 <>
@@ -850,20 +903,29 @@ export function UserHeatmap() {
                   {selectedCountyFips ? (
                     <>
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">Selected county</p>
+                        <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">
+                          Selected county
+                        </p>
                         <p className="text-sm font-semibold text-white">
-                          {FIPS_LOOKUP.get(selectedCountyFips)?.countyName || "Unknown"}, {FIPS_LOOKUP.get(selectedCountyFips)?.stateCode || ""}
+                          {FIPS_LOOKUP.get(selectedCountyFips)?.countyName || "Unknown"},{" "}
+                          {FIPS_LOOKUP.get(selectedCountyFips)?.stateCode || ""}
                         </p>
                         <p className="text-xs text-slate-400 mt-0.5">FIPS: {selectedCountyFips}</p>
                         {countyHeatmap && (
                           <p className="text-xs text-slate-300 mt-1">
-                            {countyMetricLabel}: {(countyHeatmap.byCounty[selectedCountyFips] || 0).toLocaleString()}
+                            {countyMetricLabel}:{" "}
+                            {(countyHeatmap.byCounty[selectedCountyFips] || 0).toLocaleString()}
                           </p>
                         )}
                         {coverageByCounty[selectedCountyFips] && (
                           <p className="text-xs text-slate-300 mt-1">
-                            Coverage: {coverageByCounty[selectedCountyFips].coverageStatus.charAt(0).toUpperCase() + coverageByCounty[selectedCountyFips].coverageStatus.slice(1)}
-                            {" "}• TM: {coverageByCounty[selectedCountyFips].territoryManagerCount} • Affiliate/partner: {coverageByCounty[selectedCountyFips].affiliateCount}
+                            Coverage:{" "}
+                            {coverageByCounty[selectedCountyFips].coverageStatus
+                              .charAt(0)
+                              .toUpperCase() +
+                              coverageByCounty[selectedCountyFips].coverageStatus.slice(1)}{" "}
+                            • TM: {coverageByCounty[selectedCountyFips].territoryManagerCount} •
+                            Affiliate/partner: {coverageByCounty[selectedCountyFips].affiliateCount}
                           </p>
                         )}
                         {coverageByCounty[selectedCountyFips] && (
@@ -898,16 +960,27 @@ export function UserHeatmap() {
                           </div>
                         )}
                       </div>
-                      <Tabs value={countyPanelTab} onValueChange={(v) => setCountyPanelTab(v as "notes" | "entities")} className="mt-4">
+                      <Tabs
+                        value={countyPanelTab}
+                        onValueChange={(v) => setCountyPanelTab(v as "notes" | "entities")}
+                        className="mt-4"
+                      >
                         <TabsList className="grid grid-cols-2 mb-3 bg-slate-900/80 border border-slate-700">
-                          <TabsTrigger value="notes" className="text-xs">Notes</TabsTrigger>
-                          <TabsTrigger value="entities" className="text-xs">Entities</TabsTrigger>
+                          <TabsTrigger value="notes" className="text-xs">
+                            Notes
+                          </TabsTrigger>
+                          <TabsTrigger value="entities" className="text-xs">
+                            Entities
+                          </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="notes" className="mt-0 space-y-3">
                           <div className="space-y-2">
                             <label className="text-xs font-medium text-slate-300">Add note</label>
-                            <Select value={noteCategory} onValueChange={(v) => setNoteCategory(v as CountyNote["category"])}>
+                            <Select
+                              value={noteCategory}
+                              onValueChange={(v) => setNoteCategory(v as CountyNote["category"])}
+                            >
                               <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-xs text-slate-100 h-8">
                                 <SelectValue placeholder="Category" />
                               </SelectTrigger>
@@ -944,7 +1017,9 @@ export function UserHeatmap() {
                           </div>
 
                           <div className="mt-3">
-                            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Notes</p>
+                            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
+                              Notes
+                            </p>
                             {notesLoading ? (
                               <div className="text-xs text-slate-400">Loading notes...</div>
                             ) : countyNotes && countyNotes.length > 0 ? (
@@ -954,10 +1029,15 @@ export function UserHeatmap() {
                                     const isOwner = note.authorUserId === user?.id;
                                     const canDelete = isOwner || user?.role === "head_admin";
 
-                                    const categoryLabel = note.category.charAt(0).toUpperCase() + note.category.slice(1);
+                                    const categoryLabel =
+                                      note.category.charAt(0).toUpperCase() +
+                                      note.category.slice(1);
 
                                     return (
-                                      <div key={note.id} className="rounded-md border border-slate-700 bg-slate-900/80 p-2 text-xs text-slate-100">
+                                      <div
+                                        key={note.id}
+                                        className="rounded-md border border-slate-700 bg-slate-900/80 p-2 text-xs text-slate-100"
+                                      >
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-2">
                                             <span
@@ -966,10 +1046,11 @@ export function UserHeatmap() {
                                                 (note.category === "risk"
                                                   ? "bg-red-900/60 text-red-100"
                                                   : note.category === "operations"
-                                                  ? "bg-sky-900/60 text-sky-100"
-                                                  : note.category === "affiliate" || note.category === "partner"
-                                                  ? "bg-emerald-900/60 text-emerald-100"
-                                                  : "bg-slate-800 text-slate-100")
+                                                    ? "bg-sky-900/60 text-sky-100"
+                                                    : note.category === "affiliate" ||
+                                                        note.category === "partner"
+                                                      ? "bg-emerald-900/60 text-emerald-100"
+                                                      : "bg-slate-800 text-slate-100")
                                               }
                                             >
                                               {categoryLabel}
@@ -993,13 +1074,16 @@ export function UserHeatmap() {
                                                 <AlertDialogHeader>
                                                   <AlertDialogTitle>Delete note?</AlertDialogTitle>
                                                   <AlertDialogDescription>
-                                                    This will permanently remove this note for this county. This action cannot be undone.
+                                                    This will permanently remove this note for this
+                                                    county. This action cannot be undone.
                                                   </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                   <AlertDialogAction
-                                                    onClick={() => deleteNoteMutation.mutate(note.id)}
+                                                    onClick={() =>
+                                                      deleteNoteMutation.mutate(note.id)
+                                                    }
                                                   >
                                                     Delete
                                                   </AlertDialogAction>
@@ -1017,7 +1101,9 @@ export function UserHeatmap() {
                                 </div>
                               </ScrollArea>
                             ) : (
-                              <div className="text-xs text-slate-400">No notes yet for this county.</div>
+                              <div className="text-xs text-slate-400">
+                                No notes yet for this county.
+                              </div>
                             )}
                           </div>
                         </TabsContent>
@@ -1041,7 +1127,9 @@ export function UserHeatmap() {
                                   <SelectItem value="affiliate">Affiliate</SelectItem>
                                   <SelectItem value="employee">Employee</SelectItem>
                                   <SelectItem value="partner">Partner</SelectItem>
-                                  <SelectItem value="territory_manager">Territory manager</SelectItem>
+                                  <SelectItem value="territory_manager">
+                                    Territory manager
+                                  </SelectItem>
                                   <SelectItem value="vendor">Vendor</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -1049,7 +1137,9 @@ export function UserHeatmap() {
                           </div>
 
                           <div>
-                            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Entities</p>
+                            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
+                              Entities
+                            </p>
                             {entitiesLoading ? (
                               <div className="text-xs text-slate-400">Loading entities...</div>
                             ) : countyEntities && countyEntities.length > 0 ? (
@@ -1060,23 +1150,29 @@ export function UserHeatmap() {
                                       entity.status === "active"
                                         ? "bg-emerald-900/60 text-emerald-100"
                                         : entity.status === "pending"
-                                        ? "bg-amber-900/60 text-amber-100"
-                                        : "bg-slate-800 text-slate-100";
+                                          ? "bg-amber-900/60 text-amber-100"
+                                          : "bg-slate-800 text-slate-100";
 
                                     const typeLabel =
                                       entity.entityType === "territory_manager"
                                         ? "Territory manager"
-                                        : entity.entityType.charAt(0).toUpperCase() + entity.entityType.slice(1);
+                                        : entity.entityType.charAt(0).toUpperCase() +
+                                          entity.entityType.slice(1);
 
                                     return (
-                                      <div key={entity.id} className="rounded-md border border-slate-700 bg-slate-900/80 p-2 text-xs text-slate-100">
+                                      <div
+                                        key={entity.id}
+                                        className="rounded-md border border-slate-700 bg-slate-900/80 p-2 text-xs text-slate-100"
+                                      >
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex flex-col gap-0.5">
                                             <span className="font-medium text-[11px] text-slate-100">
                                               {entity.label || typeLabel}
                                             </span>
                                             {entity.entityId && (
-                                              <span className="text-[10px] text-slate-400">Ref: {entity.entityId}</span>
+                                              <span className="text-[10px] text-slate-400">
+                                                Ref: {entity.entityId}
+                                              </span>
                                             )}
                                           </div>
                                           <div className="flex items-center gap-1">
@@ -1086,7 +1182,8 @@ export function UserHeatmap() {
                                                 statusBadgeClass
                                               }
                                             >
-                                              {entity.status.charAt(0).toUpperCase() + entity.status.slice(1)}
+                                              {entity.status.charAt(0).toUpperCase() +
+                                                entity.status.slice(1)}
                                             </span>
                                             <Select
                                               defaultValue={entity.status}
@@ -1118,15 +1215,21 @@ export function UserHeatmap() {
                                               </AlertDialogTrigger>
                                               <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                  <AlertDialogTitle>Delete entity?</AlertDialogTitle>
+                                                  <AlertDialogTitle>
+                                                    Delete entity?
+                                                  </AlertDialogTitle>
                                                   <AlertDialogDescription>
-                                                    This will remove this entity from the county container. This does not change any user roles or permissions.
+                                                    This will remove this entity from the county
+                                                    container. This does not change any user roles
+                                                    or permissions.
                                                   </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                   <AlertDialogAction
-                                                    onClick={() => deleteEntityMutation.mutate(entity.id)}
+                                                    onClick={() =>
+                                                      deleteEntityMutation.mutate(entity.id)
+                                                    }
                                                   >
                                                     Delete
                                                   </AlertDialogAction>
@@ -1141,7 +1244,9 @@ export function UserHeatmap() {
                                 </div>
                               </ScrollArea>
                             ) : (
-                              <div className="text-xs text-slate-400">No entities stored for this county.</div>
+                              <div className="text-xs text-slate-400">
+                                No entities stored for this county.
+                              </div>
                             )}
                           </div>
                         </TabsContent>
@@ -1157,7 +1262,10 @@ export function UserHeatmap() {
                 <>
                   <div className="space-y-4">
                     {topLocations.map((location: HeatmapDataPoint, index: number) => (
-                      <div key={`${location.state}-${location.county}`} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                      <div
+                        key={`${location.state}-${location.county}`}
+                        className="flex items-center justify-between p-3 bg-slate-700 rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                             {index + 1}
@@ -1167,7 +1275,8 @@ export function UserHeatmap() {
                               {location.county}, {location.state}
                             </h4>
                             <p className="text-sm text-gray-400">
-                              {location.users} users • {location.contractors} contractors • {location.homeowners} homeowners
+                              {location.users} users • {location.contractors} contractors •{" "}
+                              {location.homeowners} homeowners
                             </p>
                           </div>
                         </div>

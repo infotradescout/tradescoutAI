@@ -6,9 +6,11 @@ import {
   businessCounties,
   affiliateAccounts,
   countyMetrics,
+  observations,
   type InsertCountyMetric,
 } from "../../shared/schema";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { MetricKey } from "./metricRegistry";
 
 export type CountyMetricsRefreshResult = {
   activeCountyCount: number;
@@ -23,7 +25,7 @@ export async function refreshCountyMetrics(): Promise<CountyMetricsRefreshResult
     .select({
       countyFips: users.countyFips,
       usersTotal: sql<number>`COUNT(*)`,
-      contractorsTotal: sql<number>`SUM(CASE WHEN ${users.role} IN ('contractor','handyman','service_provider','specialty_tradesperson','inspector','realtor','mortgage_broker','insurance_agent','car_dealer','auto_service') THEN 1 ELSE 0 END)` ,
+      contractorsTotal: sql<number>`SUM(CASE WHEN ${users.role} IN ('contractor','handyman','service_provider','specialty_tradesperson','inspector','realtor','mortgage_broker','insurance_agent','car_dealer','auto_service') THEN 1 ELSE 0 END)`,
       homeownersTotal: sql<number>`SUM(CASE WHEN ${users.role} IN ('homeowner','renter','landlord','hoa_member','property_manager') THEN 1 ELSE 0 END)`,
       verifiedTotal: sql<number>`SUM(CASE WHEN ${users.emailVerified} = true OR ${users.verificationStatus} = 'approved' THEN 1 ELSE 0 END)`,
     })
@@ -59,7 +61,7 @@ export async function refreshCountyMetrics(): Promise<CountyMetricsRefreshResult
         metricKey: "users_total",
         metricValue: String(usersTotal),
         updatedAt: new Date(),
-      },
+      }
     );
 
     if (verifiedTotal > 0) {
@@ -143,6 +145,32 @@ export async function refreshCountyMetrics(): Promise<CountyMetricsRefreshResult
     });
   }
 
+  // Canonical observations per county (last 30 days)
+  const observationRows = await db
+    .select({
+      countyFips: observations.countyFips,
+      observations30d: sql<number>`COUNT(*)::int`,
+    })
+    .from(observations)
+    .where(sql`${observations.occurredAt} >= now() - interval '30 days'`)
+    .groupBy(observations.countyFips);
+
+  for (const row of observationRows) {
+    const countyFips = row.countyFips as string | null;
+    if (!countyFips) continue;
+    const count = Number(row.observations30d || 0);
+    if (!Number.isFinite(count) || count <= 0) continue;
+
+    // Observation-active counties should be considered active even before user density catches up.
+    activeCountyFips.add(countyFips);
+    metrics.push({
+      countyFips,
+      metricKey: MetricKey.OBSERVATIONS_30D,
+      metricValue: String(count),
+      updatedAt: new Date(),
+    });
+  }
+
   if (metrics.length === 0) {
     console.log("[geo-metrics] No metrics to upsert.");
     return {
@@ -151,7 +179,9 @@ export async function refreshCountyMetrics(): Promise<CountyMetricsRefreshResult
     };
   }
 
-  console.log(`[geo-metrics] Upserting ${metrics.length} county_metrics rows across ${activeCountyFips.size} active counties...`);
+  console.log(
+    `[geo-metrics] Upserting ${metrics.length} county_metrics rows across ${activeCountyFips.size} active counties...`
+  );
 
   const batchSize = 500;
   for (let i = 0; i < metrics.length; i += batchSize) {
@@ -170,7 +200,7 @@ export async function refreshCountyMetrics(): Promise<CountyMetricsRefreshResult
 
   const durationMs = Date.now() - startedAt;
   console.log(
-    `[geo-metrics] county_metrics refresh complete in ${durationMs}ms; activeCounties=${activeCountyFips.size}, metricsWritten=${metrics.length}`,
+    `[geo-metrics] county_metrics refresh complete in ${durationMs}ms; activeCounties=${activeCountyFips.size}, metricsWritten=${metrics.length}`
   );
 
   return {

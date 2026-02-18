@@ -52,3 +52,7 @@ This document lists target source adapters and canonical mappings for:
 
 - `homeScoutListingsObservationAdapter` (`source_type=listing`)
 - Uses real `home_scout_listings` records and maps them into canonical observations.
+- `permitsObservationAdapter` (`source_type=permit`)
+- Ingests real permit JSON input file into canonical observations.
+- `inspectionsObservationAdapter` (`source_type=inspection`)
+- Ingests real inspection JSON input file into canonical observations.
