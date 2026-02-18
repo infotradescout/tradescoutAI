@@ -12,6 +12,7 @@ import { profilesRouter } from "./routes/profiles";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
+import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerHardrockRoutes } from "./routes/hardrock";
@@ -17536,6 +17537,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Register notification routes
   registerNotificationRoutes(app);
   registerDirectConnectRoutes(app);
+  registerObjectivesRoutes(app);
 
   // Register analytics routes
   registerAnalyticsRoutes(app);

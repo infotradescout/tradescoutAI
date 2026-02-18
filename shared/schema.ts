@@ -2792,6 +2792,132 @@ export const verificationRequests = pgTable("verification_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ============================================================================
+// Objectives Layer (Universal Intent Persistence)
+// ============================================================================
+
+// Intent classification enum - maps Scout intent + user context to objective type
+export const objectiveIntentClassEnum = pgEnum("objective_intent_class", [
+  "unknown", // Unclassified or low-confidence intent
+  "knowledge", // Research/learning (no object creation)
+  "local_advice", // Asking for recommendations or local context
+  "work_request", // Hiring/project intent -> promotes to workRequests
+  "marketplace_buy", // Shopping intent -> routing to search/browse
+  "marketplace_sell", // Selling intent -> promotes to marketplace listing
+  "community_post", // Social/community intent -> draft community post
+  "event", // Planning/scheduling intent -> draft event (Phase 2)
+  "safety_report", // Safety/issue reporting -> routing/draft report
+  "account", // Account or profile management
+  "admin", // Administrative action
+  "other", // Fallback for unspecified intent
+]);
+
+// Objective status enum - tracks user's relationship to this objective
+export const objectiveStatusEnum = pgEnum("objective_status", [
+  "active", // User is currently working on this objective
+  "paused", // User has moved on (new topic or browser session)
+  "completed", // User finished (successfully hired, bought, found answer, etc.)
+  "abandoned", // User gave up or deleted it
+]);
+
+// Objectives table - universal intent persistence layer
+// One active per user; new topics auto-pause the previous objective
+export const objectives = pgTable(
+  "objectives",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    // User ownership
+    userId: varchar("user_id").notNull(),
+
+    // Intent classification (from Scout classifier + mapping)
+    intentClass: objectiveIntentClassEnum("intent_class").default("unknown"),
+
+    // User-friendly title and summary
+    title: varchar("title").notNull(),
+    summary: text("summary"),
+
+    // Confidence (0-1) that classification is correct; used for auto-promotion
+    confidence: numeric("confidence", { precision: 3, scale: 2 }).default("0.5"),
+
+    // Extracted context: location, entities, preferences, constraints
+    contextJson: jsonb("context_json").$type<Record<string, any>>(),
+
+    // Source surface (always "scout" for Phase 1)
+    source: varchar("source", {
+      enum: ["scout"],
+    }).default("scout"),
+
+    // Link to concrete object (workRequest, listing, post, etc.)
+    // If intent gets promoted into a specific object, track it here
+    linkedObjectType: varchar("linked_object_type", {
+      enum: ["workRequest", "marketplaceListing", "communityPost", "event", "safetyReport", "none"],
+    }).default("none"),
+    linkedObjectId: varchar("linked_object_id"),
+
+    // Lifecycle status (user perspective)
+    status: objectiveStatusEnum("status").default("active"),
+
+    // Scout interaction reference (optional: link back to scout message thread)
+    lastScoutMessageId: varchar("last_scout_message_id"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_objectives_user_id").on(table.userId),
+    index("idx_objectives_user_status").on(table.userId, table.status),
+    index("idx_objectives_intent_class").on(table.intentClass),
+    index("idx_objectives_created_at").on(table.createdAt),
+    index("idx_objectives_linked_object").on(table.linkedObjectType, table.linkedObjectId),
+  ]
+);
+
+// Objective events table (append-only audit log)
+// Tracks all transitions and state changes for this objective
+export const objectiveEvents = pgTable(
+  "objective_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    objectiveId: varchar("objective_id").notNull(),
+
+    // Event type: what happened to this objective
+    eventType: varchar("event_type", {
+      enum: [
+        "created", // New objective created by Scout
+        "title_updated", // User renamed it
+        "summary_updated", // User edited summary
+        "intent_reclassified", // Scout reclassified intent
+        "promoted", // Promoted to concrete object (work_request, etc.)
+        "status_changed", // Status transition (active -> paused, etc.)
+        "deleted", // Objective abandoned/deleted
+        "topic_shift", // Detected user moved to new topic (auto-pause)
+      ],
+    }).notNull(),
+
+    // Optional actor (who/what triggered this event)
+    actorUserId: varchar("actor_user_id"),
+    actorType: varchar("actor_type", {
+      enum: ["user", "system"],
+    }),
+
+    // Flexible metadata blob (previous state, reason, classifier scores, etc.)
+    metadata: jsonb("metadata").$type<Record<string, any>>(),
+
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_objective_events_objective_id").on(table.objectiveId),
+    index("idx_objective_events_event_type").on(table.eventType),
+    index("idx_objective_events_created_at").on(table.createdAt),
+  ]
+);
+
 // Work Requests spine (single canonical object for homeowner/provider work)
 export const workRequests = pgTable("work_requests", {
   id: varchar("id")
