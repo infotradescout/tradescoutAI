@@ -1,0 +1,228 @@
+Overview
+- The canonical database schema is defined in `shared/schema.ts` (Drizzle `pgTable` definitions). The project uses PostgreSQL and migrations live under `./migrations/`.
+
+Full list of exported tables (as found in `shared/schema.ts`)
+- sessions
+- users
+- businesses
+- listingImportStaging
+- trustedDevices
+- affiliateAccounts
+- affiliatePayouts
+- affiliateShareLinks
+- affiliateTrafficEvents
+- affiliateReferrals
+- realtorProfiles
+- profiles
+- carSalesmanProfiles
+- states
+- counties
+- countyNotes
+- countyMetrics
+- countyEntities
+- businessCounties
+- trades
+- tradeRequirements
+- snapshots
+- contractors
+- providerDeclarations
+- providerLocalStats
+- businessVerifications
+- contractorTrades
+- contractorCounties
+- recommendations
+- contractorLeaderboardStats
+- leads
+- leadAssignments
+- verificationDocuments
+- growthPackDownloads
+- acceleratorMemberships
+- pricingData
+- events
+- territories
+- socialPosts
+- socialPostSaves
+- postReactions
+- postComments
+- commentReactions
+- postShares
+- userFollows
+- contactPermissions
+- decisionCards
+- trustSnapshots
+- contactPermissionEvents
+- contentReports
+- moderationVotes
+- moderationScores
+- userReputation
+- neighborhoods
+- contractorApplications
+- recommendationInsights
+- recommendationGoals
+- recommendationCampaigns
+- siteSettings
+- prizeConfigurations
+- advertisements
+- contractorSettings
+- savedAds
+- adFeedback
+- adEvents
+- workers
+- taskCategories
+- tasks
+- taskApplications
+- workerReviews
+- verificationRequests
+- workRequests
+- workRequestEvents
+- workRequestAssignments
+- professionalPartnerships
+- partnershipReferrals
+- errorReports
+- botUiFindings
+- scoutInteractions
+- missionControlActions
+- missionControlDecisions
+- userCompletedActions
+- contractorPromos
+- promoInteractions
+- companyPromotions
+- companyPromotionInteractions
+- workerServiceAreas
+- conversations
+- messages
+- marketplaceConversations
+- marketplaceMessages
+- quotes
+- schedules
+- materialLists
+- marketplaceCategories
+- marketplaceListings
+- homeScoutListings
+- homeScoutSources
+- homeScoutIngestRuns
+- homeScoutListingEvents
+- homeScoutMarketBuckets
+- homeScoutListingReports
+- homeScoutInspectionRequests
+- homeScoutInspectionReports
+- homeScoutInspectionServiceRequests
+- commercialProjects
+- commercialProjectDocuments
+- commercialProjectBids
+- marketplaceInquiries
+- marketplaceFavorites
+- marketplaceReports
+- vendorVerifications
+- buyerVerifications
+- addressVerifications
+- userDataRequests
+- dataAccessLogs
+- securityIncidents
+- userPrivacySettings
+- communityPosts
+- postLikes
+- communityPostSaves
+- commentLikes
+- invitations
+- referralStats
+- communityGroups
+- groupMembers
+- groupCountyLinks
+- regions
+- homeownerAssociations
+- hoaFinancialRecords
+- hoaVendors
+- hoaVotes
+- hoaVoteResponses
+- hoaServiceRequests
+- hoaDocuments
+- hoaMembers
+- handmadeCategories
+- handmadeProducts
+- productFavorites
+- productOrders
+- productReviews
+- sellerProfiles
+- countyVaults
+- vaultLedgerEntries
+- communityVaults
+- communityVaultLedgerEntries
+- communityCauses
+- communityCauseVotes
+- platformSupportLedgerEntries
+- tradeDeals
+- tradeDealClicks
+- tradeDealEarnings
+- userPointsLedger
+- walletAccounts
+- walletTransactions
+- crmContacts
+- crmDeals
+- crmActivities
+- crmEmailTemplates
+- crmPipelines
+- moderationReports
+- userModerationReputation
+- moderationActions
+- moderationAppeals
+- moderationSettings
+- marketplaceTransactions
+- listingBoosts
+- transactionDisputes
+- userReviews
+- realTimeNotifications
+- savedSearches
+- searchAnalytics
+- paymentConfigurations
+- contractorPayments
+- platformAnalytics
+- foundationCauses
+- foundationDonations
+- donationMatching
+- userDonationPreferences
+- foundationImpactReports
+- notifications
+- notificationPreferences
+- pushSubscriptions
+- userPersonalEvents
+- notificationDeliveryLog
+- notificationTemplates
+- notificationJobs
+- featureFlags
+- dailyDeals
+- promotions
+- userAffiliates
+- affiliateTracking
+- dealEngagements
+- storyTemplates
+- generatedStories
+- storyInteractions
+- communityBuilderProfiles
+
+Key table details (explicitly read from `shared/schema.ts`)
+- `sessions` (`shared/schema.ts` lines ~1–20)
+  - Primary key: `sid` (varchar)
+  - Fields: `sess` (jsonb), `expire` (timestamp)
+
+- `users` (`shared/schema.ts` lines ~362–430)
+  - Primary key: `id` (varchar, default gen_random_uuid())
+  - Important fields: `email` (unique), `password` (password_hash), `firstName`, `lastName`, `profileImageUrl`, `phone`, `address`, `role`, `roles` (array), `emailVerified`, `addressVerified`, `preferences` (jsonb), `profileVersion`, `businessSlug`, `activeProfileId`.
+
+- `profiles` (`shared/schema.ts` lines ~772–816)
+  - Primary key: `id` (varchar)
+  - Important fields: `ownerUserId` (references `users.id`), `businessId`, `roleContext`, `slug` (unique), `displayName`, `headline`, `contentBlocks` (jsonb), `seoMeta` (jsonb), `status` (profile_status enum).
+
+- `marketplace_listings` (`shared/schema.ts` lines ~3786–3816)
+  - Primary key: `id` (varchar)
+  - Important fields: `sellerId` (references `users.id`), `categoryId`, `title`, `description`, `price`, `priceType`, `location` fields (`county`, `state`, `city`, `zipCode`), `locationVisibility`.
+
+Where migrations/schema are defined
+- Schema: `shared/schema.ts` (Drizzle `pgTable` objects).
+- Migrations: SQL files present under `./migrations/` (many numbered `.sql` files).
+
+How the app reads/writes the DB
+- The code uses Drizzle ORM (`drizzle-orm`) with Postgres (`drizzle-orm/pg-core`) — the schema file (`shared/schema.ts`) defines tables and types. Migration tooling uses `drizzle-kit` (see `npm run db:push`). Database access in server code uses the exported `db`/`pool` helpers in `server/db.ts` (see `server/db.ts`).
+
+If you need the definitive field list for any table
+- See `shared/schema.ts` (search for `export const <tableName> = pgTable("<table_name>"`). Each table block includes field names, types, and indexes.
