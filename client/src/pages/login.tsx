@@ -3,6 +3,7 @@ import { EmailPasswordAuth } from "@/components/EmailPasswordAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default function Login() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -37,6 +38,12 @@ export default function Login() {
 
   return (
     <div className="min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] text-tsTextMain flex items-center justify-center px-4 py-8">
+      <SEOHelmet
+        title="TradeScout Login"
+        description="Sign in to continue using TradeScout."
+        canonical="https://www.thetradescout.com/login"
+        noIndex
+      />
       <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
         <CardHeader className="text-center space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-tsAccent to-orange-700 flex items-center justify-center shadow-lg shadow-orange-500/30">

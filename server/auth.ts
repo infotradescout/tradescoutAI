@@ -36,6 +36,8 @@ export function getSession() {
   }
 
   const isProductionEnv = process.env.NODE_ENV === "production";
+  const sameSiteCookie =
+    isProductionEnv && process.env.SESSION_COOKIE_SAMESITE === "none" ? "none" : "lax";
 
   return session({
     name: "tradescout.sid",
@@ -49,8 +51,9 @@ export function getSession() {
       // In production we require secure, cross-site compatible cookies.
       // In local development over http, browsers will silently drop
       // `secure` cookies, which breaks login loops. Relax this there.
-      secure: isProductionEnv,
-      sameSite: isProductionEnv ? "none" : "lax",
+      // `auto` lets Express infer secure transport from `req.secure` + trust proxy.
+      secure: isProductionEnv ? ("auto" as const) : false,
+      sameSite: sameSiteCookie,
       maxAge: sessionTtlMs,
     },
   });

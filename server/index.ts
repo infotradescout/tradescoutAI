@@ -17,6 +17,7 @@ import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import { ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
+import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import path from "path";
 import fs from "fs";
@@ -31,6 +32,34 @@ import { randomUUID } from "crypto";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicProfileTemplateCache = new Map<string, string>();
+const CANONICAL_WEB_HOST = "www.thetradescout.com";
+
+function getForwardedProto(req: Request): string {
+  return String(req.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+}
+
+function resolvePublicOrigin(req: Request): string {
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .split(",")[0]
+    .trim();
+  const hostOnly = host.split(":")[0].toLowerCase();
+  const proto = getForwardedProto(req) || req.protocol || "https";
+  const isLocal = hostOnly === "localhost" || hostOnly === "127.0.0.1";
+
+  if (!host) return `https://${CANONICAL_WEB_HOST}`;
+  if (
+    hostOnly === "thetradescout.com" ||
+    hostOnly === CANONICAL_WEB_HOST ||
+    hostOnly.includes("tradescoutai.onrender.com")
+  ) {
+    return `https://${CANONICAL_WEB_HOST}`;
+  }
+  if (isLocal) return `${proto || "http"}://${host}`;
+  return `${proto || "https"}://${host}`;
+}
 
 function getCachedTemplate(indexPath: string) {
   const cached = publicProfileTemplateCache.get(indexPath);
@@ -86,7 +115,7 @@ for (const key of requiredEnv) {
       process.exit(1);
     } else {
       console.warn(
-        `[DEV] Missing env ${key} – server will start but related features may fail. Do NOT rely on this in production.`
+        `[DEV] Missing env ${key}. Startup invariants may prevent boot until this is set.`
       );
     }
   }
@@ -152,13 +181,16 @@ if (process.env.SENTRY_DSN) {
 
 // Force canonical host: redirect non-canonical hosts to primary domain
 app.use((req, res, next) => {
-  const host = req.headers.host?.toLowerCase() || "";
+  const rawHost = (req.headers.host || "").toLowerCase();
+  const host = rawHost.split(":")[0];
+  const forwardedProto = getForwardedProto(req);
 
   // If someone hits the Render URL directly or apex domain, send to canonical www host.
-  if (host.includes("tradescoutai.onrender.com") || host === "thetradescout.com") {
-    const targetHost = "www.thetradescout.com";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const redirectUrl = `${protocol}://${targetHost}${req.originalUrl || ""}`;
+  const hostNeedsCanonical =
+    host.includes("tradescoutai.onrender.com") || host === "thetradescout.com";
+  const protocolNeedsUpgrade = host === CANONICAL_WEB_HOST && forwardedProto === "http";
+  if (hostNeedsCanonical || protocolNeedsUpgrade) {
+    const redirectUrl = `https://${CANONICAL_WEB_HOST}${req.originalUrl || ""}`;
     return res.redirect(301, redirectUrl);
   }
 
@@ -204,9 +236,8 @@ app.use(async (req, res, next) => {
         return next();
       }
 
-      const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-      const targetHost = "www.thetradescout.com";
-      const url = new URL(`${protocol}://${targetHost}${req.originalUrl || "/"}`);
+      const targetHost = CANONICAL_WEB_HOST;
+      const url = new URL(`https://${targetHost}${req.originalUrl || "/"}`);
       if (!url.searchParams.has("ref")) url.searchParams.set("ref", cached.ref);
       return res.redirect(301, url.toString());
     }
@@ -249,9 +280,8 @@ app.use(async (req, res, next) => {
 
     CUSTOM_DOMAIN_CACHE.set(host, { kind: "affiliate", ref, at: now });
 
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const targetHost = "www.thetradescout.com";
-    const url = new URL(`${protocol}://${targetHost}${req.originalUrl || "/"}`);
+    const targetHost = CANONICAL_WEB_HOST;
+    const url = new URL(`https://${targetHost}${req.originalUrl || "/"}`);
     if (!url.searchParams.has("ref")) url.searchParams.set("ref", ref);
     return res.redirect(301, url.toString());
   } catch {
@@ -389,6 +419,8 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    await assertStartupInvariants();
+
     try {
       await ensureProfilesTable();
     } catch (err) {
@@ -694,9 +726,7 @@ app.use((req, res, next) => {
                     return res.status(404).send("Application files not found");
                   }
 
-                  const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-                  const host = req.headers.host || "www.thetradescout.com";
-                  const origin = `${protocol}://${host}`;
+                  const origin = resolvePublicOrigin(req);
 
                   const slug = String(req.params.slug || "");
 
@@ -731,9 +761,7 @@ app.use((req, res, next) => {
                     return res.status(404).send("Application files not found");
                   }
 
-                  const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-                  const host = req.headers.host || "www.thetradescout.com";
-                  const origin = `${protocol}://${host}`;
+                  const origin = resolvePublicOrigin(req);
                   const shareToken = String(req.params.shareToken || "");
 
                   const html = await buildWorkRequestShareHtml({

@@ -73,6 +73,7 @@ import {
   contractorTrades,
   trades,
   workers,
+  workerReviews,
   tasks,
   taskApplications,
   workRequests,
@@ -887,10 +888,19 @@ export async function registerRoutes(app: any) {
         if (loginErr) {
           return next(loginErr);
         }
-        // Do not automatically resend verification on every login.
-        // Verification emails are sent during account creation / OAuth callback,
-        // and can be re-requested via /api/auth/request-email-verification.
-        return res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
+        const completeLogin = () =>
+          res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
+
+        // Ensure session persistence before responding to avoid
+        // immediate logged-out state on the next auth check request.
+        if (req.session) {
+          return req.session.save((saveErr: any) => {
+            if (saveErr) return next(saveErr);
+            return completeLogin();
+          });
+        }
+
+        return completeLogin();
       });
     })(req, res, next);
   };
@@ -2717,16 +2727,27 @@ export async function registerRoutes(app: any) {
         const redirectBase = needsProfileNormalization
           ? "/onboarding/profile"
           : oauthNext || "/pre-scout-setup";
+        const redirectWithSession = (target: string) => {
+          if (req.session) {
+            return req.session.save((saveErr: any) => {
+              if (saveErr) {
+                console.error("Failed to persist session before Facebook OAuth redirect:", saveErr);
+              }
+              return res.redirect(target);
+            });
+          }
+          return res.redirect(target);
+        };
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
             if (required && user && user.emailVerified !== true && email) {
-              return res.redirect(
+              return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
               );
             }
-            return res.redirect(redirectBase);
+            return redirectWithSession(redirectBase);
           })
-          .catch(() => res.redirect(redirectBase));
+          .catch(() => redirectWithSession(redirectBase));
       }
     );
   }
@@ -2817,16 +2838,27 @@ export async function registerRoutes(app: any) {
         const redirectBase = needsProfileNormalization
           ? "/onboarding/profile"
           : oauthNext || "/pre-scout-setup";
+        const redirectWithSession = (target: string) => {
+          if (req.session) {
+            return req.session.save((saveErr: any) => {
+              if (saveErr) {
+                console.error("Failed to persist session before Google OAuth redirect:", saveErr);
+              }
+              return res.redirect(target);
+            });
+          }
+          return res.redirect(target);
+        };
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
             if (required && user && user.emailVerified !== true && email) {
-              return res.redirect(
+              return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
               );
             }
-            return res.redirect(redirectBase);
+            return redirectWithSession(redirectBase);
           })
-          .catch(() => res.redirect(redirectBase));
+          .catch(() => redirectWithSession(redirectBase));
       }
     );
   }
@@ -8589,12 +8621,117 @@ export async function registerRoutes(app: any) {
   });
 
   // Worker registration endpoint
-  app.post("/api/workers/register", async (req: any, res: any) => {
+  app.post("/api/workers/register", isAuthenticated, async (req: any, res: any) => {
     try {
-      res.status(503).json({ message: "Worker registration unavailable (database required)" });
+      const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const body = req.body || {};
+      const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+      const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
+      const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+
+      if (!firstName || !lastName || !phone || !email) {
+        return res
+          .status(400)
+          .json({ message: "firstName, lastName, phone, and email are required" });
+      }
+
+      const skills = Array.isArray(body.skills)
+        ? body.skills
+            .filter((skill: unknown) => typeof skill === "string" && skill.trim().length > 0)
+            .map((skill: string) => skill.trim())
+        : undefined;
+
+      const hourlyRateRaw = body.hourlyRate;
+      const hourlyRateNumber =
+        hourlyRateRaw !== undefined && hourlyRateRaw !== null && hourlyRateRaw !== ""
+          ? Number(hourlyRateRaw)
+          : undefined;
+      if (
+        hourlyRateNumber !== undefined &&
+        (!Number.isFinite(hourlyRateNumber) || hourlyRateNumber < 0)
+      ) {
+        return res.status(400).json({ message: "hourlyRate must be a valid non-negative number" });
+      }
+
+      const maxTravelDistanceRaw = body.maxTravelDistance;
+      const maxTravelDistanceNumber =
+        maxTravelDistanceRaw !== undefined &&
+        maxTravelDistanceRaw !== null &&
+        maxTravelDistanceRaw !== ""
+          ? Number(maxTravelDistanceRaw)
+          : undefined;
+      if (
+        maxTravelDistanceNumber !== undefined &&
+        (!Number.isFinite(maxTravelDistanceNumber) || maxTravelDistanceNumber < 0)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "maxTravelDistance must be a valid non-negative number" });
+      }
+
+      const availableHours =
+        body.availableHours &&
+        typeof body.availableHours === "object" &&
+        !Array.isArray(body.availableHours)
+          ? body.availableHours
+          : undefined;
+
+      const upsertPayload: any = {
+        firstName,
+        lastName,
+        phone,
+        email,
+        profileImageUrl:
+          typeof body.profileImageUrl === "string" && body.profileImageUrl.trim().length > 0
+            ? body.profileImageUrl.trim()
+            : undefined,
+        bio: typeof body.bio === "string" ? body.bio.trim() : undefined,
+        skills,
+        hourlyRate:
+          hourlyRateNumber !== undefined ? Number(hourlyRateNumber).toFixed(2) : undefined,
+        availableHours,
+        transportationMethod:
+          typeof body.transportationMethod === "string"
+            ? body.transportationMethod.trim()
+            : undefined,
+        maxTravelDistance:
+          maxTravelDistanceNumber !== undefined ? Math.round(maxTravelDistanceNumber) : undefined,
+        isAvailable: typeof body.isAvailable === "boolean" ? body.isAvailable : undefined,
+        updatedAt: new Date(),
+      };
+
+      const [existingWorker] = await db
+        .select()
+        .from(workers)
+        .where(eq(workers.userId, userId))
+        .limit(1);
+
+      if (existingWorker) {
+        const [updatedWorker] = await db
+          .update(workers)
+          .set(upsertPayload)
+          .where(eq(workers.id, existingWorker.id))
+          .returning();
+        return res.json(updatedWorker ?? existingWorker);
+      }
+
+      const [createdWorker] = await db
+        .insert(workers)
+        .values({
+          userId,
+          ...upsertPayload,
+        })
+        .returning();
+
+      return res.status(201).json(createdWorker);
     } catch (error: any) {
       console.error("Error registering worker:", error);
-      res.status(500).json({ message: "Failed to register worker" });
+      res.status(500).json({ message: error?.message || "Failed to register worker" });
     }
   });
 
@@ -8693,44 +8830,102 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  const hasHelperDashboardAccess = (user: any): boolean => {
+    const roleCandidates = [
+      user?.role,
+      user?.activeRole,
+      ...(Array.isArray(user?.roles) ? user.roles : []),
+    ]
+      .map((role) =>
+        String(role || "")
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean);
+
+    return roleCandidates.some((role) => role === "helper" || role === "handyman");
+  };
+
   // Worker verification endpoint
-  app.post("/api/workers/:workerId/verify", async (req: any, res: any) => {
-    try {
-      res.status(503).json({ message: "Worker verification unavailable (database required)" });
-    } catch (error: any) {
-      console.error("Error verifying worker:", error);
-      res.status(500).json({ message: "Failed to verify worker" });
+  app.post(
+    "/api/workers/:workerId/verify",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const workerId = String(req.params.workerId || "").trim();
+        if (!workerId) {
+          return res.status(400).json({ message: "workerId is required" });
+        }
+
+        const body = req.body || {};
+        const requestedStatus =
+          typeof body.verificationStatus === "string" ? body.verificationStatus.trim() : "approved";
+        const allowedStatuses = new Set(["pending", "in_review", "approved", "rejected"]);
+        if (!allowedStatuses.has(requestedStatus)) {
+          return res.status(400).json({
+            message: "verificationStatus must be one of: pending, in_review, approved, rejected",
+          });
+        }
+
+        const [updatedWorker] = await db
+          .update(workers)
+          .set({
+            verificationStatus: requestedStatus as
+              | "pending"
+              | "in_review"
+              | "approved"
+              | "rejected",
+            isIdVerified:
+              typeof body.isIdVerified === "boolean"
+                ? body.isIdVerified
+                : requestedStatus === "approved",
+            isBackgroundChecked:
+              typeof body.isBackgroundChecked === "boolean" ? body.isBackgroundChecked : undefined,
+            verificationDocuments:
+              body.verificationDocuments &&
+              typeof body.verificationDocuments === "object" &&
+              !Array.isArray(body.verificationDocuments)
+                ? body.verificationDocuments
+                : undefined,
+            verifiedAt: requestedStatus === "approved" ? new Date() : null,
+            updatedAt: new Date(),
+          })
+          .where(eq(workers.id, workerId))
+          .returning();
+
+        if (!updatedWorker) {
+          return res.status(404).json({ message: "Worker not found" });
+        }
+
+        return res.json(updatedWorker);
+      } catch (error: any) {
+        console.error("Error verifying worker:", error);
+        res.status(500).json({ message: error?.message || "Failed to verify worker" });
+      }
     }
-  });
+  );
 
   // Helper dashboard specific endpoints
   app.get("/api/workers/profile", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== "helper") {
+      if (!hasHelperDashboardAccess(req.user)) {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
 
-      // For now, return a default helper profile - will be implemented when database is ready
-      const helperProfile = {
-        id: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        userId: (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        firstName: req.user.firstName || "Helper",
-        lastName: req.user.lastName || "User",
-        phone: req.user.phone || null,
-        email: req.user.email,
-        bio: "Experienced helper ready to assist with various tasks.",
-        skills: ["General Labor", "Assembly", "Cleaning", "Moving"],
-        hourlyRate: "25.00",
-        isIdVerified: true,
-        isBackgroundChecked: false,
-        totalJobsCompleted: 5,
-        averageRating: "4.8",
-        totalEarnings: "1250.00",
-        isActive: true,
-        isAvailable: true,
-      };
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-      res.json(helperProfile);
+      const [workerProfile] = await db
+        .select()
+        .from(workers)
+        .where(eq(workers.userId, userId))
+        .limit(1);
+      if (!workerProfile) {
+        return res.status(404).json({ message: "worker profile not found" });
+      }
+
+      res.json(workerProfile);
     } catch (error: any) {
       console.error("Error fetching helper profile:", error);
       res.status(500).json({ message: "Failed to fetch helper profile" });
@@ -8739,7 +8934,7 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/tasks/available", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== "helper") {
+      if (!hasHelperDashboardAccess(req.user)) {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
 
@@ -8757,11 +8952,24 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/workers/applications", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== "helper") {
+      if (!hasHelperDashboardAccess(req.user)) {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
 
-      res.json([]);
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const applications = await db
+        .select({
+          application: taskApplications,
+          task: tasks,
+        })
+        .from(taskApplications)
+        .leftJoin(tasks, eq(taskApplications.taskId, tasks.id))
+        .where(eq(taskApplications.workerId, userId))
+        .orderBy(desc(taskApplications.createdAt));
+
+      res.json(applications);
     } catch (error: any) {
       console.error("Error fetching applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
@@ -8770,11 +8978,20 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/workers/completed-jobs", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== "helper") {
+      if (!hasHelperDashboardAccess(req.user)) {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
 
-      res.json([]);
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const completedJobs = await db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.assignedWorkerId, userId), eq(tasks.status, "completed")))
+        .orderBy(desc(tasks.completedAt), desc(tasks.updatedAt), desc(tasks.createdAt));
+
+      res.json(completedJobs);
     } catch (error: any) {
       console.error("Error fetching completed jobs:", error);
       res.status(500).json({ message: "Failed to fetch completed jobs" });
@@ -8783,38 +9000,35 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/workers/reviews", isAuthenticated, async (req: any, res: any) => {
     try {
-      if (req.user.role !== "helper") {
+      if (!hasHelperDashboardAccess(req.user)) {
         return res.status(403).json({ message: "Access denied. Helper role required." });
       }
 
-      // Return sample reviews
-      const reviews = [
-        {
-          id: "review-1",
-          rating: 5,
-          reviewText: "Excellent work! Very professional and completed the task perfectly.",
-          qualityRating: 5,
-          timelinessRating: 5,
-          communicationRating: 5,
-          professionalismRating: 5,
-          wouldHireAgain: true,
-          createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "review-2",
-          rating: 4,
-          reviewText: "Good work, arrived on time and got the job done efficiently.",
-          qualityRating: 4,
-          timelinessRating: 5,
-          communicationRating: 4,
-          professionalismRating: 4,
-          wouldHireAgain: true,
-          createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const [workerProfile] = await db
+        .select()
+        .from(workers)
+        .where(eq(workers.userId, userId))
+        .limit(1);
+      if (!workerProfile) {
+        return res.status(404).json({ message: "worker profile not found" });
+      }
+
+      const reviews = await db
+        .select()
+        .from(workerReviews)
+        .where(and(eq(workerReviews.workerId, workerProfile.id), eq(workerReviews.isPublic, true)))
+        .orderBy(desc(workerReviews.createdAt));
 
       res.json(reviews);
     } catch (error: any) {
+      if (error?.code === "42P01") {
+        return res.status(501).json({
+          message: "Worker reviews are not available until worker_reviews is migrated.",
+        });
+      }
       console.error("Error fetching reviews:", error);
       res.status(500).json({ message: "Failed to fetch reviews" });
     }
@@ -10719,7 +10933,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     async (req: any, res: any) => {
       try {
         const now = Date.now();
-        const samples = [
+        const testReports = [
           {
             id: `TEST-${now}-1`,
             userId: req.user?.claims?.sub || "test-user",
@@ -10748,8 +10962,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           },
         ];
 
-        for (const sample of samples) {
-          await storage.createErrorReport(sample);
+        for (const testReport of testReports) {
+          await storage.createErrorReport(testReport);
         }
 
         res.json({ message: "Test data generated successfully" });

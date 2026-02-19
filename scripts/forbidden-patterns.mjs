@@ -41,6 +41,25 @@ const FORBIDDEN = [
   "Mock partnerships",
 ];
 
+const REGEX_FORBIDDEN = [
+  {
+    label: "array declaration named mock*/demo*/sample*",
+    regex: /\b(?:const|let|var)\s+(?:mock\w*|demo\w*|sample\w*)\s*=\s*\[/gi,
+    appCodeOnly: true,
+  },
+  {
+    label: "literal reviews payload in routes",
+    regex: /\b(?:const|let|var)\s+\w*reviews?\w*\s*=\s*\[/gi,
+    routeOnly: true,
+  },
+  {
+    label: "literal profile payload in routes",
+    regex:
+      /\b(?:const|let|var)\s+\w*profile\w*\s*=\s*\{[\s\S]{0,600}\b(?:skills|hourlyRate|averageRating|totalJobsCompleted|reviewText)\b/gi,
+    routeOnly: true,
+  },
+];
+
 function walk(dir, out = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -63,6 +82,9 @@ function main() {
   for (const file of files) {
     const rel = path.relative(ROOT, file).replace(/\\/g, "/");
     if (rel === "scripts/forbidden-patterns.mjs") continue;
+    const isRouteFile = rel === "server/routes.ts" || rel.startsWith("server/routes/");
+    const isRuntimeCodeFile =
+      rel.startsWith("server/") || rel.startsWith("client/src/") || rel.startsWith("shared/");
 
     let content;
     try {
@@ -77,6 +99,19 @@ function main() {
         const upTo = content.slice(0, idx);
         const line = upTo.split("\n").length;
         hits.push({ file: rel, line, pattern });
+      }
+    }
+
+    for (const rule of REGEX_FORBIDDEN) {
+      if (rule.routeOnly && !isRouteFile) continue;
+      if (rule.appCodeOnly && !isRuntimeCodeFile) continue;
+
+      const regex = new RegExp(rule.regex.source, rule.regex.flags);
+      let match;
+      while ((match = regex.exec(content)) !== null) {
+        const upTo = content.slice(0, match.index);
+        const line = upTo.split("\n").length;
+        hits.push({ file: rel, line, pattern: rule.label });
       }
     }
   }

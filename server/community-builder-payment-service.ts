@@ -1,17 +1,20 @@
-import { storage } from './storage';
-import Stripe from 'stripe';
+import { storage } from "./storage";
+import Stripe from "stripe";
+import { db } from "./db";
+import { builderPayouts } from "@shared/schema";
+import { and, eq, isNull, lte, or } from "drizzle-orm";
 
 let stripe: Stripe | null = null;
 
 function getStripe(): Stripe {
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecret) {
-    throw new Error('STRIPE_SECRET_KEY is missing');
+    throw new Error("STRIPE_SECRET_KEY is missing");
   }
 
   if (!stripe) {
     stripe = new Stripe(stripeSecret, {
-      apiVersion: '2024-04-10' as any,
+      apiVersion: "2024-04-10" as any,
     });
   }
 
@@ -28,18 +31,18 @@ export class CommunityBuilderPaymentService {
     payoutToVault: boolean = true
   ): Promise<void> {
     const contribution = await storage.getContribution(contributionId);
-    if (!contribution) throw new Error('Contribution not found');
+    if (!contribution) throw new Error("Contribution not found");
 
     if (payoutToVault) {
       // Record entry to county vault
       const builder = await storage.getBuilderById(contribution.builderId);
-      if (!builder) throw new Error('Builder not found');
+      if (!builder) throw new Error("Builder not found");
 
       // Add to vault ledger
       const numValue = parseFloat(actualValue);
       await storage.recordVaultLedgerEntry({
         countyId: builder.countyId,
-        sourceType: 'other', // vault_source_type enum-safe
+        sourceType: "other", // vault_source_type enum-safe
         sourceId: contributionId,
         amount: numValue,
         memo: `Community Builder contribution: ${contribution.title}`,
@@ -47,7 +50,7 @@ export class CommunityBuilderPaymentService {
     }
 
     // Mark contribution as paid out
-    await storage.updateContributionStatus(contributionId, 'verified', {
+    await storage.updateContributionStatus(contributionId, "verified", {
       isPaidOut: true,
       paidOutAmount: actualValue,
       paidOutAt: new Date(),
@@ -69,22 +72,22 @@ export class CommunityBuilderPaymentService {
     }[];
   }> {
     const contributions = await storage.getBuilderContributions(builderId);
-    
+
     let totalEarnings = 0;
     let pendingPayout = 0;
     let totalPaidOut = 0;
     const contributionsList = [];
 
     for (const contrib of contributions) {
-      const value = parseFloat(contrib.actualValue || contrib.estimatedValue || '0');
-      
-      if (contrib.status === 'verified' && contrib.isPaidOut) {
+      const value = parseFloat(contrib.actualValue || contrib.estimatedValue || "0");
+
+      if (contrib.status === "verified" && contrib.isPaidOut) {
         totalPaidOut += value;
-      } else if (contrib.status === 'verified') {
+      } else if (contrib.status === "verified") {
         pendingPayout += value;
       }
-      
-      if (contrib.status === 'verified') {
+
+      if (contrib.status === "verified") {
         totalEarnings += value;
         contributionsList.push({
           id: contrib.id,
@@ -108,15 +111,15 @@ export class CommunityBuilderPaymentService {
   async createBuilderPayout(
     builderId: string,
     amount: string,
-    payoutType: string = 'contribution_earnings',
+    payoutType: string = "contribution_earnings",
     relatedContributionIds?: string[]
   ): Promise<any> {
     const builder = await storage.getBuilderById(builderId);
-    if (!builder) throw new Error('Builder not found');
+    if (!builder) throw new Error("Builder not found");
 
     // Validate payout
     if (!builder.payoutEmail && !builder.bankAccountId) {
-      throw new Error('Builder has no payout method configured');
+      throw new Error("Builder has no payout method configured");
     }
 
     // Create payout record
@@ -126,7 +129,7 @@ export class CommunityBuilderPaymentService {
       amount,
       payoutType,
       relatedContributionIds: relatedContributionIds ?? [],
-      status: 'pending',
+      status: "pending",
     } as any);
 
     // If Stripe Connect is configured, initiate payout
@@ -136,13 +139,13 @@ export class CommunityBuilderPaymentService {
         const transfer = await getStripe().transfers.create(
           {
             amount: Math.round(parseFloat(amount) * 100), // Convert to cents
-            currency: 'usd',
+            currency: "usd",
             destination: builder.bankAccountId,
             description: `Community Builder payout: ${payoutType}`,
             metadata: {
               payoutId: payout.id,
               builderId,
-              contributionIds: relatedContributionIds?.join(',') ?? '',
+              contributionIds: relatedContributionIds?.join(",") ?? "",
             },
           },
           {
@@ -151,14 +154,14 @@ export class CommunityBuilderPaymentService {
         );
 
         // Update payout with Stripe details
-        await storage.updateBuilderPayoutStatus(payout.id, 'processing', {
+        await storage.updateBuilderPayoutStatus(payout.id, "processing", {
           externalPaymentId: transfer.id,
           transactionId: transfer.id,
         } as any);
       } catch (error) {
-        console.error('Stripe payout failed:', error);
-        await storage.updateBuilderPayoutStatus(payout.id, 'failed', {
-          failureReason: `Stripe error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        console.error("Stripe payout failed:", error);
+        await storage.updateBuilderPayoutStatus(payout.id, "failed", {
+          failureReason: `Stripe error: ${error instanceof Error ? error.message : "Unknown error"}`,
         } as any);
         throw error;
       }
@@ -172,7 +175,7 @@ export class CommunityBuilderPaymentService {
    */
   async updatePayoutStatus(
     payoutId: string,
-    status: 'pending' | 'processing' | 'completed' | 'failed',
+    status: "pending" | "processing" | "completed" | "failed",
     details?: {
       transactionId?: string;
       failureReason?: string;
@@ -181,7 +184,7 @@ export class CommunityBuilderPaymentService {
     const updates: any = {};
     if (details?.transactionId) updates.transactionId = details.transactionId;
     if (details?.failureReason) updates.failureReason = details.failureReason;
-    if (status === 'completed') updates.processedAt = new Date();
+    if (status === "completed") updates.processedAt = new Date();
 
     return storage.updateBuilderPayoutStatus(payoutId, status, updates);
   }
@@ -203,9 +206,127 @@ export class CommunityBuilderPaymentService {
     };
 
     try {
-      // This would require storage methods to fetch pending payouts
-      // For now, returning placeholder
-      console.log('Processing scheduled payouts...');
+      const now = new Date();
+      const safetyDelayMinutes = Number(process.env.CB_PAYOUT_SAFETY_DELAY_MINUTES || 10);
+      const cutoff = new Date(now.getTime() - Math.max(safetyDelayMinutes, 0) * 60 * 1000);
+
+      const pendingPayouts = await db
+        .select()
+        .from(builderPayouts)
+        .where(
+          and(
+            eq(builderPayouts.status, "pending"),
+            lte(builderPayouts.createdAt, cutoff),
+            or(isNull(builderPayouts.scheduledFor), lte(builderPayouts.scheduledFor, now))
+          )
+        );
+
+      for (const payout of pendingPayouts) {
+        result.processed += 1;
+
+        try {
+          // Idempotency: do not submit a second external payment if already linked.
+          if (payout.externalPaymentId) {
+            await storage.updateBuilderPayoutStatus(payout.id, "processing");
+            result.succeeded += 1;
+            continue;
+          }
+
+          const builder = await storage.getBuilderById(payout.builderId);
+          if (!builder) {
+            await storage.updateBuilderPayoutStatus(payout.id, "failed", {
+              failureReason: "Builder not found for payout",
+            } as any);
+            result.failed += 1;
+            result.errors.push({ payoutId: payout.id, message: "Builder not found" });
+            continue;
+          }
+
+          if (!builder.bankAccountId) {
+            await storage.updateBuilderPayoutStatus(payout.id, "failed", {
+              failureReason: "Builder has no connected payout account",
+            } as any);
+            result.failed += 1;
+            result.errors.push({
+              payoutId: payout.id,
+              message: "Builder has no connected payout account",
+            });
+            continue;
+          }
+
+          if (!process.env.STRIPE_CONNECTED_ACCOUNT_ID) {
+            await storage.updateBuilderPayoutStatus(payout.id, "failed", {
+              failureReason: "STRIPE_CONNECTED_ACCOUNT_ID is not configured",
+            } as any);
+            result.failed += 1;
+            result.errors.push({
+              payoutId: payout.id,
+              message: "STRIPE_CONNECTED_ACCOUNT_ID is not configured",
+            });
+            continue;
+          }
+
+          const amountNumber = Number(payout.amount);
+          if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+            await storage.updateBuilderPayoutStatus(payout.id, "failed", {
+              failureReason: `Invalid payout amount: ${String(payout.amount)}`,
+            } as any);
+            result.failed += 1;
+            result.errors.push({
+              payoutId: payout.id,
+              message: `Invalid payout amount: ${String(payout.amount)}`,
+            });
+            continue;
+          }
+
+          await storage.updateBuilderPayoutStatus(payout.id, "processing", {
+            processingMethod: "stripe",
+          } as any);
+
+          const transfer = await getStripe().transfers.create(
+            {
+              amount: Math.round(amountNumber * 100),
+              currency: "usd",
+              destination: builder.bankAccountId,
+              description: `Scheduled Community Builder payout (${payout.payoutType})`,
+              metadata: {
+                payoutId: payout.id,
+                builderId: builder.id,
+              },
+            },
+            {
+              stripeAccount: process.env.STRIPE_CONNECTED_ACCOUNT_ID,
+            }
+          );
+
+          const transferStatus = String((transfer as any)?.status || "").toLowerCase();
+          const nextStatus = transferStatus === "paid" ? "completed" : "processing";
+
+          await storage.updateBuilderPayoutStatus(payout.id, nextStatus, {
+            externalPaymentId: transfer.id,
+            transactionId: transfer.id,
+          } as any);
+
+          result.succeeded += 1;
+        } catch (error) {
+          result.failed += 1;
+          const message =
+            error instanceof Error ? error.message : "Unknown payout processing error";
+          result.errors.push({ payoutId: payout.id, message });
+
+          try {
+            await storage.updateBuilderPayoutStatus(payout.id, "failed", {
+              failureReason: message,
+            } as any);
+          } catch (statusError) {
+            result.errors.push({
+              payoutId: payout.id,
+              message: "Failed to mark payout as failed",
+              detail: statusError instanceof Error ? statusError.message : String(statusError),
+            });
+          }
+        }
+      }
     } catch (error) {
       result.errors.push(error);
     }
@@ -218,14 +339,14 @@ export class CommunityBuilderPaymentService {
    */
   async handleStripeWebhook(event: any): Promise<void> {
     switch (event.type) {
-      case 'transfer.created':
-        console.log('Transfer created:', event.data.object.id);
+      case "transfer.created":
+        console.log("Transfer created:", event.data.object.id);
         break;
-      
-      case 'transfer.updated':
+
+      case "transfer.updated":
         const transfer = event.data.object;
         if (transfer.metadata?.payoutId) {
-          const status = transfer.status === 'paid' ? 'completed' : 'failed';
+          const status = transfer.status === "paid" ? "completed" : "failed";
           await this.updatePayoutStatus(transfer.metadata.payoutId, status as any, {
             transactionId: transfer.id,
             failureReason: transfer.failure_reason,
@@ -233,8 +354,8 @@ export class CommunityBuilderPaymentService {
         }
         break;
 
-      case 'charge.dispute.created':
-        console.log('Dispute created:', event.data.object.id);
+      case "charge.dispute.created":
+        console.log("Dispute created:", event.data.object.id);
         // Handle dispute
         break;
     }
@@ -252,33 +373,29 @@ export class CommunityBuilderPaymentService {
 
     // Determine bonus tier based on rank
     let bonusAmount = 0;
-    let bonusType = '';
+    let bonusType = "";
 
     switch (builder.currentRank) {
-      case 'silver':
+      case "silver":
         bonusAmount = totalValue * 0.02; // 2% bonus
-        bonusType = 'silver_rank_bonus';
+        bonusType = "silver_rank_bonus";
         break;
-      case 'gold':
+      case "gold":
         bonusAmount = totalValue * 0.05; // 5% bonus
-        bonusType = 'gold_rank_bonus';
+        bonusType = "gold_rank_bonus";
         break;
-      case 'platinum':
+      case "platinum":
         bonusAmount = totalValue * 0.1; // 10% bonus
-        bonusType = 'platinum_rank_bonus';
+        bonusType = "platinum_rank_bonus";
         break;
-      case 'diamond':
+      case "diamond":
         bonusAmount = totalValue * 0.15; // 15% bonus
-        bonusType = 'diamond_rank_bonus';
+        bonusType = "diamond_rank_bonus";
         break;
     }
 
     if (bonusAmount > 0) {
-      await this.createBuilderPayout(
-        builderId,
-        bonusAmount.toFixed(2),
-        bonusType
-      );
+      await this.createBuilderPayout(builderId, bonusAmount.toFixed(2), bonusType);
     }
   }
 
@@ -293,20 +410,21 @@ export class CommunityBuilderPaymentService {
     const countyId = metadata.countyId;
 
     if (!contributionId || !builderId || !countyId) {
-      console.warn('[stripe] Missing metadata (contributionId/builderId/countyId); skipping vault update');
+      console.warn(
+        "[stripe] Missing metadata (contributionId/builderId/countyId); skipping vault update"
+      );
       return;
     }
 
-    const amount = session.amount_total != null
-      ? (session.amount_total / 100).toFixed(2)
-      : metadata.amount;
+    const amount =
+      session.amount_total != null ? (session.amount_total / 100).toFixed(2) : metadata.amount;
 
     if (!amount) {
-      console.warn('[stripe] Missing amount on checkout.session.completed; skipping vault update');
+      console.warn("[stripe] Missing amount on checkout.session.completed; skipping vault update");
       return;
     }
 
-    const payoutToVault = metadata.payoutToVault !== 'false';
+    const payoutToVault = metadata.payoutToVault !== "false";
 
     // Record into vault and mark contribution verified/paid
     const contribution = await storage.getContribution(contributionId);
@@ -317,19 +435,21 @@ export class CommunityBuilderPaymentService {
 
     // Idempotency guard: if already verified/paid, skip.
     if (contribution.verifiedAt || contribution.isPaidOut) {
-      console.log(`[stripe] Contribution ${contributionId} already finalized; skipping duplicate event ${session.id}`);
+      console.log(
+        `[stripe] Contribution ${contributionId} already finalized; skipping duplicate event ${session.id}`
+      );
       return;
     }
 
     await storage.recordVaultLedgerEntry({
       countyId,
-      sourceType: 'other',
+      sourceType: "other",
       sourceId: contributionId,
       amount: parseFloat(amount),
       memo: `Stripe checkout for contribution ${contribution.title}`,
     });
 
-    await storage.updateContributionStatus(contributionId, 'verified', {
+    await storage.updateContributionStatus(contributionId, "verified", {
       actualValue: amount,
       isPaidOut: true,
       paidOutAmount: amount,

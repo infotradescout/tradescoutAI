@@ -34,6 +34,38 @@ function sanitizePublicCtaConfig(ctaConfig: unknown) {
   };
 }
 
+function getCanonicalBaseUrl(req: any): string {
+  const configured = String(process.env.PUBLIC_WEB_URL || process.env.APP_URL || "").trim();
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      const host = parsed.hostname.toLowerCase();
+      const isLocal = host === "localhost" || host === "127.0.0.1";
+      if (!isLocal) {
+        parsed.protocol = "https:";
+        if (host === "thetradescout.com" || host === "tradescoutai.onrender.com") {
+          parsed.hostname = "www.thetradescout.com";
+        }
+        parsed.port = "";
+      }
+      return parsed.toString().replace(/\/$/, "");
+    } catch {
+      // ignore malformed env value and fall back to request-based resolution below
+    }
+  }
+
+  const forwardedHostRaw = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .split(",")[0]
+    .trim();
+  const host = forwardedHostRaw.split(":")[0].toLowerCase();
+  const isLocal = host === "localhost" || host === "127.0.0.1";
+  if (isLocal && forwardedHostRaw) {
+    return `http://${forwardedHostRaw}`.replace(/\/$/, "");
+  }
+
+  return "https://www.thetradescout.com";
+}
+
 const contentBlockSchema = z
   .object({
     type: z.enum(["hero", "about", "services", "gallery", "faq", "reviews", "cta", "custom"]),
@@ -316,8 +348,7 @@ router.get("/api/p/:slug", async (req, res) => {
 });
 
 router.get("/robots.txt", async (req, res) => {
-  const host = req.headers.host || "www.thetradescout.com";
-  const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+  const baseUrl = getCanonicalBaseUrl(req);
   res.type("text/plain");
   res.send(
     [
@@ -338,7 +369,7 @@ router.get("/robots.txt", async (req, res) => {
       "Disallow: /messages/",
       "Disallow: /scout/",
       "Disallow: /auth/",
-      `Sitemap: ${protocol}://${host}/sitemap.xml`,
+      `Sitemap: ${baseUrl}/sitemap.xml`,
       "",
     ].join("\n")
   );
@@ -346,9 +377,7 @@ router.get("/robots.txt", async (req, res) => {
 
 router.get("/sitemap.xml", async (req, res) => {
   try {
-    const host = req.headers.host || "www.thetradescout.com";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getCanonicalBaseUrl(req);
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -383,15 +412,11 @@ router.get("/sitemap.xml", async (req, res) => {
 
 router.get("/sitemap-core.xml", async (req, res) => {
   try {
-    const host = req.headers.host || "www.thetradescout.com";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getCanonicalBaseUrl(req);
     const today = new Date().toISOString().slice(0, 10);
 
     const urls = [
       { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
-      { loc: `${baseUrl}/create-account`, priority: "0.7", changefreq: "weekly" },
-      { loc: `${baseUrl}/login`, priority: "0.6", changefreq: "weekly" },
       { loc: `${baseUrl}/direct-connect`, priority: "0.9", changefreq: "hourly" },
       { loc: `${baseUrl}/community`, priority: "0.8", changefreq: "hourly" },
       { loc: `${baseUrl}/exchange`, priority: "0.6", changefreq: "daily" },
@@ -422,9 +447,7 @@ ${urls
 
 router.get("/sitemap-profiles.xml", async (req, res) => {
   try {
-    const host = req.headers.host || "www.thetradescout.com";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getCanonicalBaseUrl(req);
 
     const profiles = await storage.listPublicProfilesForSitemap();
 
@@ -454,9 +477,7 @@ ${urls.join("\n")}
 
 router.get("/sitemap-homescout-listings.xml", async (req, res) => {
   try {
-    const host = req.headers.host || "www.thetradescout.com";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getCanonicalBaseUrl(req);
 
     const listings = await storage.listActiveHomeScoutListingsForSitemap();
 
@@ -486,9 +507,7 @@ ${urls.join("\n")}
 
 router.get("/sitemap-homescout-counties.xml", async (req, res) => {
   try {
-    const host = req.headers.host || "www.thetradescout.com";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getCanonicalBaseUrl(req);
 
     const counties = await storage.listHomeScoutCountiesForSitemap();
 

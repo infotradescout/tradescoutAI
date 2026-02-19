@@ -11,24 +11,6 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://www.thetradescout.com/scout</loc>
-    <lastmod>2026-02-19</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.thetradescout.com/create-account</loc>
-    <lastmod>2026-02-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.thetradescout.com/login</loc>
-    <lastmod>2026-02-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://www.thetradescout.com/direct-connect</loc>
     <lastmod>2026-02-19</lastmod>
     <changefreq>hourly</changefreq>

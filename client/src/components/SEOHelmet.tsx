@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 
 interface SEOHelmetProps {
   title?: string;
@@ -23,89 +23,142 @@ export function SEOHelmet({
   noIndex = false,
 }: SEOHelmetProps) {
   const [location] = useLocation();
-  const currentUrl = `${window.location.origin}${location}`;
-  const finalCanonical = canonical || currentUrl;
+  const currentUrl = normalizePublicUrl(new URL(location, window.location.origin).toString());
+  const finalCanonical = normalizePublicUrl(canonical || currentUrl);
+  const ogImageUrl = resolveAssetUrl(ogImage, finalCanonical);
 
   useEffect(() => {
     // Update document title
     document.title = title;
 
     // Update meta tags
-    updateMetaTag('description', description);
-    updateMetaTag('keywords', keywords);
-    updateMetaTag('robots', noIndex ? 'noindex, nofollow' : 'index, follow');
-    
+    updateMetaTag("description", description);
+    updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
+
     // Open Graph
-    updateMetaTag('og:title', title, 'property');
-    updateMetaTag('og:description', description, 'property');
-    updateMetaTag('og:type', ogType, 'property');
-    updateMetaTag('og:url', currentUrl, 'property');
-    updateMetaTag('og:image', `${window.location.origin}${ogImage}`, 'property');
-    updateMetaTag('og:site_name', 'TradeScout', 'property');
-    
+    updateMetaTag("og:title", title, "property");
+    updateMetaTag("og:description", description, "property");
+    updateMetaTag("og:type", ogType, "property");
+    updateMetaTag("og:url", finalCanonical, "property");
+    updateMetaTag("og:image", ogImageUrl, "property");
+    updateMetaTag("og:site_name", "TradeScout", "property");
+
     // Twitter Card
-    updateMetaTag('twitter:card', 'summary_large_image', 'name');
-    updateMetaTag('twitter:title', title, 'name');
-    updateMetaTag('twitter:description', description, 'name');
-    updateMetaTag('twitter:image', `${window.location.origin}${ogImage}`, 'name');
-    updateMetaTag('twitter:site', '@TradeScout', 'name');
-    
+    updateMetaTag("twitter:card", "summary_large_image", "name");
+    updateMetaTag("twitter:title", title, "name");
+    updateMetaTag("twitter:description", description, "name");
+    updateMetaTag("twitter:image", ogImageUrl, "name");
+    updateMetaTag("twitter:site", "@TradeScout", "name");
+
     // Additional SEO tags
-    updateMetaTag('theme-color', 'var(--theme-accent-primary)', 'name');
-    updateMetaTag('apple-mobile-web-app-title', 'TradeScout', 'name');
-    
+    updateMetaTag("theme-color", "var(--theme-accent-primary)", "name");
+    updateMetaTag("apple-mobile-web-app-title", "TradeScout", "name");
+
     // Canonical link
     updateCanonicalLink(finalCanonical);
-    
+
     // Structured data
     if (structuredData) {
       updateStructuredData(structuredData);
     }
-    
+
     // Clean up function
     return () => {
       // Remove structured data script if it exists
-      const existingScript = document.querySelector('script[type="application/ld+json"][data-react-helmet]');
+      const existingScript = document.querySelector(
+        'script[type="application/ld+json"][data-react-helmet]'
+      );
       if (existingScript) {
         existingScript.remove();
       }
     };
-  }, [title, description, keywords, currentUrl, finalCanonical, ogType, ogImage, structuredData, noIndex]);
+  }, [
+    title,
+    description,
+    keywords,
+    currentUrl,
+    finalCanonical,
+    ogType,
+    ogImageUrl,
+    structuredData,
+    noIndex,
+  ]);
 
   return null;
 }
 
-function updateMetaTag(name: string, content: string, attribute: 'name' | 'property' = 'name') {
+function updateMetaTag(name: string, content: string, attribute: "name" | "property" = "name") {
   let meta = document.querySelector(`meta[${attribute}="${name}"]`) as HTMLMetaElement;
   if (!meta) {
-    meta = document.createElement('meta');
+    meta = document.createElement("meta");
     meta.setAttribute(attribute, name);
     document.head.appendChild(meta);
   }
+  meta.setAttribute("data-managed-by", "seo-helmet");
   meta.content = content;
 }
 
 function updateCanonicalLink(href: string) {
   let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
   if (!canonical) {
-    canonical = document.createElement('link');
-    canonical.rel = 'canonical';
+    canonical = document.createElement("link");
+    canonical.rel = "canonical";
     document.head.appendChild(canonical);
   }
   canonical.href = href;
 }
 
+function normalizePublicUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    const isLocal = host === "localhost" || host === "127.0.0.1";
+    if (isLocal) return parsed.toString();
+
+    const canonicalHost =
+      host === "thetradescout.com" ||
+      host === "www.thetradescout.com" ||
+      host === "tradescoutai.onrender.com";
+
+    if (canonicalHost) {
+      parsed.protocol = "https:";
+      parsed.hostname = "www.thetradescout.com";
+      parsed.port = "";
+      return parsed.toString();
+    }
+
+    if (parsed.protocol === "http:") parsed.protocol = "https:";
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function resolveAssetUrl(assetPath: string, baseUrl: string) {
+  try {
+    return normalizePublicUrl(new URL(assetPath, baseUrl).toString());
+  } catch {
+    return assetPath;
+  }
+}
+
+function getCanonicalOrigin() {
+  return normalizePublicUrl(window.location.origin);
+}
+
 function updateStructuredData(data: Record<string, any>) {
   // Remove existing structured data
-  const existingScript = document.querySelector('script[type="application/ld+json"][data-react-helmet]');
+  const existingScript = document.querySelector(
+    'script[type="application/ld+json"][data-react-helmet]'
+  );
   if (existingScript) {
     existingScript.remove();
   }
-  
+
   // Add new structured data
-  const script = document.createElement('script');
-  script.type = 'application/ld+json';
-  script.setAttribute('data-react-helmet', 'true');
+  const script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.setAttribute("data-react-helmet", "true");
   script.textContent = JSON.stringify(data);
   document.head.appendChild(script);
 }
@@ -114,30 +167,31 @@ function updateStructuredData(data: Record<string, any>) {
 export const createWebsiteStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "TradeScout",
-  "description": "Scout, the built-in helper that runs TradeScout, connects you with verified local contractors and helps you manage home projects.",
-  "url": window.location.origin,
-  "potentialAction": {
+  name: "TradeScout",
+  description:
+    "Scout, the built-in helper that runs TradeScout, connects you with verified local contractors and helps you manage home projects.",
+  url: getCanonicalOrigin(),
+  potentialAction: {
     "@type": "SearchAction",
-    "target": `${window.location.origin}/contractors/board?search={search_term_string}`,
-    "query-input": "required name=search_term_string"
+    target: `${getCanonicalOrigin()}/contractors/board?search={search_term_string}`,
+    "query-input": "required name=search_term_string",
   },
-  "sameAs": [
+  sameAs: [
     "https://facebook.com/tradescout",
     "https://twitter.com/tradescout",
-    "https://linkedin.com/company/tradescout"
-  ]
+    "https://linkedin.com/company/tradescout",
+  ],
 });
 
 export const createFAQStructuredData = (faqs: Array<{ question: string; answer: string }>) => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  "mainEntity": faqs.map((faq) => ({
+  mainEntity: faqs.map((faq) => ({
     "@type": "Question",
-    "name": faq.question,
-    "acceptedAnswer": {
+    name: faq.question,
+    acceptedAnswer: {
       "@type": "Answer",
-      "text": faq.answer,
+      text: faq.answer,
     },
   })),
 });
@@ -145,39 +199,40 @@ export const createFAQStructuredData = (faqs: Array<{ question: string; answer: 
 export const createOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "TradeScout",
-  "description": "Community operating system connecting residents, pros, organizations, and verified local contractors",
-  "url": window.location.origin,
-  "logo": `${window.location.origin}/logo.png`,
-  "image": `${window.location.origin}/icon-512.png`,
-  "address": {
+  name: "TradeScout",
+  description:
+    "Community operating system connecting residents, pros, organizations, and verified local contractors",
+  url: getCanonicalOrigin(),
+  logo: `${getCanonicalOrigin()}/logo.png`,
+  image: `${getCanonicalOrigin()}/icon-512.png`,
+  address: {
     "@type": "PostalAddress",
-    "addressCountry": "US"
+    addressCountry: "US",
   },
-  "contactPoint": {
+  contactPoint: {
     "@type": "ContactPoint",
-    "telephone": "+1-800-TRADESCOUT",
-    "contactType": "customer service",
-    "availableLanguage": ["English"]
+    telephone: "+1-800-TRADESCOUT",
+    contactType: "customer service",
+    availableLanguage: ["English"],
   },
-  "potentialAction": [
+  potentialAction: [
     {
       "@type": "SearchAction",
-      "target": `${window.location.origin}/direct-connect?search={search_term_string}`,
+      target: `${getCanonicalOrigin()}/direct-connect?search={search_term_string}`,
       "query-input": "required name=search_term_string",
-      "description": "Find contractors"
+      description: "Find contractors",
     },
     {
       "@type": "InteractAction",
-      "target": `${window.location.origin}/scout`,
-      "description": "Ask Scout for help"
-    }
+      target: `${getCanonicalOrigin()}/scout`,
+      description: "Ask Scout for help",
+    },
   ],
-  "sameAs": [
+  sameAs: [
     "https://facebook.com/tradescout",
     "https://twitter.com/tradescout",
-    "https://linkedin.com/company/tradescout"
-  ]
+    "https://linkedin.com/company/tradescout",
+  ],
 });
 
 export const createServiceStructuredData = (service: {
@@ -189,28 +244,28 @@ export const createServiceStructuredData = (service: {
 }) => ({
   "@context": "https://schema.org",
   "@type": "Service",
-  "name": service.name,
-  "description": service.description,
-  "category": service.category,
-  "provider": {
+  name: service.name,
+  description: service.description,
+  category: service.category,
+  provider: {
     "@type": "Organization",
-    "name": service.provider || "TradeScout",
-    "url": window.location.origin
+    name: service.provider || "TradeScout",
+    url: getCanonicalOrigin(),
   },
-  "areaServed": service.areaServed || "United States",
-  "hasOfferCatalog": {
+  areaServed: service.areaServed || "United States",
+  hasOfferCatalog: {
     "@type": "OfferCatalog",
-    "name": "Contractor Services",
-    "itemListElement": [
+    name: "Contractor Services",
+    itemListElement: [
       {
         "@type": "Offer",
-        "itemOffered": {
+        itemOffered: {
           "@type": "Service",
-          "name": "Free Contractor Quotes"
-        }
-      }
-    ]
-  }
+          name: "Free Contractor Quotes",
+        },
+      },
+    ],
+  },
 });
 
 export const createContractorStructuredData = (contractor: {
@@ -225,41 +280,45 @@ export const createContractorStructuredData = (contractor: {
 }) => ({
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
-  "@id": `${window.location.origin}/contractors/${contractor.id}`,
-  "name": contractor.name,
-  "description": contractor.description,
-  "url": `${window.location.origin}/contractors/${contractor.id}`,
-  "priceRange": "$$",
-  "address": {
+  "@id": `${getCanonicalOrigin()}/contractors/${contractor.id}`,
+  name: contractor.name,
+  description: contractor.description,
+  url: `${getCanonicalOrigin()}/contractors/${contractor.id}`,
+  priceRange: "$$",
+  address: {
     "@type": "PostalAddress",
-    "addressLocality": contractor.location,
-    "addressCountry": "US"
+    addressLocality: contractor.location,
+    addressCountry: "US",
   },
-  "aggregateRating": contractor.rating ? {
-    "@type": "AggregateRating",
-    "ratingValue": contractor.rating,
-    "recommendationCount": contractor.recommendationCount || 0,
-    "bestRating": 5,
-    "worstRating": 1
-  } : undefined,
-  "hasCredential": contractor.verified ? {
-    "@type": "EducationalOccupationalCredential",
-    "credentialCategory": "Professional Certification",
-    "name": "Verified Contractor"
-  } : undefined,
-  "serviceType": contractor.trades || [],
-  "areaServed": contractor.location || "Local Area"
+  aggregateRating: contractor.rating
+    ? {
+        "@type": "AggregateRating",
+        ratingValue: contractor.rating,
+        recommendationCount: contractor.recommendationCount || 0,
+        bestRating: 5,
+        worstRating: 1,
+      }
+    : undefined,
+  hasCredential: contractor.verified
+    ? {
+        "@type": "EducationalOccupationalCredential",
+        credentialCategory: "Professional Certification",
+        name: "Verified Contractor",
+      }
+    : undefined,
+  serviceType: contractor.trades || [],
+  areaServed: contractor.location || "Local Area",
 });
 
-export const createBreadcrumbStructuredData = (items: Array<{name: string, url: string}>) => ({
+export const createBreadcrumbStructuredData = (items: Array<{ name: string; url: string }>) => ({
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  "itemListElement": items.map((item, index) => ({
+  itemListElement: items.map((item, index) => ({
     "@type": "ListItem",
-    "position": index + 1,
-    "name": item.name,
-    "item": `${window.location.origin}${item.url}`
-  }))
+    position: index + 1,
+    name: item.name,
+    item: `${getCanonicalOrigin()}${item.url}`,
+  })),
 });
 
 export const createPlaceStructuredData = (county: {
@@ -270,19 +329,19 @@ export const createPlaceStructuredData = (county: {
 }) => ({
   "@context": "https://schema.org",
   "@type": "Place",
-  "name": `${county.name}, ${county.stateCode}`,
-  "areaServed": {
+  name: `${county.name}, ${county.stateCode}`,
+  areaServed: {
     "@type": "AdministrativeArea",
-    "name": county.name,
-    "areaType": "County",
-    "containedIn": {
+    name: county.name,
+    areaType: "County",
+    containedIn: {
       "@type": "State",
-      "name": county.state,
-      "addressCountry": "US"
-    }
+      name: county.state,
+      addressCountry: "US",
+    },
   },
-  "url": window.location.href,
-  "identifier": county.fipsCode
+  url: normalizePublicUrl(window.location.href),
+  identifier: county.fipsCode,
 });
 
 export const createAdministrativeAreaStructuredData = (area: {
@@ -292,13 +351,13 @@ export const createAdministrativeAreaStructuredData = (area: {
 }) => ({
   "@context": "https://schema.org",
   "@type": "AdministrativeArea",
-  "name": area.name,
-  "areaType": area.areaType,
-  "containedIn": {
+  name: area.name,
+  areaType: area.areaType,
+  containedIn: {
     "@type": "State",
-    "name": area.state,
-    "addressCountry": "US"
-  }
+    name: area.state,
+    addressCountry: "US",
+  },
 });
 
 // Deprecated duplicate; use the top-level createFAQStructuredData instead

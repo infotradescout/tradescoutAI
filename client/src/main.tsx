@@ -10,6 +10,16 @@ function setViewportVars() {
   document.documentElement.style.setProperty("--vh", `${vh}px`);
 }
 
+function applyImageTitleFallback(root: ParentNode = document) {
+  const images = root.querySelectorAll("img:not([title])");
+  images.forEach((img) => {
+    const alt = img.getAttribute("alt");
+    if (typeof alt === "string" && alt.trim().length > 0) {
+      img.setAttribute("title", alt.trim());
+    }
+  });
+}
+
 // Global error handling (keep this)
 window.addEventListener("error", (event) => {
   console.error("Global error:", event.error);
@@ -23,6 +33,25 @@ setViewportVars();
 window.addEventListener("resize", setViewportVars);
 window.addEventListener("orientationchange", setViewportVars);
 window.visualViewport?.addEventListener("resize", setViewportVars);
+applyImageTitleFallback();
+
+const imageTitleObserver = new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    mutation.addedNodes.forEach((node) => {
+      if (!(node instanceof Element)) return;
+      if (node.tagName.toLowerCase() === "img") {
+        applyImageTitleFallback(node.parentNode || document);
+        return;
+      }
+      applyImageTitleFallback(node);
+    });
+  }
+});
+
+imageTitleObserver.observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
 
 const container = document.getElementById("root");
 

@@ -17,12 +17,21 @@ import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
 import { emitHttpStatus } from "./observability/metrics";
+import { assertStartupInvariants } from "./startupInvariants";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const CANONICAL_WEB_HOST = "www.thetradescout.com";
+
+function getForwardedProto(req: Request): string {
+  return String(req.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+}
 
 function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -35,6 +44,8 @@ function log(message: string, source = "express") {
 }
 
 export async function createApp() {
+  await assertStartupInvariants();
+
   const app = express();
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
@@ -72,11 +83,14 @@ export async function createApp() {
   // Force canonical host redirect (skip in test)
   if (process.env.NODE_ENV !== "test") {
     app.use((req, res, next) => {
-      const host = req.headers.host?.toLowerCase() || "";
-      if (host.includes("tradescoutai.onrender.com") || host === "thetradescout.com") {
-        const targetHost = "www.thetradescout.com";
-        const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-        const redirectUrl = `${protocol}://${targetHost}${req.originalUrl || ""}`;
+      const rawHost = (req.headers.host || "").toLowerCase();
+      const host = rawHost.split(":")[0];
+      const forwardedProto = getForwardedProto(req);
+      const hostNeedsCanonical =
+        host.includes("tradescoutai.onrender.com") || host === "thetradescout.com";
+      const protocolNeedsUpgrade = host === CANONICAL_WEB_HOST && forwardedProto === "http";
+      if (hostNeedsCanonical || protocolNeedsUpgrade) {
+        const redirectUrl = `https://${CANONICAL_WEB_HOST}${req.originalUrl || ""}`;
         return res.redirect(301, redirectUrl);
       }
       next();

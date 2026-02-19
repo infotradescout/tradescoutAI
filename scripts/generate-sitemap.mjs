@@ -24,13 +24,10 @@ const __dirname = dirname(__filename);
 const PRODUCTION_URL = 'https://www.thetradescout.com';
 const OUTPUT_PATH = resolve(__dirname, '../client/public/sitemap.xml');
 
-// Define public routes (routes that should be indexed)
-// Excludes: /admin, /dashboard, /settings, protected routes, redirects
+// Define public routes (routes that should be indexed).
+// Excludes private/auth-only surfaces and dashboard routes.
 const PUBLIC_ROUTES = [
   { path: '/', priority: 1.0, changefreq: 'daily' },
-  { path: '/scout', priority: 0.9, changefreq: 'daily' },
-  { path: '/create-account', priority: 0.8, changefreq: 'weekly' },
-  { path: '/login', priority: 0.7, changefreq: 'weekly' },
   
   // Direct Connect
   { path: '/direct-connect', priority: 0.9, changefreq: 'hourly' },

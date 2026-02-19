@@ -43,26 +43,6 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
     return locationData;
   };
 
-  const generateLocationKeywords = () => {
-    const keywords: string[] = [];
-
-    if (county && state) {
-      keywords.push(`${serviceType || "contractors"} in ${county}, ${state}`);
-      keywords.push(`${county} ${state} ${serviceType || "home improvement"}`);
-      keywords.push(`local ${serviceType || "contractors"} ${county} county`);
-    }
-
-    if (state) {
-      keywords.push(`${state} ${serviceType || "contractors"}`);
-      keywords.push(`${serviceType || "home improvement"} services ${state}`);
-    }
-
-    keywords.push(`licensed ${serviceType || "contractors"} near me`);
-    keywords.push(`verified ${serviceType || "home improvement"} professionals`);
-
-    return keywords.join(", ");
-  };
-
   const generateLocationTitle = () => {
     let title = "Find";
 
@@ -115,14 +95,6 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
       metaDesc.content = generateLocationDescription();
     }
 
-    // Update meta keywords
-    const metaKeywords = document.querySelector('meta[name="keywords"]') as HTMLMetaElement | null;
-    const originalKeywords = metaKeywords?.content;
-
-    if (metaKeywords) {
-      metaKeywords.content = generateLocationKeywords();
-    }
-
     // Inject location structured data
     const locationStructuredData = generateLocationStructuredData();
     const script = document.createElement("script");
@@ -135,9 +107,6 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
       document.title = originalTitle;
       if (metaDesc && originalDescription) {
         metaDesc.content = originalDescription;
-      }
-      if (metaKeywords && originalKeywords) {
-        metaKeywords.content = originalKeywords;
       }
       if (document.head.contains(script)) {
         document.head.removeChild(script);

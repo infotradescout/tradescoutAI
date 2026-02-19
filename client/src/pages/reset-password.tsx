@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { KeyRound } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
@@ -115,6 +116,12 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
+      <SEOHelmet
+        title="Reset Password | TradeScout"
+        description="Reset your TradeScout password securely."
+        canonical="https://www.thetradescout.com/reset-password"
+        noIndex
+      />
       <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">

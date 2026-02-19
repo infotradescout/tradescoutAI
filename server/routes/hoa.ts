@@ -1,30 +1,34 @@
-import { Request, Response } from 'express';
-import { storage } from '../storage';
+import { Request, Response } from "express";
+import { storage } from "../storage";
 
 // Middleware to check HOA permissions based on capability flags
-async function checkHOAPermission(userId: string, hoaId: string, requiredPermission: 'view' | 'viewFinances' | 'editDocuments' | 'manageVendors' | 'createVotes') {
+async function checkHOAPermission(
+  userId: string,
+  hoaId: string,
+  requiredPermission: "view" | "viewFinances" | "editDocuments" | "manageVendors" | "createVotes"
+) {
   const user = await storage.getUser(userId);
 
   // Super/head admin can see everything for debugging and support
   const platformRole = (user as any)?.role;
-  if (platformRole === 'super_admin' || platformRole === 'head_admin') {
+  if (platformRole === "super_admin" || platformRole === "head_admin") {
     return { authorized: true, member: null };
   }
 
   const member = await storage.getHOAMemberByUserId(userId, hoaId);
-  
+
   if (!member) {
     return { authorized: false, member: null };
   }
 
   switch (requiredPermission) {
-    case 'viewFinances':
+    case "viewFinances":
       return { authorized: member.canViewFinances, member };
-    case 'editDocuments':
+    case "editDocuments":
       return { authorized: member.canEditDocuments, member };
-    case 'manageVendors':
+    case "manageVendors":
       return { authorized: member.canManageVendors, member };
-    case 'createVotes':
+    case "createVotes":
       return { authorized: member.canCreateVotes, member };
     default:
       return { authorized: true, member }; // Basic view permission
@@ -37,7 +41,7 @@ async function requireHoaRole(userId: string, hoaId: string, allowedRoles: strin
 
   // Super/head admin can always perform HOA role operations when needed
   const platformRole = (user as any)?.role;
-  if (platformRole === 'super_admin' || platformRole === 'head_admin') {
+  if (platformRole === "super_admin" || platformRole === "head_admin") {
     return { authorized: true, member: null };
   }
 
@@ -54,7 +58,6 @@ async function requireHoaRole(userId: string, hoaId: string, allowedRoles: strin
   return { authorized: true, member };
 }
 
-
 // Get HOA information
 export async function getHOA(req: Request, res: Response) {
   try {
@@ -62,13 +65,13 @@ export async function getHOA(req: Request, res: Response) {
     const hoa = await storage.getHOAById(hoaId);
 
     if (!hoa) {
-      return res.status(404).json({ message: 'HOA not found' });
+      return res.status(404).json({ message: "HOA not found" });
     }
 
     res.json(hoa);
   } catch (error) {
-    console.error('Error fetching HOA:', error);
-    res.status(500).json({ message: 'Failed to fetch HOA information' });
+    console.error("Error fetching HOA:", error);
+    res.status(500).json({ message: "Failed to fetch HOA information" });
   }
 }
 
@@ -79,13 +82,13 @@ export async function getHOAFinances(req: Request, res: Response) {
     const finances = await storage.getHOAFinances(hoaId);
 
     if (!finances) {
-      return res.status(404).json({ message: 'Financial data not found' });
+      return res.status(404).json({ message: "Financial data not found" });
     }
 
     res.json(finances);
   } catch (error) {
-    console.error('Error fetching HOA finances:', error);
-    res.status(500).json({ message: 'Failed to fetch financial data' });
+    console.error("Error fetching HOA finances:", error);
+    res.status(500).json({ message: "Failed to fetch financial data" });
   }
 }
 
@@ -96,8 +99,8 @@ export async function getHOAVendors(req: Request, res: Response) {
     const vendors = await storage.getHOAVendors(hoaId);
     res.json(vendors);
   } catch (error) {
-    console.error('Error fetching HOA vendors:', error);
-    res.status(500).json({ message: 'Failed to fetch vendor data' });
+    console.error("Error fetching HOA vendors:", error);
+    res.status(500).json({ message: "Failed to fetch vendor data" });
   }
 }
 
@@ -108,8 +111,8 @@ export async function getHOAVotes(req: Request, res: Response) {
     const votes = await storage.getHOAVotes(hoaId);
     res.json(votes);
   } catch (error) {
-    console.error('Error fetching HOA votes:', error);
-    res.status(500).json({ message: 'Failed to fetch voting data' });
+    console.error("Error fetching HOA votes:", error);
+    res.status(500).json({ message: "Failed to fetch voting data" });
   }
 }
 
@@ -118,7 +121,7 @@ export async function submitVote(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const { voteId } = req.params;
@@ -126,8 +129,8 @@ export async function submitVote(req: Request, res: Response) {
     const voteResult = await storage.submitHOAVote(userId, voteId, decision);
     res.status(201).json(voteResult);
   } catch (error) {
-    console.error('Error submitting vote:', error);
-    res.status(500).json({ message: 'Failed to submit vote' });
+    console.error("Error submitting vote:", error);
+    res.status(500).json({ message: "Failed to submit vote" });
   }
 }
 
@@ -136,61 +139,88 @@ export async function requestVendorService(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const { vendorId } = req.params;
     const { serviceType, description, urgency, contactPreference } = (req.body ?? {}) as any;
-    
+
     const serviceRequest = await storage.createVendorServiceRequest({
       userId,
       vendorId,
       serviceType,
       description,
       urgency,
-      contactPreference
+      contactPreference,
     });
 
     res.status(201).json(serviceRequest);
   } catch (error) {
-    console.error('Error requesting vendor service:', error);
-    res.status(500).json({ message: 'Failed to request service' });
+    console.error("Error requesting vendor service:", error);
+    res.status(500).json({ message: "Failed to request service" });
   }
 }
 
-// Collect HOA fees (stub implementation for workflow completion)
+// Collect HOA fees and create resident-level audit records
 export async function collectHOAFee(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
-    const { hoaId, residentId, amount, description } = (req.body ?? {}) as any;
-    if (!hoaId || !residentId || typeof amount !== 'number') {
-      return res.status(400).json({ message: 'hoaId, residentId and numeric amount are required' });
+    const { hoaId, residentId, amount, description, paymentMethod, externalRef } = (req.body ??
+      {}) as any;
+    const amountNumber = Number(amount);
+    if (!hoaId || !residentId || !Number.isFinite(amountNumber) || amountNumber <= 0) {
+      return res
+        .status(400)
+        .json({ message: "hoaId, residentId and positive numeric amount are required" });
     }
 
     // Require at least basic finance-view permission to initiate fee collection
-    const { authorized } = await checkHOAPermission(userId, hoaId, 'viewFinances');
+    const { authorized } = await checkHOAPermission(userId, hoaId, "viewFinances");
     if (!authorized) {
-      return res.status(403).json({ message: 'Insufficient permissions to collect fees' });
+      return res.status(403).json({ message: "Insufficient permissions to collect fees" });
     }
 
-    // Record the payment against the current month's HOA financials
-    await (storage as any).recordHoaFeePayment(hoaId, amount);
+    const recordHoaFeeCollection = (storage as any).recordHoaFeeCollection;
+    if (typeof recordHoaFeeCollection !== "function") {
+      return res.status(501).json({ message: "HOA fee ledger collection is not implemented" });
+    }
+
+    const feePayment = await recordHoaFeeCollection.call(storage, {
+      hoaId,
+      residentId,
+      amount: amountNumber,
+      description,
+      collectedByUserId: userId,
+      paymentMethod,
+      externalRef,
+    });
 
     return res.status(201).json({
       success: true,
-      message: 'Fee collection recorded',
-      hoaId,
-      residentId,
-      amount,
-      description: description ?? 'Monthly HOA dues',
+      message: "Fee collection recorded",
+      paymentId: feePayment.id,
+      receipt: {
+        id: feePayment.id,
+        hoaId: feePayment.hoaId,
+        residentId: feePayment.residentId,
+        amount: feePayment.amount,
+        description: feePayment.description,
+        paymentMethod: feePayment.paymentMethod,
+        externalRef: feePayment.externalRef,
+        collectedByUserId: feePayment.collectedByUserId,
+        collectedAt: feePayment.createdAt,
+      },
     });
   } catch (error) {
-    console.error('Error collecting HOA fee:', error);
-    res.status(500).json({ message: 'Failed to collect fee' });
+    if ((error as any)?.code === "42P01") {
+      return res.status(501).json({ message: "HOA fee ledger table is not migrated yet" });
+    }
+    console.error("Error collecting HOA fee:", error);
+    res.status(500).json({ message: "Failed to collect fee" });
   }
 }
 
@@ -202,13 +232,13 @@ export async function searchHOAs(req: Request, res: Response) {
       countyFips: county as string,
       zip: zip as string,
       city: city as string,
-      state: state as string
+      state: state as string,
     });
 
     res.json(hoas);
   } catch (error) {
-    console.error('Error searching HOAs:', error);
-    res.status(500).json({ message: 'Failed to search HOAs' });
+    console.error("Error searching HOAs:", error);
+    res.status(500).json({ message: "Failed to search HOAs" });
   }
 }
 
@@ -217,20 +247,20 @@ export async function getHOAMember(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const { hoaId } = req.params;
     const member = await storage.getHOAMemberByUserId(userId, hoaId);
 
     if (!member) {
-      return res.status(404).json({ message: 'Not a member of this HOA' });
+      return res.status(404).json({ message: "Not a member of this HOA" });
     }
 
     res.json(member);
   } catch (error) {
-    console.error('Error fetching HOA member:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching HOA member:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -238,22 +268,22 @@ export async function getHOAMembers(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const { hoaId } = req.params;
-    
+
     // Check if user has permission to view members
-    const { authorized } = await checkHOAPermission(userId, hoaId, 'view');
+    const { authorized } = await checkHOAPermission(userId, hoaId, "view");
     if (!authorized) {
-      return res.status(403).json({ message: 'Forbidden' });
+      return res.status(403).json({ message: "Forbidden" });
     }
 
     const members = await storage.getHOAMembers(hoaId);
     res.json(members);
   } catch (error) {
-    console.error('Error fetching HOA members:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching HOA members:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -261,15 +291,17 @@ export async function addHOAMember(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const { hoaId } = req.params;
     const { userId: newUserId, unitNumber, role, votingRights } = (req.body ?? {}) as any;
     // Check if requesting user has required HOA role
-    const { authorized } = await requireHoaRole(userId, hoaId, ['president', 'vice_president']);
+    const { authorized } = await requireHoaRole(userId, hoaId, ["president", "vice_president"]);
     if (!authorized) {
-      return res.status(403).json({ message: 'Only presidents and vice presidents can add members' });
+      return res
+        .status(403)
+        .json({ message: "Only presidents and vice presidents can add members" });
     }
 
     const newMember = await storage.addHOAMember({
@@ -277,13 +309,13 @@ export async function addHOAMember(req: Request, res: Response) {
       userId: newUserId,
       unitNumber,
       role,
-      votingRights
+      votingRights,
     });
 
     res.json(newMember);
   } catch (error) {
-    console.error('Error adding HOA member:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error adding HOA member:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -291,21 +323,21 @@ export async function updateHOAMemberRole(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const { hoaId, memberId } = req.params;
     const { role } = (req.body ?? {}) as any;
     // Check if requesting user has required HOA role
-    const { authorized } = await requireHoaRole(userId, hoaId, ['president']);
+    const { authorized } = await requireHoaRole(userId, hoaId, ["president"]);
     if (!authorized) {
-      return res.status(403).json({ message: 'Only presidents can change member roles' });
+      return res.status(403).json({ message: "Only presidents can change member roles" });
     }
 
     const updatedMember = await storage.updateHOAMemberRole(memberId, role);
     res.json(updatedMember);
   } catch (error) {
-    console.error('Error updating HOA member role:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error updating HOA member role:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }

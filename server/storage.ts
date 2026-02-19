@@ -11232,6 +11232,98 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async recordHoaFeeCollection(params: {
+    hoaId: string;
+    residentId: string;
+    amount: number;
+    description?: string;
+    collectedByUserId: string;
+    paymentMethod?: string;
+    externalRef?: string;
+  }): Promise<{
+    id: string;
+    hoaId: string;
+    residentId: string;
+    amount: string;
+    description: string;
+    collectedByUserId: string;
+    paymentMethod: string;
+    externalRef: string | null;
+    createdAt: Date;
+  }> {
+    const amount = Number(params.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("amount must be a positive number");
+    }
+
+    const description =
+      typeof params.description === "string" && params.description.trim().length > 0
+        ? params.description.trim()
+        : "Monthly HOA dues";
+    const paymentMethod =
+      typeof params.paymentMethod === "string" && params.paymentMethod.trim().length > 0
+        ? params.paymentMethod.trim().toLowerCase()
+        : "manual";
+    const externalRef =
+      typeof params.externalRef === "string" && params.externalRef.trim().length > 0
+        ? params.externalRef.trim()
+        : null;
+
+    const insertResult = await neonPool.query<{
+      id: string;
+      hoa_id: string;
+      resident_id: string;
+      amount: string;
+      description: string;
+      collected_by_user_id: string;
+      payment_method: string;
+      external_ref: string | null;
+      created_at: Date;
+    }>(
+      `
+      INSERT INTO hoa_fee_payments (
+        hoa_id,
+        resident_id,
+        amount,
+        description,
+        collected_by_user_id,
+        payment_method,
+        external_ref
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, hoa_id, resident_id, amount, description, collected_by_user_id, payment_method, external_ref, created_at
+      `,
+      [
+        params.hoaId,
+        params.residentId,
+        amount.toFixed(2),
+        description,
+        params.collectedByUserId,
+        paymentMethod,
+        externalRef,
+      ]
+    );
+
+    const payment = insertResult.rows[0];
+    if (!payment) {
+      throw new Error("Failed to record HOA fee payment");
+    }
+
+    await this.recordHoaFeePayment(params.hoaId, amount);
+
+    return {
+      id: payment.id,
+      hoaId: payment.hoa_id,
+      residentId: payment.resident_id,
+      amount: payment.amount,
+      description: payment.description,
+      collectedByUserId: payment.collected_by_user_id,
+      paymentMethod: payment.payment_method,
+      externalRef: payment.external_ref,
+      createdAt: new Date(payment.created_at),
+    };
+  }
+
   async getHOAVendors(hoaId: string): Promise<any[]> {
     return await db
       .select()
