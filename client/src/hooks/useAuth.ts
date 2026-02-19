@@ -113,6 +113,7 @@ export function useAuth() {
   const {
     data: user,
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useQuery({
@@ -137,7 +138,9 @@ export function useAuth() {
 
   return {
     user: user || null,
-    isLoading,
+    // Treat active auth revalidation as loading so root routing
+    // doesn't redirect to guest from stale cached null.
+    isLoading: isLoading || isFetching,
     isAuthenticated: !!user,
     error,
     refetch,
