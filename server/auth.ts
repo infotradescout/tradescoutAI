@@ -36,8 +36,15 @@ export function getSession() {
   }
 
   const isProductionEnv = process.env.NODE_ENV === "production";
-  const sameSiteCookie =
-    isProductionEnv && process.env.SESSION_COOKIE_SAMESITE === "none" ? "none" : "lax";
+  const configuredSameSite = String(process.env.SESSION_COOKIE_SAMESITE || "")
+    .trim()
+    .toLowerCase();
+  const sameSiteCookie: "lax" | "strict" | "none" =
+    configuredSameSite === "lax" || configuredSameSite === "strict" || configuredSameSite === "none"
+      ? (configuredSameSite as "lax" | "strict" | "none")
+      : isProductionEnv
+        ? "none"
+        : "lax";
 
   return session({
     name: "tradescout.sid",
@@ -48,11 +55,9 @@ export function getSession() {
     proxy: true,
     cookie: {
       httpOnly: true,
-      // In production we require secure, cross-site compatible cookies.
-      // In local development over http, browsers will silently drop
-      // `secure` cookies, which breaks login loops. Relax this there.
-      // `auto` lets Express infer secure transport from `req.secure` + trust proxy.
-      secure: isProductionEnv ? ("auto" as const) : false,
+      // Production defaults to secure cookies for OAuth/API split-host setups.
+      // Dev stays http-friendly.
+      secure: isProductionEnv,
       sameSite: sameSiteCookie,
       maxAge: sessionTtlMs,
     },

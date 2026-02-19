@@ -103,6 +103,28 @@ export default function PreScoutSetup() {
     window.location.assign(`${apiBaseUrl}/api/auth/${provider}?next=${next}`);
   };
 
+  const ensureSessionEstablished = async (): Promise<boolean> => {
+    const authUrl = `${apiBaseUrl}/api/auth/user`;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        const response = await fetch(authUrl, {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const payload: any = await response.json().catch(() => null);
+          if (payload?.authenticated === true && payload?.user) {
+            return true;
+          }
+        }
+      } catch {
+        // Ignore transient network errors and retry.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+    }
+    return false;
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authSubmitting) return;
@@ -124,12 +146,19 @@ export default function PreScoutSetup() {
     setAuthSubmitting(true);
     try {
       await apiRequest("POST", "/api/auth/login", { email, password });
+      const sessionReady = await ensureSessionEstablished();
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
       try {
         await refetch?.();
       } catch {
         // fail-soft
+      }
+      if (!sessionReady) {
+        toast({
+          title: "Finalizing sign in",
+          description: "Session propagation is taking longer than expected. Retrying now.",
+        });
       }
       toast({ title: "Signed in", description: "Continue with local setup." });
       navigate(`/pre-scout-setup${safeNextQuery}`);
@@ -228,6 +257,7 @@ export default function PreScoutSetup() {
         return;
       }
 
+      await ensureSessionEstablished();
       toast({ title: "Account created", description: "Continue with local setup." });
       navigate(`/pre-scout-setup${safeNextQuery}`);
     } catch (error: any) {
