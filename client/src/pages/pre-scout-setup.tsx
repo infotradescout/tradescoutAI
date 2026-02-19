@@ -9,6 +9,7 @@ import { StateCountySelector } from "@/components/state-county-selector";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { buildApiUrl, getApiBaseUrl } from "@/lib/apiBaseUrl";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
 
@@ -40,7 +41,7 @@ export default function PreScoutSetup() {
       return new URLSearchParams();
     }
   }, [location]);
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const apiBaseUrl = getApiBaseUrl();
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
@@ -104,7 +105,7 @@ export default function PreScoutSetup() {
   };
 
   const ensureSessionEstablished = async (): Promise<boolean> => {
-    const authUrl = `${apiBaseUrl}/api/auth/user`;
+    const authUrl = buildApiUrl("/api/auth/user");
     for (let attempt = 0; attempt < 6; attempt += 1) {
       try {
         const response = await fetch(authUrl, {

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 
 export interface User {
   [key: string]: any;
@@ -54,8 +55,7 @@ export interface User {
 export function useAuth() {
   const authQuery = useCallback(async () => {
     try {
-      const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-      const authUrl = `${apiBaseUrl}/api/auth/user`;
+      const authUrl = buildApiUrl("/api/auth/user");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
@@ -148,8 +148,7 @@ export function useAuth() {
 }
 
 export async function logoutUser(): Promise<void> {
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-  const logoutUrl = `${apiBaseUrl}/api/auth/logout`;
+  const logoutUrl = buildApiUrl("/api/auth/logout");
 
   const doRequest = async (method: "POST" | "GET") => {
     const response = await fetch(logoutUrl, {

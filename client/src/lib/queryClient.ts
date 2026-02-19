@@ -1,7 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-
-// Get API URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 
 // Enhanced API request function with better error handling
 export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
@@ -55,7 +53,7 @@ export async function apiRequest(
       config.body = JSON.stringify(payload);
     }
 
-    const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+    const fullUrl = buildApiUrl(url);
     const response = await fetch(fullUrl, config);
     clearTimeout(timeoutId);
 
@@ -124,9 +122,7 @@ export const queryClient = new QueryClient({
         }
 
         // Make raw fetch call and return Response for React Query to handle
-        const fullUrl = url.startsWith("http")
-          ? url
-          : `${import.meta.env.VITE_API_URL || ""}${url}`;
+        const fullUrl = buildApiUrl(url);
         const response = await fetch(fullUrl, {
           credentials: "include",
           headers: {
