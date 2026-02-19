@@ -19,7 +19,7 @@ describe("localIntents", () => {
 
     it("routes explicit create-account intents", () => {
       const intent = resolveExplicitNavigationIntent("Take me to create account");
-      expect(intent?.to).toBe("/create-account");
+      expect(intent?.to).toBe("/pre-scout-setup?mode=create");
     });
   });
 

@@ -1,0 +1,175 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
+import dotenv from "dotenv";
+import pg from "pg";
+
+const { Client } = pg;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.join(__dirname, "..");
+
+dotenv.config({ path: path.join(repoRoot, ".env.test") });
+dotenv.config({ path: path.join(repoRoot, ".env.local") });
+dotenv.config({ path: path.join(repoRoot, ".env") });
+
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+
+if (!testDatabaseUrl) {
+  console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
+  process.exit(2);
+}
+
+function run(command, args, env = process.env) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: repoRoot,
+      stdio: "inherit",
+      shell: true,
+      env,
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
+}
+
+async function ensureCriticalSchema() {
+  const client = new Client({ connectionString: testDatabaseUrl });
+  await client.connect();
+  try {
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS referred_by_affiliate_account_id varchar
+    `);
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS referred_at timestamp
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_observations_source_ref
+      ON observations (source_type, source_ref)
+    `);
+
+    await client.query(`
+      ALTER TABLE work_requests
+      ADD COLUMN IF NOT EXISTS share_token varchar(64)
+    `);
+
+    await client.query(`
+      ALTER TABLE businesses
+      ADD COLUMN IF NOT EXISTS claim_status varchar(32) DEFAULT 'unclaimed'
+    `);
+
+    await client.query(`
+      ALTER TABLE businesses
+      ADD COLUMN IF NOT EXISTS sources jsonb NOT NULL DEFAULT '[]'::jsonb
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uidx_contact_permissions_pair
+      ON contact_permissions (requester_id, target_user_id)
+    `);
+
+    await client.query(`
+      INSERT INTO users (id, email, role, provider)
+      VALUES ('test-messaging-seed-user', 'messaging-seed@tradescout.test', 'admin', 'local')
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    await client.query(`
+      INSERT INTO marketplace_categories (id, name, description, is_active)
+      VALUES ('test-messaging-seed-category', 'Messaging Seed', 'Seed category for conversation tests', true)
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    await client.query(`
+      INSERT INTO marketplace_listings (
+        id,
+        seller_id,
+        category_id,
+        title,
+        description,
+        price,
+        county,
+        state,
+        condition,
+        status
+      )
+      VALUES
+        ('messaging:hire', 'test-messaging-seed-user', 'test-messaging-seed-category', 'Messaging Hire Seed', 'Seed listing for messaging hire', 1.00, 'Test', 'TS', 'good', 'active'),
+        ('messaging:advise', 'test-messaging-seed-user', 'test-messaging-seed-category', 'Messaging Advise Seed', 'Seed listing for messaging advise', 1.00, 'Test', 'TS', 'good', 'active'),
+        ('messaging:collaborate', 'test-messaging-seed-user', 'test-messaging-seed-category', 'Messaging Collaborate Seed', 'Seed listing for messaging collaborate', 1.00, 'Test', 'TS', 'good', 'active'),
+        ('messaging:reconnect', 'test-messaging-seed-user', 'test-messaging-seed-category', 'Messaging Reconnect Seed', 'Seed listing for messaging reconnect', 1.00, 'Test', 'TS', 'good', 'active')
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS xp_daily_counters (
+        user_id varchar NOT NULL,
+        day_key_utc varchar(16) NOT NULL,
+        cap_key varchar(64) NOT NULL,
+        count integer NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, day_key_utc, cap_key)
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS xp_daily_uniques (
+        user_id varchar NOT NULL,
+        day_key_utc varchar(16) NOT NULL,
+        event_type varchar(120) NOT NULL,
+        unique_key varchar(255) NOT NULL,
+        PRIMARY KEY (user_id, day_key_utc, event_type, unique_key)
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_xp (
+        user_id varchar PRIMARY KEY,
+        xp_total integer NOT NULL DEFAULT 0,
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS xp_ledger (
+        id bigserial PRIMARY KEY,
+        user_id varchar NOT NULL,
+        delta integer NOT NULL,
+        reason varchar(120) NOT NULL,
+        source_event_id varchar(128),
+        day_key_utc varchar(16) NOT NULL,
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+  } finally {
+    await client.end();
+  }
+}
+
+async function main() {
+  const env = { ...process.env, DATABASE_URL: testDatabaseUrl, TEST_DATABASE_URL: testDatabaseUrl };
+  const fullSync = process.argv.includes("--full-sync");
+
+  if (fullSync) {
+    const pushCode = await run("npx", ["drizzle-kit", "push"], env);
+    if (pushCode !== 0) {
+      console.error("[bootstrap-test-db] drizzle-kit push failed.");
+      process.exit(pushCode);
+    }
+  }
+
+  await ensureCriticalSchema();
+  console.log("[bootstrap-test-db] Test DB schema is ready.");
+}
+
+main().catch((error) => {
+  console.error(
+    "[bootstrap-test-db] Unexpected failure:",
+    error instanceof Error ? error.message : String(error)
+  );
+  process.exit(1);
+});

@@ -59,6 +59,12 @@ jobs:
       - name: Push schema to test DB
         run: npm run db:push:test
 
+      - name: Run integration tests (default)
+        run: npm run test:integration
+
+      - name: Run integration tests (strict)
+        run: npm run test:integration:strict
+
       - name: Seed E2E user
         run: npm run seed:e2e-user
 

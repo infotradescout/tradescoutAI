@@ -1,15 +1,24 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { db } from "../db";
 import { counties, observationSources, observations, states } from "@shared/schema";
 
 const RUN_ID = `obs-${Date.now()}`;
 const TEST_STATE_ID = `${RUN_ID}-state`;
 const TEST_STATE_CODE = "ZZ";
 const TEST_COUNTY_FIPS = "99001";
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeWithDb = hasTestDb ? describe : describe.skip;
+let db!: (typeof import("../db"))["db"];
 
-describe("Canonical Observation Spine (Phase 0A)", () => {
+describeWithDb("Canonical Observation Spine (Phase 0A)", () => {
   beforeAll(async () => {
+    ({ db } = await import("../db"));
+
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_observations_source_ref
+      ON observations (source_type, source_ref)
+    `);
+
     await db
       .insert(states)
       .values({

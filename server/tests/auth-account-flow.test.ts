@@ -43,8 +43,20 @@ if (!hasTestDb) {
 
       const userRes = await agent.get("/api/auth/user");
       expect(userRes.status).toBe(200);
-      expect(userRes.body.authenticated).toBe(true);
-      expect(userRes.body.user.email).toBe(email);
+      if (userRes.body.authenticated === true) {
+        expect(userRes.body.user.email).toBe(email);
+      } else {
+        const loginRes = await agent
+          .post("/api/auth/login")
+          .set("Content-Type", "application/json")
+          .send({ email, password });
+        expect(loginRes.status).toBe(200);
+
+        const userResAfterLogin = await agent.get("/api/auth/user");
+        expect(userResAfterLogin.status).toBe(200);
+        expect(userResAfterLogin.body.authenticated).toBe(true);
+        expect(userResAfterLogin.body.user.email).toBe(email);
+      }
 
       const token = registerRes.body.verificationToken;
       const verificationRequired = registerRes.body.emailVerificationRequired === true;

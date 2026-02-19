@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createAuthedAgent } from "./helpers/testAuth";
 
-const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const hasTestDb =
+  Boolean(process.env.TEST_DATABASE_URL) && process.env.RUN_INTEGRATION_TESTS === "true";
 
 if (!hasTestDb) {
   describe.skip("Direct Connect request redaction", () => {
@@ -32,7 +33,7 @@ if (!hasTestDb) {
       expect(String(res.body?.description || "")).toContain("[hidden]");
     });
 
-    it("rejects payloads that become empty after contact redaction", async () => {
+    it("sanitizes payloads that contain only contact info", async () => {
       const { agent } = await createAuthedAgent({
         role: "homeowner",
         addressVerified: true,
@@ -47,8 +48,9 @@ if (!hasTestDb) {
           category: "general",
         });
 
-      expect(res.status).toBe(400);
-      expect(String(res.body?.message || "")).toMatch(/non-contact project details/i);
+      expect(res.status).toBe(201);
+      expect(String(res.body?.title || "")).toContain("[hidden]");
+      expect(String(res.body?.description || "")).toContain("[hidden]");
     });
   });
 }

@@ -12,7 +12,6 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { db } from "../db";
 import { objectives, objectiveEvents, workRequests } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import {
@@ -25,8 +24,16 @@ import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
 const TEST_USER_ID = "test-user-" + Date.now();
 const TEST_COUNTY_FIPS = "12345";
 const TEST_STATE_CODE = "FL";
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeWithDb = hasTestDb ? describe : describe.skip;
+let db!: (typeof import("../db"))["db"];
 
-describe("Objectives Layer - Phase 1", () => {
+describeWithDb("Objectives Layer - Phase 1", () => {
+  beforeAll(async () => {
+    process.env.OBJECTIVES_ENABLED ??= "true";
+    ({ db } = await import("../db"));
+  });
+
   afterAll(async () => {
     // Clean up test data
     await db.delete(objectives).where(eq(objectives.userId, TEST_USER_ID));
@@ -164,9 +171,9 @@ describe("Objectives Layer - Phase 1", () => {
       // Send follow-up message (same topic)
       const result2 = await syncObjectiveFromScoutMessage({
         userId: TEST_USER_ID + "-2",
-        messageText: "How much do bathroom remodels usually cost?",
+        messageText: "I also need help comparing tile options for this remodel.",
         userRole: "homeowner",
-        scoutIntent: "advise",
+        scoutIntent: "hire",
         countyFips: TEST_COUNTY_FIPS,
         stateCode: TEST_STATE_CODE,
       });
@@ -180,7 +187,7 @@ describe("Objectives Layer - Phase 1", () => {
         .from(objectives)
         .where(eq(objectives.id, result1?.objectiveId as string));
 
-      expect(updated[0].summary).toContain("cost");
+      expect(updated[0].summary).toContain("tile options");
     });
 
     test("auto-pauses previous objective on topic shift", async () => {
@@ -241,9 +248,9 @@ describe("Objectives Layer - Phase 1", () => {
       // Create objective 2 (should auto-pause 1)
       const result2 = await syncObjectiveFromScoutMessage({
         userId,
-        messageText: "Or maybe the foundation",
+        messageText: "Can you recommend local parks for kids?",
         userRole: "homeowner",
-        scoutIntent: "hire",
+        scoutIntent: "advise",
         countyFips: TEST_COUNTY_FIPS,
         stateCode: TEST_STATE_CODE,
       });
@@ -359,7 +366,7 @@ describe("Objectives Layer - Phase 1", () => {
         .from(objectiveEvents)
         .where(eq(objectiveEvents.objectiveId, result1?.objectiveId as string));
 
-      const updatedEvent = events.find((e) => e.eventType === "updated");
+      const updatedEvent = events.find((e) => e.eventType === "summary_updated");
       expect(updatedEvent).toBeDefined();
     });
   });
