@@ -1,0 +1,26 @@
+name: Production Release & Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  release-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run Audits
+        run: |
+          npm run audit:http-semantics
+          npm run audit:authority-gates
+          npm run audit:production-debt
+      - name: Run Migrations
+        run: npm run db:migrate
+      - name: Trigger Render
+        run: curl -f -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
