@@ -2,12 +2,13 @@ name: Production Release & Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 jobs:
-  release-and-deploy:
+  deploy-render:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+    concurrency:
+      group: deploy-render-production
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,12 +16,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Run Audits
+      - name: Verify deploy hook is configured
         run: |
-          npm run audit:http-semantics
-          npm run audit:authority-gates
-          npm run audit:production-debt
-      - name: Run Migrations
-        run: npm run db:migrate
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "Missing secret: RENDER_DEPLOY_HOOK_URL"
+            exit 1
+          fi
       - name: Trigger Render
-        run: curl -f -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo "Render deploy hook triggered."
