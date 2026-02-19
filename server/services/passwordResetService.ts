@@ -7,6 +7,7 @@ interface TokenRecord {
 
 class PasswordResetService {
   private tokens = new Map<string, TokenRecord>();
+  private codesByUser = new Map<string, { codeHash: string; expiresAt: number }>();
   private ttlMs: number;
 
   constructor() {
@@ -18,14 +19,20 @@ class PasswordResetService {
     return createHash("sha256").update(token).digest("hex");
   }
 
-  createToken(userId: string): { token: string; expiresAt: number } {
+  private hashCode(code: string): string {
+    return createHash("sha256").update(code).digest("hex");
+  }
+
+  createToken(userId: string): { token: string; code: string; expiresAt: number } {
     const token = randomBytes(32).toString("hex");
+    const code = String(Math.floor(100000 + Math.random() * 900000));
     const hashed = this.hashToken(token);
     const expiresAt = Date.now() + this.ttlMs;
 
     this.tokens.set(hashed, { userId, expiresAt });
+    this.codesByUser.set(userId, { codeHash: this.hashCode(code), expiresAt });
 
-    return { token, expiresAt };
+    return { token, code, expiresAt };
   }
 
   consumeToken(token: string): string | null {
@@ -43,6 +50,21 @@ class PasswordResetService {
 
     this.tokens.delete(hashed);
     return record.userId;
+  }
+
+  consumeCodeForUser(userId: string, code: string): boolean {
+    const record = this.codesByUser.get(userId);
+    if (!record) return false;
+    if (Date.now() > record.expiresAt) {
+      this.codesByUser.delete(userId);
+      return false;
+    }
+
+    const codeHash = this.hashCode(String(code).trim());
+    if (codeHash !== record.codeHash) return false;
+
+    this.codesByUser.delete(userId);
+    return true;
   }
 }
 

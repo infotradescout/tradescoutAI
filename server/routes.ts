@@ -4116,10 +4116,11 @@ export async function registerRoutes(app: any) {
           found: !!user,
         });
         let debugToken: string | undefined;
+        let debugCode: string | undefined;
 
         if (user) {
           console.log("[REQUEST-PASSWORD-RESET] User found:", { id: user.id, email: user.email });
-          const { token, expiresAt } = passwordResetService.createToken(user.id);
+          const { token, code, expiresAt } = passwordResetService.createToken(user.id);
           const resetBase =
             process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
           const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
@@ -4131,8 +4132,9 @@ export async function registerRoutes(app: any) {
               subject: "Reset your TradeScout password",
               html: `<p>We received a request to reset your TradeScout password.</p>
                  <p><a href="${resetLink}">Click here to reset your password</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
+                 <p>Or enter this verification code: <strong>${code}</strong></p>
                  <p>If you did not request this, you can ignore this email.</p>`,
-              text: `Reset your password: ${resetLink}`,
+              text: `Reset your password: ${resetLink}\nVerification code: ${code}`,
               purpose: "password_reset",
             });
             console.log("[REQUEST-PASSWORD-RESET] Email send attempted");
@@ -4145,21 +4147,57 @@ export async function registerRoutes(app: any) {
               process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
             if (!isProductionEnv) {
               debugToken = token;
+              debugCode = code;
             }
           }
         }
 
-        console.log("[REQUEST-PASSWORD-RESET] Responding with message and debugToken:", {
+        console.log("[REQUEST-PASSWORD-RESET] Responding with message and debug artifacts:", {
           debugToken,
+          debugCode,
         });
         res.json({
           message: "If an account exists for that email, a reset link has been sent.",
           debugToken,
+          debugCode,
         });
       } catch (error: any) {
         console.error("[REQUEST-PASSWORD-RESET] CRITICAL ERROR:", error);
         console.error("[REQUEST-PASSWORD-RESET] Stack:", error?.stack);
         sendAutoClassifiedError(res, error, "Failed to request password reset");
+      }
+    }
+  );
+
+  app.post(
+    "/api/auth/verify-password-reset-code",
+    passwordResetLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const { email, code } = req.body || {};
+        const normalizedEmail = String(email || "")
+          .trim()
+          .toLowerCase();
+        const normalizedCode = String(code || "").trim();
+
+        if (!normalizedEmail || !normalizedCode) {
+          return res.status(400).json({ message: "Email and verification code are required" });
+        }
+
+        const user = await storage.getUserByEmail(normalizedEmail);
+        if (!user) {
+          return res.status(400).json({ message: "Invalid or expired verification code" });
+        }
+
+        const valid = passwordResetService.consumeCodeForUser(user.id, normalizedCode);
+        if (!valid) {
+          return res.status(400).json({ message: "Invalid or expired verification code" });
+        }
+
+        const { token } = passwordResetService.createToken(user.id);
+        return res.json({ token });
+      } catch (error: any) {
+        return sendAutoClassifiedError(res, error, "Failed to verify reset code");
       }
     }
   );

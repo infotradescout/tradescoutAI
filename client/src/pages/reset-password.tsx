@@ -11,8 +11,12 @@ import { KeyRound } from "lucide-react";
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [location, navigate] = useLocation();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [verifiedToken, setVerifiedToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [codeStepVisible, setCodeStepVisible] = useState(false);
 
   const token = useMemo(() => {
     try {
@@ -24,13 +28,77 @@ export default function ResetPasswordPage() {
       return "";
     }
   }, [location]);
+  const effectiveToken = token || verifiedToken;
+
+  const requestResetMutation = useMutation({
+    mutationFn: async () => {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) throw new Error("Email is required");
+      return apiRequest("POST", "/api/auth/request-password-reset", { email: normalizedEmail });
+    },
+    onSuccess: (data: any) => {
+      setCodeStepVisible(true);
+      toast({
+        title: "Check your email",
+        description:
+          "We sent a reset link and verification code if the account exists for that email.",
+      });
+
+      if (data?.debugCode) {
+        toast({
+          title: "Dev code",
+          description: `Verification code: ${String(data.debugCode)}`,
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Unable to send reset email",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const verifyCodeMutation = useMutation({
+    mutationFn: async () => {
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedCode = code.trim();
+      if (!normalizedEmail) throw new Error("Email is required");
+      if (!/^\d{6}$/.test(normalizedCode)) throw new Error("Verification code must be 6 digits");
+      return apiRequest("POST", "/api/auth/verify-password-reset-code", {
+        email: normalizedEmail,
+        code: normalizedCode,
+      });
+    },
+    onSuccess: (data: any) => {
+      const nextToken = String(data?.token || "");
+      if (!nextToken) {
+        toast({
+          title: "Verification failed",
+          description: "No token was returned. Request a new code.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setVerifiedToken(nextToken);
+      toast({ title: "Code verified", description: "Set your new password." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Invalid code",
+        description: error?.message || "Please request a new code.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const resetMutation = useMutation({
     mutationFn: async () => {
-      if (!token) throw new Error("Missing token");
+      if (!effectiveToken) throw new Error("Missing reset token");
       if (newPassword.length < 8) throw new Error("Password must be at least 8 characters");
       if (newPassword !== confirm) throw new Error("Passwords do not match");
-      return apiRequest("POST", "/api/auth/reset-password", { token, newPassword });
+      return apiRequest("POST", "/api/auth/reset-password", { token: effectiveToken, newPassword });
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
@@ -51,44 +119,87 @@ export default function ResetPasswordPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <KeyRound className="h-5 w-5 text-orange-400" />
-            Set Your Password
+            Reset Your Password
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
-            This link is single-use and expires quickly. If it fails, request a new one.
+            Use a reset link from email, or request a code and verify it first.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {!token ? (
-            <div className="text-sm text-slate-300">Missing token. Check your reset link.</div>
-          ) : null}
+          {!effectiveToken ? (
+            <>
+              <div className="space-y-2">
+                <label className="text-xs text-slate-400">Email</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                  placeholder="you@example.com"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-xs text-slate-400">New password</label>
-            <Input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="bg-slate-950/40 border-[color:var(--border-subtle)]"
-            />
-          </div>
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 w-full"
+                onClick={() => requestResetMutation.mutate()}
+                disabled={requestResetMutation.isPending}
+              >
+                {requestResetMutation.isPending ? "Sending..." : "Send Reset Email"}
+              </Button>
 
-          <div className="space-y-2">
-            <label className="text-xs text-slate-400">Confirm password</label>
-            <Input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="bg-slate-950/40 border-[color:var(--border-subtle)]"
-            />
-          </div>
+              {codeStepVisible ? (
+                <>
+                  <div className="space-y-2 pt-2">
+                    <label className="text-xs text-slate-400">Verification code</label>
+                    <Input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                      placeholder="6-digit code"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => verifyCodeMutation.mutate()}
+                    disabled={verifyCodeMutation.isPending}
+                  >
+                    {verifyCodeMutation.isPending ? "Verifying..." : "Verify Code"}
+                  </Button>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <label className="text-xs text-slate-400">New password</label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                />
+              </div>
 
-          <Button
-            className="bg-orange-500 hover:bg-orange-600 w-full"
-            onClick={() => resetMutation.mutate()}
-            disabled={!token || resetMutation.isPending}
-          >
-            {resetMutation.isPending ? "Saving..." : "Save Password"}
-          </Button>
+              <div className="space-y-2">
+                <label className="text-xs text-slate-400">Confirm password</label>
+                <Input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                />
+              </div>
+
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 w-full"
+                onClick={() => resetMutation.mutate()}
+                disabled={resetMutation.isPending}
+              >
+                {resetMutation.isPending ? "Saving..." : "Save Password"}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
