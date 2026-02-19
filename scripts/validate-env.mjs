@@ -1,0 +1,44 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+const required = ["DATABASE_URL", "SESSION_SECRET"];
+const optional = [
+  "STRIPE_SECRET_KEY",
+  "SENDGRID_API_KEY",
+  "SENTRY_DSN",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_REGION",
+  "AWS_S3_BUCKET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "FACEBOOK_APP_ID",
+  "FACEBOOK_APP_SECRET",
+];
+
+let missingRequired = false;
+console.log("--- Environment Variable Validation ---");
+
+for (const key of required) {
+  if (!process.env[key]) {
+    console.error(`FAIL: Required variable ${key} is missing!`);
+    missingRequired = true;
+  } else {
+    console.log(`PASS: Required variable ${key} is set.`);
+  }
+}
+
+for (const key of optional) {
+  if (!process.env[key]) {
+    console.warn(`WARN: Optional variable ${key} is missing. Related features will be disabled.`);
+  } else {
+    console.log(`PASS: Optional variable ${key} is set.`);
+  }
+}
+
+if (missingRequired) {
+  console.error("\nCRITICAL: Missing required environment variables. Application will not start in production.");
+  process.exit(1);
+} else {
+  console.log("\nSUCCESS: All required environment variables are present.");
+}

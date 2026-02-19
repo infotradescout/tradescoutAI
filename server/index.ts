@@ -8,6 +8,7 @@ import compression from "compression";
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
+import { logger } from "./services/logger";
 import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
 import { db, pool } from "./db";
 import { notificationService } from "./notification-service";
@@ -42,14 +43,7 @@ function getCachedTemplate(indexPath: string) {
 
 // Lightweight log helper (mirrors server/vite.ts without importing Vite in prod)
 function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info(`[${source}] ${message}`);
 }
 
 // Global error handlers
@@ -114,7 +108,31 @@ app.use((req, res, next) => {
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "https://js.stripe.com",
+          "https://maps.googleapis.com",
+        ],
+        "connect-src": [
+          "'self'",
+          "https://api.stripe.com",
+          "https://maps.googleapis.com",
+          "*.sentry.io",
+        ],
+        "frame-src": ["'self'", "https://js.stripe.com"],
+        "img-src": [
+          "'self'",
+          "data:",
+          "https://*.stripe.com",
+          "https://maps.gstatic.com",
+          "https://maps.googleapis.com",
+        ],
+      },
+    },
   })
 );
 app.use(compression());

@@ -1,6 +1,6 @@
 # TradeScoutPro
 
-Start here: [README_START_HERE.md](README_START_HERE.md)
+Start here: [README_START_HERE.md](README_START_HERE.md) | [PRODUCTION.md](PRODUCTION.md)
 
 ## Local Development
 
@@ -26,6 +26,10 @@ npm run test:run
 # Full end-to-end suite (requires a test DB)
 npm run e2e
 ```
+
+## Production Deployment
+
+For production deployment instructions, see [PRODUCTION.md](PRODUCTION.md).
 
 Database-backed and E2E suites expect a dedicated test database.
 
