@@ -866,6 +866,8 @@ export async function registerRoutes(app: any) {
 
   // Authentication routes
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
         return next(err);
@@ -1838,6 +1840,10 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/auth/user", async (req: AuthedRequest, res: Response) => {
     try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Vary", "Cookie, Origin");
+
       const authDiagnostics = {
         hasCookieHeader: Boolean(req.headers.cookie),
         cookieNames: (req.headers.cookie || "")
