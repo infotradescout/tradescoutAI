@@ -1,5 +1,6 @@
 // LLM Provider abstraction for multi-model and fallback (PHASE 3)
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateAIResponse as generateVertexAIResponse } from "../ai/vertexClient";
 // import { OpenAI } from "openai"; // Uncomment if OpenAI is used
 
 export type LLMModel = "gemini" | "openai";
@@ -26,6 +27,22 @@ export class GeminiProvider implements LLMProvider {
   }
 }
 
+export class VertexGeminiProvider implements LLMProvider {
+  // Keep name as "gemini" to preserve downstream response shape.
+  name: LLMModel = "gemini";
+
+  isConfigured() {
+    const project = String(process.env.GOOGLE_PROJECT_ID || "").trim();
+    const location = String(process.env.GOOGLE_VERTEX_LOCATION || "").trim();
+    return Boolean(project && location);
+  }
+
+  async generate(prompt: string) {
+    // vertexClient enforces fail-safe messaging on error.
+    return generateVertexAIResponse(prompt);
+  }
+}
+
 // Example OpenAI provider (scaffold)
 // export class OpenAIProvider implements LLMProvider {
 //   name: LLMModel = "openai";
@@ -48,11 +65,11 @@ export class GeminiProvider implements LLMProvider {
 // Demo/Mock provider for development when API keys are unavailable
 export class DemoProvider implements LLMProvider {
   name: LLMModel = "gemini";
-  
+
   isConfigured() {
     return true; // Always available as fallback
   }
-  
+
   async generate(prompt: string) {
     // Simulate realistic responses for common prompts
     if (prompt.toLowerCase().includes("contractor") || prompt.toLowerCase().includes("builder")) {
@@ -69,7 +86,10 @@ export class DemoProvider implements LLMProvider {
   }
 }
 
-export async function generateWithFallback(prompt: string, providers: LLMProvider[]): Promise<{ text: string, provider: string }> {
+export async function generateWithFallback(
+  prompt: string,
+  providers: LLMProvider[]
+): Promise<{ text: string; provider: string }> {
   for (const provider of providers) {
     if (!provider.isConfigured()) continue;
     try {

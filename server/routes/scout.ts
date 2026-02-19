@@ -12,7 +12,12 @@ import {
 } from "../utils/userCapabilities";
 import { runScoutAction, safeExecute, type ScoutActionContext } from "../utils/scoutActionGuard";
 import { classifyScoutError, getRecoveryStrategy } from "../utils/scoutErrorMapping";
-import { GeminiProvider, generateWithFallback, LLMProvider } from "../services/llmProvider";
+import {
+  GeminiProvider,
+  VertexGeminiProvider,
+  generateWithFallback,
+  LLMProvider,
+} from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { executeAssistantAction, type AssistantAction, type User } from "../assistantActions";
 import {
@@ -1489,6 +1494,7 @@ Return JSON with keys autoPrompt (string) and suggestions (string array).`;
 
 // Initialize LLM providers (add more as needed)
 const llmProviders: LLMProvider[] = [
+  new VertexGeminiProvider(),
   new GeminiProvider(process.env.GEMINI_API_KEY || ""),
   // Add new OpenAIProvider(process.env.OPENAI_API_KEY) here if needed
 ];
