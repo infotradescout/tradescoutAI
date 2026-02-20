@@ -37,6 +37,25 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
+function getPostLandingRoute(user: any): string {
+  const role: string | undefined = typeof user?.role === "string" ? user.role : undefined;
+  const isSuperAdmin =
+    role === "super_admin" || role === "head_admin" || user?.isSuperAdmin === true;
+
+  const roles: string[] = Array.isArray(user?.roles)
+    ? user.roles.filter((r: unknown): r is string => typeof r === "string")
+    : [];
+  const isAdmin = user?.isAdmin === true || roles.some((r) => r.includes("admin"));
+
+  const profileVersion: number =
+    typeof user?.profileVersion === "number" ? user.profileVersion : 0;
+  const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
+
+  if (needsPreScoutSetup) return "/pre-scout-setup";
+  if (isSuperAdmin || isAdmin) return "/admin";
+  return "/scout";
+}
+
 const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   const [location, navigate] = useLocation();
 
@@ -82,6 +101,20 @@ const HardRedirectTo = memo(function HardRedirectTo({ to }: { to: string }) {
   return null;
 });
 
+const LandingAccessGate = memo(function LandingAccessGate({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <PageLoader />;
+  if (!isAuthenticated) return <>{children}</>;
+
+  const target = getPostLandingRoute(user);
+  return <RedirectTo to={target} />;
+});
+
 function isDefaultHomePage(value: unknown): value is DefaultHomePage {
   return (
     value === "llm" ||
@@ -105,30 +138,11 @@ const RootLanding = memo(function RootLanding() {
     // Wait for auth to load before redirecting
     if (isLoading) return;
 
-    const role: string | undefined = typeof user?.role === "string" ? user.role : undefined;
-    const isSuperAdmin =
-      role === "super_admin" || role === "head_admin" || user?.isSuperAdmin === true;
-
-    const roles: string[] = Array.isArray(user?.roles)
-      ? user.roles.filter((r): r is string => typeof r === "string")
-      : [];
-    const isAdmin = user?.isAdmin === true || roles.some((r) => r.includes("admin"));
-
-    const profileVersion: number =
-      typeof user?.profileVersion === "number" ? user.profileVersion : 0;
-    const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
-
     if (!isAuthenticated) {
       // Public users land on the marketing surface; auth starts from CTA buttons.
       navigate("/landing");
-    } else if (needsPreScoutSetup) {
-      navigate("/pre-scout-setup");
-    } else if (isSuperAdmin) {
-      navigate("/admin");
-    } else if (isAdmin) {
-      navigate("/admin");
     } else {
-      navigate("/scout");
+      navigate(getPostLandingRoute(user));
     }
   }, [user, isAuthenticated, isLoading, location, navigate]);
 
@@ -551,7 +565,9 @@ const AppLayout = memo(function AppLayout() {
             {isLiteScoutRoute ? (
               <Switch>
                 <Route path="/_scout-lite">
-                  <LazyPage Component={ScoutLandingLite} />
+                  <LandingAccessGate>
+                    <LazyPage Component={ScoutLandingLite} />
+                  </LandingAccessGate>
                 </Route>
                 <Route path=":rest*">
                   <LazyPage Component={NotFound} />
@@ -560,7 +576,9 @@ const AppLayout = memo(function AppLayout() {
             ) : isLandingRoute ? (
               <Switch>
                 <Route path="/landing">
-                  <LazyPage Component={Landing} />
+                  <LandingAccessGate>
+                    <LazyPage Component={Landing} />
+                  </LandingAccessGate>
                 </Route>
                 <Route path=":rest*">
                   <LazyPage Component={NotFound} />
@@ -572,7 +590,9 @@ const AppLayout = memo(function AppLayout() {
                   {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
                   <Route path="/" component={RootLanding} />
                   <Route path="/landing">
-                    <LazyPage Component={Landing} />
+                    <LandingAccessGate>
+                      <LazyPage Component={Landing} />
+                    </LandingAccessGate>
                   </Route>
                   {/* Scout OS: primary AI controller surface */}
                   <Route path="/scout" component={ScoutOS} />
@@ -608,10 +628,14 @@ const AppLayout = memo(function AppLayout() {
 
                   {/* Public commercial landing */}
                   <Route path="/hardrock">
-                    <LazyPage Component={HardrockLanding} />
+                    <LandingAccessGate>
+                      <LazyPage Component={HardrockLanding} />
+                    </LandingAccessGate>
                   </Route>
                   <Route path="/commercial/p/:slug">
-                    <LazyPage Component={CommercialProjectLandingPage} />
+                    <LandingAccessGate>
+                      <LazyPage Component={CommercialProjectLandingPage} />
+                    </LandingAccessGate>
                   </Route>
 
                   {/* Auth routes. Canonical entry is /pre-scout-setup; aliases map to explicit modes. */}
