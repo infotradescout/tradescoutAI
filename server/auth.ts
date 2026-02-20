@@ -97,6 +97,30 @@ export async function setupAuth(app: Express) {
 
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
+          const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
+            .trim()
+            .toLowerCase();
+          const configuredMasterAdminPassword = String(process.env.MASTER_ADMIN_PASSWORD || "");
+          const isHeadAdminLikeRole = user.role === "head_admin" || user.role === "super_admin";
+
+          // Self-heal master-admin password drift:
+          // if the submitted credentials match env bootstrap credentials, refresh hash in DB.
+          if (
+            isHeadAdminLikeRole &&
+            configuredMasterAdminEmail &&
+            configuredMasterAdminPassword &&
+            normalizedEmail === configuredMasterAdminEmail &&
+            password === configuredMasterAdminPassword
+          ) {
+            try {
+              const refreshedHash = await bcrypt.hash(configuredMasterAdminPassword, 10);
+              await storage.updateUser(user.id, { password: refreshedHash, updatedAt: new Date() });
+              return done(null, user);
+            } catch (repairError) {
+              return done(repairError as Error);
+            }
+          }
+
           return done(null, false, { message: "Incorrect password" });
         }
 
