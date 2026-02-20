@@ -76,8 +76,8 @@
     "@anthropic-ai/sdk": "^0.37.0",
     "@aws-sdk/client-s3": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
-    "@google-cloud/vertexai": "^1.6.0",
     "@google-cloud/storage": "^7.16.0",
+    "@google-cloud/vertexai": "^1.6.0",
     "@google/generative-ai": "^0.12.0",
     "@googlemaps/markerclusterer": "^2.6.2",
     "@hello-pangea/dnd": "^18.0.1",
@@ -176,7 +176,8 @@
     "react-hook-form": "^7.55.0",
     "react-icons": "^5.4.0",
     "react-resizable-panels": "^2.1.7",
-    "react-router-dom": "^6.28.0",
+    "react-router": "^6.30.3",
+    "react-router-dom": "^6.30.3",
     "recharts": "^2.15.2",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
@@ -216,14 +217,13 @@
     "@types/ws": "^8.5.13",
     "@typescript-eslint/eslint-plugin": "^8.51.0",
     "@typescript-eslint/parser": "^8.51.0",
-    "@vitejs/plugin-react": "^4.3.2",
+    "@vitejs/plugin-react": "^5.0.4",
     "@vitest/ui": "^4.0.15",
     "autocannon": "^8.0.0",
     "autoprefixer": "^10.4.20",
-    "clinic": "^13.0.0",
     "cross-env": "^10.1.0",
     "debug": "^4.4.3",
-    "drizzle-kit": "^0.31.8",
+    "drizzle-kit": "^0.31.9",
     "esbuild": "^0.25.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
@@ -239,7 +239,7 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^5.4.19",
+    "vite": "^6.1.7",
     "vitest": "^4.0.15"
   },
   "optionalDependencies": {
@@ -253,5 +253,12 @@
     "*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "ajv": "^8.17.1",
+    "glob": "^10.5.0",
+    "rimraf": "^5.0.10",
+    "gaxios": "^7.1.3"
   }
 }
