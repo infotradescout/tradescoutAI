@@ -56,6 +56,14 @@ function getPostLandingRoute(user: any): string {
   return "/scout";
 }
 
+function isLegacyRootScoutQuery(rest: string): boolean {
+  if (!rest || !rest.startsWith("?")) return false;
+  const query = rest.slice(1).split("#", 1)[0] || "";
+  if (!query) return false;
+  const params = new URLSearchParams(query);
+  return params.has("prompt") || params.has("intent");
+}
+
 const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   const [location, navigate] = useLocation();
 
@@ -132,15 +140,26 @@ const RootLanding = memo(function RootLanding() {
   const [location, navigate] = useLocation();
 
   useEffect(() => {
+    const raw = String(location || "");
+    const restIdx = raw.search(/[?#]/);
+    const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
+    const rest = restIdx >= 0 ? raw.slice(restIdx) : "";
+
     // Avoid redirect loops if we're already off root.
-    if (location !== "/") return;
+    if (pathOnly !== "/") return;
 
     // Wait for auth to load before redirecting
     if (isLoading) return;
 
     if (!isAuthenticated) {
+      // Back-compat: older Scout links were encoded as '/?prompt=...'
+      if (isLegacyRootScoutQuery(rest)) {
+        navigate(`/scout${rest}`);
+        return;
+      }
+
       // Public users land on the marketing surface; auth starts from CTA buttons.
-      navigate("/landing");
+      navigate(`/landing${rest}`);
     } else {
       navigate(getPostLandingRoute(user));
     }
@@ -500,7 +519,11 @@ const AppLayout = memo(function AppLayout() {
   // Back-compat: older Scout links were encoded as '/?prompt=...'
   useEffect(() => {
     if (location.startsWith("/?")) {
-      setLocation(`/scout${location.substring(1)}`);
+      const query = location.slice(2).split("#", 1)[0] || "";
+      const params = new URLSearchParams(query);
+      if (params.has("prompt") || params.has("intent")) {
+        setLocation(`/scout${location.substring(1)}`);
+      }
     }
   }, [location, setLocation]);
 
