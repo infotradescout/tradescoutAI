@@ -177,13 +177,13 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
     <nav
       className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md border-b border-tsBorder/70" : "bg-transparent"}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-12 lg:h-14">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
             <img
               src={variant.images.logo}
               alt="TradeScout"
-              className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg"
+              className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-contain"
             />
             <span className="font-[var(--font-display)] font-bold text-lg lg:text-xl text-white tracking-tight">
               Trade<span className="text-ts-orange">Scout</span>
@@ -280,9 +280,9 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
     >
       <motion.div
         style={{ y: heroY, opacity: heroOpacity }}
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-4 md:pt-4 md:pb-5 lg:pt-5 lg:pb-6 w-full"
+        className="relative z-10 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-3 pb-4 md:pt-4 md:pb-5 lg:pt-5 lg:pb-6 w-full"
       >
-        <div className="max-w-2xl">
+        <div className="w-full md:max-w-2xl">
           {variant.showBadge !== false && (
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -327,7 +327,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-sm sm:text-base text-white/70 max-w-xl mb-2.5 leading-relaxed"
+            className="text-sm sm:text-base text-white/70 max-w-none md:max-w-xl mb-2.5 leading-relaxed"
           >
             {variant.subhead}
           </motion.p>

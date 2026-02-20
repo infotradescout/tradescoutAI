@@ -55,7 +55,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     { label: "Pricing", href: "#pricing" },
   ],
   images: {
-    logo: "/landing/logo.png",
+    logo: "/tradescout-logo-circle.png",
     trust: "/landing/hero.jpg",
     craft: "/landing/craft.jpg",
   },
