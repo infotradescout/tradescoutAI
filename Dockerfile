@@ -1,5 +1,6 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 # Install dependencies deterministically from package-lock.json
 COPY package.json package-lock.json ./
@@ -9,7 +10,17 @@ RUN npm ci
 COPY . .
 
 # Build client (dist/public) + bundle server (dist/index.js)
-RUN npm run build
+RUN set -eux; \
+  HB_PID=""; \
+  cleanup() { \
+    if [ -n "${HB_PID}" ]; then \
+      kill "${HB_PID}" 2>/dev/null || true; \
+      wait "${HB_PID}" 2>/dev/null || true; \
+    fi; \
+  }; \
+  trap cleanup EXIT; \
+  (while true; do echo "[build-heartbeat] $(date -u +%Y-%m-%dT%H:%M:%SZ) npm run build still running..."; sleep 20; done) & HB_PID=$!; \
+  npm run build
 
 # Optional: drop devDependencies after build to shrink runtime node_modules
 RUN npm prune --omit=dev
