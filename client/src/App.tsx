@@ -413,7 +413,11 @@ const AppLayout = memo(function AppLayout() {
   // but the main Scout experience lives at /scout inside the app frame.
   const isLiteScoutRoute = pathOnly === "/_scout-lite";
   const isLlmRoute = location.startsWith("/scout");
-  const isLandingRoute = pathOnly === "/landing";
+  const isLandingRoute =
+    pathOnly === "/landing" ||
+    pathOnly.startsWith("/landing/") ||
+    pathOnly === "/lp" ||
+    pathOnly.startsWith("/lp/");
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -604,6 +608,21 @@ const AppLayout = memo(function AppLayout() {
                     <LazyPage Component={Landing} />
                   </LandingAccessGate>
                 </Route>
+                <Route path="/landing/:variant">
+                  <LandingAccessGate>
+                    <LazyPage Component={Landing} />
+                  </LandingAccessGate>
+                </Route>
+                <Route path="/lp">
+                  <LandingAccessGate>
+                    <LazyPage Component={Landing} />
+                  </LandingAccessGate>
+                </Route>
+                <Route path="/lp/:variant">
+                  <LandingAccessGate>
+                    <LazyPage Component={Landing} />
+                  </LandingAccessGate>
+                </Route>
                 <Route path=":rest*">
                   <LazyPage Component={NotFound} />
                 </Route>
@@ -614,6 +633,21 @@ const AppLayout = memo(function AppLayout() {
                   {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
                   <Route path="/" component={RootLanding} />
                   <Route path="/landing">
+                    <LandingAccessGate>
+                      <LazyPage Component={Landing} />
+                    </LandingAccessGate>
+                  </Route>
+                  <Route path="/landing/:variant">
+                    <LandingAccessGate>
+                      <LazyPage Component={Landing} />
+                    </LandingAccessGate>
+                  </Route>
+                  <Route path="/lp">
+                    <LandingAccessGate>
+                      <LazyPage Component={Landing} />
+                    </LandingAccessGate>
+                  </Route>
+                  <Route path="/lp/:variant">
                     <LandingAccessGate>
                       <LazyPage Component={Landing} />
                     </LandingAccessGate>

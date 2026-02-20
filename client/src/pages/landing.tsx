@@ -12,9 +12,9 @@
  * - Payment CANNOT override trust tiers
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { toast } from "@/hooks/use-toast";
 import {
   Shield,
@@ -54,16 +54,28 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { resolveLandingVariant } from "./landingVariants";
 
-// Image URLs
-const IMAGES = {
-  logo: "/landing/logo.png",
-  hero: "/landing/hero.jpg",
-  trust: "/landing/trust.jpg",
-  community: "/landing/community.jpg",
-  scoutAi: "/landing/scoutAi.jpg",
-  craft: "/landing/craft.jpg",
-};
+function useLandingVariant() {
+  const [location] = useLocation();
+  const raw = String(location || "");
+  const pathOnly = raw.split("?")[0].replace(/\/+$/, "") || "/";
+  const queryString = raw.includes("?") ? raw.split("?").slice(1).join("?") : "";
+  const query = useMemo(() => new URLSearchParams(queryString), [queryString]);
+
+  const [, p1] = useRoute("/landing/:variant");
+  const [, p2] = useRoute("/lp/:variant");
+  const pathVariant =
+    (p1 && (p1 as any).variant ? String((p1 as any).variant) : null) ||
+    (p2 && (p2 as any).variant ? String((p2 as any).variant) : null);
+
+  const effectiveVariant = pathOnly === "/lp" ? null : pathVariant;
+
+  return useMemo(
+    () => resolveLandingVariant({ pathVariant: effectiveVariant, query }),
+    [effectiveVariant, query]
+  );
+}
 
 // ─── Animated counter ───
 function AnimatedCounter({
@@ -131,10 +143,9 @@ function Reveal({
 }
 
 // ─── Navigation ───
-function Navbar() {
+function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const getStartedHref = "https://www.thetradescout.com/login";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -142,13 +153,7 @@ function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const links = [
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Trust Model", href: "#trust" },
-    { label: "Direct Connect", href: "#direct-connect" },
-    { label: "For Contractors", href: "#contractors" },
-    { label: "Pricing", href: "#pricing" },
-  ];
+  const links = variant.navLinks;
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -167,7 +172,7 @@ function Navbar() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
             <img
-              src={IMAGES.logo}
+              src={variant.images.logo}
               alt="TradeScout"
               className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg"
             />
@@ -186,9 +191,9 @@ function Navbar() {
                 {link.label}
               </button>
             ))}
-            <a href={getStartedHref} target="_blank" rel="noopener noreferrer">
+            <a href={variant.primaryCta.href}>
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold px-6 h-10 rounded-lg shadow-lg shadow-ts-orange/20 transition-all hover:shadow-ts-orange/30 hover:scale-[1.02]">
-                Get Started
+                {variant.primaryCta.label}
               </Button>
             </a>
           </div>
@@ -219,9 +224,9 @@ function Navbar() {
                 {link.label}
               </button>
             ))}
-            <a href={getStartedHref} target="_blank" rel="noopener noreferrer">
+            <a href={variant.primaryCta.href}>
               <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold h-12 rounded-lg mt-2">
-                Get Started
+                {variant.primaryCta.label}
               </Button>
             </a>
           </div>
@@ -232,7 +237,7 @@ function Navbar() {
 }
 
 // ─── Hero Section ───
-function HeroSection() {
+function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
     <section className="relative min-h-[82vh] lg:min-h-[88vh] flex items-center overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24 w-full">
@@ -244,7 +249,7 @@ function HeroSection() {
             className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-8"
           >
             <ShieldCheck className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">Trust-First Platform</span>
+            <span className="text-sm font-medium text-ts-orange">{variant.badgeText}</span>
           </motion.div>
 
           <motion.h1
@@ -253,11 +258,12 @@ function HeroSection() {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6"
           >
-            Connection
-            <br />
-            <span className="text-gradient-orange">Without</span>
-            <br />
-            Compromise
+            {variant.headlineLines.map((line, idx) => (
+              <span key={idx}>
+                {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
+                <br />
+              </span>
+            ))}
           </motion.h1>
 
           <motion.p
@@ -266,8 +272,7 @@ function HeroSection() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-lg sm:text-xl text-white/70 max-w-xl mb-7 leading-relaxed"
           >
-            Verified people connect to verified pros through Scout-powered matching. No lead spam.
-            No pay-to-play. No payment at all. Just trust.
+            {variant.subhead}
           </motion.p>
 
           <motion.div
@@ -276,22 +281,33 @@ function HeroSection() {
             transition={{ duration: 0.6, delay: 0.7 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <a href="https://www.thetradescout.com/login" target="_blank" rel="noopener noreferrer">
+            <a href={variant.primaryCta.href}>
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-8 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
-                Find a Contractor
+                {variant.primaryCta.label}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </a>
-            <Button
-              onClick={() => {
-                const elem = document.getElementById("how-it-works");
-                elem?.scrollIntoView({ behavior: "smooth" });
-              }}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-8 h-14 rounded-lg w-full sm:w-auto bg-transparent"
-            >
-              See How It Works
-            </Button>
+            {variant.secondaryCta?.scrollToId ? (
+              <Button
+                onClick={() => {
+                  const elem = document.getElementById(variant.secondaryCta?.scrollToId || "");
+                  elem?.scrollIntoView({ behavior: "smooth" });
+                }}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-8 h-14 rounded-lg w-full sm:w-auto bg-transparent"
+              >
+                {variant.secondaryCta.label}
+              </Button>
+            ) : variant.secondaryCta?.href ? (
+              <a href={variant.secondaryCta.href}>
+                <Button
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-8 h-14 rounded-lg w-full sm:w-auto bg-transparent"
+                >
+                  {variant.secondaryCta.label}
+                </Button>
+              </a>
+            ) : null}
           </motion.div>
         </div>
       </div>
@@ -314,10 +330,10 @@ function HeroSection() {
 // ─── Stats Bar ───
 function StatsBar() {
   const stats = [
-    { value: 0, prefix: "$", suffix: "", label: "Cost to Anyone", display: "$0" },
     { value: 100, suffix: "%", label: "Trust-Based Matching" },
     { value: 0, suffix: "", label: "Lead Spam", display: "Zero" },
     { value: 5, suffix: "-Layer", label: "Verification System" },
+    { value: 0, suffix: "", label: "Pay-to-Play", display: "No" },
   ];
 
   return (
@@ -328,12 +344,7 @@ function StatsBar() {
             <Reveal key={i} delay={i * 0.1}>
               <div className="text-center">
                 <div className="text-3xl sm:text-4xl font-extrabold text-ts-orange font-[var(--font-display)] mb-1">
-                  {stat.display || (
-                    <>
-                      {stat.prefix}
-                      <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-                    </>
-                  )}
+                  {stat.display ?? <AnimatedCounter target={stat.value} suffix={stat.suffix} />}
                 </div>
                 <div className="text-xs sm:text-sm text-white/60 font-medium">{stat.label}</div>
               </div>
@@ -361,7 +372,7 @@ function HowItWorksSection() {
     {
       icon: CheckCircle,
       title: "Pros Accept/Decline",
-      desc: "Contractors review your request and choose to accept or pass. No spam.",
+      desc: "Pros review your request and choose to accept or pass. No spam.",
     },
     {
       icon: Handshake,
@@ -408,7 +419,7 @@ function HowItWorksSection() {
 }
 
 // ─── Trust Model Section ───
-function TrustSection() {
+function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const layers = [
     { icon: UserCheck, title: "Identity Verified", desc: "Real person, real business" },
     { icon: FileCheck, title: "License & Insurance", desc: "Active, up-to-date credentials" },
@@ -437,7 +448,7 @@ function TrustSection() {
                 Trust, Not Payment
               </h2>
               <p className="text-lg text-white/60 mb-8">
-                Every contractor has a Community Verification Score (CVS) based on verified
+                Every pro has a Community Verification Score (CVS) based on verified
                 identity, active credentials, work history, community recommendations, and dispute
                 resolution. Trust metrics are public and auditable.
               </p>
@@ -464,7 +475,7 @@ function TrustSection() {
 
           <Reveal delay={0.2}>
             <img
-              src={IMAGES.trust}
+              src={variant.images.trust}
               alt="Trust Model"
               className="w-full h-[260px] sm:h-[340px] lg:h-[520px] rounded-xl shadow-2xl shadow-ts-orange/20 object-cover object-[35%_center]"
               loading="lazy"
@@ -480,7 +491,7 @@ function TrustSection() {
             <div>
               <h3 className="text-xl font-bold text-white mb-2">Payment Cannot Override Trust</h3>
               <p className="text-white/70">
-                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80. Boosts
+                A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Boosts
                 work <strong>within trust tiers</strong>, not across them. Trust always comes first.
               </p>
             </div>
@@ -492,7 +503,7 @@ function TrustSection() {
 }
 
 // ─── Direct Connect Section ───
-function DirectConnectSection() {
+function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const features = [
     { icon: Ban, title: "No Lead Spam", desc: "1-3 matches per request, not 20+" },
     { icon: TrendingUp, title: "Quality Over Quantity", desc: "Trust-ranked, not price-ranked" },
@@ -506,7 +517,7 @@ function DirectConnectSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal delay={0.2}>
             <img
-              src={IMAGES.craft}
+              src={variant.images.craft}
               alt="Direct Connect"
               className="rounded-xl shadow-2xl shadow-black/30"
             />
@@ -524,7 +535,7 @@ function DirectConnectSection() {
                 No Bidding Wars.
               </h2>
               <p className="text-lg text-white/60 mb-8">
-                Scout routes your request to 1-3 qualified contractors. They accept or decline
+                Scout routes your request to 1-3 qualified pros. They accept or decline
                 upfront. No wasted time, no spam calls.
               </p>
               <div className="space-y-4">
@@ -554,59 +565,33 @@ function DirectConnectSection() {
 }
 
 // ─── For Contractors Section ───
-function ContractorsSection() {
-  const benefits = [
-    { icon: Award, title: "Build Your CVS", desc: "Reputation grows with every verified job" },
-    { icon: Users, title: "No Pay-to-Play", desc: "Trust determines ranking, not payment" },
-    { icon: Target, title: "Qualified Leads Only", desc: "Pre-matched homeowners, not spam" },
-    { icon: Briefcase, title: "Control Your Schedule", desc: "Accept or decline requests freely" },
-  ];
-
+function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <section id="contractors" className="relative py-16 lg:py-20 bg-transparent">
+    <section id="audience" className="relative py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
             <Briefcase className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">For Contractors</span>
+            <span className="text-sm font-medium text-ts-orange">
+              {variant.audience.sectionLabel}
+            </span>
           </div>
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
-            Build Your Reputation
+            {variant.audience.sectionTitle}
           </h2>
-          <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            No pay-to-play. No lead fees. Just trust-first matching that rewards quality work.
-          </p>
+          <p className="text-lg text-white/60 max-w-2xl mx-auto">{variant.audience.sectionDesc}</p>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {benefits.map((benefit, i) => {
-            const Icon = benefit.icon;
-            return (
-              <Reveal key={i} delay={i * 0.1}>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6 hover:border-ts-orange/30 transition-colors">
-                  <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-ts-orange" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{benefit.title}</h3>
-                  <p className="text-sm text-white/60">{benefit.desc}</p>
-                </div>
-              </Reveal>
-            );
-          })}
+        <div className="grid md:grid-cols-2 gap-6">
+          {variant.audience.cards.map((card, i) => (
+            <Reveal key={i} delay={i * 0.1}>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 hover:border-ts-orange/30 transition-colors">
+                <h3 className="text-lg font-bold text-white mb-2">{card.title}</h3>
+                <p className="text-sm text-white/60">{card.desc}</p>
+              </div>
+            </Reveal>
+          ))}
         </div>
-
-        <Reveal className="mt-16 text-center">
-          <a
-            href="https://www.thetradescout.com/contractor-join"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-10 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
-              Join as a Contractor
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </a>
-        </Reveal>
       </div>
     </section>
   );
@@ -615,7 +600,7 @@ function ContractorsSection() {
 // ─── Pricing Section ───
 function PricingSection() {
   const features = [
-    "Unlimited contractor search",
+    "Unlimited directory search",
     "Direct Connect matching",
     "Community intel & playbooks",
     "Scout assistant",
@@ -714,19 +699,19 @@ function FAQSection() {
     },
     {
       q: "What is the Community Verification Score (CVS)?",
-      a: "It's a public, auditable score based on verified identity, active credentials, work history, community recommendations, and dispute resolution. You can see exactly why Scout matched you with a contractor.",
+      a: "It's a public, auditable score based on verified identity, active credentials, work history, community recommendations, and dispute resolution. You can see exactly why Scout matched you with a pro.",
     },
     {
-      q: "Can contractors pay to boost their ranking?",
-      a: "Boosts work WITHIN trust tiers, not across them. A contractor with CVS 40 cannot pay to rank above one with CVS 80. Trust always comes first.",
+      q: "Can pros pay to boost their ranking?",
+      a: "Boosts work WITHIN trust tiers, not across them. A pro with CVS 40 cannot pay to rank above one with CVS 80. Trust always comes first.",
     },
     {
       q: "How does Direct Connect work?",
-      a: "Scout sends your request to 1-3 pre-matched contractors. They review your details and choose to accept or decline before contacting you. No spam, no pressure.",
+      a: "Scout sends your request to 1-3 pre-matched pros. They review your details and choose to accept or decline before contacting you. No spam, no pressure.",
     },
     {
-      q: "What if I don't like the contractors Scout matched me with?",
-      a: "You can browse the full contractor directory anytime. Scout's matches are recommendations based on trust and relevance, but you're always in control.",
+      q: "What if I don't like the matches Scout sent me?",
+      a: "You can browse the full directory anytime. Scout's matches are recommendations based on trust and relevance, but you're always in control.",
     },
   ];
 
@@ -762,7 +747,7 @@ function FAQSection() {
 }
 
 // ─── CTA Section ───
-function CTASection() {
+function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
     <section id="get-started" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -770,43 +755,43 @@ function CTASection() {
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-8">
             <Award className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">
-              Join the Trust-First Movement
+              {variant.cta.label}
             </span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
-            Ready to find a contractor
-            <br />
-            <span className="text-gradient-orange">you can trust?</span>
+            {variant.cta.titleLines.map((line, idx) => (
+              <span key={idx}>
+                {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
+                <br />
+              </span>
+            ))}
           </h2>
 
           <p className="text-lg text-white/60 mb-7 max-w-xl mx-auto">
-            Stop getting spammed by 20 contractors. Start getting matched with 1-3 verified pros who
-            are actually right for your project.
+            {variant.cta.desc}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="https://www.thetradescout.com/login" target="_blank" rel="noopener noreferrer">
+            <a href={variant.cta.primaryHref}>
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-10 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
-                Get Started
+                {variant.cta.primaryLabel}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </a>
-            <a
-              href="https://www.thetradescout.com/contractor-join"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-10 h-14 rounded-lg bg-transparent"
-              >
-                I'm a Contractor
-              </Button>
-            </a>
+            {variant.cta.secondaryHref && variant.cta.secondaryLabel ? (
+              <a href={variant.cta.secondaryHref}>
+                <Button
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-10 h-14 rounded-lg bg-transparent"
+                >
+                  {variant.cta.secondaryLabel}
+                </Button>
+              </a>
+            ) : null}
           </div>
 
-          <p className="text-xs text-white/30 mt-6">No credit card required.</p>
+          <p className="text-xs text-white/30 mt-6">No lead spam. No pay-to-play.</p>
         </Reveal>
       </div>
     </section>
@@ -814,20 +799,20 @@ function CTASection() {
 }
 
 // ─── Footer ───
-function Footer() {
+function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
     <footer className="bg-transparent border-t border-white/5 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src={IMAGES.logo} alt="TradeScout" className="w-10 h-10 rounded-lg" />
+              <img src={variant.images.logo} alt="TradeScout" className="w-10 h-10 rounded-lg" />
               <span className="font-[var(--font-display)] font-bold text-lg text-white">
                 Trade<span className="text-ts-orange">Scout</span>
               </span>
             </div>
             <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              Connection Without Compromise. Trust-first contractor matching powered by Scout.
+              Connection Without Compromise. Trust-first local matching powered by Scout.
             </p>
           </div>
 
@@ -880,36 +865,21 @@ function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">For Contractors</h4>
+            <h4 className="text-sm font-semibold text-white mb-4">For You</h4>
             <ul className="space-y-2 text-sm text-white/60">
               <li>
-                <a
-                  href="https://www.thetradescout.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() =>
+                    document.getElementById("audience")?.scrollIntoView({ behavior: "smooth" })
+                  }
                   className="hover:text-ts-orange transition-colors"
                 >
-                  Join TradeScout
-                </a>
+                  Who it's for
+                </button>
               </li>
               <li>
-                <a
-                  href="https://www.thetradescout.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-ts-orange transition-colors"
-                >
-                  Contractor Dashboard
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.thetradescout.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-ts-orange transition-colors"
-                >
-                  Build Your CVS
+                <a href={variant.primaryCta.href} className="hover:text-ts-orange transition-colors">
+                  Get started
                 </a>
               </li>
             </ul>
@@ -948,7 +918,7 @@ function Footer() {
 
         <div className="border-t border-white/5 pt-8">
           <p className="text-xs text-white/30 text-center">
-            © 2026 TradeScout. All rights reserved. Trust-first contractor matching.
+            © 2026 TradeScout. All rights reserved. Trust-first local matching.
           </p>
         </div>
       </div>
@@ -958,21 +928,22 @@ function Footer() {
 
 // ─── Main Page ───
 export default function Home() {
+  const variant = useLandingVariant();
   return (
     <div className="min-h-screen flex flex-col bg-transparent text-white">
-      <Navbar />
+      <Navbar variant={variant} />
       <main>
-        <HeroSection />
+        <HeroSection variant={variant} />
         <StatsBar />
         <HowItWorksSection />
-        <TrustSection />
-        <DirectConnectSection />
-        <ContractorsSection />
+        <TrustSection variant={variant} />
+        <DirectConnectSection variant={variant} />
+        <AudienceSection variant={variant} />
         <PricingSection />
         <FAQSection />
-        <CTASection />
+        <CTASection variant={variant} />
       </main>
-      <Footer />
+      <Footer variant={variant} />
     </div>
   );
 }
