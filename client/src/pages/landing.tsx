@@ -699,7 +699,7 @@ function PricingSection() {
             <Sparkles className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">Simple Pricing</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">$0 Forever</h2>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">$0</h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
             Gotcha. TradeScout is for you, for free, forever.
           </p>
