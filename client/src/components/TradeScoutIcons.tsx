@@ -24,12 +24,16 @@ export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {
   const sizeClass = sizeClasses[size];
 
   return (
-    <img
-      src={BRAND_LOGO_URL}
-      alt="TradeScout logo"
-      className={`${sizeClass} ${className} rounded-full object-cover`}
-      loading="lazy"
-    />
+    <span
+      className={`${sizeClass} ${className} inline-flex items-center justify-center rounded-full overflow-hidden bg-black/20 ring-1 ring-white/10`}
+    >
+      <img
+        src={BRAND_LOGO_URL}
+        alt="TradeScout logo"
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+    </span>
   );
 }
 

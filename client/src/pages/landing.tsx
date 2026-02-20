@@ -48,6 +48,7 @@ import {
   Code,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import {
   Accordion,
   AccordionContent,
@@ -180,13 +181,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-12 lg:h-14">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
-            <span className="w-9 h-9 lg:w-10 lg:h-10 rounded-full overflow-hidden bg-black/20 ring-1 ring-white/10 flex items-center justify-center">
-              <img
-                src={variant.images.logo}
-                alt="TradeScout"
-                className="w-full h-full object-cover"
-              />
-            </span>
+            <TradeScoutLogo size="sm" className="lg:w-10 lg:h-10" />
             <span className="font-[var(--font-display)] font-bold text-lg lg:text-xl text-white tracking-tight">
               Trade<span className="text-ts-orange">Scout</span>
             </span>
