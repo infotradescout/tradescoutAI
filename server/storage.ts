@@ -6362,6 +6362,9 @@ export class DatabaseStorage implements IStorage {
       )
       .where(and(...conditions));
 
+    const pageLimit = filters?.limit ?? 20;
+    const pageOffset = filters?.offset ?? 0;
+
     // Ordering: keep recent as baseline; "recommended" boosts high-intent, high-signal posts.
     const orderedQuery =
       sortMode === "recommended"
@@ -6380,7 +6383,55 @@ export class DatabaseStorage implements IStorage {
             )
           : baseQuery.orderBy(desc(communityPosts.createdAt));
 
-    const results = await orderedQuery.limit(filters?.limit ?? 20).offset(filters?.offset ?? 0);
+    type CommunityPostJoinRow = {
+      post: CommunityPost;
+      user: User | null;
+      workRequest: WorkRequest | null;
+    };
+
+    let results: CommunityPostJoinRow[];
+
+    try {
+      results = (await orderedQuery.limit(pageLimit).offset(pageOffset)) as CommunityPostJoinRow[];
+    } catch (error) {
+      // Production-safe fallback: if the optional work_requests join path drifts,
+      // still return posts rather than failing the entire feed with 500.
+      console.warn("[CommunityPosts] Primary query failed; retrying without work_requests join", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      const fallbackBaseQuery = db
+        .select({
+          post: communityPosts,
+          user: users,
+        })
+        .from(communityPosts)
+        .leftJoin(users, eq(communityPosts.authorId, users.id))
+        .where(and(...conditions));
+
+      const fallbackOrderedQuery =
+        sortMode === "recommended"
+          ? fallbackBaseQuery.orderBy(
+              desc(
+                sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`
+              ),
+              desc(communityPosts.likeCount),
+              desc(communityPosts.createdAt)
+            )
+          : sortMode === "trending"
+            ? fallbackBaseQuery.orderBy(
+                desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
+                desc(communityPosts.createdAt)
+              )
+            : fallbackBaseQuery.orderBy(desc(communityPosts.createdAt));
+
+      const fallbackRows = await fallbackOrderedQuery.limit(pageLimit).offset(pageOffset);
+      results = fallbackRows.map((row: { post: CommunityPost; user: User | null }) => ({
+        post: row.post,
+        user: row.user,
+        workRequest: null,
+      }));
+    }
 
     const savedIds = new Set<string>();
     if (filters?.viewerId && results.length) {
