@@ -325,7 +325,6 @@ export default function TradeScoutBackground({ children }: TradeScoutBackgroundP
           </svg>
         ))}
       </div>
-      <div className="ts-bg__vignette" aria-hidden="true" />
 
       <div className="ts-bg__content">{children}</div>
     </div>
@@ -358,8 +357,7 @@ const css = `
 .ts-bg__topo,
 .ts-bg__signals,
 .ts-bg__flow,
-.ts-bg__sketches,
-.ts-bg__vignette{
+.ts-bg__sketches{
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -517,15 +515,6 @@ const css = `
 .ts-bg:hover .ts-bg__callouts,
 .ts-bg:hover .ts-bg__sketches{
   opacity: 0.2;
-}
-
-/* VIGNETTE: keeps edges dark so content pops */
-.ts-bg__vignette{
-  z-index: 8;
-  inset: -5%;
-  background:
-    radial-gradient(900px 520px at 50% 25%, transparent 55%, rgba(0,0,0,.28) 85%),
-    radial-gradient(1200px 760px at 50% 80%, transparent 55%, rgba(0,0,0,.48) 90%);
 }
 
 @keyframes tsSketchDraw{
