@@ -1,6 +1,6 @@
-import { createRequire } from "node:module";
+import { createRequire as createVertexRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
+const vertexRequire = createVertexRequire(import.meta.url);
 
 let cachedModel: any | null = null;
 
@@ -25,7 +25,7 @@ function getVertexModel() {
 
   // Lazy-load to avoid hard failing local dev/test when deps aren't installed yet.
   // Render/CI will have the dependency installed from package-lock/package.json.
-  const { VertexAI } = require("@google-cloud/vertexai") as any;
+  const { VertexAI } = vertexRequire("@google-cloud/vertexai") as any;
 
   const vertex = new VertexAI({ project, location });
   cachedModel = vertex.getGenerativeModel({

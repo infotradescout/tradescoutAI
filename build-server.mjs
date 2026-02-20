@@ -69,7 +69,8 @@ await esbuild.build({
     'etag',
     'fresh',
     'range-parser',
-    'node-cron'
+    'node-cron',
+    '@google-cloud/vertexai'
   ],
   plugins: [aliasPlugin],
   banner: {
