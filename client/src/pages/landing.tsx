@@ -299,12 +299,23 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             transition={{ duration: 0.7, delay: 0.3 }}
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
-            {variant.headlineLines.map((line, idx) => (
-              <span key={idx}>
-                {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
-                <br />
-              </span>
-            ))}
+            {variant.headlineMode === "inline"
+              ? variant.headlineLines.map((line, idx) => (
+                  <span key={idx}>
+                    {idx === 1 ? (
+                      <span className="text-gradient-orange">{line}</span>
+                    ) : (
+                      line
+                    )}
+                    {idx < variant.headlineLines.length - 1 ? " " : ""}
+                  </span>
+                ))
+              : variant.headlineLines.map((line, idx) => (
+                  <span key={idx}>
+                    {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
+                    <br />
+                  </span>
+                ))}
           </motion.h1>
 
           <motion.p

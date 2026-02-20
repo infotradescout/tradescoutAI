@@ -66,3 +66,13 @@ const root = ReactDOM.createRoot(container);
 // StrictMode intentionally double-mounts in dev,
 // which was breaking Scout, animations, and OAuth.
 root.render(<App />);
+
+// PWA installability: register a service worker in production.
+// Keep this simple and reliable; any caching logic lives in `client/public/sw.js`.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("[PWA] service worker registration failed", err);
+    });
+  });
+}

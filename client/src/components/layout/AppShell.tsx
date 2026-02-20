@@ -14,6 +14,7 @@ import {
   Menu,
   UserPlus,
   LogIn,
+  Download,
   Wrench,
   ClipboardList,
   CircleHelp,
@@ -33,6 +34,8 @@ import { useLocation } from "wouter";
 import { setSessionLocationOverride } from "@/hooks/useLocationContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useIsStandalone } from "@/hooks/useIsStandalone";
 
 export type NavItem = {
   label: string;
@@ -140,6 +143,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
+  const { canPromptInstall, promptInstall } = useInstallPrompt();
+  const isStandalone = useIsStandalone();
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const showMobileScoutHero = location === "/";
   const isAuthSurface =
@@ -159,6 +164,14 @@ export function AppShell({ children, footer }: AppShellProps) {
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
+  const showInstallAction = !isStandalone && !isSetupSurface;
+  const handleInstallAction = async () => {
+    if (canPromptInstall) {
+      await promptInstall();
+      return;
+    }
+    navigate("/install");
+  };
 
   // Mobile density layer: applies global spacing/typography tweaks for small screens.
   useEffect(() => {
@@ -344,6 +357,21 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
               </>
             )}
+            {showInstallAction && (
+              <button
+                type="button"
+                onClick={handleInstallAction}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  backgroundColor: "var(--charcoal-900)",
+                }}
+                aria-label={canPromptInstall ? "Install TradeScout app" : "Install TradeScout"}
+                title="Install TradeScout"
+              >
+                <Download className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+              </button>
+            )}
             {!isSetupSurface && isAuthenticated && <NotificationCenter />}
             {!isSetupSurface && (
               <button
@@ -413,6 +441,17 @@ export function AppShell({ children, footer }: AppShellProps) {
 
             {!isSetupSurface && (
               <>
+                {showInstallAction && (
+                  <button
+                    type="button"
+                    onClick={handleInstallAction}
+                    className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                    aria-label={canPromptInstall ? "Install TradeScout app" : "Install TradeScout"}
+                    title="Install TradeScout"
+                  >
+                    <Download className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                  </button>
+                )}
                 {/* Messages quick icon */}
                 <button
                   type="button"

@@ -4,6 +4,7 @@ export type LandingVariant = {
   key: string;
   displayName: string;
   badgeText: string;
+  headlineMode?: "stacked" | "inline";
   headlineLines: string[];
   subhead: string;
   primaryCta: { label: string; href: string; newTab?: boolean };
@@ -35,6 +36,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   key: "default",
   displayName: "Default",
   badgeText: "Trust-First Platform",
+  headlineMode: "inline",
   headlineLines: ["Connection", "Without", "Compromise"],
   subhead:
     "Verified people connect through Scout-powered matching. No lead spam. No pay-to-play. Just trust.",

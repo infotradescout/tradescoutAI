@@ -74,29 +74,10 @@ export function useAppLikeEffects() {
   }, [isMobile]);
 
   useEffect(() => {
-    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
-
-    // Emergency freshness mode:
-    // aggressively remove legacy service workers/caches to prevent stale bundles.
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => {
-        registration.unregister();
-      });
-    });
-
-    if ("caches" in window) {
-      caches.keys().then((keys) => {
-        keys.forEach((key) => {
-          if (
-            key === "tradescout-static-v1" ||
-            key.startsWith("tradescout-v") ||
-            key.startsWith("tradescout-static-") ||
-            key.startsWith("workbox-")
-          ) {
-            caches.delete(key);
-          }
-        });
-      });
-    }
+    // NOTE:
+    // TradeScout supports installability (PWA). Do not unregister service workers in production.
+    // If you ever need an emergency reset, implement it behind an explicit env flag and/or
+    // a one-time admin-only action.
+    return;
   }, []);
 }
