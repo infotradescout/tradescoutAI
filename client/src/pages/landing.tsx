@@ -616,7 +616,7 @@ function PricingSection() {
 
   const sponsorFeatures = [
     "Occasional affiliate offers",
-    "Paid advertisers (clearly labeled)",
+    "Paid advertisers",
     "No paywalls or upsells",
     "Core features stay $0",
   ];
