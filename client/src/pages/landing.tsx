@@ -166,7 +166,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}
+      className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
@@ -382,7 +382,10 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
+    <section
+      id="how-it-works"
+      className="relative scroll-mt-24 py-16 lg:py-20 bg-transparent overflow-hidden"
+    >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
@@ -433,7 +436,7 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
   ];
 
   return (
-    <section id="trust" className="relative py-16 lg:py-20 bg-transparent">
+    <section id="trust" className="relative scroll-mt-24 py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal>
@@ -512,7 +515,10 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
   ];
 
   return (
-    <section id="direct-connect" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
+    <section
+      id="direct-connect"
+      className="relative scroll-mt-24 py-16 lg:py-20 bg-transparent overflow-hidden"
+    >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal delay={0.2}>
@@ -567,7 +573,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
 // ─── For Contractors Section ───
 function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <section id="audience" className="relative py-16 lg:py-20 bg-transparent">
+    <section id="audience" className="relative scroll-mt-24 py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
@@ -616,7 +622,10 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
+    <section
+      id="pricing"
+      className="relative scroll-mt-24 py-16 lg:py-20 bg-transparent overflow-hidden"
+    >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
