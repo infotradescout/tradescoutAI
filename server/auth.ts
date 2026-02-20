@@ -5,6 +5,7 @@ import { Strategy as FacebookStrategy } from "passport-facebook";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
+import crypto from "node:crypto";
 import { pool } from "./db";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
@@ -97,11 +98,38 @@ export async function setupAuth(app: Express) {
 
         const normalizeHash = (hash: string): string =>
           // Some legacy imports use PHP-style $2y$ bcrypt prefix; node bcrypt expects $2a$/$2b$.
-          String(hash || "").replace(/^\$2y\$/, "$2b$");
+          String(hash || "")
+            .trim()
+            .replace(/^\$2y\$/, "$2b$");
+
+        const safeTimingEquals = (a: string, b: string): boolean => {
+          // Avoid leaking timing on legacy/plaintext comparisons.
+          const aBuf = Buffer.from(String(a), "utf8");
+          const bBuf = Buffer.from(String(b), "utf8");
+          if (aBuf.length !== bBuf.length) return false;
+          return crypto.timingSafeEqual(aBuf, bBuf);
+        };
 
         const safeCompare = async (candidate: string, hash: string): Promise<boolean> => {
           try {
-            return await bcrypt.compare(candidate, normalizeHash(hash));
+            const normalizedHash = normalizeHash(hash);
+
+            // If the stored "hash" isn't a bcrypt string (legacy plaintext / bad import),
+            // treat it as plaintext only if it matches exactly, then repair by re-hashing.
+            const looksLikeBcrypt = /^\$2[aby]\$/.test(normalizedHash);
+            if (!looksLikeBcrypt) {
+              if (!safeTimingEquals(candidate, normalizedHash)) return false;
+
+              try {
+                const repairedHash = await bcrypt.hash(candidate, 12);
+                await storage.updateUser(user.id, { password: repairedHash, updatedAt: new Date() });
+              } catch {
+                // If repair fails, still allow login (password matched) to avoid locking out.
+              }
+              return true;
+            }
+
+            return await bcrypt.compare(candidate, normalizedHash);
           } catch {
             return false;
           }
