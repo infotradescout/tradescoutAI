@@ -695,6 +695,11 @@ app.use((req, res, next) => {
                 "/service-worker.js",
               ]);
 
+              // Legacy social preview image path compatibility.
+              app.get("/tradescout-logo.jpg", (_req, res) => {
+                res.redirect(301, "/tradescout-logo.png?v=3");
+              });
+
               app.get(Array.from(identityAssets), (req, res, next) => {
                 const filePath = path.join(publicDistPath, req.path);
                 if (!fs.existsSync(filePath)) return next();

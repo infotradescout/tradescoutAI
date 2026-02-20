@@ -12,7 +12,7 @@ export function PageHead({
   title = "TradeScout | Connection Without Compromise",
   description = "TradeScout is the authority-first operating system for local work. Connection without compromise.",
   keywords = "scout, local helper, contractors, home improvement, quotes, local contractors, verified contractors",
-  ogImage = "/icon-512.png",
+  ogImage = "/tradescout-logo.png?v=3",
   canonicalUrl,
 }: PageHeadProps) {
   const currentUrl = normalizePublicUrl(window.location.href);
