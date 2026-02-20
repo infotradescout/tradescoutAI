@@ -340,7 +340,7 @@ const css = `
   overflow: hidden;
   isolation: isolate;
   /* Keep blur subtle; too much turns the blueprint into a flat dark wash. */
-  --ts-blueprint-blur: 0.35px;
+  --ts-blueprint-blur: 0.6px;
 }
 
 .ts-bg__content{
@@ -385,7 +385,7 @@ const css = `
     repeating-linear-gradient(0deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(90deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 110px);
-  opacity: 0.16;
+  opacity: 0.18;
   transform: translateZ(0);
 }
 
@@ -524,8 +524,8 @@ const css = `
   z-index: 8;
   inset: -5%;
   background:
-    radial-gradient(900px 520px at 50% 25%, transparent 55%, rgba(0,0,0,.45) 85%),
-    radial-gradient(1200px 760px at 50% 80%, transparent 55%, rgba(0,0,0,.62) 90%);
+    radial-gradient(900px 520px at 50% 25%, transparent 55%, rgba(0,0,0,.28) 85%),
+    radial-gradient(1200px 760px at 50% 80%, transparent 55%, rgba(0,0,0,.48) 90%);
 }
 
 @keyframes tsSketchDraw{
