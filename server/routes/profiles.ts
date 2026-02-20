@@ -514,22 +514,25 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     let profiles: any[] = [];
     try {
-      profiles = await storage.listPublicProfilesForSitemap();
+      const maybeProfiles = await storage.listPublicProfilesForSitemap();
+      profiles = Array.isArray(maybeProfiles) ? maybeProfiles : [];
     } catch (error) {
       console.warn("Profiles sitemap fallback: failed to load profiles", error);
       profiles = [];
     }
 
-    const urls = profiles.map((profile) => {
-      const lastmod = profile.updatedAt
-        ? profile.updatedAt.toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10);
-      return `
+    const urls = profiles
+      .filter((profile) => profile && typeof profile === "object")
+      .map((profile) => {
+        const lastmod = profile.updatedAt
+          ? profile.updatedAt.toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10);
+        return `
   <url>
     <loc>${xmlEscape(`${baseUrl}/u/${encodeURIComponent(profile.slug)}`)}</loc>
     <lastmod>${xmlEscape(lastmod)}</lastmod>
   </url>`;
-    });
+      });
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -549,22 +552,25 @@ router.get("/sitemap-homescout-listings.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     let listings: any[] = [];
     try {
-      listings = await storage.listActiveHomeScoutListingsForSitemap();
+      const maybeListings = await storage.listActiveHomeScoutListingsForSitemap();
+      listings = Array.isArray(maybeListings) ? maybeListings : [];
     } catch (error) {
       console.warn("HomeScout listings sitemap fallback: failed to load listings", error);
       listings = [];
     }
 
-    const urls = listings.map((listing) => {
-      const lastmod = listing.updatedAt
-        ? listing.updatedAt.toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10);
-      return `
+    const urls = listings
+      .filter((listing) => listing && typeof listing === "object")
+      .map((listing) => {
+        const lastmod = listing.updatedAt
+          ? listing.updatedAt.toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10);
+        return `
   <url>
     <loc>${xmlEscape(`${baseUrl}/homescout/listings/${encodeURIComponent(listing.id)}`)}</loc>
     <lastmod>${xmlEscape(lastmod)}</lastmod>
   </url>`;
-    });
+      });
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -584,24 +590,27 @@ router.get("/sitemap-homescout-counties.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     let counties: any[] = [];
     try {
-      counties = await storage.listHomeScoutCountiesForSitemap();
+      const maybeCounties = await storage.listHomeScoutCountiesForSitemap();
+      counties = Array.isArray(maybeCounties) ? maybeCounties : [];
     } catch (error) {
       console.warn("HomeScout counties sitemap fallback: failed to load counties", error);
       counties = [];
     }
 
-    const urls = counties.map((row) => {
-      const lastmod = row.updatedAt
-        ? row.updatedAt.toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10);
-      const stateCode = String(row.stateCode || "").toUpperCase();
-      const countyFips = String(row.countyFips || "");
-      return `
+    const urls = counties
+      .filter((row) => row && typeof row === "object")
+      .map((row) => {
+        const lastmod = row.updatedAt
+          ? row.updatedAt.toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10);
+        const stateCode = String(row.stateCode || "").toUpperCase();
+        const countyFips = String(row.countyFips || "");
+        return `
   <url>
     <loc>${xmlEscape(`${baseUrl}/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}`)}</loc>
     <lastmod>${xmlEscape(lastmod)}</lastmod>
   </url>`;
-    });
+      });
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
