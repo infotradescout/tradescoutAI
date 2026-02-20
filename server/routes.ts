@@ -6619,10 +6619,16 @@ export async function registerRoutes(app: any) {
   // Event tracking endpoint
   app.post("/api/events", async (req: any, res: any) => {
     try {
-      const { eventType, data } = (req.body ?? {}) as any;
+      const payload = (req.body ?? {}) as any;
+      const rawEventType = typeof payload?.eventType === "string" ? payload.eventType.trim() : "";
+      const eventType = rawEventType || "event.unknown";
+      const data = payload?.data ?? {};
+      const sessionUser = (req as any)?.user ?? null;
 
       await storage.logEvent(eventType, {
         ...data,
+        userId: sessionUser?.id || data?.userId || null,
+        contractorId: sessionUser?.contractorId || data?.contractorId || null,
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
       });

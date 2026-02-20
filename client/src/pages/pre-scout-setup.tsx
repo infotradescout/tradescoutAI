@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl, getApiBaseUrl } from "@/lib/apiBaseUrl";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine";
 
 type AuthMode = "create" | "signin";
 
@@ -93,6 +94,12 @@ export default function PreScoutSetup() {
     setSignInError(null);
   }, [requestedAuthMode]);
 
+  useEffect(() => {
+    if (isAuthenticated) return;
+    bootstrapDemandAttribution();
+    void trackDemandEvent("auth_view", { mode: authMode });
+  }, [authMode, isAuthenticated]);
+
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;
     if (presenceType === "represent_business" && !businessName.trim()) return false;
@@ -161,6 +168,7 @@ export default function PreScoutSetup() {
           description: "Session propagation is taking longer than expected. Retrying now.",
         });
       }
+      void trackDemandEvent("signin_success", { mode: "signin" });
       toast({ title: "Signed in", description: "Continue with local setup." });
       navigate(`/pre-scout-setup${safeNextQuery}`);
     } catch (error: any) {
@@ -252,6 +260,7 @@ export default function PreScoutSetup() {
       }
 
       if (resp?.emailVerificationRequired === true) {
+        void trackDemandEvent("create_success", { mode: "create", verificationRequired: true });
         const emailParam = `email=${encodeURIComponent(email)}`;
         const nextValue = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
         navigate(`/check-email?${emailParam}&next=${nextValue}`);
@@ -259,6 +268,7 @@ export default function PreScoutSetup() {
       }
 
       await ensureSessionEstablished();
+      void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
       toast({ title: "Account created", description: "Continue with local setup." });
       navigate(`/pre-scout-setup${safeNextQuery}`);
     } catch (error: any) {
@@ -319,6 +329,13 @@ export default function PreScoutSetup() {
       toast({
         title: "Setup saved",
         description: "Opening your workspace.",
+      });
+
+      void trackDemandEvent("setup_complete", {
+        mode: isAuthenticated ? "authenticated" : "guest",
+        presenceType,
+        stateCode,
+        countyFips,
       });
 
       navigate(postSetupNext);

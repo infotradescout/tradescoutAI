@@ -55,6 +55,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { resolveLandingVariant } from "./landingVariants";
+import {
+  bootstrapDemandAttribution,
+  trackDemandEvent,
+  withDemandQueryParams,
+} from "@/lib/demandEngine";
 
 function useLandingVariant() {
   const [location] = useLocation();
@@ -191,7 +196,16 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                 {link.label}
               </button>
             ))}
-            <a href={variant.primaryCta.href}>
+            <a
+              href={variant.primaryCta.href}
+              onClick={() =>
+                void trackDemandEvent("cta_click", {
+                  placement: "nav_primary",
+                  variant: variant.key,
+                  href: variant.primaryCta.href,
+                })
+              }
+            >
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold px-6 h-10 rounded-lg shadow-lg shadow-ts-orange/20 transition-all hover:shadow-ts-orange/30 hover:scale-[1.02]">
                 {variant.primaryCta.label}
               </Button>
@@ -224,7 +238,16 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                 {link.label}
               </button>
             ))}
-            <a href={variant.primaryCta.href}>
+            <a
+              href={variant.primaryCta.href}
+              onClick={() =>
+                void trackDemandEvent("cta_click", {
+                  placement: "nav_mobile_primary",
+                  variant: variant.key,
+                  href: variant.primaryCta.href,
+                })
+              }
+            >
               <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold h-12 rounded-lg mt-2">
                 {variant.primaryCta.label}
               </Button>
@@ -281,7 +304,16 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             transition={{ duration: 0.6, delay: 0.7 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <a href={variant.primaryCta.href}>
+            <a
+              href={variant.primaryCta.href}
+              onClick={() =>
+                void trackDemandEvent("cta_click", {
+                  placement: "hero_primary",
+                  variant: variant.key,
+                  href: variant.primaryCta.href,
+                })
+              }
+            >
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-8 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
                 {variant.primaryCta.label}
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -451,9 +483,9 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
                 Trust, Not Payment
               </h2>
               <p className="text-lg text-white/60 mb-8">
-                Every pro has a Community Verification Score (CVS) based on verified
-                identity, active credentials, work history, community recommendations, and dispute
-                resolution. Trust metrics are public and auditable.
+                Every pro has a Community Verification Score (CVS) based on verified identity,
+                active credentials, work history, community recommendations, and dispute resolution.
+                Trust metrics are public and auditable.
               </p>
               <div className="space-y-4">
                 {layers.map((layer, i) => {
@@ -494,8 +526,8 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             <div>
               <h3 className="text-xl font-bold text-white mb-2">Payment Cannot Override Trust</h3>
               <p className="text-white/70">
-                A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Boosts
-                work <strong>within trust tiers</strong>, not across them. Trust always comes first.
+                A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Boosts work{" "}
+                <strong>within trust tiers</strong>, not across them. Trust always comes first.
               </p>
             </div>
           </div>
@@ -541,8 +573,8 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 No Bidding Wars.
               </h2>
               <p className="text-lg text-white/60 mb-8">
-                Scout routes your request to 1-3 qualified pros. They accept or decline
-                upfront. No wasted time, no spam calls.
+                Scout routes your request to 1-3 qualified pros. They accept or decline upfront. No
+                wasted time, no spam calls.
               </p>
               <div className="space-y-4">
                 {features.map((feature, i) => {
@@ -763,9 +795,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
         <Reveal>
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-8">
             <Award className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">
-              {variant.cta.label}
-            </span>
+            <span className="text-sm font-medium text-ts-orange">{variant.cta.label}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
@@ -777,19 +807,35 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ))}
           </h2>
 
-          <p className="text-lg text-white/60 mb-7 max-w-xl mx-auto">
-            {variant.cta.desc}
-          </p>
+          <p className="text-lg text-white/60 mb-7 max-w-xl mx-auto">{variant.cta.desc}</p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href={variant.cta.primaryHref}>
+            <a
+              href={variant.cta.primaryHref}
+              onClick={() =>
+                void trackDemandEvent("cta_click", {
+                  placement: "bottom_primary",
+                  variant: variant.key,
+                  href: variant.cta.primaryHref,
+                })
+              }
+            >
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-10 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
                 {variant.cta.primaryLabel}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </a>
             {variant.cta.secondaryHref && variant.cta.secondaryLabel ? (
-              <a href={variant.cta.secondaryHref}>
+              <a
+                href={variant.cta.secondaryHref}
+                onClick={() =>
+                  void trackDemandEvent("cta_click", {
+                    placement: "bottom_secondary",
+                    variant: variant.key,
+                    href: variant.cta.secondaryHref,
+                  })
+                }
+              >
                 <Button
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-10 h-14 rounded-lg bg-transparent"
@@ -887,7 +933,17 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                 </button>
               </li>
               <li>
-                <a href={variant.primaryCta.href} className="hover:text-ts-orange transition-colors">
+                <a
+                  href={variant.primaryCta.href}
+                  className="hover:text-ts-orange transition-colors"
+                  onClick={() =>
+                    void trackDemandEvent("cta_click", {
+                      placement: "footer_primary",
+                      variant: variant.key,
+                      href: variant.primaryCta.href,
+                    })
+                  }
+                >
                   Get started
                 </a>
               </li>
@@ -938,21 +994,44 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 // ─── Main Page ───
 export default function Home() {
   const variant = useLandingVariant();
+  const trackedVariant = useMemo(
+    () => ({
+      ...variant,
+      primaryCta: {
+        ...variant.primaryCta,
+        href: withDemandQueryParams(variant.primaryCta.href),
+      },
+      cta: {
+        ...variant.cta,
+        primaryHref: withDemandQueryParams(variant.cta.primaryHref),
+        secondaryHref: variant.cta.secondaryHref
+          ? withDemandQueryParams(variant.cta.secondaryHref)
+          : undefined,
+      },
+    }),
+    [variant]
+  );
+
+  useEffect(() => {
+    bootstrapDemandAttribution();
+    void trackDemandEvent("landing_view", { variant: trackedVariant.key });
+  }, [trackedVariant.key]);
+
   return (
     <div className="min-h-screen flex flex-col bg-transparent text-white">
-      <Navbar variant={variant} />
+      <Navbar variant={trackedVariant} />
       <main>
-        <HeroSection variant={variant} />
+        <HeroSection variant={trackedVariant} />
         <StatsBar />
         <HowItWorksSection />
-        <TrustSection variant={variant} />
-        <DirectConnectSection variant={variant} />
-        <AudienceSection variant={variant} />
+        <TrustSection variant={trackedVariant} />
+        <DirectConnectSection variant={trackedVariant} />
+        <AudienceSection variant={trackedVariant} />
         <PricingSection />
         <FAQSection />
-        <CTASection variant={variant} />
+        <CTASection variant={trackedVariant} />
       </main>
-      <Footer variant={variant} />
+      <Footer variant={trackedVariant} />
     </div>
   );
 }

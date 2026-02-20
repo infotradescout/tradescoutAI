@@ -75,6 +75,7 @@ import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./loc
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 import ObjectiveChip from "./ObjectiveChip";
 import type { Objective } from "@shared/types/objective";
+import { trackDemandEvent } from "@/lib/demandEngine";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -370,6 +371,7 @@ export default function ScoutOS() {
   const renderStartRef = useRef<number | null>(null);
   const hasLoggedIntroRef = useRef<boolean>(false);
   const hasLoggedConfusionRef = useRef<boolean>(false);
+  const trackedUrlIntentRef = useRef<string | null>(null);
 
   const cancelAutoRoute = useCallback(() => {
     if (autoRouteTimerRef.current) {
@@ -597,6 +599,36 @@ export default function ScoutOS() {
       return undefined;
     }
   }, [location]);
+
+  useEffect(() => {
+    if (!urlIntent) return;
+
+    try {
+      const searchIndex = location.indexOf("?");
+      const search = searchIndex >= 0 ? location.substring(searchIndex) : "";
+      const params = new URLSearchParams(search);
+      const source = params.get("source");
+      const prompt = params.get("prompt");
+      const signature = [
+        urlIntent,
+        source || "",
+        prompt ? "prompt" : "",
+        params.get("ref") || "",
+        params.get("utm_campaign") || "",
+      ].join("|");
+
+      if (trackedUrlIntentRef.current === signature) return;
+      trackedUrlIntentRef.current = signature;
+
+      void trackDemandEvent("intent_submitted", {
+        intent: urlIntent,
+        source: source || undefined,
+        hasPrompt: Boolean(prompt),
+      });
+    } catch {
+      // fail-soft: analytics must never impact scout flow
+    }
+  }, [location, urlIntent]);
 
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
