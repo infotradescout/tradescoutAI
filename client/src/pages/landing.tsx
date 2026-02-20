@@ -5,7 +5,7 @@
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
  *
  * KEY TRUTHS:
- * - $0 forever (no payment model at all)
+ * - $0 (no payment model at all)
  * - Trust-first matching (CVS-based, not pay-to-play)
  * - 1-3 matches per request (no lead spam)
  * - Community-owned reinvestment model
@@ -178,7 +178,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
       className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 lg:h-16">
+        <div className="flex items-center justify-between h-12 lg:h-14">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
             <img
               src={variant.images.logo}
@@ -276,18 +276,18 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
   return (
     <section
       ref={heroRef}
-      className="relative min-h-[44vh] md:min-h-[50vh] lg:min-h-[54vh] flex items-start overflow-hidden"
+      className="relative min-h-[34vh] md:min-h-[40vh] lg:min-h-[46vh] flex items-start overflow-hidden"
     >
       <motion.div
         style={{ y: heroY, opacity: heroOpacity }}
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-5 md:pt-5 md:pb-6 lg:pt-6 lg:pb-7 w-full"
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-4 md:pt-4 md:pb-5 lg:pt-5 lg:pb-6 w-full"
       >
         <div className="max-w-2xl">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-3"
+            className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2"
           >
             <ShieldCheck className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">{variant.badgeText}</span>
@@ -297,7 +297,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
             {variant.headlineLines.map((line, idx) => (
               <span key={idx}>
@@ -311,7 +311,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-base sm:text-lg text-white/70 max-w-xl mb-3 leading-relaxed"
+            className="text-sm sm:text-base text-white/70 max-w-xl mb-2.5 leading-relaxed"
           >
             {variant.subhead}
           </motion.p>
@@ -320,7 +320,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-col sm:flex-row gap-3"
+            className="flex flex-col sm:flex-row gap-2.5"
           >
             <a
               href={variant.primaryCta.href}
@@ -332,7 +332,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                 })
               }
             >
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-base px-6 h-12 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-5 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
                 {variant.primaryCta.label}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -344,7 +344,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                   elem?.scrollIntoView({ behavior: "smooth" });
                 }}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 font-semibold text-base px-6 h-12 rounded-lg w-full sm:w-auto bg-transparent"
+                className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-5 h-11 rounded-lg w-full sm:w-auto bg-transparent"
               >
                 {variant.secondaryCta.label}
               </Button>
@@ -361,7 +361,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
               >
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-base px-6 h-12 rounded-lg w-full sm:w-auto bg-transparent"
+                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-5 h-11 rounded-lg w-full sm:w-auto bg-transparent"
                 >
                   {variant.secondaryCta.label}
                 </Button>
@@ -376,7 +376,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-1 md:bottom-3 left-1/2 -translate-x-1/2"
+        className="absolute bottom-0.5 md:bottom-2 left-1/2 -translate-x-1/2"
       >
         <motion.div animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
           <ChevronDown className="w-6 h-6 text-white/40" />
@@ -397,15 +397,15 @@ function StatsBar() {
 
   return (
     <section className="relative z-10 bg-transparent border-y border-white/5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 lg:py-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
           {stats.map((stat, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-extrabold text-ts-orange font-[var(--font-display)] mb-1">
+                <div className="text-xl sm:text-2xl font-extrabold text-ts-orange font-[var(--font-display)] mb-0.5">
                   {stat.display ?? <AnimatedCounter target={stat.value} suffix={stat.suffix} />}
                 </div>
-                <div className="text-xs sm:text-sm text-white/60 font-medium">{stat.label}</div>
+                <div className="text-[11px] sm:text-xs text-white/60 font-medium">{stat.label}</div>
               </div>
             </Reveal>
           ))}
@@ -443,23 +443,23 @@ function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="relative scroll-mt-20 py-6 md:py-8 bg-transparent overflow-hidden"
+      className="relative scroll-mt-20 py-4 md:py-6 bg-transparent overflow-hidden"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-4">
-          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-3">
+        <Reveal className="text-center mb-3">
+          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Zap className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">The Process</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             How TradeScout Works
           </h2>
-          <p className="text-base text-white/60 max-w-2xl mx-auto">
+          <p className="text-sm text-white/60 max-w-2xl mx-auto">
             Trust-first matching controlled by Scout. No payment determines ranking.
           </p>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3">
           {steps.map((step, i) => {
             const Icon = step.icon;
             return (
@@ -467,13 +467,13 @@ function HowItWorksSection() {
                 <motion.div
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-ts-orange/30 transition-colors"
+                  className="bg-white/5 border border-white/10 rounded-xl p-3 hover:border-ts-orange/30 transition-colors"
                 >
-                  <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-3">
-                    <Icon className="w-5 h-5 text-ts-orange" />
+                  <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-2">
+                    <Icon className="w-4 h-4 text-ts-orange" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
-                  <p className="text-sm text-white/60">{step.desc}</p>
+                  <h3 className="text-base font-bold text-white mb-1.5">{step.title}</h3>
+                  <p className="text-xs text-white/60 leading-relaxed">{step.desc}</p>
                 </motion.div>
               </Reveal>
             );
@@ -499,37 +499,39 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
   ];
 
   return (
-    <section id="trust" className="relative scroll-mt-20 py-6 md:py-8 bg-transparent">
+    <section id="trust" className="relative scroll-mt-20 py-4 md:py-6 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
+        <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-center">
           <Reveal>
             <div>
-              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-3">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
                 <Shield className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">
                   Community Verification Score
                 </span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 Trust, Not Payment
               </h2>
-              <p className="text-base text-white/60 mb-4">
+              <p className="text-sm text-white/60 mb-3">
                 Every pro has a Community Verification Score (CVS) based on verified identity,
                 active credentials, work history, community recommendations, and dispute resolution.
                 Trust metrics are public and auditable.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {layers.map((layer, i) => {
                   const Icon = layer.icon;
                   return (
                     <Reveal key={i} delay={i * 0.05}>
-                      <div className="flex gap-3">
-                        <div className="w-9 h-9 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-5 h-5 text-ts-orange" />
+                      <div className="flex gap-2.5">
+                        <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-4 h-4 text-ts-orange" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-white">{layer.title}</h4>
-                          <p className="text-sm text-white/60">{layer.desc}</p>
+                          <h4 className="font-semibold text-sm text-white leading-tight">
+                            {layer.title}
+                          </h4>
+                          <p className="text-xs text-white/60 leading-snug">{layer.desc}</p>
                         </div>
                       </div>
                     </Reveal>
@@ -543,7 +545,7 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             <img
               src={variant.images.trust}
               alt="Trust Model"
-              className="w-full h-[180px] sm:h-[240px] lg:h-[320px] rounded-xl shadow-2xl shadow-ts-orange/20 object-cover object-[35%_center]"
+              className="w-full h-[150px] sm:h-[200px] lg:h-[260px] rounded-xl shadow-2xl shadow-ts-orange/20 object-cover object-[35%_center]"
               loading="lazy"
               decoding="async"
             />
@@ -551,12 +553,12 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
         </div>
 
         {/* Key Principle */}
-        <Reveal className="mt-6 lg:mt-8 bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-4">
-          <div className="flex gap-4">
-            <AlertCircle className="w-6 h-6 text-ts-orange flex-shrink-0 mt-1" />
+        <Reveal className="mt-4 lg:mt-6 bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-3">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-ts-orange flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-lg font-bold text-white mb-1.5">Payment Cannot Override Trust</h3>
-              <p className="text-white/70">
+              <h3 className="text-base font-bold text-white mb-1">Payment Cannot Override Trust</h3>
+              <p className="text-sm text-white/70">
                 A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Boosts work{" "}
                 <strong>within trust tiers</strong>, not across them. Trust always comes first.
               </p>
@@ -580,45 +582,47 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
   return (
     <section
       id="direct-connect"
-      className="relative scroll-mt-20 py-6 md:py-8 bg-transparent overflow-hidden"
+      className="relative scroll-mt-20 py-4 md:py-6 bg-transparent overflow-hidden"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
+        <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-center">
           <Reveal delay={0.2}>
             <img
               src={variant.images.craft}
               alt="Direct Connect"
-              className="w-full h-[180px] sm:h-[240px] lg:h-[320px] rounded-xl shadow-2xl shadow-black/30 object-cover"
+              className="w-full h-[150px] sm:h-[200px] lg:h-[260px] rounded-xl shadow-2xl shadow-black/30 object-cover"
             />
           </Reveal>
 
           <Reveal>
             <div>
-              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-3">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
                 <Handshake className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Direct Connection</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 No Spam.
                 <br />
                 No Bidding Wars.
               </h2>
-              <p className="text-base text-white/60 mb-4">
+              <p className="text-sm text-white/60 mb-3">
                 Scout routes your request to 1-3 qualified pros. They accept or decline upfront. No
                 wasted time, no spam calls.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {features.map((feature, i) => {
                   const Icon = feature.icon;
                   return (
                     <Reveal key={i} delay={i * 0.05}>
-                      <div className="flex gap-3">
-                        <div className="w-9 h-9 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-5 h-5 text-ts-orange" />
+                      <div className="flex gap-2.5">
+                        <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-4 h-4 text-ts-orange" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-white">{feature.title}</h4>
-                          <p className="text-sm text-white/60">{feature.desc}</p>
+                          <h4 className="font-semibold text-sm text-white leading-tight">
+                            {feature.title}
+                          </h4>
+                          <p className="text-xs text-white/60 leading-snug">{feature.desc}</p>
                         </div>
                       </div>
                     </Reveal>
@@ -636,33 +640,31 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
 // ─── For Contractors Section ───
 function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <section id="audience" className="relative scroll-mt-20 py-6 md:py-8 bg-transparent">
+    <section id="audience" className="relative scroll-mt-20 py-4 md:py-6 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-4">
-          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-3">
+        <Reveal className="text-center mb-3">
+          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Briefcase className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">
               {variant.audience.sectionLabel}
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {variant.audience.sectionTitle}
           </h2>
-          <p className="text-base text-white/60 max-w-2xl mx-auto">
-            {variant.audience.sectionDesc}
-          </p>
+          <p className="text-sm text-white/60 max-w-2xl mx-auto">{variant.audience.sectionDesc}</p>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 gap-3 md:gap-4">
+        <div className="grid md:grid-cols-2 gap-2.5 md:gap-3">
           {variant.audience.cards.map((card, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-ts-orange/30 transition-colors"
+                className="bg-white/5 border border-white/10 rounded-xl p-3 hover:border-ts-orange/30 transition-colors"
               >
-                <h3 className="text-lg font-bold text-white mb-2">{card.title}</h3>
-                <p className="text-sm text-white/60">{card.desc}</p>
+                <h3 className="text-base font-bold text-white mb-1.5">{card.title}</h3>
+                <p className="text-xs text-white/60 leading-relaxed">{card.desc}</p>
               </motion.div>
             </Reveal>
           ))}
@@ -693,34 +695,34 @@ function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative scroll-mt-20 py-6 md:py-8 bg-transparent overflow-hidden"
+      className="relative scroll-mt-20 py-4 md:py-6 bg-transparent overflow-hidden"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-4">
-          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-3">
+        <Reveal className="text-center mb-3">
+          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Sparkles className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">Simple Pricing</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">$0</h2>
-          <p className="text-base text-white/60 max-w-2xl mx-auto">
-            Gotcha. TradeScout is for you, for free, forever.
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
+          <p className="text-sm text-white/60 max-w-2xl mx-auto">
+            Gotcha. TradeScout is for you at $0.
           </p>
-          <p className="text-sm text-white/50 max-w-2xl mx-auto mt-2">
+          <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
             We make money, just not from the person reading this text.
           </p>
         </Reveal>
 
-        <div className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="grid lg:grid-cols-2 gap-3 mb-3">
           <Reveal>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <CheckCircle className="w-6 h-6 text-ts-orange" />
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-ts-orange" />
                 What You Get
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1.5">
                 {features.map((feature, i) => (
-                  <li key={i} className="flex gap-2 text-white/80">
-                    <CheckCircle className="w-5 h-5 text-ts-orange flex-shrink-0 mt-0.5" />
+                  <li key={i} className="flex gap-2 text-sm text-white/80">
+                    <CheckCircle className="w-4 h-4 text-ts-orange flex-shrink-0 mt-0.5" />
                     {feature}
                   </li>
                 ))}
@@ -729,15 +731,15 @@ function PricingSection() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Shield className="w-6 h-6 text-ts-orange" />
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-ts-orange" />
                 How We Keep It $0
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1.5">
                 {sponsorFeatures.map((feature, i) => (
-                  <li key={i} className="flex gap-2 text-white/80">
-                    <CheckCircle className="w-5 h-5 text-ts-orange flex-shrink-0 mt-0.5" />
+                  <li key={i} className="flex gap-2 text-sm text-white/80">
+                    <CheckCircle className="w-4 h-4 text-ts-orange flex-shrink-0 mt-0.5" />
                     {feature}
                   </li>
                 ))}
@@ -746,15 +748,15 @@ function PricingSection() {
           </Reveal>
         </div>
 
-        <Reveal className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-4 text-center">
-          <h3 className="text-xl font-bold text-white mb-2">
+        <Reveal className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-3 text-center">
+          <h3 className="text-lg font-bold text-white mb-1.5">
             Community Builders & Local Reinvestment
           </h3>
-          <p className="text-white/70 mb-3">
+          <p className="text-sm text-white/70 mb-2">
             10% of all platform profits are allocated to the TradeScout Community Builders fund.
             100% of contributions are returned directly to the communities where they originated.
           </p>
-          <p className="text-sm text-white/60">
+          <p className="text-xs text-white/60">
             Community Builders earn badges that let them send and vote on causes funded from the
             community vault.
           </p>
@@ -769,7 +771,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "How much does TradeScout cost?",
-      a: "Pricing is simple: $0 forever. No credit card. No paywalls. No upsells.",
+      a: "Pricing is simple: $0. No credit card. No paywalls. No upsells.",
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
@@ -794,27 +796,29 @@ function FAQSection() {
   ];
 
   return (
-    <section className="relative py-6 md:py-8 bg-transparent">
+    <section className="relative py-4 md:py-6 bg-transparent">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-4">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+        <Reveal className="text-center mb-3">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             Frequently Asked Questions
           </h2>
-          <p className="text-base text-white/60">Everything you need to know about TradeScout</p>
+          <p className="text-sm text-white/60">Everything you need to know about TradeScout</p>
         </Reveal>
 
         <Reveal>
-          <Accordion type="single" collapsible className="space-y-2">
+          <Accordion type="single" collapsible className="space-y-1.5">
             {faqs.map((faq, i) => (
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="border border-white/10 rounded-lg px-4 data-[state=open]:bg-white/5"
+                className="border border-white/10 rounded-lg px-3 data-[state=open]:bg-white/5"
               >
-                <AccordionTrigger className="text-white font-semibold hover:text-ts-orange transition-colors py-3">
+                <AccordionTrigger className="text-white font-semibold hover:text-ts-orange transition-colors py-2.5">
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-white/70 pb-3">{faq.a}</AccordionContent>
+                <AccordionContent className="text-sm text-white/70 pb-2.5">
+                  {faq.a}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -827,15 +831,15 @@ function FAQSection() {
 // ─── CTA Section ───
 function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <section id="get-started" className="relative py-6 md:py-8 bg-transparent overflow-hidden">
+    <section id="get-started" className="relative py-4 md:py-6 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <Reveal>
-          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1.5 mb-4">
+          <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-3">
             <Award className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">{variant.cta.label}</span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight mb-4">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-3">
             {variant.cta.titleLines.map((line, idx) => (
               <span key={idx}>
                 {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
@@ -844,9 +848,9 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ))}
           </h2>
 
-          <p className="text-base text-white/60 mb-4 max-w-xl mx-auto">{variant.cta.desc}</p>
+          <p className="text-sm text-white/60 mb-3 max-w-xl mx-auto">{variant.cta.desc}</p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-2.5 justify-center">
             <a
               href={variant.cta.primaryHref}
               onClick={() =>
@@ -857,7 +861,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
                 })
               }
             >
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-base px-8 h-12 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-7 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
                 {variant.cta.primaryLabel}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -875,7 +879,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
               >
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-base px-8 h-12 rounded-lg bg-transparent"
+                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-7 h-11 rounded-lg bg-transparent"
                 >
                   {variant.cta.secondaryLabel}
                 </Button>
@@ -883,7 +887,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ) : null}
           </div>
 
-          <p className="text-xs text-white/30 mt-4">No lead spam. No pay-to-play.</p>
+          <p className="text-xs text-white/30 mt-3">No lead spam. No pay-to-play.</p>
         </Reveal>
       </div>
     </section>
@@ -893,9 +897,9 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
 // ─── Footer ───
 function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <footer className="bg-transparent border-t border-white/5 py-6">
+    <footer className="bg-transparent border-t border-white/5 py-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <img src={variant.images.logo} alt="TradeScout" className="w-10 h-10 rounded-lg" />
@@ -1018,7 +1022,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
           </div>
         </div>
 
-        <div className="border-t border-white/5 pt-6">
+        <div className="border-t border-white/5 pt-5">
           <p className="text-xs text-white/30 text-center">
             © 2026 TradeScout. All rights reserved. Trust-first local matching.
           </p>
