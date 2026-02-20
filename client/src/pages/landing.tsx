@@ -202,14 +202,14 @@ function Navbar() {
 // ─── Hero Section ───
 function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
+    <section className="relative min-h-[82vh] lg:min-h-[88vh] flex items-center overflow-hidden">
       {/* Background image with overlay */}
       <div className="absolute inset-0 z-0">
         <img src={IMAGES.hero} alt="Hero" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-ts-navy-deep via-ts-navy-deep/80 to-ts-navy-deep/60" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24 w-full">
         <div className="max-w-2xl">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -236,7 +236,7 @@ function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-lg sm:text-xl text-white/70 max-w-xl mb-10 leading-relaxed"
+            className="text-lg sm:text-xl text-white/70 max-w-xl mb-7 leading-relaxed"
           >
             Verified people connect to verified pros through AI-powered matching. No lead spam. No pay-to-play. No payment at all. Just trust.
           </motion.p>
@@ -345,13 +345,13 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="relative py-24 lg:py-32 bg-ts-navy-deep overflow-hidden">
+    <section id="how-it-works" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-ts-orange/5 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-16">
+        <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
             <Zap className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">The Process</span>
@@ -394,7 +394,7 @@ function TrustSection() {
   ];
 
   return (
-    <section id="trust" className="relative py-24 lg:py-32 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
+    <section id="trust" className="relative py-16 lg:py-20 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
       </div>
@@ -464,7 +464,7 @@ function DirectConnectSection() {
   ];
 
   return (
-    <section id="direct-connect" className="relative py-24 lg:py-32 bg-ts-navy-deep overflow-hidden">
+    <section id="direct-connect" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-ts-orange/5 rounded-full blur-[120px]" />
       </div>
@@ -524,13 +524,13 @@ function ContractorsSection() {
   ];
 
   return (
-    <section id="contractors" className="relative py-24 lg:py-32 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
+    <section id="contractors" className="relative py-16 lg:py-20 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-16">
+        <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
             <Briefcase className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">For Contractors</span>
@@ -590,13 +590,13 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="relative py-24 lg:py-32 bg-ts-navy-deep overflow-hidden">
+    <section id="pricing" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-16">
+        <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
             <Sparkles className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">Simple Pricing</span>
@@ -687,9 +687,9 @@ function FAQSection() {
   ];
 
   return (
-    <section className="relative py-24 lg:py-32 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
+    <section className="relative py-16 lg:py-20 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-16">
+        <Reveal className="text-center mb-10">
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">Frequently Asked Questions</h2>
           <p className="text-lg text-white/60">
             Everything you need to know about TradeScout
@@ -718,7 +718,7 @@ function FAQSection() {
 // ─── CTA Section ───
 function CTASection() {
   return (
-    <section id="get-started" className="relative py-24 lg:py-32 bg-ts-navy-deep overflow-hidden">
+    <section id="get-started" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
       </div>
@@ -735,7 +735,7 @@ function CTASection() {
             <span className="text-gradient-orange">you can trust?</span>
           </h2>
 
-          <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
+          <p className="text-lg text-white/60 mb-7 max-w-xl mx-auto">
             Stop getting spammed by 20 contractors. Start getting matched with 1-3 verified pros who are actually right for your project.
           </p>
 
