@@ -6,12 +6,13 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import crypto from "node:crypto";
-import { pool } from "./db";
+import { db, pool } from "./db";
 import { storage } from "./storage";
-import type { User } from "@shared/schema";
+import { users, type User } from "@shared/schema";
 import { getRolePermissions, getRoleHierarchyLevel, canUserPerformAction } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
+import { desc, sql } from "drizzle-orm";
 
 // Configure session
 export function getSession() {
@@ -96,11 +97,29 @@ export async function setupAuth(app: Express) {
           });
         }
 
-        const normalizeHash = (hash: string): string =>
-          // Some legacy imports use PHP-style $2y$ bcrypt prefix; node bcrypt expects $2a$/$2b$.
-          String(hash || "")
-            .trim()
-            .replace(/^\$2y\$/, "$2b$");
+        const normalizeHash = (hash: string): string => {
+          // Legacy stores occasionally persist wrapped or prefixed bcrypt strings.
+          // Normalize those cases before compare.
+          let normalized = String(hash || "").trim();
+
+          if (normalized.startsWith('"') && normalized.endsWith('"')) {
+            try {
+              const parsed = JSON.parse(normalized);
+              if (typeof parsed === "string") {
+                normalized = parsed.trim();
+              }
+            } catch {
+              // Keep original string if it is not valid JSON.
+            }
+          }
+
+          normalized = normalized.replace(/^bcrypt:/i, "");
+
+          // Some legacy imports use PHP-style $2y$ / $2x$ prefixes; node bcrypt expects $2a$/$2b$.
+          normalized = normalized.replace(/^\$2y\$/, "$2b$").replace(/^\$2x\$/, "$2b$");
+
+          return normalized.trim();
+        };
 
         const safeTimingEquals = (a: string, b: string): boolean => {
           // Avoid leaking timing on legacy/plaintext comparisons.
@@ -110,7 +129,11 @@ export async function setupAuth(app: Express) {
           return crypto.timingSafeEqual(aBuf, bBuf);
         };
 
-        const safeCompare = async (candidate: string, hash: string): Promise<boolean> => {
+        const safeCompare = async (
+          candidate: string,
+          hash: string,
+          userIdForRepair?: string
+        ): Promise<boolean> => {
           try {
             const normalizedHash = normalizeHash(hash);
 
@@ -120,11 +143,16 @@ export async function setupAuth(app: Express) {
             if (!looksLikeBcrypt) {
               if (!safeTimingEquals(candidate, normalizedHash)) return false;
 
-              try {
-                const repairedHash = await bcrypt.hash(candidate, 12);
-                await storage.updateUser(user.id, { password: repairedHash, updatedAt: new Date() });
-              } catch {
-                // If repair fails, still allow login (password matched) to avoid locking out.
+              if (userIdForRepair) {
+                try {
+                  const repairedHash = await bcrypt.hash(candidate, 12);
+                  await storage.updateUser(userIdForRepair, {
+                    password: repairedHash,
+                    updatedAt: new Date(),
+                  });
+                } catch {
+                  // If repair fails, still allow login (password matched) to avoid locking out.
+                }
               }
               return true;
             }
@@ -139,47 +167,86 @@ export async function setupAuth(app: Express) {
           new Set([String(password), String(password).trim()].filter((p) => p.length > 0))
         );
 
-        let isValidPassword = false;
-        for (const candidate of candidatePasswords) {
-          if (await safeCompare(candidate, user.password)) {
-            isValidPassword = true;
-            break;
+        const candidateMatchesUser = async (candidateUser: Pick<User, "id" | "password">) => {
+          if (!candidateUser?.password) return false;
+          for (const candidate of candidatePasswords) {
+            if (await safeCompare(candidate, candidateUser.password, candidateUser.id)) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        let matchedUser: User | null = null;
+        const checkedUserIds = new Set<string>();
+        let duplicateEmailCandidates: User[] = [];
+
+        if (await candidateMatchesUser(user)) {
+          matchedUser = user;
+          checkedUserIds.add(user.id);
+        } else {
+          checkedUserIds.add(user.id);
+
+          // Recover from case-insensitive duplicate email rows by checking all candidates.
+          duplicateEmailCandidates = await db
+            .select()
+            .from(users)
+            .where(sql`lower(${users.email}) = ${normalizedEmail}`)
+            .orderBy(desc(users.updatedAt), desc(users.createdAt))
+            .limit(10);
+
+          for (const candidateUser of duplicateEmailCandidates) {
+            if (!candidateUser?.id || checkedUserIds.has(candidateUser.id)) continue;
+            checkedUserIds.add(candidateUser.id);
+            if (await candidateMatchesUser(candidateUser)) {
+              matchedUser = candidateUser;
+              break;
+            }
           }
         }
-        if (!isValidPassword) {
+
+        if (!matchedUser) {
           const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
             .trim()
             .toLowerCase();
           const configuredMasterAdminPassword = String(process.env.MASTER_ADMIN_PASSWORD || "");
-          const isHeadAdminLikeRole = user.role === "head_admin" || user.role === "super_admin";
-          const matchesConfiguredMasterEmail =
-            !configuredMasterAdminEmail || normalizedEmail === configuredMasterAdminEmail;
-          const matchesConfiguredMasterPassword = candidatePasswords.some(
-            (candidate) => candidate === configuredMasterAdminPassword
-          );
 
-          // Self-heal master-admin password drift:
-          // if submitted credentials match env bootstrap password for a head/super admin account,
-          // refresh hash in DB and continue login. Email match is enforced when configured.
-          if (
-            isHeadAdminLikeRole &&
-            configuredMasterAdminPassword &&
-            matchesConfiguredMasterEmail &&
-            matchesConfiguredMasterPassword
-          ) {
-            try {
-              const refreshedHash = await bcrypt.hash(configuredMasterAdminPassword, 10);
-              await storage.updateUser(user.id, { password: refreshedHash, updatedAt: new Date() });
-              return done(null, user);
-            } catch (repairError) {
-              return done(repairError as Error);
+          const matchesConfiguredMasterPassword =
+            configuredMasterAdminPassword.length > 0 &&
+            candidatePasswords.some((candidate) => candidate === configuredMasterAdminPassword);
+
+          if (matchesConfiguredMasterPassword) {
+            const masterCandidates = [user, ...duplicateEmailCandidates];
+            const healedUser = masterCandidates.find((candidateUser) => {
+              const isHeadAdminLikeRole =
+                candidateUser?.role === "head_admin" || candidateUser?.role === "super_admin";
+              if (!isHeadAdminLikeRole) return false;
+              if (!configuredMasterAdminEmail) return true;
+              return (
+                String(candidateUser?.email || "")
+                  .trim()
+                  .toLowerCase() === configuredMasterAdminEmail
+              );
+            });
+
+            if (healedUser) {
+              try {
+                const refreshedHash = await bcrypt.hash(configuredMasterAdminPassword, 10);
+                await storage.updateUser(healedUser.id, {
+                  password: refreshedHash,
+                  updatedAt: new Date(),
+                });
+                return done(null, healedUser);
+              } catch (repairError) {
+                return done(repairError as Error);
+              }
             }
           }
 
           return done(null, false, { message: "Incorrect password" });
         }
 
-        return done(null, user);
+        return done(null, matchedUser);
       } catch (error) {
         return done(error);
       }
