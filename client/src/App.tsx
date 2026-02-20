@@ -374,10 +374,12 @@ const LazyPage = memo(function LazyPage({
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
   const [location, setLocation] = useLocation();
+  const pathOnly = String(location || "").split("?")[0];
   // Lite / experimental Scout surfaces can still run outside AppShell,
   // but the main Scout experience lives at /scout inside the app frame.
   const isLiteScoutRoute = location === "/_scout-lite";
   const isLlmRoute = location.startsWith("/scout");
+  const isLandingRoute = pathOnly === "/landing";
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -550,6 +552,15 @@ const AppLayout = memo(function AppLayout() {
               <Switch>
                 <Route path="/_scout-lite">
                   <LazyPage Component={ScoutLandingLite} />
+                </Route>
+                <Route path=":rest*">
+                  <LazyPage Component={NotFound} />
+                </Route>
+              </Switch>
+            ) : isLandingRoute ? (
+              <Switch>
+                <Route path="/landing">
+                  <LazyPage Component={Landing} />
                 </Route>
                 <Route path=":rest*">
                   <LazyPage Component={NotFound} />
@@ -1507,7 +1518,7 @@ const AppLayout = memo(function AppLayout() {
       {FEATURE_HOLD_INTRO_TUTORIAL && <HoldIntroTutorial />}
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
-      {!isLlmRoute && !FEATURE_EDUCATION_REPLACEMENT && <SimpleSubtleHints />}
+      {!isLlmRoute && !isLandingRoute && !FEATURE_EDUCATION_REPLACEMENT && <SimpleSubtleHints />}
 
       {/* Bug report tool - always available */}
       <SimpleBugReportTool />

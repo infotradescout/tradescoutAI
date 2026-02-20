@@ -71,6 +71,13 @@ html {
   position: relative;
   z-index: 1;
 }
+
+.text-gradient-orange {
+  background: linear-gradient(135deg, #fb923c, #f97316, #ea580c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 @layer base {
   :root {
     /* Default: stable height token. On mobile, JS sets --vh, which drives --app-height. */

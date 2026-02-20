@@ -7,6 +7,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'Inter', 'system-ui', 'sans-serif'],
       },
       screens: {
         'xs': '475px',
@@ -37,6 +38,12 @@ export default {
         'orange-500': '#f97316',
         'orange-600': '#ea580c',
         'orange-400': '#fb923c',
+        'ts-orange': '#f97316',
+        'ts-orange-light': '#fb923c',
+        'ts-orange-dark': '#ea580c',
+        'ts-navy': '#0f172a',
+        'ts-navy-deep': '#0a0f1e',
+        'ts-navy-light': '#1e293b',
         
         card: {
           DEFAULT: "hsl(var(--card))",
