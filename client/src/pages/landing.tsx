@@ -283,21 +283,23 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-4 md:pt-4 md:pb-5 lg:pt-5 lg:pb-6 w-full"
       >
         <div className="max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2"
-          >
-            <ShieldCheck className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">{variant.badgeText}</span>
-          </motion.div>
+          {variant.showBadge !== false && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2"
+            >
+              <ShieldCheck className="w-4 h-4 text-ts-orange" />
+              <span className="text-sm font-medium text-ts-orange">{variant.badgeText}</span>
+            </motion.div>
+          )}
 
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
+            className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
             {variant.headlineMode === "inline"
               ? variant.headlineLines.map((line, idx) => (

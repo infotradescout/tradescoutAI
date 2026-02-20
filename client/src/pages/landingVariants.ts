@@ -4,6 +4,7 @@ export type LandingVariant = {
   key: string;
   displayName: string;
   badgeText: string;
+  showBadge?: boolean;
   headlineMode?: "stacked" | "inline";
   headlineLines: string[];
   subhead: string;
@@ -36,6 +37,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   key: "default",
   displayName: "Default",
   badgeText: "Trust-First Platform",
+  showBadge: false,
   headlineMode: "inline",
   headlineLines: ["Connection", "Without", "Compromise"],
   subhead:
