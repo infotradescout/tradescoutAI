@@ -279,24 +279,6 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
       className="relative min-h-[56vh] md:min-h-[60vh] lg:min-h-[64vh] flex items-start overflow-hidden"
     >
       <motion.div
-        className="pointer-events-none absolute -right-20 top-8 h-56 w-56 rounded-full bg-ts-orange/20 blur-3xl"
-        animate={{
-          x: [0, -16, 0],
-          y: [0, 14, 0],
-          opacity: [0.12, 0.24, 0.12],
-        }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="pointer-events-none absolute left-[-88px] top-24 h-44 w-44 rounded-full bg-blue-400/10 blur-3xl"
-        animate={{
-          x: [0, 14, 0],
-          y: [0, -10, 0],
-          opacity: [0.08, 0.18, 0.08],
-        }}
-        transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
         style={{ y: heroY, opacity: heroOpacity }}
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-8 md:pt-7 md:pb-9 lg:pt-8 lg:pb-10 w-full"
       >
