@@ -1,9 +1,9 @@
 /**
  * TradeScout Landing Page — "Forged Trust" Design
- * 
+ *
  * Design: Bold craft-forward with diagonal sections, high-contrast orange/navy,
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
- * 
+ *
  * KEY TRUTHS:
  * - $0 forever (no payment model at all)
  * - Trust-first matching (CVS-based, not pay-to-play)
@@ -48,7 +48,12 @@ import {
   Code,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Image URLs
 const IMAGES = {
@@ -61,7 +66,15 @@ const IMAGES = {
 };
 
 // ─── Animated counter ───
-function AnimatedCounter({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) {
+function AnimatedCounter({
+  target,
+  suffix = "",
+  prefix = "",
+}: {
+  target: number;
+  suffix?: string;
+  prefix?: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true });
   const [count, setCount] = useState(0);
@@ -83,11 +96,25 @@ function AnimatedCounter({ target, suffix = "", prefix = "" }: { target: number;
     return () => clearInterval(timer);
   }, [isInView, target]);
 
-  return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
+  return (
+    <span ref={ref}>
+      {prefix}
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
 }
 
 // ─── Section reveal wrapper ───
-function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   return (
@@ -133,11 +160,17 @@ function Navbar() {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}>
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
-            <img src={IMAGES.logo} alt="TradeScout" className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg" />
+            <img
+              src={IMAGES.logo}
+              alt="TradeScout"
+              className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg"
+            />
             <span className="font-[var(--font-display)] font-bold text-lg lg:text-xl text-white tracking-tight">
               Trade<span className="text-ts-orange">Scout</span>
             </span>
@@ -220,8 +253,10 @@ function HeroSection() {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6"
           >
-            Connection<br />
-            <span className="text-gradient-orange">Without</span><br />
+            Connection
+            <br />
+            <span className="text-gradient-orange">Without</span>
+            <br />
             Compromise
           </motion.h1>
 
@@ -231,7 +266,8 @@ function HeroSection() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-lg sm:text-xl text-white/70 max-w-xl mb-7 leading-relaxed"
           >
-            Verified people connect to verified pros through Scout-powered matching. No lead spam. No pay-to-play. No payment at all. Just trust.
+            Verified people connect to verified pros through Scout-powered matching. No lead spam.
+            No pay-to-play. No payment at all. Just trust.
           </motion.p>
 
           <motion.div
@@ -246,12 +282,12 @@ function HeroSection() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </a>
-            <Button 
+            <Button
               onClick={() => {
                 const elem = document.getElementById("how-it-works");
                 elem?.scrollIntoView({ behavior: "smooth" });
               }}
-              variant="outline" 
+              variant="outline"
               className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-8 h-14 rounded-lg w-full sm:w-auto bg-transparent"
             >
               See How It Works
@@ -267,10 +303,7 @@ function HeroSection() {
         transition={{ delay: 1.5 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-        >
+        <motion.div animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
           <ChevronDown className="w-6 h-6 text-white/40" />
         </motion.div>
       </motion.div>
@@ -345,7 +378,9 @@ function HowItWorksSection() {
             <Zap className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">The Process</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">How TradeScout Works</h2>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
+            How TradeScout Works
+          </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
             Trust-first matching controlled by Scout. No payment determines ranking.
           </p>
@@ -378,7 +413,11 @@ function TrustSection() {
     { icon: UserCheck, title: "Identity Verified", desc: "Real person, real business" },
     { icon: FileCheck, title: "License & Insurance", desc: "Active, up-to-date credentials" },
     { icon: TrendingUp, title: "Work History", desc: "Completed jobs, timeline adherence" },
-    { icon: Users, title: "Community Recommendations", desc: "Neighbor endorsements, not anonymous reviews" },
+    {
+      icon: Users,
+      title: "Community Recommendations",
+      desc: "Neighbor endorsements, not anonymous reviews",
+    },
     { icon: Eye, title: "Dispute Resolution", desc: "How conflicts were handled" },
   ];
 
@@ -390,11 +429,17 @@ function TrustSection() {
             <div>
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
                 <Shield className="w-4 h-4 text-ts-orange" />
-                <span className="text-sm font-medium text-ts-orange">Community Verification Score</span>
+                <span className="text-sm font-medium text-ts-orange">
+                  Community Verification Score
+                </span>
               </div>
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">Trust, Not Payment</h2>
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">
+                Trust, Not Payment
+              </h2>
               <p className="text-lg text-white/60 mb-8">
-                Every contractor has a Community Verification Score (CVS) based on verified identity, active credentials, work history, community recommendations, and dispute resolution. Trust metrics are public and auditable.
+                Every contractor has a Community Verification Score (CVS) based on verified
+                identity, active credentials, work history, community recommendations, and dispute
+                resolution. Trust metrics are public and auditable.
               </p>
               <div className="space-y-4">
                 {layers.map((layer, i) => {
@@ -418,7 +463,13 @@ function TrustSection() {
           </Reveal>
 
           <Reveal delay={0.2}>
-            <img src={IMAGES.trust} alt="Trust Model" className="rounded-xl shadow-2xl shadow-ts-orange/20" />
+            <img
+              src={IMAGES.trust}
+              alt="Trust Model"
+              className="w-full h-[260px] sm:h-[340px] lg:h-[520px] rounded-xl shadow-2xl shadow-ts-orange/20 object-cover object-[35%_center]"
+              loading="lazy"
+              decoding="async"
+            />
           </Reveal>
         </div>
 
@@ -429,7 +480,8 @@ function TrustSection() {
             <div>
               <h3 className="text-xl font-bold text-white mb-2">Payment Cannot Override Trust</h3>
               <p className="text-white/70">
-                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80. Boosts work <strong>within trust tiers</strong>, not across them. Trust always comes first.
+                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80. Boosts
+                work <strong>within trust tiers</strong>, not across them. Trust always comes first.
               </p>
             </div>
           </div>
@@ -453,7 +505,11 @@ function DirectConnectSection() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal delay={0.2}>
-            <img src={IMAGES.craft} alt="Direct Connect" className="rounded-xl shadow-2xl shadow-black/30" />
+            <img
+              src={IMAGES.craft}
+              alt="Direct Connect"
+              className="rounded-xl shadow-2xl shadow-black/30"
+            />
           </Reveal>
 
           <Reveal>
@@ -463,11 +519,13 @@ function DirectConnectSection() {
                 <span className="text-sm font-medium text-ts-orange">Direct Connection</span>
               </div>
               <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">
-                No Spam.<br />
+                No Spam.
+                <br />
                 No Bidding Wars.
               </h2>
               <p className="text-lg text-white/60 mb-8">
-                Scout routes your request to 1-3 qualified contractors. They accept or decline upfront. No wasted time, no spam calls.
+                Scout routes your request to 1-3 qualified contractors. They accept or decline
+                upfront. No wasted time, no spam calls.
               </p>
               <div className="space-y-4">
                 {features.map((feature, i) => {
@@ -512,7 +570,9 @@ function ContractorsSection() {
             <Briefcase className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">For Contractors</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">Build Your Reputation</h2>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
+            Build Your Reputation
+          </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
             No pay-to-play. No lead fees. Just trust-first matching that rewards quality work.
           </p>
@@ -536,7 +596,11 @@ function ContractorsSection() {
         </div>
 
         <Reveal className="mt-16 text-center">
-          <a href="https://www.thetradescout.com/contractor-join" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://www.thetradescout.com/contractor-join"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-10 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
               Join as a Contractor
               <ArrowRight className="w-5 h-5 ml-2" />
@@ -620,12 +684,16 @@ function PricingSection() {
         </div>
 
         <Reveal className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-8 text-center">
-          <h3 className="text-2xl font-bold text-white mb-3">Community Builders & Local Reinvestment</h3>
+          <h3 className="text-2xl font-bold text-white mb-3">
+            Community Builders & Local Reinvestment
+          </h3>
           <p className="text-white/70 mb-4">
-            10% of all platform profits are allocated to the TradeScout Community Builders fund. 100% of contributions are returned directly to the communities where they originated.
+            10% of all platform profits are allocated to the TradeScout Community Builders fund.
+            100% of contributions are returned directly to the communities where they originated.
           </p>
           <p className="text-sm text-white/60">
-            Community Builders earn badges that let them send and vote on causes funded from the community vault.
+            Community Builders earn badges that let them send and vote on causes funded from the
+            community vault.
           </p>
         </Reveal>
       </div>
@@ -666,22 +734,24 @@ function FAQSection() {
     <section className="relative py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">Frequently Asked Questions</h2>
-          <p className="text-lg text-white/60">
-            Everything you need to know about TradeScout
-          </p>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-lg text-white/60">Everything you need to know about TradeScout</p>
         </Reveal>
 
         <Reveal>
           <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="border border-white/10 rounded-lg px-6 data-[state=open]:bg-white/5">
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="border border-white/10 rounded-lg px-6 data-[state=open]:bg-white/5"
+              >
                 <AccordionTrigger className="text-white font-semibold hover:text-ts-orange transition-colors py-4">
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-white/70 pb-4">
-                  {faq.a}
-                </AccordionContent>
+                <AccordionContent className="text-white/70 pb-4">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -699,16 +769,20 @@ function CTASection() {
         <Reveal>
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-8">
             <Award className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">Join the Trust-First Movement</span>
+            <span className="text-sm font-medium text-ts-orange">
+              Join the Trust-First Movement
+            </span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
-            Ready to find a contractor<br />
+            Ready to find a contractor
+            <br />
             <span className="text-gradient-orange">you can trust?</span>
           </h2>
 
           <p className="text-lg text-white/60 mb-7 max-w-xl mx-auto">
-            Stop getting spammed by 20 contractors. Start getting matched with 1-3 verified pros who are actually right for your project.
+            Stop getting spammed by 20 contractors. Start getting matched with 1-3 verified pros who
+            are actually right for your project.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -718,8 +792,15 @@ function CTASection() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </a>
-            <a href="https://www.thetradescout.com/contractor-join" target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-10 h-14 rounded-lg bg-transparent">
+            <a
+              href="https://www.thetradescout.com/contractor-join"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-10 h-14 rounded-lg bg-transparent"
+              >
                 I'm a Contractor
               </Button>
             </a>
@@ -753,28 +834,114 @@ function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Platform</h4>
             <ul className="space-y-2 text-sm text-white/60">
-              <li><button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-ts-orange transition-colors">How It Works</button></li>
-              <li><button onClick={() => document.getElementById("trust")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-ts-orange transition-colors">Trust Model</button></li>
-              <li><button onClick={() => document.getElementById("direct-connect")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-ts-orange transition-colors">Direct Connect</button></li>
-              <li><button onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-ts-orange transition-colors">Pricing</button></li>
+              <li>
+                <button
+                  onClick={() =>
+                    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  How It Works
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() =>
+                    document.getElementById("trust")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Trust Model
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById("direct-connect")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Direct Connect
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() =>
+                    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Pricing
+                </button>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">For Contractors</h4>
             <ul className="space-y-2 text-sm text-white/60">
-              <li><a href="https://www.thetradescout.com" target="_blank" rel="noopener noreferrer" className="hover:text-ts-orange transition-colors">Join TradeScout</a></li>
-              <li><a href="https://www.thetradescout.com" target="_blank" rel="noopener noreferrer" className="hover:text-ts-orange transition-colors">Contractor Dashboard</a></li>
-              <li><a href="https://www.thetradescout.com" target="_blank" rel="noopener noreferrer" className="hover:text-ts-orange transition-colors">Build Your CVS</a></li>
+              <li>
+                <a
+                  href="https://www.thetradescout.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Join TradeScout
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.thetradescout.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Contractor Dashboard
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.thetradescout.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Build Your CVS
+                </a>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-white/60">
-              <li><button onClick={() => toast({ title: "Coming soon!" })} className="hover:text-ts-orange transition-colors">Terms of Service</button></li>
-              <li><button onClick={() => toast({ title: "Coming soon!" })} className="hover:text-ts-orange transition-colors">Privacy Policy</button></li>
-              <li><button onClick={() => toast({ title: "Coming soon!" })} className="hover:text-ts-orange transition-colors">Contact</button></li>
+              <li>
+                <button
+                  onClick={() => toast({ title: "Coming soon!" })}
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Terms of Service
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => toast({ title: "Coming soon!" })}
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => toast({ title: "Coming soon!" })}
+                  className="hover:text-ts-orange transition-colors"
+                >
+                  Contact
+                </button>
+              </li>
             </ul>
           </div>
         </div>
