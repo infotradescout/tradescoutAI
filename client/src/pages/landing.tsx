@@ -704,7 +704,7 @@ function FAQSection() {
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
-      a: "We don't sell leads to the highest bidder. Trust determines ranking, not payment. Contractors cannot pay to appear first. You get 1-3 matches, not 20+ spam calls.",
+      a: "The big pain point is lead reselling: one homeowner request gets sold to many contractors, and the homeowner gets flooded. TradeScout does not resell your request. Scout routes to 1-3 relevant matches, and trust determines ranking, not payment.",
     },
     {
       q: "What is the Community Verification Score (CVS)?",
