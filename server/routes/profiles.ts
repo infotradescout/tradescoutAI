@@ -2,8 +2,66 @@ import { Router } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
+import { COMPREHENSIVE_TRADES } from "../../shared/trades-data";
 
 const router = Router();
+
+const LANDING_AUDIENCE_KEYS = [
+  "contractor",
+  "homeowner",
+  "realtor",
+  "hoa",
+  "property-manager",
+  "lender",
+  "insurance-agent",
+  "supplier",
+  "affiliate",
+] as const;
+
+const CORE_STATIC_PATHS = [
+  "/",
+  "/landing",
+  "/direct-connect",
+  "/community",
+  "/exchange",
+  "/how-it-works",
+  "/trust-model",
+  "/compare/angi",
+  "/compare/homeadvisor",
+  "/pricing",
+];
+
+function xmlEscape(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildRuntimeCorePaths(): string[] {
+  const slugs = Array.from(
+    new Set(
+      (COMPREHENSIVE_TRADES || [])
+        .map((trade) => String((trade as any)?.slug || "").trim())
+        .filter((slug) => slug.length > 0)
+    )
+  );
+  const all = [...CORE_STATIC_PATHS];
+
+  for (const slug of slugs) {
+    all.push(`/landing/${slug}`);
+  }
+  for (const audience of LANDING_AUDIENCE_KEYS) {
+    all.push(`/landing/${audience}`);
+    for (const slug of slugs) {
+      all.push(`/landing/${audience}-${slug}`);
+    }
+  }
+
+  return Array.from(new Set(all));
+}
 
 function getAuthedUserId(req: any): string {
   return (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
@@ -414,13 +472,19 @@ router.get("/sitemap-core.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = new Date().toISOString().slice(0, 10);
-
-    const urls = [
-      { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
-      { loc: `${baseUrl}/direct-connect`, priority: "0.9", changefreq: "hourly" },
-      { loc: `${baseUrl}/community`, priority: "0.8", changefreq: "hourly" },
-      { loc: `${baseUrl}/exchange`, priority: "0.6", changefreq: "daily" },
-    ];
+    const urls = buildRuntimeCorePaths().map((path) => {
+      if (path === "/") {
+        return { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" };
+      }
+      const isLanding = path.startsWith("/landing/");
+      const isPrimaryRoute =
+        path === "/landing" || path === "/direct-connect" || path === "/community";
+      return {
+        loc: `${baseUrl}${path}`,
+        priority: isPrimaryRoute ? "0.9" : isLanding ? "0.8" : "0.7",
+        changefreq: isLanding ? "weekly" : "daily",
+      };
+    });
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -428,10 +492,10 @@ ${urls
   .map(
     (u) => `
   <url>
-    <loc>${u.loc}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
+    <loc>${xmlEscape(u.loc)}</loc>
+    <lastmod>${xmlEscape(today)}</lastmod>
+    <changefreq>${xmlEscape(u.changefreq)}</changefreq>
+    <priority>${xmlEscape(u.priority)}</priority>
   </url>`
   )
   .join("\n")}
@@ -448,8 +512,13 @@ ${urls
 router.get("/sitemap-profiles.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-
-    const profiles = await storage.listPublicProfilesForSitemap();
+    let profiles: any[] = [];
+    try {
+      profiles = await storage.listPublicProfilesForSitemap();
+    } catch (error) {
+      console.warn("Profiles sitemap fallback: failed to load profiles", error);
+      profiles = [];
+    }
 
     const urls = profiles.map((profile) => {
       const lastmod = profile.updatedAt
@@ -457,8 +526,8 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
         : new Date().toISOString().slice(0, 10);
       return `
   <url>
-    <loc>${baseUrl}/u/${encodeURIComponent(profile.slug)}</loc>
-    <lastmod>${lastmod}</lastmod>
+    <loc>${xmlEscape(`${baseUrl}/u/${encodeURIComponent(profile.slug)}`)}</loc>
+    <lastmod>${xmlEscape(lastmod)}</lastmod>
   </url>`;
     });
 
@@ -478,8 +547,13 @@ ${urls.join("\n")}
 router.get("/sitemap-homescout-listings.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-
-    const listings = await storage.listActiveHomeScoutListingsForSitemap();
+    let listings: any[] = [];
+    try {
+      listings = await storage.listActiveHomeScoutListingsForSitemap();
+    } catch (error) {
+      console.warn("HomeScout listings sitemap fallback: failed to load listings", error);
+      listings = [];
+    }
 
     const urls = listings.map((listing) => {
       const lastmod = listing.updatedAt
@@ -487,8 +561,8 @@ router.get("/sitemap-homescout-listings.xml", async (req, res) => {
         : new Date().toISOString().slice(0, 10);
       return `
   <url>
-    <loc>${baseUrl}/homescout/listings/${encodeURIComponent(listing.id)}</loc>
-    <lastmod>${lastmod}</lastmod>
+    <loc>${xmlEscape(`${baseUrl}/homescout/listings/${encodeURIComponent(listing.id)}`)}</loc>
+    <lastmod>${xmlEscape(lastmod)}</lastmod>
   </url>`;
     });
 
@@ -508,8 +582,13 @@ ${urls.join("\n")}
 router.get("/sitemap-homescout-counties.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-
-    const counties = await storage.listHomeScoutCountiesForSitemap();
+    let counties: any[] = [];
+    try {
+      counties = await storage.listHomeScoutCountiesForSitemap();
+    } catch (error) {
+      console.warn("HomeScout counties sitemap fallback: failed to load counties", error);
+      counties = [];
+    }
 
     const urls = counties.map((row) => {
       const lastmod = row.updatedAt
@@ -519,8 +598,8 @@ router.get("/sitemap-homescout-counties.xml", async (req, res) => {
       const countyFips = String(row.countyFips || "");
       return `
   <url>
-    <loc>${baseUrl}/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}</loc>
-    <lastmod>${lastmod}</lastmod>
+    <loc>${xmlEscape(`${baseUrl}/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}`)}</loc>
+    <lastmod>${xmlEscape(lastmod)}</lastmod>
   </url>`;
     });
 
