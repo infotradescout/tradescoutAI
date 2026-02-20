@@ -162,6 +162,10 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
+    if (!href.startsWith("#")) {
+      window.location.assign(href);
+      return;
+    }
     const id = href.replace("#", "");
     const element = document.getElementById(id);
     if (element) {
@@ -331,7 +335,16 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                 {variant.secondaryCta.label}
               </Button>
             ) : variant.secondaryCta?.href ? (
-              <a href={variant.secondaryCta.href}>
+              <a
+                href={variant.secondaryCta.href}
+                onClick={() =>
+                  void trackDemandEvent("cta_click", {
+                    placement: "hero_secondary",
+                    variant: variant.key,
+                    href: variant.secondaryCta?.href,
+                  })
+                }
+              >
                 <Button
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 font-semibold text-lg px-8 h-14 rounded-lg w-full sm:w-auto bg-transparent"
@@ -997,10 +1010,21 @@ export default function Home() {
   const trackedVariant = useMemo(
     () => ({
       ...variant,
+      navLinks: variant.navLinks.map((link) => ({
+        ...link,
+        href: link.href.startsWith("/") ? withDemandQueryParams(link.href) : link.href,
+      })),
       primaryCta: {
         ...variant.primaryCta,
         href: withDemandQueryParams(variant.primaryCta.href),
       },
+      secondaryCta:
+        variant.secondaryCta?.href != null
+          ? {
+              ...variant.secondaryCta,
+              href: withDemandQueryParams(variant.secondaryCta.href),
+            }
+          : variant.secondaryCta,
       cta: {
         ...variant.cta,
         primaryHref: withDemandQueryParams(variant.cta.primaryHref),
