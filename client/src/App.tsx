@@ -388,10 +388,11 @@ const LazyPage = memo(function LazyPage({
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
   const [location, setLocation] = useLocation();
-  const pathOnly = String(location || "").split("?")[0];
+  const rawPath = String(location || "").split("?")[0];
+  const pathOnly = rawPath.replace(/\/+$/, "") || "/";
   // Lite / experimental Scout surfaces can still run outside AppShell,
   // but the main Scout experience lives at /scout inside the app frame.
-  const isLiteScoutRoute = location === "/_scout-lite";
+  const isLiteScoutRoute = pathOnly === "/_scout-lite";
   const isLlmRoute = location.startsWith("/scout");
   const isLandingRoute = pathOnly === "/landing";
 

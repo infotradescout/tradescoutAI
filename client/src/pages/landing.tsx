@@ -5,7 +5,7 @@
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
  * 
  * KEY TRUTHS:
- * - 100% FREE FOREVER (no payment model at all)
+ * - $0 forever (no payment model at all)
  * - Trust-first matching (CVS-based, not pay-to-play)
  * - 1-3 matches per request (no lead spam)
  * - Community-owned reinvestment model
@@ -107,6 +107,7 @@ function Reveal({ children, className = "", delay = 0 }: { children: React.React
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const getStartedHref = "https://www.thetradescout.com/login";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -132,7 +133,7 @@ function Navbar() {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-[oklch(0.1_0.015_260/0.95)] backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
@@ -152,12 +153,11 @@ function Navbar() {
                 {link.label}
               </button>
             ))}
-            <Button 
-              onClick={() => handleNavClick("#get-started")}
-              className="bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold px-6 h-10 rounded-lg shadow-lg shadow-ts-orange/20 transition-all hover:shadow-ts-orange/30 hover:scale-[1.02]"
-            >
-              Get Started Free
-            </Button>
+            <a href={getStartedHref} target="_blank" rel="noopener noreferrer">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold px-6 h-10 rounded-lg shadow-lg shadow-ts-orange/20 transition-all hover:shadow-ts-orange/30 hover:scale-[1.02]">
+                Get Started
+              </Button>
+            </a>
           </div>
 
           <button
@@ -174,7 +174,7 @@ function Navbar() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:hidden bg-[oklch(0.12_0.015_260/0.98)] backdrop-blur-xl border-b border-white/5"
+          className="lg:hidden bg-transparent backdrop-blur-xl border-b border-white/5"
         >
           <div className="px-4 py-4 space-y-3">
             {links.map((link) => (
@@ -186,12 +186,11 @@ function Navbar() {
                 {link.label}
               </button>
             ))}
-            <Button 
-              onClick={() => handleNavClick("#get-started")}
-              className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold h-12 rounded-lg mt-2"
-            >
-              Get Started Free
-            </Button>
+            <a href={getStartedHref} target="_blank" rel="noopener noreferrer">
+              <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white font-semibold h-12 rounded-lg mt-2">
+                Get Started
+              </Button>
+            </a>
           </div>
         </motion.div>
       )}
@@ -203,12 +202,6 @@ function Navbar() {
 function HeroSection() {
   return (
     <section className="relative min-h-[82vh] lg:min-h-[88vh] flex items-center overflow-hidden">
-      {/* Background image with overlay */}
-      <div className="absolute inset-0 z-0">
-        <img src={IMAGES.hero} alt="Hero" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ts-navy-deep via-ts-navy-deep/80 to-ts-navy-deep/60" />
-      </div>
-
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24 w-full">
         <div className="max-w-2xl">
           <motion.div
@@ -218,7 +211,7 @@ function HeroSection() {
             className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-8"
           >
             <ShieldCheck className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">Trust-First Platform — 100% Free Forever</span>
+            <span className="text-sm font-medium text-ts-orange">Trust-First Platform</span>
           </motion.div>
 
           <motion.h1
@@ -238,7 +231,7 @@ function HeroSection() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-lg sm:text-xl text-white/70 max-w-xl mb-7 leading-relaxed"
           >
-            Verified people connect to verified pros through AI-powered matching. No lead spam. No pay-to-play. No payment at all. Just trust.
+            Verified people connect to verified pros through Scout-powered matching. No lead spam. No pay-to-play. No payment at all. Just trust.
           </motion.p>
 
           <motion.div
@@ -288,14 +281,14 @@ function HeroSection() {
 // ─── Stats Bar ───
 function StatsBar() {
   const stats = [
-    { value: 0, prefix: "$", suffix: "", label: "Cost to Anyone", display: "Free" },
+    { value: 0, prefix: "$", suffix: "", label: "Cost to Anyone", display: "$0" },
     { value: 100, suffix: "%", label: "Trust-Based Matching" },
     { value: 0, suffix: "", label: "Lead Spam", display: "Zero" },
     { value: 5, suffix: "-Layer", label: "Verification System" },
   ];
 
   return (
-    <section className="relative z-10 bg-ts-navy-deep border-y border-white/5">
+    <section className="relative z-10 bg-transparent border-y border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, i) => (
@@ -345,11 +338,7 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-ts-orange/5 rounded-full blur-[120px]" />
-      </div>
-
+    <section id="how-it-works" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
@@ -358,7 +347,7 @@ function HowItWorksSection() {
           </div>
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">How TradeScout Works</h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Trust-first matching controlled by Scout, your AI helper. No payment determines ranking.
+            Trust-first matching controlled by Scout. No payment determines ranking.
           </p>
         </Reveal>
 
@@ -394,11 +383,7 @@ function TrustSection() {
   ];
 
   return (
-    <section id="trust" className="relative py-16 lg:py-20 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
-      </div>
-
+    <section id="trust" className="relative py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal>
@@ -460,15 +445,11 @@ function DirectConnectSection() {
     { icon: Ban, title: "No Lead Spam", desc: "1-3 matches per request, not 20+" },
     { icon: TrendingUp, title: "Quality Over Quantity", desc: "Trust-ranked, not price-ranked" },
     { icon: Lock, title: "Privacy Protected", desc: "Your info stays private until you decide" },
-    { icon: DollarSign, title: "No Hidden Costs", desc: "Free for homeowners, always" },
+    { icon: DollarSign, title: "No Hidden Costs", desc: "No hidden fees, ever" },
   ];
 
   return (
-    <section id="direct-connect" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-ts-orange/5 rounded-full blur-[120px]" />
-      </div>
-
+    <section id="direct-connect" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal delay={0.2}>
@@ -524,11 +505,7 @@ function ContractorsSection() {
   ];
 
   return (
-    <section id="contractors" className="relative py-16 lg:py-20 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
-      </div>
-
+    <section id="contractors" className="relative py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
@@ -577,7 +554,7 @@ function PricingSection() {
     "Unlimited contractor search",
     "Direct Connect matching",
     "Community intel & playbooks",
-    "Scout AI assistant",
+    "Scout assistant",
     "Local checklists",
     "Role-specific dashboards",
   ];
@@ -586,15 +563,11 @@ function PricingSection() {
     "Occasional affiliate offers",
     "Paid advertisers (clearly labeled)",
     "No paywalls or upsells",
-    "Core features always free",
+    "Core features stay $0",
   ];
 
   return (
-    <section id="pricing" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
-      </div>
-
+    <section id="pricing" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-6">
@@ -603,7 +576,10 @@ function PricingSection() {
           </div>
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">$0 Forever</h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Everything is free. No credit card. No paywalls. No upsells. We stay free because partners and advertisers help fund the platform.
+            Gotcha. TradeScout is for you, for free, forever.
+          </p>
+          <p className="text-sm text-white/50 max-w-2xl mx-auto mt-3">
+            We make money, just not from the person reading this text.
           </p>
         </Reveal>
 
@@ -629,7 +605,7 @@ function PricingSection() {
             <div className="bg-white/5 border border-white/10 rounded-xl p-8">
               <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <Shield className="w-6 h-6 text-ts-orange" />
-                How We Keep It Free
+                How We Keep It $0
               </h3>
               <ul className="space-y-3">
                 {sponsorFeatures.map((feature, i) => (
@@ -661,8 +637,8 @@ function PricingSection() {
 function FAQSection() {
   const faqs = [
     {
-      q: "Is TradeScout really free?",
-      a: "Yes, 100% free forever for homeowners and contractors. We stay free through affiliate offers and sponsored placements (clearly labeled). No paywalls, no upsells, no hidden fees.",
+      q: "How much does TradeScout cost?",
+      a: "Pricing is simple: $0 forever. No credit card. No paywalls. No upsells.",
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
@@ -687,7 +663,7 @@ function FAQSection() {
   ];
 
   return (
-    <section className="relative py-16 lg:py-20 bg-gradient-to-b from-ts-navy-deep to-[oklch(0.08_0.01_260)]">
+    <section className="relative py-16 lg:py-20 bg-transparent">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-10">
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">Frequently Asked Questions</h2>
@@ -718,11 +694,7 @@ function FAQSection() {
 // ─── CTA Section ───
 function CTASection() {
   return (
-    <section id="get-started" className="relative py-16 lg:py-20 bg-ts-navy-deep overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-ts-orange/8 rounded-full blur-[120px]" />
-      </div>
-
+    <section id="get-started" className="relative py-16 lg:py-20 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <Reveal>
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-4 py-2 mb-8">
@@ -742,7 +714,7 @@ function CTASection() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="https://www.thetradescout.com/login" target="_blank" rel="noopener noreferrer">
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-lg px-10 h-14 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
-                Get Started Free
+                Get Started
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </a>
@@ -753,7 +725,7 @@ function CTASection() {
             </a>
           </div>
 
-          <p className="text-xs text-white/30 mt-6">No credit card required. Free forever for everyone.</p>
+          <p className="text-xs text-white/30 mt-6">No credit card required.</p>
         </Reveal>
       </div>
     </section>
@@ -763,7 +735,7 @@ function CTASection() {
 // ─── Footer ───
 function Footer() {
   return (
-    <footer className="bg-[oklch(0.08_0.01_260)] border-t border-white/5 py-16">
+    <footer className="bg-transparent border-t border-white/5 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
@@ -774,7 +746,7 @@ function Footer() {
               </span>
             </div>
             <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              Connection Without Compromise. Trust-first contractor matching powered by AI.
+              Connection Without Compromise. Trust-first contractor matching powered by Scout.
             </p>
           </div>
 
@@ -820,7 +792,7 @@ function Footer() {
 // ─── Main Page ───
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-ts-navy-deep text-white">
+    <div className="min-h-screen flex flex-col bg-transparent text-white">
       <Navbar />
       <main>
         <HeroSection />
