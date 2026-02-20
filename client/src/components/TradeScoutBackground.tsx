@@ -339,6 +339,7 @@ const css = `
   background: var(--ts-bg, #0B0F14);
   overflow: hidden;
   isolation: isolate;
+  --ts-blueprint-blur: 1px;
 }
 
 .ts-bg__content{
@@ -467,6 +468,18 @@ const css = `
   mix-blend-mode: normal;
 }
 
+.ts-bg__grid,
+.ts-bg__dimensions,
+.ts-bg__sheet,
+.ts-bg__callouts,
+.ts-bg__community,
+.ts-bg__topo,
+.ts-bg__signals,
+.ts-bg__flow,
+.ts-bg__sketches{
+  filter: blur(var(--ts-blueprint-blur));
+}
+
 /* SKETCHES: larger technical blueprint sheets that draw themselves */
 .ts-bg__sketches{
   z-index: 7;
@@ -480,7 +493,7 @@ const css = `
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: blur(0.1px);
+  filter: blur(calc(var(--ts-blueprint-blur) * 0.2));
   opacity: 0.5;
 }
 
