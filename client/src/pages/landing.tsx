@@ -299,19 +299,22 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
             {variant.headlineMode === "inline"
-              ? variant.headlineLines.map((line, idx) => (
-                  <span key={idx}>
-                    {idx === 1 ? (
-                      <span className="text-gradient-orange">{line}</span>
-                    ) : (
-                      line
-                    )}
-                    {idx < variant.headlineLines.length - 1 ? " " : ""}
-                  </span>
-                ))
+              ? (() => {
+                  const noBreakAfter = new Set<number>(variant.headlineNoBreakAfterIndices ?? []);
+                  const lastIdx = variant.headlineLines.length - 1;
+                  return variant.headlineLines.map((line, idx) => {
+                    const sep = idx < lastIdx ? (noBreakAfter.has(idx) ? "\u00A0" : " ") : "";
+                    return (
+                      <span key={idx}>
+                        {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
+                        {sep}
+                      </span>
+                    );
+                  });
+                })()
               : variant.headlineLines.map((line, idx) => (
                   <span key={idx}>
                     {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}

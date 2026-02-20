@@ -6,6 +6,7 @@ export type LandingVariant = {
   badgeText: string;
   showBadge?: boolean;
   headlineMode?: "stacked" | "inline";
+  headlineNoBreakAfterIndices?: number[];
   headlineLines: string[];
   subhead: string;
   primaryCta: { label: string; href: string; newTab?: boolean };
@@ -39,6 +40,8 @@ const DEFAULT_VARIANT: LandingVariant = {
   badgeText: "Trust-First Platform",
   showBadge: false,
   headlineMode: "inline",
+  // Prefer "Connection" / "Without Compromise" line breaks on small screens.
+  headlineNoBreakAfterIndices: [1],
   headlineLines: ["Connection", "Without", "Compromise"],
   subhead:
     "Verified people connect through Scout-powered matching. No lead spam. No pay-to-play. Just trust.",
