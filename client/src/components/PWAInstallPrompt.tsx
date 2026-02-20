@@ -1,13 +1,12 @@
-
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Download, X, Smartphone } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Download, X, Smartphone } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 export function PWAInstallPrompt() {
@@ -18,33 +17,33 @@ export function PWAInstallPrompt() {
 
   useEffect(() => {
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
       return;
     }
 
     // Listen for the beforeinstallprompt event
     const handler = (e: Event) => {
-      e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      
+
       // Show prompt after a short delay and only on mobile
       if (isMobile) {
         setTimeout(() => setShowPrompt(true), 3000);
       }
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener("beforeinstallprompt", handler);
 
     // Listen for app installed event
-    window.addEventListener('appinstalled', () => {
+    const onInstalled = () => {
       setIsInstalled(true);
       setShowPrompt(false);
-    });
+    };
+    window.addEventListener("appinstalled", onInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      window.removeEventListener('appinstalled', () => {});
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", onInstalled);
     };
   }, [isMobile]);
 
@@ -52,11 +51,11 @@ export function PWAInstallPrompt() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const choiceResult = await deferredPrompt.userChoice;
-      
-      if (choiceResult.outcome === 'accepted') {
+
+      if (choiceResult.outcome === "accepted") {
         setShowPrompt(false);
       }
-      
+
       setDeferredPrompt(null);
     }
   };
@@ -64,11 +63,11 @@ export function PWAInstallPrompt() {
   const handleDismiss = () => {
     setShowPrompt(false);
     // Don't show again for this session
-    sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+    sessionStorage.setItem("pwa-prompt-dismissed", "true");
   };
 
   // Don't show if already installed, not mobile, or previously dismissed
-  if (isInstalled || !isMobile || !showPrompt || sessionStorage.getItem('pwa-prompt-dismissed')) {
+  if (isInstalled || !isMobile || !showPrompt || sessionStorage.getItem("pwa-prompt-dismissed")) {
     return null;
   }
 
@@ -84,7 +83,8 @@ export function PWAInstallPrompt() {
               <div className="flex-1">
                 <h3 className="font-semibold text-sm mb-1">Install TradeScout App</h3>
                 <p className="text-xs text-orange-100 leading-relaxed">
-                  Get the full app experience with faster loading, offline access, and home screen convenience
+                  Get the full app experience with faster loading, offline access, and home screen
+                  convenience
                 </p>
               </div>
             </div>
@@ -97,7 +97,7 @@ export function PWAInstallPrompt() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="flex gap-2 mt-3">
             <Button
               onClick={handleInstall}
