@@ -203,13 +203,17 @@ export async function setupAuth(app: Express) {
       "Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET or FACEBOOK_CLIENT_ID/CLIENT_SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)"
     );
   } else {
-    const facebookCallbackURL = process.env.FACEBOOK_CALLBACK_URL;
-
-    if (!facebookCallbackURL) {
-      throw new Error(
-        "FACEBOOK_CALLBACK_URL is not set. This must be configured in the environment for Facebook OAuth to work."
-      );
-    }
+    const canonicalWebOrigin = String(
+      process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
+    ).replace(/\/+$/, "");
+    const defaultFacebookCallbackURL = `${canonicalWebOrigin}/api/auth/facebook/callback`;
+    const configuredFacebookCallback = String(process.env.FACEBOOK_CALLBACK_URL || "").trim();
+    const facebookCallbackURL =
+      process.env.NODE_ENV === "production" &&
+      /onrender\.com/i.test(configuredFacebookCallback) &&
+      canonicalWebOrigin.startsWith("https://")
+        ? defaultFacebookCallbackURL
+        : configuredFacebookCallback || defaultFacebookCallbackURL;
 
     console.log("[AUTH] Using Facebook callback URL:", facebookCallbackURL);
     console.log(
