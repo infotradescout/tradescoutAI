@@ -351,12 +351,12 @@ function HowItWorksSection() {
     {
       icon: MessageSquare,
       title: "Ask Scout",
-      desc: "Tell Scout what you need: 'I need a plumber in Austin for a leak'",
+      desc: "Tell Scout what you need. Scout is your community assistant for local work.",
     },
     {
       icon: Search,
       title: "Scout Matches",
-      desc: "Scout analyzes trust, trade, location, and urgency. Finds 1-3 qualified pros.",
+      desc: "Scout uses community trust signals plus trade and location to find 1-3 fits.",
     },
     {
       icon: CheckCircle,

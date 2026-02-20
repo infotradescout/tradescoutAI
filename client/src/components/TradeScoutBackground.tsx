@@ -339,7 +339,8 @@ const css = `
   background: var(--ts-bg, #0B0F14);
   overflow: hidden;
   isolation: isolate;
-  --ts-blueprint-blur: 1px;
+  /* Keep blur subtle; too much turns the blueprint into a flat dark wash. */
+  --ts-blueprint-blur: 0.35px;
 }
 
 .ts-bg__content{
@@ -384,7 +385,7 @@ const css = `
     repeating-linear-gradient(0deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(90deg, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 0px, color-mix(in oklab, var(--ts-border-subtle, rgba(255,255,255,.10)) 45%, transparent) 1px, transparent 1px, transparent 11px),
     repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 110px);
-  opacity: 0.14;
+  opacity: 0.16;
   transform: translateZ(0);
 }
 
@@ -493,7 +494,7 @@ const css = `
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: blur(calc(var(--ts-blueprint-blur) * 0.2));
+  filter: blur(calc(var(--ts-blueprint-blur) * 0.3));
   opacity: 0.5;
 }
 
