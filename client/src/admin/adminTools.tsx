@@ -16,6 +16,7 @@ import {
   FileUp,
   Briefcase,
   Home,
+  Link2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -187,6 +188,7 @@ const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
 const AdminControl = React.lazy(() => import("@/pages/admin-control"));
 const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"));
 const ContentModeration = React.lazy(() => import("@/pages/content-moderation"));
+const StaffShareLinksPage = React.lazy(() => import("@/pages/staff-share-links"));
 const AdminObservability = React.lazy(() => import("@/pages/admin-observability"));
 const AdminToolDiscovery = React.lazy(() => import("@/pages/admin-tool-discovery"));
 const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-coverage"));
@@ -414,6 +416,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Briefcase,
         visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
         render: () => <RedirectToAdminPanelTab tab="tradedeals" />,
+      }),
+      tool({
+        id: "share-links",
+        label: "Share Links",
+        path: "/admin/share-links",
+        icon: Link2,
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        render: () => <StaffShareLinksPage />,
       }),
     ],
   },

@@ -116,20 +116,25 @@ export default function StaffHardrockDirectory() {
               Commercial tradesmen submissions from `/hardrock`.
             </p>
           </div>
-          <div className="w-56">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="hardrock_pending">Pending</SelectItem>
-                <SelectItem value="hardrock_under_review">Under review</SelectItem>
-                <SelectItem value="hardrock_contacted">Contacted</SelectItem>
-                <SelectItem value="hardrock_approved">Approved</SelectItem>
-                <SelectItem value="hardrock_rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setLocation("/staff/share-links")}>
+              Share Links Library
+            </Button>
+            <div className="w-56">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="hardrock_pending">Pending</SelectItem>
+                  <SelectItem value="hardrock_under_review">Under review</SelectItem>
+                  <SelectItem value="hardrock_contacted">Contacted</SelectItem>
+                  <SelectItem value="hardrock_approved">Approved</SelectItem>
+                  <SelectItem value="hardrock_rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

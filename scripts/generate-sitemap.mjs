@@ -14,7 +14,7 @@
  *   client/public/sitemap.xml
  */
 
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -26,7 +26,7 @@ const OUTPUT_PATH = resolve(__dirname, '../client/public/sitemap.xml');
 
 // Define public routes (routes that should be indexed).
 // Excludes private/auth-only surfaces and dashboard routes.
-const PUBLIC_ROUTES = [
+const STATIC_PUBLIC_ROUTES = [
   { path: '/', priority: 1.0, changefreq: 'daily' },
   
   // Direct Connect
@@ -87,6 +87,38 @@ const PUBLIC_ROUTES = [
   // { path: '/compare/angi', priority: 0.8, changefreq: 'monthly' },
   // { path: '/compare/homeadvisor', priority: 0.8, changefreq: 'monthly' },
 ];
+
+function extractTradeLandingRoutes() {
+  try {
+    const sourcePath = resolve(__dirname, "../shared/trades-data.ts");
+    const source = readFileSync(sourcePath, "utf-8");
+    const slugMatches = [...source.matchAll(/slug:\s*'([^']+)'/g)];
+    const slugs = Array.from(new Set(slugMatches.map((m) => String(m[1] || "").trim()))).filter(
+      (slug) => slug.length > 0
+    );
+
+    return slugs.map((slug) => ({
+      path: `/landing/${slug}`,
+      priority: 0.8,
+      changefreq: "weekly",
+    }));
+  } catch (error) {
+    console.warn("⚠️ Could not extract trade slugs for landing sitemap entries.", error);
+    return [];
+  }
+}
+
+const PUBLIC_ROUTES = (() => {
+  const tradeRoutes = extractTradeLandingRoutes();
+  const seen = new Set();
+  const merged = [];
+  for (const route of [...STATIC_PUBLIC_ROUTES, ...tradeRoutes]) {
+    if (seen.has(route.path)) continue;
+    seen.add(route.path);
+    merged.push(route);
+  }
+  return merged;
+})();
 
 function generateSitemap() {
   const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

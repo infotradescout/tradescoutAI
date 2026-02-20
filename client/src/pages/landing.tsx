@@ -175,7 +175,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
   return (
     <nav
-      className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md shadow-lg shadow-black/20 border-b border-white/5" : "bg-transparent"}`}
+      className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md border-b border-tsBorder/70" : "bg-transparent"}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-12 lg:h-14">
@@ -230,7 +230,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:hidden bg-transparent backdrop-blur-xl border-b border-white/5"
+          className="lg:hidden bg-transparent backdrop-blur-xl border-b border-tsBorder/70"
         >
           <div className="px-4 py-4 space-y-3">
             {links.map((link) => (
@@ -396,7 +396,7 @@ function StatsBar() {
   ];
 
   return (
-    <section className="relative z-10 bg-transparent border-y border-white/5">
+    <section className="relative z-10 bg-transparent border-y border-tsBorder/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 lg:py-3">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
           {stats.map((stat, i) => (
@@ -467,7 +467,7 @@ function HowItWorksSection() {
                 <motion.div
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3 hover:border-ts-orange/30 transition-colors"
+                  className="bg-tsCard border border-tsBorder rounded-xl p-3 hover:border-ts-orange/40 transition-colors"
                 >
                   <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-2">
                     <Icon className="w-4 h-4 text-ts-orange" />
@@ -661,7 +661,7 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-white/5 border border-white/10 rounded-xl p-3 hover:border-ts-orange/30 transition-colors"
+                className="bg-tsCard border border-tsBorder rounded-xl p-3 hover:border-ts-orange/40 transition-colors"
               >
                 <h3 className="text-base font-bold text-white mb-1.5">{card.title}</h3>
                 <p className="text-xs text-white/60 leading-relaxed">{card.desc}</p>
@@ -714,7 +714,7 @@ function PricingSection() {
 
         <div className="grid lg:grid-cols-2 gap-3 mb-3">
           <Reveal>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+            <div className="bg-tsCard border border-tsBorder rounded-xl p-3">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-ts-orange" />
                 What You Get
@@ -731,7 +731,7 @@ function PricingSection() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+            <div className="bg-tsCard border border-tsBorder rounded-xl p-3">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-ts-orange" />
                 How We Keep It $0
@@ -811,7 +811,7 @@ function FAQSection() {
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="border border-white/10 rounded-lg px-3 data-[state=open]:bg-white/5"
+                className="border border-tsBorder rounded-lg px-3 data-[state=open]:bg-tsCard"
               >
                 <AccordionTrigger className="text-white font-semibold hover:text-ts-orange transition-colors py-2.5">
                   {faq.q}
@@ -897,7 +897,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
 // ─── Footer ───
 function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <footer className="bg-transparent border-t border-white/5 py-5">
+    <footer className="bg-transparent border-t border-tsBorder/70 py-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <div className="col-span-2 md:col-span-1">

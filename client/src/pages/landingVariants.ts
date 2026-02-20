@@ -1,3 +1,5 @@
+import { COMPREHENSIVE_TRADES, type Trade } from "@shared/trades-data";
+
 export type LandingVariant = {
   key: string;
   displayName: string;
@@ -47,7 +49,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   ],
   images: {
     logo: "/landing/logo.png",
-    trust: "/landing/trust.jpg",
+    trust: "/landing/hero.jpg",
     craft: "/landing/craft.jpg",
   },
   audience: {
@@ -233,6 +235,11 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
 const BASE_ALIASES: Record<string, string> = {
   pro: "contractor",
   contractor: "contractor",
+  service: "contractor",
+  services: "contractor",
+  provider: "contractor",
+  providers: "contractor",
+  trades: "contractor",
   home: "homeowner",
   homeowner: "homeowner",
   realestate: "realtor",
@@ -247,6 +254,20 @@ const BASE_ALIASES: Record<string, string> = {
   supplier: "supplier",
   creator: "affiliate",
   affiliate: "affiliate",
+};
+
+const TRADE_BY_SLUG = new Map<string, Trade>(
+  COMPREHENSIVE_TRADES.map((trade) => [trade.slug, trade])
+);
+const TRADE_SLUGS_DESC = Array.from(TRADE_BY_SLUG.keys()).sort((a, b) => b.length - a.length);
+
+const TRADE_CATEGORY_BADGE: Record<Trade["category"], string> = {
+  construction: "Construction Match",
+  home_improvement: "Home Improvement Match",
+  maintenance: "Maintenance Match",
+  specialty: "Specialty Service Match",
+  exterior: "Exterior Project Match",
+  interior: "Interior Project Match",
 };
 
 function normalizeKey(value: string | null | undefined, maxLen = 64): string {
@@ -391,6 +412,77 @@ function resolveBasePatch(
   return { patch: null, baseKey: DEFAULT_VARIANT.key };
 }
 
+function escapeForRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function cleanTradeLabel(rawName: string): string {
+  const cleaned = rawName
+    .replace(/\b(contractor|services?|specialist)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return cleaned || rawName;
+}
+
+function resolveTradeFromVariant(pathVariant: string, queryTrade: string): Trade | null {
+  const queryKey = normalizeKey(queryTrade, 120).replace(/_/g, "-");
+  if (queryKey && TRADE_BY_SLUG.has(queryKey)) return TRADE_BY_SLUG.get(queryKey) || null;
+
+  const normalized = normalizeKey(pathVariant, 120).replace(/_/g, "-");
+  if (!normalized) return null;
+  if (TRADE_BY_SLUG.has(normalized)) return TRADE_BY_SLUG.get(normalized) || null;
+
+  for (const slug of TRADE_SLUGS_DESC) {
+    const pattern = new RegExp(`(^|[-_])${escapeForRegex(slug)}($|[-_])`);
+    if (pattern.test(normalized)) {
+      return TRADE_BY_SLUG.get(slug) || null;
+    }
+  }
+
+  return null;
+}
+
+function buildTradePatch(trade: Trade): Partial<LandingVariant> {
+  const tradeLabel = cleanTradeLabel(trade.name);
+  const tradeLower = tradeLabel.toLowerCase();
+  const badge = TRADE_CATEGORY_BADGE[trade.category] || "Trade Match";
+  const ctaTarget = tradeLabel.length > 28 ? "a Local Pro" : tradeLabel;
+
+  return {
+    displayName: trade.name,
+    badgeText: `${badge} • ${trade.name}`,
+    headlineLines: ["Find Local", tradeLabel, "You Can Trust"],
+    subhead: `Scout helps you connect with trusted local ${tradeLower} providers. ${trade.description}. No lead reselling. No pay-to-play.`,
+    primaryCta: {
+      label: `Find ${ctaTarget}`,
+      href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+    },
+    audience: {
+      sectionLabel: `For ${trade.name}`,
+      sectionTitle: `Built For ${trade.name} Decisions`,
+      sectionDesc:
+        "Scout keeps contact gated and quality-first so you can move forward with fewer dead ends.",
+      cards: [
+        {
+          title: `Hiring ${tradeLabel}?`,
+          desc: `Get 1-3 relevant ${tradeLower} matches with clear trust signals before contact is shared.`,
+        },
+        {
+          title: `Are You a ${tradeLabel} Pro?`,
+          desc: "Earn visibility through trust and completed work, not ad spend or bidding wars.",
+        },
+      ],
+    },
+    cta: {
+      label: `${trade.name} On TradeScout`,
+      titleLines: ["Need", tradeLabel, "Done Right?"],
+      desc: `Start with Scout for your ${tradeLower} request and get high-fit local options without spam.`,
+      primaryLabel: `Start ${tradeLabel} Request`,
+      primaryHref: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+    },
+  };
+}
+
 export function resolveLandingVariant(input: {
   pathVariant?: string | null;
   query?: URLSearchParams | null;
@@ -398,15 +490,21 @@ export function resolveLandingVariant(input: {
   const q = input.query;
   const pathVariant = normalizeKey(input.pathVariant);
   const queryBase = normalizeKey(q?.get("base"));
+  const queryTrade = normalizeKey(q?.get("trade") || q?.get("service") || q?.get("provider"), 120);
 
   const { patch, baseKey } = resolveBasePatch(pathVariant, queryBase);
+  const matchedTrade = resolveTradeFromVariant(pathVariant, queryTrade);
+  const tradePatch = matchedTrade ? buildTradePatch(matchedTrade) : null;
   const resolvedKey = pathVariant || baseKey || DEFAULT_VARIANT.key;
   let next = patch
     ? mergeVariant(DEFAULT_VARIANT, patch, resolvedKey)
     : { ...DEFAULT_VARIANT, key: resolvedKey };
+  if (tradePatch) {
+    next = mergeVariant(next, tradePatch, resolvedKey);
+  }
 
   // Preserve a readable display name for campaign slugs like /landing/realtor-austin-video1
-  if (pathVariant && !BASE_VARIANTS[pathVariant] && pathVariant !== baseKey) {
+  if (pathVariant && !tradePatch && !BASE_VARIANTS[pathVariant] && pathVariant !== baseKey) {
     next.displayName = titleCaseSlug(pathVariant);
   }
 

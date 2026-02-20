@@ -35,6 +35,7 @@ import missionControlRouter from "./routes/mission-control";
 import preferredSourceRouter from "./routes/preferred-source";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
+import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { sendInternalServerError, sendAutoClassifiedError } from "./utils/httpErrors";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
@@ -119,6 +120,7 @@ import {
   setupAuth,
   isAuthenticated,
   isAdmin,
+  isStaff,
   isSuperAdmin,
   hashPassword,
   validatePassword,
@@ -212,6 +214,164 @@ const getPublicBaseUrlFromRequest = (req: Request): string => {
   if (!host) return "https://www.thetradescout.com";
   return `${proto}://${host}`;
 };
+
+type StaffShareableTemplate = {
+  id: string;
+  title: string;
+  path: string;
+  description: string;
+  recommendedFor: string;
+  useCase: string;
+  funnelStage: "awareness" | "consideration" | "conversion" | "retention";
+  requiresAuth: boolean;
+};
+
+const STAFF_SHAREABLE_LINK_TEMPLATES: StaffShareableTemplate[] = [
+  {
+    id: "landing-primary",
+    title: "Landing Page (Primary)",
+    path: "/landing",
+    description: "Best first click for cold traffic and first-time visitors.",
+    recommendedFor: "Video links, social posts, website bio links",
+    useCase: "Introduce TradeScout quickly and route users into the right next step.",
+    funnelStage: "awareness",
+    requiresAuth: false,
+  },
+  {
+    id: "setup-create",
+    title: "Create Account",
+    path: "/pre-scout-setup?mode=create",
+    description: "Takes new users directly into account creation.",
+    recommendedFor: "Warm traffic ready to join now",
+    useCase: "Reduce friction when the CTA is clearly 'join today'.",
+    funnelStage: "conversion",
+    requiresAuth: false,
+  },
+  {
+    id: "setup-signin",
+    title: "Sign In",
+    path: "/pre-scout-setup?mode=signin",
+    description: "Direct sign-in path for existing members.",
+    recommendedFor: "Email follow-ups, returning members",
+    useCase: "Recover existing users who already have an account.",
+    funnelStage: "retention",
+    requiresAuth: false,
+  },
+  {
+    id: "how-it-works",
+    title: "How It Works",
+    path: "/how-it-works",
+    description: "Clear explanation page for the Trust-first workflow.",
+    recommendedFor: "Prospects asking 'how is this different?'",
+    useCase: "Educational midpoint before asking for signup.",
+    funnelStage: "consideration",
+    requiresAuth: false,
+  },
+  {
+    id: "trust-model",
+    title: "Trust Model",
+    path: "/trust-model",
+    description: "Detailed trust logic and why pay-to-play is blocked.",
+    recommendedFor: "Skeptical prospects and partner conversations",
+    useCase: "Build credibility before conversion.",
+    funnelStage: "consideration",
+    requiresAuth: false,
+  },
+  {
+    id: "compare-angi",
+    title: "Compare vs Angi",
+    path: "/compare/angi",
+    description: "Positioning page against Angi pain points.",
+    recommendedFor: "Users who mention Angi",
+    useCase: "Competitive replacement messaging.",
+    funnelStage: "consideration",
+    requiresAuth: false,
+  },
+  {
+    id: "compare-homeadvisor",
+    title: "Compare vs HomeAdvisor",
+    path: "/compare/homeadvisor",
+    description: "Positioning page against HomeAdvisor pain points.",
+    recommendedFor: "Users who mention HomeAdvisor",
+    useCase: "Competitive replacement messaging.",
+    funnelStage: "consideration",
+    requiresAuth: false,
+  },
+  {
+    id: "pricing",
+    title: "Pricing",
+    path: "/pricing",
+    description: "Transparent pricing page and platform economics.",
+    recommendedFor: "Price-sensitive prospects",
+    useCase: "Answer cost objections quickly.",
+    funnelStage: "consideration",
+    requiresAuth: false,
+  },
+  {
+    id: "exchange",
+    title: "Exchange",
+    path: "/exchange",
+    description: "Marketplace and offers experience.",
+    recommendedFor: "Users looking for active opportunities",
+    useCase: "Drive high-intent traffic into monetizable surfaces.",
+    funnelStage: "conversion",
+    requiresAuth: false,
+  },
+  {
+    id: "direct-connect",
+    title: "Direct Connect",
+    path: "/direct-connect",
+    description: "Intent-gated connection flow between residents and pros.",
+    recommendedFor: "Users ready to request work",
+    useCase: "Convert immediate project intent into qualified routing.",
+    funnelStage: "conversion",
+    requiresAuth: false,
+  },
+  {
+    id: "contractors",
+    title: "Contractor Directory",
+    path: "/contractors",
+    description: "Browse verified contractors by locality and trade.",
+    recommendedFor: "Discovery-focused homeowners",
+    useCase: "Directory discovery before direct request submission.",
+    funnelStage: "consideration",
+    requiresAuth: false,
+  },
+  {
+    id: "county-directory",
+    title: "County Directory",
+    path: "/county-directory",
+    description: "County-first entry point into local ecosystem pages.",
+    recommendedFor: "Local campaigns and geo-targeted content",
+    useCase: "Route users to county-specific discovery.",
+    funnelStage: "awareness",
+    requiresAuth: false,
+  },
+  {
+    id: "community",
+    title: "Community Feed",
+    path: "/community",
+    description: "Read-only global view, with local action remaining gated.",
+    recommendedFor: "Community-minded prospects",
+    useCase: "Show local signal density and social proof.",
+    funnelStage: "awareness",
+    requiresAuth: false,
+  },
+];
+
+const STAFF_SHAREABLE_TRADE_TEMPLATES: StaffShareableTemplate[] = COMPREHENSIVE_TRADES.map(
+  (trade) => ({
+    id: `landing-trade-${trade.slug}`,
+    title: `${trade.name} Landing Page`,
+    path: `/landing/${trade.slug}`,
+    description: `Hyper-specific landing page for ${trade.name.toLowerCase()} audiences.`,
+    recommendedFor: `${trade.name} videos, posts, and trade-targeted campaigns`,
+    useCase:
+      "Send trade-specific traffic to matching language and CTA flow while preserving affiliate attribution.",
+    funnelStage: "awareness" as const,
+    requiresAuth: false,
+  })
+);
 
 const sanitizeNextPath = (value: unknown): string => {
   const raw = typeof value === "string" ? value.trim() : "";
@@ -1305,6 +1465,73 @@ export async function registerRoutes(app: any) {
       }
     }
   );
+
+  // Staff/admin shareable links catalog with affiliate attribution baked in.
+  app.get("/api/staff/shareable-links", isAuthenticated, isStaff, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+
+      let program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        program = await storage.createAffiliateProgram({ userId } as any);
+      }
+
+      let referralCode = String((program as any).referralCode || "").trim();
+      if (!referralCode) {
+        // Server-side repair for legacy rows: missing referralCode is not a client fault.
+        referralCode = await storage.generateAffiliateCode(userId);
+        try {
+          await storage.updateAffiliateProgram(program.id, { referralCode } as any);
+        } catch {
+          // Best-effort: proceed with generated code even if persistence fails.
+        }
+      }
+
+      const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
+      const links = [...STAFF_SHAREABLE_LINK_TEMPLATES, ...STAFF_SHAREABLE_TRADE_TEMPLATES].map(
+        (template) => {
+          const clean = new URL(template.path, baseOrigin);
+          const tracked = new URL(clean.toString());
+          if (!tracked.searchParams.has("ref")) {
+            tracked.searchParams.set("ref", referralCode);
+          }
+
+          return {
+            ...template,
+            cleanUrl: clean.toString(),
+            affiliateUrl: tracked.toString(),
+          };
+        }
+      );
+
+      const customLinks = await db
+        .select()
+        .from(affiliateShareLinks)
+        .where(eq(affiliateShareLinks.affiliateId, program.id))
+        .orderBy(desc(affiliateShareLinks.createdAt))
+        .limit(30);
+
+      res.json({
+        referralCode,
+        generatedAt: new Date().toISOString(),
+        links,
+        customLinks: (customLinks || []).map((row: any) => ({
+          id: row.id,
+          slug: row.friendlySlug,
+          description: row.description || "Custom share link",
+          destinationUrl: row.fullUrl,
+          shortUrl: row.friendlySlug
+            ? `${baseOrigin}/r/${encodeURIComponent(String(row.friendlySlug))}`
+            : null,
+          createdAt: row.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Error loading staff shareable links:", error);
+      res.status(500).json({ message: "Failed to load shareable links" });
+    }
+  });
 
   // Custom referral links (short /r/:slug routes)
   app.get("/api/affiliate/share-links", isAuthenticated, async (req: any, res: any) => {
@@ -2640,7 +2867,8 @@ export async function registerRoutes(app: any) {
         .toLowerCase();
       const protocol = protocolHeader === "https" ? "https" : req.protocol || "http";
       const isLocalHost = /^localhost(:\d+)?$/i.test(host) || /^127\.0\.0\.1(:\d+)?$/i.test(host);
-      const isCanonicalHost = hostOnly === "www.thetradescout.com" || hostOnly === "thetradescout.com";
+      const isCanonicalHost =
+        hostOnly === "www.thetradescout.com" || hostOnly === "thetradescout.com";
 
       // Always prefer request host for local development, even when NODE_ENV=production.
       if (host && isLocalHost) {

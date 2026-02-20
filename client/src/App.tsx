@@ -47,8 +47,7 @@ function getPostLandingRoute(user: any): string {
     : [];
   const isAdmin = user?.isAdmin === true || roles.some((r) => r.includes("admin"));
 
-  const profileVersion: number =
-    typeof user?.profileVersion === "number" ? user.profileVersion : 0;
+  const profileVersion: number = typeof user?.profileVersion === "number" ? user.profileVersion : 0;
   const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
 
   if (needsPreScoutSetup) return "/pre-scout-setup";
@@ -198,6 +197,7 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
+const StaffShareLinks = React.lazy(() => import("./pages/staff-share-links"));
 const AdminCommercialDirectoryPage = React.lazy(() => import("./pages/admin-commercial-directory"));
 const AdminCommercialContractorsPage = React.lazy(
   () => import("./pages/admin-commercial-contractors")
@@ -1070,6 +1070,25 @@ const AppLayout = memo(function AppLayout() {
                       ]}
                     >
                       <LazyPage Component={StaffHardrockDirectory} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/staff/share-links">
+                    <ProtectedRoute
+                      requiredRoles={[
+                        "support_agent",
+                        "content_moderator",
+                        "territory_manager",
+                        "contractor_success",
+                        "content_seo",
+                        "analytics_specialist",
+                        "marketing_specialist",
+                        "moderator",
+                        "ops_admin",
+                        "super_admin",
+                        "head_admin",
+                      ]}
+                    >
+                      <LazyPage Component={StaffShareLinks} />
                     </ProtectedRoute>
                   </Route>
 
