@@ -95,22 +95,49 @@ export async function setupAuth(app: Express) {
           });
         }
 
-        const isValidPassword = await bcrypt.compare(password, user.password);
+        const normalizeHash = (hash: string): string =>
+          // Some legacy imports use PHP-style $2y$ bcrypt prefix; node bcrypt expects $2a$/$2b$.
+          String(hash || "").replace(/^\$2y\$/, "$2b$");
+
+        const safeCompare = async (candidate: string, hash: string): Promise<boolean> => {
+          try {
+            return await bcrypt.compare(candidate, normalizeHash(hash));
+          } catch {
+            return false;
+          }
+        };
+
+        const candidatePasswords = Array.from(
+          new Set([String(password), String(password).trim()].filter((p) => p.length > 0))
+        );
+
+        let isValidPassword = false;
+        for (const candidate of candidatePasswords) {
+          if (await safeCompare(candidate, user.password)) {
+            isValidPassword = true;
+            break;
+          }
+        }
         if (!isValidPassword) {
           const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
             .trim()
             .toLowerCase();
           const configuredMasterAdminPassword = String(process.env.MASTER_ADMIN_PASSWORD || "");
           const isHeadAdminLikeRole = user.role === "head_admin" || user.role === "super_admin";
+          const matchesConfiguredMasterEmail =
+            !configuredMasterAdminEmail || normalizedEmail === configuredMasterAdminEmail;
+          const matchesConfiguredMasterPassword = candidatePasswords.some(
+            (candidate) => candidate === configuredMasterAdminPassword
+          );
 
           // Self-heal master-admin password drift:
-          // if the submitted credentials match env bootstrap credentials, refresh hash in DB.
+          // if submitted credentials match env bootstrap password for a head/super admin account,
+          // refresh hash in DB and continue login. Email match is enforced when configured.
           if (
             isHeadAdminLikeRole &&
-            configuredMasterAdminEmail &&
             configuredMasterAdminPassword &&
-            normalizedEmail === configuredMasterAdminEmail &&
-            password === configuredMasterAdminPassword
+            matchesConfiguredMasterEmail &&
+            matchesConfiguredMasterPassword
           ) {
             try {
               const refreshedHash = await bcrypt.hash(configuredMasterAdminPassword, 10);
