@@ -88,7 +88,19 @@ const STATIC_PUBLIC_ROUTES = [
   // { path: '/compare/homeadvisor', priority: 0.8, changefreq: 'monthly' },
 ];
 
-function extractTradeLandingRoutes() {
+const LANDING_AUDIENCE_KEYS = [
+  "contractor",
+  "homeowner",
+  "realtor",
+  "hoa",
+  "property-manager",
+  "lender",
+  "insurance-agent",
+  "supplier",
+  "affiliate",
+];
+
+function extractLandingVariantRoutes() {
   try {
     const sourcePath = resolve(__dirname, "../shared/trades-data.ts");
     const source = readFileSync(sourcePath, "utf-8");
@@ -97,22 +109,43 @@ function extractTradeLandingRoutes() {
       (slug) => slug.length > 0
     );
 
-    return slugs.map((slug) => ({
-      path: `/landing/${slug}`,
-      priority: 0.8,
-      changefreq: "weekly",
-    }));
+    const routes = [];
+
+    for (const slug of slugs) {
+      routes.push({
+        path: `/landing/${slug}`,
+        priority: 0.8,
+        changefreq: "weekly",
+      });
+    }
+
+    for (const audienceKey of LANDING_AUDIENCE_KEYS) {
+      routes.push({
+        path: `/landing/${audienceKey}`,
+        priority: 0.8,
+        changefreq: "weekly",
+      });
+      for (const slug of slugs) {
+        routes.push({
+          path: `/landing/${audienceKey}-${slug}`,
+          priority: 0.7,
+          changefreq: "weekly",
+        });
+      }
+    }
+
+    return routes;
   } catch (error) {
-    console.warn("⚠️ Could not extract trade slugs for landing sitemap entries.", error);
+    console.warn("⚠️ Could not extract landing variant routes from trades-data.", error);
     return [];
   }
 }
 
 const PUBLIC_ROUTES = (() => {
-  const tradeRoutes = extractTradeLandingRoutes();
+  const landingVariantRoutes = extractLandingVariantRoutes();
   const seen = new Set();
   const merged = [];
-  for (const route of [...STATIC_PUBLIC_ROUTES, ...tradeRoutes]) {
+  for (const route of [...STATIC_PUBLIC_ROUTES, ...landingVariantRoutes]) {
     if (seen.has(route.path)) continue;
     seen.add(route.path);
     merged.push(route);

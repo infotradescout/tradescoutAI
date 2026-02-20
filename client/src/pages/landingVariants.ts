@@ -270,6 +270,18 @@ const TRADE_CATEGORY_BADGE: Record<Trade["category"], string> = {
   interior: "Interior Project Match",
 };
 
+const AUDIENCE_LABEL_BY_BASE_KEY: Record<string, string> = {
+  contractor: "Contractors",
+  homeowner: "Homeowners",
+  realtor: "Realtors",
+  hoa: "HOA Teams",
+  "property-manager": "Property Managers",
+  lender: "Lenders",
+  "insurance-agent": "Insurance Agents",
+  supplier: "Suppliers",
+  affiliate: "Affiliates",
+};
+
 function normalizeKey(value: string | null | undefined, maxLen = 64): string {
   if (!value) return "";
   return String(value)
@@ -483,6 +495,233 @@ function buildTradePatch(trade: Trade): Partial<LandingVariant> {
   };
 }
 
+function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<LandingVariant> | null {
+  const audienceLabel = AUDIENCE_LABEL_BY_BASE_KEY[baseKey];
+  if (!audienceLabel) return null;
+
+  const tradeLabel = cleanTradeLabel(trade.name);
+  const tradeLower = tradeLabel.toLowerCase();
+  const audienceTradeName = `${audienceLabel} • ${trade.name}`;
+  const ctaTarget = tradeLabel.length > 28 ? "a Local Pro" : tradeLabel;
+
+  if (baseKey === "contractor") {
+    return {
+      displayName: audienceTradeName,
+      badgeText: `${trade.name} • Pro Growth`,
+      headlineLines: ["Win Better", tradeLabel, "Work Locally"],
+      subhead: `Scout routes relevant ${tradeLower} demand to trusted pros. No lead reselling and no pay-to-play ranking.`,
+      primaryCta: {
+        label: `Grow ${tradeLabel} Pipeline`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: `For ${trade.name} Pros`,
+        sectionTitle: `Turn ${tradeLabel} Skill Into Better Jobs`,
+        sectionDesc:
+          "Exposure follows trust and delivery signals, so serious operators can stand out.",
+        cards: [
+          {
+            title: `Qualified ${tradeLabel} Requests`,
+            desc: "Get routed demand with context instead of cold leads sold to dozens of pros.",
+          },
+          {
+            title: "Compete On Trust, Not Spend",
+            desc: "Ranking reflects credibility and outcomes, not ad budget.",
+          },
+        ],
+      },
+      cta: {
+        label: `${trade.name} Pro Access`,
+        titleLines: ["Ready for Better", tradeLabel, "Opportunities?"],
+        desc: `Set up your ${tradeLower} profile and grow with trust-first local demand.`,
+        primaryLabel: `Start ${tradeLabel} Profile`,
+        primaryHref: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+    };
+  }
+
+  if (baseKey === "homeowner") {
+    return {
+      displayName: audienceTradeName,
+      badgeText: `${trade.name} • Homeowner Match`,
+      headlineLines: ["Find Trusted", tradeLabel, "Near You"],
+      subhead: `Scout helps homeowners connect with trusted local ${tradeLower} providers without spam calls or bidding chaos.`,
+      primaryCta: {
+        label: `Find ${ctaTarget}`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: `For ${trade.name} Projects`,
+        sectionTitle: `Homeowner-Friendly ${tradeLabel} Matching`,
+        sectionDesc: "Get relevant local options and decide before contact is shared.",
+        cards: [
+          {
+            title: `Need ${tradeLabel} Work Done?`,
+            desc: `Scout narrows your search to 1-3 relevant ${tradeLower} pros.`,
+          },
+          {
+            title: "Keep Control Of Contact",
+            desc: "No information blast to 10-20 contractors.",
+          },
+        ],
+      },
+      cta: {
+        label: `${trade.name} Help For Homeowners`,
+        titleLines: ["Need Reliable", tradeLabel, "Support?"],
+        desc: "Start with Scout and get clearer local choices without inbox overload.",
+        primaryLabel: `Start ${tradeLabel} Request`,
+        primaryHref: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+    };
+  }
+
+  if (baseKey === "realtor") {
+    return {
+      displayName: audienceTradeName,
+      badgeText: `${trade.name} • Realtor Workflow`,
+      headlineLines: ["Close Faster With", tradeLabel, "Support"],
+      subhead: `Scout helps Realtors source trusted local ${tradeLower} providers for timeline-sensitive property work.`,
+      primaryCta: {
+        label: `Find ${tradeLabel} Pros`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: `For Realtor ${trade.name} Needs`,
+        sectionTitle: `Keep Deals Moving With Better ${tradeLabel} Coordination`,
+        sectionDesc: "Use trust-backed local routing for fast decisions and fewer project delays.",
+        cards: [
+          {
+            title: "Transaction Timeline Support",
+            desc: `Coordinate ${tradeLower} help for inspections, repairs, and closing prep.`,
+          },
+          {
+            title: "Client Confidence",
+            desc: "Show trust signals clients can understand and act on.",
+          },
+        ],
+      },
+    };
+  }
+
+  if (baseKey === "hoa" || baseKey === "property-manager") {
+    const opsAudience = baseKey === "hoa" ? "HOA Teams" : "Property Managers";
+    return {
+      displayName: `${opsAudience} • ${trade.name}`,
+      badgeText: `${trade.name} • Operations Routing`,
+      headlineLines: ["Coordinate", tradeLabel, "With Audit Clarity"],
+      subhead: `Scout helps ${opsAudience.toLowerCase()} route ${tradeLower} work with clear intent and accountability.`,
+      primaryCta: {
+        label: `Coordinate ${tradeLabel}`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: `For ${opsAudience}`,
+        sectionTitle: `${tradeLabel} Workflows With Less Churn`,
+        sectionDesc:
+          "Decision quality stays visible while contact and action remain properly gated.",
+        cards: [
+          {
+            title: "Operational Control",
+            desc: "Track why each routing decision was made and who acted.",
+          },
+          {
+            title: "Resident Communication",
+            desc: "Reduce confusion with cleaner, trust-first process flow.",
+          },
+        ],
+      },
+    };
+  }
+
+  if (baseKey === "lender" || baseKey === "insurance-agent") {
+    const financeAudience = baseKey === "lender" ? "Lenders" : "Insurance Agents";
+    return {
+      displayName: `${financeAudience} • ${trade.name}`,
+      badgeText: `${trade.name} • Client Support`,
+      headlineLines: ["Support Clients With", tradeLabel, "That Delivers"],
+      subhead: `Scout helps ${financeAudience.toLowerCase()} route clients to trusted ${tradeLower} pathways when timing matters.`,
+      primaryCta: {
+        label: `Start ${tradeLabel} Routing`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: `For ${financeAudience}`,
+        sectionTitle: `${tradeLabel} Support Without Chaos`,
+        sectionDesc: "Reduce friction in high-stress workflows with clear local execution paths.",
+        cards: [
+          {
+            title: "Lower Coordination Drag",
+            desc: `Move ${tradeLower} support forward with less back-and-forth.`,
+          },
+          {
+            title: "Better Client Experience",
+            desc: "Provide practical next steps your clients can trust.",
+          },
+        ],
+      },
+    };
+  }
+
+  if (baseKey === "supplier") {
+    return {
+      displayName: audienceTradeName,
+      badgeText: `${trade.name} • Supplier Reach`,
+      headlineLines: ["Reach", tradeLabel, "Pros Locally"],
+      subhead: `Scout helps suppliers connect offers to relevant ${tradeLower} audiences through trust-shaped local flows.`,
+      primaryCta: {
+        label: `Reach ${tradeLabel} Pros`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: `For ${trade.name} Suppliers`,
+        sectionTitle: `Better ${tradeLabel} Distribution Context`,
+        sectionDesc:
+          "Put offers in front of relevant local professionals without spam-first targeting.",
+        cards: [
+          {
+            title: "Local Demand Context",
+            desc: "Align supply campaigns with real local work signals.",
+          },
+          {
+            title: "Higher Fit Visibility",
+            desc: "Get in front of the right pros for the right project stage.",
+          },
+        ],
+      },
+    };
+  }
+
+  if (baseKey === "affiliate") {
+    return {
+      displayName: audienceTradeName,
+      badgeText: `${trade.name} • Campaign Landing`,
+      headlineLines: ["Send", tradeLabel, "Traffic Right"],
+      subhead: `Use this ${tradeLower}-specific page for role-targeted content while preserving affiliate attribution.`,
+      primaryCta: {
+        label: `Open ${tradeLabel} Landing`,
+        href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
+      },
+      audience: {
+        sectionLabel: "For Campaign Builders",
+        sectionTitle: `${tradeLabel} Message-Match Landing`,
+        sectionDesc: "Keep message and intent aligned from video click through CTA.",
+        cards: [
+          {
+            title: "Audience Fit",
+            desc: "Role and trade language stay aligned with campaign intent.",
+          },
+          {
+            title: "Attribution Friendly",
+            desc: "Directly shareable links with referral tracking parameters.",
+          },
+        ],
+      },
+    };
+  }
+
+  return null;
+}
+
 export function resolveLandingVariant(input: {
   pathVariant?: string | null;
   query?: URLSearchParams | null;
@@ -501,6 +740,12 @@ export function resolveLandingVariant(input: {
     : { ...DEFAULT_VARIANT, key: resolvedKey };
   if (tradePatch) {
     next = mergeVariant(next, tradePatch, resolvedKey);
+  }
+  if (matchedTrade) {
+    const audienceTradePatch = buildAudienceTradePatch(baseKey, matchedTrade);
+    if (audienceTradePatch) {
+      next = mergeVariant(next, audienceTradePatch, resolvedKey);
+    }
   }
 
   // Preserve a readable display name for campaign slugs like /landing/realtor-austin-video1

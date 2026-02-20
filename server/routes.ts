@@ -373,6 +373,52 @@ const STAFF_SHAREABLE_TRADE_TEMPLATES: StaffShareableTemplate[] = COMPREHENSIVE_
   })
 );
 
+const STAFF_SHAREABLE_AUDIENCE_LANDING_TEMPLATES: Array<{
+  key: string;
+  label: string;
+  recommendedFor: string;
+}> = [
+  { key: "contractor", label: "Contractors", recommendedFor: "Trade pro campaigns" },
+  { key: "homeowner", label: "Homeowners", recommendedFor: "Residential buyer campaigns" },
+  { key: "realtor", label: "Realtors", recommendedFor: "Real estate agent campaigns" },
+  { key: "hoa", label: "HOA Teams", recommendedFor: "Board and manager campaigns" },
+  {
+    key: "property-manager",
+    label: "Property Managers",
+    recommendedFor: "Multi-property campaigns",
+  },
+  { key: "lender", label: "Lenders", recommendedFor: "Finance partner campaigns" },
+  { key: "insurance-agent", label: "Insurance Agents", recommendedFor: "Claims-support campaigns" },
+  { key: "supplier", label: "Suppliers", recommendedFor: "Vendor and supplier campaigns" },
+  { key: "affiliate", label: "Affiliates", recommendedFor: "Creator and partner campaigns" },
+];
+
+const STAFF_SHAREABLE_AUDIENCE_TEMPLATES: StaffShareableTemplate[] =
+  STAFF_SHAREABLE_AUDIENCE_LANDING_TEMPLATES.map((audience) => ({
+    id: `landing-audience-${audience.key}`,
+    title: `${audience.label} Landing Page`,
+    path: `/landing/${audience.key}`,
+    description: `Audience-specific landing page tuned for ${audience.label.toLowerCase()}.`,
+    recommendedFor: audience.recommendedFor,
+    useCase: "Message-match landing for role-specific campaigns.",
+    funnelStage: "awareness",
+    requiresAuth: false,
+  }));
+
+const STAFF_SHAREABLE_AUDIENCE_TRADE_TEMPLATES: StaffShareableTemplate[] =
+  STAFF_SHAREABLE_AUDIENCE_LANDING_TEMPLATES.flatMap((audience) =>
+    COMPREHENSIVE_TRADES.map((trade) => ({
+      id: `landing-${audience.key}-${trade.slug}`,
+      title: `${audience.label} • ${trade.name}`,
+      path: `/landing/${audience.key}-${trade.slug}`,
+      description: `${audience.label} landing page customized for ${trade.name.toLowerCase()} intent.`,
+      recommendedFor: `${audience.recommendedFor}; ${trade.name} campaign videos and posts`,
+      useCase: "Hyper-specific share link for role + trade intent with affiliate attribution.",
+      funnelStage: "awareness" as const,
+      requiresAuth: false,
+    }))
+  );
+
 const sanitizeNextPath = (value: unknown): string => {
   const raw = typeof value === "string" ? value.trim() : "";
   if (!raw) return "";
@@ -1489,21 +1535,24 @@ export async function registerRoutes(app: any) {
       }
 
       const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
-      const links = [...STAFF_SHAREABLE_LINK_TEMPLATES, ...STAFF_SHAREABLE_TRADE_TEMPLATES].map(
-        (template) => {
-          const clean = new URL(template.path, baseOrigin);
-          const tracked = new URL(clean.toString());
-          if (!tracked.searchParams.has("ref")) {
-            tracked.searchParams.set("ref", referralCode);
-          }
-
-          return {
-            ...template,
-            cleanUrl: clean.toString(),
-            affiliateUrl: tracked.toString(),
-          };
+      const links = [
+        ...STAFF_SHAREABLE_LINK_TEMPLATES,
+        ...STAFF_SHAREABLE_AUDIENCE_TEMPLATES,
+        ...STAFF_SHAREABLE_TRADE_TEMPLATES,
+        ...STAFF_SHAREABLE_AUDIENCE_TRADE_TEMPLATES,
+      ].map((template) => {
+        const clean = new URL(template.path, baseOrigin);
+        const tracked = new URL(clean.toString());
+        if (!tracked.searchParams.has("ref")) {
+          tracked.searchParams.set("ref", referralCode);
         }
-      );
+
+        return {
+          ...template,
+          cleanUrl: clean.toString(),
+          affiliateUrl: tracked.toString(),
+        };
+      });
 
       const customLinks = await db
         .select()
