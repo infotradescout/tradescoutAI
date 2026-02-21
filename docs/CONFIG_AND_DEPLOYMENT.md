@@ -5,6 +5,9 @@ How to run locally (exact commands)
 - Build for production:
   - `npm run build` — runs `vite build`, `node scripts/generate-sitemap.mjs`, then `node build-server.mjs` to create the `dist`/`public` build.
   - Start the production server: `npm start` (runs `node dist/index.js`).
+- Release gates:
+  - `npm run test:release-gates` — runs the Chromium release gate suite after preflight-checking `BASE_URL/api/health`.
+  - If preflight fails, start the app first with `npm run dev` and rerun the command.
 - Database migrations:
   - `npm run db:push` — run Drizzle migrate/push using `drizzle-kit`.
   - `npm run db:migrate` — run migration helper script.
