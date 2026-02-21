@@ -13,6 +13,8 @@ import { useLocation } from "wouter";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import "./trade-partner-county.css";
 
+const LANDING_TEMPLATE_VERSION = "2026-02-21.3";
+
 type LandingData = {
   countySlug: string;
   countyName: string;
@@ -284,7 +286,7 @@ export default function TradePartnerCountyLanding({
       }
 
       setSubmitted(true);
-      formElement.reset();
+      formElement?.reset?.();
     } catch {
       setSubmitError("Submission failed.");
     } finally {
@@ -520,7 +522,8 @@ export default function TradePartnerCountyLanding({
         </div>
 
         <footer className="tp-footer">
-          {new Date().getFullYear()} TradeScout | {data.countyName} County Community Builders
+          {new Date().getFullYear()} TradeScout | {data.countyName} County Community Builders | v
+          {LANDING_TEMPLATE_VERSION}
         </footer>
       </div>
     </div>

@@ -8,7 +8,7 @@
  * This is intentionally conservative: we do not cache API responses.
  */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2-2026-02-21";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -97,4 +97,3 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 });
-
