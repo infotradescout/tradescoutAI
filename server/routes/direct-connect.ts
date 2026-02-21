@@ -1047,6 +1047,12 @@ export function registerDirectConnectRoutes(app: Express) {
         res.status(201).json(created ?? null);
       } catch (error: any) {
         console.error("Error creating direct connect request:", error);
+        if (isSchemaMismatchError(error)) {
+          return res.status(503).json({
+            message: "Direct Connect is initializing right now. Please retry in a moment.",
+            code: "DIRECT_CONNECT_SCHEMA_MISMATCH",
+          });
+        }
         res.status(500).json({ message: error?.message || "Failed to create request" });
       }
     }
