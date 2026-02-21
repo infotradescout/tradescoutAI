@@ -1,6 +1,17 @@
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarClock,
+  HandHeart,
+  MapPinned,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import "./trade-partner-county.css";
 
 type LandingData = {
   countySlug: string;
@@ -84,7 +95,7 @@ function renderHeadlineWithAccent(headline: string): ReactNode {
         parts.push(headline.slice(cursor, start));
       }
       parts.push(
-        <span key={`${start}-${end}`} className="text-orange-500">
+        <span key={`${start}-${end}`} className="tp-accent-text">
           {match[1]}
         </span>
       );
@@ -102,13 +113,20 @@ function renderHeadlineWithAccent(headline: string): ReactNode {
   const split = headline.split("{accent}");
   return split.map((part, idx) =>
     idx === 1 ? (
-      <span key={`accent-${idx}`} className="text-orange-500">
+      <span key={`accent-${idx}`} className="tp-accent-text">
         {part}
       </span>
     ) : (
       <span key={`base-${idx}`}>{part}</span>
     )
   );
+}
+
+function scrollToForm() {
+  if (typeof document === "undefined") return;
+  const element = document.getElementById("interest-form");
+  if (!element) return;
+  element.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export default function TradePartnerCountyLanding({
@@ -134,7 +152,6 @@ export default function TradePartnerCountyLanding({
   const [data, setData] = useState<LandingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -235,8 +252,8 @@ export default function TradePartnerCountyLanding({
     setSubmitError(null);
 
     if (!data) return;
-
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const payload: PartnerInterestPayload = {
       countySlug: data.countySlug,
       businessName: cleanField(form, "businessName", 160),
@@ -249,45 +266,41 @@ export default function TradePartnerCountyLanding({
       acknowledgesTerm: parseCheckbox(form, "acknowledgesTerm"),
     };
 
-    setSubmitting(true);
-    const response = await fetch(buildApiUrl("/api/partner-interest"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-    setSubmitting(false);
+    try {
+      setSubmitting(true);
+      const response = await fetch(buildApiUrl("/api/partner-interest"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}));
-      setSubmitError(String((errorBody as any)?.error || "Submission failed."));
-      return;
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        setSubmitError(String((errorBody as any)?.error || "Submission failed."));
+        return;
+      }
+
+      setSubmitted(true);
+      formElement.reset();
+    } catch {
+      setSubmitError("Submission failed.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitted(true);
-    event.currentTarget.reset();
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6">
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 560,
-            borderRadius: 16,
-            border: "1px solid rgba(148,163,184,0.35)",
-            background: "rgba(8,16,28,0.88)",
-            color: "#e2e8f0",
-            padding: 20,
-          }}
-        >
-          <h1 style={{ margin: 0, fontSize: 20, color: "#f8fafc" }}>Loading county page</h1>
-          <p style={{ margin: "10px 0 0", color: "#cbd5e1" }}>
-            Fetching Trade Partner details for this county...
-          </p>
+      <div className="tp-county-page">
+        <div className="tp-container">
+          <div className="tp-status-card">
+            <p className="tp-kicker">Trade Partner Program</p>
+            <h1>Loading county page</h1>
+            <p>Fetching county settings and partnership details.</p>
+          </div>
         </div>
       </div>
     );
@@ -295,240 +308,241 @@ export default function TradePartnerCountyLanding({
 
   if (loadError || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6">
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 640,
-            borderRadius: 16,
-            border: "1px solid rgba(248,113,113,0.45)",
-            background: "rgba(30,12,16,0.88)",
-            color: "#fee2e2",
-            padding: 20,
-          }}
-        >
-          <h1 style={{ margin: 0, fontSize: 22, color: "#fef2f2" }}>Page unavailable</h1>
-          <p style={{ margin: "10px 0 0", color: "#fecaca" }}>{loadError || "Unknown error"}</p>
+      <div className="tp-county-page">
+        <div className="tp-container">
+          <div className="tp-status-card tp-status-card-error">
+            <p className="tp-kicker">Trade Partner Program</p>
+            <h1>Page unavailable</h1>
+            <p>{loadError || "Unknown error."}</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  const countyLabel = `${data.countyName}, ${data.stateCode}`;
+  const processSteps = [
+    "Apply for a category seat in this county.",
+    "Ops reviews category availability and fit.",
+    "Seat assignment is locked for the term window.",
+    "Partner visibility and County Vault attribution goes live.",
+  ];
+
   return (
-    <div className="min-h-screen bg-black text-slate-300">
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="mb-12">
-          <div className="text-sm uppercase tracking-wider text-slate-400 mb-3">
-            {data.countyName}, {data.stateCode}
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-5">
-            {renderHeadlineWithAccent(data.heroHeadline)}
-          </h1>
-          <p className="max-w-2xl text-lg text-slate-300">{data.heroSubhead}</p>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
-            <StatCard label="Term" value={`${data.seatTermMonths} months`} />
-            <StatCard label="Category seats" value="1 per category" />
-            <StatCard label="Giveback allocation" value={`${data.givebackSeatRevenuePct}%`} />
-            <StatCard label="County Vault" value={`${data.countyVaultAffiliatePct}%`} />
-          </div>
-        </div>
-
-        <Section title="The local problem">
-          <p className="mb-4">
-            Most marketplaces treat local work like inventory. They extract value by reselling
-            access and attention back to the people doing the work.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Money leaves the community instead of compounding locally</li>
-            <li>Opportunity becomes pay-gated instead of merit-gated</li>
-            <li>Trust gets fragmented across disconnected platforms</li>
-          </ul>
-        </Section>
-
-        <Section title="The Community Builders model">
-          <p className="mb-4">
-            {data.countyName} Community Builders is a county-level system designed to keep
-            opportunity accessible and keep reinvestment visible.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Free opportunity pathways for contractors</li>
-            <li>No pay-per-lead extraction</li>
-            <li>Public, measurable giveback as a built-in output</li>
-          </ul>
-        </Section>
-
-        <Section title="Category exclusivity">
-          <p className="mb-4">
-            Partnership seats are limited by design to avoid noise and preserve clarity.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>One Official Partner per category in this county</li>
-            <li>{data.seatTermMonths}-month term for operational stability</li>
-            <li>Renewal priority for existing partners</li>
-          </ul>
-        </Section>
-
-        <Section title="Embedded placement (not advertising)">
-          <p className="mb-4">
-            Partners are introduced as part of the system infrastructure without turning the
-            experience into a billboard.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Explained during contractor onboarding ("how this stays free")</li>
-            <li>Listed in a Trade Partner directory and resource pages</li>
-            <li>Pinned community references where appropriate</li>
-          </ul>
-        </Section>
-
-        <Section title="Recurring visibility & amplification">
-          <p className="mb-4">
-            Recognition is cumulative and consistent, designed to build familiarity over time.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Two spotlight mentions per month (county channels)</li>
-            <li>Inclusion in documented giveback content</li>
-            <li>Cross-platform distribution where Community Builders is active</li>
-          </ul>
-        </Section>
-
-        <Section title="Community giveback engine">
-          <p className="mb-4">
-            A portion of seat revenue is allocated to visible local givebacks with public receipts.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Vehicle restorations</li>
-            <li>Tool donations</li>
-            <li>Emergency assistance</li>
-            <li>Meal sponsorships</li>
-            <li>Small business support</li>
-          </ul>
-        </Section>
-
-        <Section title="County Vault impact model">
-          <p className="mb-4">
-            County Vault is the accountability mechanism: attribution, totals, and summaries that
-            stay public.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>
-              {data.countyVaultAffiliatePct}% of affiliate revenue is routed to the county vault
-            </li>
-            <li>Contributions are credited in the partner name</li>
-            <li>Quarterly summaries show cumulative impact</li>
-          </ul>
-        </Section>
-
-        <Section title="Financial alignment">
-          <p className="mb-4">
-            The practical benefit is familiarity and trust. Contractors meet partners inside the
-            system before they need them.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Partners are introduced during onboarding</li>
-            <li>Familiarity improves response rates and close rates</li>
-            <li>Results are driven by fit and timing, not cold interruption</li>
-          </ul>
-        </Section>
-
-        <Section title="Regional expansion strategy">
-          <p className="mb-4">
-            {data.countyName} is the pilot county. Expansion is added only after proof-of-concept
-            performance is visible.
-          </p>
-          <p className="text-slate-400">
-            Multi-county seats are reviewed after pilot operations demonstrate stable performance.
-          </p>
-        </Section>
-
-        <Section title="Partnership request">
-          <p className="mb-4">
-            If your organization fits a category seat, submit a request below. We will review
-            availability and follow up with operational terms.
-          </p>
-          <p className="text-slate-400">
-            This is infrastructure alignment inside a county commerce system, not a campaign.
-          </p>
-        </Section>
-
-        <div
-          id="interest-form"
-          className="mt-14 bg-neutral-900 border border-neutral-700 rounded-2xl p-8 md:p-10"
-        >
-          <h2 className="text-white text-2xl font-semibold mb-2">Request a category seat review</h2>
-          <p className="text-slate-400 mb-8">
-            Share the basics. We will confirm category availability and next steps.
-          </p>
-
-          {submitted ? (
-            <div className="bg-green-900/40 border border-green-700 text-green-200 rounded-xl p-4">
-              Received. We will follow up shortly.
+    <div className="tp-county-page">
+      <div className="tp-container">
+        <header className="tp-hero tp-fade-up">
+          <div className="tp-hero-left">
+            <p className="tp-kicker">
+              <MapPinned size={14} />
+              {countyLabel}
+            </p>
+            <h1>{renderHeadlineWithAccent(data.heroHeadline)}</h1>
+            <p className="tp-subhead">{data.heroSubhead}</p>
+            <div className="tp-hero-actions">
+              <button type="button" className="tp-btn-primary" onClick={scrollToForm}>
+                Request category review
+                <ArrowRight size={16} />
+              </button>
+              <button type="button" className="tp-btn-ghost" onClick={scrollToForm}>
+                See seat terms
+              </button>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5 max-w-2xl">
-              {submitError ? (
-                <div className="bg-red-900/40 border border-red-700 text-red-200 rounded-xl p-4">
-                  {submitError}
+          </div>
+          <div className="tp-hero-right">
+            <MetricCard label="Term window" value={`${data.seatTermMonths} months`} />
+            <MetricCard label="Exclusivity" value="1 seat per category" />
+            <MetricCard label="Giveback allocation" value={`${data.givebackSeatRevenuePct}%`} />
+            <MetricCard label="County Vault" value={`${data.countyVaultAffiliatePct}%`} />
+          </div>
+        </header>
+
+        <div className="tp-layout">
+          <div className="tp-content tp-fade-up tp-delay-1">
+            <section className="tp-panel">
+              <h2>Why this model exists</h2>
+              <p>
+                Most local marketplaces monetize interruption. TradeScout is designed for trust and
+                operating continuity, not lead flipping.
+              </p>
+              <div className="tp-feature-grid">
+                <FeatureCard
+                  icon={<ShieldCheck size={18} />}
+                  title="No pay-per-lead extraction"
+                  text="Contractor opportunity stays open while partner seats fund infrastructure."
+                />
+                <FeatureCard
+                  icon={<BadgeCheck size={18} />}
+                  title="Category clarity"
+                  text="One partner seat per category keeps the signal clean and predictable."
+                />
+                <FeatureCard
+                  icon={<HandHeart size={18} />}
+                  title="Visible local giveback"
+                  text="A fixed revenue share is routed to county-visible giveback activity."
+                />
+                <FeatureCard
+                  icon={<Wallet size={18} />}
+                  title="Public attribution"
+                  text="County Vault summaries credit partner impact with recurring transparency."
+                />
+              </div>
+            </section>
+
+            <section className="tp-panel">
+              <h2>How seat operations work</h2>
+              <ol className="tp-step-list">
+                {processSteps.map((step) => (
+                  <li key={step}>
+                    <Sparkles size={14} />
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="tp-panel">
+              <h2>Placement and amplification</h2>
+              <div className="tp-split-grid">
+                <div>
+                  <h3>Embedded placement</h3>
+                  <ul>
+                    <li>Introduced during onboarding as infrastructure support.</li>
+                    <li>Listed across county resource and partner contexts.</li>
+                    <li>Positioned for familiarity before purchasing intent.</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3>Recurring visibility</h3>
+                  <ul>
+                    <li>Monthly partner mention cadence in county channels.</li>
+                    <li>Inclusion in documented giveback and impact stories.</li>
+                    <li>Consistent exposure without ad-noise behavior.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section className="tp-panel">
+              <h2>County scope and expansion</h2>
+              <p>
+                {data.countyName} is operated as a measured county unit. Multi-county expansion is
+                evaluated only after pilot stability is proven in ops metrics and community output.
+              </p>
+              <div className="tp-chip-row">
+                <span className="tp-chip">
+                  <CalendarClock size={14} />
+                  {data.seatTermMonths}-month standard term
+                </span>
+                <span className="tp-chip">
+                  <HandHeart size={14} />
+                  {data.givebackSeatRevenuePct}% public giveback allocation
+                </span>
+                <span className="tp-chip">
+                  <Wallet size={14} />
+                  {data.countyVaultAffiliatePct}% County Vault affiliate routing
+                </span>
+              </div>
+            </section>
+          </div>
+
+          <aside className="tp-sidebar tp-fade-up tp-delay-2">
+            <section className="tp-panel tp-form-panel" id="interest-form">
+              <h2>Request a category seat review</h2>
+              <p className="tp-form-intro">
+                Submit your business details. TradeScout ops will confirm seat availability for this
+                county and follow up with term details.
+              </p>
+
+              {data.allowedCategories.length > 0 ? (
+                <div className="tp-allowed-categories">
+                  {data.allowedCategories.map((category) => (
+                    <span key={category}>{category}</span>
+                  ))}
                 </div>
               ) : null}
 
-              <Field label="Business name" name="businessName" required />
-              <Field
-                label="Service category"
-                name="serviceCategory"
-                required
-                asSelect
-                options={data.allowedCategories}
-              />
-              <Field label="Contact name" name="contactName" required />
-              <Field label="Email" name="email" required type="email" />
-              <Field label="Phone (optional)" name="phone" />
-              <Field label="Notes (optional)" name="message" asTextarea />
+              {submitted ? (
+                <div className="tp-submit-success">
+                  <strong>Received.</strong>
+                  <span>Your request is in queue and will be reviewed shortly.</span>
+                  <button
+                    type="button"
+                    className="tp-btn-ghost"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setSubmitError(null);
+                    }}
+                  >
+                    Submit another request
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="tp-form">
+                  {submitError ? <p className="tp-submit-error">{submitError}</p> : null}
 
-              <div className="space-y-3 pt-2">
-                <Checkbox
-                  name="acknowledgesExclusivity"
-                  label="I understand category seats are exclusive (one per category per county)."
-                />
-                <Checkbox
-                  name="acknowledgesTerm"
-                  label={`I understand the standard term is ${data.seatTermMonths} months.`}
-                />
-              </div>
+                  <Field label="Business name" name="businessName" required />
+                  <Field
+                    label="Service category"
+                    name="serviceCategory"
+                    required
+                    asSelect
+                    options={data.allowedCategories}
+                  />
+                  <Field label="Contact name" name="contactName" required />
+                  <Field label="Email" name="email" type="email" required />
+                  <Field label="Phone (optional)" name="phone" />
+                  <Field label="Notes (optional)" name="message" asTextarea />
 
-              <button
-                disabled={submitting}
-                className="mt-3 inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:hover:bg-orange-500 text-white font-semibold px-7 py-3 rounded-xl"
-              >
-                {submitting ? "Submitting..." : "Submit request"}
-              </button>
-            </form>
-          )}
+                  <div className="tp-consent-group">
+                    <Checkbox
+                      name="acknowledgesExclusivity"
+                      label="I understand seats are exclusive: one partner per category in this county."
+                    />
+                    <Checkbox
+                      name="acknowledgesTerm"
+                      label={`I understand the standard term for this county is ${data.seatTermMonths} months.`}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="tp-btn-primary tp-submit-btn"
+                  >
+                    {submitting ? "Submitting..." : "Submit request"}
+                    {!submitting ? <ArrowRight size={16} /> : null}
+                  </button>
+                </form>
+              )}
+            </section>
+          </aside>
         </div>
 
-        <div className="mt-10 text-sm text-slate-500">
-          {new Date().getFullYear()} TradeScout - {data.countyName} Community Builders
-        </div>
+        <footer className="tp-footer">
+          {new Date().getFullYear()} TradeScout | {data.countyName} County Community Builders
+        </footer>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-5">
-      <div className="text-slate-400 text-sm">{label}</div>
-      <div className="text-white text-xl font-semibold mt-1">{value}</div>
-    </div>
+    <article className="tp-metric-card">
+      <p>{label}</p>
+      <h3>{value}</h3>
+    </article>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function FeatureCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
-    <section className="py-10 border-t border-neutral-800">
-      <h2 className="text-white text-2xl font-semibold mb-4">{title}</h2>
-      <div className="text-slate-300 leading-relaxed">{children}</div>
-    </section>
+    <article className="tp-feature-card">
+      <div className="tp-feature-icon">{icon}</div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </article>
   );
 }
 
@@ -549,18 +563,15 @@ function Field({
   asSelect?: boolean;
   options?: string[];
 }) {
-  const baseClass =
-    "w-full bg-black border border-neutral-700 focus:border-orange-500 focus:outline-none rounded-xl px-4 py-3 text-slate-100";
-
-  if (asSelect && options.length > 0) {
-    return (
-      <div>
-        <label className="block text-sm text-slate-300 mb-2">
-          {label} {required ? <span className="text-orange-500">*</span> : null}
-        </label>
-        <select name={name} required={required} className={baseClass} defaultValue="">
+  return (
+    <label className="tp-field">
+      <span>
+        {label} {required ? <em>*</em> : null}
+      </span>
+      {asSelect && options.length > 0 ? (
+        <select name={name} required={required} defaultValue="" className="tp-select">
           <option value="" disabled>
-            Select...
+            Select category
           </option>
           {options.map((option) => (
             <option key={option} value={option}>
@@ -568,35 +579,20 @@ function Field({
             </option>
           ))}
         </select>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <label className="block text-sm text-slate-300 mb-2">
-        {label} {required ? <span className="text-orange-500">*</span> : null}
-      </label>
-      {asTextarea ? (
-        <textarea name={name} className={`${baseClass} min-h-[120px]`} />
+      ) : asTextarea ? (
+        <textarea name={name} className="tp-textarea" />
       ) : (
-        <input name={name} required={required} type={type} className={baseClass} />
+        <input name={name} required={required} type={type} className="tp-input" />
       )}
-    </div>
+    </label>
   );
 }
 
 function Checkbox({ name, label }: { name: string; label: string }) {
   return (
-    <label className="flex items-start gap-3 text-slate-300">
-      <input
-        name={name}
-        type="checkbox"
-        value="true"
-        className="mt-1 h-5 w-5 accent-orange-500"
-        required
-      />
-      <span className="text-sm">{label}</span>
+    <label className="tp-checkbox">
+      <input name={name} type="checkbox" value="true" required />
+      <span>{label}</span>
     </label>
   );
 }
