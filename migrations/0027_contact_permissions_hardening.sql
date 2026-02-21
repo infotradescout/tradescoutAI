@@ -20,19 +20,39 @@ ALTER TABLE contact_permissions
   ALTER COLUMN created_at SET NOT NULL,
   ALTER COLUMN updated_at SET NOT NULL;
 
-ALTER TABLE contact_permissions
-  ADD CONSTRAINT IF NOT EXISTS chk_contact_permissions_responded_at
-    CHECK (
-      (status = 'pending' AND responded_at IS NULL)
-      OR (status <> 'pending' AND responded_at IS NOT NULL)
-    ) NOT VALID;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'chk_contact_permissions_responded_at'
+      AND conrelid = 'contact_permissions'::regclass
+  ) THEN
+    ALTER TABLE contact_permissions
+      ADD CONSTRAINT chk_contact_permissions_responded_at
+        CHECK (
+          (status = 'pending' AND responded_at IS NULL)
+          OR (status <> 'pending' AND responded_at IS NOT NULL)
+        ) NOT VALID;
+  END IF;
+END $$;
 
-ALTER TABLE contact_permissions
-  ADD CONSTRAINT IF NOT EXISTS chk_contact_permissions_pending_fields
-    CHECK (
-      status <> 'pending'
-      OR (last_request_type IS NOT NULL AND last_request_notification_id IS NOT NULL)
-    ) NOT VALID;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'chk_contact_permissions_pending_fields'
+      AND conrelid = 'contact_permissions'::regclass
+  ) THEN
+    ALTER TABLE contact_permissions
+      ADD CONSTRAINT chk_contact_permissions_pending_fields
+        CHECK (
+          status <> 'pending'
+          OR (last_request_type IS NOT NULL AND last_request_notification_id IS NOT NULL)
+        ) NOT VALID;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_contact_permissions_status
   ON contact_permissions (status);
