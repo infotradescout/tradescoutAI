@@ -324,10 +324,10 @@ export default function TradePartnerCountyLanding({
 
   const countyLabel = `${data.countyName}, ${data.stateCode}`;
   const processSteps = [
-    "Apply for a category seat in this county.",
-    "Ops reviews category availability and fit.",
-    "Seat assignment is locked for the term window.",
-    "Partner visibility and County Vault attribution goes live.",
+    "Submit your business and service category.",
+    "We confirm if that category is still available in this county.",
+    "If approved, your category partnership is reserved for the full term.",
+    "Your business is added to county partner placement and County Vault attribution.",
   ];
 
   return (
@@ -343,17 +343,17 @@ export default function TradePartnerCountyLanding({
             <p className="tp-subhead">{data.heroSubhead}</p>
             <div className="tp-hero-actions">
               <button type="button" className="tp-btn-primary" onClick={scrollToForm}>
-                Request category review
+                Apply for county partnership
                 <ArrowRight size={16} />
               </button>
               <button type="button" className="tp-btn-ghost" onClick={scrollToForm}>
-                See seat terms
+                See partnership terms
               </button>
             </div>
           </div>
           <div className="tp-hero-right">
             <MetricCard label="Term window" value={`${data.seatTermMonths} months`} />
-            <MetricCard label="Exclusivity" value="1 seat per category" />
+            <MetricCard label="Exclusivity" value="1 partner per category" />
             <MetricCard label="Giveback allocation" value={`${data.givebackSeatRevenuePct}%`} />
             <MetricCard label="County Vault" value={`${data.countyVaultAffiliatePct}%`} />
           </div>
@@ -371,12 +371,12 @@ export default function TradePartnerCountyLanding({
                 <FeatureCard
                   icon={<ShieldCheck size={18} />}
                   title="No pay-per-lead extraction"
-                  text="Contractor opportunity stays open while partner seats fund infrastructure."
+                  text="Contractor opportunity stays open while county partnerships fund infrastructure."
                 />
                 <FeatureCard
                   icon={<BadgeCheck size={18} />}
                   title="Category clarity"
-                  text="One partner seat per category keeps the signal clean and predictable."
+                  text="One official partner per category keeps the signal clear and predictable."
                 />
                 <FeatureCard
                   icon={<HandHeart size={18} />}
@@ -392,7 +392,7 @@ export default function TradePartnerCountyLanding({
             </section>
 
             <section className="tp-panel">
-              <h2>How seat operations work</h2>
+              <h2>How partnership approval works</h2>
               <ol className="tp-step-list">
                 {processSteps.map((step) => (
                   <li key={step}>
@@ -429,7 +429,7 @@ export default function TradePartnerCountyLanding({
               <h2>County scope and expansion</h2>
               <p>
                 {data.countyName} is operated as a measured county unit. Multi-county expansion is
-                evaluated only after pilot stability is proven in ops metrics and community output.
+                evaluated only after this county shows reliable results and community impact.
               </p>
               <div className="tp-chip-row">
                 <span className="tp-chip">
@@ -450,10 +450,10 @@ export default function TradePartnerCountyLanding({
 
           <aside className="tp-sidebar tp-fade-up tp-delay-2">
             <section className="tp-panel tp-form-panel" id="interest-form">
-              <h2>Request a category seat review</h2>
+              <h2>Request county partnership</h2>
               <p className="tp-form-intro">
-                Submit your business details. TradeScout ops will confirm seat availability for this
-                county and follow up with term details.
+                Submit your business details. We will confirm if your category is open in this
+                county and follow up with the partnership terms.
               </p>
 
               {data.allowedCategories.length > 0 ? (
@@ -499,7 +499,7 @@ export default function TradePartnerCountyLanding({
                   <div className="tp-consent-group">
                     <Checkbox
                       name="acknowledgesExclusivity"
-                      label="I understand seats are exclusive: one partner per category in this county."
+                      label="I understand only one partner is selected per category in this county."
                     />
                     <Checkbox
                       name="acknowledgesTerm"
