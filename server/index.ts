@@ -126,6 +126,8 @@ const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
+let viteSetupPromise: Promise<void> | null = null;
+
 app.use((req, res, next) => {
   const incoming = req.headers["x-request-id"];
   const requestId =
@@ -642,8 +644,15 @@ app.use((req, res, next) => {
                   console.log("[DEV] Vite skipped - API server will run without client");
                 } else {
                   console.log("[DEV] Setting up Vite...");
-                  const { setupVite } = await import("./vite");
-                  await setupVite(app, server);
+                  if (!viteSetupPromise) {
+                    viteSetupPromise = (async () => {
+                      const { setupVite } = await import("./vite");
+                      await setupVite(app, server);
+                    })();
+                  } else {
+                    console.warn("[DEV] Vite setup already started; skipping duplicate setup.");
+                  }
+                  await viteSetupPromise;
                   console.log("[DEV] Vite setup complete - ready to accept connections");
                 }
               } catch (viteError) {
