@@ -8,6 +8,7 @@ How to run locally (exact commands)
 - Database migrations:
   - `npm run db:push` — run Drizzle migrate/push using `drizzle-kit`.
   - `npm run db:migrate` — run migration helper script.
+  - `npm run db:apply:tool-discovery` — apply `migrations/0046_tool_discovery_tables.sql` directly (safe/idempotent).
 
 Required environment variables (observed in code)
 - REQUIRED (server will warn/fail if missing in production):

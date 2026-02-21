@@ -34,6 +34,8 @@
     "db:push:test": "node scripts/withTestDb.mjs drizzle-kit push",
     "db:bootstrap:test": "node scripts/bootstrap-test-db.mjs",
     "db:migrate": "node scripts/db-migrate-safe.mjs",
+    "db:apply:sql": "node scripts/apply-sql-migration.mjs",
+    "db:apply:tool-discovery": "node scripts/apply-sql-migration.mjs migrations/0046_tool_discovery_tables.sql",
     "check:scale-readiness": "node scripts/check-scale-readiness.mjs",
     "db:baseline": "node scripts/db-baseline-drizzle.mjs",
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",

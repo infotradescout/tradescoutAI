@@ -2319,19 +2319,19 @@ export default function ScoutOS() {
                 type: "CALL_TOOL",
                 name: "ads.feedback",
                 args: { adId: res.sponsored.id, rating: "helpful", source: "scout" },
-                label: "ðŸ‘ Helpful",
+                label: "Helpful",
               },
               {
                 type: "CALL_TOOL",
                 name: "ads.feedback",
                 args: { adId: res.sponsored.id, rating: "not_relevant", source: "scout" },
-                label: "ðŸ‘Ž Not relevant",
+                label: "Not relevant",
               },
               {
                 type: "CALL_TOOL",
                 name: "ads.feedback",
                 args: { adId: res.sponsored.id, rating: "spam", source: "scout" },
-                label: "ðŸš« Spam",
+                label: "Spam",
               },
             ],
           } as any);
