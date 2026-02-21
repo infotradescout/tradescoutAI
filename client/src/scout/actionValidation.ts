@@ -46,6 +46,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/project-tracker",
   "/lead-management",
   "/finances",
+  "/pre-scout-setup",
   "/register",
   "/create-account",
   "/login",
