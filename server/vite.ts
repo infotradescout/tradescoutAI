@@ -21,11 +21,16 @@ export function log(message: string, source = "express") {
 
 export async function setupVite(app: Express, server: Server) {
   const hmrPath = "/__vite_hmr";
+  const hmrEnabled = process.env.ENABLE_VITE_HMR === "true";
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: hmrPath },
+    hmr: hmrEnabled ? { server, path: hmrPath } : false,
     allowedHosts: true as const,
   };
+
+  if (!hmrEnabled) {
+    log("Vite HMR disabled (set ENABLE_VITE_HMR=true to opt in).", "vite");
+  }
 
   const vite = await createViteServer({
     ...viteConfig,
