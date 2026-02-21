@@ -47,6 +47,7 @@ import { getMessagingService } from "./messaging-service";
 import { emailService } from "./services/emailService";
 import { passwordResetService } from "./services/passwordResetService";
 import { emailVerificationService } from "./services/emailVerificationService";
+import { computeVerificationRequirements } from "./services/profileVerificationService";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
@@ -107,6 +108,8 @@ import {
   userFollows,
   walletTransactions,
   marketplaceTransactions,
+  profiles,
+  userProfiles,
 } from "../shared/schema";
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
@@ -1131,6 +1134,283 @@ export async function registerRoutes(app: any) {
   app.post("/auth/login", loginLimiter, handleLocalLogin);
   app.post("/api/auth/login", loginLimiter, handleLocalLogin);
 
+  // New multi-profile registration handler (wizard flow)
+  const handleRegisterMultiProfile = async (req: Request, res: Response) => {
+    try {
+      const registrationEnabled = await getGeneralSetting<boolean>("registration_enabled", true);
+      if (!registrationEnabled) {
+        return res.status(403).json({ message: "Registration is currently disabled" });
+      }
+
+      const emailVerificationRequired = await getGeneralSetting<boolean>(
+        "email_verification_required",
+        true
+      );
+
+      const body = (req.body || {}) as any;
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      const password = typeof body.password === "string" ? body.password : "";
+      const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+      const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
+      const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+      const acceptTerms =
+        body.acceptTerms === true ||
+        body.agreeToTerms === true ||
+        body.termsAccepted === true ||
+        body.acceptedTerms === true;
+      const profilesData = Array.isArray(body.profiles) ? body.profiles : [];
+
+      if (!email) return res.status(400).json({ message: "Email is required" });
+      if (!password) return res.status(400).json({ message: "Password is required" });
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+      if (!firstName) return res.status(400).json({ message: "First name is required" });
+      if (!lastName) return res.status(400).json({ message: "Last name is required" });
+      if (!phone) return res.status(400).json({ message: "Phone number is required" });
+      if (phone.replace(/\D/g, "").length < 10) {
+        return res.status(400).json({ message: "Please enter a valid phone number" });
+      }
+      if (!acceptTerms) {
+        return res.status(400).json({ message: "You must accept the Terms of Service" });
+      }
+      if (profilesData.length === 0) {
+        return res.status(400).json({ message: "Create at least one profile" });
+      }
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      type ProfileRole = "homeowner" | "business_owner" | "contractor";
+      type UserIntent = "person" | "business";
+      type BusinessType = "service_provider" | "seller";
+      type SellerType = "physical" | "online" | "hybrid";
+      type NormalizedProfile = {
+        userIntent: UserIntent;
+        businessType: BusinessType | null;
+        serviceTags: string[];
+        sellerTags: string[];
+        sellerType: SellerType | null;
+        role: ProfileRole;
+        roles: ProfileRole[];
+        verificationRequirements: Awaited<ReturnType<typeof computeVerificationRequirements>>;
+      };
+
+      const normalizeTag = (value: unknown): string | null => {
+        if (typeof value !== "string") return null;
+        const normalized = value.trim().toLowerCase().replace(/\s+/g, "_");
+        if (!normalized || !/^[a-z0-9_-]{2,64}$/.test(normalized)) return null;
+        return normalized;
+      };
+
+      const normalizeTagArray = (value: unknown, maxItems = 24): string[] => {
+        if (!Array.isArray(value)) return [];
+        const out: string[] = [];
+        for (const item of value) {
+          const normalized = normalizeTag(item);
+          if (!normalized) continue;
+          if (!out.includes(normalized)) out.push(normalized);
+          if (out.length >= maxItems) break;
+        }
+        return out;
+      };
+
+      const normalizedProfiles: NormalizedProfile[] = [];
+      for (const rawProfile of profilesData) {
+        const input = (rawProfile || {}) as Record<string, unknown>;
+        const rawIntent = typeof input.userIntent === "string" ? input.userIntent : "";
+        const userIntent = rawIntent === "person" || rawIntent === "business" ? rawIntent : null;
+        if (!userIntent) {
+          return res.status(400).json({ message: "Invalid user intent" });
+        }
+
+        const rawBusinessType =
+          typeof input.businessType === "string" ? input.businessType : undefined;
+        const businessType: BusinessType | null =
+          rawBusinessType === "service_provider" || rawBusinessType === "seller"
+            ? rawBusinessType
+            : null;
+
+        if (userIntent === "business" && !businessType) {
+          return res.status(400).json({ message: "Business type required for business profiles" });
+        }
+
+        const serviceTags = normalizeTagArray(input.serviceTags);
+        const sellerTags = normalizeTagArray(input.sellerTags);
+
+        if (
+          userIntent === "business" &&
+          businessType === "service_provider" &&
+          serviceTags.length === 0
+        ) {
+          return res.status(400).json({ message: "Select at least one service type" });
+        }
+        if (userIntent === "business" && businessType === "seller" && sellerTags.length === 0) {
+          return res.status(400).json({ message: "Select at least one seller type" });
+        }
+
+        const rawSellerType = typeof input.sellerType === "string" ? input.sellerType : "";
+        const sellerType: SellerType | null =
+          rawSellerType === "physical" || rawSellerType === "online" || rawSellerType === "hybrid"
+            ? rawSellerType
+            : null;
+
+        const role: ProfileRole =
+          userIntent === "person"
+            ? "homeowner"
+            : businessType === "service_provider"
+              ? "contractor"
+              : "business_owner";
+        const roles: ProfileRole[] =
+          role === "contractor" ? ["contractor", "business_owner"] : [role];
+
+        const verificationRequirements = await computeVerificationRequirements(
+          userIntent,
+          businessType || undefined,
+          serviceTags,
+          sellerTags,
+          undefined
+        );
+
+        normalizedProfiles.push({
+          userIntent,
+          businessType,
+          serviceTags,
+          sellerTags,
+          sellerType: businessType === "seller" ? sellerType : null,
+          role,
+          roles,
+          verificationRequirements,
+        });
+      }
+
+      const firstProfileTemplate = normalizedProfiles[0];
+      const hashedPassword = await hashPassword(password);
+
+      const created = await db.transaction(async (tx: any) => {
+        const [createdUser] = await tx
+          .insert(users)
+          .values({
+            email,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            phone,
+            role: firstProfileTemplate.role,
+            roles: firstProfileTemplate.roles,
+            activeRole: firstProfileTemplate.role,
+            profileVisibility: "private",
+            verifiedBadge: false,
+            trustScore: 10,
+            emailVerified: emailVerificationRequired ? false : true,
+            addressVerified: false,
+            verificationStatus: "pending",
+          })
+          .returning();
+
+        const createdProfiles: any[] = [];
+        for (let i = 0; i < normalizedProfiles.length; i++) {
+          const profileTemplate = normalizedProfiles[i];
+          const [createdProfile] = await tx
+            .insert(userProfiles)
+            .values({
+              userId: createdUser.id,
+              userIntent: profileTemplate.userIntent,
+              businessType: profileTemplate.businessType,
+              serviceTags: profileTemplate.serviceTags,
+              sellerTags: profileTemplate.sellerTags,
+              sellerType: profileTemplate.sellerType,
+              role: profileTemplate.role,
+              roles: profileTemplate.roles,
+              profileVisibility: "private",
+              verifiedBadge: false,
+              trustScore: 10,
+              isPrimary: i === 0,
+              verificationRequirements: profileTemplate.verificationRequirements,
+              verificationStatus: "pending",
+              email_verified: emailVerificationRequired ? false : true,
+              address_verified: false,
+            })
+            .returning();
+
+          createdProfiles.push(createdProfile);
+        }
+
+        const firstCreatedProfile = createdProfiles[0];
+        const [updatedUser] = await tx
+          .update(users)
+          .set({
+            role: firstCreatedProfile.role,
+            roles: firstCreatedProfile.roles,
+            activeRole: firstCreatedProfile.role,
+            activeProfileId: firstCreatedProfile.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, createdUser.id))
+          .returning();
+
+        return {
+          user: updatedUser || createdUser,
+          profiles: createdProfiles,
+        };
+      });
+
+      const firstProfile = created.profiles[0];
+      let emailVerificationSent = false;
+      let verificationToken: string | undefined;
+
+      if (emailVerificationRequired) {
+        const { token, expiresAt } = emailVerificationService.createToken(created.user.id);
+        const verifyBase = getPublicBaseUrlFromRequest(req);
+        const next = "/pre-scout-setup";
+        const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
+
+        try {
+          await emailService.sendEmail({
+            to: email,
+            subject: "Verify your TradeScout email",
+            html: `<p>Thanks for joining TradeScout.</p>
+                 <p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>`,
+            text: `Verify your TradeScout email: ${verifyLink}`,
+            purpose: "account_creation",
+          });
+          emailVerificationSent = true;
+        } catch (error) {
+          console.error("[email-verification] Failed to send verification email:", error);
+        }
+
+        if (!emailService.isConfigured() && process.env.NODE_ENV !== "production") {
+          verificationToken = token;
+        }
+      }
+
+      req.login(created.user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Registration successful but login failed" });
+        }
+
+        return res.json({
+          user: sanitizeUserForResponse(created.user),
+          profiles: created.profiles.map((p) => ({
+            id: p.id,
+            role: p.role,
+            userIntent: p.userIntent,
+            businessType: p.businessType,
+          })),
+          activeProfileId: firstProfile.id,
+          emailVerificationRequired,
+          emailVerificationSent,
+          ...(verificationToken ? { verificationToken } : {}),
+        });
+      });
+    } catch (error: any) {
+      console.error("Multi-profile registration error:", error);
+      sendAutoClassifiedError(res, error, "Registration failed", {});
+    }
+  };
+
   const handleRegister = async (req: Request, res: Response) => {
     try {
       const registrationEnabled = await getGeneralSetting<boolean>("registration_enabled", true);
@@ -1813,6 +2093,12 @@ export async function registerRoutes(app: any) {
   // Backward compatibility: allow both /auth/register and /api/auth/register
   app.post("/auth/register", registerLimiter, handleRegister);
   app.post("/api/auth/register", registerLimiter, handleRegister);
+
+  // New multi-profile registration endpoint (wizard flow)
+  // POST /api/auth/register-multi accepts profiles array:
+  // [{ userIntent, businessType?, serviceTags?, sellerTags?, sellerType? }]
+  // Each verified profile grants discoverable + badge + trust gating (not feature gating)
+  app.post("/api/auth/register-multi", registerLimiter, handleRegisterMultiProfile);
 
   app.post(
     "/api/auth/request-email-verification",
@@ -11446,6 +11732,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       const validatedData = parsedListing.data;
+
+      // Require basic verification before allowing marketplace listings.
+      // Marketplace listing requires a verified person (address/email) or an approved vendor verification.
+      const vendorVerification = await storage.getVendorVerificationByUserId(user?.id);
+      const buyerVerification = await storage.getBuyerVerificationByUserId(user?.id);
+      const addressVerification = await storage.getAddressVerificationByUserId(user?.id);
+
+      const isVerifiedForMarketplace =
+        (vendorVerification && vendorVerification.status === "approved") ||
+        (buyerVerification && buyerVerification.status === "approved") ||
+        (addressVerification && addressVerification.status === "approved");
+
+      if (!isVerifiedForMarketplace) {
+        return res.status(403).json({
+          message:
+            "You must complete basic verification (email + address) or vendor verification before creating marketplace listings.",
+          required: {
+            email: true,
+            address: true,
+            vendorVerification: "optional_but_accepted",
+          },
+        });
+      }
 
       // All new listings require admin/moderator approval before going live
       const listing = await storage.createMarketplaceListing({

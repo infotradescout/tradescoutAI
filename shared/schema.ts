@@ -376,6 +376,21 @@ export const verificationStatusEnum = pgEnum("verification_status", [
   "suspended",
 ]);
 
+// User intent enum (person or business)
+export const userIntentEnum = pgEnum("user_intent", ["person", "business"]);
+
+// Profile business type enum (for business profiles)
+export const profileBusinessTypeEnum = pgEnum("profile_business_type", [
+  "service_provider",
+  "seller",
+]);
+
+// Profile visibility enum
+export const profileVisibilityEnum = pgEnum("profile_visibility", ["private", "discoverable"]);
+
+// Seller type enum
+export const sellerTypeEnum = pgEnum("seller_type", ["physical", "online", "hybrid"]);
+
 // Business entity enums
 export const businessTypeEnum = pgEnum("business_type", [
   "contractor",
@@ -521,9 +536,79 @@ export const users = pgTable("users", {
   preferredSourcePromptShownAt: timestamp("preferred_source_prompt_shown_at"),
   preferredSourcePromptAcceptedAt: timestamp("preferred_source_prompt_accepted_at"),
 
+  // Multi-profile support
+  profileVisibility: profileVisibilityEnum("profile_visibility").default("private"),
+  verifiedBadge: boolean("verified_badge").default(false),
+  trustScore: integer("trust_score").default(10),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// User Profiles (multi-profile support: person, service provider, seller)
+// Each user can have multiple profiles with independent verification state
+export const userProfiles = pgTable(
+  "user_profiles",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Profile intent and type
+    userIntent: userIntentEnum("user_intent").notNull(), // 'person' or 'business'
+    businessType: profileBusinessTypeEnum("profile_business_type"), // 'service_provider' or 'seller' (null if person)
+
+    // Tags/specializations
+    serviceTags: text("service_tags").array().default([]), // e.g., ['electrician', 'hvac']
+    sellerTags: text("seller_tags").array().default([]), // e.g., ['restaurant', 'salon']
+    sellerType: sellerTypeEnum("seller_type"), // 'physical', 'online', 'hybrid' (only for seller profiles)
+
+    // Roles derived from intent + tags
+    role: userRoleEnum("role").notNull().default("homeowner"),
+    roles: text("roles").array().default([]),
+
+    // Profile visibility and trust
+    profileVisibility: profileVisibilityEnum("profile_visibility").default("private"),
+    verifiedBadge: boolean("verified_badge").default(false),
+    trustScore: integer("trust_score").default(10),
+
+    // Verification requirements and status
+    verificationRequirements: jsonb("verification_requirements")
+      .$type<{
+        email?: boolean;
+        address?: boolean;
+        license?: boolean;
+        insurance?: boolean;
+        tax_id?: boolean;
+        business_registration?: boolean;
+      }>()
+      .default(sql`'{}'::jsonb`),
+
+    verificationStatus: verificationStatusEnum("verification_status").default("pending"),
+    email_verified: boolean("email_verified").default(false),
+    address_verified: boolean("address_verified").default(false),
+    license_verified: boolean("license_verified").default(false),
+    insurance_verified: boolean("insurance_verified").default(false),
+    tax_id_verified: boolean("tax_id_verified").default(false),
+    business_registration_verified: boolean("business_registration_verified").default(false),
+
+    // Profile metadata
+    isPrimary: boolean("is_primary").default(false), // First profile is primary
+    displayName: varchar("display_name"), // Optional custom display name
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("user_profiles_user_idx").on(table.userId),
+    index("user_profiles_visibility_idx").on(table.profileVisibility),
+    index("user_profiles_primary_idx").on(table.isPrimary),
+    index("user_profiles_intent_idx").on(table.userIntent),
+  ]
+);
 
 // Businesses (first-class public profiles, decoupled from the user)
 export const businesses = pgTable(

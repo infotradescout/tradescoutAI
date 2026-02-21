@@ -8,7 +8,7 @@
  * This is intentionally conservative: we do not cache API responses.
  */
 
-const CACHE_VERSION = "v2-2026-02-21";
+const CACHE_VERSION = "v3-2026-02-21";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -75,6 +75,21 @@ async function cacheFirst(request) {
   return response;
 }
 
+async function networkFirstAsset(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return new Response("", { status: 503 });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (!request || request.method !== "GET") return;
@@ -91,9 +106,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for Vite hashed asset chunks.
+  // Network-first for Vite hashed asset chunks to avoid stale JS after deploys.
   if (url.pathname.startsWith("/assets/")) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(networkFirstAsset(request));
     return;
   }
 });
