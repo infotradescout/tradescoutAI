@@ -108,7 +108,7 @@ function sanitizeSuggestionLabel(label: string) {
 
   // Keep chips readable on mobile
   if (out.length > 80) {
-    out = `${out.slice(0, 77)}â€¦`;
+    out = `${out.slice(0, 77)}...`;
   }
 
   return out;
@@ -205,7 +205,7 @@ function tryRecordCountyExplanationFollowup(
 /**
  * CRITICAL: Strip internal reasoning from Scout responses before rendering.
  * Internal fields like intent, thought_flow, reasoning must NEVER be visible to users.
- * This is a response sanitation contractâ€”Scout output must be user-facing only.
+ * This is a response sanitation contract - Scout output must be user-facing only.
  */
 function sanitizeScoutMessage(raw: unknown): string {
   if (typeof raw !== "string") return "";
@@ -282,7 +282,7 @@ function enforceShortIntentDiscipline(
   const trimmed = content.trim();
   if (!trimmed) return trimmed;
 
-  // Keep only the first 1â€“3 sentences to match the
+  // Keep only the first 1-3 sentences to match the
   // short-intent contract without changing the core answer.
   const sentences = trimmed
     .split(/(?<=[.!?])\s+/)
@@ -292,7 +292,7 @@ function enforceShortIntentDiscipline(
   if (sentences.length <= 3) return trimmed;
 
   const kept = sentences.slice(0, 3).join(" ");
-  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}â€¦`;
+  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}...`;
 }
 
 export default function ScoutOS() {
@@ -633,7 +633,7 @@ export default function ScoutOS() {
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
 
-  // PHASE 3d-B: Scout Mode State Machine (onboarding â†’ post_onboarding â†’ freeform)
+  // PHASE 3d-B: Scout Mode State Machine (onboarding -> post_onboarding -> freeform)
   const provisional = (user as any)?.preferences?.provisional;
   const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
   const scoutModeHook = useScoutMode({
@@ -794,7 +794,7 @@ export default function ScoutOS() {
   ): string[] => {
     const base: string[] = [];
     const trimmed = userMessage.trim();
-    const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}â€¦` : trimmed;
+    const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}...` : trimmed;
 
     switch (mode) {
       case "admin":
@@ -877,7 +877,7 @@ export default function ScoutOS() {
         const blocked: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
-          content: "That prompt isnâ€™t allowed. Please keep it respectful.",
+          content: "That prompt isn't allowed. Please keep it respectful.",
           timestamp: new Date().toISOString(),
         };
 
@@ -1053,7 +1053,7 @@ export default function ScoutOS() {
         if (!hasLoggedConfusionRef.current) {
           const looksConfused =
             /why[^\n]*\b(see|locked|show)\b/.test(normalized) ||
-            /can['â€™]?t[^\n]*\bsee\b/.test(normalized);
+            /\b(can't|cant|cannot)\b[^\n]*\bsee\b/.test(normalized);
 
           if (looksConfused) {
             recordActivity({
@@ -1138,13 +1138,13 @@ export default function ScoutOS() {
         }
 
         // ------------------------------------------------------------------
-        // EXPLANATION: "Why canâ€™t I message yet?"
+        // EXPLANATION: "Why can't I message yet?"
         // This is a pure explanation + navigation branch. It does not
         // change any Direct Connect or messaging behavior; it only
         // explains the rule and links to the canonical guide.
         // ------------------------------------------------------------------
         const mentionsMessage = /\b(message|messaging)\b/.test(normalized);
-        const hasCant = /\b(can['â€™]?t|cant|cannot)\b/.test(normalized);
+        const hasCant = /\b(can't|cant|cannot)\b/.test(normalized);
         const mentionsLocked = /\b(locked|disabled|closed)\b/.test(normalized);
         const asksWhy = /\bwhy\b/.test(normalized);
 
@@ -1641,7 +1641,7 @@ export default function ScoutOS() {
           const singleLine = value.replace(/\s+/g, " ").trim();
           let title = "Local services promotion";
           if (singleLine.length > 0) {
-            title = singleLine.length > 80 ? `${singleLine.slice(0, 77)}â€¦` : singleLine;
+            title = singleLine.length > 80 ? `${singleLine.slice(0, 77)}...` : singleLine;
           }
 
           // Heuristic discount extraction (percentage or fixed amount).
@@ -1702,7 +1702,7 @@ export default function ScoutOS() {
                 : `$${discountValueForForm} off`;
             summaryLines.push(`Discount: ${discountLabel}`);
           }
-          summaryLines.push(`Window: ${startDateStr} â†’ ${endDateStr}`);
+          summaryLines.push(`Window: ${startDateStr} -> ${endDateStr}`);
 
           const clusters: ScoutCluster[] = [
             {
@@ -1936,9 +1936,9 @@ export default function ScoutOS() {
 
             const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
               id: `contractor-${c.id}`,
-              title: `${c.name} â€¢ ${c.trade}`,
+              title: `${c.name} - ${c.trade}`,
               kind: "generic",
-              body: `${c.rating ? `â­ ${c.rating} (${c.reviewCount} reviews)` : "Not yet rated"}\n${c.location}\n${c.availability || "Availability unknown"}`,
+              body: `${c.rating ? `Rating ${c.rating} (${c.reviewCount} reviews)` : "Not yet rated"}\n${c.location}\n${c.availability || "Availability unknown"}`,
               primaryAction: {
                 type: "NAVIGATE",
                 label: "View profile",
@@ -1972,7 +1972,7 @@ export default function ScoutOS() {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content: nameQuery
-                ? `I searched ${trade} contractors near ${locality.county}, ${locality.state} for â€œ${nameQuery}â€. Here are the closest matches:`
+                ? `I searched ${trade} contractors near ${locality.county}, ${locality.state} for "${nameQuery}". Here are the closest matches:`
                 : `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
               timestamp: new Date().toISOString(),
               clusters: contractorClustersWithCtas,
@@ -2147,7 +2147,7 @@ export default function ScoutOS() {
               id: `listing-${l.id}`,
               title: l.title,
               kind: "generic",
-              body: `$${l.price}${l.condition ? ` â€¢ ${l.condition}` : ""}\n${l.location}\n${l.sellerName}${l.verified ? " âœ“" : ""}`,
+              body: `$${l.price}${l.condition ? ` - ${l.condition}` : ""}\n${l.location}\n${l.sellerName}${l.verified ? " (verified)" : ""}`,
               primaryAction: {
                 type: "NAVIGATE",
                 label: "View listing",
@@ -2435,20 +2435,20 @@ export default function ScoutOS() {
 
         const enrichedContent =
           prefilledDraft && typeof disciplined === "string"
-            ? `${disciplined}\n\nHereâ€™s your pre-filled request (ready to send):\n${prefilledDraft}`
+            ? `${disciplined}\n\nHere's your pre-filled request (ready to send):\n${prefilledDraft}`
             : disciplined;
 
         const finalContent =
           isFirstAnswer &&
           typeof enrichedContent === "string" &&
           enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
-            ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}â€¦`
+            ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}...`
             : enrichedContent;
 
         const resolvedContent =
           typeof finalContent === "string" && finalContent.trim().length > 0
             ? finalContent
-            : "Iâ€™m here and ready. Choose an action below or ask me for the next step.";
+            : "I'm here and ready. Choose an action below or ask me for the next step.";
 
         // Attach CTA hints from server (community posts, trade deals, etc.)
         if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
@@ -2529,7 +2529,7 @@ export default function ScoutOS() {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content:
-                "Behind the scenes, TradeScout uses your saved home county as the single source of truth for what counts as local. That same county powers your community feed, marketplace, HOA tools, and leaderboards, and changing it later in Settings â†’ Your Home County updates everything; your device location alone does not.",
+                "Behind the scenes, TradeScout uses your saved home county as the single source of truth for what counts as local. That same county powers your community feed, marketplace, HOA tools, and leaderboards, and changing it later in Settings -> Your Home County updates everything; your device location alone does not.",
               timestamp: new Date().toISOString(),
             };
 
@@ -3196,7 +3196,14 @@ export default function ScoutOS() {
                 : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
-            <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl border border-slate-800/80 bg-slate-950/45 px-2.5 md:px-4 py-2.5 shadow-[0_12px_36px_rgba(2,6,23,0.45)]">
+            <div
+              className="w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl px-2.5 md:px-4 py-2.5"
+              style={{
+                border: "1px solid var(--border-subtle)",
+                background: "color-mix(in oklab, var(--surface-card) 88%, transparent)",
+                boxShadow: "0 12px 36px rgba(2, 6, 23, 0.45)",
+              }}
+            >
               <ScoutHeader
                 isAuthenticated={isAuthenticated}
                 isFirstGuestVisit={isFirstGuestVisit}
@@ -3334,11 +3341,12 @@ export default function ScoutOS() {
                 />
 
                 {!isAuthenticated && (
-                  <div className="mt-2 text-xs text-slate-300/90">
+                  <div className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
                     Explore first.{" "}
                     <button
                       type="button"
-                      className="font-medium underline underline-offset-2 text-slate-200 hover:text-white"
+                      className="font-medium underline underline-offset-2"
+                      style={{ color: "var(--text-primary)" }}
                       onClick={() => navigate("/login")}
                     >
                       Sign in
@@ -3356,7 +3364,13 @@ export default function ScoutOS() {
                         setHasGuestInteracted(true);
                         handleActionTile(tile);
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/90 bg-slate-900/70 px-2.5 py-1 text-[10px] font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        backgroundColor:
+                          "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                        color: "var(--text-secondary)",
+                      }}
                     >
                       <span>{tile.label}</span>
                     </button>
@@ -3392,10 +3406,23 @@ export default function ScoutOS() {
                               setHasGuestInteracted(true);
                               handleActionTile(tile);
                             }}
-                            className="flex flex-col items-start justify-between rounded-lg border border-slate-800 bg-slate-950/60 px-2 py-2 text-left transition-colors hover:border-slate-600 hover:bg-slate-900/75"
-                            style={{ color: "var(--text-primary)" }}
+                            className="flex flex-col items-start justify-between rounded-lg border px-2 py-2 text-left transition-colors"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              backgroundColor:
+                                "color-mix(in oklab, var(--surface-intermediate) 86%, transparent)",
+                              color: "var(--text-primary)",
+                            }}
                           >
-                            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                            <div
+                              className="mb-1 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                              style={{
+                                borderColor: "var(--border-subtle)",
+                                backgroundColor:
+                                  "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
                               {(() => {
                                 const meta = tileMetaById[tile.id];
                                 if (!meta) return null;
@@ -3413,14 +3440,24 @@ export default function ScoutOS() {
                                 {tile.description}
                               </span>
                             )}
-                            <span className="mt-1 text-[10px] text-slate-300 font-medium">
+                            <span
+                              className="mt-1 text-[10px] font-medium"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
                               Open
                             </span>
                           </button>
                         ))}
                       </div>
                     ) : (
-                      <div className="mt-1.5 space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2.5">
+                      <div
+                        className="mt-1.5 space-y-2 rounded-lg border px-3 py-2.5"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          backgroundColor:
+                            "color-mix(in oklab, var(--surface-intermediate) 86%, transparent)",
+                        }}
+                      >
                         <p
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
@@ -3431,7 +3468,11 @@ export default function ScoutOS() {
                           <Button
                             type="button"
                             size="sm"
-                            className="h-7 px-3 text-[11px] bg-slate-100 hover:bg-white text-slate-900 font-medium"
+                            className="h-7 px-3 text-[11px] font-medium"
+                            style={{
+                              backgroundColor: "var(--theme-accent-primary)",
+                              color: "var(--ts-text-on-accent, #0B0F14)",
+                            }}
                             onClick={() => navigate(ROUTES.SETTINGS)}
                           >
                             Set my county
@@ -3502,14 +3543,24 @@ export default function ScoutOS() {
                 />
 
                 {autoRoutePending && (
-                  <Card className="border-slate-800 bg-slate-950/70 shadow-sm">
+                  <Card
+                    className="shadow-sm"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor:
+                        "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+                    }}
+                  >
                     <div className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-100">
+                        <div
+                          className="text-sm font-semibold"
+                          style={{ color: "var(--text-primary)" }}
+                        >
                           Smart navigation {autoRouteEnabled ? "on" : "off"} •{" "}
                           {Math.round(autoRoutePending.confidence * 100)}%
                         </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
+                        <div className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                           {autoRouteEnabled &&
                           autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
                             ? `Opening ${autoRoutePending.label}...`
@@ -3522,7 +3573,10 @@ export default function ScoutOS() {
                           autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
                           <Button
                             size="sm"
-                            className="bg-slate-100 text-slate-900 hover:bg-white"
+                            style={{
+                              backgroundColor: "var(--theme-accent-primary)",
+                              color: "var(--ts-text-on-accent, #0B0F14)",
+                            }}
                             onClick={() => {
                               cancelAutoRoute();
                               navigate(autoRoutePending.to);
@@ -3534,7 +3588,11 @@ export default function ScoutOS() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-slate-700 text-slate-200 hover:bg-slate-900"
+                          style={{
+                            borderColor: "var(--border-subtle)",
+                            color: "var(--text-primary)",
+                            backgroundColor: "transparent",
+                          }}
                           onClick={cancelAutoRoute}
                         >
                           {autoRouteEnabled &&

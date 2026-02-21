@@ -29,6 +29,52 @@ import {
   isOutcomeLearningEnabled,
 } from "../routes/admin-control";
 
+let toolProposalTableAvailable: boolean | null = null;
+
+function isMissingRelationError(err: unknown, relationName: string): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = (err as any).code;
+  const message = String((err as any).message ?? "");
+  return (
+    code === "42P01" ||
+    message.toLowerCase().includes(`relation "${relationName.toLowerCase()}" does not exist`)
+  );
+}
+
+async function getApprovedToolsCountForScope(contextFingerprint: string): Promise<number> {
+  if (toolProposalTableAvailable === false) {
+    return 0;
+  }
+
+  try {
+    const approvedTools = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(toolProposals)
+      .where(
+        and(
+          eq(toolProposals.status, "approved" as any),
+          eq(toolProposals.fingerprint, contextFingerprint)
+        )
+      );
+
+    toolProposalTableAvailable = true;
+    return approvedTools?.[0]?.count ? Number(approvedTools[0].count) : 0;
+  } catch (err) {
+    if (isMissingRelationError(err, "tool_proposals")) {
+      // Fail-soft when this optional table has not been migrated yet.
+      toolProposalTableAvailable = false;
+      console.warn(
+        "[Governor] tool_proposals table missing; continuing with zero approved tool signals."
+      );
+      return 0;
+    }
+
+    // Governor should never take Scout down because of telemetry/storage issues.
+    console.warn("[Governor] approved tool lookup failed; continuing without tool signals.", err);
+    return 0;
+  }
+}
+
 // ============================================================================
 // PRIMITIVES - Universal building blocks that never change
 // ============================================================================
@@ -295,16 +341,9 @@ export async function inferSituation(args: {
   const outcomeStats = userIdStr
     ? await getOutcomeStats({ userId: userIdStr, scope: confidenceScope.key })
     : { successes: 0, regrets: 0, recentSuccesses: 0, recentRegrets: 0 };
-  const approvedTools = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(toolProposals)
-    .where(
-      and(
-        eq(toolProposals.status, "approved" as any),
-        eq(toolProposals.fingerprint, confidenceScope.contextFingerprint)
-      )
-    );
-  const approvedToolsCount = approvedTools?.[0]?.count ? Number(approvedTools[0].count) : 0;
+  const approvedToolsCount = await getApprovedToolsCountForScope(
+    confidenceScope.contextFingerprint
+  );
 
   // Assess confidence in authority (how safe to intervene strongly)
   situation.confidenceAssessment = assessConfidence(message, situation, {

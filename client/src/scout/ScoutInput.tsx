@@ -199,7 +199,13 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
   const isButtonDisabled = disabled || isSubmitting || (!value.trim() && !isTypingDemo);
 
   return (
-    <div className="space-y-2 scout-input rounded-xl border border-slate-800/90 bg-slate-950/55 p-2 md:p-3">
+    <div
+      className="space-y-2 scout-input rounded-xl p-2 md:p-3"
+      style={{
+        border: "1px solid var(--border-subtle)",
+        background: "color-mix(in oklab, var(--surface-card) 90%, transparent)",
+      }}
+    >
       <textarea
         ref={textareaRef}
         value={value}
@@ -207,7 +213,12 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full min-h-[92px] resize-none rounded-lg border border-slate-800/80 bg-slate-950/80 px-3 py-2.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-500 transition-colors focus:border-slate-600 focus:outline-none"
+        className="w-full min-h-[92px] resize-none rounded-lg px-3 py-2.5 text-[14px] leading-relaxed transition-colors focus:outline-none placeholder:text-[color:var(--text-secondary)]"
+        style={{
+          border: "1px solid var(--border-subtle)",
+          background: "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
+          color: "var(--text-primary)",
+        }}
       />
       <div
         className={`flex w-full ${handedness === "left" ? "justify-start" : "justify-end"} mt-1`}
@@ -216,7 +227,14 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-100 px-4 py-1.5 text-sm font-medium text-slate-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-400"
+          className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed"
+          style={{
+            borderColor: isButtonDisabled ? "var(--border-subtle)" : "var(--theme-accent-primary)",
+            backgroundColor: isButtonDisabled
+              ? "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)"
+              : "var(--theme-accent-primary)",
+            color: isButtonDisabled ? "var(--text-secondary)" : "var(--ts-text-on-accent, #0B0F14)",
+          }}
         >
           <Send className="h-4 w-4" />
           <span>{isSubmitting ? "Sending..." : "Send"}</span>

@@ -4,9 +4,24 @@ import { Bot, Radar, Send, ShieldCheck } from "lucide-react";
 
 export const ScoutHasDonePanel: React.FC = () => {
   return (
-    <Card className="bg-slate-900/80 border-slate-800 p-3 md:p-4 h-full flex flex-col gap-3">
-      <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-orange-300">
+    <Card
+      className="p-3 md:p-4 h-full flex flex-col gap-3"
+      style={{
+        borderColor: "var(--border-subtle)",
+        backgroundColor: "color-mix(in oklab, var(--surface-card) 90%, transparent)",
+      }}
+    >
+      <div
+        className="rounded-lg border px-3 py-2"
+        style={{
+          borderColor: "var(--border-subtle)",
+          backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+        }}
+      >
+        <div
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide"
+          style={{ color: "var(--theme-accent-primary)" }}
+        >
           <Bot className="h-3.5 w-3.5" />
           Automation Layer
         </div>
@@ -16,12 +31,18 @@ export const ScoutHasDonePanel: React.FC = () => {
       </div>
 
       <div className="space-y-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-        <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-2">
+        <div
+          className="rounded-md border px-2 py-2"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+          }}
+        >
           <div
             className="inline-flex items-center gap-1.5 font-medium"
             style={{ color: "var(--text-primary)" }}
           >
-            <ShieldCheck className="h-3.5 w-3.5 text-orange-300" />
+            <ShieldCheck className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
             Request staged
           </div>
           <p className="mt-0.5 text-[11px]">
@@ -29,12 +50,18 @@ export const ScoutHasDonePanel: React.FC = () => {
           </p>
         </div>
 
-        <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-2">
+        <div
+          className="rounded-md border px-2 py-2"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+          }}
+        >
           <div
             className="inline-flex items-center gap-1.5 font-medium"
             style={{ color: "var(--text-primary)" }}
           >
-            <Radar className="h-3.5 w-3.5 text-orange-300" />
+            <Radar className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
             Local signal pass
           </div>
           <p className="mt-0.5 text-[11px]">
@@ -42,12 +69,18 @@ export const ScoutHasDonePanel: React.FC = () => {
           </p>
         </div>
 
-        <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-2">
+        <div
+          className="rounded-md border px-2 py-2"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+          }}
+        >
           <div
             className="inline-flex items-center gap-1.5 font-medium"
             style={{ color: "var(--text-primary)" }}
           >
-            <Send className="h-3.5 w-3.5 text-orange-300" />
+            <Send className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
             Provider notifications
           </div>
           <p className="mt-0.5 text-[11px]">

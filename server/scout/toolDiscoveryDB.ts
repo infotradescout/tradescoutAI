@@ -1,9 +1,9 @@
 /**
  * Scout Tool Discovery — DB-Backed Institutional Intelligence
- * 
+ *
  * This module handles persistence, convergence detection, and blueprint emission
  * using the database as the source of truth.
- * 
+ *
  * CRITICAL RULES:
  * 1. Count UNIQUE USERS only (no spam from power users)
  * 2. Rolling time window (evidence must be recent)
@@ -13,15 +13,11 @@
  */
 
 import { db } from "../db";
-import { 
-  toolProposals, 
-  toolProposalEvidence, 
+import {
+  toolProposals,
+  toolProposalEvidence,
   toolProposalDecisions,
-  type InsertToolProposal,
-  type InsertToolProposalEvidence,
-  type InsertToolProposalDecision,
   type ToolProposal,
-  type ToolProposalEvidence as Evidence
 } from "../../shared/schema";
 import { eq, and, gte, desc, sql, count, countDistinct } from "drizzle-orm";
 import type { Primitive } from "./governor";
@@ -31,10 +27,10 @@ import type { Primitive } from "./governor";
 // ============================================================================
 
 const CONVERGENCE_CONFIG = {
-  minUniqueUsers: 3,              // Require at least 3 different users
-  rollingWindowDays: 14,          // Evidence must be within 14 days
-  cooldownDays: 7,                // Don't re-emit same fingerprint for 7 days
-  minEvidenceSnippets: 1,         // Require at least 1 piece of evidence
+  minUniqueUsers: 3, // Require at least 3 different users
+  rollingWindowDays: 14, // Evidence must be within 14 days
+  cooldownDays: 7, // Don't re-emit same fingerprint for 7 days
+  minEvidenceSnippets: 1, // Require at least 1 piece of evidence
 } as const;
 
 // ============================================================================
@@ -70,17 +66,20 @@ export async function trackPattern(pattern: PatternInstance): Promise<boolean> {
 
     if (!proposal) {
       // Create new proposal
-      const [newProposal] = await db.insert(toolProposals).values({
-        fingerprint: pattern.fingerprint,
-        title: inferToolName(pattern.inferredGoal, pattern.missingCapability),
-        problemStatement: inferProblemStatement(pattern),
-        status: 'proposed',
-        riskScore: calculateRiskScore(pattern.situation.risks),
-        impactScore: 0, // Will be calculated after convergence
-        uniqueUserCount: 0,
-        totalEventCount: 0,
-      }).returning();
-      
+      const [newProposal] = await db
+        .insert(toolProposals)
+        .values({
+          fingerprint: pattern.fingerprint,
+          title: inferToolName(pattern.inferredGoal, pattern.missingCapability),
+          problemStatement: inferProblemStatement(pattern),
+          status: "proposed",
+          riskScore: calculateRiskScore(pattern.situation.risks),
+          impactScore: 0, // Will be calculated after convergence
+          uniqueUserCount: 0,
+          totalEventCount: 0,
+        })
+        .returning();
+
       proposal = newProposal;
     }
 
@@ -91,8 +90,8 @@ export async function trackPattern(pattern: PatternInstance): Promise<boolean> {
     // 2. Add evidence
     await db.insert(toolProposalEvidence).values({
       proposalId: proposal.id,
-      userId: parseInt(pattern.userId) || null,
-      sourceType: 'conversation',
+      userId: normalizeUserId(pattern.userId),
+      sourceType: "conversation",
       sourceRef: pattern.sessionId,
       snippet: redactSnippet(pattern.userMessage),
       metadata: {
@@ -107,24 +106,26 @@ export async function trackPattern(pattern: PatternInstance): Promise<boolean> {
     const windowStart = new Date();
     windowStart.setDate(windowStart.getDate() - CONVERGENCE_CONFIG.rollingWindowDays);
 
-    const evidenceStats = await db.select({
-      uniqueUsers: countDistinct(toolProposalEvidence.userId),
-      totalEvents: count(),
-    })
-    .from(toolProposalEvidence)
-    .where(
-      and(
-        eq(toolProposalEvidence.proposalId, proposal.id),
-        gte(toolProposalEvidence.createdAt, windowStart)
-      )
-    );
+    const evidenceStats = await db
+      .select({
+        uniqueUsers: countDistinct(toolProposalEvidence.userId),
+        totalEvents: count(),
+      })
+      .from(toolProposalEvidence)
+      .where(
+        and(
+          eq(toolProposalEvidence.proposalId, proposal.id),
+          gte(toolProposalEvidence.createdAt, windowStart)
+        )
+      );
 
     const stats = evidenceStats[0];
     const uniqueUserCount = stats?.uniqueUsers || 0;
     const totalEventCount = stats?.totalEvents || 0;
 
-    await db.update(toolProposals)
-      .set({ 
+    await db
+      .update(toolProposals)
+      .set({
         uniqueUserCount,
         totalEventCount,
         updatedAt: new Date(),
@@ -133,7 +134,6 @@ export async function trackPattern(pattern: PatternInstance): Promise<boolean> {
 
     // 4. Check convergence
     return await checkConvergence(proposal.fingerprint);
-
   } catch (error) {
     console.error("[Tool Discovery] Error tracking pattern:", error);
     return false;
@@ -157,7 +157,7 @@ export async function checkConvergence(fingerprint: string): Promise<boolean> {
     }
 
     // Don't re-emit if already approved/rejected
-    if (proposal.status !== 'proposed' && proposal.status !== 'deferred') {
+    if (proposal.status !== "proposed" && proposal.status !== "deferred") {
       return false;
     }
 
@@ -169,8 +169,8 @@ export async function checkConvergence(fingerprint: string): Promise<boolean> {
     // Cooldown: don't re-emit if updated recently
     const cooldownDate = new Date();
     cooldownDate.setDate(cooldownDate.getDate() - CONVERGENCE_CONFIG.cooldownDays);
-    
-    if (proposal.updatedAt > cooldownDate && proposal.status === 'proposed') {
+
+    if (proposal.updatedAt > cooldownDate && proposal.status === "proposed") {
       return false; // Already emitted recently
     }
 
@@ -178,33 +178,39 @@ export async function checkConvergence(fingerprint: string): Promise<boolean> {
     const windowStart = new Date();
     windowStart.setDate(windowStart.getDate() - CONVERGENCE_CONFIG.rollingWindowDays);
 
-    const evidenceStats = await db.select({
-      uniqueUsers: countDistinct(toolProposalEvidence.userId),
-      totalEvents: count(),
-    })
-    .from(toolProposalEvidence)
-    .where(
-      and(
-        eq(toolProposalEvidence.proposalId, proposal.id),
-        gte(toolProposalEvidence.createdAt, windowStart)
-      )
-    );
+    const evidenceStats = await db
+      .select({
+        uniqueUsers: countDistinct(toolProposalEvidence.userId),
+        totalEvents: count(),
+      })
+      .from(toolProposalEvidence)
+      .where(
+        and(
+          eq(toolProposalEvidence.proposalId, proposal.id),
+          gte(toolProposalEvidence.createdAt, windowStart)
+        )
+      );
 
     const stats = evidenceStats[0];
     const uniqueUserCount = stats?.uniqueUsers || 0;
     const totalEventCount = stats?.totalEvents || 0;
 
     // CRITICAL: Unique users is the primary gate
-    const hasConverged = 
+    const hasConverged =
       uniqueUserCount >= CONVERGENCE_CONFIG.minUniqueUsers &&
       totalEventCount >= CONVERGENCE_CONFIG.minEvidenceSnippets;
 
     if (hasConverged) {
       // Calculate impact score
-      const impactScore = calculateImpactScore(uniqueUserCount, totalEventCount, proposal.riskScore);
-      
-      await db.update(toolProposals)
-        .set({ 
+      const impactScore = calculateImpactScore(
+        uniqueUserCount,
+        totalEventCount,
+        proposal.riskScore
+      );
+
+      await db
+        .update(toolProposals)
+        .set({
           impactScore,
           updatedAt: new Date(),
         })
@@ -218,7 +224,6 @@ export async function checkConvergence(fingerprint: string): Promise<boolean> {
     }
 
     return hasConverged;
-
   } catch (error) {
     console.error("[Tool Discovery] Error checking convergence:", error);
     return false;
@@ -250,8 +255,8 @@ export async function trackRegret(regret: RegretEvent): Promise<void> {
       // Add regret as evidence
       await db.insert(toolProposalEvidence).values({
         proposalId: proposal.id,
-        userId: parseInt(regret.userId) || null,
-        sourceType: 'regret',
+        userId: normalizeUserId(regret.userId),
+        sourceType: "regret",
         sourceRef: regret.originalTimestamp,
         snippet: redactSnippet(regret.regretStatement),
         metadata: {
@@ -262,7 +267,8 @@ export async function trackRegret(regret: RegretEvent): Promise<void> {
       });
 
       // Boost risk score for regret events
-      await db.update(toolProposals)
+      await db
+        .update(toolProposals)
         .set({
           riskScore: sql`LEAST(${toolProposals.riskScore} + 2, 10)`,
           updatedAt: new Date(),
@@ -272,7 +278,6 @@ export async function trackRegret(regret: RegretEvent): Promise<void> {
       // Re-check convergence (regret events accelerate convergence)
       await checkConvergence(proposal.fingerprint);
     }
-
   } catch (error) {
     console.error("[Tool Discovery] Error tracking regret:", error);
   }
@@ -284,17 +289,14 @@ export async function trackRegret(regret: RegretEvent): Promise<void> {
 
 export async function getProposedBlueprints(): Promise<ToolProposal[]> {
   return await db.query.toolProposals.findMany({
-    where: eq(toolProposals.status, 'proposed'),
+    where: eq(toolProposals.status, "proposed"),
     with: {
       evidence: {
         limit: 10,
         orderBy: desc(toolProposalEvidence.createdAt),
       },
     },
-    orderBy: [
-      desc(toolProposals.riskScore),
-      desc(toolProposals.impactScore),
-    ],
+    orderBy: [desc(toolProposals.riskScore), desc(toolProposals.impactScore)],
   });
 }
 
@@ -314,7 +316,7 @@ export async function getProposalById(id: number) {
 
 export async function approveBlueprint(
   proposalId: number,
-  adminUserId: number,
+  adminUserId: string,
   notes?: string
 ): Promise<void> {
   await db.transaction(async (tx) => {
@@ -322,14 +324,15 @@ export async function approveBlueprint(
     await tx.insert(toolProposalDecisions).values({
       proposalId,
       decidedByUserId: adminUserId,
-      decision: 'approved',
+      decision: "approved",
       notes,
     });
 
     // Update proposal status and mark as institutionalized
-    await tx.update(toolProposals)
-      .set({ 
-        status: 'approved',
+    await tx
+      .update(toolProposals)
+      .set({
+        status: "approved",
         approvedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -339,7 +342,7 @@ export async function approveBlueprint(
 
 export async function rejectBlueprint(
   proposalId: number,
-  adminUserId: number,
+  adminUserId: string,
   reason?: string
 ): Promise<void> {
   await db.transaction(async (tx) => {
@@ -347,14 +350,15 @@ export async function rejectBlueprint(
     await tx.insert(toolProposalDecisions).values({
       proposalId,
       decidedByUserId: adminUserId,
-      decision: 'rejected',
+      decision: "rejected",
       notes: reason,
     });
 
     // Update proposal status
-    await tx.update(toolProposals)
-      .set({ 
-        status: 'rejected',
+    await tx
+      .update(toolProposals)
+      .set({
+        status: "rejected",
         updatedAt: new Date(),
       })
       .where(eq(toolProposals.id, proposalId));
@@ -363,7 +367,7 @@ export async function rejectBlueprint(
 
 export async function deferBlueprint(
   proposalId: number,
-  adminUserId: number,
+  adminUserId: string,
   notes?: string
 ): Promise<void> {
   await db.transaction(async (tx) => {
@@ -371,14 +375,15 @@ export async function deferBlueprint(
     await tx.insert(toolProposalDecisions).values({
       proposalId,
       decidedByUserId: adminUserId,
-      decision: 'deferred',
+      decision: "deferred",
       notes,
     });
 
     // Update proposal status
-    await tx.update(toolProposals)
-      .set({ 
-        status: 'deferred',
+    await tx
+      .update(toolProposals)
+      .set({
+        status: "deferred",
         updatedAt: new Date(),
       })
       .where(eq(toolProposals.id, proposalId));
@@ -388,7 +393,7 @@ export async function deferBlueprint(
 export async function mergeBlueprints(
   proposalId: number,
   mergeIntoId: number,
-  adminUserId: number,
+  adminUserId: string,
   notes?: string
 ): Promise<void> {
   await db.transaction(async (tx) => {
@@ -396,21 +401,23 @@ export async function mergeBlueprints(
     await tx.insert(toolProposalDecisions).values({
       proposalId,
       decidedByUserId: adminUserId,
-      decision: 'merged',
+      decision: "merged",
       mergedIntoId: mergeIntoId,
       notes,
     });
 
     // Update proposal status
-    await tx.update(toolProposals)
-      .set({ 
-        status: 'merged',
+    await tx
+      .update(toolProposals)
+      .set({
+        status: "merged",
         updatedAt: new Date(),
       })
       .where(eq(toolProposals.id, proposalId));
 
     // Transfer evidence to merged proposal
-    await tx.update(toolProposalEvidence)
+    await tx
+      .update(toolProposalEvidence)
       .set({ proposalId: mergeIntoId })
       .where(eq(toolProposalEvidence.proposalId, proposalId));
   });
@@ -425,17 +432,22 @@ function inferToolName(goal: string, missingCapability: string): string {
   const capMatch = missingCapability.match(/Missing tool: (.+)/);
   if (capMatch) {
     return capMatch[1]
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   }
-  
+
   // Fallback: use first few words of goal
   return goal
-    .split(' ')
+    .split(" ")
     .slice(0, 4)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function normalizeUserId(userId: string | null | undefined): string | null {
+  const normalized = userId?.trim();
+  return normalized && normalized.length > 0 ? normalized : null;
 }
 
 function inferProblemStatement(pattern: PatternInstance): string {
@@ -445,15 +457,15 @@ function inferProblemStatement(pattern: PatternInstance): string {
 function calculateRiskScore(risks: string[]): number {
   // Score from 0-10 based on risk types
   let score = 0;
-  
+
   for (const risk of risks) {
-    if (risk.includes('financial')) score += 3;
-    if (risk.includes('irreversible')) score += 3;
-    if (risk.includes('safety')) score += 4;
-    if (risk.includes('legal')) score += 3;
-    if (risk.includes('trust')) score += 2;
+    if (risk.includes("financial")) score += 3;
+    if (risk.includes("irreversible")) score += 3;
+    if (risk.includes("safety")) score += 4;
+    if (risk.includes("legal")) score += 3;
+    if (risk.includes("trust")) score += 2;
   }
-  
+
   return Math.min(score, 10);
 }
 
@@ -461,18 +473,18 @@ function calculateImpactScore(uniqueUsers: number, totalEvents: number, riskScor
   // Score from 0-10 based on reach and risk
   const reachScore = Math.min(uniqueUsers * 2, 6); // Max 6 points for reach
   const riskImpact = Math.min(riskScore * 0.4, 4); // Max 4 points from risk
-  
+
   return Math.min(Math.round(reachScore + riskImpact), 10);
 }
 
 function redactSnippet(text: string): string {
   // Redact PII and keep first 200 chars
   const truncated = text.slice(0, 200);
-  
+
   // Redact patterns that look like PII
   return truncated
-    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN-REDACTED]')
-    .replace(/\b\d{3}-\d{3}-\d{4}\b/g, '[PHONE-REDACTED]')
-    .replace(/\b[\w.+-]+@[\w.-]+\.\w{2,}\b/g, '[EMAIL-REDACTED]')
-    .replace(/\b\d{16}\b/g, '[CARD-REDACTED]');
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[SSN-REDACTED]")
+    .replace(/\b\d{3}-\d{3}-\d{4}\b/g, "[PHONE-REDACTED]")
+    .replace(/\b[\w.+-]+@[\w.-]+\.\w{2,}\b/g, "[EMAIL-REDACTED]")
+    .replace(/\b\d{16}\b/g, "[CARD-REDACTED]");
 }

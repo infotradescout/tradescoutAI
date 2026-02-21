@@ -9604,7 +9604,7 @@ export const toolProposalEvidence = pgTable(
     proposalId: integer("proposal_id")
       .notNull()
       .references(() => toolProposals.id, { onDelete: "cascade" }),
-    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }), // nullable for privacy
+    userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }), // nullable for privacy
     sourceType: evidenceSourceTypeEnum("source_type").notNull(),
     sourceRef: varchar("source_ref", { length: 255 }), // message_id, flow_id, etc.
     snippet: text("snippet").notNull(), // redacted conversation snippet
@@ -9626,7 +9626,7 @@ export const toolProposalDecisions = pgTable(
     proposalId: integer("proposal_id")
       .notNull()
       .references(() => toolProposals.id, { onDelete: "cascade" }),
-    decidedByUserId: integer("decided_by_user_id")
+    decidedByUserId: varchar("decided_by_user_id")
       .notNull()
       .references(() => users.id),
     decision: toolProposalStatusEnum("decision").notNull(), // approved, rejected, deferred, merged

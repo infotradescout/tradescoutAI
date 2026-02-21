@@ -20,19 +20,12 @@ router.use((req: Request, res: Response, next) => {
   return res.status(403).json({ error: "Super admin access required" });
 });
 
-const getAdminUserId = (req: Request): number => {
+const getAdminUserId = (req: Request): string => {
   const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
   if (!userId) {
     throw new Error("Authenticated admin user id is required");
   }
-  const parsed = Number(userId);
-  if (Number.isFinite(parsed)) return parsed;
-  const raw = String(userId);
-  let hash = 0;
-  for (let i = 0; i < raw.length; i += 1) {
-    hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
-  }
-  return hash || 1;
+  return String(userId);
 };
 
 /**

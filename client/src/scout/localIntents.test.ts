@@ -52,6 +52,15 @@ describe("localIntents", () => {
       });
     });
 
+    it("routes auth-required create-account suggestion", () => {
+      const action = resolveQuickActionIntent("Create account now");
+      expect(action).toEqual({
+        kind: "navigate",
+        to: "/pre-scout-setup?mode=create",
+        label: "Create account now",
+      });
+    });
+
     it("returns null for unmapped labels", () => {
       const action = resolveQuickActionIntent("Do something novel");
       expect(action).toBeNull();

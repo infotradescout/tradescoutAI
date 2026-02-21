@@ -86,6 +86,8 @@ const QUICK_ACTION_NAV: Record<string, string> = {
   "open my notes": ROUTES.NOTES ?? "/notes",
   "open notes": ROUTES.NOTES ?? "/notes",
   "create account": ROUTES.REGISTER ?? "/create-account",
+  "create account now": ROUTES.REGISTER ?? "/create-account",
+  "learn more about tradescout": `${ROUTES.HELP ?? "/help"}/how-tradescout-works`,
   leaderboard: "/leaderboard",
   "show local groups hoas and boards i can join or follow": "/hoa-management",
   "open my admin panel and monitoring tools": "/admin/panel",

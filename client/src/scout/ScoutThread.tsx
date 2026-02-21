@@ -1,12 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 import type { ScoutMode } from "./api";
-import type {
-  ScoutAction,
-  ScoutCluster,
-  ScoutMessage,
-  ScoutStatus,
-} from "./state";
+import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
 import { validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
 import { OnboardingPrompt } from "./OnboardingPrompt";
@@ -50,22 +45,28 @@ function ClusterCard({
   return (
     <div className="scout-card mt-3 rounded-xl px-3 py-2">
       {cluster.title && (
-        <div className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <div className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
           {cluster.title}
         </div>
       )}
 
       {cluster.body && (
-        <p className="mt-1 text-[13px] whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
+        <p
+          className="mt-1 text-[13px] whitespace-pre-line"
+          style={{ color: "var(--text-secondary)" }}
+        >
           {cluster.body}
         </p>
       )}
 
       {cluster.items && cluster.items.length > 0 && (
-        <ul className="mt-2 space-y-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+        <ul className="mt-2 space-y-1 text-[12px]" style={{ color: "var(--text-secondary)" }}>
           {cluster.items.map((item) => (
             <li key={item.id} className="flex gap-2">
-              <span className="mt-[3px] h-1 w-1 rounded-full" style={{ backgroundColor: 'var(--text-muted)' }} />
+              <span
+                className="mt-[3px] h-1 w-1 rounded-full"
+                style={{ backgroundColor: "var(--text-muted)" }}
+              />
               <span>{item.label}</span>
             </li>
           ))}
@@ -102,8 +103,11 @@ function ClusterCard({
           <button
             type="button"
             onClick={handlePrimary}
-            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold text-black transition"
-            style={{ backgroundColor: 'var(--theme-accent-primary)' }}
+            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition"
+            style={{
+              backgroundColor: "var(--theme-accent-primary)",
+              color: "var(--ts-text-on-accent, #0B0F14)",
+            }}
           >
             <div className="flex flex-col items-start text-left">
               <span>{cluster.primaryAction.label}</span>
@@ -123,7 +127,7 @@ function ClusterCard({
       {cluster.ctaSource && cluster.ctaContextId && (
         <div className="mt-2 space-y-1">
           {cluster.ctaLabel && cluster.ctaSource === "trade_deal" && (
-            <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
               {cluster.ctaLabel}
             </div>
           )}
@@ -200,8 +204,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         ready: { base: 0.9, max: 1.0, durationMs: 750 },
       };
 
-      const cfg: PhaseConfig =
-        phaseConfig[status] ?? { base: 0.05, max: 0.8, durationMs: 2000 };
+      const cfg: PhaseConfig = phaseConfig[status] ?? { base: 0.05, max: 0.8, durationMs: 2000 };
 
       const phaseSpan = Math.max(cfg.max - cfg.base, 0.01);
       let t = Math.min(1, elapsed / cfg.durationMs);
@@ -231,31 +234,31 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   } else if (status === "checking_documents") {
     // Rotate through status messages based on progress in this phase
     // to show Scout is actively working on different aspects
-    const statusMessages = 
+    const statusMessages =
       mode === "contractors"
         ? [
             "Analyzing your project needs...",
             "Matching local contractors...",
-            "Loading profiles and ratings..."
+            "Loading profiles and ratings...",
           ]
         : mode === "marketplace"
-        ? [
-            "Scanning local listings...",
-            "Filtering matched offers...",
-            "Loading marketplace updates..."
-          ]
-        : mode === "admin"
-        ? [
-            "Checking system status...",
-            "Gathering activity reports...",
-            "Compiling control settings..."
-          ]
-        : [
-            "Scanning your community...",
-            "Reviewing local activity...",
-            "Preparing community insights..."
-          ];
-    
+          ? [
+              "Scanning local listings...",
+              "Filtering matched offers...",
+              "Loading marketplace updates...",
+            ]
+          : mode === "admin"
+            ? [
+                "Checking system status...",
+                "Gathering activity reports...",
+                "Compiling control settings...",
+              ]
+            : [
+                "Scanning your community...",
+                "Reviewing local activity...",
+                "Preparing community insights...",
+              ];
+
     // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
     const messageIndex = Math.floor(progress * statusMessages.length);
     statusLabel = statusMessages[Math.min(messageIndex, statusMessages.length - 1)];
@@ -267,16 +270,14 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
   // Show loader for any active phase so returning answers and actions
   // still surface a visible state indicator.
-  const showProgress = 
-    status !== "idle" && 
-    status !== "error";
+  const showProgress = status !== "idle" && status !== "error";
 
   const statusStyles: React.CSSProperties =
     status === "checking_documents"
-      ? { color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }
+      ? { color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" }
       : status === "ready"
-      ? { color: 'var(--text-primary)', border: '1px solid var(--theme-accent-primary)' }
-      : { color: 'var(--text-secondary)', border: '1px solid var(--border-secondary)' };
+        ? { color: "var(--text-primary)", border: "1px solid var(--theme-accent-primary)" }
+        : { color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" };
 
   return (
     <div className="space-y-3 pr-1 flex-1 min-h-0 overflow-y-auto">
@@ -302,9 +303,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               .map((p) => p.trim())
               .filter((p) => p.length > 0);
 
-            const filtered = paragraphs.filter(
-              (p) => !toStrip.some((line) => p === line.trim())
-            );
+            const filtered = paragraphs.filter((p) => !toStrip.some((line) => p === line.trim()));
 
             displayContent = filtered.join("\n\n");
           }
@@ -318,16 +317,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               "justify-start": !isUser,
             })}
           >
-            <div
-              className={clsx(
-                "scout-message",
-                isUser ? "user" : "assistant"
-              )}
-            >
+            <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
               {displayContent && (
-                <p className="whitespace-pre-line leading-relaxed">
-                  {displayContent}
-                </p>
+                <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
               )}
 
               {/* Frame-level action chips (e.g., Open Finances, Open Deal Room)
@@ -372,31 +364,26 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               {msg.clusters &&
                 msg.clusters.length > 0 &&
                 msg.clusters.map((cluster) => (
-                  <ClusterCard
-                    key={cluster.id}
-                    cluster={cluster}
-                    onAction={onAction}
-                  />
+                  <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
                 ))}
 
               {msg.overrideOption && (
                 <div
                   className="mt-3 rounded-lg border border-dashed p-3"
                   style={{
-                    backgroundColor: 'color-mix(in oklab, var(--bg-quaternary) 85%, black)',
-                    borderColor: 'color-mix(in oklab, var(--border-muted, var(--charcoal-700)) 80%, transparent)',
+                    backgroundColor:
+                      "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                    borderColor: "var(--border-subtle)",
                   }}
                 >
-                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     {msg.overrideOption.message}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => onOverride && onOverride(msg.overrideOption!)}
-                      disabled={
-                        overridePendingScope === (msg.overrideOption.scope ?? "global")
-                      }
+                      disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
                       className="scout-action-button"
                     >
                       {overridePendingScope === (msg.overrideOption.scope ?? "global")
@@ -454,24 +441,33 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
       {showProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--charcoal-800)' }}>
+          <div
+            className="h-1.5 w-full rounded-full overflow-hidden"
+            style={{ backgroundColor: "var(--charcoal-800)" }}
+          >
             <div
               className="h-full rounded-full transition-[width] duration-150 ease-out"
               style={{
                 width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
-                background: 'linear-gradient(to right, var(--theme-accent-primary), var(--theme-accent-secondary), var(--theme-accent-tertiary, var(--theme-accent-primary)))',
+                background:
+                  "linear-gradient(to right, var(--theme-accent-primary), var(--theme-accent-secondary), var(--theme-accent-tertiary, var(--theme-accent-primary)))",
               }}
             />
           </div>
 
           <div className="flex justify-start">
             <div
-              className={clsx(
-                "mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]"
-              )}
-              style={{ backgroundColor: 'color-mix(in oklab, var(--bg-quaternary) 85%, black)', ...statusStyles }}
+              className={clsx("mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]")}
+              style={{
+                backgroundColor:
+                  "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                ...statusStyles,
+              }}
             >
-              <span className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--theme-accent-primary)' }} />
+              <span
+                className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse"
+                style={{ backgroundColor: "var(--theme-accent-primary)" }}
+              />
               {statusLabel ?? "Scout is thinking about the best local answer..."}
             </div>
           </div>

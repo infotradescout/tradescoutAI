@@ -30,11 +30,23 @@ export function ObjectiveChip({
     setIsEditing(false);
   };
 
-  const statusColor: Record<Objective["status"], string> = {
-    active: "bg-blue-100 border-blue-300",
-    paused: "bg-gray-100 border-gray-300",
-    completed: "bg-green-100 border-green-300",
-    abandoned: "bg-red-100 border-red-300",
+  const statusStyle: Record<Objective["status"], React.CSSProperties> = {
+    active: {
+      backgroundColor: "color-mix(in oklab, var(--theme-accent-primary) 14%, var(--surface-card))",
+      borderColor: "var(--border-active)",
+    },
+    paused: {
+      backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+      borderColor: "var(--border-subtle)",
+    },
+    completed: {
+      backgroundColor: "color-mix(in oklab, var(--status-success) 16%, var(--surface-card))",
+      borderColor: "var(--border-active)",
+    },
+    abandoned: {
+      backgroundColor: "color-mix(in oklab, var(--status-error) 16%, var(--surface-card))",
+      borderColor: "var(--border-active)",
+    },
   };
 
   const statusIcon: Record<Objective["status"], string> = {
@@ -45,10 +57,12 @@ export function ObjectiveChip({
   };
 
   return (
-    <div className={`mb-3 rounded border p-2 ${statusColor[objective.status]}`}>
+    <div className="mb-3 rounded border p-2" style={statusStyle[objective.status]}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="text-xs font-bold">{statusIcon[objective.status]}</span>
+          <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+            {statusIcon[objective.status]}
+          </span>
 
           {isEditing ? (
             <input
@@ -62,6 +76,12 @@ export function ObjectiveChip({
                 if (e.key === "Escape") setIsEditing(false);
               }}
               className="min-w-0 flex-1 rounded px-2 py-1 text-sm font-semibold"
+              style={{
+                border: "1px solid var(--border-subtle)",
+                backgroundColor:
+                  "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
+                color: "var(--text-primary)",
+              }}
               placeholder="Objective title..."
             />
           ) : (
@@ -71,6 +91,7 @@ export function ObjectiveChip({
                 setIsEditing(true);
               }}
               className="min-w-0 flex-1 truncate text-left text-sm font-semibold hover:underline"
+              style={{ color: "var(--text-primary)" }}
               title={objective.title}
               disabled={isLoading}
             >
@@ -82,7 +103,13 @@ export function ObjectiveChip({
         <div className="relative">
           <button
             onClick={() => setShowActions((s) => !s)}
-            className="rounded px-2 py-1 text-xs hover:bg-black/10 disabled:opacity-50"
+            className="rounded px-2 py-1 text-xs disabled:opacity-50"
+            style={{
+              color: "var(--text-secondary)",
+              backgroundColor: showActions
+                ? "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)"
+                : "transparent",
+            }}
             disabled={isLoading}
             title="More options"
           >
@@ -90,14 +117,21 @@ export function ObjectiveChip({
           </button>
 
           {showActions && (
-            <div className="absolute right-0 z-50 mt-1 min-w-max rounded border bg-white shadow-lg">
+            <div
+              className="absolute right-0 z-50 mt-1 min-w-max rounded border shadow-lg"
+              style={{
+                borderColor: "var(--border-subtle)",
+                backgroundColor: "var(--surface-card)",
+              }}
+            >
               {objective.status !== "completed" && (
                 <button
                   onClick={async () => {
                     await onComplete(objective.id);
                     setShowActions(false);
                   }}
-                  className="block w-full px-3 py-2 text-left text-xs hover:bg-gray-100"
+                  className="block w-full px-3 py-2 text-left text-xs"
+                  style={{ color: "var(--text-primary)" }}
                 >
                   Mark Complete
                 </button>
@@ -109,7 +143,8 @@ export function ObjectiveChip({
                     await onPause(objective.id);
                     setShowActions(false);
                   }}
-                  className="block w-full px-3 py-2 text-left text-xs hover:bg-gray-100"
+                  className="block w-full px-3 py-2 text-left text-xs"
+                  style={{ color: "var(--text-primary)" }}
                 >
                   Pause
                 </button>
@@ -120,7 +155,8 @@ export function ObjectiveChip({
                   await onDelete(objective.id);
                   setShowActions(false);
                 }}
-                className="block w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
+                className="block w-full px-3 py-2 text-left text-xs"
+                style={{ color: "var(--status-error)" }}
               >
                 Delete
               </button>
@@ -129,13 +165,25 @@ export function ObjectiveChip({
         </div>
       </div>
 
-      <div className="mt-1 text-xs text-gray-600">
+      <div className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
         {objective.linkedObjectType && objective.linkedObjectType !== "none" ? (
-          <span className="inline-block rounded bg-white/50 px-2 py-1">
+          <span
+            className="inline-block rounded px-2 py-1"
+            style={{
+              backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
+              color: "var(--text-secondary)",
+            }}
+          >
             Linked to {objective.linkedObjectType}
           </span>
         ) : (
-          <span className="inline-block rounded bg-white/50 px-2 py-1">
+          <span
+            className="inline-block rounded px-2 py-1"
+            style={{
+              backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
+              color: "var(--text-secondary)",
+            }}
+          >
             {intentClassLabel(objective.intentClass)}
           </span>
         )}

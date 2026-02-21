@@ -1672,15 +1672,15 @@ html, body {
 
 /* Scout cards - tonal separation only, no borders */
 .scout-card {
-  background: rgba(2, 6, 23, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: color-mix(in oklab, var(--surface-card) 88%, transparent);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .scout-card:hover {
-  background: rgba(2, 6, 23, 0.68);
-  border-color: rgba(148, 163, 184, 0.22);
+  background: color-mix(in oklab, var(--surface-intermediate) 92%, transparent);
+  border-color: var(--border-active);
 }
 
 /* Scout input - restrained, low-noise */
@@ -1689,13 +1689,13 @@ html, body {
 }
 
 .scout-input:focus-within {
-  border-color: rgba(148, 163, 184, 0.34);
-  background: rgba(2, 6, 23, 0.68);
+  border-color: var(--border-active);
+  background: color-mix(in oklab, var(--surface-intermediate) 92%, transparent);
 }
 
 .scout-input:focus-within textarea,
 .scout-input:focus-within input {
-  border-color: rgba(148, 163, 184, 0.34) !important;
+  border-color: var(--border-active) !important;
   box-shadow: none !important;
 }
 
@@ -1704,8 +1704,8 @@ html, body {
   line-height: 1.5;
   padding: 10px 12px;
   margin: 0 0 14px 0;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--surface-card) 90%, transparent);
   border-radius: 12px;
   animation: slideInMessage 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -1725,24 +1725,24 @@ html, body {
   color: var(--text-primary);
   margin-left: auto;
   max-width: 68ch;
-  background: rgba(30, 41, 59, 0.72);
-  border-color: rgba(148, 163, 184, 0.26);
+  background: color-mix(in oklab, var(--surface-intermediate) 95%, var(--theme-accent-primary) 5%);
+  border-color: var(--border-active);
 }
 
 .scout-message.assistant {
   color: var(--text-primary);
   max-width: 72ch;
-  background: rgba(2, 6, 23, 0.6);
-  border-color: rgba(148, 163, 184, 0.18);
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent);
+  border-color: var(--border-subtle);
 }
 
 /* Scout action buttons - quiet, minimal */
 .scout-action-button {
-  background: rgba(15, 23, 42, 0.7);
+  background: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);
   color: var(--text-primary);
   padding: 7px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--border-subtle);
   font-weight: 500;
   font-size: 12px;
   cursor: pointer;
@@ -1751,8 +1751,8 @@ html, body {
 }
 
 .scout-action-button:hover {
-  background: rgba(15, 23, 42, 0.92);
-  border-color: rgba(148, 163, 184, 0.34);
+  background: color-mix(in oklab, var(--surface-intermediate) 96%, transparent);
+  border-color: var(--border-active);
 }
 
 .scout-action-button:active {
@@ -1874,8 +1874,8 @@ html, body {
 
 /* Scout suggestion pills - elevated with subtle contrast */
 .scout-suggestion {
-  background-color: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  background-color: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-weight: 500;
   cursor: pointer;
@@ -1884,8 +1884,8 @@ html, body {
 }
 
 .scout-suggestion:hover {
-  background-color: rgba(15, 23, 42, 0.92);
-  border-color: rgba(148, 163, 184, 0.38);
+  background-color: color-mix(in oklab, var(--surface-intermediate) 96%, transparent);
+  border-color: var(--border-active);
 }
 
 .scout-suggestion:active {
@@ -1951,7 +1951,8 @@ html, body {
   margin-top: 12px;
   padding: 12px;
   border-radius: 12px;
-  background: var(--surface-muted, #f5f5f5);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
 }
 
 .onboarding-header {
@@ -1961,13 +1962,13 @@ html, body {
 .onboarding-prompt-text {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .onboarding-confidence {
   font-size: 11px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-secondary);
 }
 
 .onboarding-options {
@@ -1982,17 +1983,17 @@ html, body {
   text-align: left;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary, #1a1a1a);
-  background: var(--surface-primary, #ffffff);
-  border: 1px solid var(--border-default, #e5e7eb);
+  color: var(--text-primary);
+  background: var(--surface-intermediate);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .onboarding-option:hover {
-  background: var(--surface-hover, #f9fafb);
-  border-color: var(--border-hover, #d1d5db);
+  background: color-mix(in oklab, var(--surface-intermediate) 95%, transparent);
+  border-color: var(--border-active);
 }
 
 .onboarding-option:active {
@@ -2005,7 +2006,7 @@ html, body {
   padding: 8px 14px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -2032,7 +2033,8 @@ html, body {
 .onboarding-modal > div {
   width: 100%;
   max-width: 448px;
-  background: var(--surface-primary, #ffffff);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }

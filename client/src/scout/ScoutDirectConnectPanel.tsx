@@ -56,16 +56,32 @@ function ActiveCoordinationPanel({
   const inProgressCount = items.filter((item) => item.state === "In discussion").length;
 
   return (
-    <Card className="bg-slate-900/80 border-slate-800 p-3 md:p-4 h-full flex flex-col gap-3">
-      <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+    <Card
+      className="p-3 md:p-4 h-full flex flex-col gap-3"
+      style={{
+        borderColor: "var(--border-subtle)",
+        backgroundColor: "color-mix(in oklab, var(--surface-card) 90%, transparent)",
+      }}
+    >
+      <div
+        className="rounded-lg border px-3 py-2"
+        style={{
+          borderColor: "var(--border-subtle)",
+          backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+        }}
+      >
         <div className="flex items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-orange-300">
+          <div
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide"
+            style={{ color: "var(--theme-accent-primary)" }}
+          >
             <ListChecks className="h-3.5 w-3.5" />
             Live Queue
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-300 hover:text-orange-200"
+            className="inline-flex items-center gap-1 text-[11px] font-medium"
+            style={{ color: "var(--theme-accent-primary)" }}
             onClick={onViewBoard}
           >
             Open
@@ -76,13 +92,39 @@ function ActiveCoordinationPanel({
           Track active requests without leaving Scout.
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-1.5">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">Active</p>
-            <p className="text-sm font-semibold text-slate-100">{activeCount}</p>
+          <div
+            className="rounded-md border px-2 py-1.5"
+            style={{
+              borderColor: "var(--border-subtle)",
+              backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+            }}
+          >
+            <p
+              className="text-[10px] uppercase tracking-wide"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Active
+            </p>
+            <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              {activeCount}
+            </p>
           </div>
-          <div className="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-1.5">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">In progress</p>
-            <p className="text-sm font-semibold text-slate-100">{inProgressCount}</p>
+          <div
+            className="rounded-md border px-2 py-1.5"
+            style={{
+              borderColor: "var(--border-subtle)",
+              backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+            }}
+          >
+            <p
+              className="text-[10px] uppercase tracking-wide"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              In progress
+            </p>
+            <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              {inProgressCount}
+            </p>
           </div>
         </div>
       </div>
@@ -96,14 +138,23 @@ function ActiveCoordinationPanel({
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="h-11 rounded-md border border-slate-800 bg-slate-900/70 animate-pulse"
+              className="h-11 rounded-md border animate-pulse"
+              style={{
+                borderColor: "var(--border-subtle)",
+                backgroundColor:
+                  "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+              }}
             />
           ))}
         </div>
       ) : items.length === 0 ? (
         <div
-          className="text-xs rounded-md border border-slate-800 bg-slate-900/70 px-3 py-2"
-          style={{ color: "var(--text-secondary)" }}
+          className="text-xs rounded-md border px-3 py-2"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+            color: "var(--text-secondary)",
+          }}
         >
           <p className="font-medium" style={{ color: "var(--text-primary)" }}>
             No active requests yet.
@@ -117,11 +168,18 @@ function ActiveCoordinationPanel({
           {items.map((item) => (
             <div
               key={item.id}
-              className="rounded-md border border-slate-800 bg-slate-900/80 px-2.5 py-2 text-xs flex flex-col gap-1.5"
+              className="rounded-md border px-2.5 py-2 text-xs flex flex-col gap-1.5"
+              style={{
+                borderColor: "var(--border-subtle)",
+                backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+              }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+                  <span
+                    className="mt-1 h-1.5 w-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: "var(--theme-accent-primary)" }}
+                  />
                   <div className="min-w-0">
                     <div className="truncate font-medium" style={{ color: "var(--text-primary)" }}>
                       {item.title}
@@ -139,7 +197,16 @@ function ActiveCoordinationPanel({
                     )}
                   </div>
                 </div>
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/15 text-orange-300 border border-orange-400/60 whitespace-nowrap">
+                <span
+                  className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap"
+                  style={{
+                    backgroundColor:
+                      "color-mix(in oklab, var(--theme-accent-primary) 16%, transparent)",
+                    color: "var(--theme-accent-primary)",
+                    borderColor:
+                      "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
+                  }}
+                >
                   {item.state.replace("_", " ")}
                 </span>
               </div>
@@ -150,7 +217,8 @@ function ActiveCoordinationPanel({
                 <span>Updated {formatRelativeTime(item.updatedAt)}</span>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-300 hover:text-orange-200"
+                  className="inline-flex items-center gap-1 text-[10px] font-medium"
+                  style={{ color: "var(--theme-accent-primary)" }}
                   onClick={onViewBoard}
                 >
                   View
@@ -163,12 +231,20 @@ function ActiveCoordinationPanel({
       )}
 
       {isAuthenticated && (
-        <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2">
+        <div
+          className="pt-2 border-t flex items-center justify-end gap-2"
+          style={{ borderColor: "var(--border-subtle)" }}
+        >
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 px-2.5 text-[11px] border-slate-700 text-slate-200 hover:bg-slate-800"
+            className="h-7 px-2.5 text-[11px]"
+            style={{
+              borderColor: "var(--border-subtle)",
+              color: "var(--text-primary)",
+              backgroundColor: "transparent",
+            }}
             onClick={onViewBoard}
           >
             <LoaderCircle className="h-3.5 w-3.5 mr-1" />
@@ -177,7 +253,11 @@ function ActiveCoordinationPanel({
           <Button
             type="button"
             size="sm"
-            className="h-7 px-2.5 text-[11px] bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+            className="h-7 px-2.5 text-[11px] font-semibold"
+            style={{
+              backgroundColor: "var(--theme-accent-primary)",
+              color: "var(--ts-text-on-accent, #0B0F14)",
+            }}
             onClick={onViewBoard}
           >
             <Plus className="h-3.5 w-3.5 mr-1" />

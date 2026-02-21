@@ -814,6 +814,10 @@ async function generateSmartSynthesis(
  * - Comprehensive state injection every turn
  * - No fallback paths - schema is mandatory
  */
+function buildSafeSynthesisFallbackMessage(): string {
+  return "I'm having trouble generating a full answer right now, but I can still route you to the right next step.";
+}
+
 async function synthesizeResponse(
   userMessage: string,
   knowledge: { answer: string; sources: string[]; layer: number; confidence: string },
@@ -945,7 +949,7 @@ CRITICAL EXECUTION RULES:
 4. If user is not authenticated (auth: guest) and asks for action that requires login, you MUST:
    - Set intent to "auth_required"
    - Explain in thought_flow why auth is needed
-   - In message, tell user to create account and provide direct link to /register
+   - In message, tell user to create account and provide direct link to /pre-scout-setup?mode=create
 5. Keep message brief (max 3 sentences; no bullet or numbered lists unless the user explicitly asked you to list things)
 6. Focus the message on: what's blocking, what's next, and at most one clear yes/no question about taking a next step.
 7. Always generate exactly 3 suggestedActions
@@ -993,8 +997,8 @@ AUTH-REQUIRED ACTIONS:
 If user requests auth-required action while guest:
 - intent: "auth_required"
 - thought_flow: ["User asked to [action]", "This requires authentication", "Will redirect to account creation"]
-- decision: "Directing user to create account at /register"
-- message: "To [do that action], you'll need a TradeScout account. [Click here to create one](/register) - it takes less than a minute!"
+- decision: "Directing user to create account at /pre-scout-setup?mode=create"
+- message: "To [do that action], you'll need a TradeScout account. [Click here to create one](/pre-scout-setup?mode=create) - it takes less than a minute!"
 
 ${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
 ${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
@@ -1029,10 +1033,10 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
           thought_flow: [
             "Schema validation failed",
             "LLM did not follow contract",
-            "Returning knowledge answer",
+            "Returning safe fallback",
           ],
-          decision: "Falling back to raw knowledge due to schema violation",
-          message: knowledge.answer,
+          decision: "Schema violation fallback",
+          message: buildSafeSynthesisFallbackMessage(),
           suggestedActions: DEFAULT_ACTIONS,
         };
       }
@@ -1101,8 +1105,8 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         "Error: " + (error as Error).message,
         "Returning safe fallback",
       ],
-      decision: "Falling back to raw knowledge due to system error",
-      message: knowledge.answer,
+      decision: "System error fallback",
+      message: buildSafeSynthesisFallbackMessage(),
       suggestedActions: DEFAULT_ACTIONS,
     };
   }
@@ -3037,7 +3041,7 @@ router.post("/", async (req: Request, res: Response) => {
           intent: synthesized.intent,
           thought_flow: synthesized.thought_flow,
           decision: synthesized.decision,
-          redirect: "/register",
+          redirect: "/pre-scout-setup?mode=create",
           resolvedContext,
         },
       };

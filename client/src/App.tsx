@@ -566,26 +566,32 @@ const AppLayout = memo(function AppLayout() {
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {showBetaNotice && (
-          <div className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border p-6 flex flex-col items-center justify-center bg-[color:var(--theme-accent-primary,#ff6600)] border-[color:var(--theme-accent-primary,#ff6600)] shadow-2xl shadow-[0_4px_32px_0_rgba(249,115,22,0.25)] text-[color:var(--theme-on-accent,#fff)]">
-            <div className="flex items-center gap-3 w-full justify-center">
-              <div className="h-2 w-2 rounded-full bg-[color:var(--theme-on-accent,#fff)] shadow-[0_0_0_4px_rgba(255,255,255,0.15)]" />
-              <p className="font-bold tracking-wide text-lg text-[color:var(--theme-on-accent,#fff)]">
-                TradeScout is in active beta
-              </p>
+          <div className="fixed right-4 top-20 z-50 max-w-sm w-[calc(100%-2rem)] rounded-xl border px-4 py-3 bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div
+                className="mt-1 h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: "var(--theme-accent-primary,#ff6600)",
+                  boxShadow:
+                    "0 0 0 4px color-mix(in oklab, var(--theme-accent-primary,#ff6600) 24%, transparent)",
+                }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-sm text-[color:var(--text-primary)]">
+                  TradeScout is in active beta
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-secondary)]">
+                  Some features may be rough. Keep sharing issues so we can harden Scout fast.
+                </p>
+              </div>
               <button
                 aria-label="Dismiss beta notice"
                 onClick={dismissBetaNotice}
-                className="ml-auto text-[color:var(--theme-on-accent,#fff)] hover:opacity-90 transition"
+                className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] transition"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="leading-relaxed mt-3 text-center font-medium text-[color:var(--theme-on-accent,#fff)]">
-              You may encounter rough edges, non-working features, or intermittent errors.
-              <br />
-              Add TradeScout to your home screen from your browser so it lives like an app, and
-              please share issues so we can polish fast.
-            </p>
           </div>
         )}
 
