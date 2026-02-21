@@ -1338,16 +1338,10 @@ html {
     z-index: 1;
   }
 
-  /* Ensure navigation is always visible */
-  nav {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 50 !important;
-    width: 100% !important;
-  }
-
-  /* Fix any potential hiding issues */
-  .hidden-nav {
+  /* Keep nav visibility fixes scoped to nav-glass only.
+     Do not globally override all <nav> positioning, which can
+     break click targets for fixed headers/toolbars. */
+  .nav-glass.hidden-nav {
     display: flex !important;
     visibility: visible !important;
   }
