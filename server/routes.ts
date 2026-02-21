@@ -5896,7 +5896,10 @@ export async function registerRoutes(app: any) {
   // Maps v1: awareness-only provider discovery (no direct contact data)
   app.get("/api/map/providers", async (req: Request, res: Response) => {
     try {
-      const mapsV1Enabled = String(process.env.FEATURE_MAPS_V1 || "false").toLowerCase() === "true";
+      const mapsV1Enabled =
+        String(process.env.FEATURE_MAPS_V1 ?? "true")
+          .trim()
+          .toLowerCase() !== "false";
       if (!mapsV1Enabled) {
         return res.status(404).json({ message: "Maps v1 is disabled", code: "FEATURE_DISABLED" });
       }

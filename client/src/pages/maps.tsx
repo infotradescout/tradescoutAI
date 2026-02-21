@@ -31,7 +31,9 @@ declare global {
 }
 
 const MAPS_V1_ENABLED =
-  String(import.meta.env.VITE_FEATURE_MAPS_V1 || "false").toLowerCase() === "true";
+  String(import.meta.env.VITE_FEATURE_MAPS_V1 ?? "true")
+    .trim()
+    .toLowerCase() !== "false";
 const GOOGLE_MAPS_API_KEY = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
@@ -202,9 +204,9 @@ export default function MapsPage() {
     return (
       <div className="mx-auto max-w-4xl p-4 md:p-6">
         <div className="rounded-xl border border-tsBorder bg-tsSurface p-4">
-          <h1 className="text-lg font-semibold text-white">Maps v1 is off</h1>
+          <h1 className="text-lg font-semibold text-white">Maps is temporarily disabled</h1>
           <p className="mt-1 text-sm text-tsTextMuted">
-            Enable `VITE_FEATURE_MAPS_V1=true` and `FEATURE_MAPS_V1=true` to use this screen.
+            This feature is disabled by configuration.
           </p>
         </div>
       </div>
