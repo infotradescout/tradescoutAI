@@ -2168,30 +2168,40 @@ export async function registerRoutes(app: any) {
       // Active profile resolution (session spine):
       // - If activeProfileId exists, keep it.
       // - Else if user owns exactly 1 profile, auto-set it.
+      // Never let optional profile resolution break authenticated sessions.
       if (!user.activeProfileId) {
-        const profiles = await storage.listProfilesByOwner(userId);
-        if (profiles.length === 1) {
-          const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
-          res.json({
-            authenticated: true,
-            user: sanitizeUserForResponse(applyImpersonation(updated)),
-          });
-          return;
+        try {
+          const profiles = await storage.listProfilesByOwner(userId);
+          if (profiles.length === 1) {
+            const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
+            res.json({
+              authenticated: true,
+              user: sanitizeUserForResponse(applyImpersonation(updated)),
+            });
+            return;
+          }
+        } catch (profileError) {
+          console.warn("[auth/user] profile auto-resolution skipped:", profileError);
         }
       }
 
       // Active business resolution:
       // - If activeBusinessId exists, keep it.
       // - Else if user owns exactly 1 business, auto-set it.
+      // Never let optional business resolution break authenticated sessions.
       if (!user.activeBusinessId) {
-        const businesses = await storage.listBusinessesByOwner(userId);
-        if (businesses.length === 1) {
-          const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
-          res.json({
-            authenticated: true,
-            user: sanitizeUserForResponse(applyImpersonation(updated)),
-          });
-          return;
+        try {
+          const businesses = await storage.listBusinessesByOwner(userId);
+          if (businesses.length === 1) {
+            const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
+            res.json({
+              authenticated: true,
+              user: sanitizeUserForResponse(applyImpersonation(updated)),
+            });
+            return;
+          }
+        } catch (businessError) {
+          console.warn("[auth/user] business auto-resolution skipped:", businessError);
         }
       }
 
