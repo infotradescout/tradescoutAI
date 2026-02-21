@@ -472,22 +472,21 @@ function HowItWorksSection() {
         </Reveal>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3">
-          {steps.map((step, i) => {
+          {steps.map((step) => {
             const Icon = step.icon;
             return (
-              <Reveal key={i} delay={i * 0.1}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="bg-tsCard border border-tsBorder rounded-xl p-3 hover:border-ts-orange/40 transition-colors"
-                >
-                  <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-2">
-                    <Icon className="w-4 h-4 text-ts-orange" />
-                  </div>
-                  <h3 className="text-base font-bold text-white mb-1.5">{step.title}</h3>
-                  <p className="text-xs text-white/60 leading-relaxed">{step.desc}</p>
-                </motion.div>
-              </Reveal>
+              <motion.div
+                key={step.title}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="bg-tsCard border border-tsBorder rounded-xl p-3 hover:border-ts-orange/40 transition-colors"
+              >
+                <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-2">
+                  <Icon className="w-4 h-4 text-ts-orange" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-1.5">{step.title}</h3>
+                <p className="text-xs text-white/60 leading-relaxed">{step.desc}</p>
+              </motion.div>
             );
           })}
         </div>
