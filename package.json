@@ -16,7 +16,7 @@
     "e2e": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=test playwright test",
     "e2e:ui": "cross-env NODE_ENV=test playwright test --ui",
     "test:e2e": "cross-env NODE_ENV=test playwright test",
-    "test:release-gates": "cross-env NODE_ENV=test playwright test tests/journeys/auth_buttons_present.spec.ts tests/address-verification.smoke.spec.ts tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium",
+    "test:release-gates": "cross-env NODE_ENV=test node scripts/run-release-gates.mjs",
     "report:release-gates": "node scripts/report-release-gates.mjs",
     "test:e2e:debug": "cross-env NODE_ENV=test playwright test --debug",
     "test:e2e:report": "playwright show-report",
