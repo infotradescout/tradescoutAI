@@ -213,7 +213,7 @@ export default function ContractorProfile() {
                     <span>Contact is protected to prevent spam.</span>
                   </div>
                   <p className="mt-1 text-gray-400">
-                    Start Direct Connect to route requests through TradeScoutâ€™s trust policy.
+                    Start Direct Connect to route requests through TradeScout's trust policy.
                   </p>
                 </div>
 
