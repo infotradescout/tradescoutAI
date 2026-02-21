@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
-import { useRoute } from "wouter";
+import { useLocation } from "wouter";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 
 type LandingData = {
   countySlug: string;
@@ -48,6 +49,24 @@ function parseCheckbox(form: FormData, key: string) {
   return normalized === "true" || normalized === "1" || normalized === "on";
 }
 
+function normalizeCountySlug(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-z0-9-]{1,80}$/.test(normalized)) return "";
+  return normalized;
+}
+
+function deriveCountySlug(pathname: string) {
+  const pathOnly = pathname.split(/[?#]/, 1)[0] || "";
+  const match = /^\/tradepartners\/([^/]+)/i.exec(pathOnly);
+  if (!match?.[1]) return "";
+
+  try {
+    return normalizeCountySlug(decodeURIComponent(match[1]));
+  } catch {
+    return normalizeCountySlug(match[1]);
+  }
+}
+
 function renderHeadlineWithAccent(headline: string): ReactNode {
   if (!headline.includes("{accent}")) return headline;
 
@@ -92,9 +111,25 @@ function renderHeadlineWithAccent(headline: string): ReactNode {
   );
 }
 
-export default function TradePartnerCountyLanding() {
-  const [, params] = useRoute("/tradepartners/:countySlug");
-  const countySlug = (params as Record<string, string> | null)?.countySlug || "";
+export default function TradePartnerCountyLanding({
+  countySlug: countySlugProp,
+}: {
+  countySlug?: string;
+} = {}) {
+  const [location] = useLocation();
+  const countySlug = useMemo(() => {
+    const fromProp = normalizeCountySlug(String(countySlugProp || ""));
+    if (fromProp) return fromProp;
+
+    const fromLocation = deriveCountySlug(String(location || ""));
+    if (fromLocation) return fromLocation;
+
+    if (typeof window !== "undefined") {
+      return deriveCountySlug(window.location.pathname);
+    }
+
+    return "";
+  }, [countySlugProp, location]);
 
   const [data, setData] = useState<LandingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,32 +143,40 @@ export default function TradePartnerCountyLanding() {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
 
     const fetchLanding = async () => {
       setLoading(true);
       setLoadError(null);
+      setData(null);
 
       if (!countySlug) {
-        setLoading(false);
         setLoadError("Missing county.");
         return;
       }
 
-      const response = await fetch(
-        `/api/tradepartner-landing/${encodeURIComponent(countySlug.toLowerCase())}`,
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          credentials: "include",
-        }
-      );
+      const response = await fetch(buildApiUrl(`/api/tradepartner-landing/${countySlug}`), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
 
       if (cancelled) return;
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        setLoadError(String((errorBody as any)?.error || "Could not load page."));
-        setLoading(false);
+        const errorText = await response.text().catch(() => "");
+        if (!errorText) {
+          setLoadError("Could not load page.");
+          return;
+        }
+
+        try {
+          const errorBody = JSON.parse(errorText);
+          setLoadError(String((errorBody as any)?.error || "Could not load page."));
+        } catch {
+          setLoadError(errorText.slice(0, 220));
+        }
         return;
       }
 
@@ -152,18 +195,34 @@ export default function TradePartnerCountyLanding() {
       };
 
       setData(normalized);
-      setLoading(false);
     };
 
-    fetchLanding().catch((error) => {
-      if (cancelled) return;
-      console.error("Failed to load tradepartner county landing:", error);
-      setLoadError("Could not load page.");
-      setLoading(false);
-    });
+    fetchLanding()
+      .catch((error) => {
+        if (cancelled) return;
+        const errorName = String((error as any)?.name || "");
+        if (errorName === "AbortError") {
+          setLoadError("Request timed out. Refresh and try again.");
+          return;
+        }
+        const message = String((error as any)?.message || "").toLowerCase();
+        if (message.includes("failed to fetch") || message.includes("network")) {
+          setLoadError("Network error while loading this county page.");
+          return;
+        }
+        setLoadError("Could not load page.");
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [countySlug]);
 
@@ -191,14 +250,13 @@ export default function TradePartnerCountyLanding() {
     };
 
     setSubmitting(true);
-    const response = await fetch("/api/partner-interest", {
+    const response = await fetch(buildApiUrl("/api/partner-interest"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify(payload),
-      credentials: "include",
     });
     setSubmitting(false);
 
@@ -214,18 +272,43 @@ export default function TradePartnerCountyLanding() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-slate-300 flex items-center justify-center px-6">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 560,
+            borderRadius: 16,
+            border: "1px solid rgba(148,163,184,0.35)",
+            background: "rgba(8,16,28,0.88)",
+            color: "#e2e8f0",
+            padding: 20,
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: 20, color: "#f8fafc" }}>Loading county page</h1>
+          <p style={{ margin: "10px 0 0", color: "#cbd5e1" }}>
+            Fetching Trade Partner details for this county...
+          </p>
+        </div>
       </div>
     );
   }
 
   if (loadError || !data) {
     return (
-      <div className="min-h-screen bg-black text-slate-300 flex items-center justify-center px-6">
-        <div className="max-w-lg w-full bg-neutral-900 border border-neutral-700 rounded-xl p-6">
-          <h1 className="text-white text-xl font-semibold mb-2">Page unavailable</h1>
-          <p className="text-slate-300">{loadError || "Unknown error"}</p>
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 640,
+            borderRadius: 16,
+            border: "1px solid rgba(248,113,113,0.45)",
+            background: "rgba(30,12,16,0.88)",
+            color: "#fee2e2",
+            padding: 20,
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: 22, color: "#fef2f2" }}>Page unavailable</h1>
+          <p style={{ margin: "10px 0 0", color: "#fecaca" }}>{loadError || "Unknown error"}</p>
         </div>
       </div>
     );
