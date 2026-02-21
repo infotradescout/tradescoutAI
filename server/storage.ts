@@ -2166,17 +2166,22 @@ export class DatabaseStorage implements IStorage {
     const normalizedRole = String(role || "")
       .trim()
       .toLowerCase();
+    if (!normalizedRole) return undefined;
+
     const [user] =
       normalizedRole === "head_admin"
         ? await db
             .select()
             .from(users)
-            .where(sql`${users.role} = ${role as any} OR lower(${users.role}) = 'owner'`)
+            .where(
+              sql`${users.role}::text = ${normalizedRole} OR lower(${users.role}::text) = 'owner'`
+            )
             .limit(1)
         : await db
             .select()
             .from(users)
-            .where(eq(users.role, role as any));
+            .where(sql`${users.role}::text = ${normalizedRole}`)
+            .limit(1);
     return this.normalizeLegacyAdminUser(user);
   }
 

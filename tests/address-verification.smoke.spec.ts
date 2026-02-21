@@ -9,7 +9,7 @@ test("Address verification can start postcard flow (or is already verified)", as
     .then(() => true)
     .catch(() => false);
   if (redirectedToAuth) {
-    await expect(page.getByText(/Sign in\. Get local\./i)).toBeVisible();
+    await expect(page).toHaveURL(/\/pre-scout-setup(?:\?|$)/i);
     return;
   }
 
