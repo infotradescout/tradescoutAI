@@ -412,7 +412,7 @@ export default function WorkerMarketplace() {
 
       {/* Helper Profile Modal */}
       <Dialog open={isPostTaskOpen} onOpenChange={setIsPostTaskOpen}>
-        <DialogContent className="border-tsBorder bg-[#0b111b]/95 text-tsTextMain">
+        <DialogContent className="border-tsBorder bg-tsCard/95 text-tsTextMain">
           <DialogHeader>
             <DialogTitle>Create Direct Connect request</DialogTitle>
           </DialogHeader>
@@ -565,7 +565,7 @@ export default function WorkerMarketplace() {
       </Dialog>
 
       <Dialog open={Boolean(applyTask)} onOpenChange={(open) => !open && setApplyTask(null)}>
-        <DialogContent className="border-tsBorder bg-[#0b111b]/95 text-tsTextMain">
+        <DialogContent className="border-tsBorder bg-tsCard/95 text-tsTextMain">
           <DialogHeader>
             <DialogTitle>Apply to task</DialogTitle>
           </DialogHeader>

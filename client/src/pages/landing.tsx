@@ -15,7 +15,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
-import { toast } from "@/hooks/use-toast";
 import {
   Shield,
   ShieldCheck,
@@ -1008,28 +1007,49 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
             <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-white/60">
               <li>
-                <button
-                  onClick={() => toast({ title: "Coming soon!" })}
+                <a
+                  href="/terms"
                   className="hover:text-ts-orange transition-colors"
+                  onClick={() =>
+                    void trackDemandEvent("cta_click", {
+                      placement: "footer_legal_terms",
+                      variant: variant.key,
+                      href: "/terms",
+                    })
+                  }
                 >
                   Terms of Service
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => toast({ title: "Coming soon!" })}
+                <a
+                  href="/privacy"
                   className="hover:text-ts-orange transition-colors"
+                  onClick={() =>
+                    void trackDemandEvent("cta_click", {
+                      placement: "footer_legal_privacy",
+                      variant: variant.key,
+                      href: "/privacy",
+                    })
+                  }
                 >
                   Privacy Policy
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => toast({ title: "Coming soon!" })}
+                <a
+                  href="/help"
                   className="hover:text-ts-orange transition-colors"
+                  onClick={() =>
+                    void trackDemandEvent("cta_click", {
+                      placement: "footer_legal_contact",
+                      variant: variant.key,
+                      href: "/help",
+                    })
+                  }
                 >
                   Contact
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -1037,7 +1057,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
         <div className="border-t border-white/5 pt-5">
           <p className="text-xs text-white/30 text-center">
-            © 2026 TradeScout. All rights reserved. Trust-first local matching.
+            (c) 2026 TradeScout. All rights reserved. Trust-first local matching.
           </p>
         </div>
       </div>

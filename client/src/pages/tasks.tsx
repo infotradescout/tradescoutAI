@@ -1129,7 +1129,7 @@ export default function TasksHub({
 
         {/* County Selector Dialog - Phase 1 Telemetry Support */}
         <Dialog open={showCountySelector} onOpenChange={setShowCountySelector}>
-          <DialogContent className="border-tsBorder bg-[#0b111b]/95">
+          <DialogContent className="border-tsBorder bg-tsCard/95">
             <DialogHeader>
               <DialogTitle className="text-tsTextMain">Change your area</DialogTitle>
             </DialogHeader>
