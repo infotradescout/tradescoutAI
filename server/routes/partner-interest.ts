@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
+import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 
 const router = Router();
 
@@ -62,6 +63,7 @@ router.post("/", async (req: Request, res: Response) => {
   `;
 
   try {
+    await ensureTradePartnerTables();
     const countyResult = await pool.query(countyQuery, [countySlug]);
     if (!countyResult.rows.length) {
       return res.status(404).json({ error: "County not found" });
@@ -117,6 +119,10 @@ router.post("/", async (req: Request, res: Response) => {
     return res.json({ ok: true, submissionId: insertResult.rows[0]?.id });
   } catch (error) {
     console.error("POST partner interest error:", error);
+    const code = String((error as any)?.code || "");
+    if (code === "42P01") {
+      return res.status(503).json({ error: "Trade Partner interest is not configured yet." });
+    }
     return res.status(500).json({ error: "Server error" });
   }
 });

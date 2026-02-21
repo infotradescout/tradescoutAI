@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
+import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 
 const router = Router();
 
@@ -41,6 +42,7 @@ router.get("/:countySlug", async (req: Request, res: Response) => {
   `;
 
   try {
+    await ensureTradePartnerTables();
     const result = await pool.query(query, [countySlug]);
 
     if (!result.rows.length) {
@@ -63,6 +65,10 @@ router.get("/:countySlug", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("GET tradepartner landing error:", error);
+    const code = String((error as any)?.code || "");
+    if (code === "42P01") {
+      return res.status(503).json({ error: "Trade Partner pages are not configured yet." });
+    }
     return res.status(500).json({ error: "Server error" });
   }
 });
