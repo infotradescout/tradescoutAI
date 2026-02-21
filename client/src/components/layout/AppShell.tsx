@@ -155,6 +155,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/pre-scout-setup") ||
     location.startsWith("/onboarding/profile") ||
     location.startsWith("/profile-setup");
+  const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
   const isSuperAdmin = (user as any)?.isSuperAdmin === true;
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
@@ -164,8 +165,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
-  const showFeatureNav = !isSetupSurface && !isAuthSurface;
-  const showInstallAction = !isStandalone && !isSetupSurface;
+  const showFeatureNav = !isAuthOrSetupSurface;
+  const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
       await promptInstall();
@@ -330,7 +331,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {!isLoggedIn && !isSetupSurface && (
+            {!isLoggedIn && !isAuthOrSetupSurface && (
               <>
                 <button
                   type="button"
@@ -373,8 +374,8 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <Download className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
               </button>
             )}
-            {!isSetupSurface && isAuthenticated && <NotificationCenter />}
-            {!isSetupSurface && (
+            {!isAuthOrSetupSurface && isAuthenticated && <NotificationCenter />}
+            {!isAuthOrSetupSurface && (
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(true)}
@@ -416,7 +417,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
           {/* Right side: auth CTA + icons */}
           <div className="flex items-center gap-2 shrink-0">
-            {!isLoggedIn && !isSetupSurface && (
+            {!isLoggedIn && !isAuthOrSetupSurface && (
               <>
                 <button
                   type="button"
@@ -440,7 +441,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               </>
             )}
 
-            {!isSetupSurface && (
+            {!isAuthOrSetupSurface && (
               <>
                 {showInstallAction && (
                   <button
@@ -531,7 +532,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       </main>
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
-      {!isMobile && !isSetupSurface && (
+      {!isMobile && !isAuthOrSetupSurface && (
         <aside
           className="hidden lg:block fixed z-40"
           style={{
@@ -566,7 +567,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
-      {isMobile && isToolsOpen && !isSetupSurface && (
+      {isMobile && isToolsOpen && !isAuthOrSetupSurface && (
         <div
           className="fixed inset-x-0 top-0 z-40 flex"
           style={{ bottom: "calc(62px + env(safe-area-inset-bottom))" }}
