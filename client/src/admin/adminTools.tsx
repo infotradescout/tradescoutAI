@@ -21,7 +21,7 @@ import {
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 
-export type AdminRole = "moderator" | "ops_admin" | "super_admin" | "head_admin";
+export type AdminRole = "moderator" | "ops_admin" | "super_admin" | "head_admin" | "owner";
 
 export type AdminToolVisibility = {
   roles?: AdminRole[];
@@ -81,15 +81,32 @@ function normalizePathname(raw: string): string {
   return raw.split(/[?#]/, 1)[0] || "/";
 }
 
+function normalizeAdminRole(role: string | null | undefined): Exclude<AdminRole, "owner"> {
+  if (role === "owner") return "head_admin";
+  if (
+    role === "head_admin" ||
+    role === "super_admin" ||
+    role === "ops_admin" ||
+    role === "moderator"
+  ) {
+    return role;
+  }
+  return "ops_admin";
+}
+
 function isSuperAdminLike(role: string | null | undefined, isSuperAdminFlag?: boolean): boolean {
-  return Boolean(isSuperAdminFlag === true || role === "super_admin" || role === "head_admin");
+  const normalizedRole = normalizeAdminRole(role);
+  return Boolean(
+    isSuperAdminFlag === true || normalizedRole === "super_admin" || normalizedRole === "head_admin"
+  );
 }
 
 export function canSeeAdminTool(tool: AdminTool, role: AdminRole, isSuperAdminFlag?: boolean) {
+  const normalizedRole = normalizeAdminRole(role);
   if (!tool.visibleIf) return true;
-  if (tool.visibleIf.superOnly && !isSuperAdminLike(role, isSuperAdminFlag)) return false;
+  if (tool.visibleIf.superOnly && !isSuperAdminLike(normalizedRole, isSuperAdminFlag)) return false;
   if (!tool.visibleIf.roles || tool.visibleIf.roles.length === 0) return true;
-  return tool.visibleIf.roles.includes(role);
+  return tool.visibleIf.roles.includes(normalizedRole);
 }
 
 export function getAdminNavSectionsForRole(

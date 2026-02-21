@@ -40,12 +40,18 @@ const PageLoader = memo(function PageLoader() {
 function getPostLandingRoute(user: any): string {
   const role: string | undefined = typeof user?.role === "string" ? user.role : undefined;
   const isSuperAdmin =
-    role === "super_admin" || role === "head_admin" || user?.isSuperAdmin === true;
+    role === "super_admin" ||
+    role === "head_admin" ||
+    role === "owner" ||
+    user?.isSuperAdmin === true;
 
   const roles: string[] = Array.isArray(user?.roles)
     ? user.roles.filter((r: unknown): r is string => typeof r === "string")
     : [];
-  const isAdmin = user?.isAdmin === true || roles.some((r) => r.includes("admin"));
+  const isAdmin =
+    user?.isAdmin === true ||
+    role === "owner" ||
+    roles.some((r) => r.includes("admin") || r === "owner");
 
   const profileVersion: number = typeof user?.profileVersion === "number" ? user.profileVersion : 0;
   const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
@@ -503,7 +509,8 @@ const AppLayout = memo(function AppLayout() {
 
     const profileVersion: number =
       typeof user?.profileVersion === "number" ? user.profileVersion : 0;
-    const isSuperAdminLike = user?.role === "super_admin" || user?.role === "head_admin";
+    const isSuperAdminLike =
+      user?.role === "super_admin" || user?.role === "head_admin" || user?.role === "owner";
     const hasCompletedProfileBasics = isSuperAdminLike || profileVersion >= CURRENT_PROFILE_VERSION;
 
     trackShellEvent({
@@ -530,7 +537,8 @@ const AppLayout = memo(function AppLayout() {
       user?.isAdmin === true ||
       user?.role === "super_admin" ||
       user?.role === "head_admin" ||
-      roles.some((r) => r.includes("admin"));
+      user?.role === "owner" ||
+      roles.some((r) => r.includes("admin") || r === "owner");
     if (isAdminLike) return;
 
     const profileVersion: number =

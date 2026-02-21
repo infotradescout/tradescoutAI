@@ -56,7 +56,10 @@ export function EmailPasswordAuth() {
       const anyUser: any = result?.user || result;
       const role: string | undefined = anyUser?.role;
       const isSuperAdmin =
-        role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
+        role === "super_admin" ||
+        role === "head_admin" ||
+        role === "owner" ||
+        anyUser?.isSuperAdmin === true;
       if (safeNext) {
         window.location.href = safeNext;
         return;

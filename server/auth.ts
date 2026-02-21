@@ -14,6 +14,14 @@ import type { UserRole } from "@shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { desc, sql } from "drizzle-orm";
 
+function normalizeLegacyRole(role: unknown): UserRole | null {
+  if (typeof role !== "string" || role.trim().length === 0) return null;
+  const normalized = role.trim().toLowerCase();
+  // Legacy bootstrap accounts can still carry "owner"; treat it as top-level admin.
+  if (normalized === "owner") return "head_admin";
+  return normalized as UserRole;
+}
+
 // Configure session
 export function getSession() {
   const sessionTtlMs = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -400,7 +408,8 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
     typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
   // Super admins and head admins always bypass onboarding gates.
-  if (anyUser.role === "super_admin" || anyUser.role === "head_admin") {
+  const normalizedRole = normalizeLegacyRole(anyUser.role);
+  if (normalizedRole === "super_admin" || normalizedRole === "head_admin") {
     return next();
   }
 
@@ -422,7 +431,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
     }
 
     const user = req.user as User;
-    const userRole = user.role as UserRole;
+    const userRole = normalizeLegacyRole(user.role);
 
     if (!userRole) {
       return res.status(403).json({ message: "No role assigned" });
@@ -452,7 +461,7 @@ export const requirePermission = (
     }
 
     const user = req.user as User;
-    const userRole = user.role as UserRole;
+    const userRole = normalizeLegacyRole(user.role);
 
     if (!userRole) {
       return res.status(403).json({ message: "No role assigned" });
@@ -537,10 +546,13 @@ export const requireAdmin = (req: any, res: any, next: any) => {
   const isAdminFlag = user.isAdmin === true;
 
   const adminRoles = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+  const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
+  const normalizedActiveRole = normalizeLegacyRole(activeRole) || activeRole;
+  const normalizedRoles = roles.map((role: string) => normalizeLegacyRole(role) || role);
   const hasAdminRole =
-    adminRoles.has(activeRole) ||
-    adminRoles.has(primaryRole) ||
-    roles.some((role: string) => adminRoles.has(role));
+    adminRoles.has(normalizedActiveRole) ||
+    adminRoles.has(normalizedPrimaryRole) ||
+    normalizedRoles.some((role: string) => adminRoles.has(role));
 
   if (isAdminFlag || hasAdminRole) {
     return next();

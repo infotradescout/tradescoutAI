@@ -100,8 +100,16 @@ export function AdminPageToolsBar() {
   const [path, navigate] = useLocation();
   const [open, setOpen] = useState(false);
 
-  const isAdmin = Boolean(isAuthenticated && (user as any)?.isAdmin === true);
   const role = ((user?.role as AdminRole) || "ops_admin") as AdminRole;
+  const isAdmin = Boolean(
+    isAuthenticated &&
+    ((user as any)?.isAdmin === true ||
+      role === "owner" ||
+      role === "head_admin" ||
+      role === "super_admin" ||
+      role === "ops_admin" ||
+      role === "moderator")
+  );
   const isSuperAdmin = Boolean((user as any)?.isSuperAdmin === true);
 
   const tools = useMemo(() => {

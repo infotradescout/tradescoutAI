@@ -1451,6 +1451,31 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private normalizeLegacyAdminUser(user: User | undefined): User | undefined {
+    if (!user) return user;
+
+    const rawRole =
+      typeof (user as any).role === "string"
+        ? String((user as any).role)
+            .trim()
+            .toLowerCase()
+        : "";
+    if (rawRole !== "owner") return user;
+
+    const existingRoles = Array.isArray((user as any).roles)
+      ? (user as any).roles.map((r: any) => String(r))
+      : [];
+    const normalizedRoles = Array.from(new Set(["head_admin", ...existingRoles]));
+
+    return {
+      ...user,
+      role: "head_admin" as any,
+      roles: normalizedRoles as any,
+      isAdmin: true as any,
+      isSuperAdmin: true as any,
+    } as User;
+  }
+
   private countiesCache = new Map<
     string,
     { expiresAt: number; rows: (County & { state?: { name: string; code: string } })[] }
@@ -2103,7 +2128,7 @@ export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return this.normalizeLegacyAdminUser(user);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -2119,20 +2144,30 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalized}`)
       .limit(1);
-    return user;
+    return this.normalizeLegacyAdminUser(user);
   }
 
   async getUserByRole(role: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.role, role as any));
-    return user;
+    const normalizedRole = String(role || "")
+      .trim()
+      .toLowerCase();
+    const [user] =
+      normalizedRole === "head_admin"
+        ? await db
+            .select()
+            .from(users)
+            .where(sql`${users.role} = ${role as any} OR lower(${users.role}) = 'owner'`)
+            .limit(1)
+        : await db
+            .select()
+            .from(users)
+            .where(eq(users.role, role as any));
+    return this.normalizeLegacyAdminUser(user);
   }
 
   async getUserByFacebookId(facebookId: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.facebookId, facebookId));
-    return user;
+    return this.normalizeLegacyAdminUser(user);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -2146,7 +2181,7 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalized}`)
       .limit(1);
-    return user;
+    return this.normalizeLegacyAdminUser(user);
   }
 
   async createUser(userData: InsertUser): Promise<User> {

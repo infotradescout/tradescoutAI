@@ -15,12 +15,13 @@ interface ProtectedRouteProps {
 function isAdminLikeUser(user: any): boolean {
   if (!user) return false;
   if (user.isAdmin === true || user.isSuperAdmin === true) return true;
-  if (user.role === "super_admin" || user.role === "head_admin") return true;
+  if (user.role === "super_admin" || user.role === "head_admin" || user.role === "owner")
+    return true;
 
   const roles: string[] = Array.isArray(user.roles)
     ? user.roles.filter((r: unknown): r is string => typeof r === "string")
     : [];
-  return roles.some((r) => r.includes("admin"));
+  return roles.some((r) => r.includes("admin") || r === "owner");
 }
 
 /**

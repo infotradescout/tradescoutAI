@@ -982,20 +982,29 @@ export async function registerRoutes(app: any) {
   const sanitizeUserForResponse = (user: any) => {
     if (!user) return user;
 
+    const normalizeRole = (role: unknown): string => {
+      const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+      if (!raw) return "";
+      return raw === "owner" ? "head_admin" : raw;
+    };
+
     const rolesRaw =
       Array.isArray(user?.roles) && user.roles.length > 0
         ? user.roles
         : user?.role
           ? [user.role]
           : [];
-    const roles = rolesRaw.filter((r: any) => typeof r === "string") as SharedUserRole[];
+    const roles = rolesRaw
+      .map((r: any) => normalizeRole(r))
+      .filter((r: string): r is SharedUserRole => Boolean(r)) as SharedUserRole[];
     const primaryRole: SharedUserRole | undefined = roles[0];
+    const normalizedPrimaryRole = normalizeRole(user?.role);
 
     const basePermissions = primaryRole ? ROLE_PERMISSIONS[primaryRole] : undefined;
 
     const computedIsAdmin =
       user.isAdmin === true ||
-      (user.role && ["super_admin", "head_admin", "moderator", "ops_admin"].includes(user.role)) ||
+      ["super_admin", "head_admin", "moderator", "ops_admin"].includes(normalizedPrimaryRole) ||
       Boolean(
         basePermissions?.canAccessAdminPanel ||
         basePermissions?.canAccessSuperAdmin ||
@@ -1005,7 +1014,7 @@ export async function registerRoutes(app: any) {
 
     const computedIsSuperAdmin =
       user.isSuperAdmin === true ||
-      (user.role && ["super_admin", "head_admin"].includes(user.role)) ||
+      ["super_admin", "head_admin"].includes(normalizedPrimaryRole) ||
       Boolean(primaryRole && ["super_admin", "head_admin"].includes(primaryRole));
 
     const hasCanonicalLocation =
@@ -1016,6 +1025,8 @@ export async function registerRoutes(app: any) {
 
     return {
       ...user,
+      role: normalizedPrimaryRole || user?.role,
+      roles,
       badges: computeBadgesForUser(user),
       isAdmin: computedIsAdmin,
       isSuperAdmin: computedIsSuperAdmin,
@@ -7079,14 +7090,18 @@ export async function registerRoutes(app: any) {
   // Daily money movement summary for super admins
   app.get("/api/admin/money-movements/daily", isAuthenticated, async (req: any, res: any) => {
     try {
-      const roleFromClaims = req.user?.claims?.role;
+      const roleFromClaimsRaw = req.user?.claims?.role;
+      const roleFromClaims =
+        typeof roleFromClaimsRaw === "string" && roleFromClaimsRaw.trim().toLowerCase() === "owner"
+          ? "head_admin"
+          : roleFromClaimsRaw;
       const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
       const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
         (r): r is string => typeof r === "string"
       );
 
       const isSuperAdminLike = roles.some((r) =>
-        ["head_admin", "super_admin", "ops_admin", "analytics_read"].includes(r)
+        ["head_admin", "super_admin", "ops_admin", "analytics_read", "owner"].includes(r)
       );
       if (!isSuperAdminLike) {
         return res.status(403).json({ message: "Access denied" });
@@ -8149,9 +8164,17 @@ export async function registerRoutes(app: any) {
       return res.status(403).json({ message: "Admin access required" });
     }
 
-    const activeRole = typeof req.user.activeRole === "string" ? req.user.activeRole : "";
-    const primaryRole = typeof req.user.role === "string" ? req.user.role : "";
-    const roles = Array.isArray(req.user.roles) ? req.user.roles.map((r: any) => String(r)) : [];
+    const normalizeRole = (role: unknown): string => {
+      const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+      if (!raw) return "";
+      return raw === "owner" ? "head_admin" : raw;
+    };
+
+    const activeRole = normalizeRole(req.user.activeRole);
+    const primaryRole = normalizeRole(req.user.role);
+    const roles = Array.isArray(req.user.roles)
+      ? req.user.roles.map((r: any) => normalizeRole(r)).filter(Boolean)
+      : [];
     const adminRoles = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
     const hasAdmin =
       req.user.isAdmin === true ||
@@ -8461,7 +8484,7 @@ export async function registerRoutes(app: any) {
 
   // Professional verification endpoints
   app.get("/api/admin/professional/pending", isAuthenticated, async (req: any, res: any) => {
-    if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+    if (!["head_admin", "ops_admin", "moderator", "owner"].includes(req.user?.claims?.role)) {
       return res.status(403).json({ message: "Admin access required" });
     }
 
@@ -8480,7 +8503,7 @@ export async function registerRoutes(app: any) {
 
   // Realtor verification
   app.post("/api/admin/realtor/verify/:profileId", isAuthenticated, async (req: any, res: any) => {
-    if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+    if (!["head_admin", "ops_admin", "moderator", "owner"].includes(req.user?.claims?.role)) {
       return res.status(403).json({ message: "Admin access required" });
     }
 
@@ -8508,7 +8531,7 @@ export async function registerRoutes(app: any) {
     "/api/admin/car-salesman/verify/:profileId",
     isAuthenticated,
     async (req: any, res: any) => {
-      if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+      if (!["head_admin", "ops_admin", "moderator", "owner"].includes(req.user?.claims?.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -12423,12 +12446,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       // Phase 1: Global community toggle (read-only visibility)
       // Allow all users to view global posts (posts-only, no new contact paths)
-      const roleFromClaims = (req.user as any)?.claims?.role;
+      const roleFromClaimsRaw = (req.user as any)?.claims?.role;
+      const roleFromClaims =
+        typeof roleFromClaimsRaw === "string" && roleFromClaimsRaw.trim().toLowerCase() === "owner"
+          ? "head_admin"
+          : roleFromClaimsRaw;
       const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
       const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
         (r): r is string => typeof r === "string"
       );
-      const isSuperAdminLike = roles.some((r) => ["head_admin", "super_admin"].includes(r));
+      const isSuperAdminLike = roles.some((r) =>
+        ["head_admin", "super_admin", "owner"].includes(r)
+      );
 
       const wantsGlobalScope = scopeParam === "all" || scopeParam === "global";
       // Phase 1: Allow global scope for all users (not just super-admins)

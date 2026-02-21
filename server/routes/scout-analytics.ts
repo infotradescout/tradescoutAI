@@ -15,9 +15,11 @@ router.get("/authority-diagnostics", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-    // Role-based access gate (use claims.role from auth payload)
-    const role = (req.user as any)?.role ?? (req.user as any)?.claims?.role;
-    if (!role || (role !== "super_admin" && role !== "head_admin")) {
+  // Role-based access gate (normalize legacy owner -> head_admin)
+  const rawRole = (req.user as any)?.role ?? (req.user as any)?.claims?.role;
+  const role = typeof rawRole === "string" ? rawRole.trim().toLowerCase() : "";
+  const normalizedRole = role === "owner" ? "head_admin" : role;
+  if (!normalizedRole || (normalizedRole !== "super_admin" && normalizedRole !== "head_admin")) {
     return res.status(403).json({ message: "Admin access required" });
   }
 
@@ -63,35 +65,37 @@ router.get("/authority-diagnostics", async (req, res) => {
 
     // For each override, find next outcome in same scope
     const outcomeSequences = await Promise.all(
-      recentOverrides.map(async (override: { id: number; scope: string; createdAt: Date; value: any }) => {
-        const subEvents = await db
-          .select({
-            action: scoutOutcomeEvents.action,
-            createdAt: scoutOutcomeEvents.createdAt,
-          })
-          .from(scoutOutcomeEvents)
-          .where(
-            and(
-              eq(scoutOutcomeEvents.scope, override.scope),
-              gte(scoutOutcomeEvents.createdAt, override.createdAt)
+      recentOverrides.map(
+        async (override: { id: number; scope: string; createdAt: Date; value: any }) => {
+          const subEvents = await db
+            .select({
+              action: scoutOutcomeEvents.action,
+              createdAt: scoutOutcomeEvents.createdAt,
+            })
+            .from(scoutOutcomeEvents)
+            .where(
+              and(
+                eq(scoutOutcomeEvents.scope, override.scope),
+                gte(scoutOutcomeEvents.createdAt, override.createdAt)
+              )
             )
-          )
-          .orderBy(scoutOutcomeEvents.createdAt)
-          .limit(2); // Skip self, get next
+            .orderBy(scoutOutcomeEvents.createdAt)
+            .limit(2); // Skip self, get next
 
-        const subsequent = subEvents[1]; // First is the override itself
-        return {
-          overrideId: override.id,
-          scope: override.scope,
-          overrideTime: override.createdAt,
-          followedBy: subsequent
-            ? {
-                outcome: subsequent.action,
-                when: subsequent.createdAt,
-              }
-            : null,
-        };
-      })
+          const subsequent = subEvents[1]; // First is the override itself
+          return {
+            overrideId: override.id,
+            scope: override.scope,
+            overrideTime: override.createdAt,
+            followedBy: subsequent
+              ? {
+                  outcome: subsequent.action,
+                  when: subsequent.createdAt,
+                }
+              : null,
+          };
+        }
+      )
     );
 
     // 4. Summary stats

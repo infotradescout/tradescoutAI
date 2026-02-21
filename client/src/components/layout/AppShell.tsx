@@ -156,7 +156,17 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/onboarding/profile") ||
     location.startsWith("/profile-setup");
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
-  const isSuperAdmin = (user as any)?.isSuperAdmin === true;
+  const role =
+    typeof (user as any)?.role === "string"
+      ? String((user as any).role)
+          .trim()
+          .toLowerCase()
+      : "";
+  const isSuperAdmin =
+    (user as any)?.isSuperAdmin === true ||
+    role === "super_admin" ||
+    role === "head_admin" ||
+    role === "owner";
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,

@@ -16,9 +16,9 @@ let confidenceDampener: number = 1.0; // multiplier
 let outcomeLearningEnabled: boolean = true;
 
 function isSuperAdmin(req: any): boolean {
-  return (
-    req.isAuthenticated() && (req.user?.role === "super_admin" || req.user?.role === "head_admin")
-  );
+  const rawRole = typeof req.user?.role === "string" ? req.user.role.trim().toLowerCase() : "";
+  const role = rawRole === "owner" ? "head_admin" : rawRole;
+  return req.isAuthenticated() && (role === "super_admin" || role === "head_admin");
 }
 
 // Get current control state

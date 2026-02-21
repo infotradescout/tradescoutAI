@@ -17,7 +17,8 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
       const anyUser: any = user;
       const profileVersion: number =
         typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-      const isSuperAdminLike = anyUser.role === "super_admin" || anyUser.role === "head_admin";
+      const isSuperAdminLike =
+        anyUser.role === "super_admin" || anyUser.role === "head_admin" || anyUser.role === "owner";
 
       if (!isAdmin && !isSuperAdminLike && profileVersion < CURRENT_PROFILE_VERSION) {
         setLocation("/pre-scout-setup");
@@ -30,7 +31,8 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
   const anyUser: any = user || {};
   const profileVersion: number =
     typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-  const isSuperAdminLike = anyUser.role === "super_admin" || anyUser.role === "head_admin";
+  const isSuperAdminLike =
+    anyUser.role === "super_admin" || anyUser.role === "head_admin" || anyUser.role === "owner";
 
   if (
     isLoading ||

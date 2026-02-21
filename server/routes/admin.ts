@@ -45,13 +45,18 @@ export function mountAdminRoutes(app: any) {
         const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub || null;
         const user = userId ? await storage.getUser(userId) : null;
 
-        const primaryRole = (user as any)?.role ?? null;
+        const rawRole = (user as any)?.role ?? null;
+        const primaryRole =
+          typeof rawRole === "string" && rawRole.trim().toLowerCase() === "owner"
+            ? "head_admin"
+            : rawRole;
         const isSuperAdminRole = primaryRole === "super_admin" || primaryRole === "head_admin";
 
         res.json({
           ok: true,
           userId,
           role: primaryRole,
+          rawRole,
           isSuperAdmin: isSuperAdminRole,
         });
       } catch (error: any) {
