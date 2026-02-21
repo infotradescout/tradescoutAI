@@ -83,6 +83,24 @@ export default function PreScoutSetup() {
   const [createPassword, setCreatePassword] = useState("");
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
+    setAuthMode(nextMode);
+    try {
+      const params = new URLSearchParams(searchParams);
+      params.set("mode", nextMode);
+      const nextPath = `/pre-scout-setup?${params.toString()}`;
+      if (typeof window !== "undefined") {
+        const current = `${window.location.pathname}${window.location.search}`;
+        if (current !== nextPath) {
+          navigate(nextPath);
+        }
+      } else {
+        navigate(nextPath);
+      }
+    } catch {
+      // Never block auth mode switch on URL sync issues.
+    }
+  };
   const authInputClass =
     "mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent [-webkit-text-fill-color:theme(colors.slate.100)] [&:-webkit-autofill]:shadow-[0_0_0px_1000px_rgba(5,12,22,0.96)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:theme(colors.slate.100)]";
 
@@ -288,7 +306,7 @@ export default function PreScoutSetup() {
           title: "Account exists",
           description: "Sign in to continue.",
         });
-        setAuthMode("signin");
+        setAuthModeAndSyncUrl("signin");
         setSignInEmail(email);
       } else {
         toast({
@@ -394,7 +412,7 @@ export default function PreScoutSetup() {
                 <div className="grid grid-cols-2 gap-1 rounded-xl border border-tsBorder bg-black/25 p-1">
                   <button
                     type="button"
-                    onClick={() => setAuthMode("create")}
+                    onClick={() => setAuthModeAndSyncUrl("create")}
                     className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                       authMode === "create"
                         ? "bg-tsAccent/20 text-tsTextMain"
@@ -405,7 +423,7 @@ export default function PreScoutSetup() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAuthMode("signin")}
+                    onClick={() => setAuthModeAndSyncUrl("signin")}
                     className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                       authMode === "signin"
                         ? "bg-tsAccent/20 text-tsTextMain"
@@ -651,7 +669,7 @@ export default function PreScoutSetup() {
                         className="text-xs text-tsTextMuted hover:text-tsTextMain underline-offset-2 hover:underline"
                         onClick={(e) => {
                           e.preventDefault();
-                          setAuthMode("signin");
+                          setAuthModeAndSyncUrl("signin");
                         }}
                       >
                         Already have an account? Sign in
