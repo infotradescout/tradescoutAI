@@ -233,6 +233,7 @@ const Exchange = React.lazy(() => import("./pages/exchange"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
 const Foundation = React.lazy(() => import("./pages/foundation"));
+const TradePartnerCountyLanding = React.lazy(() => import("./pages/TradePartnerCountyLanding"));
 const PropertyListing = React.lazy(() => import("./pages/property-listing"));
 const HomeScoutListing = React.lazy(() => import("./pages/homescout-listing"));
 const HomeScoutCounty = React.lazy(() => import("./pages/homescout-county"));
@@ -1332,6 +1333,9 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/foundation">
                     <LazyPage Component={Foundation} />
+                  </Route>
+                  <Route path="/tradepartners/:countySlug">
+                    <LazyPage Component={TradePartnerCountyLanding} />
                   </Route>
                   <Route path="/coffee-company">
                     <LazyPage Component={CoffeeCompany} />
