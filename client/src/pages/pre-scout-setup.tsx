@@ -34,20 +34,17 @@ export default function PreScoutSetup() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
 
-  const searchParams = useMemo(() => {
-    try {
-      const fromLocation = String(location || "").split("?")[1] || "";
-      const fromWindow =
-        typeof window !== "undefined"
-          ? String(window.location.search || "").replace(/^\?/, "")
-          : "";
-      // Browser URL is the source of truth; router state can lag after redirects.
-      const query = fromWindow || fromLocation;
-      return new URLSearchParams(query);
-    } catch {
-      return new URLSearchParams();
-    }
-  }, [location]);
+  let searchParams: URLSearchParams;
+  try {
+    const fromLocation = String(location || "").split("?")[1] || "";
+    const fromWindow =
+      typeof window !== "undefined" ? String(window.location.search || "").replace(/^\?/, "") : "";
+    // Browser URL is the source of truth; router state can lag after redirects.
+    const query = fromWindow || fromLocation;
+    searchParams = new URLSearchParams(query);
+  } catch {
+    searchParams = new URLSearchParams();
+  }
   const apiBaseUrl = getApiBaseUrl();
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
@@ -84,7 +81,6 @@ export default function PreScoutSetup() {
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
-    setAuthMode(nextMode);
     try {
       const params = new URLSearchParams(searchParams);
       params.set("mode", nextMode);
@@ -92,6 +88,7 @@ export default function PreScoutSetup() {
       if (typeof window !== "undefined") {
         const current = `${window.location.pathname}${window.location.search}`;
         if (current !== nextPath) {
+          window.history.replaceState(window.history.state, "", nextPath);
           navigate(nextPath);
         }
       } else {
@@ -100,6 +97,7 @@ export default function PreScoutSetup() {
     } catch {
       // Never block auth mode switch on URL sync issues.
     }
+    setAuthMode(nextMode);
   };
   const authInputClass =
     "mt-1 h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent [-webkit-text-fill-color:theme(colors.slate.100)] [&:-webkit-autofill]:shadow-[0_0_0px_1000px_rgba(5,12,22,0.96)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:theme(colors.slate.100)]";
