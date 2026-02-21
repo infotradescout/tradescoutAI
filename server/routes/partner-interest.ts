@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
+import { emailService } from "../services/emailService";
 
 const router = Router();
 
@@ -25,6 +26,22 @@ function parseBool(value: unknown): boolean {
 function extractAllowedCategories(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((item) => String(item || "").trim()).filter((item) => item.length > 0);
+}
+
+function parseRecipientList(value: string): string[] {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 router.post("/", async (req: Request, res: Response) => {
@@ -56,7 +73,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   const countyQuery = `
-    SELECT allowed_categories
+    SELECT allowed_categories, county_name, state_code
     FROM tradepartner_county_pages
     WHERE county_slug = $1
     LIMIT 1
@@ -69,6 +86,7 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "County not found" });
     }
 
+    const countyRow = countyResult.rows[0] || {};
     const allowedCategories = extractAllowedCategories(countyResult.rows[0]?.allowed_categories);
     if (allowedCategories.length > 0) {
       const normalizedCategory = serviceCategory.trim().toLowerCase();
@@ -115,6 +133,56 @@ router.post("/", async (req: Request, res: Response) => {
       userAgent || null,
       ipAddress || null,
     ]);
+
+    const countyName = cleanString(countyRow.county_name, 120);
+    const stateCode = cleanString(countyRow.state_code, 12).toUpperCase();
+    const countyLabel =
+      countyName && stateCode ? `${countyName}, ${stateCode}` : countySlug || "Unknown county";
+
+    const recipientEnv =
+      process.env.TRADEPARTNER_INTEREST_EMAIL ||
+      process.env.ADMIN_EMAIL ||
+      process.env.MASTER_ADMIN_EMAIL ||
+      "";
+    const recipients = parseRecipientList(recipientEnv);
+
+    if (emailService.isConfigured() && recipients.length > 0) {
+      const safeCounty = escapeHtml(countyLabel);
+      const safeBusiness = escapeHtml(businessName);
+      const safeCategory = escapeHtml(serviceCategory);
+      const safeContact = escapeHtml(contactName);
+      const safeEmail = escapeHtml(email);
+      const safePhone = escapeHtml(phone || "Not provided");
+      const safeMessage = escapeHtml(message || "No message provided").replace(/\n/g, "<br>");
+
+      void emailService
+        .sendEmail({
+          to: recipients,
+          subject: `New Trade Partner Interest: ${businessName}`,
+          html: `<h2>New Trade Partner Interest Submission</h2>
+<p><strong>County:</strong> ${safeCounty}</p>
+<p><strong>Business:</strong> ${safeBusiness}</p>
+<p><strong>Category:</strong> ${safeCategory}</p>
+<p><strong>Contact:</strong> ${safeContact}</p>
+<p><strong>Email:</strong> ${safeEmail}</p>
+<p><strong>Phone:</strong> ${safePhone}</p>
+<p><strong>Message:</strong><br>${safeMessage}</p>`,
+          text: [
+            "New Trade Partner Interest Submission",
+            `County: ${countyLabel}`,
+            `Business: ${businessName}`,
+            `Category: ${serviceCategory}`,
+            `Contact: ${contactName}`,
+            `Email: ${email}`,
+            `Phone: ${phone || "Not provided"}`,
+            `Message: ${message || "No message provided"}`,
+          ].join("\n"),
+          purpose: "tradepartner_interest_admin",
+        })
+        .catch((emailError) => {
+          console.error("Trade Partner interest email notification failed:", emailError);
+        });
+    }
 
     return res.json({ ok: true, submissionId: insertResult.rows[0]?.id });
   } catch (error) {
