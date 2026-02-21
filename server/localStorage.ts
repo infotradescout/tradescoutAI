@@ -99,7 +99,8 @@ export class LocalStorageService {
 
   constructor() {
     this.uploadDir = process.env.UPLOAD_DIR || "./public/uploads";
-    this.publicUrlBase = process.env.PUBLIC_URL_BASE || "http://localhost:5000/uploads";
+    const configuredBase = (process.env.PUBLIC_URL_BASE || "/uploads").trim();
+    this.publicUrlBase = configuredBase.replace(/\/+$/, "") || "/uploads";
   }
 
   async init(): Promise<void> {
@@ -109,15 +110,16 @@ export class LocalStorageService {
 
   async getUploadURL(): Promise<string> {
     const fileId = randomUUID();
-    return `http://localhost:5000/api/objects/upload/${fileId}`;
+    // Always return same-origin upload path so production never leaks localhost origins.
+    return `/api/objects/upload/${fileId}`;
   }
 
   async saveFile(fileId: string, buffer: Buffer, contentType: string): Promise<string> {
     await this.init();
-    
+
     const path = await import("path");
     const fs = await import("fs/promises");
-    
+
     const ext = this.getExtensionFromContentType(contentType);
     const filename = `${fileId}${ext}`;
     const filePath = path.join(this.uploadDir, filename);

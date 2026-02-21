@@ -83,7 +83,7 @@ interface ExchangeItem {
   description: string;
   price: number;
   category: string;
-  condition: "new" | "like-new" | "good" | "fair";
+  condition: "new" | "like_new" | "good" | "fair";
   images: string[];
   location: string;
   seller: {
@@ -504,6 +504,7 @@ export default function Exchange() {
   const getConditionBadge = (condition: string) => {
     const colors = {
       new: "bg-green-500",
+      like_new: "bg-blue-500",
       "like-new": "bg-blue-500",
       good: "bg-yellow-500",
       fair: "bg-orange-500",
@@ -1459,7 +1460,7 @@ export default function Exchange() {
                       </SelectTrigger>
                       <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="new">New</SelectItem>
-                        <SelectItem value="like-new">Like New</SelectItem>
+                        <SelectItem value="like_new">Like New</SelectItem>
                         <SelectItem value="good">Good</SelectItem>
                         <SelectItem value="fair">Fair</SelectItem>
                       </SelectContent>
@@ -1651,7 +1652,7 @@ export default function Exchange() {
 
                     const mappedCondition =
                       sellCondition === "new" ||
-                      sellCondition === "like-new" ||
+                      sellCondition === "like_new" ||
                       sellCondition === "excellent" ||
                       sellCondition === "good" ||
                       sellCondition === "fair" ||

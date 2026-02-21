@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { apiRequest } from "@/lib/queryClient";
 
 export interface UploadResult {
@@ -7,14 +8,19 @@ export interface UploadResult {
 
 // Uploads a single File or data URL to object storage and returns a stable, public-facing URL.
 export async function uploadObject(file: File | string): Promise<UploadResult> {
-  // Get upload URL from backend
-  const { uploadURL } = await apiRequest("POST", "/api/objects/upload");
+  const uploadMeta = await apiRequest("POST", "/api/objects/upload");
+  const uploadURL = String(uploadMeta?.uploadURL || "");
+  const hintedPublicUrl = typeof uploadMeta?.publicUrl === "string" ? uploadMeta.publicUrl : "";
+
+  if (!uploadURL) {
+    throw new Error("Upload URL unavailable. Please try again.");
+  }
 
   let body: BodyInit;
   let contentType: string;
 
   if (typeof file === "string") {
-    // Data URL or remote URL – best-effort fetch then re-upload
+    // Data URL or remote URL: fetch and re-upload.
     const response = await fetch(file);
     const blob = await response.blob();
     body = blob;
@@ -24,7 +30,7 @@ export async function uploadObject(file: File | string): Promise<UploadResult> {
     contentType = file.type || "application/octet-stream";
   }
 
-  const putResponse = await fetch(uploadURL, {
+  const putResponse = await fetch(buildApiUrl(uploadURL), {
     method: "PUT",
     body,
     headers: {
@@ -40,8 +46,16 @@ export async function uploadObject(file: File | string): Promise<UploadResult> {
     throw new Error("Upload failed. Please try again.");
   }
 
-  const raw = typeof uploadURL === "string" ? uploadURL : String(uploadURL);
-  const publicUrl = raw.split("?")[0];
+  let responsePublicUrl = "";
+  try {
+    responsePublicUrl = (await putResponse.text()).trim();
+  } catch {
+    responsePublicUrl = "";
+  }
+
+  const raw = uploadURL;
+  const fallbackPublicUrl = raw.split("?")[0];
+  const publicUrl = hintedPublicUrl || responsePublicUrl || fallbackPublicUrl;
 
   return { publicUrl, rawUploadUrl: raw };
 }
