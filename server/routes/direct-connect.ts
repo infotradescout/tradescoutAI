@@ -57,6 +57,17 @@ const assignmentResponseSchema = z.object({
 
 export function registerDirectConnectRoutes(app: Express) {
   const makeShareToken = () => randomBytes(16).toString("hex");
+  const isSchemaMismatchError = (error: unknown): boolean => {
+    const err = error as { code?: string; message?: string } | null;
+    const code = String(err?.code || "").trim();
+    if (code === "42P01" || code === "42703") return true; // undefined_table / undefined_column
+
+    const message = String(err?.message || "").toLowerCase();
+    return (
+      (message.includes("relation") && message.includes("does not exist")) ||
+      (message.includes("column") && message.includes("does not exist"))
+    );
+  };
   const sanitizeWorkRequestText = (value: string, maxLength: number) =>
     redactContactDetails(String(value || ""))
       .replace(/\s+/g, " ")
@@ -407,11 +418,23 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const whereClause = filters.length === 1 ? filters[0] : and(...filters);
 
-        const requests = await db
-          .select()
-          .from(workRequests)
-          .where(whereClause)
-          .orderBy(desc(workRequests.createdAt));
+        let requests: any[] = [];
+        try {
+          requests = await db
+            .select()
+            .from(workRequests)
+            .where(whereClause)
+            .orderBy(desc(workRequests.createdAt));
+        } catch (error) {
+          if (isSchemaMismatchError(error)) {
+            console.warn(
+              "[direct-connect] work_requests schema mismatch while listing requests; returning empty list",
+              error
+            );
+            return res.json([]);
+          }
+          throw error;
+        }
 
         if (!requests.length) {
           return res.json([]);
@@ -420,10 +443,23 @@ export function registerDirectConnectRoutes(app: Express) {
         const requestIds = requests.map((r: any) => r.id);
 
         // Aggregate assignments per request for requester visibility
-        const assignments = await db
-          .select()
-          .from(workRequestAssignments)
-          .where(inArray(workRequestAssignments.workRequestId, requestIds));
+        let assignments: any[] = [];
+        try {
+          assignments = await db
+            .select()
+            .from(workRequestAssignments)
+            .where(inArray(workRequestAssignments.workRequestId, requestIds));
+        } catch (error) {
+          if (isSchemaMismatchError(error)) {
+            console.warn(
+              "[direct-connect] work_request_assignments schema mismatch while listing requests; continuing without assignments",
+              error
+            );
+            assignments = [];
+          } else {
+            throw error;
+          }
+        }
 
         const acceptedAssignments = (assignments as any[]).filter(
           (x: any) => x.status === "accepted" && x.contractorId
@@ -436,19 +472,31 @@ export function registerDirectConnectRoutes(app: Express) {
           )
         );
 
-        const conversationsForAccepted =
-          acceptedContractorIds.length > 0
-            ? await db
-                .select()
-                .from(conversations)
-                .where(
-                  and(
-                    eq(conversations.homeownerId, String(userId)),
-                    inArray(conversations.contractorId, acceptedContractorIds)
-                  )
+        let conversationsForAccepted: any[] = [];
+        if (acceptedContractorIds.length > 0) {
+          try {
+            conversationsForAccepted = await db
+              .select()
+              .from(conversations)
+              .where(
+                and(
+                  eq(conversations.homeownerId, String(userId)),
+                  inArray(conversations.contractorId, acceptedContractorIds)
                 )
-                .orderBy(desc(conversations.createdAt))
-            : [];
+              )
+              .orderBy(desc(conversations.createdAt));
+          } catch (error) {
+            if (isSchemaMismatchError(error)) {
+              console.warn(
+                "[direct-connect] conversations schema mismatch while resolving accepted threads; continuing without conversation links",
+                error
+              );
+              conversationsForAccepted = [];
+            } else {
+              throw error;
+            }
+          }
+        }
 
         const conversationByContractorId = new Map<string, string>();
         for (const convo of conversationsForAccepted as any[]) {
@@ -457,10 +505,23 @@ export function registerDirectConnectRoutes(app: Express) {
           conversationByContractorId.set(contractorId, String((convo as any).id));
         }
 
-        const events = await db
-          .select()
-          .from(workRequestEvents)
-          .where(inArray(workRequestEvents.workRequestId, requestIds));
+        let events: any[] = [];
+        try {
+          events = await db
+            .select()
+            .from(workRequestEvents)
+            .where(inArray(workRequestEvents.workRequestId, requestIds));
+        } catch (error) {
+          if (isSchemaMismatchError(error)) {
+            console.warn(
+              "[direct-connect] work_request_events schema mismatch while listing requests; continuing without event timeline",
+              error
+            );
+            events = [];
+          } else {
+            throw error;
+          }
+        }
 
         const assignmentsByRequest = new Map<string, any[]>();
         for (const a of assignments as any[]) {
