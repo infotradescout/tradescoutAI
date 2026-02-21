@@ -3,6 +3,7 @@ import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
 import { COMPREHENSIVE_TRADES } from "../../shared/trades-data";
+import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 
 const router = Router();
 
@@ -23,13 +24,40 @@ const CORE_STATIC_PATHS = [
   "/landing",
   "/direct-connect",
   "/community",
+  "/community-feed",
   "/exchange",
+  "/trade-deals",
+  "/contractors/apply",
+  "/groups",
+  "/county-directory",
+  "/county-hub",
+  "/maps",
+  "/help",
+  "/help/how-tradescout-works",
   "/how-it-works",
   "/trust-model",
+  "/direct-connect-info",
   "/compare/angi",
   "/compare/homeadvisor",
   "/pricing",
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/privacy-request",
+  "/compliance",
+  "/leaderboard",
+  "/foundation",
+  "/resource-center",
+  "/membership-portal",
+  "/training-center",
+  "/affiliate",
+  "/vehicle-marketplace",
+  "/real-estate-marketplace",
+  "/handmade-marketplace",
 ];
+
+const COUNTY_SLUG_PATTERN = /^[a-z0-9-]+$/;
 
 function xmlEscape(value: unknown): string {
   return String(value ?? "")
@@ -38,6 +66,52 @@ function xmlEscape(value: unknown): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+function getTodayYmd(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toYmd(value: unknown, fallback = getTodayYmd()): string {
+  if (!value) return fallback;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return fallback;
+    return value.toISOString().slice(0, 10);
+  }
+
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function isValidCountySlug(value: unknown): value is string {
+  return typeof value === "string" && COUNTY_SLUG_PATTERN.test(value) && value.length <= 80;
+}
+
+function buildUrlSet(
+  urlEntries: Array<{ loc: string; lastmod: string; changefreq?: string; priority?: string }>
+) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlEntries
+  .map((entry) => {
+    const optionalChangefreq = entry.changefreq
+      ? `
+    <changefreq>${xmlEscape(entry.changefreq)}</changefreq>`
+      : "";
+    const optionalPriority = entry.priority
+      ? `
+    <priority>${xmlEscape(entry.priority)}</priority>`
+      : "";
+
+    return `
+  <url>
+    <loc>${xmlEscape(entry.loc)}</loc>
+    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>${optionalChangefreq}${optionalPriority}
+  </url>`;
+  })
+  .join("\n")}
+</urlset>`;
 }
 
 function buildRuntimeCorePaths(): string[] {
@@ -418,6 +492,7 @@ router.get("/robots.txt", async (req, res) => {
       "Allow: /business/",
       "Allow: /community/",
       "Allow: /county/",
+      "Allow: /tradepartners/",
       "Allow: /homescout/",
       "Allow: /homescout/listings/",
       "Disallow: /api/",
@@ -436,8 +511,7 @@ router.get("/robots.txt", async (req, res) => {
 router.get("/sitemap.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayYmd();
 
     // Sitemap index: keep /sitemap.xml stable and delegate large URL sets.
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -458,6 +532,10 @@ router.get("/sitemap.xml", async (req, res) => {
     <loc>${baseUrl}/sitemap-homescout-listings.xml</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-tradepartners.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
 </sitemapindex>`;
 
     res.type("application/xml");
@@ -471,38 +549,24 @@ router.get("/sitemap.xml", async (req, res) => {
 router.get("/sitemap-core.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayYmd();
     const urls = buildRuntimeCorePaths().map((path) => {
       if (path === "/") {
-        return { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" };
+        return { loc: `${baseUrl}/`, lastmod: today, priority: "1.0", changefreq: "daily" };
       }
       const isLanding = path.startsWith("/landing/");
       const isPrimaryRoute =
         path === "/landing" || path === "/direct-connect" || path === "/community";
       return {
         loc: `${baseUrl}${path}`,
+        lastmod: today,
         priority: isPrimaryRoute ? "0.9" : isLanding ? "0.8" : "0.7",
         changefreq: isLanding ? "weekly" : "daily",
       };
     });
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map(
-    (u) => `
-  <url>
-    <loc>${xmlEscape(u.loc)}</loc>
-    <lastmod>${xmlEscape(today)}</lastmod>
-    <changefreq>${xmlEscape(u.changefreq)}</changefreq>
-    <priority>${xmlEscape(u.priority)}</priority>
-  </url>`
-  )
-  .join("\n")}
-</urlset>`;
-
     res.type("application/xml");
-    res.send(xml);
+    res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating core sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
@@ -512,6 +576,7 @@ ${urls
 router.get("/sitemap-profiles.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
     let profiles: any[] = [];
     try {
       const maybeProfiles = await storage.listPublicProfilesForSitemap();
@@ -524,23 +589,18 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
     const urls = profiles
       .filter((profile) => profile && typeof profile === "object")
       .map((profile) => {
-        const lastmod = profile.updatedAt
-          ? profile.updatedAt.toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10);
-        return `
-  <url>
-    <loc>${xmlEscape(`${baseUrl}/u/${encodeURIComponent(profile.slug)}`)}</loc>
-    <lastmod>${xmlEscape(lastmod)}</lastmod>
-  </url>`;
+        const slug = String(profile.slug || "").trim();
+        if (!slug) return null;
+        return {
+          loc: `${baseUrl}/u/${encodeURIComponent(slug)}`,
+          lastmod: toYmd(profile.updatedAt, today),
+        };
       });
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join("\n")}
-</urlset>`;
-
     res.type("application/xml");
-    res.send(xml);
+    res.send(
+      buildUrlSet(urls.filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry)))
+    );
   } catch (error: any) {
     console.error("Error generating profiles sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
@@ -550,6 +610,7 @@ ${urls.join("\n")}
 router.get("/sitemap-homescout-listings.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
     let listings: any[] = [];
     try {
       const maybeListings = await storage.listActiveHomeScoutListingsForSitemap();
@@ -562,23 +623,18 @@ router.get("/sitemap-homescout-listings.xml", async (req, res) => {
     const urls = listings
       .filter((listing) => listing && typeof listing === "object")
       .map((listing) => {
-        const lastmod = listing.updatedAt
-          ? listing.updatedAt.toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10);
-        return `
-  <url>
-    <loc>${xmlEscape(`${baseUrl}/homescout/listings/${encodeURIComponent(listing.id)}`)}</loc>
-    <lastmod>${xmlEscape(lastmod)}</lastmod>
-  </url>`;
+        const id = String(listing.id || "").trim();
+        if (!id) return null;
+        return {
+          loc: `${baseUrl}/homescout/listings/${encodeURIComponent(id)}`,
+          lastmod: toYmd(listing.updatedAt, today),
+        };
       });
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join("\n")}
-</urlset>`;
-
     res.type("application/xml");
-    res.send(xml);
+    res.send(
+      buildUrlSet(urls.filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry)))
+    );
   } catch (error: any) {
     console.error("Error generating HomeScout listings sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
@@ -588,6 +644,7 @@ ${urls.join("\n")}
 router.get("/sitemap-homescout-counties.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
     let counties: any[] = [];
     try {
       const maybeCounties = await storage.listHomeScoutCountiesForSitemap();
@@ -600,27 +657,57 @@ router.get("/sitemap-homescout-counties.xml", async (req, res) => {
     const urls = counties
       .filter((row) => row && typeof row === "object")
       .map((row) => {
-        const lastmod = row.updatedAt
-          ? row.updatedAt.toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10);
         const stateCode = String(row.stateCode || "").toUpperCase();
-        const countyFips = String(row.countyFips || "");
-        return `
-  <url>
-    <loc>${xmlEscape(`${baseUrl}/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}`)}</loc>
-    <lastmod>${xmlEscape(lastmod)}</lastmod>
-  </url>`;
+        const countyFips = String(row.countyFips || "").trim();
+        if (!stateCode || !countyFips) return null;
+        return {
+          loc: `${baseUrl}/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}`,
+          lastmod: toYmd(row.updatedAt, today),
+        };
       });
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join("\n")}
-</urlset>`;
-
     res.type("application/xml");
-    res.send(xml);
+    res.send(
+      buildUrlSet(urls.filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry)))
+    );
   } catch (error: any) {
     console.error("Error generating HomeScout counties sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-tradepartners.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    let counties: Array<{ countySlug: string; updatedAt: Date | string | null }> = [];
+    try {
+      await ensureTradePartnerTables();
+      const maybeCounties = await storage.listTradePartnerCountiesForSitemap();
+      counties = Array.isArray(maybeCounties) ? maybeCounties : [];
+    } catch (error) {
+      console.warn("Trade Partner sitemap fallback: failed to load county pages", error);
+      counties = [];
+    }
+
+    const urls = counties
+      .map((row) => ({
+        countySlug: String(row?.countySlug || "")
+          .trim()
+          .toLowerCase(),
+        updatedAt: row?.updatedAt ?? null,
+      }))
+      .filter((row) => isValidCountySlug(row.countySlug))
+      .map((row) => ({
+        loc: `${baseUrl}/tradepartners/${encodeURIComponent(row.countySlug)}`,
+        lastmod: toYmd(row.updatedAt, today),
+      }));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating Trade Partner sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
   }
 });

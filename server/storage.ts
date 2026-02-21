@@ -591,6 +591,9 @@ export interface IStorage {
   listHomeScoutCountiesForSitemap(args?: {
     limit?: number;
   }): Promise<Array<{ countyFips: string; stateCode: string; updatedAt: Date | null }>>;
+  listTradePartnerCountiesForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ countySlug: string; updatedAt: Date | null }>>;
   searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
@@ -1876,6 +1879,41 @@ export class DatabaseStorage implements IStorage {
       stateCode: row.stateCode as any,
       updatedAt: (row as any).updatedAt ?? null,
     }));
+  }
+
+  async listTradePartnerCountiesForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ countySlug: string; updatedAt: Date | null }>> {
+    const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
+    const limit = Math.max(1, Math.min(50_000, limitRequested));
+
+    try {
+      const rowsResult = await neonPool.query(
+        `
+          SELECT county_slug, updated_at
+          FROM tradepartner_county_pages
+          ORDER BY updated_at DESC
+          LIMIT $1
+        `,
+        [limit]
+      );
+
+      return rowsResult.rows
+        .map((row: any) => ({
+          countySlug: String(row?.county_slug || "")
+            .trim()
+            .toLowerCase(),
+          updatedAt: row?.updated_at ?? null,
+        }))
+        .filter((row) => row.countySlug.length > 0);
+    } catch (error: any) {
+      const code = String(error?.code || "");
+      // Table may not exist in early environments; sitemap should degrade gracefully.
+      if (code === "42P01") {
+        return [];
+      }
+      throw error;
+    }
   }
 
   async searchProfilesPublic(args: { query: string; limit?: number }): Promise<
