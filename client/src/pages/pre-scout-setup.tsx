@@ -41,7 +41,8 @@ export default function PreScoutSetup() {
         typeof window !== "undefined"
           ? String(window.location.search || "").replace(/^\?/, "")
           : "";
-      const query = fromLocation || fromWindow;
+      // Browser URL is the source of truth; router state can lag after redirects.
+      const query = fromWindow || fromLocation;
       return new URLSearchParams(query);
     } catch {
       return new URLSearchParams();
