@@ -164,6 +164,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
+  const showFeatureNav = !isSetupSurface && !isAuthSurface;
   const showInstallAction = !isStandalone && !isSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
@@ -516,7 +517,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         `}
         style={{
           top: "var(--top-nav-h)",
-          bottom: "var(--bottom-nav-h)",
+          bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0,
           paddingRight: !isMobile ? "var(--right-nav-w)" : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
@@ -547,9 +548,11 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
-      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-        <MobileAppBar items={featureNav} />
-      </div>
+      {showFeatureNav && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+          <MobileAppBar items={featureNav} />
+        </div>
+      )}
 
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}

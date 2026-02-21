@@ -399,9 +399,38 @@ const LazyPage = memo(function LazyPage({
   fallback?: React.ReactNode;
 }) {
   return (
-    <Suspense fallback={fallback}>
-      <Component />
-    </Suspense>
+    <ErrorBoundary
+      fallback={
+        <div className="min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] flex items-center justify-center px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-tsBorder bg-tsCard p-5 text-tsTextMain shadow-xl">
+            <h2 className="text-xl font-semibold text-white">This page hit an error.</h2>
+            <p className="mt-2 text-sm text-tsTextMuted">
+              Scout is still running. Reload this page or return to Scout to continue.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-tsBorder px-4 py-2 text-xs font-semibold text-tsTextMain hover:bg-white/5"
+                onClick={() => window.location.assign("/scout")}
+              >
+                Go to Scout
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-tsAccent/70 bg-tsAccent/20 px-4 py-2 text-xs font-semibold text-tsTextMain hover:bg-tsAccent/30"
+                onClick={() => window.location.reload()}
+              >
+                Reload page
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <Suspense fallback={fallback}>
+        <Component />
+      </Suspense>
+    </ErrorBoundary>
   );
 });
 

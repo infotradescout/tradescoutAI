@@ -35,6 +35,10 @@ export function AuthModal({
     facebook: false,
   });
   const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const oauthHref = (provider: "google" | "facebook", mode: "create" | "signin" = "create") => {
+    const next = encodeURIComponent(`/pre-scout-setup?mode=${mode}`);
+    return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
+  };
 
   useEffect(() => {
     let alive = true;
@@ -83,7 +87,7 @@ export function AuthModal({
                 {providers.facebook && (
                   <Button
                     type="button"
-                    onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
+                    onClick={() => (window.location.href = oauthHref("facebook", "create"))}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6"
                   >
                     <Facebook className="w-5 h-5 mr-3" />
@@ -94,7 +98,7 @@ export function AuthModal({
                 {providers.google && (
                   <Button
                     type="button"
-                    onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/google`)}
+                    onClick={() => (window.location.href = oauthHref("google", "create"))}
                     variant="outline"
                     className="w-full border-navy-600 text-gray-200 hover:bg-navy-700 font-medium py-6"
                   >

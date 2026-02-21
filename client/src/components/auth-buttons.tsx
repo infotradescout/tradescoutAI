@@ -30,6 +30,10 @@ export function AuthButtons({
     google: false,
     facebook: false,
   }));
+  const oauthHref = (provider: "google" | "facebook", mode: "create" | "signin" = "create") => {
+    const next = encodeURIComponent(`/pre-scout-setup?mode=${mode}`);
+    return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
+  };
 
   useEffect(() => {
     let alive = true;
@@ -54,12 +58,12 @@ export function AuthButtons({
   }, []);
 
   const handleFacebookLogin = () => {
-    // Facebook auth is available - redirect to the endpoint
-    window.location.href = `${apiBaseUrl}/api/auth/facebook`;
+    // Join flows default to create mode while preserving OAuth compatibility.
+    window.location.href = oauthHref("facebook", "create");
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${apiBaseUrl}/api/auth/google`;
+    window.location.href = oauthHref("google", "create");
   };
 
   const handleEmailSignUp = () => {

@@ -69,11 +69,10 @@ export default function PreScoutSetup() {
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
-  const safeNextQuery = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const requestedAuthMode: AuthMode =
-    parseAuthMode(locationSearchParams.get("mode")) ||
     parseAuthMode(windowSearchParams.get("mode")) ||
+    parseAuthMode(locationSearchParams.get("mode")) ||
     "create";
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
@@ -107,7 +106,10 @@ export default function PreScoutSetup() {
     setCreateError(null);
     setSignInError(null);
     try {
-      const params = new URLSearchParams(searchParams);
+      const params =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : new URLSearchParams(searchParams);
       params.set("mode", nextMode);
       const nextPath = `/pre-scout-setup?${params.toString()}`;
       if (typeof window !== "undefined") {
@@ -199,6 +201,10 @@ export default function PreScoutSetup() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authMode !== "signin") {
+      setAuthModeAndSyncUrl("signin");
+      return;
+    }
     if (authSubmitting) return;
     setSignInError(null);
 
@@ -234,7 +240,7 @@ export default function PreScoutSetup() {
       }
       void trackDemandEvent("signin_success", { mode: "signin" });
       toast({ title: "Signed in", description: "Continue with local setup." });
-      navigate(`/pre-scout-setup${safeNextQuery}`);
+      navigate(buildAuthReturnPath("signin"));
     } catch (error: any) {
       const rawMessage = String(error?.message || "Please try again.");
       const lowered = rawMessage.toLowerCase();
@@ -258,6 +264,10 @@ export default function PreScoutSetup() {
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authMode !== "create") {
+      setAuthModeAndSyncUrl("create");
+      return;
+    }
     if (authSubmitting) return;
     setCreateError(null);
 
@@ -327,7 +337,7 @@ export default function PreScoutSetup() {
       if (resp?.emailVerificationRequired === true) {
         void trackDemandEvent("create_success", { mode: "create", verificationRequired: true });
         const emailParam = `email=${encodeURIComponent(email)}`;
-        const nextValue = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
+        const nextValue = encodeURIComponent(buildAuthReturnPath("create"));
         navigate(`/check-email?${emailParam}&next=${nextValue}`);
         return;
       }
@@ -335,7 +345,7 @@ export default function PreScoutSetup() {
       await ensureSessionEstablished();
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
       toast({ title: "Account created", description: "Continue with local setup." });
-      navigate(`/pre-scout-setup${safeNextQuery}`);
+      navigate(buildAuthReturnPath("create"));
     } catch (error: any) {
       const message = error?.message || "Unable to create account.";
       if (String(message).toLowerCase().includes("already exists")) {

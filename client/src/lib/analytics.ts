@@ -83,6 +83,14 @@ export type ShellEvent =
       initiatedBy?: "scout" | "direct";
       timeToOutcomeMs?: number;
       artifactId?: string;
+    }
+  | {
+      type: "client_runtime_error";
+      source: "error" | "unhandledrejection";
+      message: string;
+      stack?: string | null;
+      path: string;
+      ts: string;
     };
 
 export function getDeviceType(): DeviceType {

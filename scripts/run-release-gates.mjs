@@ -5,6 +5,7 @@ const defaultBaseUrl = "http://localhost:5000";
 
 const releaseGateSpecs = [
   "tests/journeys/auth_buttons_present.spec.ts",
+  "tests/journeys/pre_scout_auth_integrity.spec.ts",
   "tests/address-verification.smoke.spec.ts",
   "tests/direct-connect.e2e.spec.ts",
   "tests/scout-routing.e2e.spec.ts",
