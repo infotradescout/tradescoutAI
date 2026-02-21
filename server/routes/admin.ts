@@ -3,7 +3,7 @@ import { isAuthenticated, isSuperAdmin, requireAdmin, isAdmin } from "../auth";
 import { storage } from "../storage";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 import { runHomeScoutIngestionJob } from "../services/homeScoutIngestionJob";
-import { db } from "../db";
+import { db, pool } from "../db";
 import {
   affiliateAccounts,
   counties as countiesTable,
@@ -18,6 +18,7 @@ import adminToolDiscoveryRouter from "./admin-tool-discovery";
 import { refreshCountyMetrics } from "../services/geographicMetrics";
 import { getCountyCoverageSummary } from "../services/geographicCoverage";
 import { emailService } from "../services/emailService";
+import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -1574,6 +1575,279 @@ export function mountAdminRoutes(app: any) {
       } catch (error: any) {
         console.error("Error running HomeScout ingestion (admin):", error);
         res.status(500).json({ message: "Failed to run ingestion" });
+      }
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // Trade Partner interest submissions (admin-only)
+  // ---------------------------------------------------------------------------
+  const parsePositiveInt = (
+    value: unknown,
+    fallback: number,
+    opts?: { min?: number; max?: number }
+  ): number => {
+    const parsed = Number.parseInt(String(value ?? ""), 10);
+    const finite = Number.isFinite(parsed) ? parsed : fallback;
+    const min = opts?.min ?? 0;
+    const max = opts?.max ?? Number.MAX_SAFE_INTEGER;
+    return Math.min(max, Math.max(min, finite));
+  };
+
+  const normalizeCountySlug = (value: unknown): string | null => {
+    const normalized = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (!normalized) return null;
+    if (!/^[a-z0-9-]+$/.test(normalized) || normalized.length > 80) return null;
+    return normalized;
+  };
+
+  const normalizeSearchTerm = (value: unknown): string => {
+    const normalized = String(value ?? "").trim();
+    if (!normalized) return "";
+    return normalized.slice(0, 120);
+  };
+
+  const csvEscape = (value: unknown): string => {
+    if (value === null || value === undefined) return "";
+    const text = String(value);
+    if (/[",\r\n]/.test(text)) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+  };
+
+  app.get(
+    "/api/admin/tradepartner-interest",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await ensureTradePartnerTables();
+
+        const limit = parsePositiveInt((req.query as any)?.limit, 100, { min: 1, max: 500 });
+        const offset = parsePositiveInt((req.query as any)?.offset, 0, { min: 0, max: 50_000 });
+        const countySlug = normalizeCountySlug((req.query as any)?.countySlug);
+        const search = normalizeSearchTerm((req.query as any)?.q);
+
+        if ((req.query as any)?.countySlug && !countySlug) {
+          return res.status(400).json({ message: "Invalid county slug filter" });
+        }
+
+        const whereParts: string[] = [];
+        const whereValues: any[] = [];
+
+        if (countySlug) {
+          whereValues.push(countySlug);
+          whereParts.push(`s.county_slug = $${whereValues.length}`);
+        }
+
+        if (search) {
+          whereValues.push(`%${search}%`);
+          const idx = whereValues.length;
+          whereParts.push(
+            `(s.business_name ILIKE $${idx}
+              OR s.service_category ILIKE $${idx}
+              OR s.contact_name ILIKE $${idx}
+              OR s.email ILIKE $${idx})`
+          );
+        }
+
+        const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+
+        const countQuery = `
+          SELECT COUNT(*)::bigint AS total
+          FROM tradepartner_interest_submissions s
+          ${whereSql}
+        `;
+
+        const listQuery = `
+          SELECT
+            s.id,
+            s.county_slug,
+            p.county_name,
+            p.state_code,
+            s.business_name,
+            s.service_category,
+            s.contact_name,
+            s.email,
+            s.phone,
+            s.message,
+            s.acknowledges_exclusivity,
+            s.acknowledges_term,
+            s.user_agent,
+            s.ip_address,
+            s.created_at
+          FROM tradepartner_interest_submissions s
+          LEFT JOIN tradepartner_county_pages p ON p.county_slug = s.county_slug
+          ${whereSql}
+          ORDER BY s.created_at DESC
+          LIMIT $${whereValues.length + 1}
+          OFFSET $${whereValues.length + 2}
+        `;
+
+        const [countResult, listResult] = await Promise.all([
+          pool.query(countQuery, whereValues),
+          pool.query(listQuery, [...whereValues, limit, offset]),
+        ]);
+
+        const total = Number.parseInt(String(countResult.rows[0]?.total || "0"), 10) || 0;
+        const items = listResult.rows.map((row) => ({
+          id: row.id,
+          countySlug: row.county_slug,
+          countyName: row.county_name || null,
+          stateCode: row.state_code || null,
+          businessName: row.business_name,
+          serviceCategory: row.service_category,
+          contactName: row.contact_name,
+          email: row.email,
+          phone: row.phone || null,
+          message: row.message || null,
+          acknowledgesExclusivity: Boolean(row.acknowledges_exclusivity),
+          acknowledgesTerm: Boolean(row.acknowledges_term),
+          userAgent: row.user_agent || null,
+          ipAddress: row.ip_address || null,
+          createdAt:
+            row.created_at instanceof Date
+              ? row.created_at.toISOString()
+              : new Date(row.created_at).toISOString(),
+        }));
+
+        return res.json({
+          items,
+          total,
+          limit,
+          offset,
+          hasMore: offset + items.length < total,
+        });
+      } catch (error: any) {
+        console.error("Error fetching tradepartner interest submissions:", error);
+        return res.status(500).json({ message: "Failed to load submissions" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/tradepartner-interest/export.csv",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await ensureTradePartnerTables();
+
+        const countySlug = normalizeCountySlug((req.query as any)?.countySlug);
+        const search = normalizeSearchTerm((req.query as any)?.q);
+        const maxRows = parsePositiveInt((req.query as any)?.maxRows, 5000, {
+          min: 1,
+          max: 20_000,
+        });
+
+        if ((req.query as any)?.countySlug && !countySlug) {
+          return res.status(400).json({ message: "Invalid county slug filter" });
+        }
+
+        const whereParts: string[] = [];
+        const whereValues: any[] = [];
+
+        if (countySlug) {
+          whereValues.push(countySlug);
+          whereParts.push(`s.county_slug = $${whereValues.length}`);
+        }
+
+        if (search) {
+          whereValues.push(`%${search}%`);
+          const idx = whereValues.length;
+          whereParts.push(
+            `(s.business_name ILIKE $${idx}
+              OR s.service_category ILIKE $${idx}
+              OR s.contact_name ILIKE $${idx}
+              OR s.email ILIKE $${idx})`
+          );
+        }
+
+        const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+        const query = `
+          SELECT
+            s.id,
+            s.county_slug,
+            p.county_name,
+            p.state_code,
+            s.business_name,
+            s.service_category,
+            s.contact_name,
+            s.email,
+            s.phone,
+            s.message,
+            s.acknowledges_exclusivity,
+            s.acknowledges_term,
+            s.ip_address,
+            s.user_agent,
+            s.created_at
+          FROM tradepartner_interest_submissions s
+          LEFT JOIN tradepartner_county_pages p ON p.county_slug = s.county_slug
+          ${whereSql}
+          ORDER BY s.created_at DESC
+          LIMIT $${whereValues.length + 1}
+        `;
+
+        const result = await pool.query(query, [...whereValues, maxRows]);
+        const header = [
+          "id",
+          "county_slug",
+          "county_name",
+          "state_code",
+          "business_name",
+          "service_category",
+          "contact_name",
+          "email",
+          "phone",
+          "message",
+          "acknowledges_exclusivity",
+          "acknowledges_term",
+          "ip_address",
+          "user_agent",
+          "created_at",
+        ];
+
+        const lines = [header.join(",")];
+        for (const row of result.rows) {
+          const createdAt =
+            row.created_at instanceof Date
+              ? row.created_at.toISOString()
+              : new Date(row.created_at).toISOString();
+          const values = [
+            row.id,
+            row.county_slug,
+            row.county_name,
+            row.state_code,
+            row.business_name,
+            row.service_category,
+            row.contact_name,
+            row.email,
+            row.phone,
+            row.message,
+            row.acknowledges_exclusivity,
+            row.acknowledges_term,
+            row.ip_address,
+            row.user_agent,
+            createdAt,
+          ];
+          lines.push(values.map(csvEscape).join(","));
+        }
+
+        const fileDate = new Date().toISOString().slice(0, 10);
+        const csv = `\uFEFF${lines.join("\n")}`;
+
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="tradepartner-interest-${fileDate}.csv"`
+        );
+        return res.status(200).send(csv);
+      } catch (error: any) {
+        console.error("Error exporting tradepartner interest submissions:", error);
+        return res.status(500).json({ message: "Failed to export submissions" });
       }
     }
   );

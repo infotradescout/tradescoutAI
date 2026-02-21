@@ -185,6 +185,7 @@ const AdminHomeScoutSources = React.lazy(() => import("@/pages/admin-homescout-s
 const AdminAttachments = React.lazy(() => import("@/pages/admin-attachments"));
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
 const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
+const AdminTradePartnerInterest = React.lazy(() => import("@/pages/admin-tradepartner-interest"));
 const AdminControl = React.lazy(() => import("@/pages/admin-control"));
 const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"));
 const ContentModeration = React.lazy(() => import("@/pages/content-moderation"));
@@ -416,6 +417,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Briefcase,
         visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
         render: () => <RedirectToAdminPanelTab tab="tradedeals" />,
+      }),
+      tool({
+        id: "tradepartner-interest",
+        label: "Partner Interest",
+        path: "/admin/tradepartner-interest",
+        icon: Briefcase,
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        render: () => <AdminTradePartnerInterest />,
       }),
       tool({
         id: "share-links",
