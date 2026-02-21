@@ -41,6 +41,7 @@ import {
   getContactPermission,
   updateContactPermissionStatus,
 } from "./utils/contactRequests";
+import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 
 export function registerSocialFeatures(app: Express) {
   const isProductionEnv = process.env.NODE_ENV === "production";
@@ -558,7 +559,8 @@ export function registerSocialFeatures(app: Express) {
         // - Sender (initiator) must verify address to send
         // - Recipient is checked but not blocking (may not be verified yet)
 
-        const missingInitiatorVerification = !(initiator as any).addressVerified;
+        const missingInitiatorVerification =
+          !hasPrivilegedVerificationBypass(initiator) && !(initiator as any).addressVerified;
         const recipientUnverified = !(recipient as any).addressVerified;
 
         // If initiator (sender) is not verified, offer verification with alternate path

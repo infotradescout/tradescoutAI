@@ -441,6 +441,7 @@ import {
 import { getTableColumns } from "drizzle-orm/utils";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
+import { applyPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 
 // Helper to safely convert strings/numbers to Decimal format
 const decimal = (value: any): string => {
@@ -1460,20 +1461,24 @@ export class DatabaseStorage implements IStorage {
             .trim()
             .toLowerCase()
         : "";
-    if (rawRole !== "owner") return user;
+    if (rawRole !== "owner") {
+      return applyPrivilegedVerificationBypass(user);
+    }
 
     const existingRoles = Array.isArray((user as any).roles)
       ? (user as any).roles.map((r: any) => String(r))
       : [];
     const normalizedRoles = Array.from(new Set(["head_admin", ...existingRoles]));
 
-    return {
+    const normalizedUser = {
       ...user,
       role: "head_admin" as any,
       roles: normalizedRoles as any,
       isAdmin: true as any,
       isSuperAdmin: true as any,
     } as User;
+
+    return applyPrivilegedVerificationBypass(normalizedUser);
   }
 
   private countiesCache = new Map<

@@ -21,6 +21,7 @@ import {
   buildWorkRequestScopeSummary,
   formatBudgetRange,
 } from "../utils/workRequestShare";
+import { hasPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
@@ -884,7 +885,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const viewer = await storage.getUser(String(userId));
         const requesterRole = (viewer as any)?.role || "homeowner";
 
-        if (requesterRole === "homeowner" && !(viewer as any)?.addressVerified) {
+        const canBypassVerification = hasPrivilegedVerificationBypass(viewer);
+        if (
+          !canBypassVerification &&
+          requesterRole === "homeowner" &&
+          !(viewer as any)?.addressVerified
+        ) {
           const { buildVerificationGateResponse } =
             await import("../utils/explainAndOfferVerification");
 

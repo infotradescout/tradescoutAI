@@ -4,6 +4,7 @@ import PDFDocument from "pdfkit";
 import type { Pool } from "@neondatabase/serverless";
 import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
+import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 
 type AuthedRequest = Request & { user?: { id?: string; role?: string; [key: string]: any } };
 function requireAuth(req: AuthedRequest): asserts req is AuthedRequest & { user: { id: string } } {
@@ -927,7 +928,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         if (!hasBankAccount) missingRequirements.push("bank_account");
         if (!hasIdentity) missingRequirements.push("identity");
 
-        if (missingRequirements.length > 0) {
+        if (!hasPrivilegedVerificationBypass(user) && missingRequirements.length > 0) {
           const { buildVerificationGateResponse } =
             await import("./utils/explainAndOfferVerification");
 

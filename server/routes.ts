@@ -40,6 +40,7 @@ import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/rol
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { sendInternalServerError, sendAutoClassifiedError } from "./utils/httpErrors";
+import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { getMessagingService } from "./messaging-service";
@@ -7215,7 +7216,7 @@ export async function registerRoutes(app: any) {
         if (!hasInsurance) missingRequirements.push("insurance");
         if (!hasIdentity) missingRequirements.push("identity");
 
-        if (missingRequirements.length > 0) {
+        if (!hasPrivilegedVerificationBypass(user) && missingRequirements.length > 0) {
           const { buildVerificationGateResponse } =
             await import("./utils/explainAndOfferVerification");
 
