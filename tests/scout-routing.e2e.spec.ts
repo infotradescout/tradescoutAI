@@ -57,10 +57,10 @@ test.describe("Scout routing explainer", () => {
 
       const body = (await response.json()) as any;
       const redirect = String(body?.metadata?.redirect || "");
-      const hasRedirect = /register|pre-scout-setup\?mode=create/i.test(redirect);
+      const hasRedirect = /pre-scout-setup\?mode=create/i.test(redirect);
       const hasAction = Array.isArray(body?.actions)
         ? body.actions.some((action: any) =>
-            /register|pre-scout-setup\?mode=create/i.test(String(action?.to || action?.path || ""))
+            /pre-scout-setup\?mode=create/i.test(String(action?.to || action?.path || ""))
           )
         : false;
       const hasSuggestedCreateAccount = Array.isArray(body?.suggestedActions)
