@@ -594,7 +594,7 @@ export interface IStorage {
   }): Promise<Array<{ countyFips: string; stateCode: string; updatedAt: Date | null }>>;
   listTradePartnerCountiesForSitemap(args?: {
     limit?: number;
-  }): Promise<Array<{ countySlug: string; updatedAt: Date | null }>>;
+  }): Promise<Array<{ countySlug: string; updatedAt: Date | null; allowedCategories: string[] }>>;
   searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
@@ -1913,14 +1913,14 @@ export class DatabaseStorage implements IStorage {
 
   async listTradePartnerCountiesForSitemap(args?: {
     limit?: number;
-  }): Promise<Array<{ countySlug: string; updatedAt: Date | null }>> {
+  }): Promise<Array<{ countySlug: string; updatedAt: Date | null; allowedCategories: string[] }>> {
     const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
     const limit = Math.max(1, Math.min(50_000, limitRequested));
 
     try {
       const rowsResult = await neonPool.query(
         `
-          SELECT county_slug, updated_at
+          SELECT county_slug, updated_at, allowed_categories
           FROM tradepartner_county_pages
           ORDER BY updated_at DESC
           LIMIT $1
@@ -1928,12 +1928,22 @@ export class DatabaseStorage implements IStorage {
         [limit]
       );
 
+      const toStringArray = (value: unknown): string[] => {
+        if (!Array.isArray(value)) return [];
+        return Array.from(
+          new Set(
+            value.map((entry) => String(entry || "").trim()).filter((entry) => entry.length > 0)
+          )
+        );
+      };
+
       return rowsResult.rows
         .map((row: any) => ({
           countySlug: String(row?.county_slug || "")
             .trim()
             .toLowerCase(),
           updatedAt: row?.updated_at ?? null,
+          allowedCategories: toStringArray(row?.allowed_categories),
         }))
         .filter((row) => row.countySlug.length > 0);
     } catch (error: any) {

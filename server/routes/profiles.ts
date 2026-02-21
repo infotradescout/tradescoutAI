@@ -88,6 +88,14 @@ function isValidCountySlug(value: unknown): value is string {
   return typeof value === "string" && COUNTY_SLUG_PATTERN.test(value) && value.length <= 80;
 }
 
+function slugifyCategory(value: string): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function buildUrlSet(
   urlEntries: Array<{ loc: string; lastmod: string; changefreq?: string; priority?: string }>
 ) {
@@ -681,7 +689,11 @@ router.get("/sitemap-tradepartners.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
 
-    let counties: Array<{ countySlug: string; updatedAt: Date | string | null }> = [];
+    let counties: Array<{
+      countySlug: string;
+      updatedAt: Date | string | null;
+      allowedCategories: string[];
+    }> = [];
     try {
       await ensureTradePartnerTables();
       const maybeCounties = await storage.listTradePartnerCountiesForSitemap();
@@ -697,12 +709,25 @@ router.get("/sitemap-tradepartners.xml", async (req, res) => {
           .trim()
           .toLowerCase(),
         updatedAt: row?.updatedAt ?? null,
+        allowedCategories: Array.isArray(row?.allowedCategories) ? row.allowedCategories : [],
       }))
       .filter((row) => isValidCountySlug(row.countySlug))
-      .map((row) => ({
-        loc: `${baseUrl}/tradepartners/${encodeURIComponent(row.countySlug)}`,
-        lastmod: toYmd(row.updatedAt, today),
-      }));
+      .flatMap((row) => {
+        const countyUrl = {
+          loc: `${baseUrl}/tradepartners/${encodeURIComponent(row.countySlug)}`,
+          lastmod: toYmd(row.updatedAt, today),
+        };
+
+        const categoryUrls = row.allowedCategories
+          .map((category) => slugifyCategory(category))
+          .filter((categorySlug) => categorySlug.length > 0)
+          .map((categorySlug) => ({
+            loc: `${baseUrl}/tradepartners/${encodeURIComponent(row.countySlug)}/${encodeURIComponent(categorySlug)}`,
+            lastmod: toYmd(row.updatedAt, today),
+          }));
+
+        return [countyUrl, ...categoryUrls];
+      });
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));

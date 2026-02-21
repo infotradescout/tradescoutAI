@@ -204,6 +204,33 @@
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
+.tp-problem-grid {
+  margin-top: 15px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.tp-problem-card {
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(10, 19, 33, 0.68);
+  padding: 12px;
+}
+
+.tp-problem-card h3 {
+  margin: 10px 0 6px;
+  font-size: 1rem;
+  color: #f4f8ff;
+}
+
+.tp-problem-card p {
+  margin: 0;
+  color: #9cadc6;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
 .tp-feature-card {
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -318,6 +345,20 @@
 
 .tp-form-intro {
   margin-bottom: 14px !important;
+}
+
+.tp-category-callout {
+  margin: 0 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.36);
+  background: rgba(23, 48, 86, 0.32);
+  color: #cfe1ff;
+  font-size: 0.85rem;
+  padding: 10px 12px;
+}
+
+.tp-category-callout strong {
+  color: #fdf3ea;
 }
 
 .tp-allowed-categories {
@@ -497,6 +538,10 @@
 @media (min-width: 760px) {
   .tp-feature-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tp-problem-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .tp-split-grid {

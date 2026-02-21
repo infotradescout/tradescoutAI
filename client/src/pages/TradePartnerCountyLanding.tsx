@@ -1,19 +1,24 @@
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  BadgeCheck,
+  Award,
   CalendarClock,
   HandHeart,
+  Heart,
+  Lock,
   MapPinned,
-  ShieldCheck,
+  Shield,
   Sparkles,
+  TrendingUp,
+  Users,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import "./trade-partner-county.css";
 
-const LANDING_TEMPLATE_VERSION = "2026-02-21.3";
+const LANDING_TEMPLATE_VERSION = "2026-02-21.4";
 
 type LandingData = {
   countySlug: string;
@@ -38,6 +43,11 @@ type PartnerInterestPayload = {
   message: string;
   acknowledgesExclusivity: boolean;
   acknowledgesTerm: boolean;
+};
+
+type TradePartnerPathInfo = {
+  countySlug: string;
+  categorySlug: string;
 };
 
 function toStringArray(value: unknown): string[] {
@@ -68,16 +78,54 @@ function normalizeCountySlug(value: string) {
   return normalized;
 }
 
-function deriveCountySlug(pathname: string) {
+function normalizeCategorySlug(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-z0-9-]{1,120}$/.test(normalized)) return "";
+  return normalized;
+}
+
+function slugifyCategory(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function humanizeSlug(slug: string) {
+  return slug
+    .split("-")
+    .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ""))
+    .join(" ")
+    .trim();
+}
+
+function derivePathInfo(pathname: string): TradePartnerPathInfo {
   const pathOnly = pathname.split(/[?#]/, 1)[0] || "";
-  const match = /^\/tradepartners\/([^/]+)/i.exec(pathOnly);
-  if (!match?.[1]) return "";
+  const match = /^\/tradepartners\/([^/]+)(?:\/([^/]+))?/i.exec(pathOnly);
+  if (!match?.[1]) {
+    return { countySlug: "", categorySlug: "" };
+  }
+
+  let countyRaw = match[1];
+  let categoryRaw = match[2] || "";
 
   try {
-    return normalizeCountySlug(decodeURIComponent(match[1]));
+    countyRaw = decodeURIComponent(countyRaw);
   } catch {
-    return normalizeCountySlug(match[1]);
+    // Keep raw value on malformed encoding.
   }
+
+  try {
+    categoryRaw = decodeURIComponent(categoryRaw);
+  } catch {
+    // Keep raw value on malformed encoding.
+  }
+
+  return {
+    countySlug: normalizeCountySlug(countyRaw),
+    categorySlug: normalizeCategorySlug(categoryRaw),
+  };
 }
 
 function renderHeadlineWithAccent(headline: string): ReactNode {
@@ -137,19 +185,27 @@ export default function TradePartnerCountyLanding({
   countySlug?: string;
 } = {}) {
   const [location] = useLocation();
-  const countySlug = useMemo(() => {
-    const fromProp = normalizeCountySlug(String(countySlugProp || ""));
-    if (fromProp) return fromProp;
 
-    const fromLocation = deriveCountySlug(String(location || ""));
-    if (fromLocation) return fromLocation;
-
-    if (typeof window !== "undefined") {
-      return deriveCountySlug(window.location.pathname);
+  const pathInfo = useMemo(() => {
+    if (countySlugProp) {
+      return {
+        countySlug: normalizeCountySlug(String(countySlugProp || "")),
+        categorySlug: "",
+      };
     }
 
-    return "";
+    const fromLocation = derivePathInfo(String(location || ""));
+    if (fromLocation.countySlug) return fromLocation;
+
+    if (typeof window !== "undefined") {
+      return derivePathInfo(window.location.pathname);
+    }
+
+    return { countySlug: "", categorySlug: "" };
   }, [countySlugProp, location]);
+
+  const countySlug = pathInfo.countySlug;
+  const categorySlug = pathInfo.categorySlug;
 
   const [data, setData] = useState<LandingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -158,7 +214,28 @@ export default function TradePartnerCountyLanding({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const title = useMemo(() => (data ? data.pageTitle : "Trade Partner"), [data]);
+  const selectedCategoryLabel = useMemo(() => {
+    if (!categorySlug || !data) return "";
+
+    const exactMatch = data.allowedCategories.find(
+      (category) => slugifyCategory(category) === categorySlug
+    );
+    return exactMatch || humanizeSlug(categorySlug);
+  }, [categorySlug, data]);
+
+  const selectedCategoryAllowed = useMemo(() => {
+    if (!categorySlug || !data) return true;
+    if (data.allowedCategories.length === 0) return true;
+    return data.allowedCategories.some((category) => slugifyCategory(category) === categorySlug);
+  }, [categorySlug, data]);
+
+  const title = useMemo(() => {
+    if (!data) return "Trade Partner";
+    if (selectedCategoryLabel) {
+      return `${selectedCategoryLabel} Partner | ${data.countyName}, ${data.stateCode}`;
+    }
+    return data.pageTitle;
+  }, [data, selectedCategoryLabel]);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,10 +333,16 @@ export default function TradePartnerCountyLanding({
     if (!data) return;
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+
+    let serviceCategory = cleanField(form, "serviceCategory", 120);
+    if (!serviceCategory && selectedCategoryLabel) {
+      serviceCategory = selectedCategoryLabel;
+    }
+
     const payload: PartnerInterestPayload = {
       countySlug: data.countySlug,
       businessName: cleanField(form, "businessName", 160),
-      serviceCategory: cleanField(form, "serviceCategory", 120),
+      serviceCategory,
       contactName: cleanField(form, "contactName", 120),
       email: cleanField(form, "email", 200),
       phone: cleanField(form, "phone", 60),
@@ -323,11 +406,21 @@ export default function TradePartnerCountyLanding({
   }
 
   const countyLabel = `${data.countyName}, ${data.stateCode}`;
+  const selectedCategoryTitle = selectedCategoryLabel || "your category";
+
+  const heroHeadline = selectedCategoryLabel
+    ? `Become the {accent}${selectedCategoryLabel}{accent} partner for ${data.countyName} County`
+    : data.heroHeadline;
+
+  const heroSubhead = selectedCategoryLabel
+    ? `Apply for the exclusive ${selectedCategoryLabel} county category slot. If approved, your business is the official category partner for ${data.seatTermMonths} months with visible local giveback attribution.`
+    : data.heroSubhead;
+
   const processSteps = [
-    "Submit your business and service category.",
-    "We confirm if that category is still available in this county.",
-    "If approved, your category partnership is reserved for the full term.",
-    "Your business is added to county partner placement and County Vault attribution.",
+    "Submit your business and service category details.",
+    "We confirm category availability for this county.",
+    "If approved, your category is reserved for the full term.",
+    "Your business is added to county partner placement and County Vault reporting.",
   ];
 
   return (
@@ -339,21 +432,21 @@ export default function TradePartnerCountyLanding({
               <MapPinned size={14} />
               {countyLabel}
             </p>
-            <h1>{renderHeadlineWithAccent(data.heroHeadline)}</h1>
-            <p className="tp-subhead">{data.heroSubhead}</p>
+            <h1>{renderHeadlineWithAccent(heroHeadline)}</h1>
+            <p className="tp-subhead">{heroSubhead}</p>
             <div className="tp-hero-actions">
               <button type="button" className="tp-btn-primary" onClick={scrollToForm}>
-                Apply for county partnership
+                Apply now
                 <ArrowRight size={16} />
               </button>
               <button type="button" className="tp-btn-ghost" onClick={scrollToForm}>
-                See partnership terms
+                See terms
               </button>
             </div>
           </div>
           <div className="tp-hero-right">
-            <MetricCard label="Term window" value={`${data.seatTermMonths} months`} />
-            <MetricCard label="Exclusivity" value="1 partner per category" />
+            <MetricCard label="Term" value={`${data.seatTermMonths} months`} />
+            <MetricCard label="Category slots" value="1 per category" />
             <MetricCard label="Giveback allocation" value={`${data.givebackSeatRevenuePct}%`} />
             <MetricCard label="County Vault" value={`${data.countyVaultAffiliatePct}%`} />
           </div>
@@ -362,37 +455,57 @@ export default function TradePartnerCountyLanding({
         <div className="tp-layout">
           <div className="tp-content tp-fade-up tp-delay-1">
             <section className="tp-panel">
-              <h2>Why this model exists</h2>
-              <p>
-                Most local marketplaces monetize interruption. TradeScout is designed for trust and
-                operating continuity, not lead flipping.
-              </p>
-              <div className="tp-feature-grid">
-                <FeatureCard
-                  icon={<ShieldCheck size={18} />}
-                  title="No pay-per-lead extraction"
-                  text="Contractor opportunity stays open while county partnerships fund infrastructure."
+              <h2>The local problem</h2>
+              <div className="tp-problem-grid">
+                <ProblemCard
+                  icon={<TrendingUp size={18} />}
+                  title="Money leaves the community"
+                  text="Most marketplaces extract local value by reselling access and attention."
                 />
-                <FeatureCard
-                  icon={<BadgeCheck size={18} />}
-                  title="Category clarity"
-                  text="One official partner per category keeps the signal clear and predictable."
+                <ProblemCard
+                  icon={<Lock size={18} />}
+                  title="Opportunity becomes pay-gated"
+                  text="Local merit gets replaced by whoever can buy the most visibility."
                 />
-                <FeatureCard
-                  icon={<HandHeart size={18} />}
-                  title="Visible local giveback"
-                  text="A fixed revenue share is routed to county-visible giveback activity."
-                />
-                <FeatureCard
-                  icon={<Wallet size={18} />}
-                  title="Public attribution"
-                  text="County Vault summaries credit partner impact with recurring transparency."
+                <ProblemCard
+                  icon={<Users size={18} />}
+                  title="Trust gets fragmented"
+                  text="Disconnected tools prevent steady local relationships and accountability."
                 />
               </div>
             </section>
 
             <section className="tp-panel">
-              <h2>How partnership approval works</h2>
+              <h2>The Community Builders model</h2>
+              <p>
+                {data.countyName} County Community Builders keeps opportunity open while keeping
+                reinvestment visible.
+              </p>
+              <div className="tp-feature-grid">
+                <FeatureCard
+                  icon={<Zap size={18} />}
+                  title="Free opportunity pathways"
+                  text="Contractor opportunity remains open with no pay-per-lead extraction."
+                />
+                <FeatureCard
+                  icon={<Shield size={18} />}
+                  title="No lead resale"
+                  text="Partnerships fund infrastructure, not lead flipping."
+                />
+                <FeatureCard
+                  icon={<Heart size={18} />}
+                  title="Local giveback engine"
+                  text="Giveback is a built-in output with public tracking."
+                />
+              </div>
+            </section>
+
+            <section className="tp-panel">
+              <h2>Category exclusivity</h2>
+              <p>
+                One official partner is selected per category to keep quality high and noise low.
+                {selectedCategoryLabel ? ` You are applying for ${selectedCategoryTitle}.` : ""}
+              </p>
               <ol className="tp-step-list">
                 {processSteps.map((step) => (
                   <li key={step}>
@@ -401,6 +514,16 @@ export default function TradePartnerCountyLanding({
                   </li>
                 ))}
               </ol>
+              <div className="tp-chip-row">
+                <span className="tp-chip">
+                  <Award size={14} />
+                  One partner per category
+                </span>
+                <span className="tp-chip">
+                  <CalendarClock size={14} />
+                  {data.seatTermMonths}-month term
+                </span>
+              </div>
             </section>
 
             <section className="tp-panel">
@@ -410,39 +533,36 @@ export default function TradePartnerCountyLanding({
                   <h3>Embedded placement</h3>
                   <ul>
                     <li>Introduced during onboarding as infrastructure support.</li>
-                    <li>Listed across county resource and partner contexts.</li>
-                    <li>Positioned for familiarity before purchasing intent.</li>
+                    <li>Listed in county partner and resource contexts.</li>
+                    <li>Positioned for trust before buying intent appears.</li>
                   </ul>
                 </div>
                 <div>
                   <h3>Recurring visibility</h3>
                   <ul>
-                    <li>Monthly partner mention cadence in county channels.</li>
-                    <li>Inclusion in documented giveback and impact stories.</li>
-                    <li>Consistent exposure without ad-noise behavior.</li>
+                    <li>Consistent monthly mention cadence.</li>
+                    <li>Included in documented giveback content.</li>
+                    <li>Cross-channel distribution where Community Builders is active.</li>
                   </ul>
                 </div>
               </div>
             </section>
 
             <section className="tp-panel">
-              <h2>County scope and expansion</h2>
+              <h2>County Vault impact model</h2>
               <p>
-                {data.countyName} is operated as a measured county unit. Multi-county expansion is
-                evaluated only after this county shows reliable results and community impact.
+                County Vault is the accountability layer. {data.countyVaultAffiliatePct}% of
+                affiliate revenue is routed to the county vault with public attribution in the
+                partner name.
               </p>
               <div className="tp-chip-row">
                 <span className="tp-chip">
-                  <CalendarClock size={14} />
-                  {data.seatTermMonths}-month standard term
-                </span>
-                <span className="tp-chip">
                   <HandHeart size={14} />
-                  {data.givebackSeatRevenuePct}% public giveback allocation
+                  {data.givebackSeatRevenuePct}% seat revenue allocated to giveback
                 </span>
                 <span className="tp-chip">
                   <Wallet size={14} />
-                  {data.countyVaultAffiliatePct}% County Vault affiliate routing
+                  Quarterly impact summaries remain public
                 </span>
               </div>
             </section>
@@ -450,11 +570,24 @@ export default function TradePartnerCountyLanding({
 
           <aside className="tp-sidebar tp-fade-up tp-delay-2">
             <section className="tp-panel tp-form-panel" id="interest-form">
-              <h2>Request county partnership</h2>
+              <h2>Apply for county category partner slot</h2>
               <p className="tp-form-intro">
-                Submit your business details. We will confirm if your category is open in this
-                county and follow up with the partnership terms.
+                Submit your business details. We will confirm category availability and send the
+                exact operating terms.
               </p>
+
+              {selectedCategoryLabel ? (
+                <div className="tp-category-callout">
+                  Applying for: <strong>{selectedCategoryLabel}</strong>
+                </div>
+              ) : null}
+
+              {!selectedCategoryAllowed ? (
+                <div className="tp-submit-error">
+                  This category is not currently listed as open in this county. You can still submit
+                  and we will confirm availability.
+                </div>
+              ) : null}
 
               {data.allowedCategories.length > 0 ? (
                 <div className="tp-allowed-categories">
@@ -466,8 +599,8 @@ export default function TradePartnerCountyLanding({
 
               {submitted ? (
                 <div className="tp-submit-success">
-                  <strong>Received.</strong>
-                  <span>Your request is in queue and will be reviewed shortly.</span>
+                  <strong>Request received.</strong>
+                  <span>We will follow up after verifying category availability.</span>
                   <button
                     type="button"
                     className="tp-btn-ghost"
@@ -476,7 +609,7 @@ export default function TradePartnerCountyLanding({
                       setSubmitError(null);
                     }}
                   >
-                    Submit another request
+                    Submit another application
                   </button>
                 </div>
               ) : (
@@ -490,6 +623,7 @@ export default function TradePartnerCountyLanding({
                     required
                     asSelect
                     options={data.allowedCategories}
+                    defaultValue={selectedCategoryAllowed ? selectedCategoryLabel : ""}
                   />
                   <Field label="Contact name" name="contactName" required />
                   <Field label="Email" name="email" type="email" required />
@@ -499,11 +633,11 @@ export default function TradePartnerCountyLanding({
                   <div className="tp-consent-group">
                     <Checkbox
                       name="acknowledgesExclusivity"
-                      label="I understand only one partner is selected per category in this county."
+                      label="I understand one business is selected per category in this county."
                     />
                     <Checkbox
                       name="acknowledgesTerm"
-                      label={`I understand the standard term for this county is ${data.seatTermMonths} months.`}
+                      label={`I understand the standard term is ${data.seatTermMonths} months.`}
                     />
                   </div>
 
@@ -512,7 +646,7 @@ export default function TradePartnerCountyLanding({
                     disabled={submitting}
                     className="tp-btn-primary tp-submit-btn"
                   >
-                    {submitting ? "Submitting..." : "Submit request"}
+                    {submitting ? "Submitting..." : "Send application"}
                     {!submitting ? <ArrowRight size={16} /> : null}
                   </button>
                 </form>
@@ -539,6 +673,16 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ProblemCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <article className="tp-problem-card">
+      <div className="tp-feature-icon">{icon}</div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </article>
+  );
+}
+
 function FeatureCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
     <article className="tp-feature-card">
@@ -557,6 +701,7 @@ function Field({
   asTextarea = false,
   asSelect = false,
   options = [],
+  defaultValue,
 }: {
   label: string;
   name: string;
@@ -565,14 +710,22 @@ function Field({
   asTextarea?: boolean;
   asSelect?: boolean;
   options?: string[];
+  defaultValue?: string;
 }) {
+  const normalizedDefault = defaultValue ? String(defaultValue) : "";
+
   return (
     <label className="tp-field">
       <span>
         {label} {required ? <em>*</em> : null}
       </span>
       {asSelect && options.length > 0 ? (
-        <select name={name} required={required} defaultValue="" className="tp-select">
+        <select
+          name={name}
+          required={required}
+          defaultValue={normalizedDefault || ""}
+          className="tp-select"
+        >
           <option value="" disabled>
             Select category
           </option>
@@ -583,9 +736,19 @@ function Field({
           ))}
         </select>
       ) : asTextarea ? (
-        <textarea name={name} className="tp-textarea" />
+        <textarea
+          name={name}
+          className="tp-textarea"
+          defaultValue={normalizedDefault || undefined}
+        />
       ) : (
-        <input name={name} required={required} type={type} className="tp-input" />
+        <input
+          name={name}
+          required={required}
+          type={type}
+          className="tp-input"
+          defaultValue={normalizedDefault || undefined}
+        />
       )}
     </label>
   );
