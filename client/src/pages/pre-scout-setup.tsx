@@ -80,7 +80,10 @@ export default function PreScoutSetup() {
   const [createPassword, setCreatePassword] = useState("");
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
+    setCreateError(null);
+    setSignInError(null);
     try {
       const params = new URLSearchParams(searchParams);
       params.set("mode", nextMode);
@@ -114,6 +117,7 @@ export default function PreScoutSetup() {
   useEffect(() => {
     setAuthMode(requestedAuthMode);
     setSignInError(null);
+    setCreateError(null);
   }, [requestedAuthMode]);
 
   useEffect(() => {
@@ -221,6 +225,7 @@ export default function PreScoutSetup() {
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authSubmitting) return;
+    setCreateError(null);
 
     const email = createEmail.trim();
     const phone = createPhone.trim();
@@ -300,13 +305,15 @@ export default function PreScoutSetup() {
     } catch (error: any) {
       const message = error?.message || "Unable to create account.";
       if (String(message).toLowerCase().includes("already exists")) {
+        const explicitMessage = "An account with this email already exists. Sign in to continue.";
+        setCreateError(explicitMessage);
         toast({
           title: "Account exists",
-          description: "Sign in to continue.",
+          description: explicitMessage,
         });
-        setAuthModeAndSyncUrl("signin");
         setSignInEmail(email);
       } else {
+        setCreateError(message);
         toast({
           title: "Create account failed",
           description: message,
@@ -392,9 +399,13 @@ export default function PreScoutSetup() {
                 Step 1 of 2
               </div>
               <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
-                Sign in. Get local.
+                {authMode === "create" ? "Create account. Get local." : "Sign in. Get local."}
               </h1>
-              <p className="max-w-md text-sm text-tsTextMuted">Sign in or create your account.</p>
+              <p className="max-w-md text-sm text-tsTextMuted">
+                {authMode === "create"
+                  ? "Create your account, then continue local setup."
+                  : "Sign in to continue local setup."}
+              </p>
             </div>
 
             <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
@@ -417,7 +428,7 @@ export default function PreScoutSetup() {
                         : "text-tsTextMuted hover:text-tsTextMain"
                     }`}
                   >
-                    Create
+                    Create account
                   </button>
                   <button
                     type="button"
@@ -551,7 +562,10 @@ export default function PreScoutSetup() {
                           data-testid="signup-name"
                           name="firstName"
                           value={createFirstName}
-                          onChange={(e) => setCreateFirstName(e.target.value)}
+                          onChange={(e) => {
+                            setCreateFirstName(e.target.value);
+                            if (createError) setCreateError(null);
+                          }}
                           autoComplete="given-name"
                           placeholder="First"
                           className={authInputClass}
@@ -566,7 +580,10 @@ export default function PreScoutSetup() {
                           id="create-last-name"
                           name="lastName"
                           value={createLastName}
-                          onChange={(e) => setCreateLastName(e.target.value)}
+                          onChange={(e) => {
+                            setCreateLastName(e.target.value);
+                            if (createError) setCreateError(null);
+                          }}
                           autoComplete="family-name"
                           placeholder="Last"
                           className={authInputClass}
@@ -584,7 +601,10 @@ export default function PreScoutSetup() {
                         name="email"
                         type="email"
                         value={createEmail}
-                        onChange={(e) => setCreateEmail(e.target.value)}
+                        onChange={(e) => {
+                          setCreateEmail(e.target.value);
+                          if (createError) setCreateError(null);
+                        }}
                         autoComplete="email"
                         placeholder="you@example.com"
                         className={authInputClass}
@@ -599,7 +619,10 @@ export default function PreScoutSetup() {
                         id="create-phone"
                         name="phone"
                         value={createPhone}
-                        onChange={(e) => setCreatePhone(e.target.value)}
+                        onChange={(e) => {
+                          setCreatePhone(e.target.value);
+                          if (createError) setCreateError(null);
+                        }}
                         autoComplete="tel"
                         placeholder="(555) 555-5555"
                         className={authInputClass}
@@ -617,7 +640,10 @@ export default function PreScoutSetup() {
                           name="password"
                           type="password"
                           value={createPassword}
-                          onChange={(e) => setCreatePassword(e.target.value)}
+                          onChange={(e) => {
+                            setCreatePassword(e.target.value);
+                            if (createError) setCreateError(null);
+                          }}
                           autoComplete="new-password"
                           placeholder="At least 8 characters"
                           className={authInputClass}
@@ -633,7 +659,10 @@ export default function PreScoutSetup() {
                           name="confirmPassword"
                           type="password"
                           value={createConfirmPassword}
-                          onChange={(e) => setCreateConfirmPassword(e.target.value)}
+                          onChange={(e) => {
+                            setCreateConfirmPassword(e.target.value);
+                            if (createError) setCreateError(null);
+                          }}
                           autoComplete="new-password"
                           placeholder="Repeat password"
                           className={authInputClass}
@@ -645,11 +674,28 @@ export default function PreScoutSetup() {
                       <input
                         type="checkbox"
                         checked={acceptTerms}
-                        onChange={(e) => setAcceptTerms(e.target.checked)}
+                        onChange={(e) => {
+                          setAcceptTerms(e.target.checked);
+                          if (createError) setCreateError(null);
+                        }}
                         className="mt-0.5 h-4 w-4 rounded border-tsBorder bg-black/20 text-tsAccent focus:ring-tsAccent/60"
                       />
                       <span className="text-xs text-tsTextMuted">Agree to Terms + Privacy.</span>
                     </label>
+                    {createError && (
+                      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
+                        <p className="text-xs text-destructive">{createError}</p>
+                        {createError.toLowerCase().includes("already exists") && (
+                          <button
+                            type="button"
+                            className="mt-1 text-xs font-medium underline underline-offset-2 text-tsTextMain"
+                            onClick={() => setAuthModeAndSyncUrl("signin")}
+                          >
+                            Switch to sign in
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <div className="flex justify-end">
                       <Button
                         type="submit"
