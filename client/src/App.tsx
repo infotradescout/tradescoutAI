@@ -1334,6 +1334,13 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/foundation">
                     <LazyPage Component={Foundation} />
                   </Route>
+                  <Route path="/tradepartners/:countySlug/:rest*">
+                    {(params) => (
+                      <RedirectTo
+                        to={`/tradepartners/${encodeURIComponent(String(params?.countySlug || ""))}`}
+                      />
+                    )}
+                  </Route>
                   <Route path="/tradepartners/:countySlug">
                     <LazyPage Component={TradePartnerCountyLanding} />
                   </Route>
