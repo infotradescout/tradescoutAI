@@ -91,6 +91,24 @@ const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
   ].map((o) => o.toLowerCase())
 );
 
+function isDevOrigin(origin: string): boolean {
+  // In local/dev, the UI can be served from a different port (or a local proxy).
+  // Allow localhost-style origins so Scout endpoints work without requiring
+  // production domains.
+  try {
+    const url = new URL(origin);
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "::1") {
+      return true;
+    }
+    // Replit-style preview origins (dev-only).
+    if (host.endsWith(".replit.dev")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 const VALID_SCOUT_FAILURE_REASONS = new Set(scoutInteractionFailureReasonEnum.enumValues);
 
 function normalizeFailureReason(
@@ -110,7 +128,10 @@ router.use((req, res, next) => {
   const originHeader = req.headers.origin;
   if (typeof originHeader === "string") {
     const normalized = originHeader.toLowerCase();
-    if (SCOUT_CORS_ALLOWED_ORIGINS.has(normalized)) {
+    const allowDev =
+      process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_CORS !== "false";
+
+    if (SCOUT_CORS_ALLOWED_ORIGINS.has(normalized) || (allowDev && isDevOrigin(originHeader))) {
       res.setHeader("Access-Control-Allow-Origin", originHeader);
       res.setHeader("Access-Control-Allow-Credentials", "true");
     }
