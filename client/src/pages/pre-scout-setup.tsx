@@ -36,7 +36,12 @@ export default function PreScoutSetup() {
 
   const searchParams = useMemo(() => {
     try {
-      const query = String(location || "").split("?")[1] || "";
+      const fromLocation = String(location || "").split("?")[1] || "";
+      const fromWindow =
+        typeof window !== "undefined"
+          ? String(window.location.search || "").replace(/^\?/, "")
+          : "";
+      const query = fromLocation || fromWindow;
       return new URLSearchParams(query);
     } catch {
       return new URLSearchParams();
@@ -109,6 +114,10 @@ export default function PreScoutSetup() {
   const beginOAuth = (provider: "google" | "facebook") => {
     const next = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
     window.location.assign(`${apiBaseUrl}/api/auth/${provider}?next=${next}`);
+  };
+  const oauthHref = (provider: "google" | "facebook") => {
+    const next = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
+    return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
   };
 
   const ensureSessionEstablished = async (): Promise<boolean> => {
@@ -373,7 +382,12 @@ export default function PreScoutSetup() {
 
             <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
               <CardHeader className="space-y-1 pb-2">
-                <CardTitle className="text-lg font-semibold text-tsTextMain">Access</CardTitle>
+                <CardTitle
+                  className="text-lg font-semibold text-tsTextMain"
+                  data-testid="auth-indicator"
+                >
+                  Access
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-1 rounded-xl border border-tsBorder bg-black/25 p-1">
@@ -403,20 +417,36 @@ export default function PreScoutSetup() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button
-                    type="button"
+                    asChild
                     variant="outline"
                     className="h-9 w-full border-tsBorder bg-black/20 text-tsTextMain hover:bg-black/35"
-                    onClick={() => beginOAuth("google")}
                   >
-                    Google
+                    <a
+                      href={oauthHref("google")}
+                      data-testid={authMode === "signin" ? "login-google" : "auth-google"}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        beginOAuth("google");
+                      }}
+                    >
+                      Google
+                    </a>
                   </Button>
                   <Button
-                    type="button"
+                    asChild
                     variant="outline"
                     className="h-9 w-full border-tsBorder bg-black/20 text-tsTextMain hover:bg-black/35"
-                    onClick={() => beginOAuth("facebook")}
                   >
-                    Facebook
+                    <a
+                      href={oauthHref("facebook")}
+                      data-testid={authMode === "signin" ? "login-facebook" : "auth-facebook"}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        beginOAuth("facebook");
+                      }}
+                    >
+                      Facebook
+                    </a>
                   </Button>
                 </div>
 
@@ -435,6 +465,7 @@ export default function PreScoutSetup() {
                       </Label>
                       <Input
                         id="signin-email"
+                        data-testid="login-email"
                         name="email"
                         type="email"
                         value={signInEmail}
@@ -454,6 +485,7 @@ export default function PreScoutSetup() {
                       </Label>
                       <Input
                         id="signin-password"
+                        data-testid="login-password"
                         name="password"
                         type="password"
                         value={signInPassword}
@@ -475,12 +507,14 @@ export default function PreScoutSetup() {
                     <div className="flex items-center justify-between gap-3">
                       <a
                         href="/reset-password"
+                        data-testid="forgot-password"
                         className="text-xs text-tsTextMuted hover:text-tsTextMain underline-offset-2 hover:underline"
                       >
                         Forgot password
                       </a>
                       <Button
                         type="submit"
+                        data-testid="login-submit"
                         disabled={authSubmitting}
                         className="h-9 bg-tsAccent text-white hover:bg-tsAccent/90"
                       >
@@ -497,6 +531,7 @@ export default function PreScoutSetup() {
                         </Label>
                         <Input
                           id="create-first-name"
+                          data-testid="signup-name"
                           name="firstName"
                           value={createFirstName}
                           onChange={(e) => setCreateFirstName(e.target.value)}
@@ -528,6 +563,7 @@ export default function PreScoutSetup() {
                       </Label>
                       <Input
                         id="create-email"
+                        data-testid="signup-email"
                         name="email"
                         type="email"
                         value={createEmail}
@@ -560,6 +596,7 @@ export default function PreScoutSetup() {
                         </Label>
                         <Input
                           id="create-password"
+                          data-testid="signup-password"
                           name="password"
                           type="password"
                           value={createPassword}
@@ -599,11 +636,25 @@ export default function PreScoutSetup() {
                     <div className="flex justify-end">
                       <Button
                         type="submit"
+                        data-testid="signup-submit"
                         disabled={authSubmitting}
                         className="h-9 bg-tsAccent text-white hover:bg-tsAccent/90"
                       >
                         {authSubmitting ? "Creating..." : "Create account"}
                       </Button>
+                    </div>
+                    <div className="flex justify-end">
+                      <a
+                        href={`/pre-scout-setup?mode=signin${safeNext ? `&next=${encodeURIComponent(safeNext)}` : ""}`}
+                        data-testid="have-account"
+                        className="text-xs text-tsTextMuted hover:text-tsTextMain underline-offset-2 hover:underline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAuthMode("signin");
+                        }}
+                      >
+                        Already have an account? Sign in
+                      </a>
                     </div>
                   </form>
                 )}

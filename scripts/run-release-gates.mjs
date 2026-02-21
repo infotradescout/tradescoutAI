@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 
-const baseUrl = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5000";
-const healthUrl = `${baseUrl.replace(/\/+$/, "")}/api/health`;
+const explicitBaseUrl = process.env.BASE_URL || process.env.E2E_BASE_URL || null;
+const defaultBaseUrl = "http://localhost:5000";
 
 const releaseGateSpecs = [
   "tests/journeys/auth_buttons_present.spec.ts",
@@ -10,7 +10,12 @@ const releaseGateSpecs = [
   "tests/scout-routing.e2e.spec.ts",
 ];
 
-async function checkHealth(url) {
+function toHealthUrl(baseUrl) {
+  return `${baseUrl.replace(/\/+$/, "")}/api/health`;
+}
+
+async function checkHealth(baseUrl) {
+  const url = toHealthUrl(baseUrl);
   const timeoutMs = 5000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -28,22 +33,50 @@ async function checkHealth(url) {
   }
 }
 
-function runPlaywright() {
+async function resolveBaseUrl() {
+  const preferred = explicitBaseUrl || defaultBaseUrl;
+  if (await checkHealth(preferred)) {
+    return preferred;
+  }
+
+  // Only scan fallback local ports when BASE_URL/E2E_BASE_URL was not explicitly provided.
+  if (explicitBaseUrl) {
+    return null;
+  }
+
+  for (let port = 5000; port <= 5010; port += 1) {
+    const candidate = `http://localhost:${port}`;
+    if (candidate === preferred) continue;
+    if (await checkHealth(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function runPlaywright(baseUrl) {
   return new Promise((resolve) => {
     const args = ["playwright", "test", ...releaseGateSpecs, "--project=chromium"];
     const child = spawn("npx", args, {
       stdio: "inherit",
       shell: true,
+      env: {
+        ...process.env,
+        BASE_URL: baseUrl,
+        E2E_BASE_URL: baseUrl,
+      },
     });
     child.on("close", (code) => resolve(code ?? 1));
   });
 }
 
 async function main() {
-  const healthy = await checkHealth(healthUrl);
-  if (!healthy) {
+  const resolvedBaseUrl = await resolveBaseUrl();
+  if (!resolvedBaseUrl) {
+    const expected = explicitBaseUrl || defaultBaseUrl;
     console.error("");
-    console.error(`[release-gates] Could not reach ${healthUrl}`);
+    console.error(`[release-gates] Could not reach ${toHealthUrl(expected)}`);
     console.error("[release-gates] Start TradeScout first, then rerun:");
     console.error("  npm run dev");
     console.error("  npm run test:release-gates");
@@ -51,7 +84,9 @@ async function main() {
     process.exit(1);
   }
 
-  const exitCode = await runPlaywright();
+  console.log(`[release-gates] Using BASE_URL=${resolvedBaseUrl}`);
+
+  const exitCode = await runPlaywright(resolvedBaseUrl);
   process.exit(exitCode);
 }
 

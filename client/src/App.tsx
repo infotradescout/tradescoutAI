@@ -759,7 +759,9 @@ const AppLayout = memo(function AppLayout() {
                     <RedirectTo to="/pre-scout-setup?mode=create" />
                   </Route>
                   <Route path="/address-verification">
-                    <LazyPage Component={AddressVerification} />
+                    <ProtectedRoute>
+                      <LazyPage Component={AddressVerification} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/unauthorized">
                     <LazyPage Component={Unauthorized} />
