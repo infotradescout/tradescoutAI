@@ -329,7 +329,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {!isLoggedIn && (
+            {!isLoggedIn && !isSetupSurface && (
               <>
                 <button
                   type="button"
@@ -415,7 +415,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
           {/* Right side: auth CTA + icons */}
           <div className="flex items-center gap-2 shrink-0">
-            {!isLoggedIn && (
+            {!isLoggedIn && !isSetupSurface && (
               <>
                 <button
                   type="button"
@@ -449,7 +449,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                     aria-label={canPromptInstall ? "Install TradeScout app" : "Install TradeScout"}
                     title="Install TradeScout"
                   >
-                    <Download className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                    <Download
+                      className="h-4 w-4"
+                      style={{ color: "var(--theme-accent-primary)" }}
+                    />
                   </button>
                 )}
                 {/* Messages quick icon */}

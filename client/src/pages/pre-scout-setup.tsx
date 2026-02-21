@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,15 +34,35 @@ export default function PreScoutSetup() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
 
+  const parseAuthMode = (value: string | null): AuthMode | null => {
+    const normalized = String(value || "")
+      .trim()
+      .toLowerCase();
+    if (normalized === "signin") return "signin";
+    if (normalized === "create") return "create";
+    return null;
+  };
+
   let searchParams: URLSearchParams;
+  let locationSearchParams: URLSearchParams;
+  let windowSearchParams: URLSearchParams;
   try {
     const fromLocation = String(location || "").split("?")[1] || "";
     const fromWindow =
       typeof window !== "undefined" ? String(window.location.search || "").replace(/^\?/, "") : "";
-    // Browser URL is the source of truth; router state can lag after redirects.
-    const query = fromWindow || fromLocation;
-    searchParams = new URLSearchParams(query);
+    locationSearchParams = new URLSearchParams(fromLocation);
+    windowSearchParams = new URLSearchParams(fromWindow);
+
+    // Merge query sources so either can fill missing keys; prefer router state
+    // for conflicting keys during in-app mode switches.
+    const merged = new URLSearchParams(fromWindow);
+    locationSearchParams.forEach((value, key) => {
+      merged.set(key, value);
+    });
+    searchParams = merged;
   } catch {
+    locationSearchParams = new URLSearchParams();
+    windowSearchParams = new URLSearchParams();
     searchParams = new URLSearchParams();
   }
   const apiBaseUrl = getApiBaseUrl();
@@ -52,7 +72,9 @@ export default function PreScoutSetup() {
   const safeNextQuery = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const requestedAuthMode: AuthMode =
-    String(searchParams.get("mode") || "").toLowerCase() === "signin" ? "signin" : "create";
+    parseAuthMode(locationSearchParams.get("mode")) ||
+    parseAuthMode(windowSearchParams.get("mode")) ||
+    "create";
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
@@ -132,12 +154,24 @@ export default function PreScoutSetup() {
     return true;
   }, [presenceType, stateCode, countyFips, businessName]);
 
+  const buildAuthReturnPath = useCallback(
+    (mode: AuthMode) => {
+      const params = new URLSearchParams();
+      params.set("mode", mode);
+      if (safeNext) {
+        params.set("next", safeNext);
+      }
+      return `/pre-scout-setup?${params.toString()}`;
+    },
+    [safeNext]
+  );
+
   const beginOAuth = (provider: "google" | "facebook") => {
-    const next = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
+    const next = encodeURIComponent(buildAuthReturnPath(authMode));
     window.location.assign(`${apiBaseUrl}/api/auth/${provider}?next=${next}`);
   };
   const oauthHref = (provider: "google" | "facebook") => {
-    const next = encodeURIComponent(`/pre-scout-setup${safeNextQuery}`);
+    const next = encodeURIComponent(buildAuthReturnPath(authMode));
     return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
   };
 
