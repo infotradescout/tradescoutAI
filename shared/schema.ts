@@ -8,6 +8,8 @@ import {
   varchar,
   text,
   integer,
+  bigint,
+  bigserial,
   boolean,
   decimal,
   numeric,
@@ -694,6 +696,129 @@ export const listingImportStaging = pgTable(
       table.source,
       table.externalId
     ),
+  ]
+);
+
+// XP + badges (gamification). These tables are part of the core feature set.
+export const userXp = pgTable(
+  "user_xp",
+  {
+    userId: varchar("user_id").primaryKey(),
+    xpTotal: bigint("xp_total", { mode: "number" }).notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("user_xp_user_id_idx").on(table.userId)]
+);
+
+export const xpLedger = pgTable(
+  "xp_ledger",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id").notNull(),
+    delta: integer("delta").notNull(),
+    reason: text("reason").notNull(),
+    sourceEventId: varchar("source_event_id"),
+    dayKeyUtc: text("day_key_utc").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("xp_ledger_user_id_idx").on(table.userId),
+    index("xp_ledger_day_idx").on(table.dayKeyUtc),
+    index("xp_ledger_reason_idx").on(table.reason),
+  ]
+);
+
+export const xpDailyCounters = pgTable(
+  "xp_daily_counters",
+  {
+    userId: varchar("user_id").notNull(),
+    dayKeyUtc: text("day_key_utc").notNull(),
+    capKey: text("cap_key").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.dayKeyUtc, table.capKey] })]
+);
+
+export const xpDailyUniques = pgTable(
+  "xp_daily_uniques",
+  {
+    userId: varchar("user_id").notNull(),
+    dayKeyUtc: text("day_key_utc").notNull(),
+    eventType: text("event_type").notNull(),
+    uniqueKey: text("unique_key").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.dayKeyUtc, table.eventType, table.uniqueKey] }),
+  ]
+);
+
+export const userBadges = pgTable(
+  "user_badges",
+  {
+    userId: varchar("user_id").notNull(),
+    badgeId: text("badge_id").notNull(),
+    awardedAt: timestamp("awarded_at").notNull().defaultNow(),
+    source: text("source").notNull().default("engine"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.badgeId] }),
+    index("user_badges_user_idx").on(table.userId),
+  ]
+);
+
+export const badgeEvalState = pgTable(
+  "badge_eval_state",
+  {
+    userId: varchar("user_id").notNull(),
+    badgeId: text("badge_id").notNull(),
+    lastEvaluatedAt: timestamp("last_evaluated_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.badgeId] })]
+);
+
+// Tradepartner pages + interest submissions (county-scoped).
+export const tradepartnerCountyPages = pgTable("tradepartner_county_pages", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  countySlug: text("county_slug").notNull().unique(),
+  countyName: text("county_name").notNull(),
+  stateCode: text("state_code").notNull(),
+  pageTitle: text("page_title").notNull(),
+  heroHeadline: text("hero_headline").notNull(),
+  heroSubhead: text("hero_subhead").notNull(),
+  seatTermMonths: integer("seat_term_months").notNull().default(12),
+  givebackSeatRevenuePct: integer("giveback_seat_revenue_pct").notNull().default(50),
+  countyVaultAffiliatePct: integer("county_vault_affiliate_pct").notNull().default(10),
+  allowedCategories: jsonb("allowed_categories")
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tradepartnerInterestSubmissions = pgTable(
+  "tradepartner_interest_submissions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    countySlug: text("county_slug").notNull(),
+    businessName: text("business_name").notNull(),
+    serviceCategory: text("service_category").notNull(),
+    contactName: text("contact_name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    message: text("message"),
+    acknowledgesExclusivity: boolean("acknowledges_exclusivity").notNull().default(false),
+    acknowledgesTerm: boolean("acknowledges_term").notNull().default(false),
+    userAgent: text("user_agent"),
+    ipAddress: text("ip_address"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_tradepartner_interest_county_slug").on(table.countySlug),
+    index("idx_tradepartner_interest_created_at").on(table.createdAt),
   ]
 );
 
