@@ -908,10 +908,10 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
 // ─── Footer ───
 function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <footer className="bg-transparent border-t border-tsBorder/70 py-5">
+    <footer className="bg-transparent border-t border-tsBorder/70 pt-5 pb-8 sm:pb-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+          <div>
             <div className="flex items-center gap-3 mb-4">
               <img src={variant.images.logo} alt="TradeScout" className="w-10 h-10 rounded-lg" />
               <span className="font-[var(--font-display)] font-bold text-lg text-white">
@@ -925,7 +925,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Platform</h4>
-            <ul className="space-y-2 text-sm text-white/60">
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
                 <button
                   onClick={() =>
@@ -973,7 +973,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">For You</h4>
-            <ul className="space-y-2 text-sm text-white/60">
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
                 <button
                   onClick={() =>
@@ -1004,7 +1004,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm text-white/60">
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
                 <a
                   href="/terms"
