@@ -450,6 +450,33 @@ const decimal = (value: any): string => {
   return isNaN(num) ? "0" : num.toFixed(2);
 };
 
+// Production hardening: HomeScout search should never 500 just because an optional
+// inspection reports table hasn't been migrated yet. Cache existence checks to
+// avoid per-request overhead.
+const TABLE_EXISTENCE_CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedHomeScoutInspectionReportsTable: { ok: boolean; checkedAt: number } | null = null;
+async function hasHomeScoutInspectionReportsTable(): Promise<boolean> {
+  const now = Date.now();
+  if (
+    cachedHomeScoutInspectionReportsTable &&
+    now - cachedHomeScoutInspectionReportsTable.checkedAt <= TABLE_EXISTENCE_CACHE_TTL_MS
+  ) {
+    return cachedHomeScoutInspectionReportsTable.ok;
+  }
+
+  try {
+    const result = await neonPool.query<{ reg: string | null }>(
+      `SELECT to_regclass('public.home_scout_inspection_reports') as reg`
+    );
+    const ok = Boolean(result.rows?.[0]?.reg);
+    cachedHomeScoutInspectionReportsTable = { ok, checkedAt: now };
+    return ok;
+  } catch {
+    cachedHomeScoutInspectionReportsTable = { ok: false, checkedAt: now };
+    return false;
+  }
+}
+
 // Local aliases for affiliate insert types (not exported from schema)
 type InsertAffiliateAccount = typeof affiliateAccounts.$inferInsert;
 type InsertAffiliateReferral = typeof affiliateReferrals.$inferInsert;
@@ -5401,15 +5428,18 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
 
     // Boost listings that have published public inspection reports.
-    // This keeps the output shape unchanged (still HomeScoutListing[]).
-    const publishedReportCountExpr = sql<number>`(
-      select count(*)
-      from home_scout_inspection_reports r
-      where
-        r.listing_id = ${homeScoutListings.id}
-        and r.visibility = 'public'
-        and r.status = 'published'
-    )`;
+    // Keep this optional so missing migrations don't break search in production.
+    const canBoostReports = await hasHomeScoutInspectionReportsTable();
+    const publishedReportCountExpr = canBoostReports
+      ? sql<number>`(
+          select count(*)
+          from home_scout_inspection_reports r
+          where
+            r.listing_id = ${homeScoutListings.id}
+            and r.visibility = 'public'
+            and r.status = 'published'
+        )`
+      : sql<number>`0`;
 
     switch (filters?.sortBy) {
       case "price_asc":
