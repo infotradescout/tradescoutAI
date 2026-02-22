@@ -346,7 +346,7 @@ router.post("/message-v5", async (req: Request, res: Response) => {
     const detectedAction = detectActionIntent(message);
 
     // PHASE 2: Execute action if detected
-    let actionExecution = {
+    let actionExecution: EnhancedScoutResponseV5["action_execution"] = {
       executed: false,
       execution_time_ms: 0,
     };

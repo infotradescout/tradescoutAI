@@ -224,7 +224,12 @@ export class ScoutWatchdog {
     description: string;
     affected_component: string;
   }> {
-    const anomalies = [];
+    const anomalies: Array<{
+      anomaly_type: string;
+      severity: "critical" | "high" | "medium" | "low";
+      description: string;
+      affected_component: string;
+    }> = [];
 
     // Check for high error rates
     const errorRateMetric = apiMetrics.find((m) => m.metric_name === "error_rate");

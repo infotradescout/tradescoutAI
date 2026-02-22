@@ -2506,9 +2506,14 @@ router.post("/", async (req: Request, res: Response) => {
       onboardingQuestionKey,
     } = rawBody as ScoutRequest;
 
-    const defaultEngine = String(process.env.SCOUT_DEFAULT_ENGINE || "classic")
-      .trim()
-      .toLowerCase();
+    const defaultEngine =
+      typeof process.env.SCOUT_DEFAULT_ENGINE === "string" &&
+      process.env.SCOUT_DEFAULT_ENGINE.trim().length > 0
+        ? process.env.SCOUT_DEFAULT_ENGINE.trim().toLowerCase()
+        : process.env.NODE_ENV === "production"
+          ? "v4"
+          : "classic";
+
     const wantsEnhancedV4 =
       defaultEngine === "v4" || defaultEngine === "enhanced_v4" || defaultEngine === "enhanced-v4";
 
