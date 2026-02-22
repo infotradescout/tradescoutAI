@@ -41,6 +41,27 @@ interface PublicProfile {
   addressVerified?: boolean;
   cvsScore?: number | string | null;
   preferences?: any;
+  realtorProfile?: {
+    brokerageName?: string | null;
+    mlsId?: string | null;
+    licenseState?: string | null;
+    licenseNumber?: string | null;
+    yearsExperience?: number | null;
+    specializations?: string[] | null;
+    serviceAreas?: any;
+    verificationStatus?: string | null;
+  };
+  carSalesProfile?: {
+    dealershipName?: string | null;
+    dealerLicense?: string | null;
+    salesmanLicense?: string | null;
+    licenseState?: string | null;
+    yearsExperience?: number | null;
+    specializations?: string[] | null;
+    brandsSpecialty?: string[] | null;
+    serviceAreas?: any;
+    verificationStatus?: string | null;
+  };
   stats?: {
     listings?: number;
     reviews?: number;
@@ -573,6 +594,112 @@ export default function PublicProfileView() {
                       platform.
                     </p>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {(profile.realtorProfile || profile.carSalesProfile) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" style={{ color: "var(--user-primary, #f97316)" }} />
+                    Professional Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {profile.realtorProfile ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="font-semibold">Realtor</div>
+                      <div className="flex justify-between gap-4">
+                        <span className="opacity-70">Brokerage</span>
+                        <span className="font-medium text-right">
+                          {profile.realtorProfile.brokerageName || "Not listed"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="opacity-70">License</span>
+                        <span className="font-medium text-right">
+                          {[
+                            profile.realtorProfile.licenseState,
+                            profile.realtorProfile.licenseNumber,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ") || "Not listed"}
+                        </span>
+                      </div>
+                      {typeof profile.realtorProfile.yearsExperience === "number" ? (
+                        <div className="flex justify-between gap-4">
+                          <span className="opacity-70">Experience</span>
+                          <span className="font-medium text-right">
+                            {profile.realtorProfile.yearsExperience} year
+                            {profile.realtorProfile.yearsExperience === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      ) : null}
+                      {Array.isArray(profile.realtorProfile.specializations) &&
+                      profile.realtorProfile.specializations.length > 0 ? (
+                        <div className="pt-1">
+                          <div className="text-xs opacity-70 mb-1">Specializations</div>
+                          <div className="flex flex-wrap gap-2">
+                            {profile.realtorProfile.specializations.slice(0, 8).map((s) => (
+                              <Badge key={s} variant="secondary">
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {profile.carSalesProfile ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="font-semibold">Car Sales</div>
+                      <div className="flex justify-between gap-4">
+                        <span className="opacity-70">Dealership</span>
+                        <span className="font-medium text-right">
+                          {profile.carSalesProfile.dealershipName || "Not listed"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="opacity-70">License</span>
+                        <span className="font-medium text-right">
+                          {[
+                            profile.carSalesProfile.licenseState,
+                            profile.carSalesProfile.salesmanLicense,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ") || "Not listed"}
+                        </span>
+                      </div>
+                      {typeof profile.carSalesProfile.yearsExperience === "number" ? (
+                        <div className="flex justify-between gap-4">
+                          <span className="opacity-70">Experience</span>
+                          <span className="font-medium text-right">
+                            {profile.carSalesProfile.yearsExperience} year
+                            {profile.carSalesProfile.yearsExperience === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      ) : null}
+                      {Array.isArray(profile.carSalesProfile.brandsSpecialty) &&
+                      profile.carSalesProfile.brandsSpecialty.length > 0 ? (
+                        <div className="pt-1">
+                          <div className="text-xs opacity-70 mb-1">Brands</div>
+                          <div className="flex flex-wrap gap-2">
+                            {profile.carSalesProfile.brandsSpecialty.slice(0, 10).map((b) => (
+                              <Badge key={b} variant="secondary">
+                                {b}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {!profile.realtorProfile && !profile.carSalesProfile ? (
+                    <div className="text-sm opacity-70">No professional profile details yet.</div>
+                  ) : null}
                 </CardContent>
               </Card>
             )}

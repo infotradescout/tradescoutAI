@@ -476,6 +476,7 @@ export default function HomeScoutListingPage() {
     (contactPublicProfile as any)?.role ||
     (contactPublicProfile as any)?.userRole ||
     "Seller/Agent";
+  const realtorProfile = (contactPublicProfile as any)?.realtorProfile || null;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
@@ -995,6 +996,35 @@ export default function HomeScoutListingPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
+          <Card className="bg-slate-950/60 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-slate-100">
+                {String((listing as any)?.listingAuthorType || "owner") === "agent"
+                  ? "Listed by agent"
+                  : "Listed by owner"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-slate-300">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{String(targetName)}</div>
+                  <div className="text-xs text-slate-400 truncate">
+                    {realtorProfile?.brokerageName
+                      ? `Brokerage: ${String(realtorProfile.brokerageName)}`
+                      : String(targetRole)}
+                  </div>
+                </div>
+                {contactUserId ? (
+                  <Link href={`/profile/${encodeURIComponent(String(contactUserId))}`}>
+                    <Button size="sm" variant="outline">
+                      View profile
+                    </Button>
+                  </Link>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="bg-slate-950/60 border-slate-800">
             <CardHeader className="pb-2">
               <CardTitle className="text-base text-slate-100 flex items-center justify-between gap-3">

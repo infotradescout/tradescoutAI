@@ -4105,6 +4105,84 @@ export async function registerRoutes(app: any) {
         console.error("Failed to compute public profile credibility stats", err);
       }
 
+      // Optional: professional profile enrichment (realtor / car sales).
+      // Only expose a safe subset of fields; never expose verification documents.
+      let realtorProfilePublic:
+        | {
+            brokerageName?: string | null;
+            mlsId?: string | null;
+            licenseState?: string | null;
+            licenseNumber?: string | null;
+            yearsExperience?: number | null;
+            specializations?: string[] | null;
+            serviceAreas?: any;
+            verificationStatus?: string | null;
+          }
+        | undefined;
+      let carSalesProfilePublic:
+        | {
+            dealershipName?: string | null;
+            dealerLicense?: string | null;
+            salesmanLicense?: string | null;
+            licenseState?: string | null;
+            yearsExperience?: number | null;
+            specializations?: string[] | null;
+            brandsSpecialty?: string[] | null;
+            serviceAreas?: any;
+            verificationStatus?: string | null;
+          }
+        | undefined;
+
+      try {
+        const roles: string[] = Array.isArray((user as any)?.roles)
+          ? (user as any).roles.filter((r: unknown): r is string => typeof r === "string")
+          : [];
+        const primaryRole = typeof (user as any)?.role === "string" ? (user as any).role : "";
+        const hasRole = (r: string) => primaryRole === r || roles.includes(r);
+
+        if (hasRole("realtor")) {
+          const prof = await storage.getRealtorProfileByUserId(user.id);
+          if (prof) {
+            // Prefer showing only approved/active, but include status so viewers understand the badge state.
+            realtorProfilePublic = {
+              brokerageName: (prof as any).brokerageName ?? null,
+              mlsId: (prof as any).mlsId ?? null,
+              licenseState: (prof as any).licenseState ?? null,
+              licenseNumber: (prof as any).licenseNumber ?? null,
+              yearsExperience: (prof as any).yearsExperience ?? null,
+              specializations: Array.isArray((prof as any).specializations)
+                ? (prof as any).specializations
+                : null,
+              serviceAreas: (prof as any).serviceAreas ?? null,
+              verificationStatus: (prof as any).verificationStatus ?? null,
+            };
+          }
+        }
+
+        if (hasRole("car_salesman")) {
+          const prof = await storage.getCarSalesmanProfileByUserId(user.id);
+          if (prof) {
+            carSalesProfilePublic = {
+              dealershipName: (prof as any).dealershipName ?? null,
+              dealerLicense: (prof as any).dealerLicense ?? null,
+              salesmanLicense: (prof as any).salesmanLicense ?? null,
+              licenseState: (prof as any).licenseState ?? null,
+              yearsExperience: (prof as any).yearsExperience ?? null,
+              specializations: Array.isArray((prof as any).specializations)
+                ? (prof as any).specializations
+                : null,
+              brandsSpecialty: Array.isArray((prof as any).brandsSpecialty)
+                ? (prof as any).brandsSpecialty
+                : null,
+              serviceAreas: (prof as any).serviceAreas ?? null,
+              verificationStatus: (prof as any).verificationStatus ?? null,
+            };
+          }
+        }
+      } catch (err) {
+        console.error("Failed to enrich public profile with professional data:", err);
+      }
+
       // Return safe public profile data
       const publicProfile = {
         id: user.id,
@@ -4128,6 +4206,8 @@ export async function registerRoutes(app: any) {
         stats: credibilityStats,
         connections: connectionSummary,
         viewerConnection,
+        realtorProfile: realtorProfilePublic,
+        carSalesProfile: carSalesProfilePublic,
       };
       try {
         const viewerId =
