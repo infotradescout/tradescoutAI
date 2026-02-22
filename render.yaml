@@ -5,6 +5,8 @@ services:
     buildCommand: npm run build
     startCommand: node server.mjs
     envVars:
+      - key: NODE_VERSION
+        value: "20"
       - key: NODE_ENV
         value: production
         scope: run
