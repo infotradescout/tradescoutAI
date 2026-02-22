@@ -6331,6 +6331,19 @@ export async function registerRoutes(app: any) {
   // Public runtime config for frontend (avoids Vite build-time env coupling).
   app.get("/api/public-config", async (_req: any, res: any) => {
     try {
+      // Allow apex <-> www cross-origin fetch for this public endpoint.
+      // (Needed when the UI is served from one host and API from the other.)
+      try {
+        const origin = typeof _req?.headers?.origin === "string" ? String(_req.headers.origin) : "";
+        const allow = new Set(["https://thetradescout.com", "https://www.thetradescout.com"]);
+        if (origin && allow.has(origin)) {
+          res.setHeader("Access-Control-Allow-Origin", origin);
+          res.setHeader("Vary", "Origin");
+        }
+      } catch {
+        // ignore
+      }
+
       const googleMapsApiKey = String(
         process.env.GOOGLE_MAPS_API_KEY_PUBLIC ||
           process.env.GOOGLE_MAPS_API_KEY ||
@@ -6561,6 +6574,21 @@ export async function registerRoutes(app: any) {
   // Maps v1: multi-source entity pins (providers + optional external feeds)
   app.get("/api/map/entities", async (req: Request, res: Response) => {
     try {
+      // Map entities is a public awareness feed; allow apex <-> www cross-origin use.
+      try {
+        const origin =
+          typeof (req as any)?.headers?.origin === "string"
+            ? String((req as any).headers.origin)
+            : "";
+        const allow = new Set(["https://thetradescout.com", "https://www.thetradescout.com"]);
+        if (origin && allow.has(origin)) {
+          res.setHeader("Access-Control-Allow-Origin", origin);
+          res.setHeader("Vary", "Origin");
+        }
+      } catch {
+        // ignore
+      }
+
       const mapsV1Enabled =
         String(process.env.FEATURE_MAPS_V1 ?? "true")
           .trim()

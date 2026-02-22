@@ -43,6 +43,43 @@ const MAPS_V1_ENABLED =
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
 
+function getApiFallbackOrigins(): string[] {
+  if (typeof window === "undefined") return [];
+  const host = window.location.hostname.toLowerCase();
+  const origins = new Set<string>([window.location.origin]);
+
+  if (host === "thetradescout.com") origins.add("https://www.thetradescout.com");
+  if (host === "www.thetradescout.com") origins.add("https://thetradescout.com");
+
+  return Array.from(origins.values());
+}
+
+async function fetchJsonWithFallback(path: string): Promise<any> {
+  const origins = getApiFallbackOrigins();
+  let lastError: unknown = null;
+
+  for (const origin of origins) {
+    try {
+      const url = `${origin}${path}`;
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "omit",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        lastError = new Error(`Request failed with status ${res.status}`);
+        continue;
+      }
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
+}
+
 async function loadGoogleMapsScript(apiKey: string): Promise<void> {
   if (typeof window === "undefined") return;
   if (window.google?.maps) return;
@@ -105,7 +142,7 @@ export default function MapsPage() {
     }
 
     let cancelled = false;
-    apiRequest("GET", "/api/public-config")
+    fetchJsonWithFallback("/api/public-config")
       .then((payload: any) => {
         if (cancelled) return;
         const key = String(payload?.googleMapsApiKey || "").trim();
@@ -204,7 +241,12 @@ export default function MapsPage() {
       if (trade) params.set("trade", trade);
       if (verifiedOnly) params.set("verified", "true");
       if (enabledTypes) params.set("types", enabledTypes);
-      return apiRequest("GET", `/api/map/entities?${params.toString()}`);
+      const path = `/api/map/entities?${params.toString()}`;
+      try {
+        return await apiRequest("GET", path);
+      } catch {
+        return await fetchJsonWithFallback(path);
+      }
     },
     staleTime: 30_000,
   });
