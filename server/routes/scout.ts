@@ -41,6 +41,7 @@ import {
   generateThinkingContext,
 } from "../services/userContextService";
 import { storage } from "../storage";
+import { callExternalActions } from "../services/externalActionsClient";
 import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver";
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import { COMMUNITY_TONE } from "../../shared/communityLanguage";
@@ -1542,6 +1543,10 @@ interface ScoutRequest {
   countyCode?: string;
   stateCode?: string;
   countyHint?: string; // Phase 3B: County FIPS for jurisdiction-aware bias
+  locality?: {
+    lat?: number;
+    lng?: number;
+  };
   intent?: string;
   roles?: string[];
   recentActivity?: Array<{
@@ -1610,6 +1615,18 @@ interface ScoutPublicCommunityPost extends ScoutPublicEntityBase {
 }
 
 type ScoutPublicEntity = ScoutPublicTradeDeal | ScoutPublicCommunityPost;
+
+function isExternalFoodIntent(messageText: string) {
+  if (!messageText) return false;
+  return /(hungry|food|eat|taco|bbq|burger|pizza|coffee|food truck|near me|lunch|dinner|breakfast)/i.test(
+    messageText
+  );
+}
+
+function coerceFiniteNumber(value: unknown): number | null {
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+}
 
 interface ScoutCtaHintServer {
   type: "trade_deal" | "community_post";
@@ -4112,8 +4129,58 @@ router.post("/", async (req: Request, res: Response) => {
       requestId: (req as any).requestId,
     };
 
+    const responseKnowledgeSources = Array.isArray((knowledge as any)?.sources)
+      ? ([...(knowledge as any).sources] as any[])
+      : ([] as any[]);
+
+    // External data source (partner action bridge)
+    // NOTE: This is strictly server-to-server and read-only; it is safe to ignore on failure.
+    let externalAddon = "";
+    try {
+      const wantsFood = isExternalFoodIntent(message);
+      const lat = coerceFiniteNumber((rawBody as any)?.locality?.lat);
+      const lng = coerceFiniteNumber((rawBody as any)?.locality?.lng);
+
+      if (wantsFood && lat !== null && lng !== null) {
+        const truckResult = await callExternalActions({
+          action: "GET_FOOD_TRUCKS",
+          params: { latitude: lat, longitude: lng, radiusKm: 5 },
+        });
+
+        const trucks = truckResult.ok
+          ? Array.isArray(truckResult.data?.results)
+            ? truckResult.data.results
+            : Array.isArray(truckResult.data?.data)
+              ? (truckResult.data.data as any[])
+              : []
+          : [];
+
+        if (trucks.length > 0) {
+          const top = trucks.slice(0, 5);
+          externalAddon +=
+            "\n\nNearby food options (external feed):\n" +
+            top
+              .map((t: any) => {
+                const name =
+                  String(t?.name || t?.businessName || t?.title || "Food truck").trim() ||
+                  "Food truck";
+                const address = String(t?.address || t?.location || t?.city || "").trim() || "";
+                return `- ${name}${address ? ` — ${address}` : ""}`;
+              })
+              .join("\n");
+        }
+
+        responseKnowledgeSources.push({
+          title: "External actions feed (local discovery)",
+          type: "external_actions",
+        });
+      }
+    } catch (err) {
+      // fail-soft
+    }
+
     // D2-2: Inject onboarding question contextually if active
-    let finalMessage = aiResponse.message;
+    let finalMessage = `${aiResponse.message || ""}${externalAddon}`.trim();
     const onboardingMeta: Record<string, unknown> = {};
 
     if (onboardingSession && onboardingSession.isOnboarding) {
@@ -4204,7 +4271,7 @@ router.post("/", async (req: Request, res: Response) => {
       },
       knowledge: {
         layer: knowledge.layer,
-        sources: knowledge.sources,
+        sources: responseKnowledgeSources,
         confidence: knowledge.confidence,
       },
       llmProvider: "gemini",
