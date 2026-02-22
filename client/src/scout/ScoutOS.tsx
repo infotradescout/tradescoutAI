@@ -52,6 +52,7 @@ import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPrefer
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
+import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
 import {
   searchContractors,
   searchMarketplace,
@@ -313,6 +314,9 @@ export default function ScoutOS() {
 
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [workAreaOpen, setWorkAreaOpen] = useState(false);
+  const [workAreaUrl, setWorkAreaUrl] = useState<string | null>(null);
+  const [workAreaTitle, setWorkAreaTitle] = useState<string | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
   const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
@@ -516,6 +520,52 @@ export default function ScoutOS() {
       }
     },
     [user]
+  );
+
+  const openWorkArea = useCallback(
+    (opts: { url: string; title?: string }) => {
+      const url = typeof opts.url === "string" ? opts.url.trim() : "";
+      if (!url.startsWith("/")) return;
+
+      setWorkAreaUrl(url);
+      setWorkAreaTitle(typeof opts.title === "string" ? opts.title : null);
+      setWorkAreaOpen(true);
+
+      recordActivity({
+        type: "open_work_area",
+        ts: new Date().toISOString(),
+        path: location,
+        to: url,
+        label: opts.title || "Workspace",
+      } as any);
+    },
+    [location]
+  );
+
+  const maybeOpenWorkAreaForRoute = useCallback(
+    (to: string | null | undefined, label?: string) => {
+      const raw = typeof to === "string" ? to : "";
+      if (!raw.startsWith("/")) return false;
+
+      // Tight allowlist: only embed pages that behave correctly without a full route swap.
+      const safePrefixes = [
+        "/profile-settings",
+        "/settings",
+        "/notifications",
+        "/direct-connect",
+        "/exchange",
+        "/community-feed",
+        "/community",
+        "/real-estate-marketplace",
+        "/homescout",
+      ];
+
+      if (!safePrefixes.some((p) => raw.startsWith(p))) return false;
+
+      openWorkArea({ url: raw, title: label });
+      return true;
+    },
+    [openWorkArea]
   );
 
   // Ephemeral, derived context roles per message/page for tone + defaults
@@ -2817,6 +2867,11 @@ export default function ScoutOS() {
   const handleClusterAction = useCallback(
     async (action: ScoutAction) => {
       if (action.type === "NAVIGATE") {
+        const target = (action.to ?? action.path) as string | undefined;
+        if (maybeOpenWorkAreaForRoute(target, action.label)) {
+          return;
+        }
+
         const ttaMs = renderStartRef.current ? Date.now() - renderStartRef.current : undefined;
         recordActivity({
           type: "navigate",
@@ -2846,7 +2901,11 @@ export default function ScoutOS() {
 
       try {
         await executeScoutActions([action], {
-          navigate: (to) => navigate(to),
+          navigate: (to) => {
+            if (!maybeOpenWorkAreaForRoute(to)) {
+              navigate(to);
+            }
+          },
           openAppDrawer: () => setAppDrawerOpen(true),
           openToolsDrawer: () => setToolsOpen(true),
           prefillInput: (text) => {
@@ -2867,7 +2926,7 @@ export default function ScoutOS() {
         setStatus("idle");
       }
     },
-    [location, navigate, handleSend, setError]
+    [location, maybeOpenWorkAreaForRoute, navigate, handleSend, setError]
   );
 
   const handleOverride = useCallback(
@@ -3698,7 +3757,9 @@ export default function ScoutOS() {
                         to: localAction.to,
                         label: trimmed,
                       });
-                      navigate(localAction.to);
+                      if (!maybeOpenWorkAreaForRoute(localAction.to, trimmed)) {
+                        navigate(localAction.to);
+                      }
                       return;
                     }
 
@@ -3928,7 +3989,18 @@ export default function ScoutOS() {
       </AlertDialog>
 
       {/* Tools & App drawer */}
-      <ScoutToolsDrawer isOpen={toolsOpen} onClose={() => setToolsOpen(false)} />
+      <ScoutToolsDrawer
+        isOpen={toolsOpen}
+        onClose={() => setToolsOpen(false)}
+        onOpenWorkArea={(opts) => openWorkArea({ url: opts.url, title: opts.title })}
+      />
+
+      <ScoutWorkAreaSheet
+        open={workAreaOpen}
+        onOpenChange={setWorkAreaOpen}
+        url={workAreaUrl}
+        title={workAreaTitle}
+      />
 
       <AppDrawer
         isOpen={appDrawerOpen}
