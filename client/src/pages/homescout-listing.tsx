@@ -100,6 +100,17 @@ type ListingResponse = {
   events: HomeScoutListingEvent[];
   marketBucket: HomeScoutMarketBucket | null;
   countyMetrics: CountyMetric[];
+  inspectorRecommendations?: Array<{
+    category: string;
+    userId: string | null;
+    displayName: string;
+    company: string | null;
+    cvsScore: number | null;
+    source: string;
+    rankScore: number;
+    countyEntityId: string | null;
+    metadata: Record<string, any>;
+  }>;
   inspectionReports: HomeScoutInspectionReport[];
   myInspectionReports?: HomeScoutInspectionReport[];
   pendingInspectionReports?: HomeScoutInspectionReport[];
@@ -164,6 +175,9 @@ export default function HomeScoutListingPage() {
   const marketBucket = data?.marketBucket ?? null;
   const countyMetrics = Array.isArray(data?.countyMetrics) ? data!.countyMetrics : [];
   const inspectionReports = Array.isArray(data?.inspectionReports) ? data!.inspectionReports : [];
+  const inspectorRecommendations = Array.isArray((data as any)?.inspectorRecommendations)
+    ? ((data as any).inspectorRecommendations as any[])
+    : [];
   const myInspectionReports = Array.isArray((data as any)?.myInspectionReports)
     ? ((data as any).myInspectionReports as HomeScoutInspectionReport[])
     : [];
@@ -809,6 +823,76 @@ export default function HomeScoutListingPage() {
                   </div>
                 )}
               </div>
+
+              {isAuthenticated ? (
+                <div className="space-y-2">
+                  <div className="text-slate-100 font-semibold text-sm">Find a local inspector</div>
+                  <div className="text-xs text-slate-400">
+                    Scout can recommend inspectors in this county and help route you through the
+                    intent and decision flow.
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      href={`/scout?source=homescout_listing&listingId=${encodeURIComponent(
+                        listingId
+                      )}&countyFips=${encodeURIComponent(
+                        String(listing?.countyFips || "")
+                      )}&stateCode=${encodeURIComponent(
+                        String(listing?.stateCode || "")
+                      )}&prompt=${encodeURIComponent(
+                        `I need a home inspection for this listing (${listingId}) in ${String(
+                          listing?.city || ""
+                        ).trim()} ${String(listing?.stateCode || "").trim()} (${String(
+                          listing?.countyFips || ""
+                        ).trim()}). Please recommend a few local inspectors and help me take the next step.`
+                      )}`}
+                    >
+                      <Button size="sm" variant="outline">
+                        Ask Scout for inspectors
+                      </Button>
+                    </Link>
+                  </div>
+
+                  {inspectorRecommendations.length > 0 ? (
+                    <div className="space-y-2 pt-1">
+                      {inspectorRecommendations.slice(0, 3).map((p: any) => (
+                        <div
+                          key={String(
+                            p?.countyEntityId || p?.userId || p?.displayName || Math.random()
+                          )}
+                          className="rounded-md border border-slate-800 p-3 bg-slate-950/40 flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-sm text-slate-100 font-medium truncate">
+                              {String(p?.displayName || "Inspector")}
+                            </div>
+                            <div className="text-xs text-slate-400 truncate">
+                              {p?.company ? String(p.company) : "Local inspector"}
+                            </div>
+                          </div>
+                          <Link
+                            href={`/scout?source=homescout_listing&listingId=${encodeURIComponent(
+                              listingId
+                            )}&prompt=${encodeURIComponent(
+                              `I’m reviewing this listing (${listingId}). You suggested inspector: ${String(
+                                p?.displayName || ""
+                              ).trim()}${p?.company ? ` (${String(p.company).trim()})` : ""}. Help me evaluate and choose the right inspector and take the next step.`
+                            )}`}
+                          >
+                            <Button
+                              size="sm"
+                              className="bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                            >
+                              Ask Scout
+                            </Button>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {isAuthenticated ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">

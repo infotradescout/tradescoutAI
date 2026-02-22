@@ -16390,6 +16390,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const countyFipsStr = String((listing as any).countyFips || "");
       const stateCodeStr = String((listing as any).stateCode || "");
 
+      const partnerRecommendations = await storage.listHomeScoutPartnerRecommendations({
+        countyFips: countyFipsStr,
+        stateCode: stateCodeStr,
+        limitPerCategory: 3,
+      });
+      const inspectorRecommendations = partnerRecommendations
+        .filter((x: any) => String(x?.category || "") === "inspector")
+        .slice(0, 3);
+
       const marketBucket =
         (await storage.getHomeScoutMarketBucket({
           countyFips: countyFipsStr,
@@ -16476,6 +16485,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         events,
         marketBucket,
         countyMetrics,
+        inspectorRecommendations,
         inspectionReports,
         myInspectionReports,
         pendingInspectionReports,

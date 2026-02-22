@@ -5400,16 +5400,41 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
 
+    // Boost listings that have published public inspection reports.
+    // This keeps the output shape unchanged (still HomeScoutListing[]).
+    const publishedReportCountExpr = sql<number>`(
+      select count(*)
+      from home_scout_inspection_reports r
+      where
+        r.listing_id = ${homeScoutListings.id}
+        and r.visibility = 'public'
+        and r.status = 'published'
+    )`;
+
     switch (filters?.sortBy) {
       case "price_asc":
-        q = q.orderBy(asc(homeScoutListings.price), desc(homeScoutListings.listedAt)) as any;
+        // Keep price sort strict; only use report boost as a tie-breaker.
+        q = q.orderBy(
+          asc(homeScoutListings.price),
+          desc(publishedReportCountExpr),
+          desc(homeScoutListings.listedAt)
+        ) as any;
         break;
       case "price_desc":
-        q = q.orderBy(desc(homeScoutListings.price), desc(homeScoutListings.listedAt)) as any;
+        q = q.orderBy(
+          desc(homeScoutListings.price),
+          desc(publishedReportCountExpr),
+          desc(homeScoutListings.listedAt)
+        ) as any;
         break;
       case "newest":
       default:
-        q = q.orderBy(desc(homeScoutListings.listedAt), desc(homeScoutListings.createdAt)) as any;
+        // Default feed: show listings with reports first, then newest.
+        q = q.orderBy(
+          desc(publishedReportCountExpr),
+          desc(homeScoutListings.listedAt),
+          desc(homeScoutListings.createdAt)
+        ) as any;
         break;
     }
 
