@@ -7011,13 +7011,21 @@ export async function registerRoutes(app: any) {
         }
       };
 
+      const safe = async (label: string, fn: () => Promise<void>) => {
+        try {
+          await fn();
+        } catch (err: any) {
+          console.error(`Map entities subquery failed (${label}):`, err);
+        }
+      };
+
       await Promise.all([
-        providerQuery(),
-        publicProfileQuery(),
-        businessQuery(),
-        tradeDealQuery(),
-        externalFoodTrucksQuery(),
-        externalParkingPassQuery(),
+        safe("provider", providerQuery),
+        safe("public_profile", publicProfileQuery),
+        safe("business", businessQuery),
+        safe("trade_deal", tradeDealQuery),
+        safe("food_truck", externalFoodTrucksQuery),
+        safe("parking_pass", externalParkingPassQuery),
       ]);
 
       return res.json({
