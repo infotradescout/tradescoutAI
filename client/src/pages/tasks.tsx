@@ -63,27 +63,6 @@ function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): stri
 function inferPostIntent(title: string, description: string): PostIntent {
   const text = `${title} ${description}`.toLowerCase();
   if (!text.trim()) return "work_request";
-
-  const jobSignals = [
-    "hiring",
-    "job",
-    "position",
-    "role",
-    "opening",
-    "apply",
-    "application",
-    "resume",
-    "salary",
-    "hourly",
-    "full-time",
-    "full time",
-    "part-time",
-    "part time",
-    "benefits",
-    "join our team",
-    "employment",
-  ];
-
   const workSignals = [
     "need help",
     "need someone",
@@ -95,8 +74,6 @@ function inferPostIntent(title: string, description: string): PostIntent {
     "estimate",
     "quote",
   ];
-
-  if (jobSignals.some((signal) => text.includes(signal))) return "job_listing";
   if (workSignals.some((signal) => text.includes(signal))) return "work_request";
   return "work_request";
 }
@@ -303,6 +280,9 @@ export default function TasksHub({
 
   const createTaskMutation = useMutation({
     mutationFn: async () => {
+      if (postIntent === "job_listing") {
+        throw new Error("Employment hiring posts live under Direct Connect → Employment.");
+      }
       const nextErrors: typeof fieldErrors = {};
       if (!taskTitle.trim()) nextErrors.title = "Add a short title.";
       if (!taskDescription.trim()) nextErrors.description = "Add project details.";
@@ -739,11 +719,10 @@ export default function TasksHub({
                                   : "border-tsBorder text-tsTextMain hover:bg-black/30"
                               }
                               onClick={() => {
-                                setPostIntent("job_listing");
-                                setPostIntentLocked(true);
+                                navigate("/direct-connect/employment?tab=jobs&mode=post");
                               }}
                             >
-                              Hiring
+                              Employment hiring
                             </Button>
                           </div>
                         </div>

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
+import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,12 +29,13 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 
-const SECTIONS = ["post", "board", "inbox", "pros", "engagements"] as const;
+const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"] as const;
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "Post Request",
-  board: "Job Board",
+  post: "Post Odd Job",
+  board: "Odd Jobs",
+  employment: "Employment",
   inbox: "Inbox",
   pros: "Pros",
   engagements: "My Requests",
@@ -55,10 +57,16 @@ const SECTION_META: Record<
     actionTarget: "engagements",
   },
   board: {
-    title: "Job board",
-    description: "Browse open local requests.",
+    title: "Odd jobs",
+    description: "Browse open local requests (projects, repairs, quick help).",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
+  },
+  employment: {
+    title: "Employment",
+    description: "Jobs + resumes. Contact stays intent-gated through Scout.",
+    actionLabel: "Post Odd Job",
+    actionTarget: "post",
   },
   inbox: {
     title: "Provider inbox",
@@ -83,6 +91,7 @@ const SECTION_META: Record<
 const SECTION_ICONS: Record<Section, ReactNode> = {
   post: <ClipboardPlus className="h-4 w-4" />,
   board: <LayoutList className="h-4 w-4" />,
+  employment: <BriefcaseBusiness className="h-4 w-4" />,
   inbox: <Inbox className="h-4 w-4" />,
   pros: <Users className="h-4 w-4" />,
   engagements: <BriefcaseBusiness className="h-4 w-4" />,
@@ -1278,6 +1287,9 @@ export default function DirectConnectShell() {
       centerContent = (
         <TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="browse" />
       );
+      break;
+    case "employment":
+      centerContent = <EmploymentBoard defaultCountyFips={defaultCountyFips} />;
       break;
     case "inbox":
       centerContent = <DirectConnectInbox />;

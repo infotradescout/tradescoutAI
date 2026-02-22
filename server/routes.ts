@@ -14,6 +14,7 @@ import { vehiclesRouter } from "./routes/vehicles";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
+import { registerEmploymentRoutes } from "./routes/employment";
 import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
@@ -19258,6 +19259,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Register notification routes
   registerNotificationRoutes(app);
   registerDirectConnectRoutes(app);
+  registerEmploymentRoutes(app);
   registerObjectivesRoutes(app);
 
   // Register analytics routes

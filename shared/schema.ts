@@ -3027,6 +3027,36 @@ export const tasks = pgTable("tasks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const employmentPostTypeEnum = pgEnum("employment_post_type", ["job", "resume"]);
+export const employmentPostStatusEnum = pgEnum("employment_post_status", ["open", "closed"]);
+
+export const employmentPosts = pgTable("employment_posts", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
+  createdByUserId: varchar("created_by_user_id").notNull(),
+
+  postType: employmentPostTypeEnum("post_type").notNull(),
+  status: employmentPostStatusEnum("status").default("open"),
+
+  title: varchar("title", { length: 140 }).notNull(),
+  body: text("body").notNull(),
+
+  countyFips: varchar("county_fips", { length: 5 }).notNull(),
+  stateCode: varchar("state_code", { length: 2 }),
+  city: varchar("city", { length: 80 }),
+
+  tradeId: varchar("trade_id", { length: 80 }),
+
+  payMin: decimal("pay_min"),
+  payMax: decimal("pay_max"),
+  payUnit: varchar("pay_unit", { length: 16 }),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const taskApplications = pgTable("task_applications", {
   id: varchar("id")
     .primaryKey()
@@ -3795,6 +3825,8 @@ export type WorkRequestEvent = typeof workRequestEvents.$inferSelect;
 export type InsertWorkRequestEvent = typeof workRequestEvents.$inferInsert;
 export type WorkRequestAssignment = typeof workRequestAssignments.$inferSelect;
 export type InsertWorkRequestAssignment = typeof workRequestAssignments.$inferInsert;
+export type EmploymentPost = typeof employmentPosts.$inferSelect;
+export type InsertEmploymentPost = typeof employmentPosts.$inferInsert;
 
 // Promotional types
 export type ContractorPromo = typeof contractorPromos.$inferSelect;
