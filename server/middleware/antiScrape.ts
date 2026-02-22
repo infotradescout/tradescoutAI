@@ -54,6 +54,11 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   const allowlistedPaths = [
     /^\/api\/health/i,
     /^\/api\/(scout|assistant)\/health/i,
+    // Auth/session probes and county selectors are critical boot-time endpoints.
+    // Never rate-limit these or pre-scout setup can dead-end for real users.
+    /^\/api\/auth\/user$/i,
+    /^\/api\/states$/i,
+    /^\/api\/counties$/i,
     /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/i, // static assets
     /^\/@vite/i, // vite HMR
     /^\/node_modules/i, // dev dependencies
