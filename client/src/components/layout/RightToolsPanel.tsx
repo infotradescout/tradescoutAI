@@ -28,7 +28,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNav
   <button
     type="button"
     onClick={() => onNavigate?.(href)}
-    className="flex flex-col gap-1 rounded-xl transition-colors"
+    className="flex flex-col gap-1 rounded-xl transition-colors cursor-pointer"
     style={{
       borderColor: "var(--border-primary)",
       backgroundColor: "var(--surface-intermediate)",
@@ -76,7 +76,15 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
   const [, navigate] = useLocation();
 
   const handleNavigate = (href: string) => {
-    navigate(href);
+    if (!href) return;
+    if (href !== window.location.pathname) {
+      navigate(href);
+      window.setTimeout(() => {
+        if (window.location.pathname !== href) {
+          window.location.assign(href);
+        }
+      }, 60);
+    }
     onNavigate?.();
   };
 
@@ -127,7 +135,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           </div>
           <div className="space-y-2">
             <NavLink
-              href="/profile"
+              href="/my-tradescout"
               icon={
                 <User className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
               }
@@ -136,7 +144,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onNavigate={handleNavigate}
             />
             <NavLink
-              href="/profile-settings"
+              href="/settings"
               icon={
                 <Settings
                   className="h-3.5 w-3.5"
@@ -170,7 +178,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           <div className="space-y-2">
             {user?.isAdmin && (user as any)?.isSuperAdmin ? (
               <NavLink
-                href="/admin"
+                href="/admin/panel"
                 icon={
                   <LayoutDashboard
                     className="h-3.5 w-3.5"
@@ -208,7 +216,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onNavigate={handleNavigate}
             />
             <NavLink
-              href="/hoa-management"
+              href="/hoa-dashboard"
               icon={
                 <Building
                   className="h-3.5 w-3.5"
@@ -232,7 +240,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onNavigate={handleNavigate}
             />
             <NavLink
-              href="/saved-ads"
+              href="/saved"
               icon={
                 <Bookmark
                   className="h-3.5 w-3.5"

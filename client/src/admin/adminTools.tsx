@@ -17,6 +17,7 @@ import {
   Briefcase,
   Home,
   Link2,
+  Wallet,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -213,6 +214,7 @@ const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-cover
 const AdminProfessionalVerification = React.lazy(
   () => import("@/pages/admin-professional-verification")
 );
+const AdminVaultContributions = React.lazy(() => import("@/pages/admin-vault-contributions"));
 const PromptAdminPage = React.lazy(() =>
   import("@/pages/PromptAdminPage").then((m) => ({ default: m.PromptAdminPage }))
 );
@@ -654,6 +656,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: DollarSign,
         visibleIf: { roles: ["super_admin", "head_admin"] },
         render: () => <FinanceLedgerPanel />,
+      }),
+      tool({
+        id: "vault-contributions",
+        label: "Vault Contributions",
+        path: "/admin/vault-contributions",
+        icon: Wallet,
+        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        render: () => <AdminVaultContributions />,
       }),
     ],
   },

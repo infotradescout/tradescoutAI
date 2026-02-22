@@ -23,11 +23,25 @@ export function createPostgresRateLimitStore(params: {
 } {
   const { pool, prefix } = params;
   let windowMs = 60_000;
+  let disabledBecauseMissingTable = false;
+  let didWarnMissingTable = false;
 
   const cleanupIntervalMs = Math.max(0, Number(params.cleanupIntervalMs ?? 0) || 0);
   let cleanupTimer: NodeJS.Timeout | undefined;
 
   const bucketKey = (key: string) => `${prefix}:${key}`;
+
+  const isMissingRateLimitTableError = (err: unknown): boolean => {
+    const anyErr = err as any;
+    const code = typeof anyErr?.code === "string" ? anyErr.code : "";
+    const message = typeof anyErr?.message === "string" ? anyErr.message : "";
+    // Postgres: 42P01 = undefined_table
+    return (
+      code === "42P01" ||
+      message.includes('relation "rate_limit_buckets" does not exist') ||
+      (message.includes("rate_limit_buckets") && message.includes("does not exist"))
+    );
+  };
 
   const maybeStartCleanup = () => {
     if (!cleanupIntervalMs || cleanupTimer) return;
@@ -51,6 +65,11 @@ export function createPostgresRateLimitStore(params: {
     },
 
     async increment(key: string): Promise<IncrementResponse> {
+      if (disabledBecauseMissingTable) {
+        const ms = windowMs;
+        return { totalHits: 1, resetTime: new Date(Date.now() + ms) };
+      }
+
       const k = bucketKey(key);
       const ms = windowMs;
 
@@ -71,11 +90,27 @@ export function createPostgresRateLimitStore(params: {
         returning hits, reset_at
       `;
 
-      const res = await pool.query(sql, [k, ms]);
-      const row = res?.rows?.[0] as { hits?: number; reset_at?: string | Date } | undefined;
-      const totalHits = Number(row?.hits ?? 1) || 1;
-      const resetTime = row?.reset_at ? new Date(row.reset_at as any) : new Date(Date.now() + ms);
-      return { totalHits, resetTime };
+      try {
+        const res = await pool.query(sql, [k, ms]);
+        const row = res?.rows?.[0] as { hits?: number; reset_at?: string | Date } | undefined;
+        const totalHits = Number(row?.hits ?? 1) || 1;
+        const resetTime = row?.reset_at ? new Date(row.reset_at as any) : new Date(Date.now() + ms);
+        return { totalHits, resetTime };
+      } catch (err) {
+        if (isMissingRateLimitTableError(err)) {
+          disabledBecauseMissingTable = true;
+          if (!didWarnMissingTable) {
+            didWarnMissingTable = true;
+            console.warn(
+              "[rate-limit] rate_limit_buckets table missing; rate limiting is disabled until migrations run."
+            );
+          }
+          return { totalHits: 1, resetTime: new Date(Date.now() + ms) };
+        }
+        // Fail open: never block auth/register because the limiter storage is unhealthy.
+        console.warn("[rate-limit] store error; failing open for this request.", err);
+        return { totalHits: 1, resetTime: new Date(Date.now() + ms) };
+      }
     },
 
     async decrement(key: string): Promise<void> {

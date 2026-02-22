@@ -210,7 +210,7 @@ const featuredCategories = [
     color: "emerald",
     description: "Quality items for homeowners who value craftsmanship",
     valueProposition: "Enhance your property",
-    benefits: ["Quality materials", "Lasting results", "Property value boost"],
+    benefits: ["Quality materials", "Lasting results", "Property value growth"],
   },
   {
     id: "specialty_items",
@@ -475,7 +475,7 @@ export default function Marketplace() {
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xl">
                 The Marketplace never runs outside ads. Every placement is a real listing from
-                someone in the TradeScout network, and listing order does not use paid boosts.
+                someone in the TradeScout network, and listing order does not use paid ranking.
               </p>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <div className="flex items-center text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-2 rounded-lg">

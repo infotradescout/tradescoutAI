@@ -34,10 +34,10 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
 
   const consultationTypes = [
     {
-      value: "accelerator",
-      label: "Accelerator Program",
+      value: "doctrine",
+      label: "Connection Doctrine",
       duration: "45 min",
-      description: "Learn about premium features and benefits",
+      description: "Review trust-first operating rules and neutral connection model",
     },
     {
       value: "business",

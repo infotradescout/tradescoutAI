@@ -36,7 +36,6 @@ Full list of exported tables (as found in `shared/schema.ts`)
 - leadAssignments
 - verificationDocuments
 - growthPackDownloads
-- acceleratorMemberships
 - pricingData
 - events
 - territories
@@ -168,7 +167,6 @@ Full list of exported tables (as found in `shared/schema.ts`)
 - moderationAppeals
 - moderationSettings
 - marketplaceTransactions
-- listingBoosts
 - transactionDisputes
 - userReviews
 - realTimeNotifications

@@ -6987,6 +6987,32 @@ export const vaultLedgerEntries = pgTable(
   ]
 );
 
+// Admin-controlled, user-scoped vault contribution adjustments
+// Used to represent off-platform or manually verified contributions.
+export const userCountyVaultContributionAdjustments = pgTable(
+  "user_county_vault_contribution_adjustments",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    countyId: varchar("county_id").references(() => counties.id, { onDelete: "set null" }),
+    directAmount: decimal("direct_amount", { precision: 14, scale: 2 }).notNull().default("0"),
+    networkAmount: decimal("network_amount", { precision: 14, scale: 2 }).notNull().default("0"),
+    note: text("note"),
+    source: varchar("source").notNull().default("manual_adjustment"),
+    createdBy: varchar("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("user_county_vault_adj_user_idx").on(table.userId),
+    index("user_county_vault_adj_county_idx").on(table.countyId),
+    index("user_county_vault_adj_created_idx").on(table.createdAt),
+  ]
+);
+
 // ==================== COMMUNITY PROFILE VAULT (MVP) ====================
 
 export const communityVaultSourceEnum = pgEnum("community_vault_source_type", [
@@ -8644,6 +8670,25 @@ export const vaultLedgerEntriesRelations = relations(vaultLedgerEntries, ({ one 
   }),
 }));
 
+export const userCountyVaultContributionAdjustmentsRelations = relations(
+  userCountyVaultContributionAdjustments,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userCountyVaultContributionAdjustments.userId],
+      references: [users.id],
+    }),
+    county: one(counties, {
+      fields: [userCountyVaultContributionAdjustments.countyId],
+      references: [counties.id],
+    }),
+    creator: one(users, {
+      fields: [userCountyVaultContributionAdjustments.createdBy],
+      references: [users.id],
+      relationName: "county_vault_adjustment_creator",
+    }),
+  })
+);
+
 // Foundation system types
 export type FoundationCause = typeof foundationCauses.$inferSelect;
 export type InsertFoundationCause = typeof foundationCauses.$inferInsert;
@@ -8665,6 +8710,11 @@ export type InsertCountyVault = typeof countyVaults.$inferInsert;
 
 export type VaultLedgerEntry = typeof vaultLedgerEntries.$inferSelect;
 export type InsertVaultLedgerEntry = typeof vaultLedgerEntries.$inferInsert;
+
+export type UserCountyVaultContributionAdjustment =
+  typeof userCountyVaultContributionAdjustments.$inferSelect;
+export type InsertUserCountyVaultContributionAdjustment =
+  typeof userCountyVaultContributionAdjustments.$inferInsert;
 
 // Community Profile Vault (MVP) types
 export type CommunityVault = typeof communityVaults.$inferSelect;

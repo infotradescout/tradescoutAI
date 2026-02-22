@@ -2,17 +2,16 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  UserCog, 
-  Eye, 
-  ArrowLeft, 
-  Shield, 
-  AlertTriangle,
-  Info
-} from "lucide-react";
+import { UserCog, Eye, ArrowLeft, Shield, AlertTriangle, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -25,11 +24,15 @@ interface ImpersonationState {
 }
 
 const AVAILABLE_ROLES = [
-  { id: 'homeowner', name: 'Homeowner', description: 'Regular homeowner account' },
-  { id: 'contractor_user', name: 'Contractor', description: 'Verified contractor account' },
-  { id: 'accelerator_member', name: 'Accelerator Member', description: 'Premium contractor with advanced features' },
-  { id: 'moderator', name: 'Moderator', description: 'Community moderation permissions' },
-  { id: 'ops_admin', name: 'Operations Admin', description: 'Operational admin access' },
+  { id: "homeowner", name: "Homeowner", description: "Regular homeowner account" },
+  { id: "contractor_user", name: "Contractor", description: "Verified contractor account" },
+  {
+    id: "accelerator_member",
+    name: "Verified Contractor",
+    description: "Contractor role with standard trust-governed access",
+  },
+  { id: "moderator", name: "Moderator", description: "Community moderation permissions" },
+  { id: "ops_admin", name: "Operations Admin", description: "Operational admin access" },
 ];
 
 export function RoleImpersonation() {
@@ -39,34 +42,34 @@ export function RoleImpersonation() {
   const [selectedRole, setSelectedRole] = useState("");
   const [impersonationState, setImpersonationState] = useState<ImpersonationState>({
     isImpersonating: false,
-    originalRole: user?.role || 'homeowner',
-    currentRole: user?.role || 'homeowner',
+    originalRole: user?.role || "homeowner",
+    currentRole: user?.role || "homeowner",
   });
 
   // Check if user has admin permissions
-  const canImpersonate = user?.role === 'super_admin' || user?.role === 'ops_admin';
+  const canImpersonate = user?.role === "super_admin" || user?.role === "ops_admin";
 
   // Start impersonation mutation
   const startImpersonationMutation = useMutation({
     mutationFn: async ({ role }: { role: string }) => {
-      return apiRequest('POST', '/api/admin/impersonate', { role });
+      return apiRequest("POST", "/api/admin/impersonate", { role });
     },
     onSuccess: (data) => {
       setImpersonationState({
         isImpersonating: true,
-        originalRole: user?.role || 'homeowner',
+        originalRole: user?.role || "homeowner",
         currentRole: selectedRole,
         targetUserId: data.userId,
       });
-      
+
       // Invalidate auth queries to refresh user data
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
       toast({
         title: "Impersonation Started",
-        description: `Now viewing site as ${AVAILABLE_ROLES.find(r => r.id === selectedRole)?.name}`,
+        description: `Now viewing site as ${AVAILABLE_ROLES.find((r) => r.id === selectedRole)?.name}`,
       });
-      
+
       // Refresh the page to apply new permissions
       window.location.reload();
     },
@@ -82,7 +85,7 @@ export function RoleImpersonation() {
   // Stop impersonation mutation
   const stopImpersonationMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/admin/stop-impersonation');
+      return apiRequest("POST", "/api/admin/stop-impersonation");
     },
     onSuccess: () => {
       setImpersonationState({
@@ -90,15 +93,15 @@ export function RoleImpersonation() {
         originalRole: impersonationState.originalRole,
         currentRole: impersonationState.originalRole,
       });
-      
+
       // Invalidate auth queries to refresh user data
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
       toast({
         title: "Impersonation Stopped",
         description: "Returned to your original admin role",
       });
-      
+
       // Refresh the page to restore original permissions
       window.location.reload();
     },
@@ -157,17 +160,21 @@ export function RoleImpersonation() {
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-white font-medium">Current Role:</span>
-              <Badge className={impersonationState.isImpersonating ? "bg-orange-500" : "bg-blue-500"}>
-                {AVAILABLE_ROLES.find(r => r.id === impersonationState.currentRole)?.name || impersonationState.currentRole}
+              <Badge
+                className={impersonationState.isImpersonating ? "bg-orange-500" : "bg-blue-500"}
+              >
+                {AVAILABLE_ROLES.find((r) => r.id === impersonationState.currentRole)?.name ||
+                  impersonationState.currentRole}
               </Badge>
             </div>
             {impersonationState.isImpersonating && (
               <p className="text-sm text-gray-400 mt-1">
-                Original role: {AVAILABLE_ROLES.find(r => r.id === impersonationState.originalRole)?.name}
+                Original role:{" "}
+                {AVAILABLE_ROLES.find((r) => r.id === impersonationState.originalRole)?.name}
               </p>
             )}
           </div>
-          
+
           {impersonationState.isImpersonating && (
             <Button
               onClick={handleStopImpersonation}
@@ -187,8 +194,9 @@ export function RoleImpersonation() {
           <Alert className="border-orange-500/50 bg-orange-500/10">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
             <AlertDescription className="text-orange-300">
-              You are currently impersonating a {AVAILABLE_ROLES.find(r => r.id === impersonationState.currentRole)?.name} role. 
-              All actions will be performed with that role's permissions.
+              You are currently impersonating a{" "}
+              {AVAILABLE_ROLES.find((r) => r.id === impersonationState.currentRole)?.name} role. All
+              actions will be performed with that role's permissions.
             </AlertDescription>
           </Alert>
         )}
@@ -205,7 +213,7 @@ export function RoleImpersonation() {
                   <SelectValue placeholder="Choose a role to test..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  {AVAILABLE_ROLES.map(role => (
+                  {AVAILABLE_ROLES.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       <div>
                         <div className="font-medium">{role.name}</div>

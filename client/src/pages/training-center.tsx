@@ -1,10 +1,21 @@
-import { memo, useState } from 'react';
-import { GraduationCap, Play, BookOpen, Award, Clock, Users, Star, CheckCircle, Video, FileText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { memo, useState } from "react";
+import {
+  GraduationCap,
+  Play,
+  BookOpen,
+  Award,
+  Clock,
+  Users,
+  Star,
+  CheckCircle,
+  Video,
+  FileText,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TrainingCenter = memo(function TrainingCenter() {
   const [activeTab, setActiveTab] = useState("courses");
@@ -25,11 +36,11 @@ const TrainingCenter = memo(function TrainingCenter() {
         { title: "Basic Electrical Theory", duration: "45 min", completed: true },
         { title: "Safety Equipment & PPE", duration: "30 min", completed: true },
         { title: "Code Requirements", duration: "60 min", completed: false },
-        { title: "Hazard Recognition", duration: "45 min", completed: false }
+        { title: "Hazard Recognition", duration: "45 min", completed: false },
       ],
       progress: 50,
       thumbnail: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=250&fit=crop",
-      featured: true
+      featured: true,
     },
     {
       id: 2,
@@ -46,11 +57,12 @@ const TrainingCenter = memo(function TrainingCenter() {
         { title: "Pipe Sizing & Materials", duration: "90 min", completed: false },
         { title: "Fixture Installation", duration: "120 min", completed: false },
         { title: "Drainage Systems", duration: "90 min", completed: false },
-        { title: "Troubleshooting", duration: "60 min", completed: false }
+        { title: "Troubleshooting", duration: "60 min", completed: false },
       ],
       progress: 0,
-      thumbnail: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400&h=250&fit=crop",
-      featured: true
+      thumbnail:
+        "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400&h=250&fit=crop",
+      featured: true,
     },
     {
       id: 3,
@@ -62,16 +74,17 @@ const TrainingCenter = memo(function TrainingCenter() {
       enrolled: 3456,
       rating: 4.7,
       price: "$149",
-      description: "Learn to run a successful contracting business with effective management strategies",
+      description:
+        "Learn to run a successful contracting business with effective management strategies",
       modules: [
         { title: "Financial Planning", duration: "90 min", completed: true },
         { title: "Customer Relations", duration: "75 min", completed: true },
         { title: "Project Management", duration: "105 min", completed: true },
-        { title: "Growth Strategies", duration: "90 min", completed: false }
+        { title: "Growth Strategies", duration: "90 min", completed: false },
       ],
       progress: 75,
       thumbnail: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=250&fit=crop",
-      featured: false
+      featured: false,
     },
     {
       id: 4,
@@ -88,12 +101,13 @@ const TrainingCenter = memo(function TrainingCenter() {
         { title: "OSHA Standards Overview", duration: "45 min", completed: false },
         { title: "Fall Protection", duration: "60 min", completed: false },
         { title: "Personal Protective Equipment", duration: "30 min", completed: false },
-        { title: "Hazard Communication", duration: "45 min", completed: false }
+        { title: "Hazard Communication", duration: "45 min", completed: false },
       ],
       progress: 0,
-      thumbnail: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=250&fit=crop",
-      featured: true
-    }
+      thumbnail:
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=250&fit=crop",
+      featured: true,
+    },
   ];
 
   const certifications = [
@@ -104,7 +118,7 @@ const TrainingCenter = memo(function TrainingCenter() {
       requirements: ["Complete 3 safety courses", "Pass final exam (80%)", "2 years experience"],
       earned: true,
       earnedDate: "2024-02-15",
-      validUntil: "2027-02-15"
+      validUntil: "2027-02-15",
     },
     {
       id: 2,
@@ -112,7 +126,7 @@ const TrainingCenter = memo(function TrainingCenter() {
       description: "Advanced business skills for contractors and trade professionals",
       requirements: ["Complete business course series", "Submit business plan", "Peer review"],
       earned: false,
-      progress: 67
+      progress: 67,
     },
     {
       id: 3,
@@ -120,8 +134,8 @@ const TrainingCenter = memo(function TrainingCenter() {
       description: "Recognition of advanced technical skills in your trade specialty",
       requirements: ["Complete advanced courses", "Portfolio submission", "Skills assessment"],
       earned: false,
-      progress: 25
-    }
+      progress: 25,
+    },
   ];
 
   const learningPaths = [
@@ -132,7 +146,7 @@ const TrainingCenter = memo(function TrainingCenter() {
       courses: 8,
       estimatedTime: "24 hours",
       enrolled: 1247,
-      completed: 245
+      completed: 245,
     },
     {
       id: 2,
@@ -141,29 +155,29 @@ const TrainingCenter = memo(function TrainingCenter() {
       courses: 12,
       estimatedTime: "36 hours",
       enrolled: 856,
-      completed: 142
+      completed: 142,
     },
     {
       id: 3,
-      title: "Business Growth Accelerator",
+      title: "Business Growth Fundamentals",
       description: "Scale your contracting business to the next level",
       courses: 10,
       estimatedTime: "30 hours",
       enrolled: 634,
-      completed: 89
-    }
+      completed: 89,
+    },
   ];
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'Beginner':
-        return 'bg-primary/10 text-primary';
-      case 'Intermediate':
-        return 'bg-secondary/10 text-secondary-foreground';
-      case 'Advanced':
-        return 'bg-destructive/10 text-destructive';
+      case "Beginner":
+        return "bg-primary/10 text-primary";
+      case "Intermediate":
+        return "bg-secondary/10 text-secondary-foreground";
+      case "Advanced":
+        return "bg-destructive/10 text-destructive";
       default:
-        return 'bg-muted text-muted-foreground';
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -235,10 +249,18 @@ const TrainingCenter = memo(function TrainingCenter() {
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="courses" className="data-[state=active]:bg-orange-600">Courses</TabsTrigger>
-            <TabsTrigger value="paths" className="data-[state=active]:bg-orange-600">Learning Paths</TabsTrigger>
-            <TabsTrigger value="certifications" className="data-[state=active]:bg-orange-600">Certifications</TabsTrigger>
-            <TabsTrigger value="progress" className="data-[state=active]:bg-orange-600">My Progress</TabsTrigger>
+            <TabsTrigger value="courses" className="data-[state=active]:bg-orange-600">
+              Courses
+            </TabsTrigger>
+            <TabsTrigger value="paths" className="data-[state=active]:bg-orange-600">
+              Learning Paths
+            </TabsTrigger>
+            <TabsTrigger value="certifications" className="data-[state=active]:bg-orange-600">
+              Certifications
+            </TabsTrigger>
+            <TabsTrigger value="progress" className="data-[state=active]:bg-orange-600">
+              My Progress
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="courses" className="mt-6">
@@ -246,74 +268,85 @@ const TrainingCenter = memo(function TrainingCenter() {
             <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
               <CardHeader>
                 <CardTitle className="text-white">Featured Courses</CardTitle>
-                <p className="text-gray-400">Popular and highly-rated courses from industry experts</p>
+                <p className="text-gray-400">
+                  Popular and highly-rated courses from industry experts
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {courses.filter(course => course.featured).map((course) => (
-                    <div key={course.id} className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors">
-                      <div className="relative">
-                        <img
-                          src={course.thumbnail}
-                          alt={course.title}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="bg-black/50 rounded-full p-3">
-                            <Play className="h-8 w-8 text-white" />
-                          </div>
-                        </div>
-                        <div className="absolute top-4 left-4">
-                          <Badge className={course.price === "Free" ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}>
-                            {course.price}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="p-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className={getLevelColor(course.level)}>
-                            {course.level}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {course.category}
-                          </Badge>
-                        </div>
-                        
-                        <h3 className="text-white font-semibold text-lg mb-2">{course.title}</h3>
-                        <p className="text-gray-400 text-sm mb-3">{course.description}</p>
-                        
-                        <div className="flex items-center gap-4 mb-4 text-sm text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {course.duration}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {course.enrolled.toLocaleString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                            {course.rating}
-                          </span>
-                        </div>
-
-                        {course.progress > 0 && (
-                          <div className="mb-4">
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-400">Progress</span>
-                              <span className="text-white">{course.progress}%</span>
+                  {courses
+                    .filter((course) => course.featured)
+                    .map((course) => (
+                      <div
+                        key={course.id}
+                        className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors"
+                      >
+                        <div className="relative">
+                          <img
+                            src={course.thumbnail}
+                            alt={course.title}
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-black/50 rounded-full p-3">
+                              <Play className="h-8 w-8 text-white" />
                             </div>
-                            <Progress value={course.progress} className="h-2" />
                           </div>
-                        )}
+                          <div className="absolute top-4 left-4">
+                            <Badge
+                              className={
+                                course.price === "Free"
+                                  ? "bg-green-600 hover:bg-green-700"
+                                  : "bg-orange-600 hover:bg-orange-700"
+                              }
+                            >
+                              {course.price}
+                            </Badge>
+                          </div>
+                        </div>
 
-                        <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                          {course.progress > 0 ? 'Continue Learning' : 'Start Course'}
-                        </Button>
+                        <div className="p-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={getLevelColor(course.level)}>{course.level}</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {course.category}
+                            </Badge>
+                          </div>
+
+                          <h3 className="text-white font-semibold text-lg mb-2">{course.title}</h3>
+                          <p className="text-gray-400 text-sm mb-3">{course.description}</p>
+
+                          <div className="flex items-center gap-4 mb-4 text-sm text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {course.duration}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {course.enrolled.toLocaleString()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              {course.rating}
+                            </span>
+                          </div>
+
+                          {course.progress > 0 && (
+                            <div className="mb-4">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-400">Progress</span>
+                                <span className="text-white">{course.progress}%</span>
+                              </div>
+                              <Progress value={course.progress} className="h-2" />
+                            </div>
+                          )}
+
+                          <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                            {course.progress > 0 ? "Continue Learning" : "Start Course"}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -326,13 +359,16 @@ const TrainingCenter = memo(function TrainingCenter() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {courses.map((course) => (
-                    <div key={course.id} className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors">
+                    <div
+                      key={course.id}
+                      className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors"
+                    >
                       <img
                         src={course.thumbnail}
                         alt={course.title}
                         className="w-full h-32 object-cover"
                       />
-                      
+
                       <div className="p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge className={`${getLevelColor(course.level)} text-xs`}>
@@ -340,10 +376,10 @@ const TrainingCenter = memo(function TrainingCenter() {
                           </Badge>
                           <span className="text-orange-400 font-bold">{course.price}</span>
                         </div>
-                        
+
                         <h4 className="text-white font-medium mb-2">{course.title}</h4>
                         <p className="text-gray-400 text-xs mb-3">By {course.instructor}</p>
-                        
+
                         <div className="flex justify-between items-center text-xs text-gray-400 mb-3">
                           <span>{course.duration}</span>
                           <span>★ {course.rating}</span>
@@ -384,10 +420,14 @@ const TrainingCenter = memo(function TrainingCenter() {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Completion Rate</span>
-                          <span className="text-white">{Math.round((path.completed / path.enrolled) * 100)}%</span>
+                          <span className="text-white">
+                            {Math.round((path.completed / path.enrolled) * 100)}%
+                          </span>
                         </div>
                         <Progress value={(path.completed / path.enrolled) * 100} className="h-2" />
-                        <p className="text-gray-400 text-xs">{path.enrolled} enrolled, {path.completed} completed</p>
+                        <p className="text-gray-400 text-xs">
+                          {path.enrolled} enrolled, {path.completed} completed
+                        </p>
                       </div>
 
                       <Button className="w-full bg-orange-600 hover:bg-orange-700">
@@ -417,12 +457,15 @@ const TrainingCenter = memo(function TrainingCenter() {
                           )}
                         </div>
                         <p className="text-gray-400 mb-4">{cert.description}</p>
-                        
+
                         <div>
                           <h4 className="text-white font-medium mb-2">Requirements:</h4>
                           <ul className="space-y-1">
                             {cert.requirements.map((req, index) => (
-                              <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
+                              <li
+                                key={index}
+                                className="flex items-center gap-2 text-sm text-gray-300"
+                              >
                                 <CheckCircle className="h-3 w-3 text-green-400" />
                                 {req}
                               </li>
@@ -430,12 +473,22 @@ const TrainingCenter = memo(function TrainingCenter() {
                           </ul>
                         </div>
                       </div>
-                      
+
                       <div className="text-right">
                         {cert.earned ? (
                           <div>
-                            <p className="text-green-400 font-semibold">Earned {cert.earnedDate ? new Date(cert.earnedDate).toLocaleDateString() : 'Unknown'}</p>
-                            <p className="text-gray-400 text-sm">Valid until {cert.validUntil ? new Date(cert.validUntil).toLocaleDateString() : 'Unknown'}</p>
+                            <p className="text-green-400 font-semibold">
+                              Earned{" "}
+                              {cert.earnedDate
+                                ? new Date(cert.earnedDate).toLocaleDateString()
+                                : "Unknown"}
+                            </p>
+                            <p className="text-gray-400 text-sm">
+                              Valid until{" "}
+                              {cert.validUntil
+                                ? new Date(cert.validUntil).toLocaleDateString()
+                                : "Unknown"}
+                            </p>
                             <Button className="mt-3 bg-blue-600 hover:bg-blue-700">
                               Download Certificate
                             </Button>
@@ -443,13 +496,13 @@ const TrainingCenter = memo(function TrainingCenter() {
                         ) : (
                           <div>
                             <div className="text-center mb-3">
-                              <div className="text-2xl font-bold text-orange-400">{cert.progress}%</div>
+                              <div className="text-2xl font-bold text-orange-400">
+                                {cert.progress}%
+                              </div>
                               <div className="text-gray-400 text-sm">Complete</div>
                             </div>
                             <Progress value={cert.progress} className="h-2 w-24 mb-3" />
-                            <Button className="bg-orange-600 hover:bg-orange-700">
-                              Continue
-                            </Button>
+                            <Button className="bg-orange-600 hover:bg-orange-700">Continue</Button>
                           </div>
                         )}
                       </div>
@@ -470,15 +523,40 @@ const TrainingCenter = memo(function TrainingCenter() {
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { course: "Electrical Safety Fundamentals", module: "Code Requirements", date: "2 hours ago", type: "completed" },
-                      { course: "Business Management", module: "Growth Strategies", date: "Yesterday", type: "started" },
-                      { course: "OSHA Construction Safety", module: "Fall Protection", date: "2 days ago", type: "completed" },
-                      { course: "Advanced Plumbing", module: "Pipe Sizing", date: "3 days ago", type: "started" },
+                      {
+                        course: "Electrical Safety Fundamentals",
+                        module: "Code Requirements",
+                        date: "2 hours ago",
+                        type: "completed",
+                      },
+                      {
+                        course: "Business Management",
+                        module: "Growth Strategies",
+                        date: "Yesterday",
+                        type: "started",
+                      },
+                      {
+                        course: "OSHA Construction Safety",
+                        module: "Fall Protection",
+                        date: "2 days ago",
+                        type: "completed",
+                      },
+                      {
+                        course: "Advanced Plumbing",
+                        module: "Pipe Sizing",
+                        date: "3 days ago",
+                        type: "started",
+                      },
                     ].map((activity, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg">
-                        <div className={`w-2 h-2 rounded-full ${
-                          activity.type === 'completed' ? 'bg-green-400' : 'bg-blue-400'
-                        }`} />
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg"
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            activity.type === "completed" ? "bg-green-400" : "bg-blue-400"
+                          }`}
+                        />
                         <div className="flex-1">
                           <p className="text-white text-sm font-medium">{activity.course}</p>
                           <p className="text-gray-400 text-xs">{activity.module}</p>

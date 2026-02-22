@@ -1,10 +1,31 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Home, Wrench, Shield, MapPin, Users, Star, Building, Car, Heart, DollarSign, Briefcase } from "lucide-react";
+import {
+  CheckCircle,
+  Home,
+  Wrench,
+  Shield,
+  MapPin,
+  Users,
+  Star,
+  Building,
+  Car,
+  Heart,
+  DollarSign,
+  Briefcase,
+} from "lucide-react";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 
-type UserRole = 'homeowner' | 'contractor' | 'realtor' | 'car_salesman' | 'dealer' | 'insurance_agent' | 'property_manager' | 'mortgage_broker';
+type UserRole =
+  | "homeowner"
+  | "contractor"
+  | "realtor"
+  | "car_salesman"
+  | "dealer"
+  | "insurance_agent"
+  | "property_manager"
+  | "mortgage_broker";
 
 interface RoleSelectionProps {
   onRoleSelect: (role: UserRole) => void;
@@ -13,56 +34,58 @@ interface RoleSelectionProps {
     email?: string;
     profileImage?: string;
   };
-  initialType?: 'homeowner' | 'professional';
+  initialType?: "homeowner" | "professional";
 }
 
 const professionalRoles = [
   {
-    id: 'contractor' as const,
+    id: "contractor" as const,
     icon: Wrench,
-    title: 'Contractor',
-    description: 'Plumber, Electrician, HVAC, etc.',
-    color: 'orange'
+    title: "Contractor",
+    description: "Plumber, Electrician, HVAC, etc.",
+    color: "orange",
   },
   {
-    id: 'realtor' as const,
+    id: "realtor" as const,
     icon: Building,
-    title: 'Realtor',
-    description: 'Real estate agent or broker',
-    color: 'purple'
+    title: "Realtor",
+    description: "Real estate agent or broker",
+    color: "purple",
   },
   {
-    id: 'car_salesman' as const,
+    id: "car_salesman" as const,
     icon: Car,
-    title: 'Car Dealer',
-    description: 'Auto sales professional',
-    color: 'blue'
+    title: "Car Dealer",
+    description: "Auto sales professional",
+    color: "blue",
   },
   {
-    id: 'insurance_agent' as const,
+    id: "insurance_agent" as const,
     icon: Shield,
-    title: 'Insurance Agent',
-    description: 'Home & property insurance',
-    color: 'green'
+    title: "Insurance Agent",
+    description: "Home & property insurance",
+    color: "green",
   },
   {
-    id: 'property_manager' as const,
+    id: "property_manager" as const,
     icon: Briefcase,
-    title: 'Property Manager',
-    description: 'Rental property management',
-    color: 'indigo'
+    title: "Property Manager",
+    description: "Rental property management",
+    color: "indigo",
   },
   {
-    id: 'mortgage_broker' as const,
+    id: "mortgage_broker" as const,
     icon: DollarSign,
-    title: 'Mortgage Broker',
-    description: 'Home loan specialist',
-    color: 'emerald'
-  }
+    title: "Mortgage Broker",
+    description: "Home loan specialist",
+    color: "emerald",
+  },
 ];
 
 export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelectionProps) {
-  const [accountType, setAccountType] = useState<'homeowner' | 'professional' | null>(initialType || null);
+  const [accountType, setAccountType] = useState<"homeowner" | "professional" | null>(
+    initialType || null
+  );
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
 
   const handleContinue = () => {
@@ -86,11 +109,11 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             {/* Personal use option (maps to homeowner role internally) */}
-            <Card 
+            <Card
               className="cursor-pointer transition-all duration-300 border-2 border-border bg-card hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:shadow-primary/25"
               onClick={() => {
-                setAccountType('homeowner');
-                setSelectedRole('homeowner');
+                setAccountType("homeowner");
+                setSelectedRole("homeowner");
               }}
               data-testid="type-homeowner"
             >
@@ -100,7 +123,9 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
                     <Home className="w-10 h-10 text-primary" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl text-foreground">Use TradeScout for my own projects</CardTitle>
+                <CardTitle className="text-2xl text-foreground">
+                  Use TradeScout for my own projects
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-muted-foreground text-center mb-4">
@@ -124,9 +149,9 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
             </Card>
 
             {/* Work / business option (maps to professional roles internally) */}
-            <Card 
+            <Card
               className="cursor-pointer transition-all duration-300 border-2 border-border bg-card hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:shadow-primary/25"
-              onClick={() => setAccountType('professional')}
+              onClick={() => setAccountType("professional")}
               data-testid="type-professional"
             >
               <CardHeader className="text-center pb-4">
@@ -135,7 +160,9 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
                     <Briefcase className="w-10 h-10 text-primary" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl text-foreground">Offer services or run a business</CardTitle>
+                <CardTitle className="text-2xl text-foreground">
+                  Offer services or run a business
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-muted-foreground text-center mb-4">
@@ -164,7 +191,7 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
   }
 
   // If homeowner selected, proceed directly
-  if (accountType === 'homeowner') {
+  if (accountType === "homeowner") {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="w-full max-w-lg">
@@ -177,9 +204,9 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
             {userInfo?.name && (
               <div className="mt-4 flex items-center justify-center gap-3 p-3 bg-muted rounded-lg inline-flex">
                 {userInfo.profileImage && (
-                  <img 
-                    src={userInfo.profileImage} 
-                    alt="Profile" 
+                  <img
+                    src={userInfo.profileImage}
+                    alt="Profile"
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 )}
@@ -194,7 +221,9 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
                 <Home className="w-12 h-12 text-primary" />
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">Homeowner Account</h3>
-                  <p className="text-sm text-muted-foreground">Find contractors, get quotes, join your community</p>
+                  <p className="text-sm text-muted-foreground">
+                    Find contractors, get quotes, join your community
+                  </p>
                 </div>
               </div>
 
@@ -244,13 +273,15 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
             <TradeScoutLogo size="xl" variant="gradient" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Select Your Professional Role</h1>
-          <p className="text-muted-foreground">Choose the option that best describes your business</p>
+          <p className="text-muted-foreground">
+            Choose the option that best describes your business
+          </p>
           {userInfo?.name && (
             <div className="mt-4 flex items-center justify-center gap-3 p-3 bg-muted rounded-lg inline-flex">
               {userInfo.profileImage && (
-                <img 
-                  src={userInfo.profileImage} 
-                  alt="Profile" 
+                <img
+                  src={userInfo.profileImage}
+                  alt="Profile"
                   className="w-8 h-8 rounded-full object-cover"
                 />
               )}
@@ -263,26 +294,28 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
           {professionalRoles.map((role) => {
             const Icon = role.icon;
             const isSelected = selectedRole === role.id;
-            
+
             return (
-              <Card 
+              <Card
                 key={role.id}
                 className={`cursor-pointer transition-all duration-300 border-2 ${
                   isSelected
-                    ? 'border-primary bg-primary/10 shadow-lg shadow-primary/25' 
-                    : 'border-border bg-card hover:border-primary/50 hover:bg-accent'
+                    ? "border-primary bg-primary/10 shadow-lg shadow-primary/25"
+                    : "border-border bg-card hover:border-primary/50 hover:bg-accent"
                 }`}
                 onClick={() => setSelectedRole(role.id)}
                 data-testid={`role-${role.id}`}
               >
                 <CardContent className="p-6">
                   <div className="flex flex-col items-center text-center space-y-3">
-                    <div className={`p-3 rounded-full ${
-                      isSelected ? 'bg-primary/20' : 'bg-muted'
-                    }`}>
-                      <Icon className={`w-8 h-8 ${
-                        isSelected ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
+                    <div
+                      className={`p-3 rounded-full ${isSelected ? "bg-primary/20" : "bg-muted"}`}
+                    >
+                      <Icon
+                        className={`w-8 h-8 ${
+                          isSelected ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      />
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground flex items-center justify-center gap-2">
@@ -305,7 +338,8 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
               <div className="text-left">
                 <p className="text-sm font-medium text-foreground">Verification Required</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Business verification required to appear on professional boards. Platform is 100% FREE - no fees, subscriptions, or commissions.
+                  Business verification required to appear on professional boards. Platform is 100%
+                  FREE - no access fees or commissions.
                 </p>
               </div>
             </div>
@@ -317,14 +351,14 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
             size="lg"
             className={`px-8 py-3 font-semibold transition-all duration-300 ${
               selectedRole
-                ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
+                ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
             }`}
             data-testid="button-continue-professional"
           >
-            {selectedRole ? 'Continue' : 'Select a Role to Continue'}
+            {selectedRole ? "Continue" : "Select a Role to Continue"}
           </Button>
-          
+
           <button
             onClick={() => {
               setAccountType(null);

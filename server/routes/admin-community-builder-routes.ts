@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin } from "../auth";
 import { db } from "../db";
-import { builderPayouts } from "@shared/schema";
+import { builderPayouts, userCountyVaultContributionAdjustments } from "@shared/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 
 const router = Router();
@@ -546,5 +546,111 @@ router.get("/reconciliation", requireCBAdmin, async (req: Request, res: Response
     res.status(500).json({ error: "Failed to fetch reconciliation data" });
   }
 });
+
+/**
+ * GET /api/admin/community-builder/users/:userId/vault-contribution-adjustments
+ * List manual contribution adjustments for a user
+ */
+router.get(
+  "/users/:userId/vault-contribution-adjustments",
+  requireCBAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const rows = await db
+        .select()
+        .from(userCountyVaultContributionAdjustments)
+        .where(eq(userCountyVaultContributionAdjustments.userId, userId))
+        .orderBy(desc(userCountyVaultContributionAdjustments.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching vault contribution adjustments:", error);
+      res.status(500).json({ error: "Failed to fetch adjustments" });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/community-builder/users/:userId/vault-contribution-adjustments
+ * Create a manual direct/network contribution adjustment for a user
+ */
+router.post(
+  "/users/:userId/vault-contribution-adjustments",
+  requireCBAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const adminUserId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const { userId } = req.params;
+      const {
+        countyId,
+        directAmount,
+        networkAmount,
+        note,
+        source,
+        applyToCountyVault = true,
+      } = (req.body ?? {}) as any;
+
+      const direct = Number(directAmount ?? 0);
+      const network = Number(networkAmount ?? 0);
+      if (!Number.isFinite(direct) || !Number.isFinite(network)) {
+        return res.status(400).json({ error: "directAmount and networkAmount must be numeric" });
+      }
+      if (direct === 0 && network === 0) {
+        return res
+          .status(400)
+          .json({ error: "At least one amount must be non-zero to create an adjustment" });
+      }
+
+      let resolvedCountyId: string | null =
+        typeof countyId === "string" && countyId ? countyId : null;
+      if (!resolvedCountyId) {
+        const userRecord = await storage.getUser(userId);
+        if (userRecord?.county && userRecord?.state) {
+          const snapshot = await storage.getCountyVaultSnapshot({
+            countyName: userRecord.county,
+            stateCode: userRecord.state,
+          });
+          resolvedCountyId = snapshot.county?.id ?? null;
+        }
+      }
+
+      const [adjustment] = await db
+        .insert(userCountyVaultContributionAdjustments)
+        .values({
+          userId,
+          countyId: resolvedCountyId,
+          directAmount: direct.toFixed(2),
+          networkAmount: network.toFixed(2),
+          note: typeof note === "string" ? note : null,
+          source: typeof source === "string" && source.trim() ? source.trim() : "manual_adjustment",
+          createdBy: adminUserId ?? null,
+        })
+        .returning();
+
+      const totalAmount = direct + network;
+      if (applyToCountyVault && resolvedCountyId && totalAmount !== 0) {
+        await storage.recordVaultLedgerEntry({
+          countyId: resolvedCountyId,
+          sourceType: "manual_adjustment",
+          sourceId: userId,
+          amount: totalAmount.toFixed(2),
+          memo:
+            typeof note === "string" && note.trim()
+              ? note.trim()
+              : `Manual contribution adjustment for user ${userId}`,
+        });
+      }
+
+      res.status(201).json({
+        adjustment,
+        countyLedgerUpdated: Boolean(applyToCountyVault && resolvedCountyId && totalAmount !== 0),
+      });
+    } catch (error) {
+      console.error("Error creating vault contribution adjustment:", error);
+      res.status(500).json({ error: "Failed to create adjustment" });
+    }
+  }
+);
 
 export default router;

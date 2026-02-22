@@ -33,7 +33,7 @@ TradeScout core interaction contract is:
 - `server/storage.ts:4738`
   - Marketplace ordering no longer prioritizes `isPromoted` or `promotedUntil`.
 - `server/routes.ts:10467`
-  - `POST /api/marketplace/listings/:id/boost` now returns `410` (`PAID_RANKING_DISABLED`).
+  - `POST /api/marketplace/listings/:id/boost` is a disabled legacy endpoint and returns `410` (`PAID_RANKING_DISABLED`).
 
 ### Conversation participant redaction
 - `server/storage.ts:8455`
@@ -55,7 +55,7 @@ TradeScout core interaction contract is:
 - `client/src/pages/exchange.tsx`
   - Primary listing CTA text updated to request language (`Request Quote` / `Send Request`).
 - `client/src/pages/marketplace.tsx`
-  - Boost UI removed and request CTA copy updated.
+  - Legacy paid-exposure UI removed and request CTA copy updated.
 
 ## API State Semantics (Marketplace Conversation Start)
 

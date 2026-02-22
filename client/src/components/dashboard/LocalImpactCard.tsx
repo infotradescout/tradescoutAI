@@ -7,6 +7,12 @@ import { Link } from "wouter";
 
 export interface LocalImpactSummary {
   localVaultBalance: number;
+  countyVaultAllocation?: Array<{
+    key: string;
+    label: string;
+    percent: number;
+    amount: number;
+  }>;
   userDirectContribution: number;
   userIndirectContribution: number;
   userTotalContributionToCountyVault: number;
@@ -128,6 +134,26 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
                   </div>
                 </div>
               </div>
+
+              {Array.isArray(data.countyVaultAllocation) &&
+                data.countyVaultAllocation.length > 0 && (
+                  <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-3">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                      County vault split (20% each)
+                    </div>
+                    <div className="grid grid-cols-1 gap-1">
+                      {data.countyVaultAllocation.map((bucket) => (
+                        <div
+                          key={bucket.key}
+                          className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300"
+                        >
+                          <span>{bucket.label}</span>
+                          <span>{formatCurrency(bucket.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
               <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-3">
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">

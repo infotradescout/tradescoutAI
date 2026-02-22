@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
+import { buildCountyVaultAllocation } from "../services/countyVaultAllocation";
 import Stripe from "stripe";
 
 const router = Router();
@@ -558,6 +559,7 @@ router.get("/county/:countyId/vault", async (req: Request, res: Response) => {
       currentBalance: vaultSnapshot.vault?.currentBalance || "0",
       totalInflow: vaultSnapshot.vault?.lifetimeInflow || "0",
       totalOutflow: vaultSnapshot.vault?.lifetimeOutflow || "0",
+      allocation: buildCountyVaultAllocation(Number(vaultSnapshot.vault?.currentBalance ?? 0)),
       createdAt: vaultSnapshot.vault?.createdAt || new Date(),
       updatedAt: vaultSnapshot.vault?.updatedAt || new Date(),
     });

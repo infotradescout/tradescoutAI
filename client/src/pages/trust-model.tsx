@@ -35,9 +35,9 @@ const TrustModelPage = memo(function TrustModelPage() {
         "Anonymous reviews enable fake testimonials and retaliation. TradeScout reviews are tied to verified community members who actually worked with the contractor. Review lineage is publicly auditable.",
     },
     {
-      question: "Can contractors pay to boost their trust score?",
+      question: "Can contractors pay to change trust score or ranking?",
       answer:
-        "No. Trust score is based only on verification and performance. Contractors can pay for visibility boosts, but boosts never override trust ranking. Low-trust contractors cannot buy their way to the top.",
+        "No. Trust score and ranking are based only on verification and performance signals. Financial activity cannot change trust authority or ranking order.",
     },
     {
       question: "What happens if a contractor's license expires?",
@@ -76,9 +76,8 @@ const TrustModelPage = memo(function TrustModelPage() {
               better community standing rank higher — regardless of how much they pay.
             </p>
             <p className="text-tsTextSecondary">
-              Payment can buy optional visibility boosts, but it cannot override trust. A low-trust
-              contractor with a paid boost will always rank below a high-trust contractor without
-              one.
+              Payment cannot buy visibility rank. A low-trust contractor always ranks below a
+              high-trust contractor.
             </p>
           </section>
 
@@ -209,8 +208,8 @@ const TrustModelPage = memo(function TrustModelPage() {
                   <strong>Context</strong>: Urgency signals, budget alignment, job complexity
                 </li>
                 <li>
-                  <strong>Boosts (optional)</strong>: Paid visibility can move a contractor up{" "}
-                  <em>within the same trust tier</em>
+                  <strong>Authority guardrail</strong>: Payment data is excluded from ranking and
+                  trust computation.
                 </li>
               </ol>
             </div>
@@ -220,8 +219,7 @@ const TrustModelPage = memo(function TrustModelPage() {
                 Payment Cannot Override Trust
               </h3>
               <p className="text-tsTextSecondary">
-                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80. Boosts
-                work <strong>within trust tiers</strong>, not across them.
+                A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80.
               </p>
             </div>
           </section>

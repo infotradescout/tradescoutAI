@@ -297,26 +297,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             transition={{ duration: 0.7, delay: 0.3 }}
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
-            {variant.headlineMode === "inline"
-              ? (() => {
-                  const noBreakAfter = new Set<number>(variant.headlineNoBreakAfterIndices ?? []);
-                  const lastIdx = variant.headlineLines.length - 1;
-                  return variant.headlineLines.map((line, idx) => {
-                    const sep = idx < lastIdx ? (noBreakAfter.has(idx) ? "\u00A0" : " ") : "";
-                    return (
-                      <span key={idx}>
-                        {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
-                        {sep}
-                      </span>
-                    );
-                  });
-                })()
-              : variant.headlineLines.map((line, idx) => (
-                  <span key={idx}>
-                    {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
-                    <br />
-                  </span>
-                ))}
+            <span className="text-gradient-orange">Connection Without Compromise</span>
           </motion.h1>
 
           <motion.p
@@ -570,8 +551,8 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             <div>
               <h3 className="text-base font-bold text-white mb-1">Payment Cannot Override Trust</h3>
               <p className="text-sm text-white/70">
-                A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Boosts work{" "}
-                <strong>within trust tiers</strong>, not across them. Trust always comes first.
+                A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Financial activity is
+                excluded from ranking logic. Trust always comes first.
               </p>
             </div>
           </div>
@@ -697,10 +678,10 @@ function PricingSection() {
   ];
 
   const sponsorFeatures = [
-    "Occasional affiliate offers",
-    "Paid advertisers",
-    "No paywalls or upsells",
-    "Core features stay $0",
+    "Transaction-based and value-movement revenue only",
+    "Payment-blind trust and ranking systems",
+    "No paywalls and no access tiers",
+    "No paid ranking and no paid lead routing",
   ];
 
   return (
@@ -793,8 +774,8 @@ function FAQSection() {
       a: "It's a public, auditable score based on verified identity, active credentials, work history, community recommendations, and dispute resolution. You can see exactly why Scout matched you with a pro.",
     },
     {
-      q: "Can pros pay to boost their ranking?",
-      a: "Boosts work WITHIN trust tiers, not across them. A pro with CVS 40 cannot pay to rank above one with CVS 80. Trust always comes first.",
+      q: "Can pros pay to change their ranking?",
+      a: "No. Ranking is trust-and-context based, and financial activity is excluded from ranking logic.",
     },
     {
       q: "How does Direct Connect work?",

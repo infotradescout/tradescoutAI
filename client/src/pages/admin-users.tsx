@@ -118,7 +118,7 @@ const roleHierarchy = {
   },
   accelerator_member: {
     level: 15,
-    label: "Accelerator Member",
+    label: "Verified Contractor",
     icon: Users,
     color: "bg-accent text-accent-foreground",
   },
@@ -161,6 +161,23 @@ export default function AdminUsers() {
     countyName: string;
     profileImageUrl: string;
     bio: string;
+    profileVisibility: "public" | "private";
+    servicesDescription: string;
+    profileSections: {
+      about?: boolean;
+      rolesAndBadges?: boolean;
+      stats?: boolean;
+      services?: boolean;
+      marketplaceListings?: boolean;
+      reviews?: boolean;
+      communityActivity?: boolean;
+      contactCard?: boolean;
+    };
+    colorSchemePreset: string;
+    colorPrimary: string;
+    colorSecondary: string;
+    colorBackground: string;
+    colorText: string;
   }>({
     firstName: "",
     lastName: "",
@@ -171,6 +188,14 @@ export default function AdminUsers() {
     countyName: "",
     profileImageUrl: "",
     bio: "",
+    profileVisibility: "public",
+    servicesDescription: "",
+    profileSections: {},
+    colorSchemePreset: "",
+    colorPrimary: "",
+    colorSecondary: "",
+    colorBackground: "",
+    colorText: "",
   });
 
   // Pending state for each user action (by userId + action)
@@ -233,6 +258,29 @@ export default function AdminUsers() {
   const saveProfileMutation = useMutation({
     mutationFn: async () => {
       if (!profileUser) throw new Error("No user selected");
+      const colorScheme =
+        profileForm.colorSchemePreset ||
+        profileForm.colorPrimary ||
+        profileForm.colorSecondary ||
+        profileForm.colorBackground ||
+        profileForm.colorText
+          ? {
+              ...(profileForm.colorSchemePreset.trim()
+                ? { preset: profileForm.colorSchemePreset.trim() }
+                : {}),
+              ...(profileForm.colorPrimary.trim()
+                ? { primary: profileForm.colorPrimary.trim() }
+                : {}),
+              ...(profileForm.colorSecondary.trim()
+                ? { secondary: profileForm.colorSecondary.trim() }
+                : {}),
+              ...(profileForm.colorBackground.trim()
+                ? { background: profileForm.colorBackground.trim() }
+                : {}),
+              ...(profileForm.colorText.trim() ? { text: profileForm.colorText.trim() } : {}),
+            }
+          : undefined;
+
       const payload = {
         firstName: profileForm.firstName.trim() || undefined,
         lastName: profileForm.lastName.trim() || undefined,
@@ -242,7 +290,13 @@ export default function AdminUsers() {
         countyFips: profileForm.countyFips.trim() || undefined,
         countyName: profileForm.countyName.trim() || undefined,
         profileImageUrl: profileForm.profileImageUrl.trim() || undefined,
-        preferencesPatch: { bio: profileForm.bio },
+        preferencesPatch: {
+          bio: profileForm.bio,
+          profileVisibility: profileForm.profileVisibility,
+          servicesDescription: profileForm.servicesDescription,
+          profileSections: profileForm.profileSections,
+          ...(colorScheme ? { colorScheme } : {}),
+        },
       };
       return apiRequest("PUT", `/api/admin/users/${profileUser.id}/profile`, payload);
     },
@@ -271,6 +325,14 @@ export default function AdminUsers() {
       const prefs = (
         u?.preferences && typeof u.preferences === "object" ? u.preferences : {}
       ) as any;
+      const sections = (
+        prefs.profileSections && typeof prefs.profileSections === "object"
+          ? prefs.profileSections
+          : {}
+      ) as any;
+      const color = (
+        prefs.colorScheme && typeof prefs.colorScheme === "object" ? prefs.colorScheme : {}
+      ) as any;
       setProfileForm({
         firstName: String(u?.firstName || ""),
         lastName: String(u?.lastName || ""),
@@ -281,6 +343,24 @@ export default function AdminUsers() {
         countyName: String((u as any)?.countyName || u?.county || ""),
         profileImageUrl: String(u?.profileImageUrl || ""),
         bio: typeof prefs.bio === "string" ? prefs.bio : "",
+        profileVisibility: prefs.profileVisibility === "private" ? "private" : "public",
+        servicesDescription:
+          typeof prefs.servicesDescription === "string" ? prefs.servicesDescription : "",
+        profileSections: {
+          about: sections.about,
+          rolesAndBadges: sections.rolesAndBadges,
+          stats: sections.stats,
+          services: sections.services,
+          marketplaceListings: sections.marketplaceListings,
+          reviews: sections.reviews,
+          communityActivity: sections.communityActivity,
+          contactCard: sections.contactCard,
+        },
+        colorSchemePreset: typeof color.preset === "string" ? color.preset : "",
+        colorPrimary: typeof color.primary === "string" ? color.primary : "",
+        colorSecondary: typeof color.secondary === "string" ? color.secondary : "",
+        colorBackground: typeof color.background === "string" ? color.background : "",
+        colorText: typeof color.text === "string" ? color.text : "",
       });
     } catch (error: any) {
       toast({
@@ -1389,6 +1469,137 @@ export default function AdminUsers() {
                   rows={6}
                   className="bg-input border-input text-foreground"
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <Label className="text-muted-foreground">Public profile visibility</Label>
+                <Select
+                  value={profileForm.profileVisibility}
+                  onValueChange={(v) =>
+                    setProfileForm((p) => ({
+                      ...p,
+                      profileVisibility: v === "private" ? "private" : "public",
+                    }))
+                  }
+                >
+                  <SelectTrigger className="bg-input border-input text-foreground">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label className="text-muted-foreground">Services description</Label>
+                <Textarea
+                  value={profileForm.servicesDescription}
+                  onChange={(e) =>
+                    setProfileForm((p) => ({ ...p, servicesDescription: e.target.value }))
+                  }
+                  rows={4}
+                  className="bg-input border-input text-foreground"
+                />
+              </div>
+
+              <div className="md:col-span-2 space-y-2 rounded-lg border border-input p-3">
+                <div className="text-sm font-semibold text-foreground">Public profile sections</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  {[
+                    ["about", "About"],
+                    ["rolesAndBadges", "Roles & badges"],
+                    ["stats", "Stats"],
+                    ["services", "Services"],
+                    ["marketplaceListings", "Marketplace"],
+                    ["reviews", "Reviews"],
+                    ["communityActivity", "Community"],
+                    ["contactCard", "Contact card"],
+                  ].map(([key, label]) => {
+                    const k = key as keyof typeof profileForm.profileSections;
+                    const checked = (profileForm.profileSections as any)?.[k] !== false;
+                    return (
+                      <label key={key} className="flex items-center gap-2 text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setProfileForm((p) => ({
+                              ...p,
+                              profileSections: {
+                                ...(p.profileSections || {}),
+                                [k]: e.target.checked,
+                              },
+                            }))
+                          }
+                        />
+                        <span className="text-foreground">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="md:col-span-2 space-y-3 rounded-lg border border-input p-3">
+                <div className="text-sm font-semibold text-foreground">
+                  Profile colors (optional)
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <Label className="text-muted-foreground">Preset</Label>
+                    <Input
+                      value={profileForm.colorSchemePreset}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, colorSchemePreset: e.target.value }))
+                      }
+                      placeholder="default | warm | cool | vibrant | minimal | custom"
+                      className="bg-input border-input text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Primary</Label>
+                    <Input
+                      value={profileForm.colorPrimary}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, colorPrimary: e.target.value }))
+                      }
+                      placeholder="#ff6600"
+                      className="bg-input border-input text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Secondary</Label>
+                    <Input
+                      value={profileForm.colorSecondary}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, colorSecondary: e.target.value }))
+                      }
+                      placeholder="#00bcd4"
+                      className="bg-input border-input text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Background</Label>
+                    <Input
+                      value={profileForm.colorBackground}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, colorBackground: e.target.value }))
+                      }
+                      placeholder="#0b1220"
+                      className="bg-input border-input text-foreground"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-muted-foreground">Text</Label>
+                    <Input
+                      value={profileForm.colorText}
+                      onChange={(e) => setProfileForm((p) => ({ ...p, colorText: e.target.value }))}
+                      placeholder="#ffffff"
+                      className="bg-input border-input text-foreground"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

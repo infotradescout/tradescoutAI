@@ -12,7 +12,7 @@ interface RoleBadgeProps {
 
 function getRoleIcon(role: UserRole) {
   const level = ROLE_HIERARCHY[role];
-  
+
   if (level >= 90) return <Crown className="h-3 w-3" />; // Super Admin
   if (level >= 50) return <Shield className="h-3 w-3" />; // Admin/Moderator
   if (level >= 30) return <Star className="h-3 w-3" />; // Staff
@@ -23,7 +23,7 @@ function getRoleIcon(role: UserRole) {
 
 function getRoleVariant(role: UserRole): "default" | "secondary" | "error" | "outline" {
   const level = ROLE_HIERARCHY[role];
-  
+
   if (level >= 90) return "error"; // Super Admin - Error (red)
   if (level >= 50) return "default"; // Admin/Moderator - Primary
   if (level >= 30) return "secondary"; // Staff - Secondary
@@ -33,7 +33,7 @@ function getRoleVariant(role: UserRole): "default" | "secondary" | "error" | "ou
 
 function getRoleColor(role: UserRole): string {
   const level = ROLE_HIERARCHY[role];
-  
+
   if (level >= 100) return "bg-red-600 text-white"; // Super Admin
   if (level >= 90) return "bg-red-500 text-white"; // Legacy high admin
   if (level >= 70) return "bg-purple-600 text-white"; // Ops Admin
@@ -42,32 +42,27 @@ function getRoleColor(role: UserRole): string {
   if (level >= 30) return "bg-yellow-600 text-black"; // Staff
   if (level >= 25) return "bg-orange-600 text-white"; // Community Leader
   if (level >= 20) return "bg-gray-600 text-white"; // Community
-  if (level >= 15) return "bg-indigo-600 text-white"; // Accelerator
+  if (level >= 15) return "bg-indigo-600 text-white"; // top tier
   if (level >= 10) return "bg-teal-600 text-white"; // Service Provider
   return "bg-slate-600 text-white"; // Customer
 }
 
-export function RoleBadge({ 
-  role, 
-  showIcon = true, 
-  variant,
-  size = "md"
-}: RoleBadgeProps) {
+export function RoleBadge({ role, showIcon = true, variant, size = "md" }: RoleBadgeProps) {
   const displayName = getRoleDisplayName(role);
   const icon = showIcon ? getRoleIcon(role) : null;
   // Only allow Badge-supported variants
   const allowedVariants = ["default", "secondary", "error", "outline"];
   const computedVariant = getRoleVariant(role);
   const badgeVariant = allowedVariants.includes(variant as any) ? variant : computedVariant;
-  
+
   const sizeClasses = {
     sm: "text-xs px-1.5 py-0.5",
-    md: "text-sm px-2 py-1", 
-    lg: "text-base px-3 py-1.5"
+    md: "text-sm px-2 py-1",
+    lg: "text-base px-3 py-1.5",
   };
-  
+
   return (
-    <Badge 
+    <Badge
       variant={badgeVariant}
       className={`${sizeClasses[size]} ${getRoleColor(role)} flex items-center gap-1 font-medium`}
     >
@@ -87,28 +82,28 @@ export function RoleHierarchy({ role, showLevel = false }: RoleHierarchyProps) {
   const level = ROLE_HIERARCHY[role];
   const maxLevel = 5;
   const filledLevels = Math.min(Math.floor(level / 20), maxLevel);
-  
+
   return (
     <div className="flex items-center gap-1">
       {Array.from({ length: maxLevel }).map((_, i) => (
         <div
           key={i}
           className={`h-2 w-2 rounded-full ${
-            i < filledLevels 
-              ? level >= 90 ? "bg-red-500" 
-                : level >= 50 ? "bg-blue-500"
-                : level >= 30 ? "bg-green-500"
-                : level >= 20 ? "bg-yellow-500"
-                : "bg-gray-500"
+            i < filledLevels
+              ? level >= 90
+                ? "bg-red-500"
+                : level >= 50
+                  ? "bg-blue-500"
+                  : level >= 30
+                    ? "bg-green-500"
+                    : level >= 20
+                      ? "bg-yellow-500"
+                      : "bg-gray-500"
               : "bg-gray-300"
           }`}
         />
       ))}
-      {showLevel && (
-        <span className="text-xs text-muted-foreground ml-1">
-          Level {level}
-        </span>
-      )}
+      {showLevel && <span className="text-xs text-muted-foreground ml-1">Level {level}</span>}
     </div>
   );
 }
@@ -120,16 +115,16 @@ interface PermissionIndicatorProps {
   size?: "sm" | "md";
 }
 
-export function PermissionIndicator({ 
-  hasPermission, 
+export function PermissionIndicator({
+  hasPermission,
   permissionName,
-  size = "md"
+  size = "md",
 }: PermissionIndicatorProps) {
   const sizeClasses = {
     sm: "h-3 w-3",
-    md: "h-4 w-4"
+    md: "h-4 w-4",
   };
-  
+
   return (
     <div className="flex items-center gap-1">
       <div

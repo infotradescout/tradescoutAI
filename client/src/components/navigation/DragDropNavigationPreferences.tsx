@@ -244,7 +244,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
     if (userRole === "accelerator_member") {
       baseItems.push({
         id: "accelerator",
-        label: "Accelerator",
+        label: "Contractor Access",
         icon: "Zap",
         href: "/accelerator",
         visible: true,

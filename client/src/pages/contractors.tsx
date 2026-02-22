@@ -100,7 +100,7 @@ export default function ForContractors() {
             </CardContent>
           </Card>
 
-          {/* Accelerator Program retired */}
+          {/* Legacy paid-growth surface retired */}
         </div>
 
         {/* Additional Features */}
@@ -174,7 +174,7 @@ export default function ForContractors() {
               <p className="text-xl text-gray-300 mb-6 max-w-2xl mx-auto">
                 Join thousands of contractors who have transformed their businesses with TradeScout.
               </p>
-              {/* Legacy Growth Pack and Accelerator CTAs retired */}
+              {/* Legacy growth CTA surfaces retired */}
             </CardContent>
           </Card>
         </div>

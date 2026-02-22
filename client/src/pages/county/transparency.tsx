@@ -1,10 +1,10 @@
-import React from 'react';
-import { useRoute } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { ArrowUpRight, Wallet } from 'lucide-react';
+import React from "react";
+import { useRoute } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ArrowUpRight, Wallet } from "lucide-react";
 
 interface VaultResponse {
   id: string;
@@ -13,35 +13,41 @@ interface VaultResponse {
   lifetimeInflow: string;
   lifetimeOutflow: string;
   lastContributionAt?: string;
+  allocation?: Array<{
+    key: string;
+    label: string;
+    percent: number;
+    amount: number;
+  }>;
 }
 
 export default function CountyTransparencyPage() {
-  const [, params] = useRoute('/county/:countyId/transparency');
-  const countyId = params?.countyId || '';
+  const [, params] = useRoute("/county/:countyId/transparency");
+  const countyId = params?.countyId || "";
 
   const { data: vault } = useQuery<VaultResponse | null>({
-    queryKey: ['countyVault', countyId],
+    queryKey: ["countyVault", countyId],
     enabled: Boolean(countyId),
     queryFn: async () => {
       const res = await fetch(`/api/community-builder/county/${countyId}/vault`);
       if (res.status === 404) return null;
-      if (!res.ok) throw new Error('Failed to fetch vault');
+      if (!res.ok) throw new Error("Failed to fetch vault");
       return res.json();
     },
   });
 
   const { data: contributions = [] } = useQuery({
-    queryKey: ['countyContributions', countyId],
+    queryKey: ["countyContributions", countyId],
     enabled: Boolean(countyId),
     queryFn: async () => {
       const res = await fetch(`/api/community-builder/county/${countyId}/contributions`);
-      if (!res.ok) throw new Error('Failed to fetch contributions');
+      if (!res.ok) throw new Error("Failed to fetch contributions");
       return res.json();
     },
   });
 
   const { data: ledger = [] } = useQuery({
-    queryKey: ['countyLedger', countyId],
+    queryKey: ["countyLedger", countyId],
     enabled: Boolean(countyId),
     queryFn: async () => {
       const res = await fetch(`/api/community-builder/county/${countyId}/ledger`);
@@ -51,7 +57,7 @@ export default function CountyTransparencyPage() {
   });
 
   return (
-	<div className="bg-gradient-to-br from-slate-50 to-white py-10 px-4">
+    <div className="bg-gradient-to-br from-slate-50 to-white py-10 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -72,8 +78,10 @@ export default function CountyTransparencyPage() {
               <CardDescription>Current funds available</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">${vault?.currentBalance ?? '0.00'}</p>
-              <p className="text-sm text-gray-500 mt-1">Lifetime inflow: ${vault?.lifetimeInflow ?? '0.00'}</p>
+              <p className="text-3xl font-bold">${vault?.currentBalance ?? "0.00"}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Lifetime inflow: ${vault?.lifetimeInflow ?? "0.00"}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -109,7 +117,10 @@ export default function CountyTransparencyPage() {
             ) : (
               <div className="space-y-3">
                 {ledger.slice(0, 8).map((entry: any) => (
-                  <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div>
                       <p className="font-semibold">${entry.amount}</p>
                       <p className="text-sm text-gray-600">{entry.memo || entry.sourceType}</p>
@@ -135,12 +146,42 @@ export default function CountyTransparencyPage() {
             ) : (
               <div className="space-y-3">
                 {contributions.slice(0, 6).map((c: any) => (
-                  <div key={c.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div>
                       <p className="font-semibold">{c.title}</p>
                       <p className="text-sm text-gray-600">${c.actualValue || c.estimatedValue}</p>
                     </div>
                     <Badge variant="outline">{c.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>County Vault Split</CardTitle>
+            <CardDescription>Fixed 20% allocation across all five buckets.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!vault?.allocation?.length ? (
+              <p className="text-gray-500">No allocation data yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {vault.allocation.map((bucket) => (
+                  <div
+                    key={bucket.key}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div>
+                      <p className="font-semibold">{bucket.label}</p>
+                      <p className="text-xs text-gray-500">{bucket.percent}% of county vault</p>
+                    </div>
+                    <Badge variant="outline">${bucket.amount.toFixed(2)}</Badge>
                   </div>
                 ))}
               </div>

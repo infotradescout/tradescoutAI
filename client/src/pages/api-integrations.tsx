@@ -1,12 +1,24 @@
-import { memo, useState } from 'react';
-import { Code, Network, Key, Settings2, CheckCircle2, XCircle, Clock, AlertTriangle, Copy, Eye, EyeOff } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import { memo, useState } from "react";
+import {
+  Code,
+  Network,
+  Key,
+  Settings2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Copy,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const APIIntegrations = memo(function APIIntegrations() {
   const [showApiKey, setShowApiKey] = useState(false);
@@ -14,125 +26,125 @@ const APIIntegrations = memo(function APIIntegrations() {
 
   const integrations = [
     {
-      id: 'stripe',
-      name: 'Stripe',
-      description: 'Payment processing for escrow and subscriptions',
-      status: 'connected',
-      lastSync: '5 minutes ago',
-      apiVersion: 'v2023-08-16',
+      id: "stripe",
+      name: "Stripe",
+      description: "Payment processing for escrow and transaction settlement",
+      status: "connected",
+      lastSync: "5 minutes ago",
+      apiVersion: "v2023-08-16",
       enabled: true,
-      logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=40&h=40&fit=crop',
-      endpoints: ['payments', 'subscriptions', 'escrow'],
+      logo: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=40&h=40&fit=crop",
+      endpoints: ["payments", "settlement", "escrow"],
       requests: 15420,
-      errors: 12
+      errors: 12,
     },
     {
-      id: 'facebook',
-      name: 'Facebook Graph API',
-      description: 'Social login and page integration',
-      status: 'connected',
-      lastSync: '2 hours ago',
-      apiVersion: 'v18.0',
+      id: "facebook",
+      name: "Facebook Graph API",
+      description: "Social login and page integration",
+      status: "connected",
+      lastSync: "2 hours ago",
+      apiVersion: "v18.0",
       enabled: true,
-      logo: 'https://images.unsplash.com/photo-1611262588024-d12430b98920?w=40&h=40&fit=crop',
-      endpoints: ['auth', 'pages', 'posts'],
+      logo: "https://images.unsplash.com/photo-1611262588024-d12430b98920?w=40&h=40&fit=crop",
+      endpoints: ["auth", "pages", "posts"],
       requests: 8934,
-      errors: 3
+      errors: 3,
     },
     {
-      id: 'google-maps',
-      name: 'Google Maps Platform',
-      description: 'Location services and geocoding',
-      status: 'connected',
-      lastSync: '1 hour ago',
-      apiVersion: 'v3',
+      id: "google-maps",
+      name: "Google Maps Platform",
+      description: "Location services and geocoding",
+      status: "connected",
+      lastSync: "1 hour ago",
+      apiVersion: "v3",
       enabled: true,
-      logo: 'https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?w=40&h=40&fit=crop',
-      endpoints: ['geocoding', 'places', 'directions'],
+      logo: "https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?w=40&h=40&fit=crop",
+      endpoints: ["geocoding", "places", "directions"],
       requests: 23567,
-      errors: 0
+      errors: 0,
     },
     {
-      id: 'sendgrid',
-      name: 'SendGrid',
-      description: 'Email delivery and notifications',
-      status: 'connected',
-      lastSync: '30 minutes ago',
-      apiVersion: 'v3',
+      id: "sendgrid",
+      name: "SendGrid",
+      description: "Email delivery and notifications",
+      status: "connected",
+      lastSync: "30 minutes ago",
+      apiVersion: "v3",
       enabled: true,
-      logo: 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=40&h=40&fit=crop',
-      endpoints: ['mail', 'templates', 'lists'],
+      logo: "https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=40&h=40&fit=crop",
+      endpoints: ["mail", "templates", "lists"],
       requests: 5634,
-      errors: 1
+      errors: 1,
     },
     {
-      id: 'twilio',
-      name: 'Twilio',
-      description: 'SMS notifications and phone verification',
-      status: 'error',
-      lastSync: '6 hours ago',
-      apiVersion: 'v2010-04-01',
+      id: "twilio",
+      name: "Twilio",
+      description: "SMS notifications and phone verification",
+      status: "error",
+      lastSync: "6 hours ago",
+      apiVersion: "v2010-04-01",
       enabled: false,
-      logo: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=40&h=40&fit=crop',
-      endpoints: ['sms', 'verify', 'voice'],
+      logo: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=40&h=40&fit=crop",
+      endpoints: ["sms", "verify", "voice"],
       requests: 1234,
-      errors: 45
+      errors: 45,
     },
     {
-      id: 'aws-s3',
-      name: 'Amazon S3',
-      description: 'File storage and document management',
-      status: 'pending',
-      lastSync: 'Never',
-      apiVersion: 'v4',
+      id: "aws-s3",
+      name: "Amazon S3",
+      description: "File storage and document management",
+      status: "pending",
+      lastSync: "Never",
+      apiVersion: "v4",
       enabled: false,
-      logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=40&h=40&fit=crop',
-      endpoints: ['storage', 'cdn', 'backup'],
+      logo: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=40&h=40&fit=crop",
+      endpoints: ["storage", "cdn", "backup"],
       requests: 0,
-      errors: 0
-    }
+      errors: 0,
+    },
   ];
 
   const webhooks = [
     {
       id: 1,
-      name: 'Payment Completed',
-      url: 'https://api.tradescout.com/webhooks/payment-completed',
-      events: ['payment.succeeded', 'payment.failed'],
-      status: 'active',
-      lastTrigger: '2 hours ago',
+      name: "Payment Completed",
+      url: "https://api.tradescout.com/webhooks/payment-completed",
+      events: ["payment.succeeded", "payment.failed"],
+      status: "active",
+      lastTrigger: "2 hours ago",
       attempts: 1247,
-      failures: 3
+      failures: 3,
     },
     {
       id: 2,
-      name: 'User Registration',
-      url: 'https://api.tradescout.com/webhooks/user-registered',
-      events: ['user.created', 'user.verified'],
-      status: 'active',
-      lastTrigger: '1 hour ago',
+      name: "User Registration",
+      url: "https://api.tradescout.com/webhooks/user-registered",
+      events: ["user.created", "user.verified"],
+      status: "active",
+      lastTrigger: "1 hour ago",
       attempts: 567,
-      failures: 0
+      failures: 0,
     },
     {
       id: 3,
-      name: 'Project Updates',
-      url: 'https://api.tradescout.com/webhooks/project-updates',
-      events: ['project.created', 'project.completed'],
-      status: 'paused',
-      lastTrigger: '1 day ago',
+      name: "Project Updates",
+      url: "https://api.tradescout.com/webhooks/project-updates",
+      events: ["project.created", "project.completed"],
+      status: "paused",
+      lastTrigger: "1 day ago",
       attempts: 234,
-      failures: 12
-    }
+      failures: 12,
+    },
   ];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'connected':
+      case "connected":
         return <CheckCircle2 className="h-4 w-4 text-green-400" />;
-      case 'error':
+      case "error":
         return <XCircle className="h-4 w-4 text-red-400" />;
-      case 'pending':
+      case "pending":
         return <Clock className="h-4 w-4 text-yellow-400" />;
       default:
         return <AlertTriangle className="h-4 w-4 text-gray-400" />;
@@ -141,14 +153,14 @@ const APIIntegrations = memo(function APIIntegrations() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'connected':
-        return 'bg-primary hover:bg-primary/90';
-      case 'error':
-        return 'bg-destructive hover:bg-destructive/90';
-      case 'pending':
-        return 'bg-secondary hover:bg-secondary/90';
+      case "connected":
+        return "bg-primary hover:bg-primary/90";
+      case "error":
+        return "bg-destructive hover:bg-destructive/90";
+      case "pending":
+        return "bg-secondary hover:bg-secondary/90";
       default:
-        return 'bg-muted hover:bg-muted/90';
+        return "bg-muted hover:bg-muted/90";
     }
   };
 
@@ -176,16 +188,27 @@ const APIIntegrations = memo(function APIIntegrations() {
 
         <Tabs defaultValue="integrations" className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-orange-600">Integrations</TabsTrigger>
-            <TabsTrigger value="api-keys" className="data-[state=active]:bg-orange-600">API Keys</TabsTrigger>
-            <TabsTrigger value="webhooks" className="data-[state=active]:bg-orange-600">Webhooks</TabsTrigger>
-            <TabsTrigger value="docs" className="data-[state=active]:bg-orange-600">Documentation</TabsTrigger>
+            <TabsTrigger value="integrations" className="data-[state=active]:bg-orange-600">
+              Integrations
+            </TabsTrigger>
+            <TabsTrigger value="api-keys" className="data-[state=active]:bg-orange-600">
+              API Keys
+            </TabsTrigger>
+            <TabsTrigger value="webhooks" className="data-[state=active]:bg-orange-600">
+              Webhooks
+            </TabsTrigger>
+            <TabsTrigger value="docs" className="data-[state=active]:bg-orange-600">
+              Documentation
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="integrations" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {integrations.map((integration) => (
-                <Card key={integration.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <Card
+                  key={integration.id}
+                  className="bg-navy-800/50 border-navy-600 backdrop-blur-sm"
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -202,14 +225,15 @@ const APIIntegrations = memo(function APIIntegrations() {
                       <Switch checked={integration.enabled} />
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(integration.status)}
                           <Badge className={getStatusColor(integration.status)}>
-                            {integration.status.charAt(0).toUpperCase() + integration.status.slice(1)}
+                            {integration.status.charAt(0).toUpperCase() +
+                              integration.status.slice(1)}
                           </Badge>
                         </div>
                         <span className="text-gray-400 text-sm">{integration.apiVersion}</span>
@@ -222,11 +246,15 @@ const APIIntegrations = memo(function APIIntegrations() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Requests:</span>
-                          <span className="text-white">{integration.requests.toLocaleString()}</span>
+                          <span className="text-white">
+                            {integration.requests.toLocaleString()}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Errors:</span>
-                          <span className={integration.errors > 0 ? "text-red-400" : "text-green-400"}>
+                          <span
+                            className={integration.errors > 0 ? "text-red-400" : "text-green-400"}
+                          >
                             {integration.errors}
                           </span>
                         </div>
@@ -244,14 +272,21 @@ const APIIntegrations = memo(function APIIntegrations() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button 
+                        <Button
                           className="flex-1 bg-orange-600 hover:bg-orange-700"
-                          disabled={integration.status === 'pending'}
+                          disabled={integration.status === "pending"}
                         >
-                          {integration.status === 'connected' ? 'Configure' : 
-                           integration.status === 'error' ? 'Reconnect' : 'Connect'}
+                          {integration.status === "connected"
+                            ? "Configure"
+                            : integration.status === "error"
+                              ? "Reconnect"
+                              : "Connect"}
                         </Button>
-                        <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                        >
                           <Settings2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -287,7 +322,11 @@ const APIIntegrations = memo(function APIIntegrations() {
                           variant="outline"
                           onClick={() => setShowApiKey(!showApiKey)}
                         >
-                          {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showApiKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           size="sm"
@@ -297,7 +336,9 @@ const APIIntegrations = memo(function APIIntegrations() {
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">Created: March 1, 2024 • Last used: 5 minutes ago</p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Created: March 1, 2024 • Last used: 5 minutes ago
+                      </p>
                     </div>
 
                     <div>
@@ -320,14 +361,19 @@ const APIIntegrations = memo(function APIIntegrations() {
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">Created: March 1, 2024 • Last used: 2 hours ago</p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Created: March 1, 2024 • Last used: 2 hours ago
+                      </p>
                     </div>
 
                     <div className="space-y-3">
                       <Button className="w-full bg-orange-600 hover:bg-orange-700">
                         Generate New API Key
                       </Button>
-                      <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                      <Button
+                        variant="outline"
+                        className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                      >
                         Rotate Keys
                       </Button>
                     </div>
@@ -391,9 +437,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-white">Webhook Endpoints</CardTitle>
-                    <Button className="bg-orange-600 hover:bg-orange-700">
-                      Add Webhook
-                    </Button>
+                    <Button className="bg-orange-600 hover:bg-orange-700">Add Webhook</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -406,10 +450,16 @@ const APIIntegrations = memo(function APIIntegrations() {
                             <p className="text-gray-400 text-sm">{webhook.url}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge className={webhook.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'}>
+                            <Badge
+                              className={
+                                webhook.status === "active"
+                                  ? "bg-green-600 hover:bg-green-700"
+                                  : "bg-yellow-600 hover:bg-yellow-700"
+                              }
+                            >
                               {webhook.status}
                             </Badge>
-                            <Switch checked={webhook.status === 'active'} />
+                            <Switch checked={webhook.status === "active"} />
                           </div>
                         </div>
 
@@ -441,13 +491,25 @@ const APIIntegrations = memo(function APIIntegrations() {
                         </div>
 
                         <div className="flex gap-2 mt-4">
-                          <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                          >
                             Test
                           </Button>
-                          <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                          >
                             Edit
                           </Button>
-                          <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/20">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-600 text-red-400 hover:bg-red-600/20"
+                          >
                             Delete
                           </Button>
                         </div>
@@ -471,14 +533,41 @@ const APIIntegrations = memo(function APIIntegrations() {
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { title: "Getting Started", description: "Authentication and basic setup", url: "/docs/getting-started" },
-                      { title: "User Management", description: "User CRUD operations and profiles", url: "/docs/users" },
-                      { title: "Marketplace API", description: "Listings, orders, and transactions", url: "/docs/marketplace" },
-                      { title: "Notifications", description: "Email, SMS, and push notifications", url: "/docs/notifications" },
-                      { title: "Webhooks", description: "Event-driven integrations", url: "/docs/webhooks" },
-                      { title: "Rate Limits", description: "API quotas and best practices", url: "/docs/rate-limits" }
+                      {
+                        title: "Getting Started",
+                        description: "Authentication and basic setup",
+                        url: "/docs/getting-started",
+                      },
+                      {
+                        title: "User Management",
+                        description: "User CRUD operations and profiles",
+                        url: "/docs/users",
+                      },
+                      {
+                        title: "Marketplace API",
+                        description: "Listings, orders, and transactions",
+                        url: "/docs/marketplace",
+                      },
+                      {
+                        title: "Notifications",
+                        description: "Email, SMS, and push notifications",
+                        url: "/docs/notifications",
+                      },
+                      {
+                        title: "Webhooks",
+                        description: "Event-driven integrations",
+                        url: "/docs/webhooks",
+                      },
+                      {
+                        title: "Rate Limits",
+                        description: "API quotas and best practices",
+                        url: "/docs/rate-limits",
+                      },
                     ].map((doc, index) => (
-                      <div key={index} className="p-3 bg-navy-700/50 rounded-lg hover:bg-navy-600/50 transition-colors cursor-pointer">
+                      <div
+                        key={index}
+                        className="p-3 bg-navy-700/50 rounded-lg hover:bg-navy-600/50 transition-colors cursor-pointer"
+                      >
                         <h4 className="text-white font-medium">{doc.title}</h4>
                         <p className="text-gray-400 text-sm">{doc.description}</p>
                       </div>
@@ -500,7 +589,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                     <div className="bg-navy-900/50 rounded-lg p-4">
                       <h4 className="text-orange-400 font-medium mb-2">Authentication</h4>
                       <pre className="text-gray-300 text-sm overflow-x-auto">
-{`curl -H "Authorization: Bearer YOUR_API_KEY" \\
+                        {`curl -H "Authorization: Bearer YOUR_API_KEY" \\
   https://api.tradescout.com/v1/users/me`}
                       </pre>
                     </div>
@@ -508,7 +597,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                     <div className="bg-navy-900/50 rounded-lg p-4">
                       <h4 className="text-orange-400 font-medium mb-2">Create Listing</h4>
                       <pre className="text-gray-300 text-sm overflow-x-auto">
-{`curl -X POST \\
+                        {`curl -X POST \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"title":"Kitchen Remodel","price":15000}' \\
@@ -519,7 +608,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                     <div className="bg-navy-900/50 rounded-lg p-4">
                       <h4 className="text-orange-400 font-medium mb-2">Webhook Verification</h4>
                       <pre className="text-gray-300 text-sm overflow-x-auto">
-{`const signature = req.headers['x-tradescout-signature'];
+                        {`const signature = req.headers['x-tradescout-signature'];
 const payload = JSON.stringify(req.body);
 const expectedSignature = 
   crypto.createHmac('sha256', webhookSecret)

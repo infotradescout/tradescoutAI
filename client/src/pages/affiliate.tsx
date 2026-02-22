@@ -270,7 +270,7 @@ export default function AffiliatePage() {
               <p className="text-blue-200 font-medium">Automatic Affiliate Program</p>
               <p className="text-blue-300/80 text-sm">
                 No signup needed! As a TradeScout member, 5% of platform revenue from your referrals
-                goes to you, 5% to your community vaults, and 5% to trade school scholarships.
+                goes to you, 5% to your community vaults, and 5% to trade + culinary scholarships.
               </p>
             </div>
             <a
@@ -530,7 +530,7 @@ export default function AffiliatePage() {
                     <h3 className="text-white font-semibold mb-2">3. 5/5/5 Forever</h3>
                     <p className="text-gray-400 text-sm">
                       You earn 5% of platform revenue from your referrals, while another 5% goes to
-                      community vaults and 5% to trade school scholarships.
+                      community vaults and 5% to trade + culinary scholarships.
                     </p>
                   </div>
                 </div>

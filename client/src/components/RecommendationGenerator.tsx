@@ -1,19 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, TrendingUp, Target, Users, Mail, Star, ChevronRight, Lightbulb, Trophy, ArrowUp } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertCircle,
+  TrendingUp,
+  Target,
+  Users,
+  Mail,
+  Star,
+  ChevronRight,
+  Lightbulb,
+  Trophy,
+  ArrowUp,
+} from "lucide-react";
 
 interface RecommendationInsight {
   contractorId: string;
@@ -25,14 +49,14 @@ interface RecommendationInsight {
   improvementAreas: string[];
   suggestedActions: Array<{
     action: string;
-    priority: 'high' | 'medium' | 'low';
+    priority: "high" | "medium" | "low";
     impact: string;
     difficulty: string;
   }>;
   profileViews: number;
   inquiryRate: string;
   responseRate: string;
-  marketPosition: 'top_performer' | 'above_average' | 'average' | 'below_average';
+  marketPosition: "top_performer" | "above_average" | "average" | "below_average";
   competitorComparison: {
     totalContractors: number;
     betterThan: number;
@@ -41,7 +65,7 @@ interface RecommendationInsight {
   aiRecommendations: Array<{
     category: string;
     suggestion: string;
-    impact: 'high' | 'medium' | 'low';
+    impact: "high" | "medium" | "low";
     timeframe: string;
   }>;
 }
@@ -63,7 +87,7 @@ interface RecommendationCampaign {
   contractorId: string;
   name: string;
   description?: string;
-  campaignType: 'email_followup' | 'text_reminder' | 'personal_ask' | 'incentive_offer';
+  campaignType: "email_followup" | "text_reminder" | "personal_ask" | "incentive_offer";
   targetCustomers: Array<{
     projectType?: string;
     projectValue?: number;
@@ -83,12 +107,16 @@ export default function RecommendationGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedTab, setSelectedTab] = useState('insights');
+  const [selectedTab, setSelectedTab] = useState("insights");
   const [showNewGoalDialog, setShowNewGoalDialog] = useState(false);
   const [showNewCampaignDialog, setShowNewCampaignDialog] = useState(false);
 
   // Fetch insights
-  const { data: insights, isLoading: insightsLoading, refetch: refetchInsights } = useQuery<RecommendationInsight>({
+  const {
+    data: insights,
+    isLoading: insightsLoading,
+    refetch: refetchInsights,
+  } = useQuery<RecommendationInsight>({
     queryKey: [`/api/contractors/${user?.id}/insights`],
     enabled: !!user?.id,
   });
@@ -108,7 +136,7 @@ export default function RecommendationGenerator() {
   // Refresh insights mutation
   const refreshInsightsMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('POST', `/api/contractors/${user?.id}/insights/refresh`);
+      return await apiRequest("POST", `/api/contractors/${user?.id}/insights/refresh`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/contractors/${user?.id}/insights`] });
@@ -133,7 +161,7 @@ export default function RecommendationGenerator() {
       targetRating: number;
       targetTimeframe: string;
     }) => {
-      return await apiRequest('POST', `/api/contractors/${user?.id}/goals`, goalData);
+      return await apiRequest("POST", `/api/contractors/${user?.id}/goals`, goalData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/contractors/${user?.id}/goals`] });
@@ -164,7 +192,7 @@ export default function RecommendationGenerator() {
       textTemplate?: string;
       incentiveOffer?: string;
     }) => {
-      return await apiRequest('POST', `/api/contractors/${user?.id}/campaigns`, campaignData);
+      return await apiRequest("POST", `/api/contractors/${user?.id}/campaigns`, campaignData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/contractors/${user?.id}/campaigns`] });
@@ -185,30 +213,44 @@ export default function RecommendationGenerator() {
 
   const getMarketPositionColor = (position: string) => {
     switch (position) {
-      case 'top_performer': return 'text-green-600';
-      case 'above_average': return 'text-blue-600';
-      case 'average': return 'text-yellow-600';
-      case 'below_average': return 'text-red-600';
-      default: return 'text-gray-600';
+      case "top_performer":
+        return "text-green-600";
+      case "above_average":
+        return "text-blue-600";
+      case "average":
+        return "text-yellow-600";
+      case "below_average":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
     }
   };
 
   const getMarketPositionLabel = (position: string) => {
     switch (position) {
-      case 'top_performer': return 'Top Performer';
-      case 'above_average': return 'Above Average';
-      case 'average': return 'Average';
-      case 'below_average': return 'Needs Improvement';
-      default: return 'Unknown';
+      case "top_performer":
+        return "Top Performer";
+      case "above_average":
+        return "Above Average";
+      case "average":
+        return "Average";
+      case "below_average":
+        return "Needs Improvement";
+      default:
+        return "Unknown";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -226,11 +268,15 @@ export default function RecommendationGenerator() {
     <div className="container mx-auto p-6 space-y-6" data-testid="recommendation-generator">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="title-recommendation-generator">
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            data-testid="title-recommendation-generator"
+          >
             Smart Recommendation Generator
           </h1>
           <p className="text-gray-600 mt-2">
-            Boost your business with data-driven insights and automated recommendation campaigns
+            Strengthen your business with data-driven insights and automated recommendation
+            campaigns
           </p>
         </div>
         <Button
@@ -238,15 +284,21 @@ export default function RecommendationGenerator() {
           disabled={refreshInsightsMutation.isPending}
           data-testid="button-refresh-insights"
         >
-          {refreshInsightsMutation.isPending ? 'Refreshing...' : 'Refresh Data'}
+          {refreshInsightsMutation.isPending ? "Refreshing..." : "Refresh Data"}
         </Button>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="insights" data-testid="tab-insights">Performance Insights</TabsTrigger>
-          <TabsTrigger value="goals" data-testid="tab-goals">Goals & Progress</TabsTrigger>
-          <TabsTrigger value="campaigns" data-testid="tab-campaigns">Outreach Campaigns</TabsTrigger>
+          <TabsTrigger value="insights" data-testid="tab-insights">
+            Performance Insights
+          </TabsTrigger>
+          <TabsTrigger value="goals" data-testid="tab-goals">
+            Goals & Progress
+          </TabsTrigger>
+          <TabsTrigger value="campaigns" data-testid="tab-campaigns">
+            Outreach Campaigns
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="insights" className="space-y-6">
@@ -278,7 +330,8 @@ export default function RecommendationGenerator() {
                       {insights.totalRecommendations}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {insights.positiveRecommendations} positive, {insights.negativeRecommendations} concerns
+                      {insights.positiveRecommendations} positive,{" "}
+                      {insights.negativeRecommendations} concerns
                     </p>
                   </CardContent>
                 </Card>
@@ -292,9 +345,7 @@ export default function RecommendationGenerator() {
                     <div className="text-2xl font-bold" data-testid="text-average-rating">
                       {parseFloat(insights.averageRating).toFixed(1)}/5.0
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Based on customer feedback
-                    </p>
+                    <p className="text-xs text-muted-foreground">Based on customer feedback</p>
                   </CardContent>
                 </Card>
 
@@ -304,7 +355,10 @@ export default function RecommendationGenerator() {
                     <Trophy className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className={`text-2xl font-bold ${getMarketPositionColor(insights.marketPosition)}`} data-testid="text-market-position">
+                    <div
+                      className={`text-2xl font-bold ${getMarketPositionColor(insights.marketPosition)}`}
+                      data-testid="text-market-position"
+                    >
                       {getMarketPositionLabel(insights.marketPosition)}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -322,9 +376,7 @@ export default function RecommendationGenerator() {
                     <div className="text-2xl font-bold" data-testid="text-profile-views">
                       {insights.profileViews.toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      This month
-                    </p>
+                    <p className="text-xs text-muted-foreground">This month</p>
                   </CardContent>
                 </Card>
               </div>
@@ -343,12 +395,18 @@ export default function RecommendationGenerator() {
                     <div className="space-y-2">
                       {insights.topStrengths.length > 0 ? (
                         insights.topStrengths.map((strength, index) => (
-                          <Badge key={index} variant="secondary" className="bg-green-100 text-green-800">
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="bg-green-100 text-green-800"
+                          >
                             {strength}
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500">Keep building your reputation to unlock strengths!</p>
+                        <p className="text-sm text-gray-500">
+                          Keep building your reputation to unlock strengths!
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -366,12 +424,18 @@ export default function RecommendationGenerator() {
                     <div className="space-y-2">
                       {insights.improvementAreas.length > 0 ? (
                         insights.improvementAreas.map((area, index) => (
-                          <Badge key={index} variant="outline" className="border-yellow-200 text-yellow-800">
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="border-yellow-200 text-yellow-800"
+                          >
                             {area}
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500">Great job! No immediate improvement areas identified.</p>
+                        <p className="text-sm text-gray-500">
+                          Great job! No immediate improvement areas identified.
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -393,7 +457,15 @@ export default function RecommendationGenerator() {
                       <div key={index} className="border rounded-lg p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium">{rec.category}</h4>
-                          <Badge variant={rec.impact === 'high' ? 'default' : rec.impact === 'medium' ? 'secondary' : 'outline'}>
+                          <Badge
+                            variant={
+                              rec.impact === "high"
+                                ? "default"
+                                : rec.impact === "medium"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
                             {rec.impact} impact
                           </Badge>
                         </div>
@@ -409,7 +481,9 @@ export default function RecommendationGenerator() {
               <Card data-testid="card-suggested-actions">
                 <CardHeader>
                   <CardTitle>Recommended Actions</CardTitle>
-                  <CardDescription>Prioritized steps to improve your recommendation rate</CardDescription>
+                  <CardDescription>
+                    Prioritized steps to improve your recommendation rate
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -434,7 +508,9 @@ export default function RecommendationGenerator() {
               <CardContent className="text-center py-8">
                 <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
-                <p className="text-gray-600 mb-4">We need some recommendation data to generate insights.</p>
+                <p className="text-gray-600 mb-4">
+                  We need some recommendation data to generate insights.
+                </p>
                 <Button onClick={() => refreshInsightsMutation.mutate()}>
                   Generate Initial Insights
                 </Button>
@@ -494,8 +570,8 @@ export default function RecommendationGenerator() {
                           Target Rating: {goal.targetRating}/5.0 • Timeframe: {goal.targetTimeframe}
                         </p>
                       </div>
-                      <Badge variant={goal.isActive ? 'default' : 'secondary'}>
-                        {goal.isActive ? 'Active' : 'Inactive'}
+                      <Badge variant={goal.isActive ? "default" : "secondary"}>
+                        {goal.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
                     <div className="space-y-2">
@@ -517,10 +593,10 @@ export default function RecommendationGenerator() {
               <CardContent className="text-center py-8">
                 <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Goals Set</h3>
-                <p className="text-gray-600 mb-4">Create your first recommendation goal to start tracking progress.</p>
-                <Button onClick={() => setShowNewGoalDialog(true)}>
-                  Set Your First Goal
-                </Button>
+                <p className="text-gray-600 mb-4">
+                  Create your first recommendation goal to start tracking progress.
+                </p>
+                <Button onClick={() => setShowNewGoalDialog(true)}>Set Your First Goal</Button>
               </CardContent>
             </Card>
           )}
@@ -530,7 +606,9 @@ export default function RecommendationGenerator() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold">Outreach Campaigns</h2>
-              <p className="text-gray-600">Automated campaigns to request recommendations from customers</p>
+              <p className="text-gray-600">
+                Automated campaigns to request recommendations from customers
+              </p>
             </div>
             <Dialog open={showNewCampaignDialog} onOpenChange={setShowNewCampaignDialog}>
               <DialogTrigger asChild>
@@ -574,9 +652,9 @@ export default function RecommendationGenerator() {
                         <p className="text-sm text-gray-600">{campaign.description}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Badge variant="outline">{campaign.campaignType.replace('_', ' ')}</Badge>
-                        <Badge variant={campaign.isActive ? 'default' : 'secondary'}>
-                          {campaign.isActive ? 'Active' : 'Inactive'}
+                        <Badge variant="outline">{campaign.campaignType.replace("_", " ")}</Badge>
+                        <Badge variant={campaign.isActive ? "default" : "secondary"}>
+                          {campaign.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
                     </div>
@@ -594,7 +672,9 @@ export default function RecommendationGenerator() {
               <CardContent className="text-center py-8">
                 <Mail className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Campaigns Created</h3>
-                <p className="text-gray-600 mb-4">Create your first outreach campaign to start gathering recommendations.</p>
+                <p className="text-gray-600 mb-4">
+                  Create your first outreach campaign to start gathering recommendations.
+                </p>
                 <Button onClick={() => setShowNewCampaignDialog(true)}>
                   Create First Campaign
                 </Button>
@@ -612,7 +692,7 @@ function NewGoalForm({ onSubmit }: { onSubmit: (data: any) => void }) {
   const [formData, setFormData] = useState({
     targetRecommendations: 10,
     targetRating: 4.5,
-    targetTimeframe: '90_days',
+    targetTimeframe: "90_days",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -629,11 +709,13 @@ function NewGoalForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           type="number"
           min="1"
           value={formData.targetRecommendations}
-          onChange={(e) => setFormData(prev => ({ ...prev, targetRecommendations: parseInt(e.target.value) }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, targetRecommendations: parseInt(e.target.value) }))
+          }
           data-testid="input-target-recommendations"
         />
       </div>
-      
+
       <div>
         <Label htmlFor="targetRating">Target Average Rating</Label>
         <Input
@@ -643,16 +725,18 @@ function NewGoalForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           max="5"
           step="0.1"
           value={formData.targetRating}
-          onChange={(e) => setFormData(prev => ({ ...prev, targetRating: parseFloat(e.target.value) }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, targetRating: parseFloat(e.target.value) }))
+          }
           data-testid="input-target-rating"
         />
       </div>
-      
+
       <div>
         <Label htmlFor="targetTimeframe">Timeframe</Label>
-        <Select 
-          value={formData.targetTimeframe} 
-          onValueChange={(value) => setFormData(prev => ({ ...prev, targetTimeframe: value }))}
+        <Select
+          value={formData.targetTimeframe}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, targetTimeframe: value }))}
         >
           <SelectTrigger data-testid="select-target-timeframe">
             <SelectValue />
@@ -665,7 +749,7 @@ function NewGoalForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           </SelectContent>
         </Select>
       </div>
-      
+
       <Button type="submit" className="w-full" data-testid="button-create-goal">
         Create Goal
       </Button>
@@ -676,13 +760,13 @@ function NewGoalForm({ onSubmit }: { onSubmit: (data: any) => void }) {
 // New Campaign Form Component
 function NewCampaignForm({ onSubmit }: { onSubmit: (data: any) => void }) {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    campaignType: 'email_followup',
-    frequency: 'once',
-    emailTemplate: '',
-    textTemplate: '',
-    incentiveOffer: '',
+    name: "",
+    description: "",
+    campaignType: "email_followup",
+    frequency: "once",
+    emailTemplate: "",
+    textTemplate: "",
+    incentiveOffer: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -700,29 +784,29 @@ function NewCampaignForm({ onSubmit }: { onSubmit: (data: any) => void }) {
         <Input
           id="campaignName"
           value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
           placeholder="e.g., Winter Follow-up Campaign"
           required
           data-testid="input-campaign-name"
         />
       </div>
-      
+
       <div>
         <Label htmlFor="campaignDescription">Description</Label>
         <Textarea
           id="campaignDescription"
           value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
           placeholder="Brief description of the campaign..."
           data-testid="textarea-campaign-description"
         />
       </div>
-      
+
       <div>
         <Label htmlFor="campaignType">Campaign Type</Label>
-        <Select 
-          value={formData.campaignType} 
-          onValueChange={(value) => setFormData(prev => ({ ...prev, campaignType: value }))}
+        <Select
+          value={formData.campaignType}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, campaignType: value }))}
         >
           <SelectTrigger data-testid="select-campaign-type">
             <SelectValue />
@@ -735,12 +819,12 @@ function NewCampaignForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           </SelectContent>
         </Select>
       </div>
-      
+
       <div>
         <Label htmlFor="frequency">Frequency</Label>
-        <Select 
-          value={formData.frequency} 
-          onValueChange={(value) => setFormData(prev => ({ ...prev, frequency: value }))}
+        <Select
+          value={formData.frequency}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, frequency: value }))}
         >
           <SelectTrigger data-testid="select-frequency">
             <SelectValue />
@@ -752,48 +836,48 @@ function NewCampaignForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           </SelectContent>
         </Select>
       </div>
-      
-      {formData.campaignType === 'email_followup' && (
+
+      {formData.campaignType === "email_followup" && (
         <div>
           <Label htmlFor="emailTemplate">Email Template</Label>
           <Textarea
             id="emailTemplate"
             value={formData.emailTemplate}
-            onChange={(e) => setFormData(prev => ({ ...prev, emailTemplate: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, emailTemplate: e.target.value }))}
             placeholder="Enter your email template here..."
             rows={4}
             data-testid="textarea-email-template"
           />
         </div>
       )}
-      
-      {formData.campaignType === 'text_reminder' && (
+
+      {formData.campaignType === "text_reminder" && (
         <div>
           <Label htmlFor="textTemplate">Text Message Template</Label>
           <Textarea
             id="textTemplate"
             value={formData.textTemplate}
-            onChange={(e) => setFormData(prev => ({ ...prev, textTemplate: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, textTemplate: e.target.value }))}
             placeholder="Enter your text message template here..."
             rows={3}
             data-testid="textarea-text-template"
           />
         </div>
       )}
-      
-      {formData.campaignType === 'incentive_offer' && (
+
+      {formData.campaignType === "incentive_offer" && (
         <div>
           <Label htmlFor="incentiveOffer">Incentive Offer</Label>
           <Input
             id="incentiveOffer"
             value={formData.incentiveOffer}
-            onChange={(e) => setFormData(prev => ({ ...prev, incentiveOffer: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, incentiveOffer: e.target.value }))}
             placeholder="e.g., 10% off next service"
             data-testid="input-incentive-offer"
           />
         </div>
       )}
-      
+
       <Button type="submit" className="w-full" data-testid="button-create-campaign">
         Create Campaign
       </Button>

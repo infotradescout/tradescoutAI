@@ -56,6 +56,7 @@ import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
 import { callExternalActions } from "./services/externalActionsClient";
+import { buildCountyVaultAllocation } from "./services/countyVaultAllocation";
 import {
   users,
   userRoleEnum,
@@ -76,6 +77,7 @@ import {
   countyNotes,
   builderContributions,
   builderReferrals,
+  userCountyVaultContributionAdjustments,
   communityPosts,
   communityPostSaves,
   postComments,
@@ -10780,6 +10782,72 @@ export async function registerRoutes(app: any) {
         const patchPreferences: any =
           preferencesPatch && typeof preferencesPatch === "object" ? preferencesPatch : null;
 
+        const mergeObject = (base: any, patch: any) => ({
+          ...(base && typeof base === "object" ? base : {}),
+          ...(patch && typeof patch === "object" ? patch : {}),
+        });
+
+        let mergedPreferences: any = existingPreferences;
+        if (patchPreferences) {
+          mergedPreferences = {
+            ...existingPreferences,
+            ...patchPreferences,
+          };
+
+          if (patchPreferences.profileSections) {
+            mergedPreferences.profileSections = mergeObject(
+              existingPreferences.profileSections,
+              patchPreferences.profileSections
+            );
+          }
+
+          if (patchPreferences.colorScheme) {
+            mergedPreferences.colorScheme = mergeObject(
+              existingPreferences.colorScheme,
+              patchPreferences.colorScheme
+            );
+          }
+
+          if (patchPreferences.badges) {
+            mergedPreferences.badges = mergeObject(
+              existingPreferences.badges,
+              patchPreferences.badges
+            );
+          }
+
+          if (patchPreferences.privacy) {
+            mergedPreferences.privacy = mergeObject(
+              existingPreferences.privacy,
+              patchPreferences.privacy
+            );
+          }
+
+          if (patchPreferences.communication) {
+            mergedPreferences.communication = mergeObject(
+              existingPreferences.communication,
+              patchPreferences.communication
+            );
+          }
+
+          if (patchPreferences.geo) {
+            mergedPreferences.geo = mergeObject(existingPreferences.geo, patchPreferences.geo);
+          }
+
+          if (patchPreferences.navigation) {
+            mergedPreferences.navigation = mergeObject(
+              existingPreferences.navigation,
+              patchPreferences.navigation
+            );
+          }
+
+          if (patchPreferences.dashboard) {
+            mergedPreferences.dashboard = mergeObject(
+              existingPreferences.dashboard,
+              patchPreferences.dashboard
+            );
+          }
+        }
+
         const updated = await storage.updateUser(targetUserId, {
           firstName,
           lastName,
@@ -10796,11 +10864,26 @@ export async function registerRoutes(app: any) {
           latitude: typeof latitude === "number" ? String(latitude) : undefined,
           longitude: typeof longitude === "number" ? String(longitude) : undefined,
           profileImageUrl: normalizedProfileImageUrl,
-          preferences: patchPreferences
-            ? { ...existingPreferences, ...patchPreferences }
-            : undefined,
+          preferences: patchPreferences ? mergedPreferences : undefined,
           updatedAt: new Date(),
         } as any);
+
+        try {
+          const adminUserId = (req as any)?.user?.id || (req as any)?.user?.claims?.sub || null;
+          const changedFields = Object.keys(body || {}).filter((k) => k !== "preferencesPatch");
+          const changedPreferenceKeys =
+            patchPreferences && typeof patchPreferences === "object"
+              ? Object.keys(patchPreferences)
+              : [];
+          await storage.logEvent("admin.user_public_profile_updated", {
+            adminUserId,
+            targetUserId,
+            changedFields,
+            changedPreferenceKeys,
+          });
+        } catch (e) {
+          console.warn("[admin] Failed to log admin.user_public_profile_updated event", e);
+        }
 
         return res.json({ user: sanitizeUserForResponse(updated) });
       } catch (error: any) {
@@ -19186,6 +19269,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       });
 
       const localVaultBalance = snapshot.vault ? Number(snapshot.vault.currentBalance ?? 0) : 0;
+      const countyVaultAllocation = buildCountyVaultAllocation(localVaultBalance);
 
       // Vault contributions:
       // - Direct: payouts-to-vault from the current user's Community Builder contributions (any county vault).
@@ -19271,6 +19355,42 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         console.warn("[local-impact] Failed to compute vault contribution metrics", err);
       }
 
+      try {
+        const [manualAnyCounty] = await db
+          .select({
+            direct: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.directAmount}), 0)`,
+            network: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.networkAmount}), 0)`,
+          })
+          .from(userCountyVaultContributionAdjustments)
+          .where(eq(userCountyVaultContributionAdjustments.userId, userId));
+
+        const manualDirectAny = Number(manualAnyCounty?.direct ?? 0) || 0;
+        const manualNetworkAny = Number(manualAnyCounty?.network ?? 0) || 0;
+        userDirectContribution += manualDirectAny;
+        userIndirectContribution += manualNetworkAny;
+
+        const homeCountyId = snapshot.county?.id ?? null;
+        if (homeCountyId) {
+          const [manualHomeCounty] = await db
+            .select({
+              direct: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.directAmount}), 0)`,
+              network: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.networkAmount}), 0)`,
+            })
+            .from(userCountyVaultContributionAdjustments)
+            .where(
+              and(
+                eq(userCountyVaultContributionAdjustments.userId, userId),
+                eq(userCountyVaultContributionAdjustments.countyId, homeCountyId)
+              )
+            );
+          const manualDirectHome = Number(manualHomeCounty?.direct ?? 0) || 0;
+          const manualNetworkHome = Number(manualHomeCounty?.network ?? 0) || 0;
+          userTotalContributionToCountyVault += manualDirectHome + manualNetworkHome;
+        }
+      } catch (err) {
+        console.warn("[local-impact] Failed to compute manual contribution adjustments", err);
+      }
+
       // Affiliate earnings & onboarded count: derived from the affiliate program, if any.
       let affiliateEarnings = 0;
       let affiliatesOnboardedCount = 0;
@@ -19287,6 +19407,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       res.json({
         localVaultBalance,
+        countyVaultAllocation,
         userDirectContribution,
         userIndirectContribution,
         userTotalContributionToCountyVault,
@@ -19462,6 +19583,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               currentBalance: Number(snapshot.vault.currentBalance ?? 0),
               lifetimeInflow: Number(snapshot.vault.lifetimeInflow ?? 0),
               lifetimeOutflow: Number(snapshot.vault.lifetimeOutflow ?? 0),
+              allocation: buildCountyVaultAllocation(Number(snapshot.vault.currentBalance ?? 0)),
             }
           : null,
         last30dInflow: snapshot.last30dInflow,
@@ -19490,6 +19612,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               currentBalance: Number(snapshot.vault.currentBalance ?? 0),
               lifetimeInflow: Number(snapshot.vault.lifetimeInflow ?? 0),
               lifetimeOutflow: Number(snapshot.vault.lifetimeOutflow ?? 0),
+              allocation: buildCountyVaultAllocation(Number(snapshot.vault.currentBalance ?? 0)),
             }
           : null,
         last30dInflow: snapshot.last30dInflow,

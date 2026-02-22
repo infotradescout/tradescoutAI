@@ -9,10 +9,10 @@ const featureLines = [
 ];
 
 const sponsorLines = [
-  "Occasional affiliate offers for tools and materials",
-  "Paid advertisers who help keep TradeScout free",
-  "Clear labels on any sponsored placements",
-  "No paywalls and no upsells needed to use core features",
+  "Transaction-based and value-movement platform revenue",
+  "Financially blind ranking, recommendation, and trust systems",
+  "No paid access tiers and no pay-for-ranking controls",
+  "Core platform access remains open for all users",
 ];
 
 const communityLines = [
@@ -35,8 +35,8 @@ const Pricing = memo(function Pricing() {
           <h1 className="text-4xl font-bold">Simple pricing: $0</h1>
           <p className="text-lg text-gray-300 max-w-3xl mx-auto">
             Use everything without a paywall. Search contractors, run community playbooks, manage
-            your Direct Connect requests, and chat with Scout — all included. We stay free because
-            partners and advertisers help fund the platform.
+            your Direct Connect requests, and chat with Scout — all included. Revenue is generated
+            from completed value movement, not from access or ranking.
           </p>
         </div>
 
@@ -97,8 +97,8 @@ const Pricing = memo(function Pricing() {
             Start building without a credit card
           </h2>
           <p className="text-gray-100 max-w-2xl mx-auto">
-            Jump in, invite your team, and explore every feature. If you see a sponsor tag, that
-            partner is helping keep TradeScout open and sustainable for everyone.
+            Jump in, invite your team, and explore every feature. No payment is used to alter trust
+            authority, ranking, or connection access.
           </p>
         </div>
       </div>

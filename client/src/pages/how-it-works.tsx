@@ -31,7 +31,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
       answer:
-        "TradeScout doesn't sell leads or charge contractors per quote. We match based on trust and relevance, not payment. Contractors pay only for completed work (marketplace transaction fees) or optional visibility boosts — but boosts never override trust ranking.",
+        "TradeScout does not sell leads or charge contractors per quote. Matching is trust-and-relevance only, and payment data never influences ranking, routing, or trust authority.",
     },
     {
       question: "What is Scout?",
@@ -226,7 +226,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
               <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
                 <h3 className="text-lg font-semibold mb-2">Free to Use</h3>
                 <p className="text-tsTextSecondary">
-                  Residents never pay to participate. No subscriptions, no paywalls.
+                  Residents never pay to participate. No subscriptions, no paywalls, and no
+                  pay-for-ranking controls.
                 </p>
               </div>
             </div>

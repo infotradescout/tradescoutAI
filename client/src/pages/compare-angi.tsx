@@ -44,7 +44,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "Is TradeScout really free?",
       answer:
-        "Yes, residents never pay. Contractors pay transaction fees only when work completes (not per lead). No subscriptions, no paywalls.",
+        "Yes. Residents never pay, and provider charges are transaction-based only when completed value movement occurs.",
     },
   ];
 
