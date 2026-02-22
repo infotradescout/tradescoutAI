@@ -5,17 +5,23 @@ import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocationContext } from "@/hooks/useLocationContext";
 
-type MapProvider = {
+type MapEntityType =
+  | "provider"
+  | "public_profile"
+  | "business"
+  | "trade_deal"
+  | "food_truck"
+  | "parking_pass";
+
+type MapEntityPoint = {
   id: string;
-  displayName: string;
+  type: MapEntityType;
   lat: number;
   lng: number;
-  countyId: string | null;
-  countyFips: string | null;
-  countyName: string | null;
-  tradeCategories: string[];
-  verifiedStatus: "verified" | "unverified";
-  role: string | null;
+  title: string;
+  subtitle?: string | null;
+  href?: string | null;
+  meta?: Record<string, unknown>;
 };
 
 type TradeOption = {
@@ -34,7 +40,6 @@ const MAPS_V1_ENABLED =
   String(import.meta.env.VITE_FEATURE_MAPS_V1 ?? "true")
     .trim()
     .toLowerCase() !== "false";
-const GOOGLE_MAPS_API_KEY = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
 
@@ -78,20 +83,52 @@ export default function MapsPage() {
   const location = useLocationContext();
   const [scriptReady, setScriptReady] = useState(false);
   const [scriptError, setScriptError] = useState<string>("");
+  const [mapsApiKey, setMapsApiKey] = useState<string>("");
   const [bbox, setBbox] = useState<string>("");
   const [trade, setTrade] = useState<string>("");
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
-  const [selectedProvider, setSelectedProvider] = useState<MapProvider | null>(null);
+  const [layers, setLayers] = useState<Record<MapEntityType, boolean>>({
+    provider: true,
+    public_profile: true,
+    business: true,
+    trade_deal: true,
+    food_truck: true,
+    parking_pass: true,
+  });
+  const [selectedPoint, setSelectedPoint] = useState<MapEntityPoint | null>(null);
 
   useEffect(() => {
-    if (!MAPS_V1_ENABLED) return;
-    if (!GOOGLE_MAPS_API_KEY) {
-      setScriptError("Missing VITE_GOOGLE_MAPS_API_KEY");
+    const fromVite = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
+    if (fromVite) {
+      setMapsApiKey(fromVite);
       return;
     }
 
     let cancelled = false;
-    loadGoogleMapsScript(GOOGLE_MAPS_API_KEY)
+    apiRequest("GET", "/api/public-config")
+      .then((payload: any) => {
+        if (cancelled) return;
+        const key = String(payload?.googleMapsApiKey || "").trim();
+        if (key) setMapsApiKey(key);
+      })
+      .catch(() => {
+        // Ignore; scriptError will surface missing key below.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!MAPS_V1_ENABLED) return;
+    if (!mapsApiKey) {
+      setScriptError("Missing Google Maps API key");
+      return;
+    }
+
+    let cancelled = false;
+    loadGoogleMapsScript(mapsApiKey)
       .then(() => {
         if (!cancelled) setScriptReady(true);
       })
@@ -103,7 +140,7 @@ export default function MapsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mapsApiKey]);
 
   useEffect(() => {
     if (!scriptReady || !mapContainerRef.current || mapRef.current) return;
@@ -146,24 +183,33 @@ export default function MapsPage() {
     },
   });
 
-  const { data: providersData, isFetching } = useQuery<{
-    providers: MapProvider[];
+  const enabledTypes = useMemo(() => {
+    const types = Object.entries(layers)
+      .filter(([, enabled]) => enabled)
+      .map(([type]) => type)
+      .sort();
+    return types.join(",");
+  }, [layers]);
+
+  const { data: entitiesData, isFetching } = useQuery<{
+    points: MapEntityPoint[];
     meta: { count: number };
   }>({
-    queryKey: ["/api/map/providers", bbox, trade || "all", verifiedOnly ? "1" : "0"],
+    queryKey: ["/api/map/entities", bbox, trade || "all", verifiedOnly ? "1" : "0", enabledTypes],
     enabled: MAPS_V1_ENABLED && scriptReady && bbox.length > 0,
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("bbox", bbox);
-      params.set("limit", "2000");
+      params.set("limit", "5000");
       if (trade) params.set("trade", trade);
       if (verifiedOnly) params.set("verified", "true");
-      return apiRequest("GET", `/api/map/providers?${params.toString()}`);
+      if (enabledTypes) params.set("types", enabledTypes);
+      return apiRequest("GET", `/api/map/entities?${params.toString()}`);
     },
     staleTime: 30_000,
   });
 
-  const providers = useMemo(() => providersData?.providers || [], [providersData?.providers]);
+  const points = useMemo(() => entitiesData?.points || [], [entitiesData?.points]);
   const trades = useMemo(
     () =>
       (Array.isArray(tradesData) ? tradesData : [])
@@ -182,13 +228,27 @@ export default function MapsPage() {
       clustererRef.current = null;
     }
 
-    const markers = providers.map((provider) => {
+    const iconForType = (type: MapEntityType) => {
+      const byType: Record<MapEntityType, string> = {
+        provider: "orange",
+        public_profile: "blue",
+        business: "purple",
+        trade_deal: "green",
+        food_truck: "red",
+        parking_pass: "yellow",
+      };
+      const color = byType[type] || "gray";
+      return `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
+    };
+
+    const markers = points.map((point) => {
       const marker = new window.google.maps.Marker({
-        position: { lat: provider.lat, lng: provider.lng },
-        title: provider.displayName,
+        position: { lat: point.lat, lng: point.lng },
+        title: point.title,
+        icon: iconForType(point.type),
       });
       marker.addListener("click", () => {
-        setSelectedProvider(provider);
+        setSelectedPoint(point);
       });
       return marker;
     });
@@ -198,7 +258,7 @@ export default function MapsPage() {
       map: mapRef.current,
       markers,
     });
-  }, [providers, scriptReady]);
+  }, [points, scriptReady]);
 
   if (!MAPS_V1_ENABLED) {
     return (
@@ -227,11 +287,11 @@ export default function MapsPage() {
   return (
     <div className="mx-auto max-w-7xl p-3 md:p-4 space-y-3">
       <header className="rounded-xl border border-tsBorder bg-tsSurface p-3 md:p-4">
-        <h1 className="text-base md:text-lg font-semibold text-white">Provider Map</h1>
+        <h1 className="text-base md:text-lg font-semibold text-white">Local Map</h1>
         <p className="text-xs md:text-sm text-tsTextMuted mt-1">
-          Awareness-only discovery. Contact stays request-only.
+          Awareness map with opt-in profiles, deals, and external feeds.
         </p>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
           <label className="text-xs text-tsTextMuted">
             Trade
             <select
@@ -256,8 +316,25 @@ export default function MapsPage() {
             <span className="text-sm text-white">Verified only</span>
           </label>
           <div className="rounded-md border border-tsBorder bg-tsBg px-3 py-2">
+            <div className="text-xs uppercase tracking-wide text-tsTextMuted">Layers</div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {(Object.keys(layers) as MapEntityType[]).map((key) => (
+                <label key={key} className="flex items-center gap-2 text-xs text-white">
+                  <input
+                    type="checkbox"
+                    checked={layers[key]}
+                    onChange={(event) =>
+                      setLayers((prev) => ({ ...prev, [key]: event.target.checked }))
+                    }
+                  />
+                  <span className="capitalize">{key.replace(/_/g, " ")}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-md border border-tsBorder bg-tsBg px-3 py-2">
             <div className="text-xs uppercase tracking-wide text-tsTextMuted">Pins</div>
-            <div className="text-sm text-white">{providers.length}</div>
+            <div className="text-sm text-white">{points.length}</div>
             <div className="text-xs text-tsTextMuted">
               {isFetching ? "Updating..." : "Live bounds"}
             </div>
@@ -269,31 +346,38 @@ export default function MapsPage() {
         <div ref={mapContainerRef} className="h-[62vh] min-h-[420px] w-full" />
       </section>
 
-      {selectedProvider && (
+      {selectedPoint && (
         <section className="rounded-xl border border-tsBorder bg-tsSurface p-3 md:p-4">
-          <div className="text-sm font-semibold text-white">{selectedProvider.displayName}</div>
-          <div className="mt-1 text-xs text-tsTextMuted">
-            {selectedProvider.countyName || "County unknown"} •{" "}
-            {selectedProvider.verifiedStatus === "verified" ? "Verified" : "Unverified"}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {(selectedProvider.tradeCategories || []).slice(0, 5).map((category) => (
-              <span
-                key={category}
-                className="rounded-full border border-tsBorder bg-tsBg px-2 py-0.5 text-[11px] text-tsTextMuted"
-              >
-                {category}
-              </span>
-            ))}
-          </div>
-          <div className="mt-3">
-            <Link
-              href={`/request-quote?providerId=${encodeURIComponent(selectedProvider.id)}`}
-              className="inline-flex items-center rounded-md bg-orange-500 px-3 py-2 text-sm font-semibold text-black"
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-white">{selectedPoint.title}</div>
+              {selectedPoint.subtitle ? (
+                <div className="mt-1 text-xs text-tsTextMuted">{selectedPoint.subtitle}</div>
+              ) : (
+                <div className="mt-1 text-xs text-tsTextMuted capitalize">
+                  {selectedPoint.type.replace(/_/g, " ")}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedPoint(null)}
+              className="rounded-md border border-tsBorder bg-tsBg px-2 py-1 text-xs text-white"
             >
-              Request Quote
-            </Link>
+              Close
+            </button>
           </div>
+
+          {selectedPoint.type === "provider" && (
+            <div className="mt-3">
+              <Link
+                href={`/request-quote?providerId=${encodeURIComponent(selectedPoint.id)}`}
+                className="inline-flex items-center rounded-md bg-orange-500 px-3 py-2 text-sm font-semibold text-black"
+              >
+                Request Quote
+              </Link>
+            </div>
+          )}
         </section>
       )}
     </div>
