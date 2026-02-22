@@ -29,3 +29,4 @@ BEGIN
       'EXPENSE'
     ));
 END $$;
+

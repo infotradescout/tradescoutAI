@@ -153,3 +153,139 @@ export async function ensureProfilesTable(): Promise<void> {
     console.error("[DB] Failed ensuring profiles table:", error);
   }
 }
+
+export async function ensureDocumentsTables(): Promise<void> {
+  // The app relies on the `documents` table for contracts/invoices/receipts and for
+  // standalone accounting (EXPENSE). Some environments may skip migrations; we fail-safe
+  // by creating the minimal schema if missing and ensuring the allowed type set is correct.
+  try {
+    const reg = await pool.query<{ reg: string | null }>(
+      `SELECT to_regclass('public.documents') as reg`
+    );
+    const hasDocuments = Boolean(reg.rows[0]?.reg);
+
+    // Ensure required extensions for gen_random_uuid() if possible (best effort).
+    try {
+      await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
+    } catch {
+      // ignore
+    }
+
+    // Match ID types to existing tables to avoid join/operator errors.
+    const leadIdType = (await getColumnTypeSql("leads", "id")) ?? "varchar";
+    const userIdType = (await getColumnTypeSql("users", "id")) ?? "varchar";
+
+    if (!hasDocuments) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS documents (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          job_id ${leadIdType} NULL,
+          type varchar NOT NULL,
+          status varchar NOT NULL,
+          version integer NOT NULL DEFAULT 1,
+          payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+          permissions jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_by ${userIdType} NOT NULL,
+          created_at timestamp NOT NULL DEFAULT now(),
+          updated_at timestamp NOT NULL DEFAULT now(),
+          share_token varchar NULL UNIQUE,
+          signed_at timestamp NULL
+        );
+      `);
+
+      // FK to leads is optional (depends on leads table existing and type match).
+      try {
+        await pool.query(`
+          DO $$
+          BEGIN
+            ALTER TABLE documents
+              ADD CONSTRAINT documents_job_fk
+              FOREIGN KEY (job_id) REFERENCES leads(id) ON DELETE SET NULL;
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+            WHEN undefined_table THEN NULL;
+          END $$;
+        `);
+      } catch {
+        // ignore
+      }
+
+      await pool.query(`CREATE INDEX IF NOT EXISTS documents_job_id_idx ON documents(job_id);`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS documents_type_idx ON documents(type);`);
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS documents_share_token_idx ON documents(share_token);`
+      );
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS document_signatures (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          document_id varchar NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          role varchar NOT NULL,
+          user_id ${userIdType} NOT NULL,
+          signed_at timestamp NOT NULL DEFAULT now(),
+          ip varchar NOT NULL,
+          signature_type varchar NOT NULL,
+          typed_name varchar NULL,
+          drawing_data text NULL
+        );
+      `);
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS document_signatures_doc_idx ON document_signatures(document_id);`
+      );
+      await pool.query(
+        `CREATE UNIQUE INDEX IF NOT EXISTS document_signatures_unique_role ON document_signatures(document_id, role);`
+      );
+
+      await pool.query(`
+        CREATE OR REPLACE FUNCTION set_documents_updated_at()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          NEW.updated_at = now();
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+      await pool.query(`DROP TRIGGER IF EXISTS documents_updated_at_trg ON documents;`);
+      await pool.query(`
+        CREATE TRIGGER documents_updated_at_trg
+        BEFORE UPDATE ON documents
+        FOR EACH ROW EXECUTE FUNCTION set_documents_updated_at();
+      `);
+    }
+
+    // Ensure the documents.type CHECK constraint exists and includes EXPENSE.
+    // This makes standalone accounting safe even if the table existed without the later migration.
+    await pool.query(`
+      DO $$
+      DECLARE
+        cname text;
+      BEGIN
+        ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_type_check;
+        FOR cname IN
+          SELECT conname
+          FROM pg_constraint
+          WHERE conrelid = 'documents'::regclass
+            AND contype = 'c'
+            AND pg_get_constraintdef(oid) ILIKE '%check%'
+            AND pg_get_constraintdef(oid) ILIKE '%type%'
+            AND pg_get_constraintdef(oid) ILIKE '%in%'
+        LOOP
+          EXECUTE format('ALTER TABLE documents DROP CONSTRAINT IF EXISTS %I', cname);
+        END LOOP;
+
+        ALTER TABLE documents
+          ADD CONSTRAINT documents_type_check
+          CHECK (type IN (
+            'MATERIAL_LIST',
+            'ESTIMATE',
+            'CONTRACT',
+            'INVOICE',
+            'RECEIPT',
+            'EXPENSE'
+          ));
+      END $$;
+    `);
+  } catch (error) {
+    console.error("[DB] Failed ensuring documents tables:", error);
+  }
+}

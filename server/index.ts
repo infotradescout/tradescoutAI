@@ -15,7 +15,7 @@ import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
-import { ensureProfilesTable } from "./ensureDb";
+import { ensureDocumentsTables, ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
@@ -432,6 +432,20 @@ app.use((req, res, next) => {
       } else {
         console.warn(
           "[DEV] ensureProfilesTable failed; continuing without profiles table:",
+          (err as Error)?.message
+        );
+      }
+    }
+
+    try {
+      await ensureDocumentsTables();
+    } catch (err) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("FATAL: ensureDocumentsTables failed in production:", err);
+        throw err;
+      } else {
+        console.warn(
+          "[DEV] ensureDocumentsTables failed; continuing without documents table:",
           (err as Error)?.message
         );
       }
