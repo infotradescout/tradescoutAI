@@ -38,6 +38,7 @@ type EmploymentPost = {
   payMax?: string | number | null;
   payUnit?: string | null;
   isOwner?: boolean;
+  posterVerified?: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -70,6 +71,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const viewerVerified = Boolean((user as any)?.addressVerified);
   const [active, setActive] = useState<EmploymentPostType>("job");
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | undefined>(
     defaultCountyFips || user?.countyFips || undefined
@@ -183,6 +185,17 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   });
 
   const openScout = (post: EmploymentPost) => {
+    if (!viewerVerified) {
+      toast({
+        title: "Verification required",
+        description:
+          "Verify your address before you can initiate contact. You can still browse and post.",
+        variant: "destructive",
+      });
+      navigate("/address-verification");
+      return;
+    }
+
     const prompt =
       post.postType === "job"
         ? `I want to apply to this job. Help me confirm intent and take the next step.\n\nJob: ${post.title}\n\nDetails: ${post.body}`
@@ -215,6 +228,19 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 </span>
               </div>
               <div className="text-sm text-[color:var(--text-secondary)]">{headerCopy}</div>
+              {!viewerVerified && (
+                <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  Unverified members can browse and post, but cannot initiate contact. Verify your
+                  address to use Ask Scout.
+                  <Button
+                    size="sm"
+                    className="ml-2 h-7 bg-amber-400/90 px-2 text-[11px] font-semibold text-black hover:bg-amber-400"
+                    onClick={() => navigate("/address-verification")}
+                  >
+                    Verify now
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -311,6 +337,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               onAskScout={openScout}
               onClose={(id) => closeMutation.mutate(id)}
               canClose={Boolean(isAuthenticated)}
+              viewerVerified={viewerVerified}
             />
           )}
         </TabsContent>
@@ -328,6 +355,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               onAskScout={openScout}
               onClose={(id) => closeMutation.mutate(id)}
               canClose={Boolean(isAuthenticated)}
+              viewerVerified={viewerVerified}
             />
           )}
         </TabsContent>
@@ -340,6 +368,12 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
           </DialogHeader>
 
           <div className="grid gap-3">
+            {!viewerVerified && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                This post will be marked <span className="font-semibold">Unverified</span> until you
+                verify your address.
+              </div>
+            )}
             <div className="grid gap-2">
               <Label>Title</Label>
               <Input
@@ -469,11 +503,13 @@ function PostList({
   onAskScout,
   onClose,
   canClose,
+  viewerVerified,
 }: {
   posts: EmploymentPost[];
   onAskScout: (post: EmploymentPost) => void;
   onClose: (id: string) => void;
   canClose: boolean;
+  viewerVerified: boolean;
 }) {
   if (!posts.length) {
     return (
@@ -504,6 +540,8 @@ function PostList({
                       {post.title}
                     </div>
                     {closed && <Badge variant="secondary">Closed</Badge>}
+                    {post.posterVerified === false && <Badge variant="secondary">Unverified</Badge>}
+                    {post.posterVerified === true && <Badge variant="outline">Verified</Badge>}
                     {post.tradeId && <Badge variant="outline">{post.tradeId}</Badge>}
                     {pay && <Badge variant="outline">{pay}</Badge>}
                   </div>
@@ -513,7 +551,17 @@ function PostList({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => onAskScout(post)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!viewerVerified}
+                    onClick={() => onAskScout(post)}
+                    title={
+                      viewerVerified
+                        ? "Ask Scout"
+                        : "Verify your address to initiate contact (browse is allowed)."
+                    }
+                  >
                     Ask Scout
                   </Button>
                   {canClose && post.isOwner && !closed && (

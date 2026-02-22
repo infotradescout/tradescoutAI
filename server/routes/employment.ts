@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
-import { counties, employmentPosts } from "@shared/schema";
+import { counties, employmentPosts, users } from "@shared/schema";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
@@ -49,57 +49,39 @@ export function registerEmploymentRoutes(app: Express) {
       const whereClause =
         filters.length === 0 ? undefined : filters.length === 1 ? filters[0] : and(...filters);
 
+      const base = db
+        .select({
+          id: employmentPosts.id,
+          createdByUserId: employmentPosts.createdByUserId,
+          postType: employmentPosts.postType,
+          status: employmentPosts.status,
+          title: employmentPosts.title,
+          body: employmentPosts.body,
+          countyFips: employmentPosts.countyFips,
+          stateCode: employmentPosts.stateCode,
+          city: employmentPosts.city,
+          tradeId: employmentPosts.tradeId,
+          payMin: employmentPosts.payMin,
+          payMax: employmentPosts.payMax,
+          payUnit: employmentPosts.payUnit,
+          createdAt: employmentPosts.createdAt,
+          updatedAt: employmentPosts.updatedAt,
+          posterAddressVerified: users.addressVerified,
+        })
+        .from(employmentPosts)
+        .leftJoin(users, eq(employmentPosts.createdByUserId, users.id));
+
       const rows = whereClause
-        ? await db
-            .select({
-              id: employmentPosts.id,
-              createdByUserId: employmentPosts.createdByUserId,
-              postType: employmentPosts.postType,
-              status: employmentPosts.status,
-              title: employmentPosts.title,
-              body: employmentPosts.body,
-              countyFips: employmentPosts.countyFips,
-              stateCode: employmentPosts.stateCode,
-              city: employmentPosts.city,
-              tradeId: employmentPosts.tradeId,
-              payMin: employmentPosts.payMin,
-              payMax: employmentPosts.payMax,
-              payUnit: employmentPosts.payUnit,
-              createdAt: employmentPosts.createdAt,
-              updatedAt: employmentPosts.updatedAt,
-            })
-            .from(employmentPosts)
-            .where(whereClause)
-            .orderBy(desc(employmentPosts.createdAt))
-            .limit(100)
-        : await db
-            .select({
-              id: employmentPosts.id,
-              createdByUserId: employmentPosts.createdByUserId,
-              postType: employmentPosts.postType,
-              status: employmentPosts.status,
-              title: employmentPosts.title,
-              body: employmentPosts.body,
-              countyFips: employmentPosts.countyFips,
-              stateCode: employmentPosts.stateCode,
-              city: employmentPosts.city,
-              tradeId: employmentPosts.tradeId,
-              payMin: employmentPosts.payMin,
-              payMax: employmentPosts.payMax,
-              payUnit: employmentPosts.payUnit,
-              createdAt: employmentPosts.createdAt,
-              updatedAt: employmentPosts.updatedAt,
-            })
-            .from(employmentPosts)
-            .orderBy(desc(employmentPosts.createdAt))
-            .limit(100);
+        ? await base.where(whereClause).orderBy(desc(employmentPosts.createdAt)).limit(100)
+        : await base.orderBy(desc(employmentPosts.createdAt)).limit(100);
 
       res.json(
         rows.map((row: any) => {
           const isOwner =
             viewerUserId && row.createdByUserId && String(row.createdByUserId) === viewerUserId;
-          const { createdByUserId: _ignore, ...safe } = row;
-          return { ...safe, isOwner };
+          const posterVerified = Boolean(row.posterAddressVerified);
+          const { createdByUserId: _ignore, posterAddressVerified: _ignore2, ...safe } = row;
+          return { ...safe, isOwner, posterVerified };
         })
       );
     } catch (error: any) {
