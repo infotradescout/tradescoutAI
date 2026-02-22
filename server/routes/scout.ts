@@ -26,6 +26,7 @@ import {
   getLocalMarkdownGuide,
   appendChatKnowledge,
   loadComprehensiveKnowledge,
+  getKnowledgeBaseStatus,
 } from "../services/knowledgeService";
 import { shouldOverrideResponse, isOnboardingOrIdentityQuery } from "../scout/brandGuard";
 import {
@@ -4332,9 +4333,26 @@ router.post("/execute-action", async (req: Request, res: Response) => {
  * Health check endpoint
  */
 router.get("/health", (req: Request, res: Response) => {
+  // Keep this lightweight and non-sensitive for production.
+  // We only report booleans (no file paths, no counts).
+  let knowledgeBasePresent = false;
+  let manualCachePresent = false;
+  let autoCachePresent = false;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const status = getKnowledgeBaseStatus();
+    knowledgeBasePresent = Boolean(status.knowledgeBasePresent);
+    manualCachePresent = Boolean(status.manualCachePresent);
+    autoCachePresent = Boolean(status.autoCachePresent);
+  } catch {
+    // ignore
+  }
   res.json({
     status: "ok",
     geminiConfigured: !!process.env.GEMINI_API_KEY,
+    knowledgeBasePresent,
+    manualCachePresent,
+    autoCachePresent,
     timestamp: new Date().toISOString(),
   });
 });
