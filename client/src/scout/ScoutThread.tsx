@@ -17,6 +17,151 @@ type ScoutThreadProps = {
   onSendMessage?: (payload: any) => void;
 };
 
+function MessageExtras({
+  msg,
+  isUser,
+  onAction,
+  onQuickAction,
+  onOverride,
+  overridePendingScope,
+  onSendMessage,
+}: {
+  msg: ScoutMessage;
+  isUser: boolean;
+  onAction?: (action: ScoutAction) => void;
+  onQuickAction?: (text: string) => void;
+  onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
+  overridePendingScope?: string | null;
+  onSendMessage?: (payload: any) => void;
+}) {
+  if (isUser) return null;
+
+  const hasAnything =
+    (msg.frame?.actionChips && msg.frame.actionChips.length > 0) ||
+    (msg.clusters && msg.clusters.length > 0) ||
+    msg.overrideOption != null ||
+    (msg.suggestedActions && msg.suggestedActions.length > 0) ||
+    (msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage));
+
+  if (!hasAnything) return null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {/* Keep the chat bubble clean: render actions/suggestions as separate blocks. */}
+
+      {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {msg.frame.actionChips.map((chip) => (
+            <button
+              key={`${msg.id}-chip-${chip.id}`}
+              type="button"
+              onClick={() => {
+                if (!onAction) return;
+                if (chip.kind === "NAVIGATE") {
+                  onAction({
+                    type: "NAVIGATE",
+                    label: chip.label,
+                    to: chip.target,
+                    path: chip.target,
+                    payload:
+                      chip.args && typeof chip.args === "object"
+                        ? (chip.args as Record<string, unknown>)
+                        : undefined,
+                  });
+                }
+              }}
+              className="scout-action-button"
+            >
+              <div className="flex flex-col items-start text-left">
+                <span>{chip.label}</span>
+                {chip.subtitle && <span className="text-[11px] opacity-80">{chip.subtitle}</span>}
+                {(chip as any).why && (
+                  <span className="text-[10px] opacity-70">{(chip as any).why}</span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {msg.clusters && msg.clusters.length > 0 && (
+        <div className="space-y-2">
+          {msg.clusters.map((cluster) => (
+            <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
+          ))}
+        </div>
+      )}
+
+      {msg.overrideOption && (
+        <div
+          className="rounded-lg border border-dashed p-3"
+          style={{
+            backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+            borderColor: "var(--border-subtle)",
+          }}
+        >
+          <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            {msg.overrideOption.message}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onOverride && onOverride(msg.overrideOption!)}
+              disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
+              className="scout-action-button"
+            >
+              {overridePendingScope === (msg.overrideOption.scope ?? "global")
+                ? "Logging override..."
+                : msg.overrideOption.label}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {msg.suggestedActions.map((act) => (
+            <button
+              key={act}
+              type="button"
+              onClick={() => onQuickAction && onQuickAction(act)}
+              className="scout-suggestion px-3 py-1.5 text-[11px] rounded-full"
+            >
+              {act}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Onboarding: Server-controlled, renders only when active + question exists */}
+      {msg.onboarding?.active && msg.onboarding.question && onSendMessage && (
+        <OnboardingPrompt
+          onboarding={msg.onboarding}
+          mode="card"
+          onAnswer={(value) =>
+            onSendMessage({
+              onboardingAnswer: {
+                sessionId: msg.onboarding!.sessionId,
+                questionKey: msg.onboarding!.question!.key,
+                value,
+              },
+            })
+          }
+          onSkip={() =>
+            onSendMessage({
+              onboardingAnswer: {
+                sessionId: msg.onboarding!.sessionId,
+                questionKey: msg.onboarding!.question!.key,
+                skipped: true,
+              },
+            })
+          }
+        />
+      )}
+    </div>
+  );
+}
+
 function ClusterCard({
   cluster,
   onAction,
@@ -310,131 +455,29 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         }
 
         return (
-          <div
-            key={msg.id}
-            className={clsx("flex", {
-              "justify-end": isUser,
-              "justify-start": !isUser,
-            })}
-          >
-            <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
-              {displayContent && (
-                <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
-              )}
-
-              {/* Frame-level action chips (e.g., Open Finances, Open Deal Room)
-                  render as navigation buttons just below the core answer. */}
-              {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {msg.frame.actionChips.map((chip) => (
-                    <button
-                      key={`${msg.id}-chip-${chip.id}`}
-                      type="button"
-                      onClick={() => {
-                        if (!onAction) return;
-                        if (chip.kind === "NAVIGATE") {
-                          onAction({
-                            type: "NAVIGATE",
-                            label: chip.label,
-                            to: chip.target,
-                            path: chip.target,
-                            payload:
-                              chip.args && typeof chip.args === "object"
-                                ? (chip.args as Record<string, unknown>)
-                                : undefined,
-                          });
-                        }
-                      }}
-                      className="scout-action-button"
-                    >
-                      <div className="flex flex-col items-start text-left">
-                        <span>{chip.label}</span>
-                        {chip.subtitle && (
-                          <span className="text-[11px] opacity-80">{chip.subtitle}</span>
-                        )}
-                        {(chip as any).why && (
-                          <span className="text-[10px] opacity-70">{(chip as any).why}</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {msg.clusters &&
-                msg.clusters.length > 0 &&
-                msg.clusters.map((cluster) => (
-                  <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
-                ))}
-
-              {msg.overrideOption && (
-                <div
-                  className="mt-3 rounded-lg border border-dashed p-3"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                    borderColor: "var(--border-subtle)",
-                  }}
-                >
-                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    {msg.overrideOption.message}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onOverride && onOverride(msg.overrideOption!)}
-                      disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
-                      className="scout-action-button"
-                    >
-                      {overridePendingScope === (msg.overrideOption.scope ?? "global")
-                        ? "Logging override..."
-                        : msg.overrideOption.label}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {msg.suggestedActions.map((act) => (
-                    <button
-                      key={act}
-                      type="button"
-                      onClick={() => onQuickAction && onQuickAction(act)}
-                      className="scout-suggestion px-3 py-1.5 text-[11px] rounded-full"
-                    >
-                      {act}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Onboarding: Server-controlled, renders only when active + question exists */}
-              {!isUser && msg.onboarding?.active && msg.onboarding.question && onSendMessage && (
-                <OnboardingPrompt
-                  onboarding={msg.onboarding}
-                  mode="card"
-                  onAnswer={(value) =>
-                    onSendMessage({
-                      onboardingAnswer: {
-                        sessionId: msg.onboarding!.sessionId,
-                        questionKey: msg.onboarding!.question!.key,
-                        value,
-                      },
-                    })
-                  }
-                  onSkip={() =>
-                    onSendMessage({
-                      onboardingAnswer: {
-                        sessionId: msg.onboarding!.sessionId,
-                        questionKey: msg.onboarding!.question!.key,
-                        skipped: true,
-                      },
-                    })
-                  }
-                />
-              )}
+          <div key={msg.id} className="space-y-2">
+            <div
+              className={clsx("flex", {
+                "justify-end": isUser,
+                "justify-start": !isUser,
+              })}
+            >
+              <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
+                {displayContent && (
+                  <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
+                )}
+              </div>
             </div>
+
+            <MessageExtras
+              msg={msg}
+              isUser={isUser}
+              onAction={onAction}
+              onQuickAction={onQuickAction}
+              onOverride={onOverride}
+              overridePendingScope={overridePendingScope}
+              onSendMessage={onSendMessage}
+            />
           </div>
         );
       })}

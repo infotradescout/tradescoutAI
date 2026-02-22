@@ -522,6 +522,15 @@ export default function ScoutOS() {
     [state.messages]
   );
 
+  // Keep the Scout surface feeling like a modern chat: shortcuts are available,
+  // but they shouldn't crowd the thread once a conversation has started.
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useEffect(() => {
+    if (hasUserMessages) {
+      setShortcutsOpen(false);
+    }
+  }, [hasUserMessages]);
+
   const refreshObjective = useCallback(async () => {
     if (!OBJECTIVES_ENABLED || !isAuthenticated) {
       setActiveObjective(null);
@@ -3356,25 +3365,41 @@ export default function ScoutOS() {
                 )}
 
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
-                    <button
-                      key={`dock-${tile.id}`}
-                      type="button"
-                      onClick={() => {
-                        setHasGuestInteracted(true);
-                        handleActionTile(tile);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
-                      style={{
-                        borderColor: "var(--border-subtle)",
-                        backgroundColor:
-                          "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      <span>{tile.label}</span>
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setShortcutsOpen((v) => !v)}
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor:
+                        "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                      color: "var(--text-secondary)",
+                    }}
+                    aria-expanded={shortcutsOpen}
+                  >
+                    {shortcutsOpen ? "Hide shortcuts" : "Shortcuts"}
+                  </button>
+
+                  {shortcutsOpen &&
+                    resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
+                      <button
+                        key={`dock-${tile.id}`}
+                        type="button"
+                        onClick={() => {
+                          setHasGuestInteracted(true);
+                          handleActionTile(tile);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          backgroundColor:
+                            "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        <span>{tile.label}</span>
+                      </button>
+                    ))}
                 </div>
               </div>
 
