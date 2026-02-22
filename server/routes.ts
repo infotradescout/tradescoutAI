@@ -19852,10 +19852,14 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   const scoutInternalDataAPIRouter = (await import("./routes/scout-internal-data-api")).default;
   app.use("/api/scout-internal-data", scoutInternalDataAPIRouter);
 
-  // Register Scout Outbound Dispatcher (SOD) - Intelligence Broadcasting
+  //  // Register Scout Outbound Dispatcher (SOD) - Intelligence Broadcasting
   const scoutOutboundDispatcherRouter = (await import("./routes/scout-outbound-dispatcher"))
     .default;
   app.use("/api/scout-outbound-dispatcher", scoutOutboundDispatcherRouter);
+
+  // Register Scout Watchdog - System Health Monitoring & Self-Healing
+  const scoutWatchdogRouter = (await import("./routes/scout-watchdog")).default;
+  app.use("/api/scout-watchdog", scoutWatchdogRouter);
 
   // Admin-only: authority diagnostics (observe, not feature)
   const scoutAnalyticsRouter = (await import("./routes/scout-analytics")).default;
