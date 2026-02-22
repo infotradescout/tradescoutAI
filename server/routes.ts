@@ -19844,6 +19844,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   const scoutPlatformDiscoveryRouter = (await import("./routes/scout-platform-discovery")).default;
   app.use("/api/scout-platform-discovery", scoutPlatformDiscoveryRouter);
 
+  // Register enhanced Scout v5 routes (Phase 5: Deep Tool Integration)
+  const scoutEnhancedV5Router = (await import("./routes/scout-enhanced-v5")).default;
+  app.use("/api/scout-enhanced-v5", scoutEnhancedV5Router);
+
   // Admin-only: authority diagnostics (observe, not feature)
   const scoutAnalyticsRouter = (await import("./routes/scout-analytics")).default;
   app.use("/api/scout-analytics", scoutAnalyticsRouter);
