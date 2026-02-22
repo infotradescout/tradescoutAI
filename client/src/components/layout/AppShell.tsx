@@ -529,7 +529,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         style={{
           top: "var(--top-nav-h)",
           bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0,
-          paddingRight: !isMobile ? "var(--right-nav-w)" : undefined,
+          paddingRight: !isMobile && !isScoutSurface ? "var(--right-nav-w)" : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
           color: "var(--text-primary)",
@@ -542,7 +542,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       </main>
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
-      {!isMobile && !isAuthOrSetupSurface && (
+      {!isMobile && !isAuthOrSetupSurface && !isScoutSurface && (
         <aside
           className="hidden lg:block fixed z-40"
           style={{
@@ -556,6 +556,31 @@ export function AppShell({ children, footer }: AppShellProps) {
         >
           <RightToolsPanel />
         </aside>
+      )}
+
+      {/* Scout-only: keep the chat surface clean; open the tools panel only on demand. */}
+      {!isMobile && isScoutSurface && isToolsOpen && !isAuthOrSetupSurface && (
+        <div
+          className="fixed inset-0 z-50 flex"
+          style={{ top: "var(--top-nav-h)", bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0 }}
+        >
+          <button
+            type="button"
+            aria-label="Close tools panel"
+            className="flex-1 bg-black/40"
+            onClick={() => setIsToolsOpen(false)}
+          />
+          <aside
+            className="hidden lg:block h-full"
+            style={{
+              width: "var(--right-nav-w)",
+              background: "var(--surface-intermediate)",
+              color: "var(--text-primary)",
+            }}
+          >
+            <RightToolsPanel onNavigate={() => setIsToolsOpen(false)} />
+          </aside>
+        </div>
       )}
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}

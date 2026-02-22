@@ -157,6 +157,8 @@ async function postScoutWithTimeout(
   }
 }
 
+const SCOUT_POST_TIMEOUT_MS = 25_000;
+
 function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutMode {
   const lower = message.toLowerCase();
   const roleSet = new Set((roles ?? []).map((r) => r.toLowerCase()));
@@ -226,7 +228,7 @@ export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBac
 
   let res: Response;
   try {
-    res = await postScoutWithTimeout(`${apiBase}/scout`, payload, 15000);
+    res = await postScoutWithTimeout(`${apiBase}/scout`, payload, SCOUT_POST_TIMEOUT_MS);
   } catch (error: any) {
     if (error?.name === "AbortError") {
       throw new Error("Scout timed out. Please try again.");
@@ -238,7 +240,7 @@ export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBac
   if (res.status === 429 || res.status >= 500) {
     await new Promise((resolve) => window.setTimeout(resolve, 350));
     try {
-      res = await postScoutWithTimeout(`${apiBase}/scout`, payload, 15000);
+      res = await postScoutWithTimeout(`${apiBase}/scout`, payload, SCOUT_POST_TIMEOUT_MS);
     } catch (error: any) {
       if (error?.name === "AbortError") {
         throw new Error("Scout timed out. Please try again.");

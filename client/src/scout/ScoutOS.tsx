@@ -10,6 +10,7 @@ import { useScoutState } from "./state";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
@@ -504,15 +505,15 @@ export default function ScoutOS() {
     state.status === "checking_documents" ||
     state.status === "executing_action";
 
-  // Watchdog: force idle state after 12 seconds if still busy
-  // This ensures no user can ever be stuck, even if an API fails silently
+  // Watchdog: force idle state if still busy past the normal API timeout window.
+  // Keep this > client API timeout to avoid false triggers in slow-but-successful requests.
   useEffect(() => {
     if (!isBusy) return;
 
     const timeout = setTimeout(() => {
-      console.warn("[ScoutOS] Watchdog triggered - forcing idle state after 12s");
+      console.warn("[ScoutOS] Watchdog triggered - forcing idle state after 28s");
       setStatus("idle");
-    }, 12000); // 12s max
+    }, 28000);
 
     return () => clearTimeout(timeout);
   }, [isBusy, setStatus]);
@@ -3213,6 +3214,38 @@ export default function ScoutOS() {
                 boxShadow: "0 12px 36px rgba(2, 6, 23, 0.45)",
               }}
             >
+              {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
+              {!isMobile && (
+                <div className="flex items-center justify-end pb-2">
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-[11px]"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          color: "var(--text-primary)",
+                          backgroundColor: "transparent",
+                        }}
+                      >
+                        Dashboard
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-[380px] max-w-[92vw]">
+                      <SheetHeader>
+                        <SheetTitle>Scout workspace</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-4 flex flex-col gap-3">
+                        <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+                        <ScoutHasDonePanel />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              )}
+
               <ScoutHeader
                 isAuthenticated={isAuthenticated}
                 isFirstGuestVisit={isFirstGuestVisit}
@@ -3632,13 +3665,7 @@ export default function ScoutOS() {
               </div>
             </div>
 
-            {/* Right-side coordination panel on larger screens; stacks below chat on mobile. */}
-            {!isMobile && (
-              <div className="hidden md:flex w-80 flex-shrink-0 flex-col gap-3">
-                <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
-                <ScoutHasDonePanel />
-              </div>
-            )}
+            {/* Coordination panels moved into the Dashboard sheet to keep the thread clean. */}
           </div>
         </div>
       </div>

@@ -129,7 +129,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onClick={onNavigate}
             />
             <NavLink
-              href="/settings"
+              href="/profile-settings"
               icon={
                 <Settings
                   className="h-3.5 w-3.5"
