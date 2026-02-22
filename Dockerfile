@@ -9,6 +9,9 @@ RUN npm ci
 # Copy source (dockerignore will prevent huge/unneeded folders)
 COPY . .
 
+# Ensure optional knowledge folder exists even when excluded from Docker context
+RUN mkdir -p /app/data
+
 # Build client (dist/public) + bundle server (dist/index.js)
 RUN set -eux; \
   HB_PID=""; \
