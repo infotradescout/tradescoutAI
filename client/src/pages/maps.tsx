@@ -85,6 +85,47 @@ async function fetchJsonWithFallback(path: string): Promise<any> {
   throw lastError instanceof Error ? lastError : new Error("Request failed");
 }
 
+async function fetchPublicConfigWithFallback(): Promise<{ googleMapsApiKey: string } | null> {
+  const origins = getApiFallbackOrigins();
+  let lastError: unknown = null;
+
+  for (const origin of origins) {
+    try {
+      const url = `${origin}/api/public-config`;
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "omit",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      if (res.status === 304) {
+        lastError = new Error("Not modified");
+        continue;
+      }
+      if (!res.ok) {
+        lastError = new Error(`Request failed with status ${res.status}`);
+        continue;
+      }
+
+      const text = await res.text();
+      const payload = text ? (JSON.parse(text) as any) : null;
+      const key = String(payload?.googleMapsApiKey || "").trim();
+      if (!key) {
+        lastError = new Error("Missing key in public-config");
+        continue;
+      }
+
+      return { googleMapsApiKey: key };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError) return null;
+  return null;
+}
+
 async function loadGoogleMapsScript(apiKey: string): Promise<void> {
   if (typeof window === "undefined") return;
   if (window.google?.maps) return;
@@ -147,7 +188,7 @@ export default function MapsPage() {
     }
 
     let cancelled = false;
-    fetchJsonWithFallback("/api/public-config")
+    fetchPublicConfigWithFallback()
       .then((payload: any) => {
         if (cancelled) return;
         const key = String(payload?.googleMapsApiKey || "").trim();
