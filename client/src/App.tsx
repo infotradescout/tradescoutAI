@@ -941,6 +941,11 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={PropertyListing} />
                     </ProtectedRoute>
                   </Route>
+                  <Route path="/homes">
+                    <ProtectedRoute>
+                      <LazyPage Component={lazy(() => import("./pages/homes"))} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/property-listing">
                     <RedirectTo to="/homescout/new" />
                   </Route>

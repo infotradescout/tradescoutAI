@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { uploadObject } from "@/lib/objectUpload";
 import { Home, MapPin, DollarSign, Building, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StateCountySelector } from "@/components/state-county-selector";
@@ -97,6 +98,9 @@ export default function PropertyListing() {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [propertyStateCode, setPropertyStateCode] = useState<string>("");
   const [propertyCountyFips, setPropertyCountyFips] = useState<string>("");
+  const [inspectionFile, setInspectionFile] = useState<File | null>(null);
+  const [inspectionDate, setInspectionDate] = useState<string>("");
+  const [inspectionSummary, setInspectionSummary] = useState<string>("");
 
   const form = useForm<PropertyListingForm>({
     resolver: zodResolver(propertyListingSchema),
@@ -135,7 +139,7 @@ export default function PropertyListing() {
 
       return apiRequest("POST", "/api/homescout/listings", listingData);
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       toast({
         title: "Property Submitted Successfully!",
         description:
@@ -146,8 +150,31 @@ export default function PropertyListing() {
 
       const id = data?.id;
       if (typeof id === "string" && id.length > 0) {
+        // Optional: attach a seller pre-listing inspection report right away.
+        if (inspectionFile) {
+          try {
+            const { publicUrl } = await uploadObject(inspectionFile);
+            await apiRequest("POST", `/api/homescout/listings/${id}/inspection-reports`, {
+              reportType: "seller_pre_listing",
+              reportUrl: publicUrl,
+              inspectionDate: inspectionDate?.trim() || null,
+              summary: inspectionSummary?.trim() || null,
+            });
+          } catch (err: any) {
+            toast({
+              title: "Listing created, but report upload failed",
+              description: err?.message || "You can upload it later from the listing page.",
+              variant: "destructive",
+            });
+          }
+        }
+
         setLocation(`/homescout/listings/${id}`);
       }
+
+      setInspectionFile(null);
+      setInspectionDate("");
+      setInspectionSummary("");
     },
     onError: (error: any) => {
       toast({
@@ -294,6 +321,45 @@ export default function PropertyListing() {
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+                </div>
+              </div>
+
+              {/* Optional inspection report */}
+              <div className="space-y-4 pt-6 border-t border-border/60">
+                <h3 className="text-lg font-semibold text-orange-500">
+                  Inspection Report (Optional)
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  If you have a recent home inspection report, you can attach it now. You can also
+                  add it later from the listing page.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormLabel>Inspection date (optional)</FormLabel>
+                    <Input
+                      type="date"
+                      value={inspectionDate}
+                      onChange={(e) => setInspectionDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FormLabel>Report file (PDF preferred)</FormLabel>
+                    <Input
+                      type="file"
+                      accept=".pdf,image/*"
+                      onChange={(e) => setInspectionFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Quick summary (optional)</FormLabel>
+                  <Textarea
+                    value={inspectionSummary}
+                    onChange={(e) => setInspectionSummary(e.target.value)}
+                    placeholder="Any highlights you want buyers to understand up front…"
                   />
                 </div>
               </div>

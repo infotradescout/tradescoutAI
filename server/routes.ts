@@ -9,6 +9,7 @@ import { randomUUID } from "crypto";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { businessesRouter } from "./routes/businesses";
 import { profilesRouter } from "./routes/profiles";
+import { homesRouter } from "./routes/homes";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
@@ -9683,6 +9684,32 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Private object uploads: returns { uploadURL, objectKey } (no public URL).
+  // Used for account-only storage (e.g., private home vault documents).
+  app.post("/api/objects/upload-private", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = String((req.user as any)?.claims?.sub || (req.user as any)?.id || "").trim();
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
+
+      if (useR2) {
+        const { R2StorageService } = await import("./localStorage");
+        const storageService = new R2StorageService();
+        const { uploadURL, objectKey } = await storageService.getPrivateUploadURL(userId);
+        return res.json({ uploadURL, objectKey });
+      }
+
+      const { LocalStorageService } = await import("./localStorage");
+      const storageService = new LocalStorageService();
+      const { uploadURL, objectKey } = await storageService.getPrivateUploadURL();
+      return res.json({ uploadURL, objectKey });
+    } catch (error: any) {
+      console.error("Error getting private upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
   // Legacy/utility AI endpoint: server-side Gemini call (never expose API keys to clients).
   app.post("/api/ai/gemini", isAuthenticated, aiLimiter, async (req: any, res: any) => {
     try {
@@ -9786,6 +9813,68 @@ export async function registerRoutes(app: any) {
       res.status(200).send(publicUrl);
     } catch (error: any) {
       console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  // Handle actual private file upload (LocalStorageService fallback only).
+  app.put("/api/objects/upload-private/:fileId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const { fileId } = req.params;
+      if (!isSafeUploadId(fileId)) {
+        return res.status(400).json({ error: "Invalid fileId" });
+      }
+
+      // If R2 is configured, uploads should go directly to the signed URL returned by POST /api/objects/upload-private.
+      const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
+      if (useR2) {
+        return res
+          .status(400)
+          .json({ error: "Direct uploads are enabled; use the signed uploadURL" });
+      }
+
+      const contentType = req.headers["content-type"] || "application/octet-stream";
+
+      const maxBytes = Number.parseInt(process.env.MAX_UPLOAD_BYTES || "", 10);
+      const limitBytes = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : 20 * 1024 * 1024; // 20MB default
+
+      const contentLengthHeader = req.headers["content-length"];
+      const contentLength =
+        typeof contentLengthHeader === "string"
+          ? Number.parseInt(contentLengthHeader, 10)
+          : undefined;
+      if (
+        typeof contentLength === "number" &&
+        Number.isFinite(contentLength) &&
+        contentLength > limitBytes
+      ) {
+        return res.status(413).json({ error: "Upload too large" });
+      }
+
+      const chunks: Buffer[] = [];
+      let received = 0;
+      for await (const chunk of req) {
+        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        received += buf.length;
+        if (received > limitBytes) {
+          try {
+            req.destroy();
+          } catch {
+            // ignore
+          }
+          return res.status(413).json({ error: "Upload too large" });
+        }
+        chunks.push(buf);
+      }
+      const buffer = Buffer.concat(chunks);
+
+      const { LocalStorageService } = await import("./localStorage");
+      const storageService = new LocalStorageService();
+      const objectKey = await storageService.savePrivateFile(fileId, buffer, String(contentType));
+
+      res.status(200).send(objectKey);
+    } catch (error: any) {
+      console.error("Error uploading private file:", error);
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
@@ -18519,6 +18608,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register Profile website routes
   app.use(profilesRouter);
+
+  // Account-only Home Vault routes ("Carfax for your home")
+  app.use(homesRouter);
 
   // Register contractor signup routes
   app.use(contractorSignupRouter);

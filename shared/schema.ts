@@ -4794,6 +4794,166 @@ export type InsertHomeScoutInspectionServiceRequest =
   typeof homeScoutInspectionServiceRequests.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Private home vault (account-only): "Carfax for your home"
+// ---------------------------------------------------------------------------
+
+export const USER_HOME_RECORD_TYPES = [
+  "inspection",
+  "upgrade",
+  "improvement",
+  "maintenance",
+  "appliance",
+  "warranty",
+  "note",
+] as const;
+
+export const USER_HOME_DOCUMENT_TYPES = [
+  "inspection_report",
+  "invoice",
+  "receipt",
+  "photo",
+  "manual",
+  "permit",
+  "other",
+] as const;
+
+export const userHomes = pgTable(
+  "user_homes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    nickname: varchar("nickname", { length: 160 }),
+    propertyType: varchar("property_type", { length: 64 }),
+    yearBuilt: integer("year_built"),
+
+    address1: varchar("address1", { length: 180 }),
+    address2: varchar("address2", { length: 180 }),
+    city: varchar("city", { length: 120 }),
+    stateCode: varchar("state_code", { length: 2 }).references(() => states.code, {
+      onDelete: "set null",
+    }),
+    countyFips: varchar("county_fips", { length: 5 }).references(() => counties.fips, {
+      onDelete: "set null",
+    }),
+    zipCode: varchar("zip_code", { length: 12 }),
+
+    homeScoutListingId: varchar("home_scout_listing_id").references(() => homeScoutListings.id, {
+      onDelete: "set null",
+    }),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_homes_owner_updated").on(table.ownerUserId, table.updatedAt),
+    index("idx_user_homes_listing").on(table.homeScoutListingId),
+  ]
+);
+
+export type UserHome = typeof userHomes.$inferSelect;
+export type InsertUserHome = typeof userHomes.$inferInsert;
+
+export const userHomeRecords = pgTable(
+  "user_home_records",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    homeId: varchar("home_id")
+      .notNull()
+      .references(() => userHomes.id, { onDelete: "cascade" }),
+    createdByUserId: varchar("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    recordType: varchar("record_type", { length: 24, enum: [...USER_HOME_RECORD_TYPES] }).notNull(),
+    occurredAt: date("occurred_at"),
+    title: varchar("title", { length: 220 }).notNull(),
+    details: text("details"),
+    cost: numeric("cost", { precision: 14, scale: 2 }),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_home_records_home_occurred").on(table.homeId, table.occurredAt),
+    index("idx_user_home_records_home_created").on(table.homeId, table.createdAt),
+    index("idx_user_home_records_type").on(table.recordType),
+  ]
+);
+
+export type UserHomeRecord = typeof userHomeRecords.$inferSelect;
+export type InsertUserHomeRecord = typeof userHomeRecords.$inferInsert;
+
+export const userHomeAppliances = pgTable(
+  "user_home_appliances",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    homeId: varchar("home_id")
+      .notNull()
+      .references(() => userHomes.id, { onDelete: "cascade" }),
+    createdByUserId: varchar("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    category: varchar("category", { length: 64 }).notNull(),
+    brand: varchar("brand", { length: 120 }),
+    model: varchar("model", { length: 160 }),
+    serial: varchar("serial", { length: 160 }),
+    installedAt: date("installed_at"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_home_appliances_home").on(table.homeId),
+    index("idx_user_home_appliances_category").on(table.category),
+  ]
+);
+
+export type UserHomeAppliance = typeof userHomeAppliances.$inferSelect;
+export type InsertUserHomeAppliance = typeof userHomeAppliances.$inferInsert;
+
+export const userHomeDocuments = pgTable(
+  "user_home_documents",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    homeId: varchar("home_id")
+      .notNull()
+      .references(() => userHomes.id, { onDelete: "cascade" }),
+    recordId: varchar("record_id").references(() => userHomeRecords.id, { onDelete: "set null" }),
+    uploadedByUserId: varchar("uploaded_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    documentType: varchar("document_type", {
+      length: 32,
+      enum: [...USER_HOME_DOCUMENT_TYPES],
+    })
+      .notNull()
+      .default("other"),
+    objectKey: varchar("object_key", { length: 600 }).notNull(),
+    originalName: varchar("original_name", { length: 260 }),
+    contentType: varchar("content_type", { length: 160 }),
+    bytes: bigint("bytes", { mode: "number" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_home_documents_home_created").on(table.homeId, table.createdAt),
+    index("idx_user_home_documents_record").on(table.recordId),
+  ]
+);
+
+export type UserHomeDocument = typeof userHomeDocuments.$inferSelect;
+export type InsertUserHomeDocument = typeof userHomeDocuments.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Commercial directory projects + bids + campaign landing pages
 // ---------------------------------------------------------------------------
 
