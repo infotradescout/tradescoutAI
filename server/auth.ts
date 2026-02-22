@@ -22,6 +22,29 @@ function normalizeLegacyRole(role: unknown): UserRole | null {
   return normalized as UserRole;
 }
 
+function parseCookieDomain(): string | undefined {
+  const configured = String(process.env.SESSION_COOKIE_DOMAIN || "").trim();
+  if (configured) return configured;
+
+  // Default for primary production host: share session across apex + www.
+  // This prevents "logged in on thetradescout.com but not www.thetradescout.com" behavior.
+  if (process.env.NODE_ENV !== "production") return undefined;
+
+  const publicWebUrl = String(process.env.PUBLIC_WEB_URL || "").trim();
+  if (!publicWebUrl) return undefined;
+
+  try {
+    const host = new URL(publicWebUrl).hostname.toLowerCase();
+    if (host === "thetradescout.com" || host === "www.thetradescout.com") {
+      return ".thetradescout.com";
+    }
+  } catch {
+    // ignore
+  }
+
+  return undefined;
+}
+
 // Configure session
 export function getSession() {
   const sessionTtlMs = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -56,6 +79,8 @@ export function getSession() {
         ? "none"
         : "lax";
 
+  const cookieDomain = parseCookieDomain();
+
   return session({
     name: "tradescout.sid",
     secret: sessionSecret,
@@ -69,6 +94,7 @@ export function getSession() {
       // Dev stays http-friendly.
       secure: isProductionEnv,
       sameSite: sameSiteCookie,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: sessionTtlMs,
     },
   });
