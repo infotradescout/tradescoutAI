@@ -11,6 +11,16 @@ import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
@@ -332,6 +342,18 @@ export default function ScoutOS() {
   }>(null);
   const [activeObjective, setActiveObjective] = useState<Objective | null>(null);
   const [objectiveBusy, setObjectiveBusy] = useState(false);
+
+  const [dcConfirmOpen, setDcConfirmOpen] = useState(false);
+  const [dcDraft, setDcDraft] = useState<null | {
+    title: string;
+    description: string;
+    countyFips?: string;
+    stateCode?: string;
+    tradeId?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+  }>(null);
+  const [dcBusy, setDcBusy] = useState(false);
   const autoRouteTimerRef = useRef<number | null>(null);
   const introTimersRef = useRef<{
     typeTimer: number | null;
@@ -3573,6 +3595,48 @@ export default function ScoutOS() {
                     setHasGuestInteracted(true);
                     const localAction = resolveQuickActionIntent(trimmed);
 
+                    if (localAction?.kind === "direct_connect_request") {
+                      if (!isAuthenticated) {
+                        navigate("/pre-scout-setup?mode=signin");
+                        return;
+                      }
+
+                      const lastUserMsg = [...state.messages]
+                        .reverse()
+                        .find((m) => m.role === "user" && typeof m.content === "string")?.content;
+                      const raw = String(lastUserMsg || "")
+                        .replace(/\s+/g, " ")
+                        .trim();
+
+                      if (!raw) {
+                        navigate("/direct-connect");
+                        return;
+                      }
+
+                      const title = raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
+                      const countyFips =
+                        typeof (user as any)?.countyFips === "string"
+                          ? String((user as any).countyFips)
+                          : typeof (user as any)?.county_fips === "string"
+                            ? String((user as any).county_fips)
+                            : undefined;
+                      const stateCode =
+                        typeof (user as any)?.stateCode === "string"
+                          ? String((user as any).stateCode)
+                          : typeof (user as any)?.state_code === "string"
+                            ? String((user as any).state_code)
+                            : undefined;
+
+                      setDcDraft({
+                        title,
+                        description: raw,
+                        countyFips,
+                        stateCode,
+                      });
+                      setDcConfirmOpen(true);
+                      return;
+                    }
+
                     if (localAction?.kind === "navigate") {
                       recordActivity({
                         type: "navigate",
@@ -3669,6 +3733,146 @@ export default function ScoutOS() {
           </div>
         </div>
       </div>
+
+      <AlertDialog
+        open={dcConfirmOpen}
+        onOpenChange={(open) => {
+          if (dcBusy) return;
+          setDcConfirmOpen(open);
+          if (!open) setDcDraft(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Post to Direct Connect?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a request on your Direct Connect board. You can route it to pros
+              after it is posted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="mt-3 rounded-md border p-3 text-sm">
+            <div className="font-medium">{dcDraft?.title || "New request"}</div>
+            <div className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">
+              {dcDraft?.description ? String(dcDraft.description).slice(0, 600) : ""}
+              {dcDraft?.description && String(dcDraft.description).length > 600 ? "..." : ""}
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={dcBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={dcBusy || !dcDraft}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!dcDraft || dcBusy) return;
+
+                setDcBusy(true);
+                try {
+                  const payload: any = {
+                    title: dcDraft.title,
+                    description: dcDraft.description,
+                    ...(dcDraft.tradeId ? { tradeId: dcDraft.tradeId } : {}),
+                    ...(typeof dcDraft.budgetMin === "number"
+                      ? { budgetMin: dcDraft.budgetMin }
+                      : {}),
+                    ...(typeof dcDraft.budgetMax === "number"
+                      ? { budgetMax: dcDraft.budgetMax }
+                      : {}),
+                    ...(dcDraft.countyFips ? { countyFips: dcDraft.countyFips } : {}),
+                    ...(dcDraft.stateCode ? { stateCode: dcDraft.stateCode } : {}),
+                  };
+
+                  const res: any = await apiRequest(
+                    "POST",
+                    "/api/direct-connect/requests",
+                    payload
+                  );
+
+                  // Verification gate returns HTTP 200 with actions + retry metadata.
+                  if (res && typeof res === "object" && (res as any).verificationRequired) {
+                    const msg: ScoutMessage = {
+                      id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                      role: "assistant",
+                      content:
+                        typeof (res as any).message === "string" && (res as any).message.trim()
+                          ? String((res as any).message)
+                          : "Before I can post that request, you need to verify a requirement.",
+                      timestamp: new Date().toISOString(),
+                      clusters: [
+                        {
+                          id: `dc-verify-${Date.now()}`,
+                          title: "Next step",
+                          kind: "generic",
+                          body: "Complete verification, then retry posting the request.",
+                          primaryAction:
+                            Array.isArray((res as any).actions) && (res as any).actions.length > 0
+                              ? ((res as any).actions[0] as any)
+                              : {
+                                  type: "NAVIGATE",
+                                  label: "Open verification",
+                                  to: "/verification",
+                                },
+                        } as any,
+                      ],
+                    };
+
+                    applyServerResponse(
+                      msg,
+                      Array.isArray((res as any).actions) ? (res as any).actions : []
+                    );
+                    return;
+                  }
+
+                  const createdId =
+                    typeof (res as any)?.id === "string" ? String((res as any).id) : null;
+                  const msg: ScoutMessage = {
+                    id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                    role: "assistant",
+                    content: "Posted. Want to review it in Direct Connect?",
+                    timestamp: new Date().toISOString(),
+                    clusters: [
+                      {
+                        id: `dc-created-${Date.now()}`,
+                        title: "Direct Connect",
+                        kind: "generic",
+                        body: createdId
+                          ? "Your request is live. You can route it to local pros from the board."
+                          : "Your request is live. You can route it to local pros from the board.",
+                        primaryAction: {
+                          type: "NAVIGATE",
+                          label: "Open Direct Connect",
+                          to: "/direct-connect",
+                        },
+                      },
+                    ],
+                  };
+
+                  applyServerResponse(msg, [
+                    { type: "NAVIGATE", label: "Open Direct Connect", to: "/direct-connect" },
+                  ]);
+
+                  recordActivity({
+                    type: "direct_connect_request_created",
+                    ts: new Date().toISOString(),
+                    path: location,
+                    meta: { workRequestId: createdId || undefined },
+                  } as any);
+                } catch (err: any) {
+                  const message = err?.message || "Failed to create Direct Connect request.";
+                  setError(message);
+                } finally {
+                  setDcBusy(false);
+                  setDcConfirmOpen(false);
+                  setDcDraft(null);
+                }
+              }}
+            >
+              {dcBusy ? "Posting..." : "Post request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Tools & App drawer */}
       <ScoutToolsDrawer isOpen={toolsOpen} onClose={() => setToolsOpen(false)} />

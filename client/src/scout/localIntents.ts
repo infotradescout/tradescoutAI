@@ -8,7 +8,8 @@ export type LocalNavIntent = {
 
 export type LocalQuickAction =
   | { kind: "navigate"; to: string; label: string }
-  | { kind: "open_note"; label: string };
+  | { kind: "open_note"; label: string }
+  | { kind: "direct_connect_request"; label: string };
 
 function normalize(input: string): string {
   return input
@@ -76,7 +77,6 @@ export function resolveExplicitNavigationIntent(message: string): LocalNavIntent
 }
 
 const QUICK_ACTION_NAV: Record<string, string> = {
-  "start a direct connect request for this": "/direct-connect",
   "open my community feed in tradescout": ROUTES.COMMUNITY ?? "/community",
   "show exchange listings that match this need near me": "/exchange",
   "post a listing": "/exchange?new=1",
@@ -112,6 +112,10 @@ const QUICK_ACTION_OPEN_NOTE = new Set([
 
 export function resolveQuickActionIntent(rawLabel: string): LocalQuickAction | null {
   const label = normalize(rawLabel);
+
+  if (label === "start a direct connect request for this") {
+    return { kind: "direct_connect_request", label: rawLabel };
+  }
 
   if (QUICK_ACTION_OPEN_NOTE.has(label)) {
     return { kind: "open_note", label: rawLabel };
