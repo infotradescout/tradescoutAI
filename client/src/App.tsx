@@ -53,10 +53,6 @@ function getPostLandingRoute(user: any): string {
     role === "owner" ||
     roles.some((r) => r.includes("admin") || r === "owner");
 
-  const profileVersion: number = typeof user?.profileVersion === "number" ? user.profileVersion : 0;
-  const needsPreScoutSetup = !isSuperAdmin && !isAdmin && profileVersion <= 0;
-
-  if (needsPreScoutSetup) return "/pre-scout-setup";
   if (isSuperAdmin || isAdmin) return "/admin";
   return "/scout";
 }
@@ -527,38 +523,10 @@ const AppLayout = memo(function AppLayout() {
     sessionStorage.setItem(flagKey, "1");
   }, [location, isLoading, user, isAuthenticated]);
 
-  // Profile reset gate: if a signed-in user has an older profileVersion,
-  // consistently route them through pre-Scout setup before normal navigation.
+  // Do not hard-redirect users into pre-scout setup from normal navigation.
+  // Setup is still available explicitly and can be enforced per-action server-side.
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    const roles: string[] = Array.isArray(user.roles)
-      ? user.roles.filter((r): r is string => typeof r === "string")
-      : [];
-    const isAdminLike =
-      user?.isAdmin === true ||
-      user?.role === "super_admin" ||
-      user?.role === "head_admin" ||
-      user?.role === "owner" ||
-      roles.some((r) => r.includes("admin") || r === "owner");
-    if (isAdminLike) return;
-
-    const profileVersion: number =
-      typeof user?.profileVersion === "number" ? user.profileVersion : 0;
-    if (profileVersion > 0) return;
-
-    // Don't interfere with auth/setup entry points.
-    if (
-      location.startsWith("/login") ||
-      location.startsWith("/register") ||
-      location.startsWith("/signup") ||
-      location.startsWith("/create-account") ||
-      location.startsWith("/pre-scout-setup")
-    ) {
-      return;
-    }
-
-    setLocation("/pre-scout-setup");
+    return;
   }, [isAuthenticated, user, location, setLocation]);
 
   // Back-compat: older Scout links were encoded as '/?prompt=...'
