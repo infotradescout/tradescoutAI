@@ -19848,6 +19848,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   const scoutEnhancedV5Router = (await import("./routes/scout-enhanced-v5")).default;
   app.use("/api/scout-enhanced-v5", scoutEnhancedV5Router);
 
+  // Register Scout Internal Data API (SIDA) - Internal use only
+  const scoutInternalDataAPIRouter = (await import("./routes/scout-internal-data-api")).default;
+  app.use("/api/scout-internal-data", scoutInternalDataAPIRouter);
+
   // Admin-only: authority diagnostics (observe, not feature)
   const scoutAnalyticsRouter = (await import("./routes/scout-analytics")).default;
   app.use("/api/scout-analytics", scoutAnalyticsRouter);
