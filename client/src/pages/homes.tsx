@@ -44,7 +44,7 @@ function formatHomeTitle(home: any): string {
   const state = typeof home?.stateCode === "string" ? home.stateCode.trim() : "";
   const zip = typeof home?.zipCode === "string" ? home.zipCode.trim() : "";
   const bits = [address1, [city, state].filter(Boolean).join(", "), zip].filter(Boolean);
-  return bits.join(" • ") || "Home";
+  return bits.join(" - ") || "Home";
 }
 
 export default function HomesVault() {
@@ -243,6 +243,27 @@ export default function HomesVault() {
     },
   });
 
+  const startSaleMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedHomeId) throw new Error("Select a home first");
+      // Light validation that the home exists + user owns it.
+      await apiRequest("GET", `/api/homes/${selectedHomeId}/prefill-homescout`);
+      return true;
+    },
+    onSuccess: () => {
+      const homeId = selectedHomeId;
+      if (!homeId) return;
+      window.location.href = `/homescout/new?homeId=${encodeURIComponent(homeId)}`;
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Could not start sale flow",
+        description: err?.message || "Try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const selectedHome = useMemo(() => {
     if (!selectedHomeId) return null;
     return homes.find((h: any) => String(h?.id || "") === selectedHomeId) || null;
@@ -266,7 +287,7 @@ export default function HomesVault() {
             </CardHeader>
             <CardContent className="space-y-2">
               {homesQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading…</div>
+                <div className="text-sm text-muted-foreground">Loading...</div>
               ) : homes.length === 0 ? (
                 <div className="text-sm text-muted-foreground">Add your first home below.</div>
               ) : (
@@ -289,7 +310,7 @@ export default function HomesVault() {
                         {typeof h?.propertyType === "string" && h.propertyType
                           ? h.propertyType
                           : "Property"}
-                        {typeof h?.yearBuilt === "number" ? ` • Built ${h.yearBuilt}` : ""}
+                        {typeof h?.yearBuilt === "number" ? ` - Built ${h.yearBuilt}` : ""}
                       </div>
                     </button>
                   );
@@ -396,7 +417,7 @@ export default function HomesVault() {
               {!selectedHomeId ? (
                 <div className="text-sm text-muted-foreground">Choose a home to start.</div>
               ) : homeDetailQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading…</div>
+                <div className="text-sm text-muted-foreground">Loading...</div>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -464,7 +485,7 @@ export default function HomesVault() {
                             onChange={(e) =>
                               setNewRecord((p) => ({ ...p, details: e.target.value }))
                             }
-                            placeholder="Notes, parts, warranty info…"
+                            placeholder="Notes, parts, warranty info..."
                           />
                         </div>
                         <Button
@@ -492,7 +513,7 @@ export default function HomesVault() {
                             onChange={(e) =>
                               setNewAppliance((p) => ({ ...p, category: e.target.value }))
                             }
-                            placeholder="HVAC, Water heater, Refrigerator…"
+                            placeholder="HVAC, Water heater, Refrigerator..."
                           />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -546,7 +567,7 @@ export default function HomesVault() {
                             onChange={(e) =>
                               setNewAppliance((p) => ({ ...p, notes: e.target.value }))
                             }
-                            placeholder="Filter sizes, warranty, installer…"
+                            placeholder="Filter sizes, warranty, installer..."
                           />
                         </div>
                         <Button
@@ -559,6 +580,23 @@ export default function HomesVault() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Sell this home</CardTitle>
+                      <CardDescription className="text-xs">
+                        Starts a HomeScout listing draft using your saved Home Vault info.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        onClick={() => startSaleMutation.mutate()}
+                        disabled={startSaleMutation.isPending}
+                      >
+                        {startSaleMutation.isPending ? "Starting..." : "Start sale listing"}
+                      </Button>
+                    </CardContent>
+                  </Card>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card>
@@ -612,7 +650,7 @@ export default function HomesVault() {
                       <CardContent className="space-y-2">
                         {documents.length === 0 ? (
                           <div className="text-sm text-muted-foreground">
-                            Upload receipts, reports, manuals…
+                            Upload receipts, reports, manuals...
                           </div>
                         ) : (
                           documents.slice(0, 12).map((d: any) => {
@@ -678,7 +716,7 @@ export default function HomesVault() {
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
                                 {typeof r?.recordType === "string" ? r.recordType : "note"}
-                                {r?.cost ? ` • $${String(r.cost)}` : ""}
+                                {r?.cost ? ` - $${String(r.cost)}` : ""}
                               </div>
                             </div>
                           ))
@@ -703,7 +741,7 @@ export default function HomesVault() {
                                 {String(a?.category || "Appliance")}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {[a?.brand, a?.model, a?.serial].filter(Boolean).join(" • ")}
+                                {[a?.brand, a?.model, a?.serial].filter(Boolean).join(" - ")}
                               </div>
                             </div>
                           ))

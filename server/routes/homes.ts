@@ -320,4 +320,58 @@ router.get(
   }
 );
 
+router.get("/api/homes/:homeId/prefill-homescout", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const nickname = typeof (home as any).nickname === "string" ? (home as any).nickname.trim() : "";
+  const propertyType =
+    typeof (home as any).propertyType === "string" ? (home as any).propertyType.trim() : "";
+  const city = typeof (home as any).city === "string" ? (home as any).city.trim() : "";
+  const stateCode =
+    typeof (home as any).stateCode === "string" ? (home as any).stateCode.trim() : "";
+  const countyFips =
+    typeof (home as any).countyFips === "string" ? (home as any).countyFips.trim() : "";
+  const zipCode = typeof (home as any).zipCode === "string" ? (home as any).zipCode.trim() : "";
+  const address1 = typeof (home as any).address1 === "string" ? (home as any).address1.trim() : "";
+  const yearBuilt = (home as any).yearBuilt != null ? Number((home as any).yearBuilt) : null;
+
+  const titleBase =
+    nickname ||
+    (propertyType && city && stateCode
+      ? `${propertyType} in ${city}, ${stateCode}`
+      : city && stateCode
+        ? `Home in ${city}, ${stateCode}`
+        : "Home for sale");
+
+  const title = titleBase.length >= 10 ? titleBase : `${titleBase} listing`;
+
+  const descriptionLines: string[] = [];
+  if (propertyType) descriptionLines.push(`Property type: ${propertyType}`);
+  if (yearBuilt && Number.isFinite(yearBuilt)) descriptionLines.push(`Year built: ${yearBuilt}`);
+  descriptionLines.push("");
+  descriptionLines.push(
+    "Records and inspection documents are tracked privately in TradeScout (Home Vault)."
+  );
+
+  return res.json({
+    homeId,
+    title,
+    description: descriptionLines.join("\n").trim(),
+    propertyType: propertyType || undefined,
+    yearBuilt: yearBuilt && Number.isFinite(yearBuilt) ? yearBuilt : undefined,
+    address: address1 || undefined,
+    city: city || undefined,
+    stateCode: stateCode || undefined,
+    countyFips: countyFips || undefined,
+    zipCode: zipCode || undefined,
+  });
+});
+
 export const homesRouter = router;

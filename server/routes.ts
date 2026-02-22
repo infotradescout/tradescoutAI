@@ -17522,6 +17522,21 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           approvedByUserId: null,
         } as any);
 
+        const sourceHomeId = typeof body.sourceHomeId === "string" ? body.sourceHomeId.trim() : "";
+        if (sourceHomeId) {
+          try {
+            const { userHomes } = await import("../shared/schema");
+            await db
+              .update(userHomes)
+              .set({ homeScoutListingId: listing.id, updatedAt: new Date() } as any)
+              .where(
+                and(eq(userHomes.id, sourceHomeId), eq(userHomes.ownerUserId, String(userId)))
+              );
+          } catch (err) {
+            console.error("Failed to link home vault record to HomeScout listing:", err);
+          }
+        }
+
         res.status(201).json({ id: listing.id });
       } catch (error: any) {
         console.error("Error creating HomeScout listing:", error);

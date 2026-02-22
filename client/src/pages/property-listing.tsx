@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -97,6 +97,8 @@ export default function PropertyListing() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [sourceHomeId, setSourceHomeId] = useState<string | null>(null);
+  const [prefilledFromVault, setPrefilledFromVault] = useState<boolean>(false);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [propertyStateCode, setPropertyStateCode] = useState<string>("");
   const [propertyCountyFips, setPropertyCountyFips] = useState<string>("");
@@ -120,6 +122,51 @@ export default function PropertyListing() {
     },
   });
 
+  useEffect(() => {
+    // Optional "tap to sell" flow from Home Vault.
+    const homeId = new URLSearchParams(window.location.search).get("homeId");
+    if (!homeId) return;
+
+    setSourceHomeId(homeId);
+
+    (async () => {
+      try {
+        const data: any = await apiRequest(
+          "GET",
+          `/api/homes/${encodeURIComponent(homeId)}/prefill-homescout`
+        );
+
+        if (typeof data?.title === "string") form.setValue("title", data.title);
+        if (typeof data?.description === "string") form.setValue("description", data.description);
+        if (typeof data?.address === "string") form.setValue("address", data.address);
+        if (typeof data?.city === "string") form.setValue("city", data.city);
+        if (typeof data?.zipCode === "string") form.setValue("zipCode", data.zipCode);
+        if (typeof data?.stateCode === "string") form.setValue("state", data.stateCode);
+        if (typeof data?.yearBuilt === "number" && Number.isFinite(data.yearBuilt)) {
+          form.setValue("yearBuilt", String(data.yearBuilt));
+        }
+
+        if (typeof data?.stateCode === "string") setPropertyStateCode(data.stateCode);
+        if (typeof data?.countyFips === "string") setPropertyCountyFips(data.countyFips);
+
+        if (typeof data?.propertyType === "string") {
+          const pt = data.propertyType;
+          const allowed = propertyTypes.some((p) => p.value === pt);
+          if (allowed) form.setValue("propertyType", pt as any);
+        }
+
+        setPrefilledFromVault(true);
+      } catch (err: any) {
+        toast({
+          title: "Could not prefill from Home Vault",
+          description: err?.message || "You can still list manually.",
+          variant: "destructive",
+        });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const createListingMutation = useMutation({
     mutationFn: async (data: PropertyListingForm) => {
       if (!propertyStateCode || !propertyCountyFips) {
@@ -142,6 +189,7 @@ export default function PropertyListing() {
         sqft: data.squareFeet ? parseInt(data.squareFeet) : undefined,
         yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt) : undefined,
         features: selectedFeatures,
+        ...(sourceHomeId ? { sourceHomeId } : {}),
       };
 
       return apiRequest("POST", "/api/homescout/listings", listingData);
@@ -249,6 +297,14 @@ export default function PropertyListing() {
           </div>
         </div>
       </div>
+
+      {prefilledFromVault && sourceHomeId ? (
+        <Alert className="mb-6 border-orange-500/20 bg-orange-500/10">
+          <AlertDescription className="text-orange-100">
+            Prefilled from your private Home Vault record. You can edit anything before submitting.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {/* Approval Notice */}
       <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
