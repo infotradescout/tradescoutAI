@@ -65,7 +65,12 @@ async function fetchJsonWithFallback(path: string): Promise<any> {
         method: "GET",
         credentials: "omit",
         headers: { Accept: "application/json" },
+        cache: "no-store",
       });
+      if (res.status === 304) {
+        lastError = new Error("Not modified");
+        continue;
+      }
       if (!res.ok) {
         lastError = new Error(`Request failed with status ${res.status}`);
         continue;
