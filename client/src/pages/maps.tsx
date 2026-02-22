@@ -210,6 +210,9 @@ export default function MapsPage() {
       return;
     }
 
+    // Key is available now; clear any earlier "missing key" error.
+    setScriptError("");
+
     let cancelled = false;
     loadGoogleMapsScript(mapsApiKey)
       .then(() => {
