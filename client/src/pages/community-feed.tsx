@@ -56,6 +56,7 @@ import { useLocation } from "wouter";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
 import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
+import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 
 interface Post {
   id: string;
@@ -1295,6 +1296,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
         <div className="mx-auto w-full max-w-[1024px] px-2.5 py-2 md:px-3 md:py-3 overflow-x-hidden">
           <CommunityTopNav />
+          <ScoutContinueBanner className="mb-3" />
           <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-start justify-between gap-3">

@@ -76,6 +76,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { share } from "@/utils/share";
+import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 
 interface ExchangeItem {
   id: string;
@@ -600,6 +601,8 @@ export default function Exchange() {
           </div>
         </div>
       </div>
+
+      <ScoutContinueBanner className="mb-4" />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-4 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[10px] sm:text-[11px]">

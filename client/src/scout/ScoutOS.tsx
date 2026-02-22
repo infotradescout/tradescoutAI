@@ -490,8 +490,8 @@ export default function ScoutOS() {
 
       // Best-effort persist for authed users (safe to ignore failures).
       if (user) {
-        void fetch("/api/users/preferences", {
-          method: "PATCH",
+        void fetch("/api/agent/preferences/scout", {
+          method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scout: { autoRouteEnabled: enabled } }),
@@ -499,6 +499,23 @@ export default function ScoutOS() {
       }
     },
     [cancelAutoRoute, user]
+  );
+
+  const persistScoutResume = useCallback(
+    async (delta: any) => {
+      if (!user) return;
+      try {
+        await fetch("/api/agent/preferences/scout", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scout: delta }),
+        });
+      } catch {
+        // best-effort only
+      }
+    },
+    [user]
   );
 
   // Ephemeral, derived context roles per message/page for tone + defaults
@@ -2523,6 +2540,40 @@ export default function ScoutOS() {
 
         applyServerResponse(msg, res.actions);
 
+        // Persist a lightweight "resume" snapshot so other surfaces can offer a
+        // single-click "continue in Scout" affordance without the user having to
+        // hunt for the last thread.
+        if (user) {
+          const nav = Array.isArray(res.actions)
+            ? res.actions.find(
+                (a) =>
+                  a &&
+                  a.type === "NAVIGATE" &&
+                  (typeof a.to === "string" || typeof a.path === "string")
+              )
+            : undefined;
+          const suggestedTo = (nav?.to as string) || (nav?.path as string) || msg.navTarget || null;
+          const suggestedLabel =
+            (nav?.label as string) || (suggestedTo ? "Continue" : "Open Scout");
+
+          void persistScoutResume({
+            resume: {
+              prompt: value,
+              intent: res.metadata?.intent || urlIntent || undefined,
+              suggestedTo,
+              suggestedLabel,
+              mode,
+              locality: {
+                county: locality?.county,
+                state: locality?.state,
+                zip: locality?.zip,
+              },
+              updatedAt: new Date().toISOString(),
+              knowledgeLayer: res.knowledge?.layer,
+            },
+          });
+        }
+
         // Auto-route: only when Scout provides a NAVIGATE action with high confidence.
         if (Array.isArray(res.actions)) {
           const nav = res.actions.find(
@@ -2626,6 +2677,7 @@ export default function ScoutOS() {
       firstIntroAppendix,
       isAuthenticated,
       isGuest,
+      persistScoutResume,
       locality,
       location,
       navigate,
@@ -2635,6 +2687,7 @@ export default function ScoutOS() {
       state.messages,
       queueAutoRoute,
       refreshObjective,
+      user,
       userRoles,
     ]
   );

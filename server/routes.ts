@@ -3975,6 +3975,47 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Helper endpoint for Scout/tools: merge preferences.scout without clobbering other scout keys.
+  // This avoids the shallow-merge behavior of /api/users/preferences, which would overwrite the
+  // entire scout object when toggling a single flag.
+  app.post("/api/agent/preferences/scout", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) return res.status(404).json({ message: "User not found" });
+
+      const body: any = req.body ?? {};
+      const delta: any = body.scout ?? body.delta ?? body;
+
+      if (!delta || typeof delta !== "object" || Array.isArray(delta)) {
+        return res.status(400).json({ message: "scout delta must be an object" });
+      }
+
+      const currentPrefs: any = (currentUser as any).preferences || {};
+      const currentScout: any = currentPrefs.scout || {};
+
+      const nextScout: any = {
+        ...currentScout,
+        ...delta,
+      };
+
+      const updatedPreferences = {
+        ...currentPrefs,
+        scout: nextScout,
+      };
+
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({ scout: (user as any).preferences?.scout });
+    } catch (error: any) {
+      console.error("Error updating user scout preferences via agent helper:", error);
+      res.status(500).json({ message: "Failed to update scout preferences" });
+    }
+  });
+
   // Back-compat: mark onboarding completed (do NOT allow arbitrary updates)
   app.patch("/api/auth/user", isAuthenticated, async (req: Request, res: Response) => {
     try {
