@@ -16416,6 +16416,36 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  // Backwards-compatible alias: older clients used /api/homescout/search/county?fips=XXXXX&stateCode=YY
+  // Keep this route thin and deterministic by delegating to the unified search function.
+  app.get("/api/homescout/search/county", homeScoutSearchLimiter, async (req: any, res: any) => {
+    try {
+      const fips = typeof req.query?.fips === "string" ? String(req.query.fips).trim() : "";
+      const stateCode =
+        typeof req.query?.stateCode === "string" ? String(req.query.stateCode).trim() : "";
+      const limitRaw = req.query?.limit;
+      const offsetRaw = req.query?.offset;
+
+      if (!/^[0-9]{5}$/.test(fips) || !/^[A-Za-z]{2}$/.test(stateCode)) {
+        return res.status(400).json({ message: "Invalid county fips or stateCode" });
+      }
+
+      const rows = await storage.searchHomeScoutListings({
+        countyFips: fips,
+        stateCode: stateCode.toUpperCase(),
+        status: "active" as any,
+        sortBy: "newest" as any,
+        limit: limitRaw != null ? Number(limitRaw) : 20,
+        offset: offsetRaw != null ? Number(offsetRaw) : 0,
+      });
+
+      return res.json(rows);
+    } catch (error: any) {
+      console.error("Error searching HomeScout county listings:", error);
+      return res.status(500).json({ message: "Failed to search HomeScout county listings" });
+    }
+  });
+
   app.get("/api/homescout/listings/:id", async (req: any, res: any) => {
     try {
       const { id } = req.params;
