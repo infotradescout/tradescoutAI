@@ -4726,7 +4726,7 @@ export const homeScoutInspectionReports = pgTable(
     visibility: varchar("visibility", { length: 16, enum: ["public", "private"] })
       .notNull()
       .default("public"),
-    status: varchar("status", { length: 16, enum: ["published", "removed"] })
+    status: varchar("status", { length: 16, enum: ["published", "pending_review", "removed"] })
       .notNull()
       .default("published"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -16423,6 +16423,45 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         offset: 0,
       } as any);
 
+      // Authenticated viewers may see their own uploads (even if pending/private/removed).
+      const viewerId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+      let myInspectionReports: any[] = [];
+      let pendingInspectionReports: any[] = [];
+      if (viewerId) {
+        try {
+          myInspectionReports = await storage.listHomeScoutInspectionReports({
+            listingId: String((listing as any).id),
+            submittedByUserId: String(viewerId),
+            limit: 50,
+            offset: 0,
+          } as any);
+
+          const viewer = await storage.getUser(String(viewerId));
+          const viewerRole = String((viewer as any)?.role || "");
+          const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+            viewerRole
+          );
+          const isOwner =
+            String(viewerId) === String((listing as any).sellerUserId || "") ||
+            String(viewerId) === String((listing as any).agentUserId || "") ||
+            String(viewerId) === String((listing as any).contactUserId || "");
+
+          if (isAdminLike || isOwner) {
+            pendingInspectionReports = await storage.listHomeScoutInspectionReports({
+              listingId: String((listing as any).id),
+              visibility: "public",
+              status: "pending_review",
+              limit: 50,
+              offset: 0,
+            } as any);
+          }
+        } catch {
+          // Do not fail the listing page if privileged inspection metadata can't be loaded.
+          myInspectionReports = [];
+          pendingInspectionReports = [];
+        }
+      }
+
       const openInspectionRequests = await storage.listHomeScoutInspectionRequests({
         listingId: String((listing as any).id),
         status: "open",
@@ -16438,11 +16477,347 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         marketBucket,
         countyMetrics,
         inspectionReports,
+        myInspectionReports,
+        pendingInspectionReports,
         openInspectionRequests,
       });
     } catch (error: any) {
       console.error("Error fetching HomeScout listing:", error);
       res.status(500).json({ message: "Failed to fetch HomeScout listing" });
+    }
+  });
+
+  function extractInspectionPhrases(reports: any[]): string[] {
+    const out: string[] = [];
+    for (const r of reports) {
+      if (typeof r?.summary === "string" && r.summary.trim()) out.push(r.summary.trim());
+      if (Array.isArray(r?.highlights)) {
+        for (const h of r.highlights) {
+          if (typeof h === "string" && h.trim()) out.push(h.trim());
+        }
+      }
+    }
+    return out;
+  }
+
+  function scoreKeywordHits(lines: string[], keywords: string[]): number {
+    const lower = lines.map((x) => x.toLowerCase());
+    let hits = 0;
+    for (const k of keywords) {
+      const kw = k.toLowerCase();
+      if (lower.some((ln) => ln.includes(kw))) hits += 1;
+    }
+    return hits;
+  }
+
+  function buildInspectionInsights(listing: any, reports: any[]) {
+    const phrases = extractInspectionPhrases(reports);
+    const normalizedHighlights = phrases
+      .map((x) => x.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .slice(0, 400);
+
+    const counts = new Map<string, number>();
+    for (const h of normalizedHighlights) {
+      const key = h.toLowerCase();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+
+    const allHighlights = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 60)
+      .map(([text, mentions]) => ({ text, mentions }));
+
+    const consensusHighlights = allHighlights.filter((x) => x.mentions >= 2).slice(0, 20);
+
+    const roofHits = scoreKeywordHits(normalizedHighlights, [
+      "roof",
+      "leak",
+      "shingle",
+      "flashing",
+    ]);
+    const foundationHits = scoreKeywordHits(normalizedHighlights, [
+      "foundation",
+      "settlement",
+      "crack",
+      "structural",
+    ]);
+    const electricalHits = scoreKeywordHits(normalizedHighlights, [
+      "electrical",
+      "panel",
+      "wiring",
+      "breaker",
+      "gfci",
+    ]);
+    const plumbingHits = scoreKeywordHits(normalizedHighlights, [
+      "plumbing",
+      "leak",
+      "water heater",
+      "pipe",
+      "sewer",
+    ]);
+    const hvacHits = scoreKeywordHits(normalizedHighlights, [
+      "hvac",
+      "ac",
+      "furnace",
+      "air handler",
+    ]);
+    const moistureHits = scoreKeywordHits(normalizedHighlights, [
+      "mold",
+      "moisture",
+      "rot",
+      "humidity",
+    ]);
+
+    const severitySignals = roofHits + foundationHits * 2 + moistureHits * 2 + electricalHits;
+
+    const buyerRecommendations: string[] = [];
+    const sellerRecommendations: string[] = [];
+    const questionsToAsk: string[] = [];
+    const negotiationPoints: string[] = [];
+
+    buyerRecommendations.push(
+      "Cross-check repeated findings across multiple reports before making concessions."
+    );
+    questionsToAsk.push("What items are safety-related vs. maintenance-related?");
+    questionsToAsk.push("Which findings are active issues vs. observed history?");
+
+    if (foundationHits > 0) {
+      buyerRecommendations.push(
+        "If foundation/structural items appear, ask for a licensed structural evaluation."
+      );
+      questionsToAsk.push("Are cracks active, and what evidence supports that?");
+      negotiationPoints.push("Structural items: request credits tied to third-party estimates.");
+      sellerRecommendations.push(
+        "If any structural notes exist, gather engineer letters or repair invoices before showings."
+      );
+    }
+    if (roofHits > 0) {
+      buyerRecommendations.push(
+        "If roof concerns appear, request an inspection by a roofing contractor for scope + remaining life."
+      );
+      negotiationPoints.push(
+        "Roof: negotiate based on remaining life and documented repair quotes."
+      );
+      sellerRecommendations.push(
+        "Address obvious roof leak sources and document repairs with photos/invoices."
+      );
+    }
+    if (electricalHits > 0) {
+      buyerRecommendations.push(
+        "Electrical findings: prioritize safety fixes and confirm permit requirements in your county."
+      );
+      negotiationPoints.push(
+        "Electrical safety items: negotiate for immediate remediation or credits."
+      );
+      sellerRecommendations.push(
+        "Fix obvious electrical safety items (GFCI, exposed wiring) before listing photos and open houses."
+      );
+    }
+    if (plumbingHits > 0) {
+      buyerRecommendations.push(
+        "Plumbing findings: confirm whether leaks are active and request camera scope if sewer is mentioned."
+      );
+      sellerRecommendations.push(
+        "Repair active leaks and replace worn supply lines; keep receipts for disclosure."
+      );
+    }
+    if (hvacHits > 0) {
+      buyerRecommendations.push(
+        "HVAC findings: ask for service records and confirm age/efficiency; consider a tune-up addendum."
+      );
+      sellerRecommendations.push(
+        "Service HVAC, replace filters, and document last maintenance date before listing."
+      );
+    }
+    if (moistureHits > 0) {
+      buyerRecommendations.push(
+        "Moisture/mold signals: treat as time-sensitive and confirm root-cause (drainage, ventilation, leaks)."
+      );
+      negotiationPoints.push("Moisture mitigation: negotiate using itemized remediation bids.");
+      sellerRecommendations.push(
+        "Handle moisture sources first; dry-out plus documentation reduces buyer uncertainty."
+      );
+    }
+
+    if (severitySignals === 0 && reports.length > 0) {
+      buyerRecommendations.push(
+        "No major red flags detected in the uploaded highlights. Still verify permits/age of major systems."
+      );
+      sellerRecommendations.push(
+        "Use the clean inspection narrative to build confidence: organize docs and concise disclosures."
+      );
+    }
+
+    // Light market context using precomputed county metrics already returned elsewhere.
+    const propertyType = String(listing?.propertyType || "house");
+    const condition = String(listing?.condition || "");
+    if (propertyType && condition) {
+      sellerRecommendations.push(
+        "Align fixes with your condition tier so pricing and photos match buyer expectations."
+      );
+    }
+
+    return {
+      reportCount: reports.length,
+      reportTypes: Array.from(new Set(reports.map((r) => String(r?.reportType || "other")))),
+      consensusHighlights,
+      allHighlights,
+      buyerRecommendations: buyerRecommendations.slice(0, 10),
+      sellerRecommendations: sellerRecommendations.slice(0, 10),
+      questionsToAsk: questionsToAsk.slice(0, 10),
+      negotiationPoints: negotiationPoints.slice(0, 10),
+    };
+  }
+
+  app.get("/api/homescout/listings/:id/inspection-insights", async (req: any, res: any) => {
+    try {
+      const listingId = String(req.params.id || "").trim();
+      if (!listingId) return res.status(400).json({ message: "Listing id required" });
+
+      const listing = await storage.getHomeScoutListing(listingId);
+      if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+      // Only published public reports are used for public insights.
+      const reports = await storage.listHomeScoutInspectionReports({
+        listingId,
+        visibility: "public",
+        status: "published",
+        limit: 100,
+        offset: 0,
+      } as any);
+
+      const insights = buildInspectionInsights(listing, reports as any[]);
+      return res.json({ listingId, insights });
+    } catch (error: any) {
+      console.error("Error building inspection insights:", error);
+      return res.status(500).json({ message: "Failed to build inspection insights" });
+    }
+  });
+
+  app.post("/api/homescout/presale-suggestions", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const body = req.body ?? {};
+      const stateCode = typeof body.stateCode === "string" ? body.stateCode.trim() : "";
+      const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : "";
+      const propertyType = typeof body.propertyType === "string" ? body.propertyType.trim() : "";
+      const condition = typeof body.condition === "string" ? body.condition.trim() : "";
+      const yearBuilt = body.yearBuilt != null ? Number(body.yearBuilt) : null;
+      const sqft = body.sqft != null ? Number(body.sqft) : null;
+      const features: string[] = Array.isArray(body.features)
+        ? body.features
+            .filter((x: any) => typeof x === "string")
+            .map((x: string) => x.trim())
+            .filter(Boolean)
+            .slice(0, 60)
+        : [];
+
+      if (!stateCode || stateCode.length !== 2) {
+        return res.status(400).json({ message: "stateCode required" });
+      }
+      if (!countyFips || !/^[0-9]{5}$/.test(countyFips)) {
+        return res.status(400).json({ message: "countyFips required" });
+      }
+
+      const suggestions: any[] = [];
+
+      // Universal presentation wins
+      suggestions.push({
+        title: "Deep clean + declutter the entry and main living spaces",
+        why: "Buyers anchor quickly. A strong first 30 seconds improves perceived condition.",
+        effort: "medium",
+        costRange: "low",
+        timeline: "1-2 days",
+      });
+
+      suggestions.push({
+        title: "Fix visible small defects (drips, loose handles, missing covers, squeaks)",
+        why: "Small issues read as neglect. Tightening them raises trust and reduces inspection anxiety.",
+        effort: "low",
+        costRange: "low",
+        timeline: "half day",
+      });
+
+      const older =
+        typeof yearBuilt === "number" && Number.isFinite(yearBuilt) ? yearBuilt < 1990 : false;
+      if (older) {
+        suggestions.push({
+          title: "Pre-list electrical + plumbing safety check",
+          why: "Older homes benefit from proactive safety validation that reduces buyer objections.",
+          effort: "medium",
+          costRange: "medium",
+          timeline: "1 week",
+        });
+      }
+
+      if (condition === "fair" || condition === "needs_work") {
+        suggestions.push({
+          title:
+            "Prioritize curb appeal: landscaping, power wash, fresh mulch, touch-up exterior paint",
+          why: "For fixer-leaning listings, curb appeal protects value by signaling potential and care.",
+          effort: "medium",
+          costRange: "low",
+          timeline: "1-3 days",
+        });
+      } else {
+        suggestions.push({
+          title: "Neutral paint and consistent lighting temperatures",
+          why: "Modern photos and showings look cleaner and larger with consistent light and neutral tones.",
+          effort: "medium",
+          costRange: "medium",
+          timeline: "2-7 days",
+        });
+      }
+
+      if (!features.some((f: string) => /smoke|co2|carbon/i.test(f))) {
+        suggestions.push({
+          title: "Install/verify smoke + CO detectors",
+          why: "Safety basics reduce buyer worry and can help with appraisal/insurance friction.",
+          effort: "low",
+          costRange: "low",
+          timeline: "1 hour",
+        });
+      }
+
+      if (typeof sqft === "number" && Number.isFinite(sqft) && sqft > 2500) {
+        suggestions.push({
+          title: "Stage or define oversized rooms (office, dining, flex space)",
+          why: "Bigger homes sell better when spaces have a clear purpose in photos and tours.",
+          effort: "medium",
+          costRange: "low",
+          timeline: "1-2 days",
+        });
+      }
+
+      // Light local context: precomputed county metrics are the authoritative inputs.
+      const countyMetrics = await storage.getCountyMetricsForCounty({
+        countyFips,
+        metricKeys: ["homescout_median_dom_days", "homescout_median_price"],
+      });
+      const dom = countyMetrics.find((m: any) => m.metricKey === "homescout_median_dom_days");
+      const domDays = dom?.metricValue != null ? Number(dom.metricValue) : null;
+      if (typeof domDays === "number" && Number.isFinite(domDays) && domDays > 45) {
+        suggestions.push({
+          title:
+            "Boost photo quality and listing clarity (floor plan, room labels, daylight shots)",
+          why: "In slower markets, presentation reduces time-on-market and improves showing conversion.",
+          effort: "low",
+          costRange: "low",
+          timeline: "1-2 days",
+        });
+      }
+
+      return res.json({
+        countyFips,
+        stateCode,
+        suggestions: suggestions.slice(0, 10),
+      });
+    } catch (error: any) {
+      console.error("Error generating presale suggestions:", error);
+      return res.status(500).json({ message: "Failed to generate suggestions" });
     }
   });
 
@@ -16647,11 +17022,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             .status(403)
             .json({ message: "Only listing owner/agent can upload seller reports" });
         }
-        if (reportType === "buyer_independent" && !sourceRequest) {
-          return res.status(400).json({
-            message: "buyer_independent uploads must reference an inspection request",
-          });
-        }
+        // Buyer independent uploads are allowed without a source request, but default to pending_review
+        // so the listing owner (or admin) can approve for public visibility.
         if (
           sourceRequest &&
           String((sourceRequest as any).requesterUserId) !== String(userId) &&
@@ -16661,6 +17033,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             .status(403)
             .json({ message: "You can only fulfill your own inspection request" });
         }
+
+        const shouldAutoPublish =
+          reportType === "seller_pre_listing" ? isOwner : Boolean(sourceRequest) || isOwner; // fulfilling a request or owner uploads
 
         const created = await storage.createHomeScoutInspectionReport({
           listingId,
@@ -16675,17 +17050,107 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           reportUrl,
           sourceRequestId: sourceRequestId || null,
           visibility: "public" as any,
-          status: "published" as any,
+          status: (shouldAutoPublish ? "published" : "pending_review") as any,
         } as any);
 
         if (sourceRequestId) {
           await storage.markHomeScoutInspectionRequestFulfilled({ requestId: sourceRequestId });
         }
 
-        res.status(201).json({ id: created.id });
+        res.status(201).json({ id: created.id, status: (created as any).status || null });
       } catch (error: any) {
         console.error("Error creating HomeScout inspection report:", error);
         res.status(500).json({ message: "Failed to upload inspection report" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/homescout/inspection-reports/:reportId/publish",
+    isAuthenticated,
+    homeScoutInspectionLimiter,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const reportId = String(req.params.reportId || "");
+        if (!reportId) return res.status(400).json({ message: "reportId required" });
+
+        const report = await storage.getHomeScoutInspectionReport(reportId);
+        if (!report) return res.status(404).json({ message: "Inspection report not found" });
+
+        const listing = await storage.getHomeScoutListing(String((report as any).listingId || ""));
+        if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+        const viewer = await storage.getUser(String(userId));
+        const viewerRole = String((viewer as any)?.role || "");
+        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+          viewerRole
+        );
+        const isOwner =
+          String(userId) === String((listing as any).sellerUserId || "") ||
+          String(userId) === String((listing as any).agentUserId || "") ||
+          String(userId) === String((listing as any).contactUserId || "");
+
+        if (!isAdminLike && !isOwner) {
+          return res.status(403).json({ message: "Not allowed" });
+        }
+
+        const updated = await storage.updateHomeScoutInspectionReportStatus({
+          reportId,
+          status: "published",
+        } as any);
+
+        return res.json({ id: reportId, status: (updated as any)?.status || "published" });
+      } catch (error: any) {
+        console.error("Error publishing HomeScout inspection report:", error);
+        return res.status(500).json({ message: "Failed to publish report" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/homescout/inspection-reports/:reportId/remove",
+    isAuthenticated,
+    homeScoutInspectionLimiter,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const reportId = String(req.params.reportId || "");
+        if (!reportId) return res.status(400).json({ message: "reportId required" });
+
+        const report = await storage.getHomeScoutInspectionReport(reportId);
+        if (!report) return res.status(404).json({ message: "Inspection report not found" });
+
+        const listing = await storage.getHomeScoutListing(String((report as any).listingId || ""));
+        if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+        const viewer = await storage.getUser(String(userId));
+        const viewerRole = String((viewer as any)?.role || "");
+        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+          viewerRole
+        );
+        const isOwner =
+          String(userId) === String((listing as any).sellerUserId || "") ||
+          String(userId) === String((listing as any).agentUserId || "") ||
+          String(userId) === String((listing as any).contactUserId || "");
+
+        if (!isAdminLike && !isOwner) {
+          return res.status(403).json({ message: "Not allowed" });
+        }
+
+        const updated = await storage.updateHomeScoutInspectionReportStatus({
+          reportId,
+          status: "removed",
+        } as any);
+
+        return res.json({ id: reportId, status: (updated as any)?.status || "removed" });
+      } catch (error: any) {
+        console.error("Error removing HomeScout inspection report:", error);
+        return res.status(500).json({ message: "Failed to remove report" });
       }
     }
   );

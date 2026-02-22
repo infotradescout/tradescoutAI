@@ -74,6 +74,9 @@ type CountyMetric = {
 type HomeScoutInspectionReport = {
   id: string;
   reportType: string;
+  status?: string | null;
+  visibility?: string | null;
+  submittedByUserId?: string | null;
   inspectionDate?: string | null;
   inspectorName?: string | null;
   inspectorCompany?: string | null;
@@ -98,6 +101,8 @@ type ListingResponse = {
   marketBucket: HomeScoutMarketBucket | null;
   countyMetrics: CountyMetric[];
   inspectionReports: HomeScoutInspectionReport[];
+  myInspectionReports?: HomeScoutInspectionReport[];
+  pendingInspectionReports?: HomeScoutInspectionReport[];
   openInspectionRequests: HomeScoutInspectionRequest[];
 };
 
@@ -123,6 +128,8 @@ export default function HomeScoutListingPage() {
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const [inspectionRequestMessage, setInspectionRequestMessage] = useState("");
   const [inspectionPreferredWindow, setInspectionPreferredWindow] = useState("");
+  const [showInspectionInsights, setShowInspectionInsights] = useState(false);
+  const [inspectionInsights, setInspectionInsights] = useState<any | null>(null);
   const [uploadReportType, setUploadReportType] = useState("buyer_independent");
   const [uploadSummary, setUploadSummary] = useState("");
   const [uploadInspectorName, setUploadInspectorName] = useState("");
@@ -157,6 +164,12 @@ export default function HomeScoutListingPage() {
   const marketBucket = data?.marketBucket ?? null;
   const countyMetrics = Array.isArray(data?.countyMetrics) ? data!.countyMetrics : [];
   const inspectionReports = Array.isArray(data?.inspectionReports) ? data!.inspectionReports : [];
+  const myInspectionReports = Array.isArray((data as any)?.myInspectionReports)
+    ? ((data as any).myInspectionReports as HomeScoutInspectionReport[])
+    : [];
+  const pendingInspectionReports = Array.isArray((data as any)?.pendingInspectionReports)
+    ? ((data as any).pendingInspectionReports as HomeScoutInspectionReport[])
+    : [];
   const openInspectionRequests = Array.isArray(data?.openInspectionRequests)
     ? data!.openInspectionRequests
     : [];
@@ -230,7 +243,7 @@ export default function HomeScoutListingPage() {
       if (!res.ok) throw new Error(body?.message || "Failed to upload inspection report");
       return body;
     },
-    onSuccess: () => {
+    onSuccess: (body: any) => {
       setUploadSummary("");
       setUploadInspectorName("");
       setUploadInspectorCompany("");
@@ -239,15 +252,88 @@ export default function HomeScoutListingPage() {
       setUploadSourceRequestId("");
       setUploadFile(null);
       queryClient.invalidateQueries({ queryKey: ["/api/homescout/listings", listingId] });
+
+      const status = typeof body?.status === "string" ? body.status : "";
       toast({
         title: "Inspection report uploaded",
-        description: "The report is now visible on this listing.",
+        description:
+          status === "pending_review"
+            ? "Thanks. This upload is pending review before it becomes public on the listing."
+            : "The report is now visible on this listing.",
       });
     },
     onError: (err: any) => {
       toast({
         title: "Upload failed",
         description: err?.message || "Could not upload inspection report",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const publishInspectionReport = useMutation({
+    mutationFn: async (reportId: string) => {
+      const res = await fetch(
+        `/api/homescout/inspection-reports/${encodeURIComponent(reportId)}/publish`,
+        { method: "POST", credentials: "include" }
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || "Failed to publish report");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/homescout/listings", listingId] });
+      toast({ title: "Report published" });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Publish failed",
+        description: err?.message || "Could not publish report",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeInspectionReport = useMutation({
+    mutationFn: async (reportId: string) => {
+      const res = await fetch(
+        `/api/homescout/inspection-reports/${encodeURIComponent(reportId)}/remove`,
+        { method: "POST", credentials: "include" }
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || "Failed to remove report");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/homescout/listings", listingId] });
+      toast({ title: "Report removed" });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Remove failed",
+        description: err?.message || "Could not remove report",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const fetchInspectionInsights = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        `/api/homescout/listings/${encodeURIComponent(listingId)}/inspection-insights`,
+        { credentials: "include", headers: { Accept: "application/json" } }
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || "Failed to load insights");
+      return body;
+    },
+    onSuccess: (body: any) => {
+      setInspectionInsights(body?.insights || null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Could not load takeaways",
+        description: err?.message || "Try again.",
         variant: "destructive",
       });
     },
@@ -465,6 +551,62 @@ export default function HomeScoutListingPage() {
                 independent reports, and open repair/service requests from findings.
               </div>
 
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs text-slate-500">
+                  Scout can summarize repeated findings across published reports.
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const next = !showInspectionInsights;
+                    setShowInspectionInsights(next);
+                    if (next && !inspectionInsights) {
+                      fetchInspectionInsights.mutate();
+                    }
+                  }}
+                  disabled={fetchInspectionInsights.isPending}
+                >
+                  {fetchInspectionInsights.isPending
+                    ? "Loading..."
+                    : showInspectionInsights
+                      ? "Hide takeaways"
+                      : "View takeaways"}
+                </Button>
+              </div>
+
+              {showInspectionInsights && inspectionInsights ? (
+                <div className="rounded-md border border-slate-800 p-3 bg-slate-950/40 space-y-2">
+                  <div className="text-slate-100 font-semibold text-sm">Takeaways</div>
+                  {Array.isArray(inspectionInsights?.buyerRecommendations) &&
+                  inspectionInsights.buyerRecommendations.length > 0 ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-slate-400">For buyers</div>
+                      <ul className="list-disc pl-5 text-sm text-slate-300 space-y-1">
+                        {inspectionInsights.buyerRecommendations
+                          .slice(0, 6)
+                          .map((x: string, idx: number) => (
+                            <li key={`b-${idx}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {Array.isArray(inspectionInsights?.sellerRecommendations) &&
+                  inspectionInsights.sellerRecommendations.length > 0 ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-slate-400">For sellers</div>
+                      <ul className="list-disc pl-5 text-sm text-slate-300 space-y-1">
+                        {inspectionInsights.sellerRecommendations
+                          .slice(0, 6)
+                          .map((x: string, idx: number) => (
+                            <li key={`s-${idx}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="space-y-2">
                 <div className="text-slate-100 font-semibold text-sm">
                   Open inspection requests ({openInspectionRequests.length})
@@ -492,6 +634,105 @@ export default function HomeScoutListingPage() {
                   </div>
                 )}
               </div>
+
+              {isAuthenticated ? (
+                <>
+                  <div className="space-y-2">
+                    <div className="text-slate-100 font-semibold text-sm">
+                      Pending inspection reports ({pendingInspectionReports.length})
+                    </div>
+                    {pendingInspectionReports.length === 0 ? (
+                      <div className="text-xs text-slate-500">No pending reports.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pendingInspectionReports.map((r) => (
+                          <div
+                            key={r.id}
+                            className="rounded-md border border-slate-800 p-3 bg-slate-950/40 space-y-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-slate-100 font-medium">
+                                {String(r.reportType || "other").replace(/_/g, " ")}{" "}
+                                <span className="text-xs text-slate-400">(pending review)</span>
+                              </div>
+                              <a
+                                href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
+                                rel="noreferrer"
+                                className="text-orange-300 hover:text-orange-200 text-xs"
+                              >
+                                Download report
+                              </a>
+                            </div>
+                            {r.summary ? (
+                              <div className="text-sm text-slate-300">{r.summary}</div>
+                            ) : null}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => publishInspectionReport.mutate(r.id)}
+                                disabled={publishInspectionReport.isPending}
+                              >
+                                Publish
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => removeInspectionReport.mutate(r.id)}
+                                disabled={removeInspectionReport.isPending}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-slate-100 font-semibold text-sm">
+                      Your uploads ({myInspectionReports.length})
+                    </div>
+                    {myInspectionReports.length === 0 ? (
+                      <div className="text-xs text-slate-500">No uploads yet.</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {myInspectionReports
+                          .filter((r) => (r.status || "published") !== "published")
+                          .slice(0, 6)
+                          .map((r) => (
+                            <div
+                              key={r.id}
+                              className="rounded-md border border-slate-800 p-3 bg-slate-950/40"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-slate-100 font-medium">
+                                  {String(r.reportType || "other").replace(/_/g, " ")}
+                                  {r.status ? (
+                                    <span className="text-xs text-slate-400">
+                                      {" "}
+                                      ({String(r.status).replace(/_/g, " ")})
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <a
+                                  href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
+                                  rel="noreferrer"
+                                  className="text-orange-300 hover:text-orange-200 text-xs"
+                                >
+                                  Download
+                                </a>
+                              </div>
+                              {r.summary ? (
+                                <div className="text-xs text-slate-400 mt-1">{r.summary}</div>
+                              ) : null}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
 
               <div className="space-y-2">
                 <div className="text-slate-100 font-semibold text-sm">
@@ -641,7 +882,7 @@ export default function HomeScoutListingPage() {
                     <input
                       value={uploadSourceRequestId}
                       onChange={(e) => setUploadSourceRequestId(e.target.value)}
-                      placeholder="Source request id (required for buyer independent)"
+                      placeholder="Source request id (optional, if you requested an inspection here)"
                       className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
                     />
                     <input

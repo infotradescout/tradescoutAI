@@ -5843,7 +5843,8 @@ export class DatabaseStorage implements IStorage {
   async listHomeScoutInspectionReports(params: {
     listingId: string;
     visibility?: "public" | "private";
-    status?: "published" | "removed";
+    status?: "published" | "pending_review" | "removed";
+    submittedByUserId?: string;
     limit?: number;
     offset?: number;
   }): Promise<HomeScoutInspectionReport[]> {
@@ -5855,6 +5856,11 @@ export class DatabaseStorage implements IStorage {
     if (params.visibility)
       predicates.push(eq(homeScoutInspectionReports.visibility, params.visibility as any));
     if (params.status) predicates.push(eq(homeScoutInspectionReports.status, params.status as any));
+    if (params.submittedByUserId) {
+      predicates.push(
+        eq(homeScoutInspectionReports.submittedByUserId, params.submittedByUserId as any)
+      );
+    }
 
     return await db
       .select()
@@ -5873,6 +5879,18 @@ export class DatabaseStorage implements IStorage {
       .from(homeScoutInspectionReports)
       .where(eq(homeScoutInspectionReports.id, reportId))
       .limit(1);
+    return row;
+  }
+
+  async updateHomeScoutInspectionReportStatus(params: {
+    reportId: string;
+    status: "published" | "pending_review" | "removed";
+  }): Promise<HomeScoutInspectionReport | undefined> {
+    const [row] = await db
+      .update(homeScoutInspectionReports)
+      .set({ status: params.status as any, updatedAt: new Date() } as any)
+      .where(eq(homeScoutInspectionReports.id, params.reportId))
+      .returning();
     return row;
   }
 

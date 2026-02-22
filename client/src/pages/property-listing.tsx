@@ -101,6 +101,9 @@ export default function PropertyListing() {
   const [inspectionFile, setInspectionFile] = useState<File | null>(null);
   const [inspectionDate, setInspectionDate] = useState<string>("");
   const [inspectionSummary, setInspectionSummary] = useState<string>("");
+  const [presaleSuggestions, setPresaleSuggestions] = useState<
+    { title: string; why?: string; effort?: string; costRange?: string; timeline?: string }[]
+  >([]);
 
   const form = useForm<PropertyListingForm>({
     resolver: zodResolver(propertyListingSchema),
@@ -180,6 +183,39 @@ export default function PropertyListing() {
       toast({
         title: "Error Creating Listing",
         description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const presaleSuggestionsMutation = useMutation({
+    mutationFn: async () => {
+      if (!propertyStateCode || !propertyCountyFips) {
+        throw new Error("Select the property state and county first.");
+      }
+
+      const values = form.getValues();
+      const sqft = values.squareFeet ? Number.parseInt(values.squareFeet, 10) : undefined;
+      const yearBuilt = values.yearBuilt ? Number.parseInt(values.yearBuilt, 10) : undefined;
+
+      return apiRequest("POST", "/api/homescout/presale-suggestions", {
+        stateCode: propertyStateCode,
+        countyFips: propertyCountyFips,
+        propertyType: values.propertyType,
+        condition: values.condition,
+        sqft: Number.isFinite(sqft as any) ? sqft : undefined,
+        yearBuilt: Number.isFinite(yearBuilt as any) ? yearBuilt : undefined,
+        features: selectedFeatures,
+      });
+    },
+    onSuccess: (data: any) => {
+      const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
+      setPresaleSuggestions(suggestions);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Could not generate suggestions",
+        description: err?.message || "Try again.",
         variant: "destructive",
       });
     },
@@ -362,6 +398,50 @@ export default function PropertyListing() {
                     placeholder="Any highlights you want buyers to understand up front…"
                   />
                 </div>
+              </div>
+
+              {/* Prep suggestions */}
+              <div className="space-y-4 pt-6 border-t border-border/60">
+                <h3 className="text-lg font-semibold text-orange-500">Prep Suggestions</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Quick, practical steps that can increase appeal before photos and showings.
+                </p>
+
+                <div className="flex items-center gap-3 flex-col sm:flex-row">
+                  <Button
+                    type="button"
+                    className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
+                    onClick={() => presaleSuggestionsMutation.mutate()}
+                    disabled={presaleSuggestionsMutation.isPending}
+                  >
+                    {presaleSuggestionsMutation.isPending ? "Generating..." : "Get suggestions"}
+                  </Button>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 w-full">
+                    Uses your property details plus your selected county.
+                  </div>
+                </div>
+
+                {presaleSuggestions.length > 0 ? (
+                  <div className="space-y-2">
+                    {presaleSuggestions.slice(0, 10).map((s, idx) => (
+                      <div key={`${idx}-${s.title}`} className="rounded-md border p-3 bg-muted/30">
+                        <div className="font-medium">{s.title}</div>
+                        {s.why ? (
+                          <div className="text-sm text-muted-foreground mt-1">{s.why}</div>
+                        ) : null}
+                        <div className="text-xs text-muted-foreground mt-2">
+                          {[
+                            s.effort ? `effort: ${s.effort}` : null,
+                            s.costRange ? `cost: ${s.costRange}` : null,
+                            s.timeline ? `timeline: ${s.timeline}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               {/* Location */}
