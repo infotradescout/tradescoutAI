@@ -21,13 +21,15 @@ type NavLinkProps = {
   icon: React.ReactNode;
   label: string;
   description?: string;
-  onClick?: () => void;
+  onNavigate?: () => void;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onClick }) => (
+const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNavigate }) => (
   <Link
     href={href}
-    onClick={onClick}
+    // Important: don't override Wouter <Link> onClick handler.
+    // Use capture-phase to close drawers/overlays while preserving navigation.
+    onClickCapture={() => onNavigate?.()}
     className="flex flex-col gap-1 rounded-xl transition-colors"
     style={{
       borderColor: "var(--border-primary)",
@@ -126,7 +128,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="My profile"
               description="View and edit your public profile, sections, and visibility."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/profile-settings"
@@ -138,7 +140,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Account settings"
               description="Notifications, app behavior, and connected tools."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/notifications"
@@ -147,7 +149,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Notifications"
               description="Control alerts from Scout and jobs."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
           </div>
         </section>
@@ -172,7 +174,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
                 }
                 label="Super Admin OS"
                 description="Full-site controls for TradeScout."
-                onClick={onNavigate}
+                onNavigate={onNavigate}
               />
             ) : (
               <NavLink
@@ -185,7 +187,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
                 }
                 label="Scout hub"
                 description="Assistant-first workspace with your live dashboard."
-                onClick={onNavigate}
+                onNavigate={onNavigate}
               />
             )}
             <NavLink
@@ -198,7 +200,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Finances workspace"
               description="Invoices, job records, and deal workflow."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/hoa-management"
@@ -210,7 +212,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="HOA & neighborhood"
               description="Join or manage your neighborhood HOA."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/messages"
@@ -222,7 +224,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/saved-ads"
@@ -234,7 +236,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Saved items"
               description="Saved projects, listings, and ideas."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
           </div>
         </section>
@@ -267,28 +269,28 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
               label="Privacy & data"
               description="Privacy policy, data handling, and cookie use."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/terms"
               icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
               label="Terms of service"
               description="Usage rules, responsibilities, and limits."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/compliance"
               icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
               label="Compliance dashboard"
               description="Marketplace, INFORM Act, and safety disclosures."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
             <NavLink
               href="/privacy"
               icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
               label="Cookie controls"
               description="Cookie policy and preference controls."
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
           </div>
         </section>
