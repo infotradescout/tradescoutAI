@@ -1,12 +1,12 @@
 /**
  * Enhanced Scout Router v3 - Contextual Awareness and Persistent Memory
- * 
+ *
  * This module extends scout-enhanced-v2.ts with:
  * 1. Persistent memory integration for tool results and preferences
  * 2. Contextual awareness based on user behavior patterns
  * 3. Proactive suggestions and next best actions
  * 4. Advanced error recovery strategies
- * 
+ *
  * This enables Scout to feel like a true assistant that remembers
  * previous interactions and proactively helps the user.
  */
@@ -240,9 +240,10 @@ router.post("/message-v3", async (req: Request, res: Response) => {
     }
 
     // PHASE 3: Build enhanced prompt with memory context
-    const memoryContext = recalledMemories.length > 0
-      ? `\n## RECALLED MEMORIES\n${recalledMemories.map((m) => `- ${m}`).join("\n")}`
-      : "";
+    const memoryContext =
+      recalledMemories.length > 0
+        ? `\n## RECALLED MEMORIES\n${recalledMemories.map((m) => `- ${m}`).join("\n")}`
+        : "";
 
     const contextAwarenessSection = contextAnalysis
       ? `\n## CONTEXTUAL AWARENESS\nDetected patterns: ${contextAnalysis.detected_patterns.join(", ")}\nProactive suggestions: ${contextAnalysis.proactive_suggestions.join(", ")}\nNext best actions: ${contextAnalysis.next_best_actions.join(", ")}`
@@ -288,7 +289,7 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
     const parsedResponse = parseEnhancedResponse(llmOutput);
 
     // Execute tool calls and store results
-    let toolResults = [];
+    let toolResults: any[] = [];
     if (parsedResponse.tool_calls && parsedResponse.tool_calls.length > 0) {
       toolResults = await executeLLMToolCalls(parsedResponse.tool_calls, user);
     }
@@ -385,12 +386,7 @@ router.get("/context-analysis", async (req: Request, res: Response) => {
     }
 
     const { intent = "general" } = req.query;
-    const analysis = await ScoutContextAnalyzer.analyzeContext(
-      user.id,
-      intent as string,
-      [],
-      {}
-    );
+    const analysis = await ScoutContextAnalyzer.analyzeContext(user.id, intent as string, [], {});
 
     return res.json(analysis);
   } catch (error) {

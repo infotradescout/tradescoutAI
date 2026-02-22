@@ -1,12 +1,12 @@
 /**
  * Enhanced Scout Router v4 - Multi-Agent Collaboration
- * 
+ *
  * This module extends scout-enhanced-v3.ts with:
  * 1. Scout Agent Supervisor coordination
  * 2. Specialized sub-agent invocation
  * 3. Multi-agent response synthesis
  * 4. Collaborative problem-solving
- * 
+ *
  * This enables Scout to leverage a "council" of specialists for deeper,
  * more expert-level reasoning and recommendations.
  */
@@ -120,7 +120,9 @@ router.post("/message-v4", async (req: Request, res: Response) => {
       ...delegationDecision.secondary_agents,
     ];
 
-    const agentResponses = [];
+    type AgentCouncilResponse =
+      EnhancedScoutResponseV4["agent_council_analysis"]["agent_responses"][number];
+    const agentResponses: AgentCouncilResponse[] = [];
 
     // Invoke marketplace specialist if needed
     if (agentsToInvoke.includes(AgentType.MARKETPLACE)) {
@@ -145,8 +147,7 @@ router.post("/message-v4", async (req: Request, res: Response) => {
         expertise_applied: "Contractor vetting, license verification, specialty matching",
         analysis: `Reviewed ${contractorAnalysis.vetting_analysis.total_reviewed} contractors. ${contractorAnalysis.vetting_analysis.qualified_count} are fully qualified.`,
         recommendations: contractorAnalysis.recommendations,
-        confidence:
-          contractorAnalysis.vetting_analysis.qualified_count > 0 ? "high" : "medium",
+        confidence: contractorAnalysis.vetting_analysis.qualified_count > 0 ? "high" : "medium",
       });
     }
 
@@ -165,11 +166,11 @@ router.post("/message-v4", async (req: Request, res: Response) => {
     }
 
     // PHASE 4: Synthesize agent responses
-    let synthesizedResponse = {
+    let synthesizedResponse: EnhancedScoutResponseV4["synthesized_response"] = {
       message: "I've consulted with my specialist agents to provide you with expert guidance.",
       key_insights: [] as string[],
       recommendations: [] as string[],
-      confidence: "medium" as const,
+      confidence: "medium",
     };
 
     if (agentResponses.length > 0) {
@@ -181,8 +182,7 @@ router.post("/message-v4", async (req: Request, res: Response) => {
 
       // Determine overall confidence
       const avgConfidence =
-        agentResponses.filter((r) => r.confidence === "high").length /
-        agentResponses.length;
+        agentResponses.filter((r) => r.confidence === "high").length / agentResponses.length;
       synthesizedResponse.confidence = avgConfidence > 0.66 ? "high" : "medium";
 
       // Build comprehensive message

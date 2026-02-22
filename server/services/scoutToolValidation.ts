@@ -1,6 +1,6 @@
 /**
  * Scout Tool Validation and Error Recovery Service
- * 
+ *
  * This service provides:
  * 1. Tool outcome validation - checking if results match expectations
  * 2. Error recovery strategies - alternative approaches when tools fail
@@ -80,9 +80,7 @@ export function validateToolOutcome(
   if (expectation) {
     // Check expected data fields
     if (expectation.expected_data_fields) {
-      const missingFields = expectation.expected_data_fields.filter(
-        (field) => !(field in result)
-      );
+      const missingFields = expectation.expected_data_fields.filter((field) => !(field in result));
       if (missingFields.length > 0) {
         issues.push(`Missing expected fields: ${missingFields.join(", ")}`);
         confidence = confidence === "high" ? "medium" : "low";
@@ -96,7 +94,9 @@ export function validateToolOutcome(
           `Expected at least ${expectation.expected_result_count} results, got ${result.data.length}`
         );
         confidence = "medium";
-        recommendations.push("Consider refining search parameters or using web search for broader results");
+        recommendations.push(
+          "Consider refining search parameters or using web search for broader results"
+        );
       }
     }
   }
@@ -212,12 +212,14 @@ export function suggestErrorRecoveryStrategy(
     },
   };
 
-  return strategies[toolName] || {
-    original_tool: toolName,
-    reason_for_failure: error,
-    recommended_fallback: "web_search",
-    explanation: `The ${toolName} tool failed. Use web_search as a fallback to find information on the wider internet.`,
-  };
+  return (
+    strategies[toolName] || {
+      original_tool: toolName,
+      reason_for_failure: error,
+      recommended_fallback: "web_search",
+      explanation: `The ${toolName} tool failed. Use web_search as a fallback to find information on the wider internet.`,
+    }
+  );
 }
 
 /**
@@ -270,7 +272,9 @@ export function assessResultQuality(
     if (result.data.length === 0) {
       qualityScore -= 30;
       gaps.push("No items in result");
-      recommendations.push("No results found. Try refining your search or using a broader search tool.");
+      recommendations.push(
+        "No results found. Try refining your search or using a broader search tool."
+      );
     } else if (result.data.length === 1) {
       qualityScore -= 10;
       gaps.push("Only one result found");
@@ -284,7 +288,7 @@ export function assessResultQuality(
   return {
     quality_score: qualityScore,
     gaps,
-    completeness_percentage,
+    completeness_percentage: completenessPercentage,
     recommendations,
   };
 }

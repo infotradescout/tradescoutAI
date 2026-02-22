@@ -1,6 +1,6 @@
 /**
  * Scout Specialized Agents - Phase 4
- * 
+ *
  * Implementations of specialized sub-agents that form the Scout Agent Council:
  * 1. Marketplace Specialist Agent
  * 2. Contractor Specialist Agent
@@ -253,8 +253,8 @@ export class ContractorSpecialistAgent {
           project_match_score: this.calculateProjectMatch(contractor, projectType),
           risk_factors: this.identifyRiskFactors(contractor),
         }))
-        .filter((c) => c.license_status === "valid")
-        .sort((a, b) => b.project_match_score - a.project_match_score);
+        .filter((c: any) => c.license_status === "valid")
+        .sort((a: any, b: any) => b.project_match_score - a.project_match_score);
 
       return {
         qualified_contractors: qualified.slice(0, 5),
@@ -417,18 +417,19 @@ export class CommunitySpecialistAgent {
           members: group.members,
           relevance_score: this.calculateGroupRelevance(group),
         }))
-        .sort((a, b) => b.relevance_score - a.relevance_score);
+        .sort((a: any, b: any) => b.relevance_score - a.relevance_score);
 
+      const hoaData = (hoaResult as any)?.hoa ?? (hoaResult as any)?.data?.hoa ?? null;
       return {
         hoa_info: {
-          exists: !!hoaResult.hoa,
-          rules: hoaResult.hoa?.rules || [],
-          restrictions: hoaResult.hoa?.restrictions || [],
-          contact_info: hoaResult.hoa?.contact_info || "",
+          exists: Boolean(hoaData),
+          rules: hoaData?.rules || [],
+          restrictions: hoaData?.restrictions || [],
+          contact_info: hoaData?.contact_info || "",
         },
         local_groups: groups.slice(0, 5),
-        community_insights: this.generateCommunityInsights(hoaResult, groups),
-        recommendations: this.generateCommunityRecommendations(hoaResult, groups),
+        community_insights: this.generateCommunityInsights(hoaData, groups),
+        recommendations: this.generateCommunityRecommendations(hoaData, groups),
       };
     } catch (error) {
       console.error("[Community Specialist] Error:", error);

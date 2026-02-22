@@ -2506,6 +2506,76 @@ router.post("/", async (req: Request, res: Response) => {
       onboardingQuestionKey,
     } = rawBody as ScoutRequest;
 
+    const defaultEngine = String(process.env.SCOUT_DEFAULT_ENGINE || "classic")
+      .trim()
+      .toLowerCase();
+    const wantsEnhancedV4 =
+      defaultEngine === "v4" || defaultEngine === "enhanced_v4" || defaultEngine === "enhanced-v4";
+
+    if (wantsEnhancedV4) {
+      const portRaw = Number(process.env.PORT || 10000);
+      const port = Number.isFinite(portRaw) ? portRaw : 10000;
+      const url = `http://127.0.0.1:${port}/api/scout-enhanced-v4/message-v4`;
+
+      try {
+        const forwardedHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        const cookie = typeof req.headers.cookie === "string" ? req.headers.cookie : "";
+        if (cookie) forwardedHeaders.Cookie = cookie;
+
+        const upstream = await fetch(url, {
+          method: "POST",
+          headers: forwardedHeaders,
+          body: JSON.stringify({
+            message,
+            conversationHistory: Array.isArray(history) ? history : [],
+          }),
+        });
+
+        const text = await upstream.text();
+        let json: any = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch {
+          json = null;
+        }
+
+        if (!upstream.ok) {
+          console.warn("[Scout] Enhanced v4 proxy failed", {
+            status: upstream.status,
+            body: text?.slice?.(0, 500) ?? "",
+          });
+        } else {
+          const enhancedMessage =
+            String(json?.synthesized_response?.message || json?.message || "").trim() ||
+            "Scout is online.";
+
+          if (scoutInteractionLog) {
+            scoutInteractionLog.scoutConfidence = confidenceToScore(
+              json?.synthesized_response?.confidence ?? json?.reflection?.confidence
+            );
+          }
+
+          return res.json({
+            message: enhancedMessage,
+            actions: [],
+            actionResults: [],
+            knowledge: {
+              layer: 1,
+              sources: ["Scout Enhanced v4 (Agent Council)"],
+              confidence: String(json?.synthesized_response?.confidence || "medium"),
+            },
+            llmProvider: "enhanced_v4",
+            promptVersion: loadSystemPrompt().version,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        console.warn("[Scout] Enhanced v4 proxy error, falling back to classic:", error);
+      }
+    }
+
     const userRole = (req as any).user?.role || "user";
     const normalizedStateCode =
       typeof stateCode === "string" && stateCode.trim().length > 0
