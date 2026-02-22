@@ -425,7 +425,12 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         : { color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" };
 
   return (
-    <div className="space-y-3 pr-1 flex-1 min-h-0 overflow-y-auto">
+    <div
+      className="scout-thread space-y-3 flex-1 min-h-0 overflow-y-auto"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+    >
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 
@@ -456,16 +461,20 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
         return (
           <div key={msg.id} className="space-y-2">
-            <div
-              className={clsx("flex", {
-                "justify-end": isUser,
-                "justify-start": !isUser,
-              })}
-            >
-              <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
-                {displayContent && (
-                  <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
-                )}
+            <div className={clsx("scout-row", isUser ? "user" : "assistant")}>
+              {!isUser && (
+                <div className="scout-avatar" aria-hidden="true">
+                  TS
+                </div>
+              )}
+
+              <div className="min-w-0">
+                {!isUser && <div className="scout-sender">Scout</div>}
+                <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
+                  {displayContent && (
+                    <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
+                  )}
+                </div>
               </div>
             </div>
 

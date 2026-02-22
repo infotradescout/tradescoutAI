@@ -386,35 +386,7 @@ html {
   }
 }
 
-/* Scout suggestion buttons - restrained */
-.scout-suggestion {
-  background-color: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  color: var(--text-primary);
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-  box-shadow: none;
-  opacity: 1;
-}
-
-.scout-suggestion:hover {
-  background-color: rgba(15, 23, 42, 0.92);
-  border-color: rgba(148, 163, 184, 0.38);
-  color: var(--text-primary);
-  transform: none;
-}
-
-.scout-suggestion:active {
-  opacity: 0.95;
-  transform: translateY(0);
-}
-
-.scout-suggestion:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-}
+/* Scout suggestion styles are defined once in the Scout section below. */
 
 /* Scroll area enhancements */
 .scroll-area-viewport {
@@ -1664,6 +1636,89 @@ html, body {
   z-index: 1;
 }
 
+/* Main Scout panel (chat surface) */
+.scout-panel {
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--surface-card) 86%, transparent);
+  box-shadow:
+    0 18px 48px rgba(2, 6, 23, 0.55),
+    0 0 0 1px rgba(255, 140, 0, 0.05);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.scout-panel:focus-within {
+  border-color: var(--border-active);
+  box-shadow:
+    0 18px 48px rgba(2, 6, 23, 0.55),
+    0 0 0 1px rgba(255, 140, 0, 0.08),
+    0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
+}
+
+/* Header */
+.scout-header-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .scout-header-eyebrow {
+    justify-content: flex-start;
+  }
+}
+
+/* Thread */
+.scout-thread {
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+}
+
+.scout-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.scout-row.user {
+  justify-content: flex-end;
+}
+
+.scout-row.assistant {
+  justify-content: flex-start;
+}
+
+.scout-avatar {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ts-text-on-accent, #0B0F14);
+  background: linear-gradient(
+    135deg,
+    var(--theme-accent-primary),
+    color-mix(in oklab, var(--theme-accent-secondary) 70%, var(--theme-accent-primary))
+  );
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+.scout-sender {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  margin: 0 0 4px 2px;
+}
+
 /* Scout cards - tonal separation only, no borders */
 .scout-card {
   background: color-mix(in oklab, var(--surface-card) 88%, transparent);
@@ -1697,10 +1752,10 @@ html, body {
 .scout-message {
   line-height: 1.5;
   padding: 10px 12px;
-  margin: 0 0 14px 0;
+  margin: 0;
   border: 1px solid var(--border-subtle);
   background: color-mix(in oklab, var(--surface-card) 90%, transparent);
-  border-radius: 12px;
+  border-radius: 14px;
   animation: slideInMessage 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -1721,6 +1776,7 @@ html, body {
   max-width: 68ch;
   background: color-mix(in oklab, var(--surface-intermediate) 95%, var(--theme-accent-primary) 5%);
   border-color: var(--border-active);
+  border-radius: 16px 16px 8px 16px;
 }
 
 .scout-message.assistant {
@@ -1728,6 +1784,7 @@ html, body {
   max-width: 72ch;
   background: color-mix(in oklab, var(--surface-card) 92%, transparent);
   border-color: var(--border-subtle);
+  border-radius: 16px 16px 16px 8px;
 }
 
 /* Scout action buttons - quiet, minimal */
@@ -1751,6 +1808,45 @@ html, body {
 
 .scout-action-button:active {
   opacity: 0.9;
+}
+
+/* Scout suggestion pills - elevated with subtle contrast */
+.scout-suggestion {
+  background-color: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  opacity: 1;
+}
+
+.scout-suggestion:hover {
+  background-color: color-mix(in oklab, var(--surface-intermediate) 96%, transparent);
+  border-color: var(--border-active);
+}
+
+.scout-suggestion:active {
+  opacity: 0.95;
+}
+
+.scout-suggestion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.scout-action-button:focus-visible,
+.scout-suggestion:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 24%, transparent);
+  border-color: var(--border-active);
+}
+
+.scout-input textarea:focus-visible,
+.scout-input input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 20%, transparent);
 }
 
 
@@ -1866,54 +1962,7 @@ html, body {
   color: var(--text-secondary) !important;
 }
 
-/* Scout suggestion pills - elevated with subtle contrast */
-.scout-suggestion {
-  background-color: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-  opacity: 1;
-}
-
-.scout-suggestion:hover {
-  background-color: color-mix(in oklab, var(--surface-intermediate) 96%, transparent);
-  border-color: var(--border-active);
-}
-
-.scout-suggestion:active {
-  opacity: 0.95;
-}
-
-.scout-suggestion:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-/* Scout global - suppress all borders and outlines */
-.scout-input textarea,
-.scout-input input {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.scout-input textarea:focus,
-.scout-input input:focus {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove focus ring styling from all Scout elements */
-.scout-message:focus,
-.scout-card:focus,
-.scout-action-button:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
+/* Scout input should keep its own border; focus rings are handled via :focus-visible above. */
 
 /* Accent helpers for replacing hardcoded orange classes */
 .ts-accent-btn {

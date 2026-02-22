@@ -3340,14 +3340,7 @@ export default function ScoutOS() {
                 : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
-            <div
-              className="w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl px-2.5 md:px-4 py-2.5"
-              style={{
-                border: "1px solid var(--border-subtle)",
-                background: "color-mix(in oklab, var(--surface-card) 88%, transparent)",
-                boxShadow: "0 12px 36px rgba(2, 6, 23, 0.45)",
-              }}
-            >
+            <div className="scout-panel w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl px-2.5 md:px-4 py-2.5">
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
               {!isMobile && (
                 <div className="flex items-center justify-end pb-2">
