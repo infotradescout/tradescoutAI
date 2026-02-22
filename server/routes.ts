@@ -19315,6 +19315,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
 
+  // Register enhanced Scout routes (Phase 1: Structured Reasoning & Dynamic Tool Use)
+  const scoutEnhancedRouter = (await import("./routes/scout-enhanced")).default;
+  app.use("/api/scout-enhanced", scoutEnhancedRouter);
+
   // Admin-only: authority diagnostics (observe, not feature)
   const scoutAnalyticsRouter = (await import("./routes/scout-analytics")).default;
   app.use("/api/scout-analytics", scoutAnalyticsRouter);

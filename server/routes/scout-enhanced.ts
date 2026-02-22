@@ -16,6 +16,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { loadSystemPrompt } from "../services/promptService";
 import { executeAssistantAction } from "../assistantActions";
 import { buildUserContext, formatUserContextForPrompt } from "../services/userContextService";
+import { loadScoutEnhancementConfig, getConfigStatus } from "../services/scoutEnhancementConfig";
 
 const router = Router();
 
@@ -157,10 +158,9 @@ router.post("/message-enhanced", async (req: Request, res: Response) => {
     }
 
     // Load enhanced system prompt
-    const { content: systemPrompt } = loadSystemPrompt();
-    const enhancedPrompt = systemPrompt.includes("ENHANCED EXECUTION CONTRACT")
-      ? systemPrompt
-      : `${systemPrompt}\n\n[USING ENHANCED SYSTEM PROMPT v2.0 - See system_prompt_enhanced.md]`;
+    const config = loadScoutEnhancementConfig();
+    const { content: systemPrompt } = loadSystemPrompt(false, config.useEnhancedPrompt);
+    const enhancedPrompt = systemPrompt;
 
     // Build user context
     const user = (req as any).user;
@@ -188,7 +188,14 @@ ${conversationHistory.map((m: any) => `${m.role}: ${m.content}`).join("\n")}
 Please respond with the enhanced JSON schema including state_acknowledgment, planning, tool_calls, and reflection sections.`;
 
     // Call Gemini with the enhanced prompt
-    const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      return res.status(500).json({
+        error: "Gemini API key not configured",
+        message: "GEMINI_API_KEY environment variable is required for enhanced Scout",
+      });
+    }
+    const gemini = new GoogleGenerativeAI(geminiKey);
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContent(fullPrompt);
@@ -250,13 +257,15 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
  */
 router.get("/system-prompt-enhanced", (req: Request, res: Response) => {
   try {
-    const { content, version } = loadSystemPrompt();
+    const config = loadScoutEnhancementConfig();
+    const { content, version } = loadSystemPrompt(false, true);
     const isEnhanced = content.includes("ENHANCED EXECUTION CONTRACT");
 
     return res.json({
       version,
       is_enhanced: isEnhanced,
       prompt_length: content.length,
+      config: getConfigStatus(),
       key_sections: [
         "Hard Identity Rules",
         "Enhanced Execution Contract",
@@ -271,6 +280,24 @@ router.get("/system-prompt-enhanced", (req: Request, res: Response) => {
     console.error("[Scout Enhanced] Prompt retrieval error:", error);
     return res.status(500).json({
       error: "Failed to retrieve system prompt",
+    });
+  }
+});
+
+/**
+ * GET endpoint to retrieve Scout enhancement configuration status
+ */
+router.get("/config", (req: Request, res: Response) => {
+  try {
+    const config = loadScoutEnhancementConfig();
+    return res.json({
+      config,
+      status: getConfigStatus(),
+    });
+  } catch (error) {
+    console.error("[Scout Enhanced] Config retrieval error:", error);
+    return res.status(500).json({
+      error: "Failed to retrieve configuration",
     });
   }
 });
