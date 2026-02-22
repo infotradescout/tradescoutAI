@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
-import { counties, employmentPosts, users } from "@shared/schema";
+import { counties, employmentPosts, identityVerifications, users } from "@shared/schema";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
@@ -67,9 +67,14 @@ export function registerEmploymentRoutes(app: Express) {
           createdAt: employmentPosts.createdAt,
           updatedAt: employmentPosts.updatedAt,
           posterAddressVerified: users.addressVerified,
+          posterIdVerified: identityVerifications.status,
         })
         .from(employmentPosts)
-        .leftJoin(users, eq(employmentPosts.createdByUserId, users.id));
+        .leftJoin(users, eq(employmentPosts.createdByUserId, users.id))
+        .leftJoin(
+          identityVerifications,
+          eq(employmentPosts.createdByUserId, identityVerifications.userId)
+        );
 
       const rows = whereClause
         ? await base.where(whereClause).orderBy(desc(employmentPosts.createdAt)).limit(100)
@@ -79,8 +84,15 @@ export function registerEmploymentRoutes(app: Express) {
         rows.map((row: any) => {
           const isOwner =
             viewerUserId && row.createdByUserId && String(row.createdByUserId) === viewerUserId;
-          const posterVerified = Boolean(row.posterAddressVerified);
-          const { createdByUserId: _ignore, posterAddressVerified: _ignore2, ...safe } = row;
+          const posterVerified =
+            Boolean(row.posterAddressVerified) &&
+            String(row.posterIdVerified || "").toLowerCase() === "approved";
+          const {
+            createdByUserId: _ignore,
+            posterAddressVerified: _ignore2,
+            posterIdVerified: _ignore3,
+            ...safe
+          } = row;
           return { ...safe, isOwner, posterVerified };
         })
       );

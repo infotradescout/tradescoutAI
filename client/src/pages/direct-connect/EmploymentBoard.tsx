@@ -71,7 +71,14 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const viewerVerified = Boolean((user as any)?.addressVerified);
+  const { data: identityStatus } = useQuery<any>({
+    queryKey: ["/api/identity-verification/status"],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
+  const viewerVerified =
+    Boolean((user as any)?.addressVerified) && Boolean(identityStatus?.isVerified);
   const [active, setActive] = useState<EmploymentPostType>("job");
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | undefined>(
     defaultCountyFips || user?.countyFips || undefined
@@ -189,10 +196,10 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
       toast({
         title: "Verification required",
         description:
-          "Verify your address before you can initiate contact. You can still browse and post.",
+          "Verify your identity + address before you can initiate contact. You can still browse and post.",
         variant: "destructive",
       });
-      navigate("/address-verification");
+      navigate("/verification");
       return;
     }
 
@@ -231,11 +238,11 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               {!viewerVerified && (
                 <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                   Unverified members can browse and post, but cannot initiate contact. Verify your
-                  address to use Ask Scout.
+                  identity + address to use Ask Scout.
                   <Button
                     size="sm"
                     className="ml-2 h-7 bg-amber-400/90 px-2 text-[11px] font-semibold text-black hover:bg-amber-400"
-                    onClick={() => navigate("/address-verification")}
+                    onClick={() => navigate("/verification")}
                   >
                     Verify now
                   </Button>

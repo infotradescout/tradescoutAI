@@ -15,6 +15,7 @@ import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-g
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerEmploymentRoutes } from "./routes/employment";
+import { registerIdentityVerificationRoutes } from "./routes/identity-verification";
 import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
@@ -19260,6 +19261,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   registerNotificationRoutes(app);
   registerDirectConnectRoutes(app);
   registerEmploymentRoutes(app);
+  registerIdentityVerificationRoutes(app);
   registerObjectivesRoutes(app);
 
   // Register analytics routes

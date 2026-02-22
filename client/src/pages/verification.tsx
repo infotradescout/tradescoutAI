@@ -40,6 +40,12 @@ const Verification = memo(function Verification() {
     retry: false,
   });
 
+  const { data: identityStatus, isLoading: loadingIdentity } = useQuery<any>({
+    queryKey: ["/api/identity-verification/status"],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
   const profileComplete = useMemo(() => {
     if (!user) return false;
     return Boolean(
@@ -56,6 +62,12 @@ const Verification = memo(function Verification() {
       ? "pending"
       : "required";
 
+  const identityTone: StatusTone = identityStatus?.isVerified
+    ? "complete"
+    : identityStatus?.verification
+      ? "pending"
+      : "required";
+
   const proStatus = String(user?.verificationStatus || "").toLowerCase();
   const professionalTone: StatusTone =
     proStatus === "approved" ? "complete" : proStatus === "pending" ? "pending" : "required";
@@ -66,7 +78,7 @@ const Verification = memo(function Verification() {
       : "pending"
     : "required";
 
-  const loading = loadingAddress || loadingMarketplace;
+  const loading = loadingAddress || loadingMarketplace || loadingIdentity;
 
   return (
     <div className="px-4 py-4 md:px-6">
@@ -135,6 +147,23 @@ const Verification = memo(function Verification() {
                   </p>
                 </div>
 
+                <div className={`rounded-lg border p-3 ${toneClass(identityTone)}`}>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                    <ShieldCheck className="h-4 w-4" />
+                    Identity verification
+                  </div>
+                  <Badge variant="outline" className="mb-2 border-current/40 text-current">
+                    {toneLabel(identityTone)}
+                  </Badge>
+                  <p className="text-xs text-[color:var(--text-secondary)]">
+                    {identityStatus?.isVerified
+                      ? "Identity verified."
+                      : identityStatus?.verification
+                        ? "Submission received. Pending review."
+                        : "Required to initiate contact across the platform."}
+                  </p>
+                </div>
+
                 <div className={`rounded-lg border p-3 ${toneClass(professionalTone)}`}>
                   <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                     <ShieldCheck className="h-4 w-4" />
@@ -185,6 +214,9 @@ const Verification = memo(function Verification() {
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href="/address-verification">Complete address verification</Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start">
+              <Link href="/identity-verification">Complete identity verification</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href="/contractor-verification">Professional verification</Link>

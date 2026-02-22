@@ -333,6 +333,7 @@ const CountyHub = React.lazy(() => import("./pages/county-hub"));
 const CountyPage = React.lazy(() => import("./pages/county/CountyPage"));
 const MapsPage = React.lazy(() => import("./pages/maps"));
 const Verification = React.lazy(() => import("./pages/verification"));
+const IdentityVerification = React.lazy(() => import("./pages/identity-verification"));
 const InsuranceVerification = React.lazy(() => import("./pages/insurance-verification"));
 const LicenseVerification = React.lazy(() => import("./pages/license-verification"));
 const BackgroundCheck = React.lazy(() => import("./pages/background-check"));
@@ -1473,6 +1474,9 @@ const AppLayout = memo(function AppLayout() {
                   {/* Verification & Compliance */}
                   <Route path="/verification">
                     <LazyPage Component={Verification} />
+                  </Route>
+                  <Route path="/identity-verification">
+                    <LazyPage Component={IdentityVerification} />
                   </Route>
                   <Route path="/insurance-verification">
                     <LazyPage Component={InsuranceVerification} />

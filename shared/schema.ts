@@ -368,6 +368,20 @@ export const addressVerificationStatusEnum = pgEnum("address_verification_status
   "expired",
 ]);
 
+export const identityVerificationStatusEnum = pgEnum("identity_verification_status", [
+  "pending",
+  "submitted",
+  "approved",
+  "rejected",
+  "expired",
+]);
+
+export const identityDocumentTypeEnum = pgEnum("identity_document_type", [
+  "drivers_license",
+  "passport",
+  "state_id",
+]);
+
 // Professional verification status enum
 export const verificationStatusEnum = pgEnum("verification_status", [
   "pending",
@@ -5489,6 +5503,28 @@ export const addressVerifications = pgTable("address_verifications", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const identityVerifications = pgTable("identity_verifications", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
+
+  documentType: identityDocumentTypeEnum("document_type").notNull(),
+  objectKey: varchar("object_key").notNull(),
+
+  status: identityVerificationStatusEnum("status").default("pending"),
+  submittedAt: timestamp("submitted_at"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  adminNotes: text("admin_notes"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Data Privacy and Security Management Tables
 export const userDataRequests = pgTable("user_data_requests", {
   id: varchar("id")
@@ -6444,6 +6480,8 @@ export const insertAddressVerificationSchema = createInsertSchema(addressVerific
 
 export type AddressVerification = typeof addressVerifications.$inferSelect;
 export type InsertAddressVerification = z.infer<typeof insertAddressVerificationSchema>;
+export type IdentityVerification = typeof identityVerifications.$inferSelect;
+export type InsertIdentityVerification = typeof identityVerifications.$inferInsert;
 
 // Handmade Products Marketplace Tables
 export const handmadeCategories = pgTable("handmade_categories", {
