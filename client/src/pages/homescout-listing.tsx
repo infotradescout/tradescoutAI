@@ -40,6 +40,7 @@ type HomeScoutListing = {
   contactUserId?: string | null;
   sellerUserId?: string | null;
   agentUserId?: string | null;
+  listingAuthorType?: string | null;
   latitude?: string | number | null;
   longitude?: string | number | null;
 };
@@ -996,7 +997,14 @@ export default function HomeScoutListingPage() {
         <div className="lg:col-span-2 space-y-4">
           <Card className="bg-slate-950/60 border-slate-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">Facts</CardTitle>
+              <CardTitle className="text-base text-slate-100 flex items-center justify-between gap-3">
+                <span>Facts</span>
+                <span className="text-xs text-slate-400">
+                  {String((listing as any)?.listingAuthorType || "owner") === "agent"
+                    ? "Posted by agent"
+                    : "Posted by owner"}
+                </span>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-300">
               <div className="flex items-center justify-between">

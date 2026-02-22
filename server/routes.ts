@@ -10,6 +10,7 @@ import { contractorSignupRouter } from "./routes/contractor-signup";
 import { businessesRouter } from "./routes/businesses";
 import { profilesRouter } from "./routes/profiles";
 import { homesRouter } from "./routes/homes";
+import { vehiclesRouter } from "./routes/vehicles";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
@@ -17373,6 +17374,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(400).json({ message: "price must be a positive number" });
         }
 
+        const requestedAuthorTypeRaw =
+          typeof body.listingAuthorType === "string" ? body.listingAuthorType.trim() : "";
+        const requestedAuthorType =
+          requestedAuthorTypeRaw === "agent" || requestedAuthorTypeRaw === "owner"
+            ? requestedAuthorTypeRaw
+            : null;
+
+        // Allow agent-posted listings only for approved realtors.
+        let resolvedAuthorType: "owner" | "agent" = "owner";
+        if (requestedAuthorType === "agent") {
+          const realtorProfile = await storage.getRealtorProfileByUserId(String(userId));
+          const ok =
+            realtorProfile &&
+            String((realtorProfile as any).verificationStatus || "") === "approved" &&
+            Boolean((realtorProfile as any).isActive ?? true);
+          if (!ok) {
+            return res.status(403).json({
+              message: "Agent-posted listings require an approved Realtor profile",
+            });
+          }
+          resolvedAuthorType = "agent";
+        }
+
         const listing = await storage.createHomeScoutListing({
           sourceKey: "manual",
           sourceListingId: null,
@@ -17411,8 +17435,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             ? body.photos.filter((x: any) => typeof x === "string")
             : [],
           sellerUserId: userId,
-          agentUserId: null,
+          agentUserId: resolvedAuthorType === "agent" ? userId : null,
           contactUserId: userId,
+          listingAuthorType: resolvedAuthorType as any,
           approvedAt: null,
           approvedByUserId: null,
         } as any);
@@ -19086,6 +19111,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Account-only Home Vault routes ("Carfax for your home")
   app.use(homesRouter);
+
+  // Account-only Vehicle Vault routes ("Carfax for your vehicle")
+  app.use(vehiclesRouter);
 
   // Register contractor signup routes
   app.use(contractorSignupRouter);

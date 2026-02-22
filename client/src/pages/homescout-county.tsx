@@ -280,6 +280,13 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
                     <div className="absolute top-3 md:top-4 left-3 md:left-4">
                       <Badge className="bg-orange-600 hover:bg-orange-700">For Sale</Badge>
                     </div>
+                    <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4">
+                      <Badge className="bg-black/60 text-white border-white/10">
+                        {String((listing as any).listingAuthorType || "owner") === "agent"
+                          ? "By agent"
+                          : "By owner"}
+                      </Badge>
+                    </div>
                     <div className="absolute top-3 md:top-4 right-3 md:right-4">
                       <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-md">
                         {formatCurrency(listing.price)}

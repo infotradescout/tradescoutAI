@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,6 +72,17 @@ export default function MarketplaceListing() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [vehiclePrefill, setVehiclePrefill] = useState<any | null>(null);
+
+  const vehicleId = useMemo(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const raw = params.get("vehicleId");
+      return raw ? String(raw).trim() : "";
+    } catch {
+      return "";
+    }
+  }, []);
 
   const form = useForm<MarketplaceListingForm>({
     resolver: zodResolver(marketplaceListingSchema),
@@ -91,6 +102,32 @@ export default function MarketplaceListing() {
       images: [],
     },
   });
+
+  useEffect(() => {
+    if (!vehicleId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const prefill = await apiRequest(
+          "GET",
+          `/api/vehicles/${encodeURIComponent(vehicleId)}/prefill-marketplace`
+        );
+        if (cancelled) return;
+        setVehiclePrefill(prefill || null);
+
+        if (prefill?.title) form.setValue("title", String(prefill.title));
+        if (prefill?.description) form.setValue("description", String(prefill.description));
+        if (prefill?.categoryId) form.setValue("category", String(prefill.categoryId));
+      } catch (err) {
+        // fail-soft: user can still create listing manually
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId, form]);
 
   const handleImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -151,9 +188,28 @@ export default function MarketplaceListing() {
 
   const createListingMutation = useMutation({
     mutationFn: async (data: MarketplaceListingForm) => {
+      const county =
+        (typeof (user as any)?.countyName === "string" && (user as any).countyName.trim()) ||
+        (typeof (user as any)?.county === "string" && (user as any).county.trim()) ||
+        "Unknown";
+
       return apiRequest("POST", "/api/marketplace/listings", {
         ...data,
         sellerId: user?.id,
+        county,
+        // If this listing is prefilled from a vehicle, enrich the payload with structured fields.
+        ...(vehiclePrefill
+          ? {
+              brand: vehiclePrefill.make || undefined,
+              model: vehiclePrefill.model || undefined,
+              year: vehiclePrefill.year ?? undefined,
+              mileage: vehiclePrefill.mileage ?? undefined,
+              specifications: {
+                make: vehiclePrefill.make || undefined,
+                vin: vehiclePrefill.vin || undefined,
+              },
+            }
+          : {}),
       });
     },
     onSuccess: () => {
@@ -240,6 +296,16 @@ export default function MarketplaceListing() {
             environment. You'll be notified once your listing is reviewed.
           </AlertDescription>
         </Alert>
+
+        {vehicleId ? (
+          <Alert className="mb-6 border-orange-500/20 bg-orange-500/10">
+            <Info className="h-4 w-4 text-orange-300" />
+            <AlertDescription className="text-orange-100">
+              Prefilled from your Vehicle Vault. Add photos and a fair price, then submit for
+              review.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {/* Form */}
         <Card className="bg-navy-800 border-navy-600">

@@ -906,6 +906,36 @@ export default function Settings() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="bg-tsCard border-tsBorder shadow-xl">
+                  <CardHeader className="border-b border-tsBorder pb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <Car className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Vehicle Vault</CardTitle>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Keep private records for your vehicles: service history, repairs, and
+                          documents.
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
+                      <p className="text-xs text-slate-500 max-w-xl">
+                        Account-only. Use this to build trust when you decide to sell.
+                      </p>
+                      <Button
+                        asChild
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
+                      >
+                        <a href="/vehicles">Open Vehicle Vault</a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 

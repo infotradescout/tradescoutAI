@@ -4391,6 +4391,8 @@ export const HOME_SCOUT_PROPERTY_TYPES = [
   "multifamily",
 ] as const;
 
+export const HOME_SCOUT_LISTING_AUTHOR_TYPES = ["owner", "agent"] as const;
+
 export const homeScoutListings = pgTable(
   "home_scout_listings",
   {
@@ -4459,6 +4461,12 @@ export const homeScoutListings = pgTable(
     sellerUserId: varchar("seller_user_id").references(() => users.id, { onDelete: "set null" }),
     agentUserId: varchar("agent_user_id").references(() => users.id, { onDelete: "set null" }),
     contactUserId: varchar("contact_user_id").references(() => users.id, { onDelete: "set null" }),
+    listingAuthorType: varchar("listing_author_type", {
+      length: 16,
+      enum: [...HOME_SCOUT_LISTING_AUTHOR_TYPES],
+    })
+      .notNull()
+      .default("owner"),
 
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -4952,6 +4960,131 @@ export const userHomeDocuments = pgTable(
 
 export type UserHomeDocument = typeof userHomeDocuments.$inferSelect;
 export type InsertUserHomeDocument = typeof userHomeDocuments.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// Private vehicle vault (account-only): "Carfax for your vehicle"
+// ---------------------------------------------------------------------------
+
+export const USER_VEHICLE_RECORD_TYPES = [
+  "service",
+  "repair",
+  "upgrade",
+  "inspection",
+  "accident",
+  "note",
+] as const;
+
+export const USER_VEHICLE_DOCUMENT_TYPES = [
+  "service_report",
+  "invoice",
+  "receipt",
+  "photo",
+  "title",
+  "other",
+] as const;
+
+export const userVehicles = pgTable(
+  "user_vehicles",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    nickname: varchar("nickname", { length: 160 }),
+    year: integer("year"),
+    make: varchar("make", { length: 80 }),
+    model: varchar("model", { length: 120 }),
+    trim: varchar("trim", { length: 120 }),
+    vin: varchar("vin", { length: 32 }),
+    mileage: integer("mileage"),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_vehicles_owner_updated").on(table.ownerUserId, table.updatedAt),
+    index("idx_user_vehicles_vin").on(table.vin),
+  ]
+);
+
+export type UserVehicle = typeof userVehicles.$inferSelect;
+export type InsertUserVehicle = typeof userVehicles.$inferInsert;
+
+export const userVehicleRecords = pgTable(
+  "user_vehicle_records",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    vehicleId: varchar("vehicle_id")
+      .notNull()
+      .references(() => userVehicles.id, { onDelete: "cascade" }),
+    createdByUserId: varchar("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    recordType: varchar("record_type", {
+      length: 24,
+      enum: [...USER_VEHICLE_RECORD_TYPES],
+    }).notNull(),
+    occurredAt: date("occurred_at"),
+    title: varchar("title", { length: 220 }).notNull(),
+    details: text("details"),
+    cost: numeric("cost", { precision: 14, scale: 2 }),
+    mileage: integer("mileage"),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_vehicle_records_vehicle_occurred").on(table.vehicleId, table.occurredAt),
+    index("idx_user_vehicle_records_vehicle_created").on(table.vehicleId, table.createdAt),
+    index("idx_user_vehicle_records_type").on(table.recordType),
+  ]
+);
+
+export type UserVehicleRecord = typeof userVehicleRecords.$inferSelect;
+export type InsertUserVehicleRecord = typeof userVehicleRecords.$inferInsert;
+
+export const userVehicleDocuments = pgTable(
+  "user_vehicle_documents",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    vehicleId: varchar("vehicle_id")
+      .notNull()
+      .references(() => userVehicles.id, { onDelete: "cascade" }),
+    recordId: varchar("record_id").references(() => userVehicleRecords.id, {
+      onDelete: "set null",
+    }),
+    uploadedByUserId: varchar("uploaded_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    documentType: varchar("document_type", {
+      length: 32,
+      enum: [...USER_VEHICLE_DOCUMENT_TYPES],
+    })
+      .notNull()
+      .default("other"),
+    objectKey: varchar("object_key", { length: 600 }).notNull(),
+    originalName: varchar("original_name", { length: 260 }),
+    contentType: varchar("content_type", { length: 160 }),
+    bytes: bigint("bytes", { mode: "number" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_vehicle_documents_vehicle_created").on(table.vehicleId, table.createdAt),
+    index("idx_user_vehicle_documents_record").on(table.recordId),
+  ]
+);
+
+export type UserVehicleDocument = typeof userVehicleDocuments.$inferSelect;
+export type InsertUserVehicleDocument = typeof userVehicleDocuments.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // Commercial directory projects + bids + campaign landing pages

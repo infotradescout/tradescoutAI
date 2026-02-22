@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { Home, MapPin, DollarSign, Building, Info } from "lucide-react";
@@ -95,12 +96,14 @@ export default function PropertyListing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [propertyStateCode, setPropertyStateCode] = useState<string>("");
   const [propertyCountyFips, setPropertyCountyFips] = useState<string>("");
   const [inspectionFile, setInspectionFile] = useState<File | null>(null);
   const [inspectionDate, setInspectionDate] = useState<string>("");
   const [inspectionSummary, setInspectionSummary] = useState<string>("");
+  const [listingAuthorType, setListingAuthorType] = useState<"owner" | "agent">("owner");
   const [presaleSuggestions, setPresaleSuggestions] = useState<
     { title: string; why?: string; effort?: string; costRange?: string; timeline?: string }[]
   >([]);
@@ -129,6 +132,7 @@ export default function PropertyListing() {
         price: parseFloat(data.price),
         countyFips: propertyCountyFips,
         stateCode: propertyStateCode,
+        listingAuthorType,
         city: data.city,
         zipCode: data.zipCode,
         address1: data.address,
@@ -269,6 +273,36 @@ export default function PropertyListing() {
         <CardContent className="space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {String((user as any)?.role || "") === "realtor" ? (
+                <div className="rounded-md border p-4 bg-muted/20 space-y-2">
+                  <div className="font-medium">Posting as</div>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="listingAuthorType"
+                        value="owner"
+                        checked={listingAuthorType === "owner"}
+                        onChange={() => setListingAuthorType("owner")}
+                      />
+                      Owner
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="listingAuthorType"
+                        value="agent"
+                        checked={listingAuthorType === "agent"}
+                        onChange={() => setListingAuthorType("agent")}
+                      />
+                      Agent
+                    </label>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Agent-posted listings require an approved Realtor profile.
+                  </div>
+                </div>
+              ) : null}
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-orange-500">Basic Information</h3>
