@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bookmark, ExternalLink, X, Calendar, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
 
 interface SavedAdvertisement {
@@ -20,6 +20,7 @@ interface SavedAdvertisement {
 
 export default function SavedAds() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -32,7 +33,7 @@ export default function SavedAds() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/pre-scout-setup?mode=signin";
+        navigate("/pre-scout-setup?mode=signin");
       }, 500);
       return;
     }

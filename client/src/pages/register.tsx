@@ -51,7 +51,7 @@ export default function Register() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const beginOAuth = (provider: "google" | "facebook") => {
@@ -106,7 +106,7 @@ export default function Register() {
         description: "Welcome to TradeScout! Next, set up your profile and colors.",
       });
       // New accounts should land on profile setup, same as first-time social logins
-      window.location.href = "/profile-settings?onboarding=1";
+      navigate("/profile-settings?onboarding=1");
     },
     onError: (error: any) => {
       toast({

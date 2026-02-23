@@ -340,12 +340,12 @@ export default function Navigation() {
                 </div>
               </div>
             ) : (
-              <a href="/pre-scout-setup?mode=signin">
+              <Link href="/pre-scout-setup?mode=signin">
                 <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg hover:shadow-orange-500/25 transition-all duration-300">
                   <User className="h-4 w-4 mr-2" />
                   Sign In
                 </Button>
-              </a>
+              </Link>
             )}
           </div>
 
@@ -661,11 +661,11 @@ export default function Navigation() {
                         </a>
                       </div>
                     ) : (
-                      <a href="/pre-scout-setup?mode=signin" onClick={closeMobileMenu}>
+                      <Link href="/pre-scout-setup?mode=signin" onClick={closeMobileMenu}>
                         <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white glow-effect">
                           Sign In
                         </Button>
-                      </a>
+                      </Link>
                     )}
                   </div>
                 </div>

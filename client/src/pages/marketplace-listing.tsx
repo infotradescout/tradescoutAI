@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,7 @@ type MarketplaceListingForm = z.infer<typeof marketplaceListingSchema>;
 export default function MarketplaceListing() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -229,7 +230,7 @@ export default function MarketplaceListing() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/pre-scout-setup?mode=signin";
+          navigate("/pre-scout-setup?mode=signin");
         }, 500);
         return;
       }

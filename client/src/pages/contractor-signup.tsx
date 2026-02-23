@@ -1,13 +1,27 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Building, Shield, Star, CheckCircle, Upload, Phone, Mail, MapPin } from "lucide-react";
@@ -22,30 +36,32 @@ const contractorSignupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
-  
+
   // Location & Service Areas
   primaryState: z.string().min(1, "Please select your primary state"),
   primaryCounty: z.string().min(1, "Please select your primary area"),
   serviceRadius: z.string().min(1, "Please select your service radius"),
-  
+
   // Business Details
   yearsInBusiness: z.coerce.number().min(0, "Years in business must be 0 or greater"),
   licenseNumber: z.string().min(1, "License number is required"),
   insuranceProvider: z.string().min(1, "Insurance provider is required"),
-  
+
   // Services
   primaryTrade: z.string().min(1, "Please select your primary trade"),
   specialties: z.array(z.string()).min(1, "Please select at least one specialty"),
-  
+
   // Business Description
   about: z.string().min(50, "Please provide at least 50 characters describing your business"),
-  
+
   // Contact Preferences
   preferredContact: z.enum(["phone", "email", "both"]),
-  
+
   // Agreement
-  agreeToTerms: z.boolean().refine(val => val === true, "You must agree to the terms"),
-  agreeToVerification: z.boolean().refine(val => val === true, "You must agree to verification process")
+  agreeToTerms: z.boolean().refine((val) => val === true, "You must agree to the terms"),
+  agreeToVerification: z
+    .boolean()
+    .refine((val) => val === true, "You must agree to verification process"),
 });
 
 type ContractorSignupForm = z.infer<typeof contractorSignupSchema>;
@@ -53,31 +69,31 @@ type ContractorSignupForm = z.infer<typeof contractorSignupSchema>;
 import { US_STATES } from "@shared/us-states-counties";
 
 const trades = [
-  'General Contractor',
-  'Roofing',
-  'Plumbing',
-  'Electrical',
-  'HVAC',
-  'Flooring',
-  'Painting',
-  'Kitchen Remodeling',
-  'Bathroom Remodeling',
-  'Landscaping',
-  'Concrete',
-  'Fencing'
+  "General Contractor",
+  "Roofing",
+  "Plumbing",
+  "Electrical",
+  "HVAC",
+  "Flooring",
+  "Painting",
+  "Kitchen Remodeling",
+  "Bathroom Remodeling",
+  "Landscaping",
+  "Concrete",
+  "Fencing",
 ];
 
 const specialties = [
-  'Emergency Services',
-  'Residential',
-  'Commercial',
-  'New Construction',
-  'Remodeling',
-  'Repair Services',
-  'Maintenance',
-  'Green/Eco-Friendly',
-  'Luxury Projects',
-  'Insurance Claims'
+  "Emergency Services",
+  "Residential",
+  "Commercial",
+  "New Construction",
+  "Remodeling",
+  "Repair Services",
+  "Maintenance",
+  "Green/Eco-Friendly",
+  "Luxury Projects",
+  "Insurance Claims",
 ];
 
 export default function ContractorSignup() {
@@ -88,11 +104,11 @@ export default function ContractorSignup() {
 
   // Fetch counties for selected state
   const { data: counties } = useQuery<County[]>({
-    queryKey: ['/api/counties', selectedState],
+    queryKey: ["/api/counties", selectedState],
     queryFn: async () => {
       if (!selectedState) return [];
       const response = await fetch(`/api/counties?state=${selectedState}`);
-      if (!response.ok) throw new Error('Failed to fetch counties');
+      if (!response.ok) throw new Error("Failed to fetch counties");
       return response.json();
     },
     enabled: !!selectedState,
@@ -116,18 +132,18 @@ export default function ContractorSignup() {
       about: "",
       preferredContact: "both",
       agreeToTerms: false,
-      agreeToVerification: false
-    }
+      agreeToVerification: false,
+    },
   });
 
   const signupMutation = useMutation({
     mutationFn: async (data: ContractorSignupForm) => {
-      const response = await fetch('/api/contractor-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+      const response = await fetch("/api/contractor-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Signup failed');
+      if (!response.ok) throw new Error("Signup failed");
       return response.json();
     },
     onSuccess: () => {
@@ -143,25 +159,24 @@ export default function ContractorSignup() {
         description: "Please try again or contact support.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const onSubmit = (data: ContractorSignupForm) => {
     signupMutation.mutate({ ...data, specialties: selectedSpecialties });
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 4));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
+  const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   const toggleSpecialty = (specialty: string) => {
-    setSelectedSpecialties(prev => 
-      prev.includes(specialty) 
-        ? prev.filter(s => s !== specialty)
-        : [...prev, specialty]
+    setSelectedSpecialties((prev) =>
+      prev.includes(specialty) ? prev.filter((s) => s !== specialty) : [...prev, specialty]
     );
-    form.setValue('specialties', 
+    form.setValue(
+      "specialties",
       selectedSpecialties.includes(specialty)
-        ? selectedSpecialties.filter(s => s !== specialty)
+        ? selectedSpecialties.filter((s) => s !== specialty)
         : [...selectedSpecialties, specialty]
     );
   };
@@ -169,7 +184,7 @@ export default function ContractorSignup() {
   // Reset county when state changes
   useEffect(() => {
     if (selectedState) {
-      form.setValue('primaryCounty', '');
+      form.setValue("primaryCounty", "");
     }
   }, [selectedState, form]);
 
@@ -187,7 +202,8 @@ export default function ContractorSignup() {
               <CheckCircle className="h-16 w-16 text-primary mx-auto mb-6" />
               <h1 className="text-3xl font-bold text-foreground mb-4">Application Submitted!</h1>
               <p className="text-muted-foreground mb-6">
-                Thank you for applying to join TradeScout. We'll review your application and contact you within 24-48 hours.
+                Thank you for applying to join TradeScout. We'll review your application and contact
+                you within 24-48 hours.
               </p>
               <div className="bg-muted rounded-lg p-4 mb-6">
                 <h3 className="text-lg font-semibold text-foreground mb-2">Next Steps:</h3>
@@ -198,12 +214,11 @@ export default function ContractorSignup() {
                   <li>• Once approved, you'll be live on the contractor board</li>
                 </ul>
               </div>
-              <Button 
-                onClick={() => window.location.href = '/contractor-dashboard'}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                Go to Contractor Dashboard
-              </Button>
+              <Link href="/contractor-dashboard">
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  Go to Contractor Dashboard
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -219,7 +234,7 @@ export default function ContractorSignup() {
         keywords="contractor registration, join contractor network, get more leads, contractor marketing"
         canonical="https://www.thetradescout.com/contractors/apply"
       />
-      
+
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
@@ -227,13 +242,15 @@ export default function ContractorSignup() {
           <p className="text-xl text-gray-300 mb-6">
             Get verified and start receiving quality leads from homeowners in your area
           </p>
-          
+
           {/* Benefits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-navy-700 rounded-lg p-4">
               <Star className="h-8 w-8 text-orange-500 mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-white">Quality Leads</h3>
-              <p className="text-gray-300 text-sm">Connect with homeowners actively seeking your services</p>
+              <p className="text-gray-300 text-sm">
+                Connect with homeowners actively seeking your services
+              </p>
             </div>
             <div className="bg-navy-700 rounded-lg p-4">
               <Shield className="h-8 w-8 text-orange-500 mx-auto mb-2" />
@@ -255,7 +272,7 @@ export default function ContractorSignup() {
               <div
                 key={step}
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  step <= currentStep ? 'bg-orange-500 text-white' : 'bg-navy-600 text-gray-400'
+                  step <= currentStep ? "bg-orange-500 text-white" : "bg-navy-600 text-gray-400"
                 }`}
               >
                 {step}
@@ -263,7 +280,7 @@ export default function ContractorSignup() {
             ))}
           </div>
           <div className="w-full bg-navy-600 rounded-full h-2">
-            <div 
+            <div
               className="bg-orange-500 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             />
@@ -282,7 +299,6 @@ export default function ContractorSignup() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                
                 {/* Step 1: Company Information */}
                 {currentStep === 1 && (
                   <>
@@ -299,7 +315,7 @@ export default function ContractorSignup() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
@@ -308,13 +324,17 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-gray-300">Business Email *</FormLabel>
                             <FormControl>
-                              <Input {...field} type="email" className="bg-navy-800 border-navy-600 text-white" />
+                              <Input
+                                {...field}
+                                type="email"
+                                className="bg-navy-800 border-navy-600 text-white"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="phone"
@@ -322,7 +342,11 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-gray-300">Business Phone *</FormLabel>
                             <FormControl>
-                              <Input {...field} type="tel" className="bg-navy-800 border-navy-600 text-white" />
+                              <Input
+                                {...field}
+                                type="tel"
+                                className="bg-navy-800 border-navy-600 text-white"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -337,7 +361,12 @@ export default function ContractorSignup() {
                         <FormItem>
                           <FormLabel className="text-gray-300">Website (Optional)</FormLabel>
                           <FormControl>
-                            <Input {...field} type="url" className="bg-navy-800 border-navy-600 text-white" placeholder="https://yourcompany.com" />
+                            <Input
+                              {...field}
+                              type="url"
+                              className="bg-navy-800 border-navy-600 text-white"
+                              placeholder="https://yourcompany.com"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -356,10 +385,13 @@ export default function ContractorSignup() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-gray-300">Primary State *</FormLabel>
-                            <Select onValueChange={(value) => {
-                              field.onChange(value);
-                              setSelectedState(value);
-                            }} defaultValue={field.value}>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                setSelectedState(value);
+                              }}
+                              defaultValue={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
                                   <SelectValue placeholder="Select state" />
@@ -367,7 +399,11 @@ export default function ContractorSignup() {
                               </FormControl>
                               <SelectContent className="bg-navy-700 border-navy-600">
                                 {US_STATES.map((state) => (
-                                  <SelectItem key={state.code} value={state.code} className="text-white hover:bg-navy-600">
+                                  <SelectItem
+                                    key={state.code}
+                                    value={state.code}
+                                    className="text-white hover:bg-navy-600"
+                                  >
                                     {state.name}
                                   </SelectItem>
                                 ))}
@@ -377,7 +413,7 @@ export default function ContractorSignup() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="primaryCounty"
@@ -388,27 +424,38 @@ export default function ContractorSignup() {
                                 const state = US_STATES.find((s) => s.code === selectedState);
                                 const subdivision = state?.subdivisionType || "county";
                                 return `Primary ${subdivision.charAt(0).toUpperCase()}${subdivision.slice(1)}`;
-                              })()}
-                              {' '}
+                              })()}{" "}
                               *
                             </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={!selectedState}
+                            >
                               <FormControl>
                                 <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
                                   <SelectValue
-                                    placeholder={selectedState
-                                      ? (() => {
-                                          const state = US_STATES.find((s) => s.code === selectedState);
-                                          const subdivision = state?.subdivisionType || "county";
-                                          return `Select ${subdivision.toLowerCase()}`;
-                                        })()
-                                      : "Select state first"}
+                                    placeholder={
+                                      selectedState
+                                        ? (() => {
+                                            const state = US_STATES.find(
+                                              (s) => s.code === selectedState
+                                            );
+                                            const subdivision = state?.subdivisionType || "county";
+                                            return `Select ${subdivision.toLowerCase()}`;
+                                          })()
+                                        : "Select state first"
+                                    }
                                   />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="bg-navy-700 border-navy-600">
                                 {counties?.map((county) => (
-                                  <SelectItem key={county.fips} value={county.fips} className="text-white hover:bg-navy-600">
+                                  <SelectItem
+                                    key={county.fips}
+                                    value={county.fips}
+                                    className="text-white hover:bg-navy-600"
+                                  >
                                     {county.name}
                                   </SelectItem>
                                 ))}
@@ -433,11 +480,24 @@ export default function ContractorSignup() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-navy-700 border-navy-600">
-                              <SelectItem value="10" className="text-white hover:bg-navy-600">Within 10 miles</SelectItem>
-                              <SelectItem value="25" className="text-white hover:bg-navy-600">Within 25 miles</SelectItem>
-                              <SelectItem value="50" className="text-white hover:bg-navy-600">Within 50 miles</SelectItem>
-                              <SelectItem value="100" className="text-white hover:bg-navy-600">Within 100 miles</SelectItem>
-                              <SelectItem value="statewide" className="text-white hover:bg-navy-600">Statewide</SelectItem>
+                              <SelectItem value="10" className="text-white hover:bg-navy-600">
+                                Within 10 miles
+                              </SelectItem>
+                              <SelectItem value="25" className="text-white hover:bg-navy-600">
+                                Within 25 miles
+                              </SelectItem>
+                              <SelectItem value="50" className="text-white hover:bg-navy-600">
+                                Within 50 miles
+                              </SelectItem>
+                              <SelectItem value="100" className="text-white hover:bg-navy-600">
+                                Within 100 miles
+                              </SelectItem>
+                              <SelectItem
+                                value="statewide"
+                                className="text-white hover:bg-navy-600"
+                              >
+                                Statewide
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -458,13 +518,18 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-gray-300">Years in Business *</FormLabel>
                             <FormControl>
-                              <Input {...field} type="number" min="0" className="bg-navy-800 border-navy-600 text-white" />
+                              <Input
+                                {...field}
+                                type="number"
+                                min="0"
+                                className="bg-navy-800 border-navy-600 text-white"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="primaryTrade"
@@ -479,7 +544,11 @@ export default function ContractorSignup() {
                               </FormControl>
                               <SelectContent className="bg-navy-700 border-navy-600">
                                 {trades.map((trade) => (
-                                  <SelectItem key={trade} value={trade.toLowerCase().replace(/\s+/g, '-')} className="text-white hover:bg-navy-600">
+                                  <SelectItem
+                                    key={trade}
+                                    value={trade.toLowerCase().replace(/\s+/g, "-")}
+                                    className="text-white hover:bg-navy-600"
+                                  >
                                     {trade}
                                   </SelectItem>
                                 ))}
@@ -499,13 +568,16 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-gray-300">License Number *</FormLabel>
                             <FormControl>
-                              <Input {...field} className="bg-navy-800 border-navy-600 text-white" />
+                              <Input
+                                {...field}
+                                className="bg-navy-800 border-navy-600 text-white"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="insuranceProvider"
@@ -513,7 +585,10 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-gray-300">Insurance Provider *</FormLabel>
                             <FormControl>
-                              <Input {...field} className="bg-navy-800 border-navy-600 text-white" />
+                              <Input
+                                {...field}
+                                className="bg-navy-800 border-navy-600 text-white"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -529,8 +604,8 @@ export default function ContractorSignup() {
                             key={specialty}
                             className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                               selectedSpecialties.includes(specialty)
-                                ? 'bg-orange-500/20 border-orange-500 text-orange-300'
-                                : 'bg-navy-800 border-navy-600 text-gray-300 hover:border-orange-500/50'
+                                ? "bg-orange-500/20 border-orange-500 text-orange-300"
+                                : "bg-navy-800 border-navy-600 text-gray-300 hover:border-orange-500/50"
                             }`}
                             onClick={() => toggleSpecialty(specialty)}
                           >
@@ -539,7 +614,9 @@ export default function ContractorSignup() {
                         ))}
                       </div>
                       {selectedSpecialties.length === 0 && form.formState.errors.specialties && (
-                        <p className="text-red-500 text-sm mt-2">Please select at least one specialty</p>
+                        <p className="text-red-500 text-sm mt-2">
+                          Please select at least one specialty
+                        </p>
                       )}
                     </div>
                   </>
@@ -555,7 +632,7 @@ export default function ContractorSignup() {
                         <FormItem>
                           <FormLabel className="text-gray-300">About Your Business *</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               {...field}
                               className="bg-navy-800 border-navy-600 text-white min-h-[100px]"
                               placeholder="Tell homeowners about your company, experience, and what makes you stand out..."
@@ -571,7 +648,9 @@ export default function ContractorSignup() {
                       name="preferredContact"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">Preferred Contact Method *</FormLabel>
+                          <FormLabel className="text-gray-300">
+                            Preferred Contact Method *
+                          </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
@@ -579,9 +658,15 @@ export default function ContractorSignup() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-navy-700 border-navy-600">
-                              <SelectItem value="phone" className="text-white hover:bg-navy-600">Phone</SelectItem>
-                              <SelectItem value="email" className="text-white hover:bg-navy-600">Email</SelectItem>
-                              <SelectItem value="both" className="text-white hover:bg-navy-600">Both</SelectItem>
+                              <SelectItem value="phone" className="text-white hover:bg-navy-600">
+                                Phone
+                              </SelectItem>
+                              <SelectItem value="email" className="text-white hover:bg-navy-600">
+                                Email
+                              </SelectItem>
+                              <SelectItem value="both" className="text-white hover:bg-navy-600">
+                                Both
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -648,7 +733,7 @@ export default function ContractorSignup() {
                   >
                     Previous
                   </Button>
-                  
+
                   {currentStep < 4 ? (
                     <Button
                       type="button"

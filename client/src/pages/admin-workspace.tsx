@@ -148,7 +148,7 @@ export default function AdminWorkspace() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/pre-scout-setup?mode=signin";
+          setLocation("/pre-scout-setup?mode=signin");
         }, 500);
         return;
       }
@@ -268,7 +268,7 @@ export default function AdminWorkspace() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card
             className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
-            onClick={() => (window.location.href = "/admin/listings")}
+            onClick={() => setLocation("/admin/listings")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -285,7 +285,7 @@ export default function AdminWorkspace() {
 
           <Card
             className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
-            onClick={() => (window.location.href = "/admin/panel")}
+            onClick={() => setLocation("/admin/panel")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -302,7 +302,7 @@ export default function AdminWorkspace() {
 
           <Card
             className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
-            onClick={() => (window.location.href = "/admin/users")}
+            onClick={() => setLocation("/admin/users")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -319,7 +319,7 @@ export default function AdminWorkspace() {
 
           <Card
             className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
-            onClick={() => (window.location.href = "/moderation")}
+            onClick={() => setLocation("/moderation")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -569,7 +569,7 @@ export default function AdminWorkspace() {
                   </div>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600"
-                    onClick={() => (window.location.href = "/admin/panel")}
+                    onClick={() => setLocation("/admin/panel")}
                   >
                     Open Admin Panel
                   </Button>
@@ -767,7 +767,7 @@ export default function AdminWorkspace() {
                   <Button
                     variant="outline"
                     className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                    onClick={() => (window.location.href = "/platform-analytics")}
+                    onClick={() => setLocation("/platform-analytics")}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Open Platform Analytics

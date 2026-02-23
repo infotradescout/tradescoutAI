@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
+import { Link, useSearch } from "wouter";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -70,11 +71,11 @@ export default function Settings() {
     (user as any)?.countyName || (user as any)?.county || ""
   );
 
+  const searchString = useSearch();
   const defaultTab = useMemo(() => {
-    if (typeof window === "undefined") return "profile";
-    const tab = new URLSearchParams(window.location.search).get("tab");
+    const tab = new URLSearchParams(searchString).get("tab");
     return tab || "profile";
-  }, []);
+  }, [searchString]);
 
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || "",
@@ -901,7 +902,7 @@ export default function Settings() {
                         asChild
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
                       >
-                        <a href="/homes">Open Home Vault</a>
+                        <Link href="/homes">Open Home Vault</Link>
                       </Button>
                     </div>
                   </CardContent>
@@ -931,7 +932,7 @@ export default function Settings() {
                         asChild
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
                       >
-                        <a href="/vehicles">Open Vehicle Vault</a>
+                        <Link href="/vehicles">Open Vehicle Vault</Link>
                       </Button>
                     </div>
                   </CardContent>
@@ -1156,7 +1157,7 @@ export default function Settings() {
                       className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
                       asChild
                     >
-                      <a href="/profile-settings">Open Profile Settings</a>
+                      <Link href="/profile-settings">Open Profile Settings</Link>
                     </Button>
                   </CardContent>
                 </Card>
