@@ -8,6 +8,23 @@ const BOOT_MESSAGE_ID = "ts-boot-fallback-message";
 const BOOT_DETAIL_ID = "ts-boot-fallback-detail";
 const APP_READY_ATTR = "data-app-mounted";
 
+function enforceCanonicalHost() {
+  if (typeof window === "undefined") return;
+  const host = window.location.hostname.toLowerCase();
+  const isLocal = host === "localhost" || host === "127.0.0.1";
+  if (isLocal) return;
+
+  // Canonicalize apex -> www so cookies + routing stay consistent.
+  // (This is a client-side safety net in case edge/DNS config doesn't 301 properly.)
+  if (host === "thetradescout.com" || host.endsWith(".thetradescout.com")) {
+    const canonical = "www.thetradescout.com";
+    if (host !== canonical) {
+      const target = `https://${canonical}${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(target);
+    }
+  }
+}
+
 function setViewportVars() {
   // Facebook/Messenger in-app browsers and mobile Safari often misreport `100vh` when
   // the URL bar shows/hides. Use visualViewport when available.
@@ -93,6 +110,7 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
+enforceCanonicalHost();
 setViewportVars();
 window.addEventListener("resize", setViewportVars);
 window.addEventListener("orientationchange", setViewportVars);
