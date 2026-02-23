@@ -1,6 +1,7 @@
 import React, { memo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth, useLogout } from "@/hooks/useAuth";
+import { safeNavigate } from "@/lib/safeNavigate";
 import {
   User,
   Bell,
@@ -30,7 +31,7 @@ import {
 const SimpleNavigation = memo(function SimpleNavigation() {
   const { user, isAuthenticated } = useAuth();
   const logout = useLogout();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
 
   const isActivePath = (path: string) => location === path;
@@ -175,37 +176,42 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                       <div className="text-xs text-slate-500">{user?.email}</div>
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="cursor-pointer">
-                        <User className="w-4 h-4 mr-2" />
-                        Profile
-                      </Link>
+                    <DropdownMenuItem
+                      onSelect={() => safeNavigate(navigate, "/profile")}
+                      className="cursor-pointer"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/groups" className="cursor-pointer">
-                        <Users className="w-4 h-4 mr-2" />
-                        My Groups
-                      </Link>
+                    <DropdownMenuItem
+                      onSelect={() => safeNavigate(navigate, "/groups")}
+                      className="cursor-pointer"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      My Groups
                     </DropdownMenuItem>
                     {(user?.role === "hoa_board" || user?.role === "hoa_manager") && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/hoa-dashboard" className="cursor-pointer">
-                          <Home className="w-4 h-4 mr-2" />
-                          HOA Management
-                        </Link>
+                      <DropdownMenuItem
+                        onSelect={() => safeNavigate(navigate, "/hoa-dashboard")}
+                        className="cursor-pointer"
+                      >
+                        <Home className="w-4 h-4 mr-2" />
+                        HOA Management
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings" className="cursor-pointer">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Settings
-                      </Link>
+                    <DropdownMenuItem
+                      onSelect={() => safeNavigate(navigate, "/settings")}
+                      className="cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/help" className="cursor-pointer">
-                        <HelpCircle className="w-4 h-4 mr-2" />
-                        Help Center
-                      </Link>
+                    <DropdownMenuItem
+                      onSelect={() => safeNavigate(navigate, "/help")}
+                      className="cursor-pointer"
+                    >
+                      <HelpCircle className="w-4 h-4 mr-2" />
+                      Help Center
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">

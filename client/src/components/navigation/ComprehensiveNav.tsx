@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { safeNavigate } from "@/lib/safeNavigate";
 import { getRolePermissions } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import {
@@ -391,7 +392,7 @@ const ALL_NAVIGATION: NavItem[] = [
 
 const ComprehensiveNav = memo(function ComprehensiveNav() {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
@@ -464,11 +465,12 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
     }
 
     return (
-      <DropdownMenuItem asChild>
-        <Link href={item.href}>
-          <Icon className="h-4 w-4 mr-2" />
-          <span className={isActive ? "font-semibold text-orange-600" : ""}>{item.label}</span>
-        </Link>
+      <DropdownMenuItem
+        onSelect={() => safeNavigate(navigate, item.href)}
+        className="cursor-pointer"
+      >
+        <Icon className="h-4 w-4 mr-2" />
+        <span className={isActive ? "font-semibold text-orange-600" : ""}>{item.label}</span>
       </DropdownMenuItem>
     );
   };

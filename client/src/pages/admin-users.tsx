@@ -1184,10 +1184,13 @@ export default function AdminUsers() {
                                   >
                                     Edit profile
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem asChild>
-                                    <Link href={`/profile/${user.id}`} className="cursor-pointer">
-                                      View public profile
-                                    </Link>
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      window.location.assign(`/profile/${user.id}`);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    View public profile
                                   </DropdownMenuItem>
 
                                   {!user.emailVerified &&

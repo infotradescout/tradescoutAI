@@ -13,6 +13,7 @@ import { RoleBadge } from "@/components/ui/RoleBadge";
 import { useAuth, logoutUser } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { safeNavigate } from "@/lib/safeNavigate";
 import { getRolePermissions, getRoleDisplayName } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import {
@@ -310,7 +311,7 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
 export function UserMenu() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   if (!isAuthenticated || !user) {
     return null;
@@ -383,77 +384,66 @@ export function UserMenu() {
               <UserPlus className="h-4 w-4 mr-2" />
               Resend verification
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link
-                href={`/check-email?email=${encodeURIComponent(String(user.email || "").trim())}&next=${encodeURIComponent(
-                  location || "/"
-                )}`}
-                className="flex items-center gap-3 cursor-pointer px-3 py-2"
-              >
-                <Settings className="h-4 w-4" />
-                Check email status
-              </Link>
+            <DropdownMenuItem
+              onSelect={() => {
+                const href = `/check-email?email=${encodeURIComponent(
+                  String(user.email || "").trim()
+                )}&next=${encodeURIComponent(location || "/")}`;
+                safeNavigate(navigate, href);
+              }}
+              className="flex items-center gap-3 cursor-pointer px-3 py-2"
+            >
+              <Settings className="h-4 w-4" />
+              Check email status
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-700" />
           </>
         )}
-        <DropdownMenuItem asChild>
-          <Link
-            href="/profile"
-            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
-            data-profile-link
-            data-tutorial="profile-access"
-          >
-            <Users className="h-4 w-4" />
-            Profile
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/profile")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          data-profile-link
+          data-tutorial="profile-access"
+        >
+          <Users className="h-4 w-4" />
+          Profile
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
-        <DropdownMenuItem asChild>
-          <Link
-            href="/notifications"
-            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
-          >
-            <Bell className="h-4 w-4" />
-            Notifications
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/notifications")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+        >
+          <Bell className="h-4 w-4" />
+          Notifications
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href="/chat"
-            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Messages
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/chat")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Messages
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href="/chat"
-            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Conversations
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/conversations")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Conversations
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href="/saved-ads"
-            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
-          >
-            <Star className="h-4 w-4" />
-            Saved Ads
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/saved-ads")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+        >
+          <Star className="h-4 w-4" />
+          Saved Ads
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
-        <DropdownMenuItem asChild>
-          <Link
-            href="/payment-history"
-            className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
-          >
-            <CreditCard className="h-4 w-4" />
-            Payment History
-          </Link>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/payment-history")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+        >
+          <CreditCard className="h-4 w-4" />
+          Payment History
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
         <DropdownMenuItem

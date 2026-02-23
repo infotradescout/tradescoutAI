@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { openFloatingNote } from "@/lib/floatingNotes";
+import { safeNavigate } from "@/lib/safeNavigate";
 
 type NavLinkProps = {
   href: string;
@@ -25,15 +26,23 @@ type NavLinkProps = {
 };
 
 const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNavigate }) => (
-  <button
-    type="button"
-    onClick={() => onNavigate?.(href)}
+  <a
+    href={href}
+    onClick={(e) => {
+      // If JS routing isn't wired for some reason, let the browser navigate normally.
+      if (!onNavigate) return;
+      // Allow open-in-new-tab behavior.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      onNavigate(href);
+    }}
     className="flex flex-col gap-1 rounded-xl transition-colors cursor-pointer"
     style={{
       borderColor: "var(--border-primary)",
       backgroundColor: "var(--surface-intermediate)",
       width: "100%",
       textAlign: "left",
+      textDecoration: "none",
     }}
     onMouseEnter={(e) => {
       (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
@@ -62,7 +71,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNav
         {description}
       </p>
     )}
-  </button>
+  </a>
 );
 
 type RightToolsPanelProps = {
@@ -76,15 +85,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
   const [, navigate] = useLocation();
 
   const handleNavigate = (href: string) => {
-    if (!href) return;
-    if (href !== window.location.pathname) {
-      navigate(href);
-      window.setTimeout(() => {
-        if (window.location.pathname !== href) {
-          window.location.assign(href);
-        }
-      }, 60);
-    }
+    safeNavigate(navigate, href);
     onNavigate?.();
   };
 
@@ -135,7 +136,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           </div>
           <div className="space-y-2">
             <NavLink
-              href="/my-tradescout"
+              href="/profile"
               icon={
                 <User className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
               }
