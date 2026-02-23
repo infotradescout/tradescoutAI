@@ -25,7 +25,7 @@ import { geographicCoverageRouter } from "./routes/geographic-coverage";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
-import { setupModerationRoutes } from "./moderation";
+import { setupModerationRoutes, setupAdminModerationRoutes } from "./moderation";
 import { registerSocialRoutes } from "./social-routes";
 import { registerSocialFeatures } from "./social-features";
 import { registerScoutRecommendations } from "./routes/scout-recommendations";
@@ -19247,6 +19247,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Set up community moderation routes
   setupModerationRoutes(app);
+  setupAdminModerationRoutes(app);
 
   // Setup UI monitoring routes
   registerUIIssuesRoutes(app);

@@ -1,6 +1,12 @@
 import type { Express } from "express";
 import { db } from "../src/db/drizzle-mock";
-import { moderationVotes, moderationScores, userReputation, socialPosts, postComments } from "@shared/schema";
+import {
+  moderationVotes,
+  moderationScores,
+  userReputation,
+  socialPosts,
+  postComments,
+} from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
 
@@ -15,34 +21,39 @@ export function setupModerationRoutes(app: Express) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      if (!['upvote', 'downvote', 'flag', 'hide'].includes(voteType)) {
+      if (!["upvote", "downvote", "flag", "hide"].includes(voteType)) {
         return res.status(400).json({ error: "Invalid vote type" });
       }
 
       // Get user's voting weight from reputation
-      const [userRep] = await db.select()
+      const [userRep] = await db
+        .select()
         .from(userReputation)
         .where(eq(userReputation.userId, voterId));
 
       const voteWeight = userRep?.voteWeight ? parseFloat(userRep.voteWeight) : 1.0;
 
       // Check if user already voted on this content
-      const [existingVote] = await db.select()
+      const [existingVote] = await db
+        .select()
         .from(moderationVotes)
-        .where(and(
-          eq(moderationVotes.voterId, voterId),
-          eq(moderationVotes.targetType, targetType),
-          eq(moderationVotes.targetId, targetId),
-          eq(moderationVotes.isActive, true)
-        ));
+        .where(
+          and(
+            eq(moderationVotes.voterId, voterId),
+            eq(moderationVotes.targetType, targetType),
+            eq(moderationVotes.targetId, targetId),
+            eq(moderationVotes.isActive, true)
+          )
+        );
 
       if (existingVote) {
         // Update existing vote
-        await db.update(moderationVotes)
-          .set({ 
-            voteType, 
+        await db
+          .update(moderationVotes)
+          .set({
+            voteType,
             reason,
-            weight: Math.round(voteWeight * 100) / 100
+            weight: Math.round(voteWeight * 100) / 100,
           })
           .where(eq(moderationVotes.id, existingVote.id));
       } else {
@@ -53,7 +64,7 @@ export function setupModerationRoutes(app: Express) {
           targetId,
           voteType,
           reason,
-          weight: Math.round(voteWeight * 100) / 100
+          weight: Math.round(voteWeight * 100) / 100,
         });
       }
 
@@ -72,22 +83,24 @@ export function setupModerationRoutes(app: Express) {
     try {
       const { targetType, targetId } = req.params;
 
-      const [score] = await db.select()
+      const [score] = await db
+        .select()
         .from(moderationScores)
-        .where(and(
-          eq(moderationScores.targetType, targetType),
-          eq(moderationScores.targetId, targetId)
-        ));
+        .where(
+          and(eq(moderationScores.targetType, targetType), eq(moderationScores.targetId, targetId))
+        );
 
-      res.json(score || {
-        upvote_count: 0,
-        downvote_count: 0,
-        flag_count: 0,
-        hide_count: 0,
-        community_score: 0,
-        is_hidden: false,
-        is_flagged: false
-      });
+      res.json(
+        score || {
+          upvote_count: 0,
+          downvote_count: 0,
+          flag_count: 0,
+          hide_count: 0,
+          community_score: 0,
+          is_hidden: false,
+          is_flagged: false,
+        }
+      );
     } catch (error) {
       console.error("Error fetching moderation score:", error);
       res.status(500).json({ error: "Failed to fetch score" });
@@ -95,41 +108,47 @@ export function setupModerationRoutes(app: Express) {
   });
 
   // Get user's vote on specific content
-  app.get("/api/moderation/user-vote/:targetType/:targetId", isAuthenticated, async (req: any, res) => {
-    try {
-      const { targetType, targetId } = req.params;
-      const userId = req.user.id;
+  app.get(
+    "/api/moderation/user-vote/:targetType/:targetId",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { targetType, targetId } = req.params;
+        const userId = req.user.id;
 
-      const [vote] = await db.select()
-        .from(moderationVotes)
-        .where(and(
-          eq(moderationVotes.voterId, userId),
-          eq(moderationVotes.targetType, targetType),
-          eq(moderationVotes.targetId, targetId),
-          eq(moderationVotes.isActive, true)
-        ));
+        const [vote] = await db
+          .select()
+          .from(moderationVotes)
+          .where(
+            and(
+              eq(moderationVotes.voterId, userId),
+              eq(moderationVotes.targetType, targetType),
+              eq(moderationVotes.targetId, targetId),
+              eq(moderationVotes.isActive, true)
+            )
+          );
 
-      res.json(vote || null);
-    } catch (error) {
-      console.error("Error fetching user vote:", error);
-      res.status(500).json({ error: "Failed to fetch user vote" });
+        res.json(vote || null);
+      } catch (error) {
+        console.error("Error fetching user vote:", error);
+        res.status(500).json({ error: "Failed to fetch user vote" });
+      }
     }
-  });
+  );
 
   // Get user's reputation
   app.get("/api/moderation/reputation", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
 
-      const [reputation] = await db.select()
+      const [reputation] = await db
+        .select()
         .from(userReputation)
         .where(eq(userReputation.userId, userId));
 
       if (!reputation) {
         // Create initial reputation for new user
-        const [newRep] = await db.insert(userReputation)
-          .values({ userId })
-          .returning();
+        const [newRep] = await db.insert(userReputation).values({ userId }).returning();
         return res.json(newRep);
       }
 
@@ -144,19 +163,22 @@ export function setupModerationRoutes(app: Express) {
   app.post("/api/moderation/bulk-scores", async (req, res) => {
     try {
       const { items } = (req.body ?? {}) as any;
-      
+
       if (!Array.isArray(items)) {
         return res.status(400).json({ error: "Items must be an array" });
       }
 
       const scores = await Promise.all(
         items.map(async ({ targetType, targetId }) => {
-          const [score] = await db.select()
+          const [score] = await db
+            .select()
             .from(moderationScores)
-            .where(and(
-              eq(moderationScores.targetType, targetType),
-              eq(moderationScores.targetId, targetId)
-            ));
+            .where(
+              and(
+                eq(moderationScores.targetType, targetType),
+                eq(moderationScores.targetId, targetId)
+              )
+            );
 
           return {
             targetType,
@@ -168,8 +190,8 @@ export function setupModerationRoutes(app: Express) {
               hideCount: 0,
               communityScore: 0,
               isHidden: false,
-              isFlagged: false
-            }
+              isFlagged: false,
+            },
           };
         })
       );
@@ -186,39 +208,46 @@ export function setupModerationRoutes(app: Express) {
 async function recalculateModerationScore(targetType: string, targetId: string) {
   try {
     // Count votes by type with weights
-    const voteResults = await db.select({
-      voteType: moderationVotes.voteType,
-      totalWeight: sql<number>`sum(${moderationVotes.weight})`,
-      count: sql<number>`count(*)`
-    })
-    .from(moderationVotes)
-    .where(and(
-      eq(moderationVotes.targetType, targetType),
-      eq(moderationVotes.targetId, targetId),
-      eq(moderationVotes.isActive, true)
-    ))
-    .groupBy(moderationVotes.voteType);
+    const voteResults = await db
+      .select({
+        voteType: moderationVotes.voteType,
+        totalWeight: sql<number>`sum(${moderationVotes.weight})`,
+        count: sql<number>`count(*)`,
+      })
+      .from(moderationVotes)
+      .where(
+        and(
+          eq(moderationVotes.targetType, targetType),
+          eq(moderationVotes.targetId, targetId),
+          eq(moderationVotes.isActive, true)
+        )
+      )
+      .groupBy(moderationVotes.voteType);
 
-    let upvoteCount = 0, downvoteCount = 0, flagCount = 0, hideCount = 0;
-    let upvoteWeight = 0, downvoteWeight = 0;
+    let upvoteCount = 0,
+      downvoteCount = 0,
+      flagCount = 0,
+      hideCount = 0;
+    let upvoteWeight = 0,
+      downvoteWeight = 0;
 
     voteResults.forEach((result: any) => {
       const count = parseInt(result.count.toString());
       const weight = parseFloat(result.totalWeight.toString());
-      
+
       switch (result.voteType) {
-        case 'upvote':
+        case "upvote":
           upvoteCount = count;
           upvoteWeight = weight;
           break;
-        case 'downvote':
+        case "downvote":
           downvoteCount = count;
           downvoteWeight = weight;
           break;
-        case 'flag':
+        case "flag":
           flagCount = count;
           break;
-        case 'hide':
+        case "hide":
           hideCount = count;
           break;
       }
@@ -229,20 +258,21 @@ async function recalculateModerationScore(targetType: string, targetId: string) 
 
     // Auto-hide if hide count exceeds threshold (5 votes) or community score is very negative
     const isHidden = hideCount >= 5 || communityScore <= -10;
-    
+
     // Auto-flag if flag count exceeds threshold (3 votes)
     const isFlagged = flagCount >= 3;
 
     // Update or create moderation score
-    const [existingScore] = await db.select()
+    const [existingScore] = await db
+      .select()
       .from(moderationScores)
-      .where(and(
-        eq(moderationScores.targetType, targetType),
-        eq(moderationScores.targetId, targetId)
-      ));
+      .where(
+        and(eq(moderationScores.targetType, targetType), eq(moderationScores.targetId, targetId))
+      );
 
     if (existingScore) {
-      await db.update(moderationScores)
+      await db
+        .update(moderationScores)
         .set({
           upvoteCount,
           downvoteCount,
@@ -252,7 +282,7 @@ async function recalculateModerationScore(targetType: string, targetId: string) 
           isHidden,
           isFlagged,
           lastCalculated: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(moderationScores.id, existingScore.id));
     } else {
@@ -265,13 +295,148 @@ async function recalculateModerationScore(targetType: string, targetId: string) 
         hideCount,
         communityScore,
         isHidden,
-        isFlagged
+        isFlagged,
       });
     }
 
-    return { upvoteCount, downvoteCount, flagCount, hideCount, communityScore, isHidden, isFlagged };
+    return {
+      upvoteCount,
+      downvoteCount,
+      flagCount,
+      hideCount,
+      communityScore,
+      isHidden,
+      isFlagged,
+    };
   } catch (error) {
     console.error("Error recalculating moderation score:", error);
     throw error;
   }
+}
+
+// Admin moderation routes
+export function setupAdminModerationRoutes(app: Express) {
+  // Check if user is super admin
+  const isSuperAdmin = (user: any) => {
+    return (
+      user?.role === "super_admin" || user?.role === "head_admin" || user?.isSuperAdmin === true
+    );
+  };
+
+  // Get all flagged content for review
+  app.get("/api/admin/moderation/flagged", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isSuperAdmin(req.user)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      const flaggedItems = await db
+        .select()
+        .from(moderationScores)
+        .where(eq(moderationScores.isFlagged, true));
+
+      res.json(flaggedItems || []);
+    } catch (error) {
+      console.error("Error fetching flagged content:", error);
+      res.status(500).json({ error: "Failed to fetch flagged content" });
+    }
+  });
+
+  // Get all user reports for review
+  app.get("/api/admin/moderation/reports", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isSuperAdmin(req.user)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      // Return metrics about moderation status
+      const flaggedCount = await db
+        .select()
+        .from(moderationScores)
+        .where(eq(moderationScores.isFlagged, true));
+
+      const hiddenCount = await db
+        .select()
+        .from(moderationScores)
+        .where(eq(moderationScores.isHidden, true));
+
+      res.json({
+        flaggedContentCount: flaggedCount.length,
+        hiddenContentCount: hiddenCount.length,
+        totalFlags: flaggedCount.reduce((sum: number, item: any) => sum + (item.flagCount || 0), 0),
+        totalReports: 0,
+      });
+    } catch (error) {
+      console.error("Error fetching moderation reports:", error);
+      res.status(500).json({ error: "Failed to fetch reports" });
+    }
+  });
+
+  // Approve flagged content (remove flag)
+  app.post("/api/admin/moderation/approve/:contentId", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isSuperAdmin(req.user)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      const { contentId } = req.params;
+      const { targetType } = req.body;
+
+      if (!contentId || !targetType) {
+        return res.status(400).json({ error: "Missing contentId or targetType" });
+      }
+
+      // Reset flagged status
+      await db
+        .update(moderationScores)
+        .set({
+          isFlagged: false,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(eq(moderationScores.targetId, contentId), eq(moderationScores.targetType, targetType))
+        );
+
+      res.json({ success: true, message: "Content approved" });
+    } catch (error) {
+      console.error("Error approving content:", error);
+      res.status(500).json({ error: "Failed to approve content" });
+    }
+  });
+
+  // Remove flagged content
+  app.post("/api/admin/moderation/remove/:contentId", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isSuperAdmin(req.user)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      const { contentId } = req.params;
+      const { targetType, reason } = req.body;
+
+      if (!contentId || !targetType) {
+        return res.status(400).json({ error: "Missing contentId or targetType" });
+      }
+
+      // Mark as hidden and flagged resolved
+      await db
+        .update(moderationScores)
+        .set({
+          isFlagged: false,
+          isHidden: true,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(eq(moderationScores.targetId, contentId), eq(moderationScores.targetType, targetType))
+        );
+
+      // TODO: Add audit log entry for admin action
+      // TODO: Notify content author if needed
+
+      res.json({ success: true, message: "Content removed" });
+    } catch (error) {
+      console.error("Error removing content:", error);
+      res.status(500).json({ error: "Failed to remove content" });
+    }
+  });
 }
