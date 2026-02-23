@@ -43,87 +43,28 @@ const MAPS_V1_ENABLED =
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
 
-function getApiFallbackOrigins(): string[] {
-  if (typeof window === "undefined") return [];
-  const host = window.location.hostname.toLowerCase();
-  const origins = new Set<string>([window.location.origin]);
-
-  if (host === "thetradescout.com") origins.add("https://www.thetradescout.com");
-  if (host === "www.thetradescout.com") origins.add("https://thetradescout.com");
-
-  return Array.from(origins.values());
-}
-
-async function fetchJsonWithFallback(path: string): Promise<any> {
-  const origins = getApiFallbackOrigins();
-  let lastError: unknown = null;
-
-  for (const origin of origins) {
-    try {
-      const url = `${origin}${path}`;
-      const res = await fetch(url, {
-        method: "GET",
-        credentials: "omit",
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      if (res.status === 304) {
-        lastError = new Error("Not modified");
-        continue;
-      }
-      if (!res.ok) {
-        lastError = new Error(`Request failed with status ${res.status}`);
-        continue;
-      }
-      const text = await res.text();
-      return text ? JSON.parse(text) : null;
-    } catch (err) {
-      lastError = err;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error("Request failed");
-}
-
 async function fetchPublicConfigWithFallback(): Promise<{ googleMapsApiKey: string } | null> {
-  const origins = getApiFallbackOrigins();
-  let lastError: unknown = null;
+  try {
+    // Cache-bust to avoid a 304 from a stale SW/browser cache.
+    const url = `/api/public-config?_=${Date.now()}`;
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "omit",
+      headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+      cache: "no-store",
+    });
 
-  for (const origin of origins) {
-    try {
-      const url = `${origin}/api/public-config`;
-      const res = await fetch(url, {
-        method: "GET",
-        credentials: "omit",
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
+    if (!res.ok) return null;
 
-      if (res.status === 304) {
-        lastError = new Error("Not modified");
-        continue;
-      }
-      if (!res.ok) {
-        lastError = new Error(`Request failed with status ${res.status}`);
-        continue;
-      }
+    const text = await res.text();
+    const payload = text ? (JSON.parse(text) as any) : null;
+    const key = String(payload?.googleMapsApiKey || "").trim();
+    if (!key) return null;
 
-      const text = await res.text();
-      const payload = text ? (JSON.parse(text) as any) : null;
-      const key = String(payload?.googleMapsApiKey || "").trim();
-      if (!key) {
-        lastError = new Error("Missing key in public-config");
-        continue;
-      }
-
-      return { googleMapsApiKey: key };
-    } catch (err) {
-      lastError = err;
-    }
+    return { googleMapsApiKey: key };
+  } catch {
+    return null;
   }
-
-  if (lastError) return null;
-  return null;
 }
 
 async function loadGoogleMapsScript(apiKey: string): Promise<void> {
@@ -291,11 +232,7 @@ export default function MapsPage() {
       if (verifiedOnly) params.set("verified", "true");
       if (enabledTypes) params.set("types", enabledTypes);
       const path = `/api/map/entities?${params.toString()}`;
-      try {
-        return await apiRequest("GET", path);
-      } catch {
-        return await fetchJsonWithFallback(path);
-      }
+      return await apiRequest("GET", path);
     },
     staleTime: 30_000,
   });

@@ -28,6 +28,9 @@ RUN set -eux; \
 # Optional: drop devDependencies after build to shrink runtime node_modules
 RUN npm prune --omit=dev
 
+# Some build steps can delete empty directories; ensure these always exist for COPY --from=builder.
+RUN mkdir -p /app/data /app/migrations /app/docs
+
 # --- Production image ---
 FROM node:20-alpine AS runner
 WORKDIR /app
