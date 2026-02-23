@@ -7046,6 +7046,21 @@ export async function registerRoutes(app: any) {
       });
     } catch (error: any) {
       console.error("Error fetching map entities:", error);
+
+      // Fail-soft in production so Maps UI still renders (pins can be empty while
+      // DB migrations/external feeds are recovering). This endpoint is awareness-only.
+      const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+      if (isProd) {
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).json({
+          points: [],
+          meta: {
+            count: 0,
+            degraded: true,
+          },
+        });
+      }
+
       return res.status(500).json({ message: "Failed to fetch map entities" });
     }
   });
