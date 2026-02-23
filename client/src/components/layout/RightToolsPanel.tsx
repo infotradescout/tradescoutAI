@@ -241,7 +241,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onNavigate={handleNavigate}
             />
             <NavLink
-              href="/saved"
+              href="/saved-ads"
               icon={
                 <Bookmark
                   className="h-3.5 w-3.5"

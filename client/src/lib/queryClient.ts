@@ -72,9 +72,8 @@ export async function apiRequest(
       }
 
       if (response.status === 403 && errorCode === "ONBOARDING_REQUIRED") {
-        if (typeof window !== "undefined") {
-          window.location.href = "/pre-scout-setup";
-        }
+        // Never hard-redirect from a low-level API helper; background fetches can
+        // trip onboarding gating and yank users away from what they were doing.
         throw new Error("Please finish updating your profile before continuing.");
       }
 
@@ -143,9 +142,7 @@ export const queryClient = new QueryClient({
           }
 
           if (response.status === 403 && code === "ONBOARDING_REQUIRED") {
-            if (typeof window !== "undefined") {
-              window.location.href = "/pre-scout-setup";
-            }
+            // Don't hard-redirect from queryFn (background queries should not hijack navigation).
             throw new Error("Please finish updating your profile before continuing.");
           }
 

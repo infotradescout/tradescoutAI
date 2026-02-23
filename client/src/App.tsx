@@ -1143,6 +1143,12 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={SavedAds} />
                     </ProtectedRoute>
                   </Route>
+                  {/* Back-compat: right panel links */}
+                  <Route path="/saved">
+                    <ProtectedRoute>
+                      <RedirectTo to="/saved-ads" />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/saved-contractors">
                     <ProtectedRoute>
                       <LazyPage Component={SavedContractors} />
