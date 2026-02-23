@@ -30,19 +30,22 @@ function parseCookieDomain(): string | undefined {
   // This prevents "logged in on thetradescout.com but not www.thetradescout.com" behavior.
   if (process.env.NODE_ENV !== "production") return undefined;
 
+  // Prefer an explicit PUBLIC_WEB_URL if available, but do not require it.
+  // In production we always want a single cookie domain for the main site.
   const publicWebUrl = String(process.env.PUBLIC_WEB_URL || "").trim();
-  if (!publicWebUrl) return undefined;
-
-  try {
-    const host = new URL(publicWebUrl).hostname.toLowerCase();
-    if (host === "thetradescout.com" || host === "www.thetradescout.com") {
-      return ".thetradescout.com";
+  if (publicWebUrl) {
+    try {
+      const host = new URL(publicWebUrl).hostname.toLowerCase();
+      if (host === "thetradescout.com" || host === "www.thetradescout.com") {
+        return ".thetradescout.com";
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
 
-  return undefined;
+  // Fail-safe default: production cookies should be valid on both apex + www.
+  return ".thetradescout.com";
 }
 
 // Configure session
