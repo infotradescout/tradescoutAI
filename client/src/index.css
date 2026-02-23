@@ -86,6 +86,7 @@ html {
     --vh: 1vh;
     --app-height: calc(var(--vh) * 100);
     --bottom-nav-height: 64px;
+    --header-height: 64px;
 
     /* Essential layout dimensions for AppShell positioning */
     --top-nav-h: 48px;
