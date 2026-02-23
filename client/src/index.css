@@ -85,6 +85,11 @@ html {
     --app-height: calc(var(--vh) * 100);
     --bottom-nav-height: 64px;
 
+    /* Essential layout dimensions for AppShell positioning */
+    --top-nav-h: 48px;
+    --bottom-nav-h: 62px;
+    --right-nav-w: 320px;
+
     /* Charcoal foundations (mapped to theme tokens) */
     --charcoal-950: color-mix(in oklab, var(--ts-bg, #0B0F14) 92%, #000 8%);
     --charcoal-900: color-mix(in oklab, var(--ts-bg, #0B0F14) 86%, #000 14%);
