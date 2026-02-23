@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -230,7 +231,7 @@ export function NotificationCenter() {
                 size="sm"
                 className="border-amber-400 text-amber-300 hover:bg-amber-400/10"
                 onClick={() => {
-                  window.location.href = "/messages?tab=requests";
+                  navigate("/messages?tab=requests");
                 }}
               >
                 Review

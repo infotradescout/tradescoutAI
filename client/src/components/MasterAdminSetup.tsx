@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +49,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
   // Check if master admin already exists
@@ -122,10 +124,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              className="w-full"
-              onClick={() => (window.location.href = "/pre-scout-setup?mode=signin")}
-            >
+            <Button className="w-full" onClick={() => navigate("/pre-scout-setup?mode=signin")}>
               Continue to Login
             </Button>
           </CardContent>

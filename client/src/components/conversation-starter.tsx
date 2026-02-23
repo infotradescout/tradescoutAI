@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function ConversationStarter({
 }: ConversationStarterProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -55,7 +57,7 @@ export function ConversationStarter({
         title: "Request accepted",
         description: "Chat is open in your conversations.",
       });
-      window.location.href = "/conversations";
+      navigate("/conversations");
     },
     onError: (error: any) => {
       if (error.message.includes("already exists")) {
@@ -63,7 +65,7 @@ export function ConversationStarter({
           title: "Conversation exists",
           description: "You already have an active conversation for this listing.",
         });
-        window.location.href = "/conversations";
+        navigate("/conversations");
       } else if (error.message.includes("declined")) {
         toast({
           title: "Request declined",
@@ -176,6 +178,7 @@ export function ConversationStarter({
 export function QuickContactButton({ listing, sellerId, className }: ConversationStarterProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   if (!isAuthenticated || user?.id === sellerId) {
     return null;

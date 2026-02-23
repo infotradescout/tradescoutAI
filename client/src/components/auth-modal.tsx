@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -141,7 +142,7 @@ export function AuthModal({
               variant="outline"
               className="w-full"
               onClick={() => {
-                window.location.href = "/pre-scout-setup?mode=create";
+                navigate("/pre-scout-setup?mode=create");
               }}
             >
               Sign up with email
@@ -151,7 +152,7 @@ export function AuthModal({
               variant="ghost"
               className="w-full text-gray-400 hover:text-white"
               onClick={() => {
-                window.location.href = "/pre-scout-setup?mode=signin";
+                navigate("/pre-scout-setup?mode=signin");
               }}
             >
               Already have an account? Sign in

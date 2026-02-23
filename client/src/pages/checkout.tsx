@@ -372,7 +372,7 @@ const CheckoutForm = ({
 };
 
 export default function Checkout() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [match, params] = useRoute("/checkout/:type/:id");
 
   const paymentType = params?.type as "contractor" | "marketplace";
@@ -490,7 +490,7 @@ export default function Checkout() {
   }
 
   const handleSuccess = () => {
-    window.location.href = "/payments/success";
+    navigate("/payment-success");
   };
 
   const handleCancel = () => {

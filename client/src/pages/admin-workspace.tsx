@@ -319,7 +319,7 @@ export default function AdminWorkspace() {
 
           <Card
             className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
-            onClick={() => setLocation("/moderation")}
+            onClick={() => setLocation("/content-moderation")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">

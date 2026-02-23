@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,13 +22,13 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
             </p>
             <p>Every provider uses the same access model. Matching and trust are payment-blind.</p>
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button onClick={() => (window.location.href = "/contractors/apply")}>
+              <Button onClick={() => navigate("/contractors/apply")}>
                 Continue Contractor Verification
               </Button>
               <Button
                 variant="outline"
                 className="border-tsBorder"
-                onClick={() => (window.location.href = "/how-it-works")}
+                onClick={() => navigate("/how-it-works")}
               >
                 Read How TradeScout Works
               </Button>

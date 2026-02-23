@@ -19,7 +19,7 @@ import {
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated, user } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   const isContractor = user?.role === "contractor_user";
   const isAdmin = user?.role
@@ -101,7 +101,7 @@ export default function Navigation() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => (window.location.href = "/")}
+                  onClick={() => navigate("/")}
                   className="border-gray-600 text-gray-300 hover:bg-navy-700"
                 >
                   Sign Out
@@ -120,7 +120,7 @@ export default function Navigation() {
                 </Link>
                 <Button
                   size="sm"
-                  onClick={() => (window.location.href = "/pre-scout-setup?mode=signin")}
+                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   Sign In
@@ -185,7 +185,7 @@ export default function Navigation() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => (window.location.href = "/")}
+                  onClick={() => navigate("/")}
                   className="w-full mt-2 border-gray-600 text-gray-300 hover:bg-navy-600"
                 >
                   Sign Out
@@ -207,7 +207,7 @@ export default function Navigation() {
                   size="sm"
                   onClick={() => {
                     setIsOpen(false);
-                    window.location.href = "/pre-scout-setup?mode=signin";
+                    navigate("/pre-scout-setup?mode=signin");
                   }}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 >

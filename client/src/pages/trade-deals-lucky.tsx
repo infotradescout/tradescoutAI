@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const MOCK_DEALS: TradeDeal[] = [];
 export default function TradeDealsLuckyPage() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [deals, setDeals] = useState<TradeDeal[]>(MOCK_DEALS);
   const [selectedDeal, setSelectedDeal] = useState<TradeDeal | null>(null);
 
@@ -323,7 +325,7 @@ export default function TradeDealsLuckyPage() {
             </p>
             <div className="flex gap-3 justify-center">
               <Button
-                onClick={() => (window.location.href = "/direct-connect")}
+                onClick={() => navigate("/direct-connect")}
                 style={{
                   backgroundColor: "var(--theme-accent-primary)",
                   color: "var(--text-primary)",
@@ -333,7 +335,7 @@ export default function TradeDealsLuckyPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => (window.location.href = "/community")}
+                onClick={() => navigate("/community")}
                 style={{ borderColor: "var(--border-active)", color: "var(--text-primary)" }}
               >
                 Browse Community

@@ -1,8 +1,10 @@
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 
 export default function Boosts() {
+  const [, navigate] = useLocation();
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12" data-testid="boosts-page">
       <Card className="bg-tsCard border-tsBorder">
@@ -19,11 +21,11 @@ export default function Boosts() {
             recommendations, or authority gates.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
-            <Button onClick={() => (window.location.href = "/trust-model")}>Trust Rules</Button>
+            <Button onClick={() => navigate("/trust-model")}>Trust Rules</Button>
             <Button
               variant="outline"
               className="border-tsBorder"
-              onClick={() => (window.location.href = "/direct-connect")}
+              onClick={() => navigate("/direct-connect")}
             >
               View Matches
             </Button>

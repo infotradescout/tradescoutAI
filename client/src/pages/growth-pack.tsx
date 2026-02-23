@@ -1,8 +1,10 @@
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 
 export default function GrowthPack() {
+  const [, navigate] = useLocation();
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Card className="bg-tsCard border-tsBorder">
@@ -19,14 +21,8 @@ export default function GrowthPack() {
           </p>
           <p>Provider outcomes are driven by verification, trust performance, and local fit.</p>
           <div className="flex flex-wrap gap-3 pt-1">
-            <Button onClick={() => (window.location.href = "/contractors/apply")}>
-              Start Verification
-            </Button>
-            <Button
-              variant="outline"
-              className="border-tsBorder"
-              onClick={() => (window.location.href = "/help")}
-            >
+            <Button onClick={() => navigate("/contractors/apply")}>Start Verification</Button>
+            <Button variant="outline" className="border-tsBorder" onClick={() => navigate("/help")}>
               Open Help Center
             </Button>
           </div>

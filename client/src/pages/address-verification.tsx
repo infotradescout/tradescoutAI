@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,6 +56,7 @@ type PostcardVerificationData = z.infer<typeof postcardVerificationSchema>;
 export default function AddressVerification() {
   const [step, setStep] = useState<"form" | "postcard" | "complete">("form");
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
   // Get address verification status
@@ -466,7 +468,7 @@ export default function AddressVerification() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button onClick={() => (window.location.href = "/")}>Continue to Platform</Button>
+              <Button onClick={() => navigate("/")}>Continue to Platform</Button>
             </CardContent>
           </Card>
         )}

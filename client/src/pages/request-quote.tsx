@@ -162,7 +162,7 @@ const RequestQuote = memo(function RequestQuote() {
                   <Button
                     variant="outline"
                     className="border-border text-muted-foreground hover:bg-muted"
-                    onClick={() => (window.location.href = "/")}
+                    onClick={() => navigate("/")}
                   >
                     Back to Dashboard
                   </Button>

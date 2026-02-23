@@ -500,7 +500,7 @@ export default function Marketplace() {
             {isAuthenticated && (
               <div className="flex flex-col gap-2 mt-4 sm:mt-0">
                 <Button
-                  onClick={() => setLocation("/marketplace/list")}
+                  onClick={() => setLocation("/marketplace")}
                   className="bg-orange-600 hover:bg-orange-700 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -1200,7 +1200,7 @@ export default function Marketplace() {
                       </p>
                       {isAuthenticated && (
                         <Button
-                          onClick={() => setLocation("/marketplace/list")}
+                          onClick={() => setLocation("/marketplace")}
                           className="bg-orange-600 hover:bg-orange-700"
                         >
                           <Plus className="h-4 w-4 mr-2" />

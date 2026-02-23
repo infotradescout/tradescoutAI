@@ -607,8 +607,9 @@ function DirectConnectInbox() {
                   const params = new URLSearchParams();
                   if (title) params.set("project", title);
                   if (clientName) params.set("client", clientName);
-                  window.location.href =
-                    "/finances/invoices" + (params.toString() ? `?${params.toString()}` : "");
+                  navigate(
+                    "/finances/invoices" + (params.toString() ? `?${params.toString()}` : "")
+                  );
                 }}
               >
                 Open Finances

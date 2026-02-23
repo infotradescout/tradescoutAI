@@ -5,7 +5,7 @@ import { CheckCircle, Home, Receipt } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export default function PaymentSuccess() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function PaymentSuccess() {
 
     // Auto-redirect after 10 seconds
     const timer = setTimeout(() => {
-      window.location.href = "/";
+      navigate("/");
     }, 10000);
 
     return () => clearTimeout(timer);

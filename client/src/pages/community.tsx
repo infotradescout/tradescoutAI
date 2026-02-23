@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PostType } from "@/components/community/CommunityComposerInline";
@@ -72,6 +73,7 @@ const POST_CATEGORIES = [
 export default function Community() {
   const { user, isAuthenticated } = useAuth();
   const location = useLocationContext();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("for-you");
@@ -182,7 +184,7 @@ export default function Community() {
             onClick={() => {
               try {
                 if (typeof window !== "undefined") {
-                  window.location.href = "/direct-connect";
+                  navigate("/direct-connect");
                 }
               } catch {
                 // best-effort navigation
