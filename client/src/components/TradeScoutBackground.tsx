@@ -343,9 +343,8 @@ const css = `
 
 .ts-bg__content{
   position: relative;
-  z-index: 99;
+  z-index: 10;
   min-height: 100%;
-  pointer-events: auto;
 }
 
 .ts-bg__base,
