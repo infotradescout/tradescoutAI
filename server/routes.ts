@@ -55,13 +55,10 @@ import { computeVerificationRequirements } from "./services/profileVerificationS
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
-import { callExternalActions } from "./services/externalActionsClient";
-import { buildCountyVaultAllocation } from "./services/countyVaultAllocation";
 import {
   users,
   userRoleEnum,
   businesses,
-  dailyDeals,
   affiliateAccounts,
   affiliateReferrals,
   affiliatePayouts,
@@ -77,7 +74,6 @@ import {
   countyNotes,
   builderContributions,
   builderReferrals,
-  userCountyVaultContributionAdjustments,
   communityPosts,
   communityPostSaves,
   postComments,
@@ -6330,41 +6326,6 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Public runtime config for frontend (avoids Vite build-time env coupling).
-  app.get("/api/public-config", async (_req: any, res: any) => {
-    try {
-      // Avoid conditional 304 responses (clients need the JSON body).
-      res.setHeader("Cache-Control", "no-store");
-
-      // Allow apex <-> www cross-origin fetch for this public endpoint.
-      // (Needed when the UI is served from one host and API from the other.)
-      try {
-        const origin = typeof _req?.headers?.origin === "string" ? String(_req.headers.origin) : "";
-        const allow = new Set(["https://thetradescout.com", "https://www.thetradescout.com"]);
-        if (origin && allow.has(origin)) {
-          res.setHeader("Access-Control-Allow-Origin", origin);
-          res.setHeader("Vary", "Origin");
-        }
-      } catch {
-        // ignore
-      }
-
-      const googleMapsApiKey = String(
-        process.env.GOOGLE_MAPS_API_KEY_PUBLIC ||
-          process.env.GOOGLE_MAPS_API_KEY ||
-          process.env.VITE_GOOGLE_MAPS_API_KEY ||
-          ""
-      ).trim();
-
-      return res.json({
-        googleMapsApiKey: googleMapsApiKey.length > 0 ? googleMapsApiKey : null,
-      });
-    } catch (error: any) {
-      console.error("Error fetching public config:", error);
-      return res.status(500).json({ message: "Failed to fetch public config" });
-    }
-  });
-
   // Maps v1: awareness-only provider discovery (no direct contact data)
   app.get("/api/map/providers", async (req: Request, res: Response) => {
     try {
@@ -6533,535 +6494,6 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching map providers:", error);
       return res.status(500).json({ message: "Failed to fetch map providers" });
-    }
-  });
-
-  type MapEntityType =
-    | "provider"
-    | "public_profile"
-    | "business"
-    | "trade_deal"
-    | "food_truck"
-    | "parking_pass";
-
-  type MapEntityPoint = {
-    id: string;
-    type: MapEntityType;
-    lat: number;
-    lng: number;
-    title: string;
-    subtitle?: string | null;
-    href?: string | null;
-    meta?: Record<string, unknown>;
-  };
-
-  const coerceFiniteNumber = (value: unknown): number | null => {
-    if (value === null || value === undefined) return null;
-    const parsed = typeof value === "string" ? Number(value) : (value as number);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-
-  const haversineDistanceKm = (
-    a: { lat: number; lng: number },
-    b: { lat: number; lng: number }
-  ) => {
-    const R = 6371;
-    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-    const lat1 = (a.lat * Math.PI) / 180;
-    const lat2 = (b.lat * Math.PI) / 180;
-    const sinDLat = Math.sin(dLat / 2);
-    const sinDLng = Math.sin(dLng / 2);
-    const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
-    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
-  };
-
-  // Maps v1: multi-source entity pins (providers + optional external feeds)
-  app.get("/api/map/entities", async (req: Request, res: Response) => {
-    try {
-      // Avoid conditional 304 responses (maps client expects JSON body).
-      res.setHeader("Cache-Control", "no-store");
-
-      // Map entities is a public awareness feed; allow apex <-> www cross-origin use.
-      try {
-        const origin =
-          typeof (req as any)?.headers?.origin === "string"
-            ? String((req as any).headers.origin)
-            : "";
-        const allow = new Set(["https://thetradescout.com", "https://www.thetradescout.com"]);
-        if (origin && allow.has(origin)) {
-          res.setHeader("Access-Control-Allow-Origin", origin);
-          res.setHeader("Vary", "Origin");
-        }
-      } catch {
-        // ignore
-      }
-
-      const mapsV1Enabled =
-        String(process.env.FEATURE_MAPS_V1 ?? "true")
-          .trim()
-          .toLowerCase() !== "false";
-      if (!mapsV1Enabled) {
-        return res.status(404).json({ message: "Maps v1 is disabled", code: "FEATURE_DISABLED" });
-      }
-
-      const bboxRaw = typeof req.query.bbox === "string" ? req.query.bbox.trim() : "";
-      const bboxParts = bboxRaw
-        .split(",")
-        .map((part) => Number(part.trim()))
-        .filter((value) => Number.isFinite(value));
-
-      if (bboxParts.length !== 4) {
-        return res
-          .status(400)
-          .json({ message: "Invalid bbox. Expected minLng,minLat,maxLng,maxLat." });
-      }
-
-      const [minLng, minLat, maxLng, maxLat] = bboxParts;
-      if (minLng < -180 || maxLng > 180 || minLat < -90 || maxLat > 90) {
-        return res.status(400).json({ message: "Invalid bbox bounds." });
-      }
-      if (minLng >= maxLng || minLat >= maxLat) {
-        return res.status(400).json({ message: "Invalid bbox order." });
-      }
-
-      const typesRaw = typeof req.query.types === "string" ? req.query.types.trim() : "";
-      const requestedTypes = new Set(
-        typesRaw
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean)
-      );
-      const includeAllTypes = requestedTypes.size === 0;
-      const wantsType = (type: MapEntityType) => includeAllTypes || requestedTypes.has(type);
-
-      const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 2000;
-      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(5000, limitRaw)) : 2000;
-
-      const tradeFilter =
-        typeof req.query.trade === "string" ? req.query.trade.trim().toLowerCase() : "";
-      const verifiedOnly =
-        String(req.query.verified || "false")
-          .trim()
-          .toLowerCase() === "true";
-
-      const center = { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
-      const corner = { lat: maxLat, lng: maxLng };
-      const radiusKm = Math.min(80, Math.max(2, haversineDistanceKm(center, corner)));
-
-      const showOnMapExpr = sql<boolean>`lower(coalesce(${users.preferences}->'privacy'->>'showOnMap','false')) = 'true'`;
-      const showAddressExpr = sql<boolean>`lower(coalesce(${users.preferences}->'privacy'->>'showAddress','false')) = 'true'`;
-      const profilePublicExpr = sql<boolean>`lower(coalesce(${users.preferences}->>'profileVisibility','public')) = 'public'`;
-      const showProfileExpr = sql<boolean>`lower(coalesce(${users.preferences}->'privacy'->>'showProfile','true')) = 'true'`;
-
-      const points: MapEntityPoint[] = [];
-
-      const providerQuery = async () => {
-        if (!wantsType("provider")) return;
-
-        const providerRoles = [
-          "contractor",
-          "handyman",
-          "service_provider",
-          "specialty_tradesperson",
-          "realtor",
-          "insurance_agent",
-          "mortgage_broker",
-          "car_dealer",
-          "auto_service",
-          "inspector",
-          "business_owner",
-          "commercial_property",
-        ] as const;
-
-        const predicates: any[] = [
-          sql`${users.latitude} is not null`,
-          sql`${users.longitude} is not null`,
-          sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
-          sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
-          or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
-        ];
-
-        if (tradeFilter) {
-          predicates.push(
-            or(
-              sql`lower(${trades.slug}) = ${tradeFilter}`,
-              sql`lower(${trades.name}) = ${tradeFilter}`
-            )
-          );
-        }
-
-        if (verifiedOnly) {
-          predicates.push(
-            or(
-              eq(contractors.verifiedLicensed, true),
-              eq(contractors.verifiedInsured, true),
-              eq(users.verificationStatus, "approved" as any)
-            )
-          );
-        }
-
-        const rows = await db
-          .select({
-            providerId: users.id,
-            displayName: sql<string>`
-              coalesce(
-                nullif(${contractors.companyName}, ''),
-                nullif(trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')), ''),
-                'TradeScout Provider'
-              )
-            `,
-            lat: users.latitude,
-            lng: users.longitude,
-            countyName: users.countyName,
-            verifiedLicensed: contractors.verifiedLicensed,
-            verifiedInsured: contractors.verifiedInsured,
-            userVerificationStatus: users.verificationStatus,
-            tradeCategories: sql<
-              string[]
-            >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
-          })
-          .from(users)
-          .leftJoin(contractors, eq(contractors.userId, users.id))
-          .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
-          .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
-          .where(and(...predicates))
-          .groupBy(
-            users.id,
-            users.firstName,
-            users.lastName,
-            users.countyName,
-            users.latitude,
-            users.longitude,
-            users.verificationStatus,
-            contractors.id,
-            contractors.companyName,
-            contractors.verifiedLicensed,
-            contractors.verifiedInsured
-          )
-          .limit(Math.min(limit, 2500));
-
-        for (const row of rows) {
-          const lat = coerceFiniteNumber(row.lat);
-          const lng = coerceFiniteNumber(row.lng);
-          if (lat === null || lng === null) continue;
-
-          const contractorVerified = row.verifiedLicensed === true || row.verifiedInsured === true;
-          const userVerified =
-            String(row.userVerificationStatus || "").toLowerCase() === "approved";
-          const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
-
-          points.push({
-            id: String(row.providerId),
-            type: "provider",
-            lat,
-            lng,
-            title: String(row.displayName || "TradeScout Provider"),
-            subtitle: `${row.countyName || "County unknown"} \u2022 ${
-              verifiedStatus === "verified" ? "Verified" : "Unverified"
-            }`,
-            href: `/request-quote?providerId=${encodeURIComponent(String(row.providerId))}`,
-            meta: {
-              verifiedStatus,
-              tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
-            },
-          });
-        }
-      };
-
-      const publicProfileQuery = async () => {
-        if (!wantsType("public_profile")) return;
-
-        const rows = await db
-          .select({
-            userId: users.id,
-            displayName: sql<string>`
-              coalesce(
-                nullif(trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')), ''),
-                'TradeScout Profile'
-              )
-            `,
-            lat: users.latitude,
-            lng: users.longitude,
-            countyName: users.countyName,
-            showAddress: showAddressExpr,
-            address: users.address,
-            city: users.city,
-            state: users.state,
-          })
-          .from(users)
-          .where(
-            and(
-              showOnMapExpr,
-              profilePublicExpr,
-              showProfileExpr,
-              sql`${users.latitude} is not null`,
-              sql`${users.longitude} is not null`,
-              sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
-              sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`
-            )
-          )
-          .limit(Math.min(limit, 1500));
-
-        for (const row of rows) {
-          const lat = coerceFiniteNumber(row.lat);
-          const lng = coerceFiniteNumber(row.lng);
-          if (lat === null || lng === null) continue;
-
-          const showAddress = row.showAddress === true;
-          const subtitle = showAddress
-            ? [row.address, row.city, row.state].filter(Boolean).join(", ")
-            : row.countyName || "Public profile";
-
-          points.push({
-            id: String(row.userId),
-            type: "public_profile",
-            lat,
-            lng,
-            title: String(row.displayName || "TradeScout Profile"),
-            subtitle: subtitle || null,
-            href: null,
-          });
-        }
-      };
-
-      const businessQuery = async () => {
-        if (!wantsType("business")) return;
-
-        const rows = await db
-          .select({
-            businessId: businesses.id,
-            businessName: businesses.name,
-            roleContext: businesses.roleContext,
-            status: businesses.status,
-            lat: users.latitude,
-            lng: users.longitude,
-            showAddress: showAddressExpr,
-            address: users.address,
-            city: users.city,
-            state: users.state,
-          })
-          .from(businesses)
-          .innerJoin(users, eq(users.id, businesses.ownerUserId))
-          .where(
-            and(
-              showOnMapExpr,
-              eq(businesses.status, "active" as any),
-              sql`${users.latitude} is not null`,
-              sql`${users.longitude} is not null`,
-              sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
-              sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`
-            )
-          )
-          .limit(Math.min(limit, 1500));
-
-        for (const row of rows) {
-          const lat = coerceFiniteNumber(row.lat);
-          const lng = coerceFiniteNumber(row.lng);
-          if (lat === null || lng === null) continue;
-
-          const showAddress = row.showAddress === true;
-          const subtitle = showAddress
-            ? [row.address, row.city, row.state].filter(Boolean).join(", ")
-            : null;
-
-          points.push({
-            id: String(row.businessId),
-            type: "business",
-            lat,
-            lng,
-            title: String(row.businessName || "Business"),
-            subtitle: subtitle || null,
-            href: null,
-            meta: {
-              roleContext: row.roleContext,
-            },
-          });
-        }
-      };
-
-      const tradeDealQuery = async () => {
-        if (!wantsType("trade_deal")) return;
-
-        const now = new Date();
-        const rows = await db
-          .select({
-            dealId: dailyDeals.id,
-            title: dailyDeals.title,
-            discountPrice: dailyDeals.discountPrice,
-            providerId: dailyDeals.providerId,
-            providerType: dailyDeals.providerType,
-            lat: users.latitude,
-            lng: users.longitude,
-            showAddress: showAddressExpr,
-            address: users.address,
-            city: users.city,
-            state: users.state,
-          })
-          .from(dailyDeals)
-          .innerJoin(users, eq(users.id, dailyDeals.providerId))
-          .where(
-            and(
-              showOnMapExpr,
-              eq(dailyDeals.isActive, true),
-              gte(dailyDeals.endDate, now as any),
-              sql`${users.latitude} is not null`,
-              sql`${users.longitude} is not null`,
-              sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
-              sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`
-            )
-          )
-          .orderBy(desc(dailyDeals.featured), desc(dailyDeals.priority), desc(dailyDeals.createdAt))
-          .limit(Math.min(limit, 1200));
-
-        for (const row of rows) {
-          const lat = coerceFiniteNumber(row.lat);
-          const lng = coerceFiniteNumber(row.lng);
-          if (lat === null || lng === null) continue;
-
-          const showAddress = row.showAddress === true;
-          const whereLabel = showAddress
-            ? [row.address, row.city, row.state].filter(Boolean).join(", ")
-            : String(row.providerType || "").replace(/_/g, " ");
-
-          points.push({
-            id: String(row.dealId),
-            type: "trade_deal",
-            lat,
-            lng,
-            title: String(row.title || "TradeDeal"),
-            subtitle: whereLabel || null,
-            href: null,
-            meta: {
-              providerId: row.providerId,
-              providerType: row.providerType,
-              discountPrice: row.discountPrice,
-            },
-          });
-        }
-      };
-
-      const externalFoodTrucksQuery = async () => {
-        if (!wantsType("food_truck")) return;
-
-        const external = await callExternalActions({
-          action: "GET_FOOD_TRUCKS",
-          params: { latitude: center.lat, longitude: center.lng, radiusKm },
-        });
-        if (!external.ok) return;
-
-        const raw = (external.data as any)?.data;
-        const list = Array.isArray(raw)
-          ? raw
-          : Array.isArray((external.data as any)?.results)
-            ? (external.data as any).results
-            : [];
-
-        for (const item of list.slice(0, 1200)) {
-          const lat = coerceFiniteNumber((item as any)?.latitude ?? (item as any)?.lat);
-          const lng = coerceFiniteNumber((item as any)?.longitude ?? (item as any)?.lng);
-          if (lat === null || lng === null) continue;
-          if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) continue;
-
-          points.push({
-            id: String((item as any)?.id || (item as any)?.truckId || `${lat},${lng}`),
-            type: "food_truck",
-            lat,
-            lng,
-            title: String((item as any)?.name || (item as any)?.truckName || "Food truck"),
-            subtitle: "External feed",
-            href: null,
-          });
-        }
-      };
-
-      const externalParkingPassQuery = async () => {
-        if (!wantsType("parking_pass")) return;
-
-        const external = await callExternalActions({
-          action: "GET_PARKING_PASS_SPOTS",
-          params: { latitude: center.lat, longitude: center.lng, radiusKm },
-        });
-        if (!external.ok) return;
-
-        const raw = (external.data as any)?.data;
-        const list = Array.isArray(raw)
-          ? raw
-          : Array.isArray((external.data as any)?.results)
-            ? (external.data as any).results
-            : [];
-
-        for (const item of list.slice(0, 1200)) {
-          const lat = coerceFiniteNumber((item as any)?.latitude ?? (item as any)?.lat);
-          const lng = coerceFiniteNumber((item as any)?.longitude ?? (item as any)?.lng);
-          if (lat === null || lng === null) continue;
-          if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) continue;
-
-          points.push({
-            id: String((item as any)?.hostId || (item as any)?.id || `${lat},${lng}`),
-            type: "parking_pass",
-            lat,
-            lng,
-            title: String((item as any)?.name || "Parking Pass spot"),
-            subtitle: "External feed",
-            href: null,
-            meta: {
-              pricingCents: (item as any)?.pricingCents ?? null,
-              paymentsEnabled: Boolean((item as any)?.paymentsEnabled),
-            },
-          });
-        }
-      };
-
-      const safe = async (label: string, fn: () => Promise<void>) => {
-        try {
-          await fn();
-        } catch (err: any) {
-          console.error(`Map entities subquery failed (${label}):`, err);
-        }
-      };
-
-      await Promise.all([
-        safe("provider", providerQuery),
-        safe("public_profile", publicProfileQuery),
-        safe("business", businessQuery),
-        safe("trade_deal", tradeDealQuery),
-        safe("food_truck", externalFoodTrucksQuery),
-        safe("parking_pass", externalParkingPassQuery),
-      ]);
-
-      return res.json({
-        points,
-        meta: {
-          count: points.length,
-          bbox: { minLng, minLat, maxLng, maxLat },
-          center,
-          radiusKm,
-          filters: {
-            trade: tradeFilter || null,
-            verifiedOnly,
-            types: includeAllTypes ? null : Array.from(requestedTypes.values()),
-          },
-        },
-      });
-    } catch (error: any) {
-      console.error("Error fetching map entities:", error);
-
-      // Fail-soft in production so Maps UI still renders (pins can be empty while
-      // DB migrations/external feeds are recovering). This endpoint is awareness-only.
-      const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
-      if (isProd) {
-        res.setHeader("Cache-Control", "no-store");
-        return res.status(200).json({
-          points: [],
-          meta: {
-            count: 0,
-            degraded: true,
-          },
-        });
-      }
-
-      return res.status(500).json({ message: "Failed to fetch map entities" });
     }
   });
 
@@ -10797,72 +10229,6 @@ export async function registerRoutes(app: any) {
         const patchPreferences: any =
           preferencesPatch && typeof preferencesPatch === "object" ? preferencesPatch : null;
 
-        const mergeObject = (base: any, patch: any) => ({
-          ...(base && typeof base === "object" ? base : {}),
-          ...(patch && typeof patch === "object" ? patch : {}),
-        });
-
-        let mergedPreferences: any = existingPreferences;
-        if (patchPreferences) {
-          mergedPreferences = {
-            ...existingPreferences,
-            ...patchPreferences,
-          };
-
-          if (patchPreferences.profileSections) {
-            mergedPreferences.profileSections = mergeObject(
-              existingPreferences.profileSections,
-              patchPreferences.profileSections
-            );
-          }
-
-          if (patchPreferences.colorScheme) {
-            mergedPreferences.colorScheme = mergeObject(
-              existingPreferences.colorScheme,
-              patchPreferences.colorScheme
-            );
-          }
-
-          if (patchPreferences.badges) {
-            mergedPreferences.badges = mergeObject(
-              existingPreferences.badges,
-              patchPreferences.badges
-            );
-          }
-
-          if (patchPreferences.privacy) {
-            mergedPreferences.privacy = mergeObject(
-              existingPreferences.privacy,
-              patchPreferences.privacy
-            );
-          }
-
-          if (patchPreferences.communication) {
-            mergedPreferences.communication = mergeObject(
-              existingPreferences.communication,
-              patchPreferences.communication
-            );
-          }
-
-          if (patchPreferences.geo) {
-            mergedPreferences.geo = mergeObject(existingPreferences.geo, patchPreferences.geo);
-          }
-
-          if (patchPreferences.navigation) {
-            mergedPreferences.navigation = mergeObject(
-              existingPreferences.navigation,
-              patchPreferences.navigation
-            );
-          }
-
-          if (patchPreferences.dashboard) {
-            mergedPreferences.dashboard = mergeObject(
-              existingPreferences.dashboard,
-              patchPreferences.dashboard
-            );
-          }
-        }
-
         const updated = await storage.updateUser(targetUserId, {
           firstName,
           lastName,
@@ -10879,26 +10245,11 @@ export async function registerRoutes(app: any) {
           latitude: typeof latitude === "number" ? String(latitude) : undefined,
           longitude: typeof longitude === "number" ? String(longitude) : undefined,
           profileImageUrl: normalizedProfileImageUrl,
-          preferences: patchPreferences ? mergedPreferences : undefined,
+          preferences: patchPreferences
+            ? { ...existingPreferences, ...patchPreferences }
+            : undefined,
           updatedAt: new Date(),
         } as any);
-
-        try {
-          const adminUserId = (req as any)?.user?.id || (req as any)?.user?.claims?.sub || null;
-          const changedFields = Object.keys(body || {}).filter((k) => k !== "preferencesPatch");
-          const changedPreferenceKeys =
-            patchPreferences && typeof patchPreferences === "object"
-              ? Object.keys(patchPreferences)
-              : [];
-          await storage.logEvent("admin.user_public_profile_updated", {
-            adminUserId,
-            targetUserId,
-            changedFields,
-            changedPreferenceKeys,
-          });
-        } catch (e) {
-          console.warn("[admin] Failed to log admin.user_public_profile_updated event", e);
-        }
 
         return res.json({ user: sanitizeUserForResponse(updated) });
       } catch (error: any) {
@@ -19284,7 +18635,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       });
 
       const localVaultBalance = snapshot.vault ? Number(snapshot.vault.currentBalance ?? 0) : 0;
-      const countyVaultAllocation = buildCountyVaultAllocation(localVaultBalance);
 
       // Vault contributions:
       // - Direct: payouts-to-vault from the current user's Community Builder contributions (any county vault).
@@ -19370,42 +18720,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         console.warn("[local-impact] Failed to compute vault contribution metrics", err);
       }
 
-      try {
-        const [manualAnyCounty] = await db
-          .select({
-            direct: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.directAmount}), 0)`,
-            network: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.networkAmount}), 0)`,
-          })
-          .from(userCountyVaultContributionAdjustments)
-          .where(eq(userCountyVaultContributionAdjustments.userId, userId));
-
-        const manualDirectAny = Number(manualAnyCounty?.direct ?? 0) || 0;
-        const manualNetworkAny = Number(manualAnyCounty?.network ?? 0) || 0;
-        userDirectContribution += manualDirectAny;
-        userIndirectContribution += manualNetworkAny;
-
-        const homeCountyId = snapshot.county?.id ?? null;
-        if (homeCountyId) {
-          const [manualHomeCounty] = await db
-            .select({
-              direct: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.directAmount}), 0)`,
-              network: sql<string>`coalesce(sum(${userCountyVaultContributionAdjustments.networkAmount}), 0)`,
-            })
-            .from(userCountyVaultContributionAdjustments)
-            .where(
-              and(
-                eq(userCountyVaultContributionAdjustments.userId, userId),
-                eq(userCountyVaultContributionAdjustments.countyId, homeCountyId)
-              )
-            );
-          const manualDirectHome = Number(manualHomeCounty?.direct ?? 0) || 0;
-          const manualNetworkHome = Number(manualHomeCounty?.network ?? 0) || 0;
-          userTotalContributionToCountyVault += manualDirectHome + manualNetworkHome;
-        }
-      } catch (err) {
-        console.warn("[local-impact] Failed to compute manual contribution adjustments", err);
-      }
-
       // Affiliate earnings & onboarded count: derived from the affiliate program, if any.
       let affiliateEarnings = 0;
       let affiliatesOnboardedCount = 0;
@@ -19422,7 +18736,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       res.json({
         localVaultBalance,
-        countyVaultAllocation,
         userDirectContribution,
         userIndirectContribution,
         userTotalContributionToCountyVault,
@@ -19598,7 +18911,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               currentBalance: Number(snapshot.vault.currentBalance ?? 0),
               lifetimeInflow: Number(snapshot.vault.lifetimeInflow ?? 0),
               lifetimeOutflow: Number(snapshot.vault.lifetimeOutflow ?? 0),
-              allocation: buildCountyVaultAllocation(Number(snapshot.vault.currentBalance ?? 0)),
             }
           : null,
         last30dInflow: snapshot.last30dInflow,
@@ -19627,7 +18939,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               currentBalance: Number(snapshot.vault.currentBalance ?? 0),
               lifetimeInflow: Number(snapshot.vault.lifetimeInflow ?? 0),
               lifetimeOutflow: Number(snapshot.vault.lifetimeOutflow ?? 0),
-              allocation: buildCountyVaultAllocation(Number(snapshot.vault.currentBalance ?? 0)),
             }
           : null,
         last30dInflow: snapshot.last30dInflow,
@@ -20003,43 +19314,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Register AI Scout routes (with assistant alias for backward compatibility)
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
-
-  // Register enhanced Scout routes (Phase 1: Structured Reasoning & Dynamic Tool Use)
-  const scoutEnhancedRouter = (await import("./routes/scout-enhanced")).default;
-  app.use("/api/scout-enhanced", scoutEnhancedRouter);
-
-  // Register enhanced Scout v2 routes (Phase 2: Multi-Turn Reasoning with Tool Result Feedback)
-  const scoutEnhancedV2Router = (await import("./routes/scout-enhanced-v2")).default;
-  app.use("/api/scout-enhanced-v2", scoutEnhancedV2Router);
-
-  // Register enhanced Scout v3 routes (Phase 3: Contextual Awareness and Persistent Memory)
-  const scoutEnhancedV3Router = (await import("./routes/scout-enhanced-v3")).default;
-  app.use("/api/scout-enhanced-v3", scoutEnhancedV3Router);
-
-  // Register enhanced Scout v4 routes (Phase 4: Multi-Agent Collaboration)
-  const scoutEnhancedV4Router = (await import("./routes/scout-enhanced-v4")).default;
-  app.use("/api/scout-enhanced-v4", scoutEnhancedV4Router);
-
-  // Register Scout Platform Discovery routes (Feature Discovery & Routing)
-  const scoutPlatformDiscoveryRouter = (await import("./routes/scout-platform-discovery")).default;
-  app.use("/api/scout-platform-discovery", scoutPlatformDiscoveryRouter);
-
-  // Register enhanced Scout v5 routes (Phase 5: Deep Tool Integration)
-  const scoutEnhancedV5Router = (await import("./routes/scout-enhanced-v5")).default;
-  app.use("/api/scout-enhanced-v5", scoutEnhancedV5Router);
-
-  // Register Scout Internal Data API (SIDA) - Internal use only
-  const scoutInternalDataAPIRouter = (await import("./routes/scout-internal-data-api")).default;
-  app.use("/api/scout-internal-data", scoutInternalDataAPIRouter);
-
-  //  // Register Scout Outbound Dispatcher (SOD) - Intelligence Broadcasting
-  const scoutOutboundDispatcherRouter = (await import("./routes/scout-outbound-dispatcher"))
-    .default;
-  app.use("/api/scout-outbound-dispatcher", scoutOutboundDispatcherRouter);
-
-  // Register Scout Watchdog - System Health Monitoring & Self-Healing
-  const scoutWatchdogRouter = (await import("./routes/scout-watchdog")).default;
-  app.use("/api/scout-watchdog", scoutWatchdogRouter);
 
   // Admin-only: authority diagnostics (observe, not feature)
   const scoutAnalyticsRouter = (await import("./routes/scout-analytics")).default;
