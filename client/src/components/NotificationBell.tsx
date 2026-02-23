@@ -1,15 +1,12 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell, X, CheckCircle, Clock, Bookmark } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +25,7 @@ export function NotificationBell() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const [, navigate] = useLocation();
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications:list"],
@@ -35,15 +33,15 @@ export function NotificationBell() {
     refetchInterval: 60000, // Check every minute
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const response = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
-      if (!response.ok) throw new Error('Failed to mark as read');
+      if (!response.ok) throw new Error("Failed to mark as read");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
@@ -52,11 +50,11 @@ export function NotificationBell() {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch("/api/notifications/mark-all-read", {
+        method: "POST",
+        credentials: "include",
       });
-      if (!response.ok) throw new Error('Failed to mark all as read');
+      if (!response.ok) throw new Error("Failed to mark all as read");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
@@ -73,15 +71,15 @@ export function NotificationBell() {
     }
 
     // Handle different notification types
-    if (notification.type === 'saved_ad_reminder' && notification.relatedId) {
+    if (notification.type === "saved_ad_reminder" && notification.relatedId) {
       // Navigate to saved ads page
-      window.location.href = '/saved-ads';
+      navigate("/saved-ads");
     }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'saved_ad_reminder':
+      case "saved_ad_reminder":
         return <Bookmark className="h-4 w-4 text-orange-500" />;
       default:
         return <Bell className="h-4 w-4 text-blue-500" />;
@@ -92,8 +90,8 @@ export function NotificationBell() {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
+
+    if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
@@ -106,32 +104,23 @@ export function NotificationBell() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="relative h-9 w-9 p-0 hover:bg-navy-600"
-        >
+        <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0 hover:bg-navy-600">
           <Bell className="h-4 w-4 text-gray-300" />
           {unreadCount > 0 && (
             <Badge
               variant="error"
               className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-orange-500 hover:bg-orange-500 border-none"
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent 
-        className="w-80 p-0 bg-navy-700 border-navy-600" 
-        align="end"
-      >
+      <PopoverContent className="w-80 p-0 bg-navy-700 border-navy-600" align="end">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-white">
-              Notifications
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Notifications</CardTitle>
             {notifications.length > 0 && (
               <Button
                 variant="ghost"
@@ -175,10 +164,12 @@ export function NotificationBell() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <p className={cn(
-                          "text-sm font-medium truncate",
-                          notification.isRead ? "text-gray-300" : "text-white"
-                        )}>
+                        <p
+                          className={cn(
+                            "text-sm font-medium truncate",
+                            notification.isRead ? "text-gray-300" : "text-white"
+                          )}
+                        >
                           {notification.title}
                         </p>
                         {!notification.isRead && (

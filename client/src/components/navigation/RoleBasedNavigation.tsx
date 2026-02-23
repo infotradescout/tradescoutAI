@@ -142,7 +142,7 @@ interface RoleBasedNavigationProps {
 
 export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationProps) {
   const { user, isAuthenticated } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   if (!isAuthenticated || !user) {
     return null;
@@ -271,16 +271,18 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {item.children.filter(isItemVisible).map((child, childIndex) => (
-                  <DropdownMenuItem key={childIndex} asChild>
-                    <Link href={child.href} className="flex items-center gap-2 cursor-pointer">
-                      <child.icon className="h-4 w-4" />
-                      {child.label}
-                      {child.badge && (
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          {child.badge}
-                        </Badge>
-                      )}
-                    </Link>
+                  <DropdownMenuItem
+                    key={childIndex}
+                    onSelect={() => safeNavigate(navigate, child.href)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <child.icon className="h-4 w-4" />
+                    {child.label}
+                    {child.badge && (
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {child.badge}
+                      </Badge>
+                    )}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
