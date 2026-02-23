@@ -76,9 +76,12 @@ export function useAuth() {
       }
 
       if (!response.ok) {
-        // Fail-soft: auth should never block the UI.
-        console.warn(`Auth request returned ${response.status}; treating as guest`);
-        return null;
+        // Important: do NOT treat non-401 responses as "guest".
+        // Doing so makes the app think a signed-in user is logged out and breaks navigation.
+        // Instead, throw so React Query preserves the last known-good user payload.
+        const message = `Auth request failed (${response.status})`;
+        console.warn(message);
+        throw new Error(message);
       }
 
       const payload: any = await response.json().catch(() => null);
@@ -98,15 +101,15 @@ export function useAuth() {
       if (error instanceof Error) {
         if (error.name === "AbortError") {
           console.warn("Auth request timed out");
-          return null;
+          throw error;
         }
         if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
           console.warn("Network error during auth request:", error.message);
-          return null;
+          throw error;
         }
       }
-      console.warn("Auth request error; treating as guest");
-      return null;
+      console.warn("Auth request error");
+      throw error instanceof Error ? error : new Error("Auth request failed");
     }
   }, []);
 
@@ -140,7 +143,7 @@ export function useAuth() {
     user: user || null,
     // Treat active auth revalidation as loading so root routing
     // doesn't redirect to guest from stale cached null.
-    isLoading: isLoading || isFetching,
+    isLoading: isLoading || isFetching || (!!error && !user),
     isAuthenticated: !!user,
     error,
     refetch,
