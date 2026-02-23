@@ -6846,7 +6846,7 @@ export async function registerRoutes(app: any) {
           .where(
             and(
               showOnMapExpr,
-              eq(businesses.status, "published" as any),
+              eq(businesses.status, "active" as any),
               sql`${users.latitude} is not null`,
               sql`${users.longitude} is not null`,
               sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
