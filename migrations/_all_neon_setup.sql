@@ -52,21 +52,13 @@ CREATE TABLE IF NOT EXISTS "contractors" (
 -- =========================
 -- 0001_community_builder.sql
 -- =========================
-DO $$ BEGIN
-    CREATE TYPE "builder_rank" AS ENUM ('prospect','bronze','silver','gold','platinum','diamond');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "builder_rank" AS ENUM ('prospect','bronze','silver','gold','platinum','diamond'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN
-    CREATE TYPE "contribution_type" AS ENUM ('service_hours','materials','equipment_rental','financial','expertise','promotion','administration');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "contribution_type" AS ENUM ('service_hours','materials','equipment_rental','financial','expertise','promotion','administration'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN
-    CREATE TYPE "contribution_status" AS ENUM ('proposed','pending_approval','approved','in_progress','completed','verified','disputed','cancelled');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "contribution_status" AS ENUM ('proposed','pending_approval','approved','in_progress','completed','verified','disputed','cancelled'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN
-    CREATE TYPE "vault_source_type" AS ENUM ('foundation_donation','marketplace_fee_share','contractor_fee_share','subscription_share','sponsorship','corporate_match','manual_adjustment','other');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "vault_source_type" AS ENUM ('foundation_donation','marketplace_fee_share','contractor_fee_share','subscription_share','sponsorship','corporate_match','manual_adjustment','other'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS "county_vaults" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
