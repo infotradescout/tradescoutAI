@@ -112,6 +112,15 @@ export function registerEmploymentRoutes(app: Express) {
         return;
       }
 
+      // Fail-soft in production: Direct Connect must remain usable even if this data source
+      // is temporarily unavailable (schema drift, permission issues, transient DB error).
+      if (process.env.NODE_ENV === "production") {
+        console.error("[employment] Failed to fetch posts; returning empty list:", error);
+        res.setHeader("X-Data-Disabled", "employment_posts_unavailable");
+        res.json([]);
+        return;
+      }
+
       console.error("Error fetching employment posts:", error);
       res.status(500).json({ message: "Failed to fetch employment posts" });
     }

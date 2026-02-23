@@ -42,6 +42,16 @@ export function registerIdentityVerificationRoutes(app: Express) {
         return;
       }
 
+      if (process.env.NODE_ENV === "production") {
+        console.error(
+          "[identity-verification] Failed to fetch status; returning unverified status:",
+          error
+        );
+        res.setHeader("X-Data-Disabled", "identity_verifications_unavailable");
+        res.json({ isVerified: false, verification: null });
+        return;
+      }
+
       console.error("Error fetching identity verification status:", error);
       res.status(500).json({ message: "Failed to fetch identity verification status" });
     }
@@ -88,6 +98,24 @@ export function registerIdentityVerificationRoutes(app: Express) {
 
       res.json(upserted);
     } catch (error: any) {
+      const message = String(error?.message || "");
+      const code = String(error?.code || "");
+      if (code === "42P01" && message.includes("identity_verifications")) {
+        console.warn(
+          "[identity-verification] identity_verifications table missing; submit unavailable."
+        );
+        res.setHeader("X-Data-Disabled", "identity_verifications_missing");
+        res.status(503).json({ message: "Identity verification is temporarily unavailable." });
+        return;
+      }
+
+      if (process.env.NODE_ENV === "production") {
+        console.error("[identity-verification] Submit failed in production:", error);
+        res.setHeader("X-Data-Disabled", "identity_verifications_unavailable");
+        res.status(503).json({ message: "Identity verification is temporarily unavailable." });
+        return;
+      }
+
       console.error("Error submitting identity verification:", error);
       res.status(500).json({ message: "Failed to submit identity verification" });
     }
