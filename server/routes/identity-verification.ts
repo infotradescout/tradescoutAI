@@ -31,6 +31,17 @@ export function registerIdentityVerificationRoutes(app: Express) {
         verification: row || null,
       });
     } catch (error: any) {
+      const message = String(error?.message || "");
+      const code = String(error?.code || "");
+      if (code === "42P01" && message.includes("identity_verifications")) {
+        console.warn(
+          "[identity-verification] identity_verifications table missing; returning unverified status."
+        );
+        res.setHeader("X-Data-Disabled", "identity_verifications_missing");
+        res.json({ isVerified: false, verification: null });
+        return;
+      }
+
       console.error("Error fetching identity verification status:", error);
       res.status(500).json({ message: "Failed to fetch identity verification status" });
     }

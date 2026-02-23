@@ -97,6 +97,21 @@ export function registerEmploymentRoutes(app: Express) {
         })
       );
     } catch (error: any) {
+      const message = String(error?.message || "");
+      const code = String(error?.code || "");
+      if (code === "42P01" && message.includes("employment_posts")) {
+        console.warn("[employment] employment_posts table missing; returning empty list.");
+        res.setHeader("X-Data-Disabled", "employment_posts_missing");
+        res.json([]);
+        return;
+      }
+      if (code === "42P01" && message.includes("identity_verifications")) {
+        console.warn("[employment] identity_verifications table missing; returning empty list.");
+        res.setHeader("X-Data-Disabled", "identity_verifications_missing");
+        res.json([]);
+        return;
+      }
+
       console.error("Error fetching employment posts:", error);
       res.status(500).json({ message: "Failed to fetch employment posts" });
     }

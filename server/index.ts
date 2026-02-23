@@ -17,6 +17,7 @@ import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import { ensureDocumentsTables, ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
+import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import path from "path";
@@ -438,6 +439,18 @@ app.use((req, res, next) => {
           "[DEV] ensureProfilesTable failed; continuing without profiles table:",
           (err as Error)?.message
         );
+      }
+    }
+
+    // In development, keep this opt-in to avoid surprising local DB changes.
+    // Production uses index.prod.ts which runs migrations by default.
+    if (process.env.AUTO_MIGRATE_ON_BOOT === "true") {
+      try {
+        await runRuntimeMigrations({
+          log: (msg) => log(msg, "RuntimeMigrations"),
+        });
+      } catch (err) {
+        console.error("[RuntimeMigrations] Failed (non-fatal):", err);
       }
     }
 

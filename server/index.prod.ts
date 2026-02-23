@@ -17,6 +17,7 @@ import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import { ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
+import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import path from "path";
 import fs from "fs";
@@ -393,6 +394,16 @@ app.use((req, res, next) => {
     } catch (err) {
       console.error("FATAL: ensureProfilesTable failed in production:", err);
       throw err;
+    }
+
+    try {
+      console.log("[Startup] Running runtime SQL migrations...");
+      await runRuntimeMigrations();
+      console.log("[Startup] Runtime migrations complete.");
+    } catch (err) {
+      // Fail-soft: do not crash the whole app if migrations cannot run.
+      // Missing tables will surface as feature degradation, but the UI should still load.
+      console.error("[Startup] Runtime migrations failed (non-fatal):", err);
     }
 
     const ensureMasterAdmin = async () => {
