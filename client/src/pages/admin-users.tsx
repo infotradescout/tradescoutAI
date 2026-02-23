@@ -787,8 +787,8 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="h-full space-y-4">
-      <div className="mx-auto max-w-7xl space-y-4">
+    <div className="flex flex-col space-y-4 overflow-auto">
+      <div className="mx-auto w-full max-w-7xl space-y-4 px-4">
         <Collapsible open={showTools} onOpenChange={setShowTools}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -942,7 +942,7 @@ export default function AdminUsers() {
         {/* Filters */}
         <Card className="bg-card border-border">
           <CardContent className="p-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4">
               <div className="flex-1 min-w-[220px]">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -954,60 +954,65 @@ export default function AdminUsers() {
                   />
                 </div>
               </div>
-              <div className="flex flex-col gap-3 items-stretch lg:flex-row lg:items-center lg:justify-end">
-                <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-                  <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border text-xs">
-                    <SelectItem value="all">Status: All</SelectItem>
-                    <SelectItem value="verified">Status: Verified</SelectItem>
-                    <SelectItem value="pending">Status: Pending</SelectItem>
-                    <SelectItem value="suspended">Status: Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={addressFilter} onValueChange={(v: any) => setAddressFilter(v)}>
-                  <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
-                    <SelectValue placeholder="Address" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border text-xs">
-                    <SelectItem value="all">Address: All</SelectItem>
-                    <SelectItem value="verified">Address: Verified</SelectItem>
-                    <SelectItem value="not_verified">Address: Not Verified</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
-                  <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
-                    <SelectValue placeholder="Role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border text-xs">
-                    <SelectItem value="all">Role: All</SelectItem>
-                    <SelectItem value="contractor">Role: Contractor</SelectItem>
-                    <SelectItem value="homeowner">Role: Homeowner</SelectItem>
-                    <SelectItem value="business">Role: Business</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={onboardingFilter} onValueChange={(v: any) => setOnboardingFilter(v)}>
-                  <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
-                    <SelectValue placeholder="Onboarding" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border text-xs">
-                    <SelectItem value="all">Onboarding: All</SelectItem>
-                    <SelectItem value="complete">Onboarding: Complete</SelectItem>
-                    <SelectItem value="pending">Onboarding: Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={timeFilter} onValueChange={(v: any) => setTimeFilter(v)}>
-                  <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
-                    <SelectValue placeholder="Time" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border text-xs">
-                    <SelectItem value="all">Time: All</SelectItem>
-                    <SelectItem value="24h">Time: Last 24h</SelectItem>
-                    <SelectItem value="7d">Time: Last 7 days</SelectItem>
-                    <SelectItem value="30d">Time: Last 30 days</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-wrap gap-3 items-end justify-between">
+                <div className="flex flex-wrap gap-3 items-end">
+                  <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                    <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-xs">
+                      <SelectItem value="all">Status: All</SelectItem>
+                      <SelectItem value="verified">Status: Verified</SelectItem>
+                      <SelectItem value="pending">Status: Pending</SelectItem>
+                      <SelectItem value="suspended">Status: Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={addressFilter} onValueChange={(v: any) => setAddressFilter(v)}>
+                    <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
+                      <SelectValue placeholder="Address" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-xs">
+                      <SelectItem value="all">Address: All</SelectItem>
+                      <SelectItem value="verified">Address: Verified</SelectItem>
+                      <SelectItem value="not_verified">Address: Not Verified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+                    <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
+                      <SelectValue placeholder="Role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-xs">
+                      <SelectItem value="all">Role: All</SelectItem>
+                      <SelectItem value="contractor">Role: Contractor</SelectItem>
+                      <SelectItem value="homeowner">Role: Homeowner</SelectItem>
+                      <SelectItem value="business">Role: Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={onboardingFilter}
+                    onValueChange={(v: any) => setOnboardingFilter(v)}
+                  >
+                    <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
+                      <SelectValue placeholder="Onboarding" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-xs">
+                      <SelectItem value="all">Onboarding: All</SelectItem>
+                      <SelectItem value="complete">Onboarding: Complete</SelectItem>
+                      <SelectItem value="pending">Onboarding: Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={timeFilter} onValueChange={(v: any) => setTimeFilter(v)}>
+                    <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
+                      <SelectValue placeholder="Time" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-xs">
+                      <SelectItem value="all">Time: All</SelectItem>
+                      <SelectItem value="24h">Time: Last 24h</SelectItem>
+                      <SelectItem value="7d">Time: Last 7 days</SelectItem>
+                      <SelectItem value="30d">Time: Last 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -1066,11 +1071,11 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-muted-foreground">User</TableHead>
-                    <TableHead className="text-muted-foreground">Role</TableHead>
-                    <TableHead className="text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-muted-foreground">Joined</TableHead>
-                    <TableHead className="text-muted-foreground">Actions</TableHead>
+                    <TableHead className="text-muted-foreground min-w-[280px]">User</TableHead>
+                    <TableHead className="text-muted-foreground min-w-[140px]">Role</TableHead>
+                    <TableHead className="text-muted-foreground min-w-[200px]">Status</TableHead>
+                    <TableHead className="text-muted-foreground min-w-[120px]">Joined</TableHead>
+                    <TableHead className="text-muted-foreground min-w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1079,35 +1084,35 @@ export default function AdminUsers() {
                     const RoleIcon = roleInfo.icon;
 
                     return (
-                      <TableRow key={user.id}>
-                        <TableCell className="py-3">
-                          <div className="text-foreground">
-                            <div className="font-medium">
+                      <TableRow key={user.id} className="hover:bg-muted/50">
+                        <TableCell className="py-3 min-w-[280px]">
+                          <div className="text-foreground space-y-1">
+                            <div className="font-medium truncate">
                               {user.firstName && user.lastName
                                 ? `${user.firstName} ${user.lastName}`
                                 : user.email}
                             </div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {user.email}
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3">
-                          <div className="space-y-1">
-                            <Badge className={`${roleInfo.color} text-white`}>
-                              <RoleIcon className="w-3 h-3 mr-1" />
-                              {roleInfo.label}
-                            </Badge>
-                          </div>
+                        <TableCell className="py-3 min-w-[140px]">
+                          <Badge className={`${roleInfo.color} text-white whitespace-nowrap`}>
+                            <RoleIcon className="w-3 h-3 mr-1" />
+                            {roleInfo.label}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="py-3">
-                          <div className="flex flex-col gap-1">
+                        <TableCell className="py-3 min-w-[200px]">
+                          <div className="flex flex-col gap-1.5">
                             <Badge
-                              className={
+                              className={`text-xs whitespace-nowrap ${
                                 user.verificationStatus === "approved"
                                   ? "bg-primary text-primary-foreground"
                                   : user.verificationStatus === "suspended"
                                     ? "bg-destructive text-destructive-foreground"
                                     : "bg-secondary text-secondary-foreground"
-                              }
+                              }`}
                             >
                               {user.verificationStatus === "approved"
                                 ? "Verified"
@@ -1116,32 +1121,35 @@ export default function AdminUsers() {
                                   : "Pending verification"}
                             </Badge>
                             <Badge
-                              className={
+                              className={`text-xs whitespace-nowrap ${
                                 user.addressVerified
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-muted text-muted-foreground"
-                              }
+                              }`}
                             >
-                              {user.addressVerified ? "Address verified" : "Address not verified"}
+                              {user.addressVerified ? "Address ✓" : "Address ✗"}
                             </Badge>
                             <Badge
-                              className={
+                              className={`text-xs whitespace-nowrap ${
                                 user.emailVerified
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-muted text-muted-foreground"
-                              }
+                              }`}
                             >
-                              {user.emailVerified ? "Email verified" : "Email not verified"}
+                              {user.emailVerified ? "Email ✓" : "Email ✗"}
                             </Badge>
-                            <Badge variant={user.onboardingCompleted ? "outline" : "secondary"}>
-                              {user.onboardingCompleted ? "Onboarding complete" : "Setup pending"}
+                            <Badge
+                              variant={user.onboardingCompleted ? "outline" : "secondary"}
+                              className="text-xs whitespace-nowrap"
+                            >
+                              {user.onboardingCompleted ? "Setup ✓" : "Setup ✗"}
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3 text-muted-foreground">
+                        <TableCell className="py-3 min-w-[120px] text-xs text-muted-foreground">
                           {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 min-w-[100px]">
                           {(() => {
                             const targetLevel =
                               roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 0;
