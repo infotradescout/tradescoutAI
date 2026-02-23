@@ -340,10 +340,10 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Location-aware Advertisement */}
-        <div className="mt-6 md:mt-8">
+        {/* Location-aware Advertisement - DISABLED TEMPORARILY */}
+        {/* <div className="mt-6 md:mt-8">
           <AdDisplay className="max-w-2xl mx-auto" userLocation={userLocation} />
-        </div>
+        </div> */}
 
         {/* Interactive County Map */}
         <div className="mt-8 md:mt-12">
