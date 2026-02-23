@@ -134,8 +134,8 @@ export function useAuth() {
     gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
     refetchOnWindowFocus: false,
     // Auth state can change outside React Query awareness (login/logout, OAuth redirects).
-    // Always re-check on mount so ProtectedRoute and RootLanding don't get stuck in "guest".
-    refetchOnMount: "always",
+    // We use staleTime and gcTime to manage caching.
+    refetchOnMount: true,
     refetchInterval: false,
   });
 
