@@ -20,10 +20,12 @@ import { useHandedness } from "@/hooks/useHandedness";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
+import { useLocation } from "wouter";
 
 const RequestQuote = memo(function RequestQuote() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [submitted, setSubmitted] = useState(false);
   const [lastLeadId, setLastLeadId] = useState<string | null>(null);
   const leadInitiatedAtRef = useRef<number | null>(null);

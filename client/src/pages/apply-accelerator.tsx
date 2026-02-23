@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 
 const ApplyAccelerator = memo(function ApplyAccelerator() {
+  const [, navigate] = useLocation();
   return (
     <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">

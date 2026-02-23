@@ -634,7 +634,7 @@ router.post(
           countyId: resolvedCountyId,
           sourceType: "manual_adjustment",
           sourceId: userId,
-          amount: totalAmount.toFixed(2),
+          amount: Math.round(totalAmount * 100) / 100,
           memo:
             typeof note === "string" && note.trim()
               ? note.trim()

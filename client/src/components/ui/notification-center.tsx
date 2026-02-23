@@ -85,6 +85,7 @@ const iconColors = {
 };
 
 export function NotificationCenter() {
+  const [, navigate] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
 

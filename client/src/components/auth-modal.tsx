@@ -31,6 +31,7 @@ export function AuthModal({
   showGuestOption = true,
   onGuestContinue,
 }: AuthModalProps) {
+  const [, navigate] = useLocation();
   const [providers, setProviders] = useState<{ google: boolean; facebook: boolean }>({
     google: false,
     facebook: false,

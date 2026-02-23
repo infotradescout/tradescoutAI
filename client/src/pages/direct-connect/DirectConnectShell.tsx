@@ -229,6 +229,7 @@ function SectionNav({
 }
 
 function DirectConnectInbox() {
+  const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [whyJobAssignmentId, setWhyJobAssignmentId] = useState<string | null>(null);
@@ -1235,7 +1236,7 @@ function MyDirectConnectRequests() {
 }
 
 export default function DirectConnectShell() {
-  const [location, setLocation] = useLocation();
+  const [location, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
 
@@ -1246,7 +1247,7 @@ export default function DirectConnectShell() {
   }, [location]);
 
   const navigateSection = (section: Section) => {
-    setLocation(buildHref(section));
+    navigate(buildHref(section));
   };
 
   const { data: inboxData } = useQuery<DirectConnectInboxItem[]>({
