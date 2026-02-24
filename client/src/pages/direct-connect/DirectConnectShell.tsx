@@ -97,6 +97,14 @@ const SECTION_ICONS: Record<Section, ReactNode> = {
   engagements: <BriefcaseBusiness className="h-4 w-4" />,
 };
 
+const SECTION_GROUPS: Array<{ title: string; sections: Section[] }> = [
+  { title: "Odd Jobs Requests", sections: ["post"] },
+  { title: "Open Job Board", sections: ["board"] },
+  { title: "Employment / Hiring", sections: ["employment"] },
+  { title: "Job Requests Board", sections: ["engagements", "inbox"] },
+  { title: "Pros", sections: ["pros"] },
+];
+
 function getSectionFromPath(path: string): Section {
   const match = path.match(/^\/direct-connect(?:\/(.+))?/);
   const raw = match?.[1]?.split("/")[0] ?? "";
@@ -179,51 +187,73 @@ function SectionNav({
   counts?: Partial<Record<Section, number>>;
   mobile?: boolean;
 }) {
-  const wrapperClass = mobile
-    ? "flex gap-1.5 overflow-x-auto pb-1.5 -mx-0.5 px-0.5"
-    : "space-y-1.5";
+  const buttonClass = mobile
+    ? "w-full rounded-lg border px-2.5 py-2 text-left"
+    : "w-full rounded-xl border px-3 py-2";
 
   return (
-    <div className={wrapperClass}>
-      {SECTIONS.map((section) => {
-        const active = section === activeSection;
-        const count = counts?.[section] ?? 0;
+    <div
+      className={cn(
+        "space-y-2",
+        mobile
+          ? "rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-2"
+          : ""
+      )}
+    >
+      {SECTION_GROUPS.map((group, groupIndex) => (
+        <div
+          key={group.title}
+          className={cn(
+            "space-y-1.5",
+            mobile
+              ? "rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/40 p-2"
+              : "",
+            !mobile && groupIndex > 0 ? "pt-2 border-t border-[color:var(--border-subtle)]" : ""
+          )}
+        >
+          <div className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]">
+            {group.title}
+          </div>
+          <div className={cn("gap-1.5", mobile ? "grid grid-cols-1" : "space-y-1.5")}>
+            {group.sections.map((section) => {
+              const active = section === activeSection;
+              const count = counts?.[section] ?? 0;
 
-        return (
-          <button
-            key={section}
-            type="button"
-            onClick={() => onSelect(section)}
-            className={cn(
-              "group text-left transition-all",
-              mobile
-                ? "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] whitespace-nowrap"
-                : "w-full rounded-xl border px-3 py-2"
-            )}
-            style={{
-              borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
-              backgroundColor: active
-                ? "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)"
-                : "var(--surface-card)",
-              color: active ? "var(--text-primary)" : "var(--text-secondary)",
-            }}
-          >
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-[color:var(--border-subtle)]">
-              {SECTION_ICONS[section]}
-            </span>
-            <span className="flex-1">
-              <span className={cn("font-medium", mobile ? "text-xs" : "text-sm")}>
-                {SECTION_LABELS[section]}
-              </span>
-            </span>
-            {count > 0 && (
-              <Badge variant="secondary" className="text-[10px]">
-                {count}
-              </Badge>
-            )}
-          </button>
-        );
-      })}
+              return (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => onSelect(section)}
+                  className={cn("group text-left transition-all", buttonClass)}
+                  style={{
+                    borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
+                    backgroundColor: active
+                      ? "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)"
+                      : "var(--surface-card)",
+                    color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                  }}
+                >
+                  <span className="inline-flex w-full items-center gap-1.5">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-[color:var(--border-subtle)]">
+                      {SECTION_ICONS[section]}
+                    </span>
+                    <span className="flex-1">
+                      <span className={cn("font-medium", mobile ? "text-xs" : "text-sm")}>
+                        {SECTION_LABELS[section]}
+                      </span>
+                    </span>
+                    {count > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {count}
+                      </Badge>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -335,7 +365,7 @@ function DirectConnectInbox() {
                 key={f}
                 type="button"
                 onClick={() => setInboxFilter(f)}
-                className="shrink-0 rounded-full border px-2.5 py-1 text-[11px]"
+                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium"
                 style={{
                   borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                   color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -481,7 +511,7 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2 text-xs sm:hidden"
+                  className="h-9 px-2 text-xs sm:hidden"
                   disabled={status !== "accepted"}
                   onClick={() => {
                     const threadId = item.conversationThreadId;
@@ -512,7 +542,7 @@ function DirectConnectInbox() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2 text-xs sm:hidden"
+                  className="h-9 px-2 text-xs sm:hidden"
                   aria-label={
                     isMobileActionOpen ? "Hide assignment actions" : "Show assignment actions"
                   }
@@ -522,7 +552,7 @@ function DirectConnectInbox() {
                     )
                   }
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  More
                 </Button>
               </div>
 
@@ -933,7 +963,7 @@ function MyDirectConnectRequests() {
                 key={f}
                 type="button"
                 onClick={() => setRequestFilter(f)}
-                className="shrink-0 rounded-full border px-2.5 py-1 text-[11px]"
+                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium"
                 style={{
                   borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                   color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -1051,7 +1081,7 @@ function MyDirectConnectRequests() {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1 h-8 px-2 text-xs bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                    className="flex-1 h-9 px-2 text-xs bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
                     disabled={!canSend || routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
@@ -1060,7 +1090,7 @@ function MyDirectConnectRequests() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2 text-xs"
+                    className="h-9 px-2 text-xs"
                     aria-label={
                       isMobileActionOpen ? "Hide request actions" : "Show request actions"
                     }
@@ -1068,7 +1098,7 @@ function MyDirectConnectRequests() {
                       setMobileActionRequestId((current) => (current === r.id ? null : r.id))
                     }
                   >
-                    <MoreHorizontal className="h-3.5 w-3.5" />
+                    More
                   </Button>
                 </div>
                 <Button
@@ -1245,6 +1275,9 @@ export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
+  const activeGroupTitle =
+    SECTION_GROUPS.find((group) => group.sections.includes(activeSection))?.title ||
+    "Direct Connect";
 
   const defaultCountyFips = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1336,6 +1369,14 @@ export default function DirectConnectShell() {
         </Card>
 
         <div className="xl:hidden">
+          <div className="sticky top-0 z-20 mb-2 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]/95 px-3 py-2 backdrop-blur-sm">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]">
+              {activeGroupTitle}
+            </div>
+            <div className="mt-0.5 text-sm font-semibold text-[color:var(--text-primary)]">
+              {SECTION_LABELS[activeSection]}
+            </div>
+          </div>
           <SectionNav
             activeSection={activeSection}
             onSelect={navigateSection}

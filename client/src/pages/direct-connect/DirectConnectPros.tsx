@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import ContractorCard from "@/components/contractor-card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -79,6 +80,11 @@ export default function DirectConnectPros() {
       <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="pb-1">
           <CardTitle className="text-sm">Browse local pros</CardTitle>
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            {countyCommitted
+              ? `${(contractors as any[])?.length || 0} result(s)`
+              : "Set county to search"}
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <StateCountySelector
@@ -108,9 +114,21 @@ export default function DirectConnectPros() {
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="pl-10"
+                className="pl-10 pr-10"
                 placeholder="Search by name or keyword"
               />
+              {searchQuery.trim().length > 0 && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  aria-label="Clear search"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

@@ -84,6 +84,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     defaultCountyFips || user?.countyFips || undefined
   );
   const [showCountySelector, setShowCountySelector] = useState(false);
+  const [countyInput, setCountyInput] = useState("");
 
   const [q, setQ] = useState("");
   const [selectedTrade, setSelectedTrade] = useState<string>("");
@@ -115,6 +116,12 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     if (!defaultCountyFips) return;
     setSelectedCountyFips((prev) => prev || defaultCountyFips);
   }, [defaultCountyFips]);
+
+  useEffect(() => {
+    if (showCountySelector) {
+      setCountyInput(selectedCountyFips || "");
+    }
+  }, [showCountySelector, selectedCountyFips]);
 
   const { data: trades = [] } = useQuery({
     queryKey: ["/api/trades"],
@@ -250,16 +257,16 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full gap-2 md:w-auto md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
               <Button
                 variant="outline"
                 onClick={() => setShowCountySelector(true)}
-                className="h-10"
+                className="h-10 w-full md:w-auto"
               >
                 {selectedCountyFips ? "Change county" : "Set county"}
               </Button>
 
-              <div className="min-w-[220px]">
+              <div className="w-full min-w-0 md:min-w-[220px]">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
                   Trade
                 </Label>
@@ -281,7 +288,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 </Select>
               </div>
 
-              <div className="min-w-[220px]">
+              <div className="w-full min-w-0 md:min-w-[220px]">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
                   Search
                 </Label>
@@ -296,6 +303,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               </div>
 
               <Button
+                className="h-10 w-full md:w-auto"
                 onClick={() => {
                   if (!isAuthenticated) {
                     navigate(
@@ -468,10 +476,11 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
             <Input
               type="text"
               placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"
-              defaultValue={selectedCountyFips || ""}
+              value={countyInput}
+              onChange={(e) => setCountyInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  const next = (e.target as HTMLInputElement).value.trim();
+                  const next = countyInput.trim();
                   if (next && next !== selectedCountyFips) {
                     setSelectedCountyFips(next);
                     setShowCountySelector(false);
@@ -485,10 +494,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               </Button>
               <Button
                 onClick={() => {
-                  const input = document.querySelector(
-                    'input[placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"]'
-                  ) as HTMLInputElement | null;
-                  const next = input?.value.trim() || "";
+                  const next = countyInput.trim();
                   if (next && next !== selectedCountyFips) {
                     setSelectedCountyFips(next);
                     setShowCountySelector(false);
