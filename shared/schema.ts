@@ -327,6 +327,14 @@ export const scoutInteractionUserRoleEnum = pgEnum("scout_interaction_user_role"
   "admin",
 ]);
 
+export const scoutMemoryTypeEnum = pgEnum("scout_memory_type", [
+  "tool_result",
+  "user_preference",
+  "conversation_context",
+  "learning_point",
+  "proactive_suggestion",
+]);
+
 export const missionControlSourceEnum = pgEnum("mission_control_source", [
   "bot_ui",
   "scout",
@@ -3551,6 +3559,36 @@ export const scoutInteractions = pgTable(
     index("scout_interactions_created_idx").on(table.createdAt),
     index("scout_interactions_intent_idx").on(table.intent),
     index("scout_interactions_role_idx").on(table.userRole),
+  ]
+);
+
+// Scout memory: persistent conversation and learning storage
+// Enables Scout to remember tool results, user preferences, conversation context,
+// learning points, and proactive suggestions across sessions
+export const scoutMemory = pgTable(
+  "scout_memory",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: scoutMemoryTypeEnum("type").notNull(),
+    key: varchar("key").notNull(),
+    value: jsonb("value").notNull(),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+    ttlSeconds: integer("ttl_seconds"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("scout_memory_user_idx").on(table.userId),
+    index("scout_memory_type_idx").on(table.type),
+    index("scout_memory_key_idx").on(table.key),
+    index("scout_memory_user_type_idx").on(table.userId, table.type),
+    index("scout_memory_created_idx").on(table.createdAt),
+    uniqueIndex("scout_memory_user_type_key_unique").on(table.userId, table.type, table.key),
   ]
 );
 

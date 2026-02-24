@@ -1,12 +1,12 @@
 /**
  * Scout Memory Service - Phase 3
- * 
+ *
  * This service provides Scout with persistent memory of:
  * 1. Tool execution results and findings
  * 2. User preferences and behavior patterns
  * 3. Conversation context and decisions made
  * 4. Learning points and insights from previous interactions
- * 
+ *
  * This enables Scout to:
  * - Avoid repeating the same tool calls
  * - Recall previous findings across sessions
@@ -15,7 +15,8 @@
  */
 
 import { db } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
+import { scoutMemory } from "../../shared/schema";
 
 /**
  * Memory entry types
@@ -170,7 +171,12 @@ export class ScoutMemoryService {
       last_updated: new Date().toISOString(),
     };
 
-    await this.storeMemory(userId, MemoryEntryType.USER_PREFERENCE, preferenceKey, preferenceMemory);
+    await this.storeMemory(
+      userId,
+      MemoryEntryType.USER_PREFERENCE,
+      preferenceKey,
+      preferenceMemory
+    );
   }
 
   /**
@@ -310,24 +316,29 @@ export class ScoutMemoryService {
     ttlSeconds?: number
   ): Promise<void> {
     try {
-      // This would insert into a scout_memory table
-      // For now, logging as placeholder
-      console.log(`[Scout Memory] Storing ${type} for user ${userId}: ${key}`, {
-        value,
-        ttl_seconds: ttlSeconds,
-      });
+      await db
+        .insert(scoutMemory)
+        .values({
+          userId,
+          type,
+          key,
+          value,
+          ttlSeconds,
+          metadata: {},
+        })
+        .onConflictDoUpdate({
+          target: [scoutMemory.userId, scoutMemory.type, scoutMemory.key],
+          set: {
+            value,
+            updatedAt: new Date(),
+            ...(ttlSeconds && { ttlSeconds }),
+          },
+        });
 
-      // TODO: Implement actual database storage
-      // await db.insert(scoutMemory).values({
-      //   user_id: userId,
-      //   type,
-      //   key,
-      //   value,
-      //   ttl_seconds: ttlSeconds,
-      //   created_at: new Date(),
-      // });
+      console.log(`[Scout Memory] Stored ${type} for user ${userId}: ${key}`);
     } catch (error) {
       console.error("[Scout Memory] Error storing memory:", error);
+      throw error;
     }
   }
 
@@ -340,21 +351,46 @@ export class ScoutMemoryService {
     key: string
   ): Promise<MemoryEntry | null> {
     try {
-      // This would query from a scout_memory table
-      // For now, returning null as placeholder
-      console.log(`[Scout Memory] Retrieving ${type} for user ${userId}: ${key}`);
+      const result = await db.query.scoutMemory.findFirst({
+        where: and(
+          eq(scoutMemory.userId, userId),
+          eq(scoutMemory.type, type),
+          eq(scoutMemory.key, key)
+        ),
+      });
 
-      // TODO: Implement actual database retrieval
-      // const result = await db.query.scoutMemory.findFirst({
-      //   where: and(
-      //     eq(scoutMemory.user_id, userId),
-      //     eq(scoutMemory.type, type),
-      //     eq(scoutMemory.key, key)
-      //   ),
-      // });
-      // return result || null;
+      if (!result) {
+        return null;
+      }
 
-      return null;
+      // Check if memory has expired
+      if (result.ttlSeconds) {
+        const expiresAt = new Date(result.createdAt!);
+        expiresAt.setSeconds(expiresAt.getSeconds() + result.ttlSeconds);
+        if (expiresAt < new Date()) {
+          // Memory has expired, delete it
+          await db
+            .delete(scoutMemory)
+            .where(
+              and(
+                eq(scoutMemory.userId, userId),
+                eq(scoutMemory.type, type),
+                eq(scoutMemory.key, key)
+              )
+            );
+          return null;
+        }
+      }
+
+      return {
+        id: result.id,
+        user_id: result.userId,
+        type: result.type as MemoryEntryType,
+        key: result.key,
+        value: result.value as Record<string, any>,
+        metadata: result.metadata as any,
+        ttl_seconds: result.ttlSeconds || undefined,
+      };
     } catch (error) {
       console.error("[Scout Memory] Error retrieving memory:", error);
       return null;
@@ -370,12 +406,28 @@ export class ScoutMemoryService {
     metadata: Record<string, any>
   ): Promise<void> {
     try {
-      console.log(`[Scout Memory] Updating metadata for ${key}`, metadata);
+      // Get existing metadata first
+      const existing = await db.query.scoutMemory.findFirst({
+        where: and(eq(scoutMemory.userId, userId), eq(scoutMemory.key, key)),
+      });
 
-      // TODO: Implement actual database update
-      // await db.update(scoutMemory)
-      //   .set({ metadata: { ...existingMetadata, ...metadata } })
-      //   .where(and(eq(scoutMemory.user_id, userId), eq(scoutMemory.key, key)));
+      if (!existing) {
+        console.warn(`[Scout Memory] Cannot update metadata - memory not found: ${key}`);
+        return;
+      }
+
+      const existingMetadata = (existing.metadata as Record<string, any>) || {};
+      const updatedMetadata = { ...existingMetadata, ...metadata };
+
+      await db
+        .update(scoutMemory)
+        .set({
+          metadata: updatedMetadata,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(scoutMemory.userId, userId), eq(scoutMemory.key, key)));
+
+      console.log(`[Scout Memory] Updated metadata for ${key}`);
     } catch (error) {
       console.error("[Scout Memory] Error updating metadata:", error);
     }
@@ -386,13 +438,15 @@ export class ScoutMemoryService {
    */
   static async clearExpiredMemories(): Promise<void> {
     try {
-      console.log("[Scout Memory] Clearing expired memories...");
+      const result = await db
+        .delete(scoutMemory)
+        .where(
+          sql`${scoutMemory.ttlSeconds} IS NOT NULL AND 
+              ${scoutMemory.createdAt} < NOW() - (${scoutMemory.ttlSeconds} || ' seconds')::interval`
+        )
+        .returning({ id: scoutMemory.id });
 
-      // TODO: Implement actual database cleanup
-      // await db.delete(scoutMemory)
-      //   .where(
-      //     sql`${scoutMemory.created_at} < NOW() - INTERVAL '${scoutMemory.ttl_seconds} seconds'`
-      //   );
+      console.log(`[Scout Memory] Cleared ${result.length} expired memories`);
     } catch (error) {
       console.error("[Scout Memory] Error clearing expired memories:", error);
     }
@@ -402,17 +456,42 @@ export class ScoutMemoryService {
    * Get memory statistics for a user
    */
   static async getMemoryStats(userId: string): Promise<Record<string, any>> {
-    return {
-      user_id: userId,
-      total_memories: 0,
-      tool_results: 0,
-      user_preferences: 0,
-      conversation_contexts: 0,
-      learning_points: 0,
-      proactive_suggestions: 0,
-      last_updated: new Date().toISOString(),
-      // TODO: Implement actual statistics gathering
-    };
+    try {
+      const memories = await db.query.scoutMemory.findMany({
+        where: eq(scoutMemory.userId, userId),
+      });
+
+      const stats = {
+        user_id: userId,
+        total_memories: memories.length,
+        tool_results: memories.filter((m) => m.type === "tool_result").length,
+        user_preferences: memories.filter((m) => m.type === "user_preference").length,
+        conversation_contexts: memories.filter((m) => m.type === "conversation_context").length,
+        learning_points: memories.filter((m) => m.type === "learning_point").length,
+        proactive_suggestions: memories.filter((m) => m.type === "proactive_suggestion").length,
+        last_updated:
+          memories.length > 0
+            ? new Date(
+                Math.max(...memories.map((m) => new Date(m.updatedAt!).getTime()))
+              ).toISOString()
+            : new Date().toISOString(),
+      };
+
+      return stats;
+    } catch (error) {
+      console.error("[Scout Memory] Error gathering statistics:", error);
+      return {
+        user_id: userId,
+        total_memories: 0,
+        tool_results: 0,
+        user_preferences: 0,
+        conversation_contexts: 0,
+        learning_points: 0,
+        proactive_suggestions: 0,
+        last_updated: new Date().toISOString(),
+        error: String(error),
+      };
+    }
   }
 }
 

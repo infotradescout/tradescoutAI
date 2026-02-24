@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-02-24T07:01:09.405Z",
+  "metrics": {
+    "account_creation": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "direct_connect": {
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    "verification": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "scout_routing": {
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    }
+  },
+  "passRate": 0.5,
+  "status": "fail",
+  "failures": [
+    "direct_connect: no executed tests (1 skipped; check E2E prerequisites such as TEST_DATABASE_URL)",
+    "scout_routing: no executed tests (2 skipped; check E2E prerequisites such as TEST_DATABASE_URL)"
+  ]
+}

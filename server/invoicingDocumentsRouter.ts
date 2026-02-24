@@ -6,13 +6,22 @@ import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 
+/**
+ * HTTP error with status code - for centralized error handling
+ */
+class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = "HttpError";
+  }
+}
+
 type AuthedRequest = Request & { user?: { id?: string; role?: string; [key: string]: any } };
 function requireAuth(req: AuthedRequest): asserts req is AuthedRequest & { user: { id: string } } {
   if (!req.user?.id) {
-    const err = new Error("AUTH_REQUIRED");
-    // @ts-expect-error attach status for centralized error handler
-    err.status = 401;
-    throw err;
+    throw new HttpError("AUTH_REQUIRED", 401);
   }
 }
 
@@ -34,10 +43,7 @@ function okNumber(n: unknown): number {
 
 function assertRole(role: string) {
   if (role !== "homeowner" && role !== "contractor") {
-    const err = new Error("INVALID_ROLE");
-    // @ts-expect-error attach status
-    err.status = 400;
-    throw err;
+    throw new HttpError("INVALID_ROLE", 400);
   }
 }
 
@@ -53,38 +59,23 @@ const HOMEOWNER_ITEM_EDIT_PATHS = new Set<keyof any>([
 function validateHomeownerMaterialListPatch(patch: any) {
   // patch format: { items: [{ id, brand?, model?, notes?, choiceUrl?, choiceSku? }, ...] }
   if (!patch || typeof patch !== "object") {
-    const err = new Error("INVALID_PATCH");
-    // @ts-expect-error attach status
-    err.status = 400;
-    throw err;
+    throw new HttpError("INVALID_PATCH", 400);
   }
   if (!Array.isArray(patch.items)) {
-    const err = new Error("INVALID_PATCH_ITEMS");
-    // @ts-expect-error attach status
-    err.status = 400;
-    throw err;
+    throw new HttpError("INVALID_PATCH_ITEMS", 400);
   }
 
   for (const item of patch.items) {
     if (!item || typeof item !== "object") {
-      const err = new Error("INVALID_ITEM");
-      // @ts-expect-error attach status
-      err.status = 400;
-      throw err;
+      throw new HttpError("INVALID_ITEM", 400);
     }
     if (!item.id || typeof item.id !== "string") {
-      const err = new Error("MISSING_ITEM_ID");
-      // @ts-expect-error attach status
-      err.status = 400;
-      throw err;
+      throw new HttpError("MISSING_ITEM_ID", 400);
     }
     for (const key of Object.keys(item)) {
       if (key === "id") continue;
       if (!HOMEOWNER_ITEM_EDIT_PATHS.has(key)) {
-        const err = new Error(`HOMEOWNER_FIELD_NOT_ALLOWED:${key}`);
-        // @ts-expect-error attach status
-        err.status = 403;
-        throw err;
+        throw new HttpError(`HOMEOWNER_FIELD_NOT_ALLOWED:${key}`, 403);
       }
     }
   }
@@ -471,10 +462,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
 
@@ -510,30 +498,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       // Default: full update allowed only for creator until locked statuses per type
       const payload = req.body?.payload;
       if (!isOwner) {
-        const err = new Error("NO_EDIT_PERMISSION");
-        // @ts-expect-error attach status
-        err.status = 403;
-        throw err;
+        throw new HttpError("NO_EDIT_PERMISSION", 403);
       }
 
       // lock rules
       if (doc.type === "ESTIMATE" && doc.status !== "draft") {
-        const err = new Error("ESTIMATE_LOCKED");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("ESTIMATE_LOCKED", 409);
       }
       if (doc.type === "CONTRACT" && doc.status !== "draft") {
-        const err = new Error("CONTRACT_LOCKED");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("CONTRACT_LOCKED", 409);
       }
       if (doc.type === "INVOICE" && doc.status !== "draft") {
-        const err = new Error("INVOICE_LOCKED");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("INVOICE_LOCKED", 409);
       }
 
       const updated = await pool.query(
@@ -556,18 +532,12 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
 
       if (String(doc.created_by) !== String(req.user.id)) {
-        const err = new Error("ONLY_CREATOR_CAN_SEND");
-        // @ts-expect-error attach status
-        err.status = 403;
-        throw err;
+        throw new HttpError("ONLY_CREATOR_CAN_SEND", 403);
       }
 
       let nextStatus = doc.status as string;
@@ -576,10 +546,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       else if (doc.type === "INVOICE") nextStatus = "sent";
       else if (doc.type === "MATERIAL_LIST") nextStatus = "pending_homeowner";
       else {
-        const err = new Error("SEND_NOT_SUPPORTED");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("SEND_NOT_SUPPORTED", 400);
       }
 
       const updated = await pool.query(
@@ -614,10 +581,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
       const metadata = await buildCorrespondenceMetadata(doc, req);
@@ -641,32 +605,20 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
 
       if (doc.type !== "ESTIMATE") {
-        const err = new Error("NOT_AN_ESTIMATE");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("NOT_AN_ESTIMATE", 400);
       }
       if (doc.status !== "sent") {
-        const err = new Error("ESTIMATE_NOT_SENT");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("ESTIMATE_NOT_SENT", 409);
       }
 
       // For now: allow approval by any non-creator (prevents contractor approving own estimate).
       if (String(doc.created_by) === String(req.user.id)) {
-        const err = new Error("CREATOR_CANNOT_APPROVE");
-        // @ts-expect-error attach status
-        err.status = 403;
-        throw err;
+        throw new HttpError("CREATOR_CANNOT_APPROVE", 403);
       }
 
       const updated = await pool.query(
@@ -730,44 +682,26 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const { role, signatureType, name, drawingData } = (req.body ?? {}) as any;
       assertRole(role);
       if (signatureType !== "typed" && signatureType !== "drawn") {
-        const err = new Error("INVALID_SIGNATURE_TYPE");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("INVALID_SIGNATURE_TYPE", 400);
       }
       if (signatureType === "typed" && (!name || typeof name !== "string")) {
-        const err = new Error("TYPED_NAME_REQUIRED");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("TYPED_NAME_REQUIRED", 400);
       }
       if (signatureType === "drawn" && (!drawingData || typeof drawingData !== "string")) {
-        const err = new Error("DRAWING_DATA_REQUIRED");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("DRAWING_DATA_REQUIRED", 400);
       }
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
 
       if (doc.type !== "CONTRACT") {
-        const err = new Error("SIGN_ONLY_CONTRACT");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("SIGN_ONLY_CONTRACT", 400);
       }
       if (doc.status !== "sent" && doc.status !== "partially_signed") {
-        const err = new Error("CONTRACT_NOT_READY_FOR_SIGN");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("CONTRACT_NOT_READY_FOR_SIGN", 409);
       }
 
       // Prevent duplicate signing by the same role; surface a clear 409.
@@ -776,10 +710,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         [id, role]
       );
       if (existingSig.rows.length) {
-        const err = new Error("ROLE_ALREADY_SIGNED");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("ROLE_ALREADY_SIGNED", 409);
       }
 
       const ip = ipFromReq(req);
@@ -852,16 +783,10 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
           [jobId]
         );
         if (!contractRes.rows.length) {
-          const err = new Error("CONTRACT_REQUIRED");
-          // @ts-expect-error attach status
-          err.status = 409;
-          throw err;
+          throw new HttpError("CONTRACT_REQUIRED", 409);
         }
         if (contractRes.rows[0].status !== "signed") {
-          const err = new Error("CONTRACT_NOT_SIGNED");
-          // @ts-expect-error attach status
-          err.status = 409;
-          throw err;
+          throw new HttpError("CONTRACT_NOT_SIGNED", 409);
         }
       }
 
@@ -908,10 +833,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         [jobId]
       );
       if (!invoiceRes.rows.length) {
-        const err = new Error("INVOICE_REQUIRED");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("INVOICE_REQUIRED", 409);
       }
 
       const markPaid = !!req.body?.markPaid;
@@ -959,10 +881,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       ]);
       const inv = invRes.rows[0];
       if (inv.status !== "paid") {
-        const err = new Error("INVOICE_NOT_PAID");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("INVOICE_NOT_PAID", 409);
       }
 
       const receiptPayload = {
@@ -1012,10 +931,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const amount = okNumber(total);
       if (!Number.isFinite(amount) || amount <= 0) {
-        const err = new Error("INVALID_TOTAL");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("INVALID_TOTAL", 400);
       }
 
       const jobId = `acct_${token32()}`;
@@ -1173,10 +1089,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const amount = Number(total);
       if (!Number.isFinite(amount) || amount <= 0) {
-        const err = new Error("INVALID_EXPENSE_TOTAL");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("INVALID_EXPENSE_TOTAL", 400);
       }
 
       const jobId = `acct_${token32()}`;
@@ -1284,25 +1197,16 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const invoiceDoc = docRes.rows[0];
 
       if (invoiceDoc.type !== "INVOICE") {
-        const err = new Error("NOT_AN_INVOICE");
-        // @ts-expect-error attach status
-        err.status = 400;
-        throw err;
+        throw new HttpError("NOT_AN_INVOICE", 400);
       }
 
       if (invoiceDoc.status !== "sent" && invoiceDoc.status !== "approved") {
-        const err = new Error("INVOICE_NOT_READY_FOR_PAYMENT");
-        // @ts-expect-error attach status
-        err.status = 409;
-        throw err;
+        throw new HttpError("INVOICE_NOT_READY_FOR_PAYMENT", 409);
       }
 
       const payment = {
@@ -1385,18 +1289,12 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
 
       if (String(doc.created_by) !== String(req.user.id)) {
-        const err = new Error("ONLY_CREATOR_CAN_SHARE");
-        // @ts-expect-error attach status
-        err.status = 403;
-        throw err;
+        throw new HttpError("ONLY_CREATOR_CAN_SHARE", 403);
       }
 
       const shareToken = doc.share_token || token32();
@@ -1441,19 +1339,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
       if (!docRes.rows.length) {
-        const err = new Error("DOC_NOT_FOUND");
-        // @ts-expect-error attach status
-        err.status = 404;
-        throw err;
+        throw new HttpError("DOC_NOT_FOUND", 404);
       }
       const doc = docRes.rows[0];
 
       // Tight read permission: creator can download; you can widen later (job members)
       if (String(doc.created_by) !== String(req.user.id)) {
-        const err = new Error("NO_DOWNLOAD_PERMISSION");
-        // @ts-expect-error attach status
-        err.status = 403;
-        throw err;
+        throw new HttpError("NO_DOWNLOAD_PERMISSION", 403);
       }
 
       const sigs = await pool.query(
