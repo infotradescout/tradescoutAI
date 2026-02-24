@@ -6803,12 +6803,15 @@ export async function registerRoutes(app: any) {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
+      const { reason } = (req.body ?? {}) as { reason?: string };
+      const normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
-      if (
-        !adminUser ||
-        !["head_admin", "super_admin", "moderator"].includes(adminUser.role || "")
-      ) {
+      if (!adminUser || !["head_admin", "super_admin"].includes(adminUser.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (normalizedReason.length < 5) {
+        return res.status(400).json({ message: "Deletion reason is required (min 5 characters)" });
       }
 
       const targetUser = await storage.getUser(userId);
@@ -6822,6 +6825,16 @@ export async function registerRoutes(app: any) {
       }
 
       await storage.deleteUser(userId);
+
+      await logAdminAction({
+        type: "admin_user_delete",
+        adminId: adminUserId,
+        adminRole: adminUser.role,
+        targetUserId: userId,
+        targetEmail: targetUser?.email,
+        targetRole: targetUser?.role,
+        reason: normalizedReason,
+      });
       res.status(204).send();
     } catch (error: any) {
       console.error("Error deleting user:", error);
