@@ -27,7 +27,7 @@ Ensure the following environment variables are set in the production environment
 - [x] **Rate Limiting**: Configured for sensitive endpoints (login, password reset, AI).
 - [x] **Headers**: `helmet` is used for security headers.
 - [x] **CORS**: Configured with an allowlist.
-- [ ] **CSP**: Content Security Policy is currently disabled in `helmet`. Consider enabling it with proper configuration.
+- [x] **CSP**: Content Security Policy is enabled and configured through `helmet` directives.
 - [x] **Secure Cookies**: `trust proxy` is set to `1` for secure cookies behind proxies.
 
 ## 3. Database
@@ -55,3 +55,22 @@ Ensure the following environment variables are set in the production environment
 npm run verify
 ```
 This command runs a comprehensive suite of checks including type checking, tests, and all audit scripts.
+
+## 7. Release Evidence (Required)
+- [x] `npm run verify` passes with exit code `0`.
+- [x] `npm run build` passes with exit code `0`.
+- [ ] `npm run test:release-gates` executed against a running app instance.
+- [ ] `npm run report:release-gates` archived to deployment evidence.
+
+### Evidence Commands
+```bash
+npm run verify
+npm run build
+npm run dev
+npm run test:release-gates
+npm run report:release-gates
+```
+
+### Evidence Artifacts
+- `.playwright/test-results/results.json`
+- `artifacts/release-gate-metrics.json`

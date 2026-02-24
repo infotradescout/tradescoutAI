@@ -5,15 +5,42 @@ const reportPath = path.resolve(".playwright/test-results/results.json");
 const outputDir = path.resolve("artifacts");
 const outputPath = path.join(outputDir, "release-gate-metrics.json");
 
-const gateByFile = new Map([
-  ["tests/journeys/auth_buttons_present.spec.ts", "account_creation"],
-  ["tests/direct-connect.e2e.spec.ts", "direct_connect"],
-  ["tests/address-verification.smoke.spec.ts", "verification"],
-  ["tests/scout-routing.e2e.spec.ts", "scout_routing"],
-]);
+const gateFileMatchers = [
+  {
+    gate: "account_creation",
+    matches: [
+      "journeys/auth_buttons_present.spec.ts",
+      "journeys/pre_scout_auth_integrity.spec.ts",
+    ],
+  },
+  {
+    gate: "direct_connect",
+    matches: ["direct-connect.e2e.spec.ts"],
+  },
+  {
+    gate: "verification",
+    matches: ["address-verification.smoke.spec.ts"],
+  },
+  {
+    gate: "scout_routing",
+    matches: ["scout-routing.e2e.spec.ts"],
+  },
+];
 
 function normalizeFile(filePath) {
   return String(filePath || "").replace(/\\/g, "/");
+}
+
+function resolveGateFromFile(filePath) {
+  const normalized = normalizeFile(filePath).replace(/^\.?\/?/, "");
+  for (const entry of gateFileMatchers) {
+    for (const match of entry.matches) {
+      if (normalized === match || normalized.endsWith(`/${match}`)) {
+        return entry.gate;
+      }
+    }
+  }
+  return null;
 }
 
 function ensureGateMetrics() {
@@ -33,7 +60,7 @@ function statusBucket(status) {
 
 function collectResults(node, metrics, currentFile = "") {
   const nextFile = node?.file ? normalizeFile(node.file) : currentFile;
-  const gate = gateByFile.get(nextFile);
+  const gate = resolveGateFromFile(nextFile);
 
   if (gate && Array.isArray(node?.tests)) {
     for (const test of node.tests) {
@@ -72,7 +99,15 @@ const failures = [];
 for (const gate of requiredGates) {
   const gateMetrics = metrics[gate];
   const totalExecuted = gateMetrics.passed + gateMetrics.failed;
-  if (totalExecuted === 0) failures.push(`${gate}: no executed tests`);
+  if (totalExecuted === 0) {
+    if (gateMetrics.skipped > 0) {
+      failures.push(
+        `${gate}: no executed tests (${gateMetrics.skipped} skipped; check E2E prerequisites such as TEST_DATABASE_URL)`
+      );
+    } else {
+      failures.push(`${gate}: no executed tests`);
+    }
+  }
   if (gateMetrics.failed > 0) failures.push(`${gate}: ${gateMetrics.failed} failed`);
 }
 

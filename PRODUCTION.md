@@ -57,7 +57,25 @@ Expected response:
 }
 ```
 
-## 7. Ongoing Maintenance
+## 7. Pre-Deploy Release Gates
+Run these in order before shipping:
+```bash
+npm run verify
+npm run build
+```
+
+For end-to-end release gates (with app running):
+```bash
+npm run dev
+npm run test:release-gates
+npm run report:release-gates
+```
+
+Expected artifacts:
+- `.playwright/test-results/results.json`
+- `artifacts/release-gate-metrics.json`
+
+## 8. Ongoing Maintenance
 - **Backups**: Ensure regular backups of your Postgres database.
 - **Monitoring**: Use Sentry for error tracking and check logs regularly.
 - **Scaling**: Run `npm run check:scale-readiness` periodically to identify potential bottlenecks.
