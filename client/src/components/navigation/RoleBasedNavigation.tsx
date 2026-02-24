@@ -41,6 +41,7 @@ import {
   Menu,
   ChevronDown,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 
 interface NavigationItem {
@@ -446,6 +447,22 @@ export function UserMenu() {
         >
           <CreditCard className="h-4 w-4" />
           Payment History
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/settings")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          data-tutorial="settings-access"
+        >
+          <Settings className="h-4 w-4" />
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/help")}
+          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+        >
+          <HelpCircle className="h-4 w-4" />
+          Help Center
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
         <DropdownMenuItem
