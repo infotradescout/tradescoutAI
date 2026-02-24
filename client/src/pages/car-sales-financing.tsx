@@ -5,16 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  CreditCard, 
-  Calculator, 
-  FileText, 
+import {
+  CreditCard,
+  Calculator,
+  FileText,
   CheckCircle,
   DollarSign,
   Percent,
   Calendar,
   Building,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react";
 
 export default function CarSalesFinancing() {
@@ -26,9 +26,10 @@ export default function CarSalesFinancing() {
     const principal = parseFloat(loanAmount);
     const rate = parseFloat(interestRate) / 100 / 12;
     const months = parseInt(loanTerm);
-    
+
     if (principal && rate && months) {
-      const payment = (principal * rate * Math.pow(1 + rate, months)) / (Math.pow(1 + rate, months) - 1);
+      const payment =
+        (principal * rate * Math.pow(1 + rate, months)) / (Math.pow(1 + rate, months) - 1);
       return payment.toFixed(2);
     }
     return "0.00";
@@ -43,17 +44,17 @@ export default function CarSalesFinancing() {
       term: "12-84 months",
       minCredit: 680,
       status: "Active",
-      approval: "Fast (2-4 hours)"
+      approval: "Fast (2-4 hours)",
     },
     {
       id: 2,
-      name: "Community First Bank", 
+      name: "Community First Bank",
       type: "Credit Union",
       rate: "3.49% - 6.99%",
-      term: "24-72 months", 
+      term: "24-72 months",
       minCredit: 650,
       status: "Active",
-      approval: "Standard (24-48 hours)"
+      approval: "Standard (24-48 hours)",
     },
     {
       id: 3,
@@ -62,14 +63,14 @@ export default function CarSalesFinancing() {
       rate: "5.99% - 12.99%",
       term: "12-60 months",
       minCredit: 550,
-      status: "Active", 
-      approval: "Instant"
-    }
+      status: "Active",
+      approval: "Instant",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <div className="container mx-auto px-6 py-8">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-8">
+      <div className="container mx-auto px-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-3 bg-green-500/20 rounded-xl">
@@ -115,7 +116,7 @@ export default function CarSalesFinancing() {
                     <div>
                       <Label htmlFor="interestRate">Interest Rate (%)</Label>
                       <Input
-                        id="interestRate" 
+                        id="interestRate"
                         type="number"
                         step="0.1"
                         value={interestRate}
@@ -168,11 +169,17 @@ export default function CarSalesFinancing() {
                       </div>
                       <div className="flex justify-between border-t border-navy-700 pt-3">
                         <span className="text-gray-400">Total Interest</span>
-                        <span>${(parseFloat(calculatePayment()) * parseInt(loanTerm) - parseFloat(loanAmount || "0")).toFixed(2)}</span>
+                        <span>
+                          $
+                          {(
+                            parseFloat(calculatePayment()) * parseInt(loanTerm) -
+                            parseFloat(loanAmount || "0")
+                          ).toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       className="w-full bg-green-600 hover:bg-green-700"
                       data-testid="button-send-quote"
                     >
@@ -209,7 +216,7 @@ export default function CarSalesFinancing() {
                           {lender.rate}
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Loan Terms</p>
                         <p className="font-medium flex items-center gap-2">
@@ -217,7 +224,7 @@ export default function CarSalesFinancing() {
                           {lender.term}
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Min Credit Score</p>
                         <p className="font-medium flex items-center gap-2">
@@ -225,7 +232,7 @@ export default function CarSalesFinancing() {
                           {lender.minCredit}+
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm text-gray-400">Approval Time</p>
                         <p className="font-medium flex items-center gap-2">
@@ -236,18 +243,14 @@ export default function CarSalesFinancing() {
                     </div>
 
                     <div className="flex gap-2 mt-4">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-green-600 hover:bg-green-700"
                         data-testid="button-submit-application"
                       >
                         Submit Application
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        data-testid="button-view-rates"
-                      >
+                      <Button size="sm" variant="outline" data-testid="button-view-rates">
                         View Current Rates
                       </Button>
                     </div>
@@ -261,8 +264,13 @@ export default function CarSalesFinancing() {
                 <CardContent className="p-8 text-center">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Active Applications</h3>
-                  <p className="text-gray-400 mb-6">Customer financing applications will appear here</p>
-                  <Button className="bg-green-600 hover:bg-green-700" data-testid="button-new-application">
+                  <p className="text-gray-400 mb-6">
+                    Customer financing applications will appear here
+                  </p>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    data-testid="button-new-application"
+                  >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Start New Application
                   </Button>

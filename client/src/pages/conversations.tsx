@@ -132,7 +132,7 @@ export default function Conversations() {
   if (!isAuthenticated) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center"
+        className="flex items-center justify-center py-24"
         style={{ backgroundColor: "var(--surface-app-bg)" }}
       >
         <Card className="w-96">
@@ -152,7 +152,7 @@ export default function Conversations() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-app-bg)" }}>
+    <div className="py-8" style={{ backgroundColor: "var(--surface-app-bg)" }}>
       <div className="max-w-7xl mx-auto p-4">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-orange-500 mb-2">Your Conversations</h1>

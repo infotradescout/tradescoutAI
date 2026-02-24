@@ -47,9 +47,7 @@ export function PromptAdminPage() {
       setSuccess("System prompt loaded successfully");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load system prompt"
-      );
+      setError(err instanceof Error ? err.message : "Failed to load system prompt");
       setContent("");
     } finally {
       setLoading(false);
@@ -84,14 +82,10 @@ export function PromptAdminPage() {
       }
 
       const data = await res.json();
-      setSuccess(
-        data.message || "System prompt saved and reloaded successfully!"
-      );
+      setSuccess(data.message || "System prompt saved and reloaded successfully!");
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save system prompt"
-      );
+      setError(err instanceof Error ? err.message : "Failed to save system prompt");
     } finally {
       setSaving(false);
     }
@@ -114,9 +108,7 @@ export function PromptAdminPage() {
       setSuccess(data.message || "Prompt reloaded from disk");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to reload system prompt"
-      );
+      setError(err instanceof Error ? err.message : "Failed to reload system prompt");
     } finally {
       setSaving(false);
     }
@@ -124,7 +116,7 @@ export function PromptAdminPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-screen">
+      <div className="p-8 flex items-center justify-center">
         <div className="text-lg text-gray-600">Loading system prompt…</div>
       </div>
     );
@@ -136,10 +128,9 @@ export function PromptAdminPage() {
       <div className="border-b pb-6">
         <h1 className="text-3xl font-bold mb-2">System Prompt Editor</h1>
         <p className="text-gray-600 max-w-2xl">
-          Edit Scout's system prompt in real-time. Changes apply
-          immediately to all new conversations. This controls how Scout
-          behaves, interprets user requests, and resolves the knowledge
-          hierarchy.
+          Edit Scout's system prompt in real-time. Changes apply immediately to all new
+          conversations. This controls how Scout behaves, interprets user requests, and resolves the
+          knowledge hierarchy.
         </p>
       </div>
 
@@ -150,9 +141,7 @@ export function PromptAdminPage() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-600">Cached:</span>
-              <span className="ml-2 font-mono">
-                {status.cached ? "✓ Yes" : "✗ No"}
-              </span>
+              <span className="ml-2 font-mono">{status.cached ? "✓ Yes" : "✗ No"}</span>
             </div>
             <div>
               <span className="text-gray-600">Last Loaded:</span>
@@ -166,22 +155,16 @@ export function PromptAdminPage() {
             </div>
             <div>
               <span className="text-gray-600">File Exists:</span>
-              <span className="ml-2 font-mono">
-                {status.exists ? "✓ Yes" : "✗ No"}
-              </span>
+              <span className="ml-2 font-mono">{status.exists ? "✓ Yes" : "✗ No"}</span>
             </div>
           </div>
-          <div className="text-xs text-gray-500 mt-2 font-mono break-all">
-            {status.promptPath}
-          </div>
+          <div className="text-xs text-gray-500 mt-2 font-mono break-all">{status.promptPath}</div>
         </div>
       )}
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">{error}</div>
       )}
 
       {success && (
@@ -192,9 +175,7 @@ export function PromptAdminPage() {
 
       {/* Editor */}
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">
-          System Prompt Markdown
-        </label>
+        <label className="block text-sm font-semibold text-gray-700">System Prompt Markdown</label>
         <textarea
           className="w-full h-[60vh] border-2 border-gray-300 rounded-lg p-4 font-mono text-sm focus:border-blue-500 focus:outline-none resize-none"
           value={content}
@@ -206,8 +187,7 @@ export function PromptAdminPage() {
       {/* Character count */}
       <div className="text-sm text-gray-500">
         {content.length.toLocaleString()} characters
-        {content.split("\n").length > 0 &&
-          ` • ${content.split("\n").length} lines`}
+        {content.split("\n").length > 0 && ` • ${content.split("\n").length} lines`}
       </div>
 
       {/* Action Buttons */}
@@ -242,7 +222,8 @@ export function PromptAdminPage() {
         <div className="font-semibold">How This Works</div>
         <ul className="list-disc list-inside space-y-1">
           <li>
-            Your changes are saved to <code className="font-mono">server/cache/manual/system_prompt.md</code>
+            Your changes are saved to{" "}
+            <code className="font-mono">server/cache/manual/system_prompt.md</code>
           </li>
           <li>The prompt is cached for 30 seconds for performance</li>
           <li>Click "Save" to write changes to disk and force reload</li>

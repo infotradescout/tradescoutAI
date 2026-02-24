@@ -1,25 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  X,
-  DollarSign,
-  Users
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, CheckCircle, X, DollarSign, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PendingContribution {
   id: string;
@@ -40,20 +28,22 @@ export default function AdminCommunityBuilderDashboard() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!user?.isAdmin) setLocation('/unauthorized');
+    if (!user?.isAdmin) setLocation("/unauthorized");
   }, [user?.isAdmin, setLocation]);
 
   if (!user?.isAdmin) return null;
   const { toast } = useToast();
   const [selectedContribution, setSelectedContribution] = useState<string | null>(null);
-  const [approvalNotes, setApprovalNotes] = useState('');
+  const [approvalNotes, setApprovalNotes] = useState("");
 
   // Fetch pending contributions
-  const { data: pendingContributions = [], refetch: refetchContributions } = useQuery<PendingContribution[]>({
-    queryKey: ['adminPendingContributions'],
+  const { data: pendingContributions = [], refetch: refetchContributions } = useQuery<
+    PendingContribution[]
+  >({
+    queryKey: ["adminPendingContributions"],
     queryFn: async () => {
-      const res = await fetch('/api/admin/community-builder/contributions/pending');
-      if (!res.ok) throw new Error('Failed to fetch pending contributions');
+      const res = await fetch("/api/admin/community-builder/contributions/pending");
+      if (!res.ok) throw new Error("Failed to fetch pending contributions");
       return res.json();
     },
   });
@@ -61,56 +51,70 @@ export default function AdminCommunityBuilderDashboard() {
   // Approve mutation
   const approveMutation = useMutation({
     mutationFn: async ({ contributionId, notes }: { contributionId: string; notes: string }) => {
-      const res = await fetch(`/api/admin/community-builder/contributions/${contributionId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes }),
-      });
-      if (!res.ok) throw new Error('Failed to approve contribution');
+      const res = await fetch(
+        `/api/admin/community-builder/contributions/${contributionId}/approve`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to approve contribution");
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: 'Success', description: 'Contribution approved' });
+      toast({ title: "Success", description: "Contribution approved" });
       setSelectedContribution(null);
-      setApprovalNotes('');
+      setApprovalNotes("");
       refetchContributions();
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to approve contribution', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to approve contribution",
+        variant: "destructive",
+      });
     },
   });
 
   // Reject mutation
   const rejectMutation = useMutation({
     mutationFn: async ({ contributionId, reason }: { contributionId: string; reason: string }) => {
-      const res = await fetch(`/api/admin/community-builder/contributions/${contributionId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-      if (!res.ok) throw new Error('Failed to reject contribution');
+      const res = await fetch(
+        `/api/admin/community-builder/contributions/${contributionId}/reject`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to reject contribution");
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: 'Success', description: 'Contribution rejected' });
+      toast({ title: "Success", description: "Contribution rejected" });
       setSelectedContribution(null);
-      setApprovalNotes('');
+      setApprovalNotes("");
       refetchContributions();
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to reject contribution', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to reject contribution",
+        variant: "destructive",
+      });
     },
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Community Builder Admin</h1>
           <p className="text-gray-600 mt-1">Review and manage community builder contributions</p>
           <p className="text-sm text-gray-500 mt-1">
-            Public donation page for the Community Builder Fund:{' '}
+            Public donation page for the Community Builder Fund:{" "}
             <a
               href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
               target="_blank"
@@ -141,7 +145,10 @@ export default function AdminCommunityBuilderDashboard() {
             </CardHeader>
             <CardContent>
               <span className="text-2xl font-bold">
-                ${pendingContributions.reduce((sum, c) => sum + parseFloat(c.estimatedValue || '0'), 0).toFixed(2)}
+                $
+                {pendingContributions
+                  .reduce((sum, c) => sum + parseFloat(c.estimatedValue || "0"), 0)
+                  .toFixed(2)}
               </span>
               <p className="text-xs text-gray-500 mt-1">Total estimated value</p>
             </CardContent>
@@ -153,7 +160,7 @@ export default function AdminCommunityBuilderDashboard() {
             </CardHeader>
             <CardContent>
               <span className="text-2xl font-bold">
-                {new Set(pendingContributions.map(c => c.builderId)).size}
+                {new Set(pendingContributions.map((c) => c.builderId)).size}
               </span>
               <p className="text-xs text-gray-500 mt-1">Unique builders</p>
             </CardContent>
@@ -180,8 +187,8 @@ export default function AdminCommunityBuilderDashboard() {
                     key={contrib.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                       selectedContribution === contrib.id
-                        ? 'bg-blue-50 border-blue-300'
-                        : 'hover:bg-gray-50'
+                        ? "bg-blue-50 border-blue-300"
+                        : "hover:bg-gray-50"
                     }`}
                     onClick={() => setSelectedContribution(contrib.id)}
                   >
@@ -199,9 +206,7 @@ export default function AdminCommunityBuilderDashboard() {
                       </div>
 
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="font-semibold">
-                          ${contrib.estimatedValue}
-                        </span>
+                        <span className="font-semibold">${contrib.estimatedValue}</span>
                         {contrib.builder?.businessName && (
                           <span className="text-gray-600">
                             Builder: {contrib.builder.businessName}
@@ -229,10 +234,12 @@ export default function AdminCommunityBuilderDashboard() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => approveMutation.mutate({
-                              contributionId: contrib.id,
-                              notes: approvalNotes,
-                            })}
+                            onClick={() =>
+                              approveMutation.mutate({
+                                contributionId: contrib.id,
+                                notes: approvalNotes,
+                              })
+                            }
                             disabled={approveMutation.isPending}
                             className="bg-green-600 hover:bg-green-700"
                           >
@@ -242,10 +249,12 @@ export default function AdminCommunityBuilderDashboard() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => rejectMutation.mutate({
-                              contributionId: contrib.id,
-                              reason: approvalNotes || 'Not approved',
-                            })}
+                            onClick={() =>
+                              rejectMutation.mutate({
+                                contributionId: contrib.id,
+                                reason: approvalNotes || "Not approved",
+                              })
+                            }
                             disabled={rejectMutation.isPending}
                           >
                             <X className="w-4 h-4 mr-2" />
@@ -256,7 +265,7 @@ export default function AdminCommunityBuilderDashboard() {
                             variant="outline"
                             onClick={() => {
                               setSelectedContribution(null);
-                              setApprovalNotes('');
+                              setApprovalNotes("");
                             }}
                           >
                             Cancel

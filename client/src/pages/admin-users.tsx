@@ -237,8 +237,8 @@ export default function AdminUsers() {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`, { reason });
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`);
       return response;
     },
     onSuccess: () => {
@@ -520,18 +520,7 @@ export default function AdminUsers() {
         `Delete user ${userEmail || userId}? This permanently removes account access and cannot be undone.`
       )
     ) {
-      const reason = window.prompt("Reason for deletion (min 5 characters):", "");
-      const normalizedReason = typeof reason === "string" ? reason.trim() : "";
-      if (normalizedReason.length < 5) {
-        toast({
-          title: "Reason required",
-          description: "Please provide a brief reason (min 5 characters).",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      deleteUserMutation.mutate({ userId, reason: normalizedReason });
+      deleteUserMutation.mutate(userId);
     }
   };
 
@@ -1649,7 +1638,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         setProfileForm((p) => ({ ...p, colorPrimary: e.target.value }))
                       }
-                      placeholder="accent color"
+                      placeholder="#ff6600"
                       className="bg-input border-input text-foreground"
                     />
                   </div>
@@ -1660,7 +1649,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         setProfileForm((p) => ({ ...p, colorSecondary: e.target.value }))
                       }
-                      placeholder="secondary color"
+                      placeholder="#00bcd4"
                       className="bg-input border-input text-foreground"
                     />
                   </div>
@@ -1671,7 +1660,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         setProfileForm((p) => ({ ...p, colorBackground: e.target.value }))
                       }
-                      placeholder="background color"
+                      placeholder="#0b1220"
                       className="bg-input border-input text-foreground"
                     />
                   </div>
@@ -1680,7 +1669,7 @@ export default function AdminUsers() {
                     <Input
                       value={profileForm.colorText}
                       onChange={(e) => setProfileForm((p) => ({ ...p, colorText: e.target.value }))}
-                      placeholder="text color"
+                      placeholder="#ffffff"
                       className="bg-input border-input text-foreground"
                     />
                   </div>

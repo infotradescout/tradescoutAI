@@ -696,69 +696,6 @@ export async function registerRoutes(app: any) {
   // Setup authentication
   await setupAuth(app);
 
-  // Session-based full user impersonation (admin-only flows).
-  // When active, swap req.user to the impersonated user for the lifetime of the request,
-  // while retaining the original admin identity in the session for audit + exit.
-  app.use(async (req: any, _res: any, next: any) => {
-    try {
-      if (typeof req?.isAuthenticated !== "function" || !req.isAuthenticated()) {
-        return next();
-      }
-
-      const sessionAny = req.session as any;
-      if (!sessionAny?.isImpersonating) {
-        return next();
-      }
-
-      const originalUser = sessionAny.originalUser;
-
-      // Full user impersonation (swap identity)
-      if (sessionAny?.impersonatedUserId) {
-        const impersonatedUserId = String(sessionAny.impersonatedUserId || "").trim();
-        if (!impersonatedUserId) {
-          return next();
-        }
-
-        const impersonatedUser = await storage.getUser(impersonatedUserId);
-        if (!impersonatedUser) {
-          return next();
-        }
-
-        req.user = {
-          ...impersonatedUser,
-          isImpersonating: true,
-          impersonating: true,
-          originalAdminId: originalUser?.id,
-          originalAdminRole: originalUser?.role,
-          originalAdminEmail: originalUser?.email,
-        };
-
-        return next();
-      }
-
-      // Role-only impersonation (override role for auth consistency)
-      if (sessionAny?.impersonatingRole && req.user) {
-        const impersonatingRole = String(sessionAny.impersonatingRole || "").trim();
-        if (impersonatingRole) {
-          req.user = {
-            ...(req.user as any),
-            role: impersonatingRole,
-            activeRole: impersonatingRole,
-            isImpersonating: true,
-            impersonating: true,
-            originalAdminId: originalUser?.id,
-            originalAdminRole: originalUser?.role,
-            originalAdminEmail: originalUser?.email,
-          };
-        }
-      }
-    } catch (error) {
-      console.warn("[impersonation] Failed to apply session impersonation:", error);
-      // Fail-soft: impersonation must never break the app.
-    }
-    next();
-  });
-
   // Emit build identity on every API response so production log/debug
   // can confirm which revision is actually serving traffic.
   app.use((req: any, res: any, next: any) => {
@@ -2145,29 +2082,12 @@ export async function registerRoutes(app: any) {
         updatePayload.status = "active";
       }
 
-      const userRecord = await storage.getUser(userId);
-      const currentPreferences = ((userRecord as any)?.preferences || {}) as Record<string, any>;
-      const nextPreferences: Record<string, any> = {
-        ...currentPreferences,
-        affiliate: {
-          ...(currentPreferences.affiliate || {}),
-          payoutMethod:
-            typeof payoutMethod === "string" && payoutMethod.trim() ? payoutMethod : null,
-          payoutDetails: payoutDetails && typeof payoutDetails === "object" ? payoutDetails : null,
-          updatedAt: new Date().toISOString(),
-        },
-      };
-
-      await storage.updateUser(userId, {
-        preferences: nextPreferences as any,
-      } as any);
-
       const updatedProgram = await storage.updateAffiliateProgram(program.id, updatePayload as any);
 
       return res.json({
         ...updatedProgram,
-        payoutMethod: (nextPreferences.affiliate as any)?.payoutMethod || null,
-        payoutDetails: (nextPreferences.affiliate as any)?.payoutDetails || null,
+        payoutMethod: payoutMethod || null,
+        payoutDetails: payoutDetails || null,
       });
     } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
@@ -2537,16 +2457,11 @@ export async function registerRoutes(app: any) {
 
       const applyImpersonation = (baseUser: any) => {
         const sessionAny = req.session as any;
-        if (sessionAny?.isImpersonating) {
-          const isUserImpersonation = Boolean(sessionAny?.impersonatedUserId);
+        if (sessionAny?.isImpersonating && sessionAny?.impersonatingRole) {
           return {
             ...baseUser,
-            role:
-              !isUserImpersonation && sessionAny?.impersonatingRole
-                ? sessionAny.impersonatingRole
-                : baseUser?.role,
+            role: sessionAny.impersonatingRole,
             isImpersonating: true,
-            impersonating: true,
             originalRole: sessionAny.originalUser?.role,
           };
         }
@@ -6820,21 +6735,12 @@ export async function registerRoutes(app: any) {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
-      const { reason } = (req.body ?? {}) as { reason?: string };
-      let normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
-      if (!adminUser || !["head_admin", "super_admin"].includes(adminUser.role || "")) {
+      if (
+        !adminUser ||
+        !["head_admin", "super_admin", "moderator"].includes(adminUser.role || "")
+      ) {
         return res.status(403).json({ message: "Admin access required" });
-      }
-
-      if (normalizedReason.length < 5) {
-        if (adminUser?.role === "head_admin") {
-          normalizedReason = "unspecified (legacy)";
-        } else {
-          return res
-            .status(400)
-            .json({ message: "Deletion reason is required (min 5 characters)" });
-        }
       }
 
       const targetUser = await storage.getUser(userId);
@@ -6848,16 +6754,6 @@ export async function registerRoutes(app: any) {
       }
 
       await storage.deleteUser(userId);
-
-      await logAdminAction({
-        type: "admin_user_delete",
-        adminId: adminUserId,
-        adminRole: adminUser.role,
-        targetUserId: userId,
-        targetEmail: targetUser?.email,
-        targetRole: targetUser?.role,
-        reason: normalizedReason,
-      });
       res.status(204).send();
     } catch (error: any) {
       console.error("Error deleting user:", error);
@@ -12125,7 +12021,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     try {
       const filters = {
         categoryId: req.query.categoryId as string,
-        sellerId: req.query.sellerId as string,
         county: req.query.county as string,
         state: req.query.state as string,
         priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
@@ -15890,7 +15785,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Convert referral when user signs up
   app.post("/api/affiliate/convert", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub || req.user?.id;
+      const userId = req.user?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -15928,30 +15823,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       }
 
-      const revenue = Number(revenueAmount);
-      const commissionValue = Number(commissionAmount);
-      if (
-        !Number.isFinite(revenue) ||
-        revenue <= 0 ||
-        !Number.isFinite(commissionValue) ||
-        commissionValue <= 0
-      ) {
-        return res.status(400).json({
-          message: "Revenue amount and commission amount must be positive numbers",
-        });
-      }
-
-      const createdCommission = await storage.createCommission({
+      const commission = await storage.createCommission({
         affiliateProgramId,
         referralId,
         transactionId,
-        revenueAmount: revenue.toString(),
-        commissionAmount: commissionValue.toString(),
+        revenueAmount: revenueAmount.toString(),
+        commissionAmount: commissionAmount.toString(),
         // description: description || 'Commission earned',
         status: "pending",
       });
 
-      res.status(201).json(createdCommission);
+      res.status(201).json(commission);
     } catch (error: any) {
       console.error("Error creating commission:", error);
       res.status(500).json({ message: "Failed to create commission" });
@@ -15961,7 +15843,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get referrals for affiliate
   app.get("/api/affiliate/referrals", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub || req.user?.id;
+      const userId = req.user?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -15982,7 +15864,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get commissions for affiliate
   app.get("/api/affiliate/commissions", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub || req.user?.id;
+      const userId = req.user?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -16003,7 +15885,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get payouts for affiliate
   app.get("/api/affiliate/payouts", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub || req.user?.id;
+      const userId = req.user?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -16027,7 +15909,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        const userId = req.user?.claims?.sub || req.user?.id;
+        const userId = req.user?.claims?.sub;
         if (!userId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
@@ -16053,7 +15935,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Admin: Create payout
   app.post("/api/admin/affiliate/payouts", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub || req.user?.id;
+      const userId = req.user?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -16094,7 +15976,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        const userId = req.user?.claims?.sub || req.user?.id;
+        const userId = req.user?.claims?.sub;
         if (!userId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
@@ -16122,6 +16004,34 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
     }
   );
+
+  // Update affiliate program settings
+  app.put("/api/affiliate/settings", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+
+      const { payoutMethod, payoutDetails } = req.body;
+
+      const updatedProgram = await storage.updateAffiliateProgram(program.id, {});
+
+      res.json({
+        ...updatedProgram,
+        payoutMethod,
+        payoutDetails,
+      });
+    } catch (error: any) {
+      console.error("Error updating affiliate settings:", error);
+      res.status(500).json({ message: "Failed to update affiliate settings" });
+    }
+  });
 
   // Initialize WebSocket server
   // Tutorial Management Routes
@@ -19723,7 +19633,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     getHOAFinances,
     getHOAVendors,
     getHOAVotes,
-    initiateBoardTransferVote,
     submitVote,
     requestVendorService,
     collectHOAFee,
@@ -19732,7 +19641,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     getHOAMembers,
     addHOAMember,
     updateHOAMemberRole,
-    leaveHOA,
   } = await import("./routes/hoa");
 
   app.get("/api/hoa/search", searchHOAs);
@@ -19741,12 +19649,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/hoa/:hoaId/members", isAuthenticated, getHOAMembers);
   app.post("/api/hoa/:hoaId/members", isAuthenticated, addHOAMember);
   app.put("/api/hoa/:hoaId/members/:memberId/role", isAuthenticated, updateHOAMemberRole);
-  app.delete("/api/hoa/:hoaId/membership", isAuthenticated, leaveHOA);
   app.get("/api/hoa/:hoaId/finances", getHOAFinances);
   app.get("/api/hoa/:hoaId/vendors", getHOAVendors);
   app.get("/api/hoa/:hoaId/votes", getHOAVotes);
   app.post("/api/hoa/votes/:voteId/submit", isAuthenticated, submitVote);
-  app.post("/api/hoa/:hoaId/votes/board-transfer", isAuthenticated, initiateBoardTransferVote);
   app.post("/api/hoa/vendors/:vendorId/request", isAuthenticated, requestVendorService);
   app.post("/api/hoa/collect-fee", isAuthenticated, collectHOAFee);
 

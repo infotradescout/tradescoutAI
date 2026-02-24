@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Shield, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { useLocation } from 'wouter';
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export default function AdminLogin() {
-  const [facebookId, setFacebookId] = useState('927070657'); // Pre-filled with your ID
+  const [facebookId, setFacebookId] = useState("927070657"); // Pre-filled with your ID
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -17,9 +17,9 @@ export default function AdminLogin() {
   const handleEmergencyAccess = async () => {
     try {
       setLoading(true);
-      
-      const response = await apiRequest('POST', '/api/auth/emergency-admin-access', { 
-        facebookId 
+
+      const response = await apiRequest("POST", "/api/auth/emergency-admin-access", {
+        facebookId,
       });
 
       if (response.adminAccess) {
@@ -27,10 +27,10 @@ export default function AdminLogin() {
           title: "Admin Access Granted",
           description: "You now have full administrative privileges",
         });
-        
+
         // Redirect to admin dashboard
-        setLocation('/admin/users');
-        
+        setLocation("/admin/users");
+
         // Refresh the page to update authentication state
         window.location.reload();
       }
@@ -46,7 +46,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4 py-24">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
@@ -76,24 +76,20 @@ export default function AdminLogin() {
               placeholder="Enter your Facebook ID"
               data-testid="input-facebook-id"
             />
-            <p className="text-xs text-muted-foreground">
-              Your unique Facebook ID (numbers only)
-            </p>
+            <p className="text-xs text-muted-foreground">Your unique Facebook ID (numbers only)</p>
           </div>
 
-          <Button 
-            onClick={handleEmergencyAccess} 
+          <Button
+            onClick={handleEmergencyAccess}
             disabled={loading || !facebookId}
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             data-testid="button-emergency-access"
           >
-            {loading ? 'Authenticating...' : 'Grant Admin Access'}
+            {loading ? "Authenticating..." : "Grant Admin Access"}
           </Button>
 
           <div className="text-center pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
-              Admin Features Available:
-            </p>
+            <p className="text-sm text-muted-foreground">Admin Features Available:</p>
             <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-muted-foreground">
               <div>• User Management</div>
               <div>• Feature Toggles</div>

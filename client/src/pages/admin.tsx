@@ -25,7 +25,7 @@ export default function AdminShell() {
 
   if (error || !data?.ok) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center py-24">
+      <div className="bg-slate-950 flex items-center justify-center py-24 px-4">
         <Card className="max-w-md w-full border-red-500/40 bg-slate-900">
           <CardHeader>
             <CardTitle className="text-red-300">Admin access required</CardTitle>
