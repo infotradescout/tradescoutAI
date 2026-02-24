@@ -42,6 +42,22 @@ interface HOA {
   }>;
   amenities: string[];
   nextMeeting: string;
+  governance?: {
+    votingEnabled?: boolean;
+    financialsEnabled?: boolean;
+    vendorManagementEnabled?: boolean;
+    documentLibraryEnabled?: boolean;
+    eventCalendarEnabled?: boolean;
+    communicationsEnabled?: boolean;
+    architecturalReviewEnabled?: boolean;
+    violationsEnabled?: boolean;
+    maintenanceRequestsEnabled?: boolean;
+    residentDirectoryEnabled?: boolean;
+    commonAreaReservationsEnabled?: boolean;
+    customRoles?: any;
+    quorumPercentage?: number;
+    votePassThreshold?: number;
+  };
 }
 
 interface Vote {
@@ -454,7 +470,13 @@ export default function HOAManagement() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList
-          className={`grid w-full ${memberData?.canViewFinances ? "grid-cols-5" : "grid-cols-4"} bg-slate-800/50`}
+          className={`grid w-full ${
+            memberData?.canViewFinances && hoa?.governance?.votingEnabled !== false
+              ? "grid-cols-5"
+              : memberData?.canViewFinances || hoa?.governance?.votingEnabled !== false
+                ? "grid-cols-4"
+                : "grid-cols-3"
+          } bg-slate-800/50`}
         >
           <TabsTrigger value="overview" className="data-[state=active]:bg-orange-500">
             Overview
@@ -468,9 +490,11 @@ export default function HOAManagement() {
               Finances
             </TabsTrigger>
           )}
-          <TabsTrigger value="voting" className="data-[state=active]:bg-orange-500">
-            Voting
-          </TabsTrigger>
+          {hoa?.governance?.votingEnabled !== false && (
+            <TabsTrigger value="voting" className="data-[state=active]:bg-orange-500">
+              Voting
+            </TabsTrigger>
+          )}
           <TabsTrigger value="vendors" className="data-[state=active]:bg-orange-500">
             Vendors
           </TabsTrigger>
@@ -605,111 +629,113 @@ export default function HOAManagement() {
           </TabsContent>
         )}
 
-        <TabsContent value="voting" className="space-y-6">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
-                <Vote className="w-5 h-5 text-purple-400" />
-                <span>Active Votes</span>
-              </h3>
-              {memberData?.canCreateVotes && (
-                <Badge className="bg-purple-600 text-white" data-testid="badge-can-create-votes">
-                  Can Create Votes
-                </Badge>
-              )}
-            </div>
-            {!memberData?.votingRights && (
-              <Card className="bg-yellow-500/10 border-yellow-500/50">
-                <CardContent className="p-4">
-                  <p className="text-yellow-400 text-sm">
-                    ⚠️ Your voting rights are currently suspended. Please contact the HOA board.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-            {(votes || []).map((vote: Vote) => (
-              <Card
-                key={vote.id}
-                className="bg-slate-800/50 border-slate-700"
-                data-testid={`vote-${vote.id}`}
-              >
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <CardTitle className="text-white">{vote.title}</CardTitle>
-                      <Badge
-                        variant={vote.status === "active" ? "default" : "secondary"}
-                        className="bg-purple-500/20 text-purple-400"
-                      >
-                        {vote.status}
-                      </Badge>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-orange-400">
-                        ${parseInt(vote.estimatedCost).toLocaleString()}
-                      </div>
-                      <p className="text-sm text-slate-400">Estimated Cost</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <p className="text-slate-300 leading-relaxed">{vote.description}</p>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">
-                        Participation ({vote.currentVotes} / {vote.requiredQuorum} required)
-                      </span>
-                      <span className="text-white">{Math.round(getVoteProgress(vote))}%</span>
-                    </div>
-                    <Progress value={getVoteProgress(vote)} className="h-3" />
-                    <p className="text-sm text-slate-400">{getTimeRemaining(vote.endDate)}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-green-500/20 rounded-lg">
-                      <div className="text-2xl font-bold text-green-400">{vote.votesFor}</div>
-                      <p className="text-green-300">For</p>
-                    </div>
-                    <div className="text-center p-4 bg-red-500/20 rounded-lg">
-                      <div className="text-2xl font-bold text-red-400">{vote.votesAgainst}</div>
-                      <p className="text-red-300">Against</p>
-                    </div>
-                  </div>
-
-                  {vote.status === "active" && memberData?.votingRights && (
-                    <div className="flex space-x-4">
-                      <Button
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => handleVote(vote.id, "for")}
-                        disabled={submitVoteMutation.isPending}
-                        data-testid={`vote-for-${vote.id}`}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Vote For
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="flex-1"
-                        onClick={() => handleVote(vote.id, "against")}
-                        disabled={submitVoteMutation.isPending}
-                        data-testid={`vote-against-${vote.id}`}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Vote Against
-                      </Button>
-                    </div>
-                  )}
-                  {vote.status === "active" && !memberData?.votingRights && (
-                    <p className="text-yellow-400 text-sm text-center">
-                      Voting rights suspended - Contact HOA board
+        {hoa?.governance?.votingEnabled !== false && (
+          <TabsContent value="voting" className="space-y-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
+                  <Vote className="w-5 h-5 text-purple-400" />
+                  <span>Active Votes</span>
+                </h3>
+                {memberData?.canCreateVotes && (
+                  <Badge className="bg-purple-600 text-white" data-testid="badge-can-create-votes">
+                    Can Create Votes
+                  </Badge>
+                )}
+              </div>
+              {!memberData?.votingRights && (
+                <Card className="bg-yellow-500/10 border-yellow-500/50">
+                  <CardContent className="p-4">
+                    <p className="text-yellow-400 text-sm">
+                      ⚠️ Your voting rights are currently suspended. Please contact the HOA board.
                     </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+                  </CardContent>
+                </Card>
+              )}
+              {(votes || []).map((vote: Vote) => (
+                <Card
+                  key={vote.id}
+                  className="bg-slate-800/50 border-slate-700"
+                  data-testid={`vote-${vote.id}`}
+                >
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <CardTitle className="text-white">{vote.title}</CardTitle>
+                        <Badge
+                          variant={vote.status === "active" ? "default" : "secondary"}
+                          className="bg-purple-500/20 text-purple-400"
+                        >
+                          {vote.status}
+                        </Badge>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-orange-400">
+                          ${parseInt(vote.estimatedCost).toLocaleString()}
+                        </div>
+                        <p className="text-sm text-slate-400">Estimated Cost</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <p className="text-slate-300 leading-relaxed">{vote.description}</p>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">
+                          Participation ({vote.currentVotes} / {vote.requiredQuorum} required)
+                        </span>
+                        <span className="text-white">{Math.round(getVoteProgress(vote))}%</span>
+                      </div>
+                      <Progress value={getVoteProgress(vote)} className="h-3" />
+                      <p className="text-sm text-slate-400">{getTimeRemaining(vote.endDate)}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-green-500/20 rounded-lg">
+                        <div className="text-2xl font-bold text-green-400">{vote.votesFor}</div>
+                        <p className="text-green-300">For</p>
+                      </div>
+                      <div className="text-center p-4 bg-red-500/20 rounded-lg">
+                        <div className="text-2xl font-bold text-red-400">{vote.votesAgainst}</div>
+                        <p className="text-red-300">Against</p>
+                      </div>
+                    </div>
+
+                    {vote.status === "active" && memberData?.votingRights && (
+                      <div className="flex space-x-4">
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleVote(vote.id, "for")}
+                          disabled={submitVoteMutation.isPending}
+                          data-testid={`vote-for-${vote.id}`}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Vote For
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="flex-1"
+                          onClick={() => handleVote(vote.id, "against")}
+                          disabled={submitVoteMutation.isPending}
+                          data-testid={`vote-against-${vote.id}`}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Vote Against
+                        </Button>
+                      </div>
+                    )}
+                    {vote.status === "active" && !memberData?.votingRights && (
+                      <p className="text-yellow-400 text-sm text-center">
+                        Voting rights suspended - Contact HOA board
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="vendors" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

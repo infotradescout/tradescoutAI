@@ -45,6 +45,22 @@ type HoaDashboard = {
     amount: number;
     occurredAt: string;
   }[];
+  governance?: {
+    votingEnabled?: boolean;
+    financialsEnabled?: boolean;
+    vendorManagementEnabled?: boolean;
+    documentLibraryEnabled?: boolean;
+    eventCalendarEnabled?: boolean;
+    communicationsEnabled?: boolean;
+    architecturalReviewEnabled?: boolean;
+    violationsEnabled?: boolean;
+    maintenanceRequestsEnabled?: boolean;
+    residentDirectoryEnabled?: boolean;
+    commonAreaReservationsEnabled?: boolean;
+    customRoles?: any;
+    quorumPercentage?: number;
+    votePassThreshold?: number;
+  };
 };
 
 const HOADashboard = memo(function HOADashboard() {
@@ -235,9 +251,11 @@ const HOADashboard = memo(function HOADashboard() {
           <TabsTrigger value="maintenance" className="data-[state=active]:bg-orange-600">
             Maintenance
           </TabsTrigger>
-          <TabsTrigger value="voting" className="data-[state=active]:bg-orange-600">
-            Voting
-          </TabsTrigger>
+          {dashboard?.governance?.votingEnabled !== false && (
+            <TabsTrigger value="voting" className="data-[state=active]:bg-orange-600">
+              Voting
+            </TabsTrigger>
+          )}
           <TabsTrigger value="documents" className="data-[state=active]:bg-orange-600">
             Documents
           </TabsTrigger>
@@ -383,48 +401,53 @@ const HOADashboard = memo(function HOADashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="voting" className="mt-6">
-          <div className="space-y-6">
-            {/* Active Votes */}
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Vote className="h-5 w-5" />
-                  Active Voting
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {dashboard?.recentVotes && dashboard.recentVotes.length > 0 ? (
-                    dashboard.recentVotes.map((vote) => (
-                      <div key={vote.id} className="p-4 bg-navy-700/50 rounded-lg">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-white font-semibold text-lg">{vote.title}</h3>
-                            <p className="text-gray-400 text-sm mt-1">Status: {vote.status}</p>
+        {dashboard?.governance?.votingEnabled !== false && (
+          <TabsContent value="voting" className="mt-6">
+            <div className="space-y-6">
+              {/* Active Votes */}
+              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Vote className="h-5 w-5" />
+                    Active Voting
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {dashboard?.recentVotes && dashboard.recentVotes.length > 0 ? (
+                      dashboard.recentVotes.map((vote) => (
+                        <div key={vote.id} className="p-4 bg-navy-700/50 rounded-lg">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="text-white font-semibold text-lg">{vote.title}</h3>
+                              <p className="text-gray-400 text-sm mt-1">Status: {vote.status}</p>
+                            </div>
+                            {vote.closesAt && (
+                              <Badge
+                                variant="outline"
+                                className="text-yellow-400 border-yellow-400"
+                              >
+                                Closes {new Date(vote.closesAt).toLocaleDateString()}
+                              </Badge>
+                            )}
                           </div>
-                          {vote.closesAt && (
-                            <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-                              Closes {new Date(vote.closesAt).toLocaleDateString()}
-                            </Badge>
-                          )}
+                          <p className="text-gray-400 text-xs">
+                            Voting details and participation are available on the HOA Management
+                            voting tab.
+                          </p>
                         </div>
-                        <p className="text-gray-400 text-xs">
-                          Voting details and participation are available on the HOA Management
-                          voting tab.
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 text-sm">
-                      No active HOA votes right now for your association.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">
+                        No active HOA votes right now for your association.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="documents" className="mt-6">
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">

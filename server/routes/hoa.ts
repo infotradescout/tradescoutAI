@@ -62,13 +62,16 @@ async function requireHoaRole(userId: string, hoaId: string, allowedRoles: strin
 export async function getHOA(req: Request, res: Response) {
   try {
     const { hoaId } = req.params;
-    const hoa = await storage.getHOAById(hoaId);
+    const [hoa, governance] = await Promise.all([
+      storage.getHOAById(hoaId),
+      (storage as any).getHOAGovernance(hoaId),
+    ]);
 
     if (!hoa) {
       return res.status(404).json({ message: "HOA not found" });
     }
 
-    res.json(hoa);
+    res.json({ ...hoa, governance });
   } catch (error) {
     console.error("Error fetching HOA:", error);
     res.status(500).json({ message: "Failed to fetch HOA information" });

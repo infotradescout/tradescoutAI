@@ -11705,6 +11705,7 @@ export class DatabaseStorage implements IStorage {
     activeMembers: number;
     openVotesCount: number;
     groupType: "hoa";
+    governance?: any;
     recentVotes: {
       id: string;
       title: string;
@@ -11729,7 +11730,7 @@ export class DatabaseStorage implements IStorage {
 
     if (!hoa) return null;
 
-    const [members, openVotes, finances] = await Promise.all([
+    const [members, openVotes, finances, governance] = await Promise.all([
       db
         .select({
           id: hoaMembers.id,
@@ -11754,6 +11755,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(hoaFinancialRecords.hoaId, hoaId))
         .orderBy(desc(hoaFinancialRecords.year), desc(hoaFinancialRecords.month))
         .limit(6),
+      this.getHOAGovernance(hoaId),
     ]);
 
     const memberCount = members.length;
@@ -11798,6 +11800,7 @@ export class DatabaseStorage implements IStorage {
       activeMembers,
       openVotesCount,
       groupType: "hoa" as const,
+      governance,
       recentVotes: openVotes.map((v) => ({
         id: v.id,
         title: v.title,
@@ -11947,6 +11950,60 @@ export class DatabaseStorage implements IStorage {
         };
       default: // member
         return permissions;
+    }
+  }
+
+  // HOA Governance Configuration
+  async getHOAGovernance(hoaId: string): Promise<any> {
+    const [governance] = await db
+      .select()
+      .from(hoaGovernance)
+      .where(eq(hoaGovernance.hoaId, hoaId));
+
+    // Return defaults if no governance config exists yet
+    if (!governance) {
+      return {
+        hoaId,
+        governanceModel: "elected_board",
+        votingEnabled: true,
+        financialsEnabled: true,
+        vendorManagementEnabled: true,
+        documentLibraryEnabled: true,
+        residentsDirectoryEnabled: true,
+        maintenanceRequestsEnabled: true,
+        quorumPercentage: 50,
+        votePassThreshold: 51,
+        allowProxyVoting: false,
+      };
+    }
+
+    return governance;
+  }
+
+  async upsertHOAGovernance(hoaId: string, config: Partial<any>): Promise<any> {
+    const existing = await this.getHOAGovernance(hoaId);
+
+    if (!existing.id) {
+      // Create new
+      const [created] = await db
+        .insert(hoaGovernance)
+        .values({
+          hoaId,
+          ...config,
+        })
+        .returning();
+      return created;
+    } else {
+      // Update existing
+      const [updated] = await db
+        .update(hoaGovernance)
+        .set({
+          ...config,
+          updatedAt: new Date(),
+        })
+        .where(eq(hoaGovernance.id, existing.id))
+        .returning();
+      return updated;
     }
   }
 
