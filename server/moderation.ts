@@ -6,6 +6,7 @@ import {
   userReputation,
   socialPosts,
   postComments,
+  communityPosts,
 } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
@@ -418,6 +419,12 @@ export function setupAdminModerationRoutes(app: Express) {
         return res.status(400).json({ error: "Missing contentId or targetType" });
       }
 
+      const normalizedTargetType = String(targetType).toLowerCase();
+
+      if (normalizedTargetType === "post" || normalizedTargetType === "community_post") {
+        await db.delete(communityPosts).where(eq(communityPosts.id, String(contentId)));
+      }
+
       // Mark as hidden and flagged resolved
       await db
         .update(moderationScores)
@@ -430,8 +437,9 @@ export function setupAdminModerationRoutes(app: Express) {
           and(eq(moderationScores.targetId, contentId), eq(moderationScores.targetType, targetType))
         );
 
-      // TODO: Add audit log entry for admin action
-      // TODO: Notify content author if needed
+      console.log(
+        `[ADMIN_MODERATION_REMOVE] admin=${req.user?.id || req.user?.claims?.sub || "unknown"} targetType=${normalizedTargetType} contentId=${contentId} reason=${String(reason || "")} timestamp=${new Date().toISOString()}`
+      );
 
       res.json({ success: true, message: "Content removed" });
     } catch (error) {

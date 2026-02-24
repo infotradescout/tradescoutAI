@@ -1323,6 +1323,14 @@ export default function AdminUsers() {
                                           ? "Working…"
                                           : "Set Homeowner"}
                                       </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteUser(user.id, user.role)}
+                                        disabled={deleteUserMutation.isPending}
+                                        className="cursor-pointer text-destructive"
+                                      >
+                                        {deleteUserMutation.isPending ? "Deleting…" : "Delete User"}
+                                      </DropdownMenuItem>
                                     </>
                                   )}
                                 </DropdownMenuContent>
