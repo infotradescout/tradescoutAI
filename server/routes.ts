@@ -52,6 +52,7 @@ import { emailService } from "./services/emailService";
 import { passwordResetService } from "./services/passwordResetService";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
+import { logAdminAction } from "./services/adminAuditLogService";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
@@ -3476,10 +3477,16 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/impersonate",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["head_admin", "ops_admin", "super_admin"]),
     async (req: Request, res: Response) => {
       try {
-        const { role } = (req.body ?? {}) as any;
+        const { role, reason } = (req.body ?? {}) as any;
+
+        if (typeof reason !== "string" || reason.trim().length < 5) {
+          return res
+            .status(400)
+            .json({ message: "Impersonation reason is required (min 5 characters)" });
+        }
 
         // Validate the target role
         const validRoles = ["homeowner", "contractor", "startup_founder", "moderator", "ops_admin"];
@@ -3488,8 +3495,9 @@ export async function registerRoutes(app: any) {
         }
 
         // Store original user info in session for restoration
+        const adminId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         (req.session as any).originalUser = {
-          id: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          id: adminId,
           role: (req.user as any)?.role,
           email: (req.user as any)?.email,
         };
@@ -3506,6 +3514,15 @@ export async function registerRoutes(app: any) {
           userId = targetUser.id;
         }
 
+        await logAdminAction({
+          type: "admin_impersonation_start_role",
+          adminId,
+          adminRole: (req.user as any)?.role,
+          targetRole: role,
+          targetUserId: userId,
+          reason: String(reason).trim(),
+        });
+
         res.json({
           message: `Impersonation started for role: ${role}`,
           role,
@@ -3520,6 +3537,67 @@ export async function registerRoutes(app: any) {
   );
 
   app.post(
+    "/api/admin/impersonate/start/:userId",
+    isAuthenticated,
+    requireRole(["head_admin", "ops_admin", "super_admin"]),
+    async (req: Request, res: Response) => {
+      try {
+        const { userId } = req.params as any;
+        const { reason } = (req.body ?? {}) as any;
+
+        if (!userId) {
+          return res.status(400).json({ message: "Target user is required" });
+        }
+
+        if (typeof reason !== "string" || reason.trim().length < 5) {
+          return res
+            .status(400)
+            .json({ message: "Impersonation reason is required (min 5 characters)" });
+        }
+
+        const adminId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const [targetUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, String(userId)))
+          .limit(1);
+        if (!targetUser) {
+          return res.status(404).json({ message: "Target user not found" });
+        }
+
+        (req.session as any).originalUser = {
+          id: adminId,
+          role: (req.user as any)?.role,
+          email: (req.user as any)?.email,
+        };
+
+        (req.session as any).impersonatingRole = targetUser.activeRole || targetUser.role;
+        (req.session as any).impersonatedUserId = targetUser.id;
+        (req.session as any).isImpersonating = true;
+
+        await logAdminAction({
+          type: "admin_impersonation_start_user",
+          adminId,
+          adminRole: (req.user as any)?.role,
+          targetUserId: targetUser.id,
+          targetRole: targetUser.activeRole || targetUser.role,
+          reason: String(reason).trim(),
+        });
+
+        res.json({
+          message: `Impersonation started for user: ${targetUser.email || targetUser.id}`,
+          isImpersonating: true,
+          userId: targetUser.id,
+          role: targetUser.activeRole || targetUser.role,
+        });
+      } catch (error: any) {
+        console.error("User impersonation start error:", error);
+        res.status(500).json({ message: "Failed to start impersonation" });
+      }
+    }
+  );
+
+  app.post(
     "/api/admin/stop-impersonation",
     isAuthenticated,
     async (req: Request, res: Response) => {
@@ -3528,10 +3606,19 @@ export async function registerRoutes(app: any) {
           return res.status(400).json({ message: "No active impersonation session" });
         }
 
+        const originalUser = (req.session as any).originalUser;
+
         // Clear impersonation from session
         delete (req.session as any).impersonatingRole;
+        delete (req.session as any).impersonatedUserId;
         delete (req.session as any).isImpersonating;
         delete (req.session as any).originalUser;
+
+        await logAdminAction({
+          type: "admin_impersonation_stop",
+          adminId: originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          adminRole: originalUser?.role || (req.user as any)?.role,
+        });
 
         res.json({
           message: "Impersonation stopped",
@@ -3543,6 +3630,35 @@ export async function registerRoutes(app: any) {
       }
     }
   );
+
+  app.post("/api/admin/impersonate/stop", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!(req.session as any).isImpersonating || !(req.session as any).originalUser) {
+        return res.status(400).json({ message: "No active impersonation session" });
+      }
+
+      const originalUser = (req.session as any).originalUser;
+
+      delete (req.session as any).impersonatingRole;
+      delete (req.session as any).impersonatedUserId;
+      delete (req.session as any).isImpersonating;
+      delete (req.session as any).originalUser;
+
+      await logAdminAction({
+        type: "admin_impersonation_stop",
+        adminId: originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub,
+        adminRole: originalUser?.role || (req.user as any)?.role,
+      });
+
+      res.json({
+        message: "Impersonation stopped",
+        isImpersonating: false,
+      });
+    } catch (error: any) {
+      console.error("Stop impersonation error:", error);
+      res.status(500).json({ message: "Failed to stop impersonation" });
+    }
+  });
 
   // NOTE: Facebook OAuth routes are registered above (canonical /api/auth/*).
 

@@ -1253,13 +1253,31 @@ export default function AdminUsers() {
                                       <DropdownMenuItem
                                         onClick={async () => {
                                           const key = `${user.id}:impersonate`;
+                                          const reason = window
+                                            .prompt(
+                                              "Enter impersonation reason (min 5 characters):"
+                                            )
+                                            ?.trim();
+
+                                          if (!reason || reason.length < 5) {
+                                            toast({
+                                              title: "Reason required",
+                                              description:
+                                                "Impersonation requires a reason of at least 5 characters.",
+                                              variant: "destructive",
+                                            });
+                                            return;
+                                          }
+
                                           setPendingAction((prev) => ({ ...prev, [key]: true }));
                                           try {
                                             const res = await fetch(
                                               `/api/admin/impersonate/start/${user.id}`,
                                               {
                                                 method: "POST",
+                                                headers: { "Content-Type": "application/json" },
                                                 credentials: "include",
+                                                body: JSON.stringify({ reason }),
                                               }
                                             );
                                             if (!res.ok) {
