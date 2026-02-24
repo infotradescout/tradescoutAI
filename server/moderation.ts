@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
+import { logAdminAction } from "./services/adminAuditLogService";
 
 export function setupModerationRoutes(app: Express) {
   // Vote on content (upvote, downvote, flag, hide)
@@ -476,6 +477,14 @@ export function setupAdminModerationRoutes(app: Express) {
       console.log(
         `[ADMIN_MODERATION_REMOVE] admin=${req.user?.id || req.user?.claims?.sub || "unknown"} targetType=${normalizedTargetType} contentId=${contentId} reason=${String(reason || "")} timestamp=${new Date().toISOString()}`
       );
+
+      await logAdminAction({
+        type: "admin_moderation_remove",
+        adminId: req.user?.id || req.user?.claims?.sub || "unknown",
+        targetType: normalizedTargetType,
+        targetId: contentId,
+        reason: String(reason || ""),
+      });
 
       res.json({ success: true, message: "Content removed" });
     } catch (error) {

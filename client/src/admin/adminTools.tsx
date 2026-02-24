@@ -201,6 +201,7 @@ const AdminListings = React.lazy(() => import("@/pages/admin-listings"));
 const AdminHomeScoutListings = React.lazy(() => import("@/pages/admin-homescout-listings"));
 const AdminHomeScoutSources = React.lazy(() => import("@/pages/admin-homescout-sources"));
 const AdminAttachments = React.lazy(() => import("@/pages/admin-attachments"));
+const AdminAuditLog = React.lazy(() => import("@/pages/admin-audit-log"));
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
 const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
 const AdminTradePartnerInterest = React.lazy(() => import("@/pages/admin-tradepartner-interest"));
@@ -547,6 +548,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: BarChart3,
         visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
         render: () => <PlatformAnalytics />,
+      }),
+      tool({
+        id: "audit-log",
+        label: "Audit Log",
+        path: "/admin/audit-log",
+        icon: ShieldCheck,
+        visibleIf: { roles: ["super_admin", "head_admin"] },
+        render: () => <AdminAuditLog />,
       }),
       tool({
         id: "professional-verification",

@@ -19,6 +19,7 @@ import { refreshCountyMetrics } from "../services/geographicMetrics";
 import { getCountyCoverageSummary } from "../services/geographicCoverage";
 import { emailService } from "../services/emailService";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
+import { getAdminAuditLog, logAdminAction } from "../services/adminAuditLogService";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -75,6 +76,26 @@ export function mountAdminRoutes(app: any) {
     requireAdmin,
     async (_req: Request, res: Response) => {
       res.json(emailService.getDiagnostics());
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // Admin audit log (super/head admin only)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/audit-log",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const limitRaw = Number(req.query.limit ?? 100);
+        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, limitRaw)) : 100;
+        const log = await getAdminAuditLog(limit);
+        res.json({ log, count: log.length });
+      } catch (error: any) {
+        console.error("Error fetching admin audit log:", error);
+        res.status(500).json({ message: "Failed to fetch admin audit log" });
+      }
     }
   );
 
@@ -988,6 +1009,15 @@ export function mountAdminRoutes(app: any) {
         // Perform deletion
         await storage.deleteUser(userId);
 
+        await logAdminAction({
+          type: "admin_user_delete",
+          adminId: adminUserId,
+          adminRole,
+          targetUserId: userId,
+          targetEmail: targetUser.email,
+          targetRole,
+        });
+
         console.log(
           `[ADMIN_USER_DELETE] admin=${adminUserId} role=${adminRole} targetUser=${userId} targetEmail=${targetUser.email} targetRole=${targetRole} timestamp=${new Date().toISOString()}`
         );
@@ -1032,6 +1062,14 @@ export function mountAdminRoutes(app: any) {
 
         // Delete the post
         await db.delete(communityPosts).where(eq(communityPosts.id, postId));
+
+        await logAdminAction({
+          type: "admin_community_post_delete",
+          adminId: adminUserId,
+          adminRole,
+          targetPostId: postId,
+          authorId: post.authorId,
+        });
 
         console.log(
           `[ADMIN_POST_DELETE] admin=${adminUserId} role=${adminRole} postId=${postId} authorId=${post.authorId} timestamp=${new Date().toISOString()}`
