@@ -51,6 +51,18 @@ const ContentModeration = memo(function ContentModeration() {
     },
   });
 
+  // Fetch recent moderation actions (removed/hidden)
+  const { data: recentActions = [] } = useQuery({
+    queryKey: ["/api/admin/moderation/recent-actions"],
+    queryFn: async () => {
+      try {
+        return await apiRequest("GET", "/api/admin/moderation/recent-actions");
+      } catch {
+        return [];
+      }
+    },
+  });
+
   // Approve content mutation
   const approveMutation = useMutation({
     mutationFn: async (contentId: string) => {
@@ -65,6 +77,7 @@ const ContentModeration = memo(function ContentModeration() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/flagged"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/recent-actions"] });
     },
     onError: (error: any) => {
       toast({
@@ -99,6 +112,7 @@ const ContentModeration = memo(function ContentModeration() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/flagged"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/recent-actions"] });
     },
     onError: (error: any) => {
       toast({
@@ -294,17 +308,56 @@ const ContentModeration = memo(function ContentModeration() {
 
           {/* Queue Tab */}
           <TabsContent value="queue">
-            <Card className="bg-card border-border">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-foreground font-semibold">Moderation Queue</p>
-                  <p className="text-muted-foreground">
-                    System is monitoring platform activity in real-time.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Recent Destructive Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {Array.isArray(recentActions) && recentActions.length > 0 ? (
+                    <div className="space-y-3">
+                      {recentActions.map((action: any) => (
+                        <div
+                          key={action.id}
+                          className="p-3 rounded border border-border bg-muted/40 flex items-center justify-between gap-3"
+                        >
+                          <div className="space-y-1">
+                            <p className="text-sm text-foreground font-medium">
+                              {action.targetType} · {action.targetId}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Flags: {action.flagCount || 0} · Hidden:{" "}
+                              {action.isHidden ? "Yes" : "No"}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {action.updatedAt
+                              ? new Date(action.updatedAt).toLocaleString()
+                              : "Unknown time"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No recent destructive moderation actions.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border">
+                <CardContent className="p-8">
+                  <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-foreground font-semibold">Moderation Queue</p>
+                    <p className="text-muted-foreground">
+                      System is monitoring platform activity in real-time.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

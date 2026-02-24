@@ -8,7 +8,7 @@ import {
   postComments,
   communityPosts,
 } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
 
 export function setupModerationRoutes(app: Express) {
@@ -370,6 +370,36 @@ export function setupAdminModerationRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching moderation reports:", error);
       res.status(500).json({ error: "Failed to fetch reports" });
+    }
+  });
+
+  // Get recent moderation actions (hidden/removed items)
+  app.get("/api/admin/moderation/recent-actions", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isSuperAdmin(req.user)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      const actions = await db
+        .select({
+          id: moderationScores.id,
+          targetType: moderationScores.targetType,
+          targetId: moderationScores.targetId,
+          flagCount: moderationScores.flagCount,
+          hideCount: moderationScores.hideCount,
+          isHidden: moderationScores.isHidden,
+          isFlagged: moderationScores.isFlagged,
+          updatedAt: moderationScores.updatedAt,
+        })
+        .from(moderationScores)
+        .where(eq(moderationScores.isHidden, true))
+        .orderBy(desc(moderationScores.updatedAt))
+        .limit(20);
+
+      res.json(actions || []);
+    } catch (error) {
+      console.error("Error fetching recent moderation actions:", error);
+      res.status(500).json({ error: "Failed to fetch recent moderation actions" });
     }
   });
 
