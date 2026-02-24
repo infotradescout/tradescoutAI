@@ -513,6 +513,9 @@ function DirectConnectInbox() {
                   size="sm"
                   variant="outline"
                   className="h-8 px-2 text-xs sm:hidden"
+                  aria-label={
+                    isMobileActionOpen ? "Hide assignment actions" : "Show assignment actions"
+                  }
                   onClick={() =>
                     setMobileActionAssignmentId((current) =>
                       current === assignment.id ? null : assignment.id
@@ -1058,6 +1061,9 @@ function MyDirectConnectRequests() {
                     size="sm"
                     variant="outline"
                     className="h-8 px-2 text-xs"
+                    aria-label={
+                      isMobileActionOpen ? "Hide request actions" : "Show request actions"
+                    }
                     onClick={() =>
                       setMobileActionRequestId((current) => (current === r.id ? null : r.id))
                     }

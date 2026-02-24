@@ -45,6 +45,8 @@ interface CommunityPost {
     avatar?: string;
     role: string;
     verified: boolean;
+    cvsScore?: number | string | null;
+    verificationStatus?: string;
     badges?: string[];
   };
   category: string;
@@ -528,6 +530,8 @@ export default function Community() {
                           avatar: post.author?.avatar,
                           role: post.author?.role,
                           verified: post.author?.verified,
+                          cvsScore: (post.author as any)?.cvsScore,
+                          verificationStatus: (post.author as any)?.verificationStatus,
                           badges: post.author?.badges,
                         },
                         category: post.category,

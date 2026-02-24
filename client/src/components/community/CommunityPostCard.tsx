@@ -45,6 +45,8 @@ export interface CommunityPostCardAuthor {
   avatar?: string;
   role?: string;
   verified?: boolean;
+  cvsScore?: number | string | null;
+  verificationStatus?: string;
   badges?: string[];
 }
 
@@ -183,6 +185,22 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   };
 
   const categoryMeta = getCategoryMeta(post.category, post.postType, post.author?.role);
+  const rawCvs =
+    typeof post.author?.cvsScore === "number"
+      ? post.author.cvsScore
+      : typeof post.author?.cvsScore === "string" && post.author.cvsScore.trim().length > 0
+        ? Number(post.author.cvsScore)
+        : null;
+  const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
+  const verificationStatus = String(post.author?.verificationStatus || "").toLowerCase();
+  const verificationLabel =
+    verificationStatus === "approved"
+      ? "Professional Verified"
+      : verificationStatus === "under_review"
+        ? "Verification Review"
+        : verificationStatus === "pending"
+          ? "Verification Pending"
+          : null;
   const isPinned = post.pinned === true;
   const isTrending = !isPinned && post.trending === true;
   const isAdminNotice = (categoryMeta as any).adminNotice === true;
@@ -387,6 +405,22 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           {post.author.verified ? "Verified" : "Unverified"}
                         </Badge>
                       )}
+                      {verificationLabel && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0.5 border-[color:var(--border-subtle)]"
+                        >
+                          {verificationLabel}
+                        </Badge>
+                      )}
+                      {cvsScore !== null && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0.5 border-[color:var(--border-subtle)]"
+                        >
+                          {`CVS ${Math.round(cvsScore)}`}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                       <span
@@ -448,6 +482,22 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           }
                         >
                           {post.author.verified ? "Verified" : "Unverified"}
+                        </Badge>
+                      )}
+                      {verificationLabel && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0.5 border-[color:var(--border-subtle)]"
+                        >
+                          {verificationLabel}
+                        </Badge>
+                      )}
+                      {cvsScore !== null && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0.5 border-[color:var(--border-subtle)]"
+                        >
+                          {`CVS ${Math.round(cvsScore)}`}
                         </Badge>
                       )}
                     </div>
