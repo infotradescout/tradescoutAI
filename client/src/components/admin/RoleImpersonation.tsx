@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,14 +41,30 @@ export function RoleImpersonation() {
   const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = useState("");
   const [impersonationState, setImpersonationState] = useState<ImpersonationState>({
-    isImpersonating: false,
-    originalRole: user?.role || "homeowner",
+    isImpersonating: Boolean(user?.isImpersonating || (user as any)?.impersonating),
+    originalRole: user?.originalRole || user?.role || "homeowner",
     currentRole: user?.role || "homeowner",
   });
 
   // Check if user has admin permissions
+  const effectiveAdminRole = (user?.originalRole || user?.role || "").toString();
   const canImpersonate =
-    user?.role === "head_admin" || user?.role === "super_admin" || user?.role === "ops_admin";
+    effectiveAdminRole === "head_admin" ||
+    effectiveAdminRole === "super_admin" ||
+    effectiveAdminRole === "ops_admin";
+
+  useEffect(() => {
+    const isImpersonatingNow = Boolean(user?.isImpersonating || (user as any)?.impersonating);
+    const currentRole = (user?.role || "homeowner").toString();
+    const originalRole = (user?.originalRole || currentRole || "homeowner").toString();
+
+    setImpersonationState((prev) => ({
+      ...prev,
+      isImpersonating: isImpersonatingNow,
+      currentRole,
+      originalRole,
+    }));
+  }, [user?.isImpersonating, (user as any)?.impersonating, user?.role, user?.originalRole]);
 
   // Start impersonation mutation
   const startImpersonationMutation = useMutation({
@@ -86,7 +102,7 @@ export function RoleImpersonation() {
   // Stop impersonation mutation
   const stopImpersonationMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/admin/stop-impersonation");
+      return apiRequest("POST", "/api/admin/impersonate/exit");
     },
     onSuccess: () => {
       setImpersonationState({

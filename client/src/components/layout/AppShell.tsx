@@ -136,9 +136,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isLoggedIn = !!user;
   // Impersonation banner logic
   const isImpersonating = user?.isImpersonating || user?.impersonating;
-  const impersonatedUser =
-    user?.impersonatedUser ||
-    (isImpersonating ? { name: user?.firstName + " " + user?.lastName, email: user?.email } : null);
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
@@ -284,7 +281,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       }}
     >
       {/* Impersonation banner (always visible, not dismissible) */}
-      {isImpersonating && impersonatedUser && (
+      {isImpersonating && (
         <div
           style={{
             backgroundColor: "var(--surface-intermediate)",

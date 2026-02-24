@@ -984,12 +984,18 @@ export function mountAdminRoutes(app: any) {
         const { reason } = (req.body ?? {}) as { reason?: string };
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
-        const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+        let normalizedReason = typeof reason === "string" ? reason.trim() : "";
+
+        const adminRole = adminUser?.role || "";
 
         if (normalizedReason.length < 5) {
-          return res
-            .status(400)
-            .json({ message: "Deletion reason is required (min 5 characters)" });
+          if (adminRole === "head_admin") {
+            normalizedReason = "unspecified (legacy)";
+          } else {
+            return res
+              .status(400)
+              .json({ message: "Deletion reason is required (min 5 characters)" });
+          }
         }
 
         // Prevent self-deletion
@@ -1005,7 +1011,6 @@ export function mountAdminRoutes(app: any) {
 
         // Prevent deletion of other admins unless you're head_admin
         const targetRole = targetUser.role || "";
-        const adminRole = adminUser?.role || "";
         const adminRoles = ["moderator", "ops_admin", "super_admin", "head_admin"];
 
         if (adminRoles.includes(targetRole) && adminRole !== "head_admin") {
@@ -1056,12 +1061,16 @@ export function mountAdminRoutes(app: any) {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
         const adminRole = adminUser?.role || "";
-        const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+        let normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
         if (normalizedReason.length < 5) {
-          return res
-            .status(400)
-            .json({ message: "Deletion reason is required (min 5 characters)" });
+          if (adminRole === "head_admin") {
+            normalizedReason = "unspecified (legacy)";
+          } else {
+            return res
+              .status(400)
+              .json({ message: "Deletion reason is required (min 5 characters)" });
+          }
         }
 
         const { communityPosts } = await import("../../shared/schema");

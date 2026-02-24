@@ -6804,14 +6804,20 @@ export async function registerRoutes(app: any) {
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
       const { reason } = (req.body ?? {}) as { reason?: string };
-      const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+      let normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
       if (!adminUser || !["head_admin", "super_admin"].includes(adminUser.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       if (normalizedReason.length < 5) {
-        return res.status(400).json({ message: "Deletion reason is required (min 5 characters)" });
+        if (adminUser?.role === "head_admin") {
+          normalizedReason = "unspecified (legacy)";
+        } else {
+          return res
+            .status(400)
+            .json({ message: "Deletion reason is required (min 5 characters)" });
+        }
       }
 
       const targetUser = await storage.getUser(userId);
