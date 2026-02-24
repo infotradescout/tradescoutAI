@@ -140,6 +140,7 @@ import {
   hoaServiceRequests,
   hoaDocuments,
   hoaMembers,
+  hoaGovernance,
   // Community Builder System
   communityBuilderProfiles,
   builderContributions,

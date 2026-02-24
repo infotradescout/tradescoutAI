@@ -194,6 +194,7 @@ const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
+const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
 const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-dashboard"));
 
@@ -218,6 +219,8 @@ const Boosts = React.lazy(() => import("./pages/boosts"));
 const Groups = React.lazy(() => import("./pages/groups"));
 const GroupDetail = React.lazy(() => import("./pages/group-detail"));
 const HoaManagement = React.lazy(() => import("./pages/hoa-management"));
+const HoaResidents = React.lazy(() => import("./pages/hoa-residents"));
+const HoaMaintenance = React.lazy(() => import("./pages/hoa-maintenance"));
 
 // Community Builder
 const CommunityBuilderDashboard = React.lazy(() => import("./pages/community-builder/dashboard"));
@@ -780,6 +783,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/contractors/apply">
                     <LazyPage Component={ContractorApply} />
                   </Route>
+                  <Route path="/contractors/top">
+                    <LazyPage Component={ContractorsTop} />
+                  </Route>
                   {/* Legacy alias: older pages link to /contractors/board for contractor search */}
                   <Route path="/contractors/board">
                     <RedirectTo to="/direct-connect" />
@@ -945,6 +951,16 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/hoa-management">
                     <ProtectedRoute>
                       <LazyPage Component={HoaManagement} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/hoa/residents">
+                    <ProtectedRoute>
+                      <LazyPage Component={HoaResidents} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/hoa/maintenance">
+                    <ProtectedRoute>
+                      <LazyPage Component={HoaMaintenance} />
                     </ProtectedRoute>
                   </Route>
                   {/* Community tab should show the rich Nextdoor-style feed */}

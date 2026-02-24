@@ -6192,6 +6192,54 @@ export const hoaMembers = pgTable(
   ]
 );
 
+// HOA Governance Configuration
+// Allows each HOA to define its own governance model, roles, and feature toggles
+export const hoaGovernance = pgTable("hoa_governance", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id")
+    .notNull()
+    .references(() => homeownerAssociations.id, { onDelete: "cascade" })
+    .unique(),
+
+  // Governance Model
+  governanceModel: varchar("governance_model").notNull().default("elected_board"), // elected_board, management_company, hybrid, informal
+
+  // Feature Toggles
+  votingEnabled: boolean("voting_enabled").default(true),
+  financialsEnabled: boolean("financials_enabled").default(true),
+  vendorManagementEnabled: boolean("vendor_management_enabled").default(true),
+  documentLibraryEnabled: boolean("document_library_enabled").default(true),
+  residentsDirectoryEnabled: boolean("residents_directory_enabled").default(true),
+  maintenanceRequestsEnabled: boolean("maintenance_requests_enabled").default(true),
+
+  // Custom Roles Definition (JSON)
+  // Each HOA can define custom role names and their default permissions
+  customRoles: jsonb("custom_roles").$type<{
+    [roleSlug: string]: {
+      displayName: string;
+      defaultPermissions: {
+        canViewFinances: boolean;
+        canEditDocuments: boolean;
+        canManageVendors: boolean;
+        canCreateVotes: boolean;
+      };
+    };
+  }>(),
+
+  // Voting Rules
+  quorumPercentage: integer("quorum_percentage").default(50), // Percentage of members required for quorum
+  votePassThreshold: integer("vote_pass_threshold").default(51), // Percentage required to pass
+  allowProxyVoting: boolean("allow_proxy_voting").default(false),
+
+  // Governance Notes
+  governanceNotes: text("governance_notes"), // Free-form HOA-specific rules
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations for social features
 export const communityPostsRelations = relations(communityPosts, ({ one, many }) => ({
   author: one(users, {
