@@ -204,6 +204,8 @@ export default function AdminUsers() {
   // Super Admin is the highest role
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "head_admin";
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
+  const currentAdminId = String((user as any)?.id || "");
+  const currentAdminRole = String((user as any)?.role || "");
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -484,7 +486,25 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDeleteUser = (userId: string, userRole: string) => {
+  const handleDeleteUser = (userId: string, userRole: string, userEmail?: string) => {
+    if (String(userId) === currentAdminId) {
+      toast({
+        title: "Access Denied",
+        description: "You cannot delete your own account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (userRole === "head_admin" && currentAdminRole !== "head_admin") {
+      toast({
+        title: "Access Denied",
+        description: "Only head admin can delete head admin accounts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Prevent deletion of super_admin by non-super_admin
     if (userRole === "super_admin" && !isSuperAdmin) {
       toast({
@@ -495,7 +515,11 @@ export default function AdminUsers() {
       return;
     }
 
-    if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+    if (
+      confirm(
+        `Delete user ${userEmail || userId}? This permanently removes account access and cannot be undone.`
+      )
+    ) {
       deleteUserMutation.mutate(userId);
     }
   };
@@ -1163,6 +1187,11 @@ export default function AdminUsers() {
                               user.id !== (userToEdit?.id || "") &&
                               user.role !== "super_admin";
 
+                            const canDeleteUser =
+                              isSuperAdmin &&
+                              String(user.id) !== currentAdminId &&
+                              (user.role !== "head_admin" || currentAdminRole === "head_admin");
+
                             return (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -1323,14 +1352,22 @@ export default function AdminUsers() {
                                           ? "Working…"
                                           : "Set Homeowner"}
                                       </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={() => handleDeleteUser(user.id, user.role)}
-                                        disabled={deleteUserMutation.isPending}
-                                        className="cursor-pointer text-destructive"
-                                      >
-                                        {deleteUserMutation.isPending ? "Deleting…" : "Delete User"}
-                                      </DropdownMenuItem>
+                                      {canDeleteUser && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            onClick={() =>
+                                              handleDeleteUser(user.id, user.role, user.email)
+                                            }
+                                            disabled={deleteUserMutation.isPending}
+                                            className="cursor-pointer text-destructive"
+                                          >
+                                            {deleteUserMutation.isPending
+                                              ? "Deleting…"
+                                              : "Delete User"}
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
                                     </>
                                   )}
                                 </DropdownMenuContent>

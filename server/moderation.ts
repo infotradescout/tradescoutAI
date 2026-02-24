@@ -419,6 +419,12 @@ export function setupAdminModerationRoutes(app: Express) {
         return res.status(400).json({ error: "Missing contentId or targetType" });
       }
 
+      if (typeof reason !== "string" || reason.trim().length < 5) {
+        return res
+          .status(400)
+          .json({ error: "Moderation reason is required and must be at least 5 characters" });
+      }
+
       const normalizedTargetType = String(targetType).toLowerCase();
 
       if (normalizedTargetType === "post" || normalizedTargetType === "community_post") {

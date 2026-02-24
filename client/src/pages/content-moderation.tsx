@@ -77,9 +77,17 @@ const ContentModeration = memo(function ContentModeration() {
 
   // Remove content mutation
   const removeMutation = useMutation({
-    mutationFn: async ({ contentId, reason }: { contentId: string; reason?: string }) => {
+    mutationFn: async ({
+      contentId,
+      targetType,
+      reason,
+    }: {
+      contentId: string;
+      targetType: string;
+      reason?: string;
+    }) => {
       return await apiRequest("POST", `/api/admin/moderation/remove/${contentId}`, {
-        targetType: "post",
+        targetType,
         reason,
       });
     },
@@ -105,9 +113,26 @@ const ContentModeration = memo(function ContentModeration() {
     approveMutation.mutate(contentId);
   };
 
-  const handleRemoveContent = (contentId: string) => {
-    const reason = moderationNotes[contentId] || "";
-    removeMutation.mutate({ contentId, reason });
+  const handleRemoveContent = (item: any) => {
+    const contentId = String(item?.targetId || "");
+    const targetType = String(item?.targetType || "post");
+    const reason = (moderationNotes[item.id] || "").trim();
+
+    if (reason.length < 5) {
+      toast({
+        title: "Reason required",
+        description: "Add a short moderation reason (at least 5 characters) before removal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove ${targetType} ${contentId}? This action is destructive and will be logged.`
+    );
+    if (!confirmed) return;
+
+    removeMutation.mutate({ contentId, targetType, reason });
   };
 
   return (
@@ -253,12 +278,12 @@ const ContentModeration = memo(function ContentModeration() {
                         Approve Content
                       </Button>
                       <Button
-                        onClick={() => handleRemoveContent(item.targetId)}
+                        onClick={() => handleRemoveContent(item)}
                         disabled={removeMutation.isPending}
                         variant="destructive"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Remove Content
+                        Remove / Delete
                       </Button>
                     </div>
                   </CardContent>
