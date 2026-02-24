@@ -296,7 +296,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             fontWeight: 600,
           }}
         >
-          Impersonating {impersonatedUser.name} ({impersonatedUser.email})
+          Impersonation active
           <button
             style={{
               marginLeft: 24,

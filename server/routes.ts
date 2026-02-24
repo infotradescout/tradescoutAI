@@ -696,6 +696,69 @@ export async function registerRoutes(app: any) {
   // Setup authentication
   await setupAuth(app);
 
+  // Session-based full user impersonation (admin-only flows).
+  // When active, swap req.user to the impersonated user for the lifetime of the request,
+  // while retaining the original admin identity in the session for audit + exit.
+  app.use(async (req: any, _res: any, next: any) => {
+    try {
+      if (typeof req?.isAuthenticated !== "function" || !req.isAuthenticated()) {
+        return next();
+      }
+
+      const sessionAny = req.session as any;
+      if (!sessionAny?.isImpersonating) {
+        return next();
+      }
+
+      const originalUser = sessionAny.originalUser;
+
+      // Full user impersonation (swap identity)
+      if (sessionAny?.impersonatedUserId) {
+        const impersonatedUserId = String(sessionAny.impersonatedUserId || "").trim();
+        if (!impersonatedUserId) {
+          return next();
+        }
+
+        const impersonatedUser = await storage.getUser(impersonatedUserId);
+        if (!impersonatedUser) {
+          return next();
+        }
+
+        req.user = {
+          ...impersonatedUser,
+          isImpersonating: true,
+          impersonating: true,
+          originalAdminId: originalUser?.id,
+          originalAdminRole: originalUser?.role,
+          originalAdminEmail: originalUser?.email,
+        };
+
+        return next();
+      }
+
+      // Role-only impersonation (override role for auth consistency)
+      if (sessionAny?.impersonatingRole && req.user) {
+        const impersonatingRole = String(sessionAny.impersonatingRole || "").trim();
+        if (impersonatingRole) {
+          req.user = {
+            ...(req.user as any),
+            role: impersonatingRole,
+            activeRole: impersonatingRole,
+            isImpersonating: true,
+            impersonating: true,
+            originalAdminId: originalUser?.id,
+            originalAdminRole: originalUser?.role,
+            originalAdminEmail: originalUser?.email,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn("[impersonation] Failed to apply session impersonation:", error);
+      // Fail-soft: impersonation must never break the app.
+    }
+    next();
+  });
+
   // Emit build identity on every API response so production log/debug
   // can confirm which revision is actually serving traffic.
   app.use((req: any, res: any, next: any) => {
@@ -2457,11 +2520,16 @@ export async function registerRoutes(app: any) {
 
       const applyImpersonation = (baseUser: any) => {
         const sessionAny = req.session as any;
-        if (sessionAny?.isImpersonating && sessionAny?.impersonatingRole) {
+        if (sessionAny?.isImpersonating) {
+          const isUserImpersonation = Boolean(sessionAny?.impersonatedUserId);
           return {
             ...baseUser,
-            role: sessionAny.impersonatingRole,
+            role:
+              !isUserImpersonation && sessionAny?.impersonatingRole
+                ? sessionAny.impersonatingRole
+                : baseUser?.role,
             isImpersonating: true,
+            impersonating: true,
             originalRole: sessionAny.originalUser?.role,
           };
         }
@@ -3656,6 +3724,36 @@ export async function registerRoutes(app: any) {
       });
     } catch (error: any) {
       console.error("Stop impersonation error:", error);
+      res.status(500).json({ message: "Failed to stop impersonation" });
+    }
+  });
+
+  // Backward-compat alias: older clients call /api/admin/impersonate/exit.
+  app.post("/api/admin/impersonate/exit", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!(req.session as any).isImpersonating || !(req.session as any).originalUser) {
+        return res.status(400).json({ message: "No active impersonation session" });
+      }
+
+      const originalUser = (req.session as any).originalUser;
+
+      delete (req.session as any).impersonatingRole;
+      delete (req.session as any).impersonatedUserId;
+      delete (req.session as any).isImpersonating;
+      delete (req.session as any).originalUser;
+
+      await logAdminAction({
+        type: "admin_impersonation_stop",
+        adminId: originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub,
+        adminRole: originalUser?.role || (req.user as any)?.role,
+      });
+
+      res.json({
+        message: "Impersonation stopped",
+        isImpersonating: false,
+      });
+    } catch (error: any) {
+      console.error("Stop impersonation error (exit alias):", error);
       res.status(500).json({ message: "Failed to stop impersonation" });
     }
   });

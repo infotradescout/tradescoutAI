@@ -981,8 +981,16 @@ export function mountAdminRoutes(app: any) {
     async (req: Request & { user?: any }, res: Response) => {
       try {
         const { userId } = req.params;
+        const { reason } = (req.body ?? {}) as { reason?: string };
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
+        const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+
+        if (normalizedReason.length < 5) {
+          return res
+            .status(400)
+            .json({ message: "Deletion reason is required (min 5 characters)" });
+        }
 
         // Prevent self-deletion
         if (userId === adminUserId) {
@@ -1016,10 +1024,11 @@ export function mountAdminRoutes(app: any) {
           targetUserId: userId,
           targetEmail: targetUser.email,
           targetRole,
+          reason: normalizedReason,
         });
 
         console.log(
-          `[ADMIN_USER_DELETE] admin=${adminUserId} role=${adminRole} targetUser=${userId} targetEmail=${targetUser.email} targetRole=${targetRole} timestamp=${new Date().toISOString()}`
+          `[ADMIN_USER_DELETE] admin=${adminUserId} role=${adminRole} targetUser=${userId} targetEmail=${targetUser.email} targetRole=${targetRole} reason=${normalizedReason} timestamp=${new Date().toISOString()}`
         );
 
         res.json({
@@ -1043,9 +1052,17 @@ export function mountAdminRoutes(app: any) {
     async (req: Request & { user?: any }, res: Response) => {
       try {
         const { postId } = req.params;
+        const { reason } = (req.body ?? {}) as { reason?: string };
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
         const adminRole = adminUser?.role || "";
+        const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+
+        if (normalizedReason.length < 5) {
+          return res
+            .status(400)
+            .json({ message: "Deletion reason is required (min 5 characters)" });
+        }
 
         const { communityPosts } = await import("../../shared/schema");
 
@@ -1069,10 +1086,11 @@ export function mountAdminRoutes(app: any) {
           adminRole,
           targetPostId: postId,
           authorId: post.authorId,
+          reason: normalizedReason,
         });
 
         console.log(
-          `[ADMIN_POST_DELETE] admin=${adminUserId} role=${adminRole} postId=${postId} authorId=${post.authorId} timestamp=${new Date().toISOString()}`
+          `[ADMIN_POST_DELETE] admin=${adminUserId} role=${adminRole} postId=${postId} authorId=${post.authorId} reason=${normalizedReason} timestamp=${new Date().toISOString()}`
         );
 
         res.json({
@@ -1093,31 +1111,46 @@ export function mountAdminRoutes(app: any) {
     async (req: Request & { user?: any }, res: Response) => {
       try {
         const { userId } = req.params;
+        const { reason } = (req.body ?? {}) as any;
+
+        if (typeof reason !== "string" || reason.trim().length < 5) {
+          return res
+            .status(400)
+            .json({ message: "Impersonation reason is required (min 5 characters)" });
+        }
 
         const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
         if (!targetUser) {
           return res.status(404).json({ message: "User not found" });
         }
 
-        const originalUser = req.user;
+        const originalUser = req.user as any;
+        const adminId = originalUser?.id || originalUser?.claims?.sub;
 
-        req.user = {
-          id: targetUser.id,
-          email: targetUser.email,
-          role: targetUser.activeRole || targetUser.role,
-          firstName: targetUser.firstName,
-          lastName: targetUser.lastName,
-          profileImageUrl: targetUser.profileImageUrl,
-          roles: targetUser.roles || [targetUser.role],
-          activeRole: targetUser.activeRole || targetUser.role,
-          impersonating: true,
-          originalAdminId: (originalUser as any)?.id,
+        (req.session as any).originalUser = {
+          id: adminId,
+          role: originalUser?.role,
+          email: originalUser?.email,
         };
+
+        (req.session as any).impersonatingRole = targetUser.activeRole || targetUser.role;
+        (req.session as any).impersonatedUserId = targetUser.id;
+        (req.session as any).isImpersonating = true;
+
+        await logAdminAction({
+          type: "admin_impersonation_start_user",
+          adminId,
+          adminRole: originalUser?.role,
+          targetUserId: targetUser.id,
+          targetRole: targetUser.activeRole || targetUser.role,
+          reason: String(reason).trim(),
+        });
 
         res.json({
           message: "Impersonation active",
-          user: req.user,
-          originalAdmin: originalUser,
+          isImpersonating: true,
+          userId: targetUser.id,
+          role: targetUser.activeRole || targetUser.role,
         });
       } catch (error: any) {
         console.error("Error impersonating user:", error);

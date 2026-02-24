@@ -237,8 +237,8 @@ export default function AdminUsers() {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`, { reason });
       return response;
     },
     onSuccess: () => {
@@ -520,7 +520,18 @@ export default function AdminUsers() {
         `Delete user ${userEmail || userId}? This permanently removes account access and cannot be undone.`
       )
     ) {
-      deleteUserMutation.mutate(userId);
+      const reason = window.prompt("Reason for deletion (min 5 characters):", "");
+      const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+      if (normalizedReason.length < 5) {
+        toast({
+          title: "Reason required",
+          description: "Please provide a brief reason (min 5 characters).",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      deleteUserMutation.mutate({ userId, reason: normalizedReason });
     }
   };
 

@@ -25,11 +25,11 @@ interface ImpersonationState {
 
 const AVAILABLE_ROLES = [
   { id: "homeowner", name: "Homeowner", description: "Regular homeowner account" },
-  { id: "contractor_user", name: "Contractor", description: "Verified contractor account" },
+  { id: "contractor", name: "Contractor", description: "Service provider account" },
   {
-    id: "accelerator_member",
-    name: "Verified Contractor",
-    description: "Contractor role with standard trust-governed access",
+    id: "startup_founder",
+    name: "Startup Founder",
+    description: "Entrepreneur account for startup flows",
   },
   { id: "moderator", name: "Moderator", description: "Community moderation permissions" },
   { id: "ops_admin", name: "Operations Admin", description: "Operational admin access" },
@@ -47,12 +47,13 @@ export function RoleImpersonation() {
   });
 
   // Check if user has admin permissions
-  const canImpersonate = user?.role === "super_admin" || user?.role === "ops_admin";
+  const canImpersonate =
+    user?.role === "head_admin" || user?.role === "super_admin" || user?.role === "ops_admin";
 
   // Start impersonation mutation
   const startImpersonationMutation = useMutation({
-    mutationFn: async ({ role }: { role: string }) => {
-      return apiRequest("POST", "/api/admin/impersonate", { role });
+    mutationFn: async ({ role, reason }: { role: string; reason: string }) => {
+      return apiRequest("POST", "/api/admin/impersonate", { role, reason });
     },
     onSuccess: (data) => {
       setImpersonationState({
@@ -123,7 +124,19 @@ export function RoleImpersonation() {
       });
       return;
     }
-    startImpersonationMutation.mutate({ role: selectedRole });
+
+    const reason = window.prompt("Enter impersonation reason (min 5 characters):")?.trim();
+
+    if (!reason || reason.length < 5) {
+      toast({
+        title: "Reason required",
+        description: "Impersonation requires a reason of at least 5 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    startImpersonationMutation.mutate({ role: selectedRole, reason });
   };
 
   const handleStopImpersonation = () => {

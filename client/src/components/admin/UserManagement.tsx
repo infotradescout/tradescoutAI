@@ -171,8 +171,15 @@ export default function UserManagement() {
 
   const impersonateUser = useMutation({
     mutationFn: async (userId: string) => {
+      const reason = window.prompt("Enter impersonation reason (min 5 characters):")?.trim();
+
+      if (!reason || reason.length < 5) {
+        throw new Error("Impersonation requires a reason of at least 5 characters.");
+      }
+
       return apiRequest(`/api/admin/users/${userId}/impersonate`, {
         method: "POST",
+        body: { reason },
       });
     },
     onSuccess: () => {
