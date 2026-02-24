@@ -252,7 +252,7 @@ const ContentModeration = memo(function ContentModeration() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Badge variant="destructive">{item.flagCount} flags</Badge>
+                        <Badge variant="error">{item.flagCount} flags</Badge>
                         <Badge variant="outline">{item.targetType}</Badge>
                       </div>
                       <span className="text-xs text-muted-foreground">ID: {item.targetId}</span>

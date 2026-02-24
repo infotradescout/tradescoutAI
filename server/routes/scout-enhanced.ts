@@ -1,12 +1,12 @@
 /**
  * Enhanced Scout Router - Phase 1 Implementation
- * 
+ *
  * This module extends the existing Scout router with:
  * 1. Structured reasoning and planning capabilities
  * 2. Dynamic tool invocation from LLM output
  * 3. Enhanced reflection and self-correction
  * 4. Comprehensive state acknowledgment
- * 
+ *
  * This is a companion module to the existing scout.ts router.
  * It can be gradually integrated or run in parallel for testing.
  */
@@ -190,9 +190,9 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
     // Call Gemini with the enhanced prompt
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
-      return res.status(500).json({
+      return res.status(503).json({
         error: "Gemini API key not configured",
-        message: "GEMINI_API_KEY environment variable is required for enhanced Scout",
+        message: "GEMINI_API_KEY environment variable is missing for enhanced Scout",
       });
     }
     const gemini = new GoogleGenerativeAI(geminiKey);

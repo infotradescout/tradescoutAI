@@ -197,7 +197,9 @@ app.use((req, res, next) => {
 // Custom domains: redirect to canonical host with ?ref=... attached.
 const CUSTOM_DOMAIN_CACHE = new Map<
   string,
-  { kind: "affiliate"; ref: string; at: number } | { kind: "profile"; slug: string; at: number }
+  | { kind: "affiliate"; ref: string; at: number }
+  | { kind: "profile"; slug: string; at: number }
+  | { kind: "business"; slug: string; at: number }
 >();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -230,6 +232,17 @@ app.use(async (req, res, next) => {
         return next();
       }
 
+      if (cached.kind === "business") {
+        const path = req.path || "/";
+        if (path === "/" || path === "") {
+          return res.redirect(
+            301,
+            `/business/${encodeURIComponent(cached.slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+          );
+        }
+        return next();
+      }
+
       const targetHost = CANONICAL_WEB_HOST;
       const url = new URL(`https://${targetHost}${req.originalUrl || "/"}`);
       if (!url.searchParams.has("ref")) url.searchParams.set("ref", cached.ref);
@@ -257,6 +270,31 @@ app.use(async (req, res, next) => {
         return res.redirect(
           301,
           `/u/${encodeURIComponent(profileSlug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+        );
+      }
+      return next();
+    }
+
+    const [businessDomain] = await db
+      .select({ slug: users.businessSlug })
+      .from(users)
+      .where(
+        and(
+          sql`${users.businessSlug} IS NOT NULL`,
+          sql`lower(COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' ->> 'customDomain')), '')) = ${host}`,
+          sql`COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' -> 'customDomainVerification' ->> 'state')), 'unverified') = 'verified'`
+        )
+      )
+      .limit(1);
+
+    const businessSlug = typeof businessDomain?.slug === "string" ? businessDomain.slug.trim() : "";
+    if (businessSlug) {
+      CUSTOM_DOMAIN_CACHE.set(host, { kind: "business", slug: businessSlug, at: now });
+      const path = req.path || "/";
+      if (path === "/" || path === "") {
+        return res.redirect(
+          301,
+          `/business/${encodeURIComponent(businessSlug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
         );
       }
       return next();

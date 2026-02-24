@@ -58,7 +58,7 @@
   padding: clamp(16px, 2.8vw, 30px);
   border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  background: linear-gradient(160deg, rgba(10, 19, 32, 0.95), rgba(7, 14, 26, 0.72));
+  background: var(--tp-surface);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
     0 24px 60px rgba(0, 0, 0, 0.35);
@@ -108,7 +108,7 @@
 
 .tp-btn-primary {
   color: #1a0f06;
-  background: linear-gradient(140deg, var(--tp-accent), var(--tp-accent-strong));
+  background: var(--tp-accent);
   box-shadow: 0 8px 26px rgba(249, 115, 22, 0.35);
 }
 

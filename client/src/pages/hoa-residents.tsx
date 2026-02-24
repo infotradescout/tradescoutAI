@@ -18,9 +18,9 @@ import { HOAManagementShell } from "@/shells/HOAManagementShell";
  *
  * Psychology Intent:
  * - Target belief: "HOA governance is legitimate and traceable."
- * - Target behavior: maintain an accurate roster through the official channel.
- * - Principle(s): procedural clarity, accountability.
- * - Risk prevented: unauthorized control or ambiguity.
+ * - Target behavior: maintain an accurate roster and exit through the official channel.
+ * - Principle(s): procedural clarity, accountability, friction for high-impact actions.
+ * - Risk prevented: unauthorized control, ambiguity, or accidental membership changes.
  */
 
 type HOAMember = {
@@ -144,6 +144,72 @@ const HOAResidents = memo(function HOAResidents() {
     },
   });
 
+  const leaveHoAMutation = useMutation({
+    mutationFn: async (data: { reason: string }) => {
+      const response = await fetch(`/api/hoa/${activeHoaId}/membership`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: data.reason }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Failed to leave HOA");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "You left the HOA",
+        description: "Your membership has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/hoa"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hoa", activeHoaId, "member"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hoa", activeHoaId, "members"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Unable to leave HOA",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const initiateBoardTransferVoteMutation = useMutation({
+    mutationFn: async (data: {
+      targetRole: "president" | "vice_president";
+      nomineeUserId: string;
+      reason: string;
+      durationHours: number;
+    }) => {
+      const response = await fetch(`/api/hoa/${activeHoaId}/votes/board-transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Failed to start transfer vote");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Vote created",
+        description: "The transfer vote is now active.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/hoa", activeHoaId, "votes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hoa", activeHoaId, "members"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Unable to create vote",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddMember = () => {
     if (!newMemberEmail) {
       toast({
@@ -212,15 +278,110 @@ const HOAResidents = memo(function HOAResidents() {
             </h1>
             <p className="text-gray-300 mt-2">{memberships[0]?.hoaName || "Your HOA"}</p>
           </div>
-          {canAddMembers && (
+          <div className="flex items-center gap-2">
             <Button
-              onClick={() => setAddMemberOpen(!addMemberOpen)}
-              className="bg-orange-600 hover:bg-orange-700"
+              disabled={initiateBoardTransferVoteMutation.isPending}
+              onClick={() => {
+                const targetRoleRaw = window
+                  .prompt("Transfer which role? Type: president or vice_president", "president")
+                  ?.trim();
+                if (!targetRoleRaw) return;
+                const targetRole =
+                  targetRoleRaw === "president" || targetRoleRaw === "vice_president"
+                    ? (targetRoleRaw as "president" | "vice_president")
+                    : null;
+                if (!targetRole) {
+                  toast({
+                    title: "Invalid role",
+                    description: "Enter 'president' or 'vice_president'.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                const nomineeEmail = window
+                  .prompt("Nominee email (must be a current member)")
+                  ?.trim();
+                if (!nomineeEmail) return;
+
+                const nominee = members.find(
+                  (m) => (m.userEmail || "").toLowerCase() === nomineeEmail.toLowerCase()
+                );
+                if (!nominee?.userId) {
+                  toast({
+                    title: "Nominee not found",
+                    description: "Use an email shown in the member list.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                const reason = window
+                  .prompt("Reason for this transfer vote (min 5 characters)")
+                  ?.trim();
+                if (!reason) return;
+                if (reason.length < 5) {
+                  toast({
+                    title: "Reason required",
+                    description: "Please provide at least 5 characters.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                const durationRaw = window.prompt("Vote duration in hours (1–720)", "168")?.trim();
+                if (!durationRaw) return;
+                const durationHours = Number(durationRaw);
+                if (!Number.isFinite(durationHours) || durationHours < 1 || durationHours > 720) {
+                  toast({
+                    title: "Invalid duration",
+                    description: "Enter a number of hours between 1 and 720.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                initiateBoardTransferVoteMutation.mutate({
+                  targetRole,
+                  nomineeUserId: nominee.userId,
+                  reason,
+                  durationHours,
+                });
+              }}
             >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Member
+              Start Transfer Vote
             </Button>
-          )}
+
+            <Button
+              variant="destructive"
+              disabled={leaveHoAMutation.isPending}
+              onClick={() => {
+                const reason = window.prompt("Why are you leaving this HOA? (min 5 characters)");
+                if (!reason) return;
+                if (reason.trim().length < 5) {
+                  toast({
+                    title: "Reason required",
+                    description: "Please provide at least 5 characters.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                leaveHoAMutation.mutate({ reason: reason.trim() });
+              }}
+            >
+              Leave HOA
+            </Button>
+
+            {canAddMembers && (
+              <Button
+                onClick={() => setAddMemberOpen(!addMemberOpen)}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+            )}
+          </div>
         </div>
 
         {addMemberOpen && canAddMembers && (

@@ -49,6 +49,9 @@ export default function BusinessProfileEditor() {
   const [services, setServices] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
   const [serviceAreasText, setServiceAreasText] = useState("");
+  const [domainInput, setDomainInput] = useState("");
+  const [domainStarting, setDomainStarting] = useState(false);
+  const [domainVerifying, setDomainVerifying] = useState(false);
 
   // Scout Copy Assist state
   const [showCopyModal, setShowCopyModal] = useState(false);
@@ -89,6 +92,7 @@ export default function BusinessProfileEditor() {
         setServices(data.services || []);
         setWebsite(data.website || "");
         setServiceAreasText((data.serviceAreas || []).join(", "));
+        setDomainInput(data.customDomain || "");
 
         // Non-optional telemetry
         recordActivity({
@@ -224,6 +228,95 @@ export default function BusinessProfileEditor() {
     }
   }
 
+  async function handleStartDomainVerification() {
+    if (!profile) return;
+
+    const normalized = domainInput.trim().toLowerCase();
+    if (!normalized) {
+      toast({
+        title: "Enter a domain",
+        description: "Add your domain first (for example: example.com).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDomainStarting(true);
+    try {
+      const response = await fetch("/api/business-profile/domain/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: normalized }),
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to start domain verification");
+      }
+
+      if (data?.profile) {
+        setProfile(data.profile as BusinessProfile);
+        setDomainInput((data.profile as BusinessProfile).customDomain || normalized);
+      }
+
+      toast({
+        title: "Verification started",
+        description: "Add the TXT record shown below, then click Verify Domain.",
+      });
+    } catch (err: any) {
+      console.error("Error starting domain verification:", err);
+      toast({
+        title: "Could not start verification",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDomainStarting(false);
+    }
+  }
+
+  async function handleVerifyDomain() {
+    if (!profile?.customDomain) {
+      toast({
+        title: "No domain configured",
+        description: "Start verification first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDomainVerifying(true);
+    try {
+      const response = await fetch("/api/business-profile/domain/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json().catch(() => null);
+      if (data?.profile) {
+        setProfile(data.profile as BusinessProfile);
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.verification?.error || data?.message || "Verification failed");
+      }
+
+      toast({
+        title: "Domain verified",
+        description: "Your domain now points to your public business profile.",
+      });
+    } catch (err: any) {
+      console.error("Error verifying domain:", err);
+      toast({
+        title: "Verification failed",
+        description: err?.message || "DNS may still be propagating. Try again soon.",
+        variant: "destructive",
+      });
+    } finally {
+      setDomainVerifying(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -249,6 +342,8 @@ export default function BusinessProfileEditor() {
   }
 
   const publicUrl = `/business/${profile.slug}`;
+  const domainState = profile.customDomainVerification?.state || "unverified";
+  const domainToken = profile.customDomainVerification?.token || "";
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -478,6 +573,81 @@ export default function BusinessProfileEditor() {
                   Test link
                 </a>
               )}
+
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <Label htmlFor="customDomain">Custom Domain</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Connect your domain so visitors land on this profile directly.
+                    </p>
+                  </div>
+                  <Badge variant="secondary">{domainState}</Badge>
+                </div>
+
+                <Input
+                  id="customDomain"
+                  type="text"
+                  value={domainInput}
+                  onChange={(e) => setDomainInput(e.target.value)}
+                  placeholder="example.com"
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleStartDomainVerification}
+                    disabled={domainStarting}
+                  >
+                    {domainStarting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Starting...
+                      </>
+                    ) : (
+                      "Start Verification"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleVerifyDomain}
+                    disabled={domainVerifying || !profile.customDomain || !domainToken}
+                  >
+                    {domainVerifying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify Domain"
+                    )}
+                  </Button>
+                </div>
+
+                {profile.customDomain && domainToken && (
+                  <Alert>
+                    <AlertDescription className="space-y-1 text-xs">
+                      <div>
+                        Add this DNS TXT record at your registrar, then click{" "}
+                        <strong>Verify Domain</strong>.
+                      </div>
+                      <div>
+                        <strong>Host:</strong> _tradescout-verify.{profile.customDomain}
+                      </div>
+                      <div className="break-all">
+                        <strong>Value:</strong> {domainToken}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {profile.customDomainVerification?.error && (
+                  <p className="text-xs text-destructive">
+                    {profile.customDomainVerification.error}
+                  </p>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
 

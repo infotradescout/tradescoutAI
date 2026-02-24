@@ -111,11 +111,80 @@ export async function getHOAVendors(req: Request, res: Response) {
 export async function getHOAVotes(req: Request, res: Response) {
   try {
     const { hoaId } = req.params;
+
+    const finalizeExpired = (storage as any).finalizeExpiredHOABoardTransferVotes;
+    if (typeof finalizeExpired === "function") {
+      await finalizeExpired.call(storage, hoaId);
+    }
+
     const votes = await storage.getHOAVotes(hoaId);
     res.json(votes);
   } catch (error) {
     console.error("Error fetching HOA votes:", error);
     res.status(500).json({ message: "Failed to fetch voting data" });
+  }
+}
+
+// Any HOA member can initiate a board role transfer vote.
+// HOA-specific governance config controls quorum/threshold rules (no platform override).
+export async function initiateBoardTransferVote(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const { hoaId } = req.params;
+    const { targetRole, nomineeUserId, reason, durationHours } = (req.body ?? {}) as any;
+
+    const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+    if (normalizedReason.length < 5) {
+      return res.status(400).json({ message: "Reason is required (min 5 characters)" });
+    }
+
+    if (targetRole !== "president" && targetRole !== "vice_president") {
+      return res
+        .status(400)
+        .json({ message: "targetRole must be 'president' or 'vice_president'" });
+    }
+
+    if (typeof nomineeUserId !== "string" || nomineeUserId.trim().length === 0) {
+      return res.status(400).json({ message: "nomineeUserId is required" });
+    }
+
+    const duration = Number(durationHours);
+    if (!Number.isFinite(duration) || duration <= 0 || duration > 24 * 30) {
+      return res.status(400).json({ message: "durationHours must be a number between 1 and 720" });
+    }
+
+    const membership = await storage.getHOAMemberByUserId(userId, hoaId);
+    if (!membership) {
+      return res.status(403).json({ message: "Not a member of this HOA" });
+    }
+
+    const nomineeMembership = await storage.getHOAMemberByUserId(nomineeUserId, hoaId);
+    if (!nomineeMembership) {
+      return res.status(400).json({ message: "Nominee must be a current HOA member" });
+    }
+
+    const create = (storage as any).createHOABoardTransferVote;
+    if (typeof create !== "function") {
+      return res.status(501).json({ message: "Board transfer votes are not implemented" });
+    }
+
+    const result = await create.call(storage, {
+      hoaId,
+      initiatedByUserId: userId,
+      targetRole,
+      nomineeUserId: nomineeUserId.trim(),
+      reason: normalizedReason,
+      durationHours: duration,
+    });
+
+    return res.status(201).json({ success: true, voteId: result?.voteId ?? null });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create vote";
+    return res.status(400).json({ message });
   }
 }
 
@@ -342,5 +411,63 @@ export async function updateHOAMemberRole(req: Request, res: Response) {
   } catch (error) {
     console.error("Error updating HOA member role:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// Self-service: leave an HOA (members remove themselves; HOAs do not ban)
+export async function leaveHOA(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const { hoaId } = req.params;
+    const { reason } = (req.body ?? {}) as { reason?: string };
+    const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+
+    if (normalizedReason.length < 5) {
+      return res.status(400).json({ message: "Reason is required (min 5 characters)" });
+    }
+
+    const membership = await storage.getHOAMemberByUserId(userId, hoaId);
+    if (!membership) {
+      return res.status(404).json({ message: "Not a member of this HOA" });
+    }
+
+    if (membership.role === "president" || membership.role === "vice_president") {
+      return res.status(403).json({
+        message: "Presidents and vice presidents must transfer authority before leaving the HOA",
+      });
+    }
+
+    const leaveWithReason = (storage as any).leaveHOAWithReason;
+    if (typeof leaveWithReason === "function") {
+      await leaveWithReason.call(storage, {
+        userId,
+        hoaId,
+        reason: normalizedReason,
+        membershipRole: membership.role,
+        actorUserId: userId,
+      });
+    } else {
+      const leave = (storage as any).leaveHOA;
+      if (typeof leave !== "function") {
+        return res.status(501).json({ message: "HOA leave is not implemented" });
+      }
+
+      await leave.call(storage, userId, hoaId);
+    }
+
+    await storage.logEvent("hoa.membership_left", {
+      userId,
+      hoaId,
+      reason: normalizedReason,
+    });
+
+    return res.json({ success: true, message: "You have left the HOA" });
+  } catch (error) {
+    console.error("Error leaving HOA:", error);
+    return res.status(500).json({ message: "Failed to leave HOA" });
   }
 }

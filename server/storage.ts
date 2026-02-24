@@ -137,9 +137,11 @@ import {
   hoaVendors,
   hoaVotes,
   hoaVoteResponses,
+  hoaVoteBoardTransfers,
   hoaServiceRequests,
   hoaDocuments,
   hoaMembers,
+  hoaMembershipDepartures,
   hoaGovernance,
   // Community Builder System
   communityBuilderProfiles,
@@ -9967,6 +9969,15 @@ export class DatabaseStorage implements IStorage {
       throw new Error("affiliateId is required to create an affiliate program");
     }
 
+    const [existingProgram] = await db
+      .select()
+      .from(affiliateAccounts)
+      .where(eq(affiliateAccounts.affiliateId, affiliateId))
+      .limit(1);
+    if (existingProgram) {
+      return existingProgram;
+    }
+
     const payload: InsertAffiliateProgram = {
       ...(data as InsertAffiliateProgram),
       affiliateId,
@@ -10155,12 +10166,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async convertReferral(affiliateCode: string, userId: string): Promise<void> {
+    const [alreadyConverted] = await db
+      .select({ id: affiliateReferrals.id })
+      .from(affiliateReferrals)
+      .where(eq(affiliateReferrals.referredUserId, userId))
+      .limit(1);
+    if (alreadyConverted?.id) return;
+
     const [account] = await db
       .select()
       .from(affiliateAccounts)
       .where(eq(affiliateAccounts.referralCode, affiliateCode));
 
     if (!account) return;
+
+    await db
+      .update(users)
+      .set({
+        referredByAffiliateAccountId: account.id,
+        referredAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), sql`${users.referredByAffiliateAccountId} IS NULL`));
 
     // Convert only the most recent unconverted referral to avoid
     // attributing multiple historical clicks to a single signup.
@@ -11558,6 +11585,323 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(hoaVotes.createdAt));
   }
 
+  private async countHoaEligibleVoters(hoaId: string): Promise<number> {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(hoaMembers)
+      .where(and(eq(hoaMembers.hoaId, hoaId), eq(hoaMembers.votingRights, true)));
+
+    return Number(row?.count ?? 0);
+  }
+
+  async createHOABoardTransferVote(params: {
+    hoaId: string;
+    initiatedByUserId: string;
+    targetRole: "president" | "vice_president";
+    nomineeUserId: string;
+    reason: string;
+    durationHours: number;
+  }): Promise<{ voteId: string }> {
+    const governance = await this.getHOAGovernance(params.hoaId);
+    if (governance?.votingEnabled === false) {
+      throw new Error("Voting is disabled for this HOA");
+    }
+
+    const quorumPercentage = Number(governance?.quorumPercentage);
+    const votePassThreshold = Number(governance?.votePassThreshold);
+    if (!Number.isFinite(quorumPercentage) || quorumPercentage <= 0 || quorumPercentage > 100) {
+      throw new Error("Invalid HOA quorum percentage");
+    }
+    if (!Number.isFinite(votePassThreshold) || votePassThreshold <= 0 || votePassThreshold > 100) {
+      throw new Error("Invalid HOA vote pass threshold");
+    }
+
+    const eligibleVoters = await this.countHoaEligibleVoters(params.hoaId);
+    if (eligibleVoters <= 0) {
+      throw new Error("No eligible voting members for this HOA");
+    }
+
+    // Initiation cooldown: a member cannot initiate more than one board-transfer vote
+    // within a 6 month window (scheduled yearly votes should be created via a separate
+    // system path, not this user-initiated endpoint).
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const recentInitiation = await db
+      .select({ voteId: hoaVoteBoardTransfers.voteId })
+      .from(hoaVoteBoardTransfers)
+      .where(
+        and(
+          eq(hoaVoteBoardTransfers.hoaId, params.hoaId),
+          eq(hoaVoteBoardTransfers.initiatedByUserId, params.initiatedByUserId),
+          gte(hoaVoteBoardTransfers.createdAt, sixMonthsAgo)
+        )
+      )
+      .limit(1);
+
+    if (recentInitiation.length > 0) {
+      throw new Error("You can only initiate a board transfer vote once every 6 months");
+    }
+
+    const requiredQuorum = Math.max(1, Math.ceil((eligibleVoters * quorumPercentage) / 100));
+    const now = new Date();
+    const durationHours = Number(params.durationHours);
+    if (!Number.isFinite(durationHours) || durationHours <= 0 || durationHours > 24 * 30) {
+      throw new Error("Invalid vote duration");
+    }
+
+    const endDate = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+
+    const existing = await db
+      .select({ id: hoaVotes.id })
+      .from(hoaVotes)
+      .innerJoin(hoaVoteBoardTransfers, eq(hoaVoteBoardTransfers.voteId, hoaVotes.id))
+      .where(
+        and(
+          eq(hoaVotes.hoaId, params.hoaId),
+          eq(hoaVotes.status, "active"),
+          eq(hoaVotes.voteType, "board_role_transfer"),
+          eq(hoaVoteBoardTransfers.targetRole, params.targetRole)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      throw new Error(`A transfer vote for ${params.targetRole} is already active`);
+    }
+
+    const title =
+      params.targetRole === "president"
+        ? "Board Role Transfer Vote: President"
+        : "Board Role Transfer Vote: Vice President";
+    const description = `Nominee: ${params.nomineeUserId}\nReason: ${params.reason}`;
+
+    const vote = await db.transaction(async (tx) => {
+      const [createdVote] = await tx
+        .insert(hoaVotes)
+        .values({
+          hoaId: params.hoaId,
+          title,
+          description,
+          voteType: "board_role_transfer",
+          createdBy: params.initiatedByUserId,
+          startDate: now,
+          endDate,
+          requiredQuorum,
+          status: "active",
+        } as any)
+        .returning();
+
+      await tx.insert(hoaVoteBoardTransfers).values({
+        voteId: createdVote.id,
+        hoaId: params.hoaId,
+        targetRole: params.targetRole,
+        nomineeUserId: params.nomineeUserId,
+        initiatedByUserId: params.initiatedByUserId,
+        initiationReason: params.reason,
+      } as any);
+
+      return createdVote as any;
+    });
+
+    await this.logEvent("hoa.board_transfer_vote_initiated", {
+      hoaId: params.hoaId,
+      voteId: vote.id,
+      initiatedByUserId: params.initiatedByUserId,
+      targetRole: params.targetRole,
+      nomineeUserId: params.nomineeUserId,
+      reason: params.reason,
+      requiredQuorum,
+      votePassThreshold,
+      quorumPercentage,
+      endDate: endDate.toISOString(),
+    });
+
+    return { voteId: vote.id };
+  }
+
+  async finalizeHOABoardTransferVoteIfEnded(voteId: string): Promise<{ status: string } | null> {
+    const [vote] = await db.select().from(hoaVotes).where(eq(hoaVotes.id, voteId));
+    if (!vote) return null;
+    if (vote.status !== "active") return null;
+    if (vote.voteType !== "board_role_transfer") return null;
+
+    const now = new Date();
+    const endDate = vote.endDate as Date | null | undefined;
+    if (endDate && endDate.getTime() > now.getTime()) return null;
+
+    const currentVotes = Number(vote.currentVotes ?? 0);
+    const requiredQuorum = Number(vote.requiredQuorum ?? 0);
+
+    if (currentVotes < requiredQuorum) {
+      await db
+        .update(hoaVotes)
+        .set({ status: "failed", updatedAt: now })
+        .where(eq(hoaVotes.id, voteId));
+
+      await this.logEvent("hoa.board_transfer_vote_failed", {
+        hoaId: vote.hoaId,
+        voteId,
+        reason: "quorum_not_met",
+        requiredQuorum,
+        currentVotes,
+      });
+
+      return { status: "failed" };
+    }
+
+    const votesFor = Number(vote.votesFor ?? 0);
+    const votesAgainst = Number(vote.votesAgainst ?? 0);
+    const counted = votesFor + votesAgainst;
+    const yesPct = counted > 0 ? (votesFor / counted) * 100 : 0;
+
+    const governance = await this.getHOAGovernance(vote.hoaId);
+    const threshold = Number(governance?.votePassThreshold);
+    if (!Number.isFinite(threshold) || threshold <= 0 || threshold > 100) {
+      throw new Error("Invalid HOA vote pass threshold");
+    }
+
+    const passed = yesPct >= threshold;
+
+    if (!passed) {
+      await db
+        .update(hoaVotes)
+        .set({ status: "failed", updatedAt: now })
+        .where(eq(hoaVotes.id, voteId));
+
+      await this.logEvent("hoa.board_transfer_vote_failed", {
+        hoaId: vote.hoaId,
+        voteId,
+        reason: "threshold_not_met",
+        threshold,
+        yesPct,
+        votesFor,
+        votesAgainst,
+      });
+
+      return { status: "failed" };
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [transfer] = await tx
+        .select()
+        .from(hoaVoteBoardTransfers)
+        .where(eq(hoaVoteBoardTransfers.voteId, voteId));
+
+      if (!transfer) {
+        await tx
+          .update(hoaVotes)
+          .set({ status: "failed", updatedAt: now })
+          .where(eq(hoaVotes.id, voteId));
+        return {
+          status: "failed",
+          failedReason: "missing_transfer_metadata",
+          fromUserIds: [] as string[],
+          toUserId: null as string | null,
+          targetRole: null as string | null,
+          initiationReason: null as string | null,
+          initiatedByUserId: null as string | null,
+        };
+      }
+
+      const [nomineeMembership] = await tx
+        .select({ userId: hoaMembers.userId })
+        .from(hoaMembers)
+        .where(and(eq(hoaMembers.hoaId, vote.hoaId), eq(hoaMembers.userId, transfer.nomineeUserId)))
+        .limit(1);
+
+      if (!nomineeMembership) {
+        await tx
+          .update(hoaVotes)
+          .set({ status: "failed", updatedAt: now })
+          .where(eq(hoaVotes.id, voteId));
+        return {
+          status: "failed",
+          failedReason: "nominee_not_member",
+          fromUserIds: [] as string[],
+          toUserId: transfer.nomineeUserId as string,
+          targetRole: transfer.targetRole as string,
+          initiationReason: transfer.initiationReason as string,
+          initiatedByUserId: transfer.initiatedByUserId as string,
+        };
+      }
+
+      const prior = await tx
+        .select({ userId: hoaMembers.userId })
+        .from(hoaMembers)
+        .where(and(eq(hoaMembers.hoaId, vote.hoaId), eq(hoaMembers.role, transfer.targetRole)));
+      const fromUserIds = prior.map((p) => p.userId);
+
+      await tx
+        .update(hoaMembers)
+        .set({ role: "member" })
+        .where(and(eq(hoaMembers.hoaId, vote.hoaId), eq(hoaMembers.role, transfer.targetRole)));
+
+      await tx
+        .update(hoaMembers)
+        .set({ role: transfer.targetRole })
+        .where(
+          and(eq(hoaMembers.hoaId, vote.hoaId), eq(hoaMembers.userId, transfer.nomineeUserId))
+        );
+
+      await tx
+        .update(hoaVotes)
+        .set({ status: "passed", updatedAt: now })
+        .where(eq(hoaVotes.id, voteId));
+
+      return {
+        status: "passed",
+        failedReason: null as string | null,
+        fromUserIds,
+        toUserId: transfer.nomineeUserId as string,
+        targetRole: transfer.targetRole as string,
+        initiationReason: transfer.initiationReason as string,
+        initiatedByUserId: transfer.initiatedByUserId as string,
+      };
+    });
+
+    if (result.status === "passed") {
+      await this.logEvent("hoa.board_role_transferred", {
+        hoaId: vote.hoaId,
+        voteId,
+        targetRole: result.targetRole,
+        fromUserIds: result.fromUserIds,
+        toUserId: result.toUserId,
+        initiatedByUserId: result.initiatedByUserId,
+        initiationReason: result.initiationReason,
+        votesFor,
+        votesAgainst,
+        yesPct,
+      });
+    } else {
+      await this.logEvent("hoa.board_transfer_vote_failed", {
+        hoaId: vote.hoaId,
+        voteId,
+        reason: result.failedReason,
+      });
+    }
+
+    return { status: result.status };
+  }
+
+  async finalizeExpiredHOABoardTransferVotes(hoaId: string): Promise<void> {
+    const now = new Date();
+    const expired = await db
+      .select({ id: hoaVotes.id })
+      .from(hoaVotes)
+      .where(
+        and(
+          eq(hoaVotes.hoaId, hoaId),
+          eq(hoaVotes.status, "active"),
+          eq(hoaVotes.voteType, "board_role_transfer"),
+          lte(hoaVotes.endDate, now)
+        )
+      );
+
+    for (const v of expired) {
+      await this.finalizeHOABoardTransferVoteIfEnded(v.id);
+    }
+  }
+
   async getHoaVotesForUser(
     hoaId: string,
     userId: string
@@ -11659,6 +12003,10 @@ export class DatabaseStorage implements IStorage {
           decision === "abstain" ? sql`${hoaVotes.votesAbstain} + 1` : hoaVotes.votesAbstain,
       })
       .where(eq(hoaVotes.id, voteId));
+
+    // Board role transfers finalize automatically when the vote window closes.
+    // This keeps authority transfer deterministic and governed by the HOA's voting rules.
+    await this.finalizeHOABoardTransferVoteIfEnded(voteId);
 
     return voteResponse;
   }
@@ -11851,6 +12199,35 @@ export class DatabaseStorage implements IStorage {
       .from(hoaMembers)
       .where(and(eq(hoaMembers.userId, userId), eq(hoaMembers.hoaId, hoaId)));
     return member;
+  }
+
+  async leaveHOA(userId: string, hoaId: string): Promise<void> {
+    await db
+      .delete(hoaMembers)
+      .where(and(eq(hoaMembers.userId, userId), eq(hoaMembers.hoaId, hoaId)));
+  }
+
+  async leaveHOAWithReason(params: {
+    userId: string;
+    hoaId: string;
+    reason: string;
+    membershipRole?: string | null;
+    actorUserId?: string | null;
+  }): Promise<void> {
+    const actorUserId = params.actorUserId || params.userId;
+    await db.transaction(async (tx) => {
+      await tx.insert(hoaMembershipDepartures).values({
+        hoaId: params.hoaId,
+        userId: params.userId,
+        actorUserId,
+        membershipRole: params.membershipRole ?? null,
+        reason: params.reason,
+      });
+
+      await tx
+        .delete(hoaMembers)
+        .where(and(eq(hoaMembers.userId, params.userId), eq(hoaMembers.hoaId, params.hoaId)));
+    });
   }
 
   async getHOAMembers(hoaId: string): Promise<any[]> {
@@ -12829,6 +13206,8 @@ export class DatabaseStorage implements IStorage {
         profileDraft.countyFips,
       ],
       website: profileDraft.website || null,
+      customDomain: profileDraft.customDomain || null,
+      customDomainVerification: profileDraft.customDomainVerification || null,
       verificationStatus: user.verificationStatus,
       addressVerified: user.addressVerified ?? undefined,
       createdAt,
@@ -12856,8 +13235,10 @@ export class DatabaseStorage implements IStorage {
     // Store business profile data in preferences.provisional.profileDraft for now
     const preferences = (user.preferences as any) || {};
     const provisional = preferences.provisional || {};
+    const existingDraft = provisional.profileDraft || {};
 
-    provisional.profileDraft = {
+    const nextDraft: any = {
+      ...existingDraft,
       presenceType: "represent_business",
       stateCode: profile.stateCode,
       countyFips: profile.countyFips,
@@ -12869,6 +13250,16 @@ export class DatabaseStorage implements IStorage {
       serviceAreas: profile.serviceAreas.map((fips: string) => ({ countyFips: fips })),
       capturedAt: new Date().toISOString(),
     };
+
+    if (typeof profile.customDomain !== "undefined") {
+      nextDraft.customDomain = profile.customDomain || null;
+    }
+
+    if (typeof profile.customDomainVerification !== "undefined") {
+      nextDraft.customDomainVerification = profile.customDomainVerification;
+    }
+
+    provisional.profileDraft = nextDraft;
 
     preferences.provisional = provisional;
 

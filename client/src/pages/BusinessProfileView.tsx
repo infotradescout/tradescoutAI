@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Building2, MapPin, Globe, Edit, MessageSquare, Loader2, Shield } from "lucide-react";
 import type { BusinessProfile } from "@/../../shared/businessProfile";
+import type { MarketplaceListing } from "@shared/schema";
 import { recordActivity } from "@/agent/activity";
 import { useAuth } from "@/hooks/useAuth";
 import { SEOHelmet } from "@/components/SEOHelmet";
@@ -32,7 +33,17 @@ export default function BusinessProfileView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+  const [listingsError, setListingsError] = useState<string | null>(null);
+
   const isOwner = user?.businessSlug === slug;
+
+  function formatListingPrice(price: MarketplaceListing["price"]): string {
+    const numeric = typeof price === "number" ? price : Number((price as any) ?? 0);
+    if (!Number.isFinite(numeric)) return "—";
+    return numeric.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
 
   useEffect(() => {
     if (!slug) {
@@ -40,6 +51,10 @@ export default function BusinessProfileView() {
       setLoading(false);
       return;
     }
+
+    setListings([]);
+    setListingsError(null);
+    setListingsLoading(false);
 
     async function fetchProfile() {
       try {
@@ -57,6 +72,30 @@ export default function BusinessProfileView() {
 
         const data = await response.json();
         setProfile(data);
+
+        // Show marketplace catalog without introducing contact bypass.
+        if (data?.userId) {
+          setListingsLoading(true);
+          setListingsError(null);
+          try {
+            const params = new URLSearchParams({
+              sellerId: String(data.userId),
+              limit: "6",
+              offset: "0",
+            });
+            const listingsRes = await fetch(`/api/marketplace/listings?${params.toString()}`);
+            if (!listingsRes.ok) {
+              throw new Error(`Failed to load listings (${listingsRes.status})`);
+            }
+            const raw = await listingsRes.json();
+            setListings(Array.isArray(raw) ? (raw as MarketplaceListing[]) : []);
+          } catch (err) {
+            console.error("Error fetching business listings:", err);
+            setListingsError("Failed to load listings");
+          } finally {
+            setListingsLoading(false);
+          }
+        }
 
         // Non-optional telemetry
         recordActivity({
@@ -150,7 +189,7 @@ export default function BusinessProfileView() {
     ? (profile.description || "").slice(0, 155) // Meta description limit
     : `${profile.name} serving ${profile.countyName || "local areas"}${profile.serviceAreas && profile.serviceAreas.length > 0 ? " and nearby areas" : ""}. Contact via TradeScout.`;
 
-  const canonicalUrl = `https://www.thetradescout.com/business/${profile.slug}`;
+  const canonicalUrl = `${window.location.origin}/business/${profile.slug}`;
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -286,6 +325,86 @@ export default function BusinessProfileView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Active Listings (seller catalog) */}
+      <Card className="mb-6" data-testid="bp-active-listings">
+        <CardHeader>
+          <CardTitle className="text-xl">Active Listings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {listingsLoading && (
+            <div className="text-sm text-muted-foreground">Loading listings…</div>
+          )}
+
+          {!listingsLoading && listingsError && (
+            <div className="text-sm text-muted-foreground">{listingsError}</div>
+          )}
+
+          {!listingsLoading && !listingsError && listings.length === 0 && (
+            <div className="text-sm text-muted-foreground">No active listings.</div>
+          )}
+
+          {!listingsLoading && !listingsError && listings.length > 0 && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {listings.map((listing) => {
+                const images = (listing as any).images as string[] | undefined;
+                const primaryIndex = (listing as any).primaryImageIndex as number | undefined;
+                const thumbnailUrl = images?.length
+                  ? (images[primaryIndex ?? 0] ?? images[0])
+                  : null;
+
+                const categoryName = (listing as any).categoryName as string | undefined;
+                const createdAt = listing.createdAt
+                  ? new Date(listing.createdAt as any).toLocaleDateString()
+                  : null;
+
+                return (
+                  <article
+                    key={listing.id}
+                    className="flex gap-3 rounded-lg border border-border p-3"
+                    data-testid="bp-listing-card"
+                  >
+                    {thumbnailUrl && (
+                      <div className="h-14 w-14 flex-none overflow-hidden rounded-md bg-muted">
+                        <img
+                          src={thumbnailUrl}
+                          alt={listing.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold">{listing.title}</div>
+                          {listing.description && (
+                            <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                              {listing.description}
+                            </div>
+                          )}
+                        </div>
+                        <div className="shrink-0 text-sm font-semibold">
+                          ${formatListingPrice(listing.price)}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span>
+                          {listing.state}
+                          {listing.county ? ` / ${listing.county}` : ""}
+                        </span>
+                        {categoryName ? <span>• {categoryName}</span> : null}
+                        {createdAt ? <span>• {createdAt}</span> : null}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Separator className="my-6" />
 

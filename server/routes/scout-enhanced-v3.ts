@@ -272,9 +272,9 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
     // Get Gemini API key
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
-      return res.status(500).json({
+      return res.status(503).json({
         error: "Gemini API key not configured",
-        message: "GEMINI_API_KEY environment variable is required",
+        message: "GEMINI_API_KEY environment variable is missing",
       });
     }
 

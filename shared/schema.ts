@@ -6099,6 +6099,36 @@ export const hoaVoteResponses = pgTable(
   ]
 );
 
+// Structured metadata for board role transfer votes.
+// Keeps transfer targets deterministic without overloading vote description text.
+export const hoaVoteBoardTransfers = pgTable(
+  "hoa_vote_board_transfers",
+  {
+    voteId: varchar("vote_id")
+      .primaryKey()
+      .references(() => hoaVotes.id, { onDelete: "cascade" }),
+    hoaId: varchar("hoa_id")
+      .notNull()
+      .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+    targetRole: varchar("target_role").notNull(),
+    nomineeUserId: varchar("nominee_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    initiatedByUserId: varchar("initiated_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    initiationReason: text("initiation_reason").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_hoa_vote_board_transfers_hoa").on(table.hoaId),
+    index("idx_hoa_vote_board_transfers_role").on(table.targetRole),
+    index("idx_hoa_vote_board_transfers_nominee").on(table.nomineeUserId),
+    index("idx_hoa_vote_board_transfers_initiator").on(table.initiatedByUserId),
+    index("idx_hoa_vote_board_transfers_created_at").on(table.createdAt),
+  ]
+);
+
 export const hoaServiceRequests = pgTable("hoa_service_requests", {
   id: varchar("id")
     .primaryKey()
@@ -6189,6 +6219,34 @@ export const hoaMembers = pgTable(
     index("idx_hoa_members_hoa").on(table.hoaId),
     index("idx_hoa_members_user").on(table.userId),
     index("idx_hoa_members_role").on(table.role),
+  ]
+);
+
+// HOA membership departures (self-service leave reasons)
+export const hoaMembershipDepartures = pgTable(
+  "hoa_membership_departures",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    hoaId: varchar("hoa_id")
+      .notNull()
+      .references(() => homeownerAssociations.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    actorUserId: varchar("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    membershipRole: varchar("membership_role"),
+    reason: text("reason").notNull(),
+    leftAt: timestamp("left_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_hoa_membership_departures_hoa").on(table.hoaId),
+    index("idx_hoa_membership_departures_user").on(table.userId),
+    index("idx_hoa_membership_departures_actor").on(table.actorUserId),
+    index("idx_hoa_membership_departures_left_at").on(table.leftAt),
   ]
 );
 

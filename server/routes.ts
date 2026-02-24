@@ -2145,12 +2145,29 @@ export async function registerRoutes(app: any) {
         updatePayload.status = "active";
       }
 
+      const userRecord = await storage.getUser(userId);
+      const currentPreferences = ((userRecord as any)?.preferences || {}) as Record<string, any>;
+      const nextPreferences: Record<string, any> = {
+        ...currentPreferences,
+        affiliate: {
+          ...(currentPreferences.affiliate || {}),
+          payoutMethod:
+            typeof payoutMethod === "string" && payoutMethod.trim() ? payoutMethod : null,
+          payoutDetails: payoutDetails && typeof payoutDetails === "object" ? payoutDetails : null,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      await storage.updateUser(userId, {
+        preferences: nextPreferences as any,
+      } as any);
+
       const updatedProgram = await storage.updateAffiliateProgram(program.id, updatePayload as any);
 
       return res.json({
         ...updatedProgram,
-        payoutMethod: payoutMethod || null,
-        payoutDetails: payoutDetails || null,
+        payoutMethod: (nextPreferences.affiliate as any)?.payoutMethod || null,
+        payoutDetails: (nextPreferences.affiliate as any)?.payoutDetails || null,
       });
     } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
@@ -12108,6 +12125,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     try {
       const filters = {
         categoryId: req.query.categoryId as string,
+        sellerId: req.query.sellerId as string,
         county: req.query.county as string,
         state: req.query.state as string,
         priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
@@ -15872,7 +15890,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Convert referral when user signs up
   app.post("/api/affiliate/convert", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -15910,17 +15928,30 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       }
 
-      const commission = await storage.createCommission({
+      const revenue = Number(revenueAmount);
+      const commissionValue = Number(commissionAmount);
+      if (
+        !Number.isFinite(revenue) ||
+        revenue <= 0 ||
+        !Number.isFinite(commissionValue) ||
+        commissionValue <= 0
+      ) {
+        return res.status(400).json({
+          message: "Revenue amount and commission amount must be positive numbers",
+        });
+      }
+
+      const createdCommission = await storage.createCommission({
         affiliateProgramId,
         referralId,
         transactionId,
-        revenueAmount: revenueAmount.toString(),
-        commissionAmount: commissionAmount.toString(),
+        revenueAmount: revenue.toString(),
+        commissionAmount: commissionValue.toString(),
         // description: description || 'Commission earned',
         status: "pending",
       });
 
-      res.status(201).json(commission);
+      res.status(201).json(createdCommission);
     } catch (error: any) {
       console.error("Error creating commission:", error);
       res.status(500).json({ message: "Failed to create commission" });
@@ -15930,7 +15961,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get referrals for affiliate
   app.get("/api/affiliate/referrals", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -15951,7 +15982,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get commissions for affiliate
   app.get("/api/affiliate/commissions", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -15972,7 +16003,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get payouts for affiliate
   app.get("/api/affiliate/payouts", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -15996,7 +16027,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        const userId = req.user?.claims?.sub;
+        const userId = req.user?.claims?.sub || req.user?.id;
         if (!userId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
@@ -16022,7 +16053,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Admin: Create payout
   app.post("/api/admin/affiliate/payouts", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -16063,7 +16094,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        const userId = req.user?.claims?.sub;
+        const userId = req.user?.claims?.sub || req.user?.id;
         if (!userId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
@@ -16091,34 +16122,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
     }
   );
-
-  // Update affiliate program settings
-  app.put("/api/affiliate/settings", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const program = await storage.getAffiliateProgram(userId);
-      if (!program) {
-        return res.status(404).json({ message: "Affiliate program not found" });
-      }
-
-      const { payoutMethod, payoutDetails } = req.body;
-
-      const updatedProgram = await storage.updateAffiliateProgram(program.id, {});
-
-      res.json({
-        ...updatedProgram,
-        payoutMethod,
-        payoutDetails,
-      });
-    } catch (error: any) {
-      console.error("Error updating affiliate settings:", error);
-      res.status(500).json({ message: "Failed to update affiliate settings" });
-    }
-  });
 
   // Initialize WebSocket server
   // Tutorial Management Routes
@@ -19720,6 +19723,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     getHOAFinances,
     getHOAVendors,
     getHOAVotes,
+    initiateBoardTransferVote,
     submitVote,
     requestVendorService,
     collectHOAFee,
@@ -19728,6 +19732,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     getHOAMembers,
     addHOAMember,
     updateHOAMemberRole,
+    leaveHOA,
   } = await import("./routes/hoa");
 
   app.get("/api/hoa/search", searchHOAs);
@@ -19736,10 +19741,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/hoa/:hoaId/members", isAuthenticated, getHOAMembers);
   app.post("/api/hoa/:hoaId/members", isAuthenticated, addHOAMember);
   app.put("/api/hoa/:hoaId/members/:memberId/role", isAuthenticated, updateHOAMemberRole);
+  app.delete("/api/hoa/:hoaId/membership", isAuthenticated, leaveHOA);
   app.get("/api/hoa/:hoaId/finances", getHOAFinances);
   app.get("/api/hoa/:hoaId/vendors", getHOAVendors);
   app.get("/api/hoa/:hoaId/votes", getHOAVotes);
   app.post("/api/hoa/votes/:voteId/submit", isAuthenticated, submitVote);
+  app.post("/api/hoa/:hoaId/votes/board-transfer", isAuthenticated, initiateBoardTransferVote);
   app.post("/api/hoa/vendors/:vendorId/request", isAuthenticated, requestVendorService);
   app.post("/api/hoa/collect-fee", isAuthenticated, collectHOAFee);
 

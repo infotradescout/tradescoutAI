@@ -68,8 +68,8 @@ const validateSIDAAuth = (req: Request, res: Response, next: Function) => {
     next();
   } catch (error) {
     console.error("[SIDA] Auth middleware error:", error);
-    return res.status(500).json({
-      error: "Authentication validation failed",
+    return res.status(403).json({
+      error: "Authentication check failed",
     });
   }
 };

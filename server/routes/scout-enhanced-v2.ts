@@ -1,12 +1,12 @@
 /**
  * Enhanced Scout Router v2 - Tool Result Feedback Loop
- * 
+ *
  * This module extends scout-enhanced.ts with:
  * 1. Multi-turn reasoning with tool result feedback
  * 2. Adaptive tool selection based on previous results
  * 3. Error recovery and fallback strategies
  * 4. Outcome validation and learning
- * 
+ *
  * This enables Scout to execute a tool, see the results, and decide
  * if it needs to call another tool or if it has enough information
  * to provide a complete answer to the user.
@@ -273,9 +273,9 @@ router.post("/message-v2", async (req: Request, res: Response) => {
     // Get Gemini API key
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
-      return res.status(500).json({
+      return res.status(503).json({
         error: "Gemini API key not configured",
-        message: "GEMINI_API_KEY environment variable is required",
+        message: "GEMINI_API_KEY environment variable is missing",
       });
     }
 

@@ -55,6 +55,16 @@ import { ACCOUNT_CREATION_USER_TYPES } from "@shared/userTypes";
 
 type HandednessPreference = "right" | "left";
 
+type HoaMembership = {
+  hoaId: string;
+  hoaName: string;
+  role: string;
+  status: string;
+  stateCode: string | null;
+  countyFips: string | null;
+  groupType?: string;
+};
+
 export default function Settings() {
   const { user, refetch } = useAuth();
   const { toast } = useToast();
@@ -212,6 +222,21 @@ export default function Settings() {
     enabled: Boolean(user),
     retry: false,
   });
+
+  const { data: hoaMembershipData } = useQuery<{ memberships: HoaMembership[] }>({
+    queryKey: ["/api/hoa"],
+    queryFn: async () => {
+      const res = await fetch("/api/hoa");
+      if (!res.ok) throw new Error("Failed to load HOA memberships");
+      return res.json();
+    },
+    enabled: Boolean(user),
+    retry: false,
+  });
+
+  const memberships = hoaMembershipData?.memberships ?? [];
+  const activeHoaId = memberships[0]?.hoaId;
+  const activeHoaName = memberships[0]?.hoaName;
 
   // Get user's current roles
   const userRoles = user?.roles || [user?.role].filter(Boolean);
@@ -563,6 +588,38 @@ export default function Settings() {
 
   const [advancedNotificationPrefsOpen, setAdvancedNotificationPrefsOpen] = useState(false);
 
+  const leaveHoAMutation = useMutation({
+    mutationFn: async (data: { reason: string }) => {
+      if (!activeHoaId) throw new Error("No active HOA membership");
+      const response = await fetch(`/api/hoa/${activeHoaId}/membership`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: data.reason }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Failed to leave HOA");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "You left the HOA",
+        description: "Your membership has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/hoa"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Unable to leave HOA",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUploadClick = () => fileInputRef.current?.click();
 
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -658,6 +715,52 @@ export default function Settings() {
             {/* Profile Settings */}
             <TabsContent value="profile">
               <div className="space-y-6">
+                {activeHoaId && (
+                  <Card className="bg-tsCard border-tsBorder shadow-xl">
+                    <CardHeader className="border-b border-tsBorder pb-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <CardTitle className="text-xl text-white">HOA Membership</CardTitle>
+                          <p className="text-sm text-slate-400 mt-1">
+                            Leave through the official channel (reason required).
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          disabled={leaveHoAMutation.isPending}
+                          onClick={() => {
+                            const reason = window.prompt(
+                              `Why are you leaving ${activeHoaName || "this HOA"}? (min 5 characters)`
+                            );
+                            if (!reason) return;
+                            if (reason.trim().length < 5) {
+                              toast({
+                                title: "Reason required",
+                                description: "Please provide at least 5 characters.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            leaveHoAMutation.mutate({ reason: reason.trim() });
+                          }}
+                        >
+                          Leave HOA
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="text-sm text-slate-300">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-slate-400">Current HOA</span>
+                          <span className="text-white font-medium">
+                            {activeHoaName || "Your HOA"}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card className="bg-tsCard border-tsBorder shadow-xl">
                   <CardHeader className="border-b border-tsBorder pb-6">
                     <div className="flex items-center gap-3">

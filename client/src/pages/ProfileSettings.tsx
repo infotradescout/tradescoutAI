@@ -52,6 +52,7 @@ export default function ProfileSettings() {
   const { updateCustomColors, setTheme } = useTheme();
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
+  const [profileSlug, setProfileSlug] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences>({
     defaultHomePage: "llm",
     profileVisibility: "public",
@@ -165,6 +166,38 @@ export default function ProfileSettings() {
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProfileSlug = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch("/api/profiles", { credentials: "include" });
+        if (!res.ok) return;
+        const list = (await res.json()) as Array<{ id: string; slug: string; status?: string }>;
+        if (!Array.isArray(list) || list.length === 0) return;
+
+        const activeProfileId = (user as any).activeProfileId as string | undefined;
+        let active = activeProfileId ? list.find((p) => p.id === activeProfileId) : undefined;
+        if (!active) {
+          active = (list.find((p) => (p as any).status === "published") as any) || list[0];
+        }
+
+        if (!cancelled) {
+          setProfileSlug(active?.slug || null);
+        }
+      } catch (err) {
+        console.error("Error loading profile site slug for public links:", err);
+      }
+    };
+
+    loadProfileSlug();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // Lightweight onboarding hint when redirected after social sign-up
   const isOnboarding = location.includes("onboarding=1");
@@ -597,6 +630,82 @@ export default function ProfileSettings() {
           </p>
         )}
       </div>
+
+      {/* Public Pages */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutTemplate className="h-5 w-5 text-tsAccent" />
+            Public pages
+          </CardTitle>
+          <CardDescription>
+            Share your public pages. Contact stays routed through TradeScout.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Profile page</div>
+              <div className="text-xs text-tsTextMuted break-all">
+                {profileSlug ? `${window.location.origin}/u/${profileSlug}` : "Not published yet"}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!profileSlug}
+                onClick={() => profileSlug && navigate(`/u/${profileSlug}`)}
+              >
+                View
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!profileSlug}
+                onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Business page</div>
+              <div className="text-xs text-tsTextMuted break-all">
+                {(user as any)?.businessSlug
+                  ? `${window.location.origin}/business/${(user as any).businessSlug}`
+                  : "Not published yet"}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!(user as any)?.businessSlug}
+                onClick={() =>
+                  (user as any)?.businessSlug &&
+                  navigate(`/business/${encodeURIComponent((user as any).businessSlug)}`)
+                }
+              >
+                View
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!(user as any)?.businessSlug}
+                onClick={() =>
+                  (user as any)?.businessSlug &&
+                  navigate(`/business/${encodeURIComponent((user as any).businessSlug)}/edit`)
+                }
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Color Scheme */}
       <Card>

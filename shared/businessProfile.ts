@@ -20,6 +20,14 @@ export interface BusinessProfile {
   stateCode: string; // State abbreviation (e.g., "TX")
   serviceAreas: string[]; // Array of county FIPS codes
   website?: string | null; // External website (optional)
+  customDomain?: string | null;
+  customDomainVerification?: {
+    state: "unverified" | "pending" | "verified" | "failed";
+    token?: string | null;
+    verifiedAt?: string | null;
+    lastCheckedAt?: string | null;
+    error?: string | null;
+  } | null;
   verificationStatus?: string | null;
   addressVerified?: boolean;
   cvsScore?: number | string | null;
