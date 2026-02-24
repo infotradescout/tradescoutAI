@@ -950,6 +950,104 @@ export function mountAdminRoutes(app: any) {
     }
   );
 
+  // ---------------------------------------------------------------------------
+  // Admin User Deletion (super admin only)
+  // ---------------------------------------------------------------------------
+  app.delete(
+    "/api/admin/users/:userId",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { userId } = req.params;
+        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
+
+        // Prevent self-deletion
+        if (userId === adminUserId) {
+          return res.status(400).json({ message: "Cannot delete your own account" });
+        }
+
+        // Check if target user exists
+        const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Prevent deletion of other admins unless you're head_admin
+        const targetRole = targetUser.role || "";
+        const adminRole = adminUser?.role || "";
+        const adminRoles = ["moderator", "ops_admin", "super_admin", "head_admin"];
+
+        if (adminRoles.includes(targetRole) && adminRole !== "head_admin") {
+          return res.status(403).json({
+            message: "Only head_admin can delete admin accounts",
+          });
+        }
+
+        // Perform deletion
+        await storage.deleteUser(userId);
+
+        console.log(
+          `[ADMIN_USER_DELETE] admin=${adminUserId} role=${adminRole} targetUser=${userId} targetEmail=${targetUser.email} targetRole=${targetRole} timestamp=${new Date().toISOString()}`
+        );
+
+        res.json({
+          success: true,
+          message: "User account deleted successfully",
+        });
+      } catch (error: any) {
+        console.error("Error deleting user:", error);
+        res.status(500).json({ message: "Failed to delete user account" });
+      }
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // Admin Community Post Deletion (super admin only)
+  // ---------------------------------------------------------------------------
+  app.delete(
+    "/api/admin/community/posts/:postId",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { postId } = req.params;
+        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
+        const adminRole = adminUser?.role || "";
+
+        const { communityPosts } = await import("../../shared/schema");
+
+        // Check if post exists
+        const [post] = await db
+          .select()
+          .from(communityPosts)
+          .where(eq(communityPosts.id, postId))
+          .limit(1);
+
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Delete the post
+        await db.delete(communityPosts).where(eq(communityPosts.id, postId));
+
+        console.log(
+          `[ADMIN_POST_DELETE] admin=${adminUserId} role=${adminRole} postId=${postId} authorId=${post.authorId} timestamp=${new Date().toISOString()}`
+        );
+
+        res.json({
+          success: true,
+          message: "Community post deleted successfully",
+        });
+      } catch (error: any) {
+        console.error("Error deleting community post:", error);
+        res.status(500).json({ message: "Failed to delete community post" });
+      }
+    }
+  );
+
   app.post(
     "/api/admin/users/:userId/impersonate",
     isAuthenticated,
