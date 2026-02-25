@@ -24,14 +24,14 @@ import { TradeBadge, TradeCategoryHeader } from "@/components/ui/TradeBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getRoleDisplayName, 
+import {
+  getRoleDisplayName,
   getTradeDisplayName,
   getRolePermissions,
   getRoleHierarchyLevel,
   canUserPerformAction,
   ROLE_CATEGORIES,
-  TRADE_CATEGORIES
+  TRADE_CATEGORIES,
 } from "@shared/roles";
 import type { UserRole, TradeCategory } from "@shared/roles";
 import { Users, Shield, Settings, Eye } from "lucide-react";
@@ -81,9 +81,9 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
 
   const handleRoleChange = () => {
     if (!currentUser) return;
-    
+
     const currentUserRole = currentUser.role as UserRole;
-    if (!canUserPerformAction(currentUserRole, user.role as UserRole, 'canManageRoles')) {
+    if (!canUserPerformAction(currentUserRole, user.role as UserRole, "canManageRoles")) {
       toast({
         title: "Permission Denied",
         description: "You don't have permission to change this user's role",
@@ -116,14 +116,14 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
                     Change Role
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl">
                   <DialogHeader>
                     <DialogTitle>Change User Role</DialogTitle>
                     <DialogDescription>
                       Select a new role for {user.firstName} {user.lastName}
                     </DialogDescription>
                   </DialogHeader>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="text-sm font-medium mb-3">Current Role</h4>
@@ -132,10 +132,13 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
                         <RoleHierarchy role={user.role as UserRole} showLevel />
                       </div>
                     </div>
-                    
+
                     <div>
                       <h4 className="text-sm font-medium mb-3">New Role</h4>
-                      <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                      <Select
+                        value={selectedRole}
+                        onValueChange={(value) => setSelectedRole(value as UserRole)}
+                      >
                         <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
@@ -143,7 +146,7 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
                           {Object.entries(ROLE_CATEGORIES).map(([category, roles]) => (
                             <div key={category}>
                               <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground capitalize">
-                                {category.replace('_', ' ')} Roles
+                                {category.replace("_", " ")} Roles
                               </div>
                               {roles.map((role) => (
                                 <SelectItem key={role} value={role}>
@@ -156,7 +159,7 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
                           ))}
                         </SelectContent>
                       </Select>
-                      
+
                       {selectedRole && (
                         <div className="mt-2 space-y-2">
                           <RoleBadge role={selectedRole} size="lg" />
@@ -165,12 +168,12 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
                       )}
                     </div>
                   </div>
-                  
+
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsChangeRoleOpen(false)}>
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleRoleChange}
                       disabled={changeRoleMutation.isPending || selectedRole === user.role}
                     >
@@ -186,7 +189,7 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
           {user.email} • Member since {new Date(user.createdAt).toLocaleDateString()}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {/* Role Information */}
         <div>
@@ -217,7 +220,7 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
               <PermissionIndicator
                 key={permission}
                 hasPermission={hasPermission}
-                permissionName={permission.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                permissionName={permission.replace(/([A-Z])/g, " $1").toLowerCase()}
                 size="sm"
               />
             ))}
@@ -235,14 +238,14 @@ interface TradeSelectionProps {
   maxSelections?: number;
 }
 
-export function TradeSelection({ 
-  selectedTrades, 
-  onTradesChange, 
-  maxSelections = 5 
+export function TradeSelection({
+  selectedTrades,
+  onTradesChange,
+  maxSelections = 5,
 }: TradeSelectionProps) {
   const handleTradeToggle = (trade: TradeCategory) => {
     if (selectedTrades.includes(trade)) {
-      onTradesChange(selectedTrades.filter(t => t !== trade));
+      onTradesChange(selectedTrades.filter((t) => t !== trade));
     } else if (selectedTrades.length < maxSelections) {
       onTradesChange([...selectedTrades, trade]);
     }
@@ -256,12 +259,12 @@ export function TradeSelection({
           {selectedTrades.length} / {maxSelections} selected
         </Badge>
       </div>
-      
+
       {Object.entries(TRADE_CATEGORIES).map(([category, trades]) => (
         <div key={category}>
-          <TradeCategoryHeader 
-            category={category as keyof typeof TRADE_CATEGORIES} 
-            trades={[...trades] as TradeCategory[]} 
+          <TradeCategoryHeader
+            category={category as keyof typeof TRADE_CATEGORIES}
+            trades={[...trades] as TradeCategory[]}
           />
           <div className="flex flex-wrap gap-2 mt-2">
             {trades.map((trade) => (
@@ -270,7 +273,10 @@ export function TradeSelection({
                 variant={selectedTrades.includes(trade as TradeCategory) ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleTradeToggle(trade as TradeCategory)}
-                disabled={!selectedTrades.includes(trade as TradeCategory) && selectedTrades.length >= maxSelections}
+                disabled={
+                  !selectedTrades.includes(trade as TradeCategory) &&
+                  selectedTrades.length >= maxSelections
+                }
               >
                 <TradeBadge trade={trade as TradeCategory} showIcon={false} size="sm" />
               </Button>

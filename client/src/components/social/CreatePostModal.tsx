@@ -50,8 +50,18 @@ import {
 
 const createPostSchema = z.object({
   title: z.string().max(200, "Title must be less than 200 characters").optional(),
-  content: z.string().min(1, "Content is required").max(2000, "Content must be less than 2000 characters"),
-  postType: z.enum(["general", "projects", "recommendations", "questions", "marketplace", "events"]),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(2000, "Content must be less than 2000 characters"),
+  postType: z.enum([
+    "general",
+    "projects",
+    "recommendations",
+    "questions",
+    "marketplace",
+    "events",
+  ]),
   visibility: z.enum(["public", "neighborhood", "county", "state"]),
   tags: z.array(z.string()).optional(),
   imageUrls: z.array(z.string()).optional(),
@@ -82,13 +92,13 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
   });
 
   const createPostMutation = useMutation({
-    mutationFn: (data: CreatePostFormData) => apiRequest('POST', '/api/social/posts', data),
+    mutationFn: (data: CreatePostFormData) => apiRequest("POST", "/api/social/posts", data),
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Post created successfully!",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/social/feed'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
       form.reset();
       onOpenChange(false);
     },
@@ -106,61 +116,92 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
   };
 
   const addTag = () => {
-    if (currentTag.trim() && !form.getValues('tags')?.includes(currentTag.trim())) {
-      const currentTags = form.getValues('tags') || [];
-      form.setValue('tags', [...currentTags, currentTag.trim()]);
+    if (currentTag.trim() && !form.getValues("tags")?.includes(currentTag.trim())) {
+      const currentTags = form.getValues("tags") || [];
+      form.setValue("tags", [...currentTags, currentTag.trim()]);
       setCurrentTag("");
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    const currentTags = form.getValues('tags') || [];
-    form.setValue('tags', currentTags.filter(tag => tag !== tagToRemove));
+    const currentTags = form.getValues("tags") || [];
+    form.setValue(
+      "tags",
+      currentTags.filter((tag) => tag !== tagToRemove)
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       addTag();
     }
   };
 
   const postTypes = [
-    { value: "general", label: "General Discussion", icon: MessageCircle, description: "Share thoughts and general updates" },
-    { value: "projects", label: "Projects", icon: TrendingUp, description: "Showcase your home projects" },
-    { value: "recommendations", label: "Recommendations", icon: Users, description: "Share contractor or service recommendations" },
-    { value: "questions", label: "Questions", icon: HelpCircle, description: "Ask for help or advice" },
-    { value: "marketplace", label: "Marketplace", icon: ShoppingBag, description: "Buy, sell, or trade items" },
+    {
+      value: "general",
+      label: "General Discussion",
+      icon: MessageCircle,
+      description: "Share thoughts and general updates",
+    },
+    {
+      value: "projects",
+      label: "Projects",
+      icon: TrendingUp,
+      description: "Showcase your home projects",
+    },
+    {
+      value: "recommendations",
+      label: "Recommendations",
+      icon: Users,
+      description: "Share contractor or service recommendations",
+    },
+    {
+      value: "questions",
+      label: "Questions",
+      icon: HelpCircle,
+      description: "Ask for help or advice",
+    },
+    {
+      value: "marketplace",
+      label: "Marketplace",
+      icon: ShoppingBag,
+      description: "Buy, sell, or trade items",
+    },
     { value: "events", label: "Events", icon: Calendar, description: "Share community events" },
   ];
 
   const visibilityOptions = [
-    { value: "neighborhood", label: "Neighborhood", icon: MapPin, description: "Visible to your immediate neighbors" },
+    {
+      value: "neighborhood",
+      label: "Neighborhood",
+      icon: MapPin,
+      description: "Visible to your immediate neighbors",
+    },
     { value: "county", label: "Area", icon: Users, description: "Visible to your entire area" },
     { value: "state", label: "State", icon: Globe, description: "Visible to your state" },
     { value: "public", label: "Public", icon: Globe, description: "Visible to everyone" },
   ];
 
   const getPostTypeIcon = (type: string) => {
-    const postType = postTypes.find(pt => pt.value === type);
+    const postType = postTypes.find((pt) => pt.value === type);
     const IconComponent = postType?.icon || MessageCircle;
     return <IconComponent className="h-4 w-4" />;
   };
 
   const getVisibilityIcon = (visibility: string) => {
-    const visibilityOption = visibilityOptions.find(vo => vo.value === visibility);
+    const visibilityOption = visibilityOptions.find((vo) => vo.value === visibility);
     const IconComponent = visibilityOption?.icon || MapPin;
     return <IconComponent className="h-4 w-4" />;
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
-          <DialogDescription>
-            Share something with your community
-          </DialogDescription>
+          <DialogDescription>Share something with your community</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -170,16 +211,15 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
               <Avatar className="h-10 w-10">
                 <AvatarImage src={user?.profileImageUrl} />
                 <AvatarFallback className="bg-primary/10 text-primary">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  {user?.firstName?.[0]}
+                  {user?.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <div className="font-semibold text-sm">
                   {user?.firstName} {user?.lastName}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Posting as {user?.role}
-                </div>
+                <div className="text-xs text-muted-foreground">Posting as {user?.role}</div>
               </div>
             </div>
 
@@ -195,9 +235,9 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                       <Card
                         key={type.value}
                         className={`cursor-pointer transition-all ${
-                          field.value === type.value 
-                            ? 'ring-2 ring-primary bg-primary/5' 
-                            : 'hover:bg-accent'
+                          field.value === type.value
+                            ? "ring-2 ring-primary bg-primary/5"
+                            : "hover:bg-accent"
                         }`}
                         onClick={() => field.onChange(type.value)}
                       >
@@ -206,9 +246,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                             <type.icon className="h-4 w-4 text-primary" />
                             <span className="font-medium text-sm">{type.label}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {type.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">{type.description}</p>
                         </CardContent>
                       </Card>
                     ))}
@@ -226,10 +264,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                 <FormItem>
                   <FormLabel>Title (Optional)</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Give your post a title..."
-                      {...field}
-                    />
+                    <Input placeholder="Give your post a title..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -270,9 +305,9 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                       <Card
                         key={option.value}
                         className={`cursor-pointer transition-all ${
-                          field.value === option.value 
-                            ? 'ring-2 ring-primary bg-primary/5' 
-                            : 'hover:bg-accent'
+                          field.value === option.value
+                            ? "ring-2 ring-primary bg-primary/5"
+                            : "hover:bg-accent"
                         }`}
                         onClick={() => field.onChange(option.value)}
                       >
@@ -281,9 +316,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                             <option.icon className="h-4 w-4 text-primary" />
                             <span className="font-medium text-sm">{option.label}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {option.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
                         </CardContent>
                       </Card>
                     ))}
@@ -310,9 +343,9 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                   Add
                 </Button>
               </div>
-              {form.getValues('tags') && form.getValues('tags')!.length > 0 && (
+              {form.getValues("tags") && form.getValues("tags")!.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {form.getValues('tags')!.map((tag, index) => (
+                  {form.getValues("tags")!.map((tag, index) => (
                     <Badge key={index} variant="secondary" className="flex items-center gap-1">
                       #{tag}
                       <X
@@ -326,7 +359,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
             </div>
 
             {/* Preview */}
-            {(form.watch('content') || form.watch('title')) && (
+            {(form.watch("content") || form.watch("title")) && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Preview</label>
                 <Card className="border-dashed">
@@ -335,7 +368,8 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.profileImageUrl} />
                         <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                          {user?.firstName?.[0]}
+                          {user?.lastName?.[0]}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 space-y-2">
@@ -344,27 +378,27 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
                             {user?.firstName} {user?.lastName}
                           </span>
                           <div className="flex items-center gap-1">
-                            {getPostTypeIcon(form.watch('postType'))}
+                            {getPostTypeIcon(form.watch("postType"))}
                             <span className="text-xs text-muted-foreground capitalize">
-                              {form.watch('postType')}
+                              {form.watch("postType")}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            {getVisibilityIcon(form.watch('visibility'))}
+                            {getVisibilityIcon(form.watch("visibility"))}
                             <span className="text-xs text-muted-foreground capitalize">
-                              {form.watch('visibility')}
+                              {form.watch("visibility")}
                             </span>
                           </div>
                         </div>
-                        {form.watch('title') && (
-                          <h4 className="font-semibold text-sm">{form.watch('title')}</h4>
+                        {form.watch("title") && (
+                          <h4 className="font-semibold text-sm">{form.watch("title")}</h4>
                         )}
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {form.watch('content')}
+                          {form.watch("content")}
                         </p>
-                        {form.watch('tags') && form.watch('tags')!.length > 0 && (
+                        {form.watch("tags") && form.watch("tags")!.length > 0 && (
                           <div className="flex flex-wrap gap-1">
-                            {form.watch('tags')!.map((tag, index) => (
+                            {form.watch("tags")!.map((tag, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 #{tag}
                               </Badge>
@@ -380,11 +414,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
 
             {/* Actions */}
             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button

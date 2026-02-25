@@ -332,7 +332,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
         {/* Topic Detail Modal */}
         {selectedTopic && (
           <Dialog open={!!selectedTopic} onOpenChange={() => setSelectedTopic(null)}>
-            <DialogContent className="max-w-3xl bg-navy-800 border-navy-600 text-white">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl bg-navy-800 border-navy-600 text-white">
               <DialogHeader>
                 <DialogTitle className="flex items-center text-orange-400">
                   {selectedTopic.illustration === "hardhat" && <HardHat className="h-5 w-5 mr-2" />}

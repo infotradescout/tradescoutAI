@@ -1,8 +1,8 @@
 /**
  * ScoutCopyAssistModal
- * 
+ *
  * Modal dialog showing 2 read-only copy variants with explicit "Use this" acceptance.
- * 
+ *
  * Props:
  * - isOpen: boolean
  * - onClose: () => void
@@ -12,7 +12,13 @@
  * - isLoading?: boolean
  */
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Sparkles } from "lucide-react";
@@ -25,7 +31,9 @@ interface ScoutCopyAssistModalProps {
   variants: ScoutCopyVariant[];
   currentDescription: string;
   onAccept: (variantId: "safe" | "growth") => void;
-  isLoading?: boolean;  field?: 'description' | 'headline' | 'services';}
+  isLoading?: boolean;
+  field?: "description" | "headline" | "services";
+}
 
 export function ScoutCopyAssistModal({
   isOpen,
@@ -34,7 +42,7 @@ export function ScoutCopyAssistModal({
   currentDescription,
   onAccept,
   isLoading = false,
-  field = 'description',
+  field = "description",
 }: ScoutCopyAssistModalProps) {
   const handleClose = () => {
     recordCopyAssistTelemetry("closed");
@@ -47,27 +55,28 @@ export function ScoutCopyAssistModal({
     handleClose();
   };
 
-  const safeVariant = variants.find(v => v.id === "safe");
-  const growthVariant = variants.find(v => v.id === "growth");
+  const safeVariant = variants.find((v) => v.id === "safe");
+  const growthVariant = variants.find((v) => v.id === "growth");
 
   const fieldLabels = {
-    description: 'Description',
-    headline: 'Headline',
-    services: 'Services',
+    description: "Description",
+    headline: "Headline",
+    services: "Services",
   };
 
-  const fieldLabel = fieldLabels[field] || 'Description';
+  const fieldLabel = fieldLabels[field] || "Description";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-accent" />
             Scout {fieldLabel} Suggestions
           </DialogTitle>
           <DialogDescription>
-            Choose a variant to improve your {fieldLabel.toLowerCase()}. Changes are not automatic—you must explicitly accept one.
+            Choose a variant to improve your {fieldLabel.toLowerCase()}. Changes are not
+            automatic—you must explicitly accept one.
           </DialogDescription>
         </DialogHeader>
 
@@ -77,7 +86,9 @@ export function ScoutCopyAssistModal({
             <div className="bg-muted rounded-lg p-4 border border-muted-foreground/20">
               <p className="text-sm font-medium mb-2">Your current description</p>
               <p className="text-sm text-muted-foreground">{currentDescription}</p>
-              <p className="text-xs text-muted-foreground mt-2">{currentDescription.length} characters</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {currentDescription.length} characters
+              </p>
             </div>
           )}
 
@@ -91,7 +102,9 @@ export function ScoutCopyAssistModal({
               </div>
               <div className="bg-muted/50 rounded p-3 min-h-[100px] flex flex-col justify-between">
                 <p className="text-sm">{safeVariant?.text}</p>
-                <p className="text-xs text-muted-foreground mt-2">{safeVariant?.text?.length || 0} characters</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {safeVariant?.text?.length || 0} characters
+                </p>
               </div>
               <p className="text-xs text-muted-foreground italic">
                 Rationale: {safeVariant?.rationale}
@@ -114,7 +127,9 @@ export function ScoutCopyAssistModal({
               </div>
               <div className="bg-muted/50 rounded p-3 min-h-[100px] flex flex-col justify-between">
                 <p className="text-sm">{growthVariant?.text}</p>
-                <p className="text-xs text-muted-foreground mt-2">{growthVariant?.text?.length || 0} characters</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {growthVariant?.text?.length || 0} characters
+                </p>
               </div>
               <p className="text-xs text-muted-foreground italic">
                 Rationale: {growthVariant?.rationale}
@@ -132,11 +147,7 @@ export function ScoutCopyAssistModal({
 
           {/* Footer */}
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              onClick={handleClose}
-              variant="ghost"
-              size="sm"
-            >
+            <Button onClick={handleClose} variant="ghost" size="sm">
               Close
             </Button>
           </div>

@@ -4,20 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Star, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  Calendar, 
-  Briefcase, 
+import {
+  Star,
+  MapPin,
+  Clock,
+  DollarSign,
+  Calendar,
+  Briefcase,
   GraduationCap,
   Award,
   MessageSquare,
   Shield,
   CheckCircle,
   Building,
-  User
+  User,
 } from "lucide-react";
 
 interface WorkExperience {
@@ -86,12 +86,14 @@ interface HelperProfileModalProps {
 }
 
 export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'experience' | 'portfolio' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<"overview" | "experience" | "portfolio" | "reviews">(
+    "overview"
+  );
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      month: 'short', 
-      year: 'numeric' 
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
     });
   };
 
@@ -99,12 +101,12 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
     return `${firstName.charAt(0)}${lastName.charAt(0)}`;
   };
 
-  const platformJobs = helper.workExperience?.filter(exp => exp.fromPlatform) || [];
-  const otherJobs = helper.workExperience?.filter(exp => !exp.fromPlatform) || [];
+  const platformJobs = helper.workExperience?.filter((exp) => exp.fromPlatform) || [];
+  const otherJobs = helper.workExperience?.filter((exp) => !exp.fromPlatform) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-popover border-border">
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-popover border-border">
         <DialogHeader className="pb-6">
           <div className="flex items-start gap-4">
             <Avatar className="h-20 w-20">
@@ -113,21 +115,23 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                 {getInitials(helper.firstName, helper.lastName)}
               </AvatarFallback>
             </Avatar>
-            
+
             <div className="flex-1">
               <DialogTitle className="text-2xl font-bold text-foreground mb-2">
                 {helper.firstName} {helper.lastName}
               </DialogTitle>
-              
+
               <div className="flex items-center gap-4 mb-3">
                 {helper.averageRating && (
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-warning fill-current mr-1" />
                     <span className="text-foreground font-medium">{helper.averageRating}</span>
-                    <span className="text-muted-foreground ml-1">({helper.totalJobsCompleted} jobs)</span>
+                    <span className="text-muted-foreground ml-1">
+                      ({helper.totalJobsCompleted} jobs)
+                    </span>
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-2">
                   {helper.isIdVerified && (
                     <Badge className="bg-success/10 text-success-foreground border-success/30">
@@ -148,7 +152,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 {helper.city && (
                   <div className="flex items-center">
@@ -170,13 +174,16 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                 )}
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-2">
               <Button className="bg-orange-500 hover:bg-orange-600">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Contact Helper
               </Button>
-              <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+              <Button
+                variant="outline"
+                className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+              >
                 Hire for Job
               </Button>
             </div>
@@ -186,41 +193,41 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
         {/* Tab Navigation */}
         <div className="flex border-b border-navy-600 mb-6">
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={() => setActiveTab("overview")}
             className={`px-4 py-2 font-medium ${
-              activeTab === 'overview'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
+              activeTab === "overview"
+                ? "text-orange-500 border-b-2 border-orange-500"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             Overview
           </button>
           <button
-            onClick={() => setActiveTab('experience')}
+            onClick={() => setActiveTab("experience")}
             className={`px-4 py-2 font-medium ${
-              activeTab === 'experience'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
+              activeTab === "experience"
+                ? "text-orange-500 border-b-2 border-orange-500"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             Experience
           </button>
           <button
-            onClick={() => setActiveTab('portfolio')}
+            onClick={() => setActiveTab("portfolio")}
             className={`px-4 py-2 font-medium ${
-              activeTab === 'portfolio'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
+              activeTab === "portfolio"
+                ? "text-orange-500 border-b-2 border-orange-500"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             Portfolio
           </button>
           <button
-            onClick={() => setActiveTab('reviews')}
+            onClick={() => setActiveTab("reviews")}
             className={`px-4 py-2 font-medium ${
-              activeTab === 'reviews'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
+              activeTab === "reviews"
+                ? "text-orange-500 border-b-2 border-orange-500"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             RECOMMENDATIONS
@@ -229,7 +236,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
 
         {/* Tab Content */}
         <div className="space-y-6">
-          {activeTab === 'overview' && (
+          {activeTab === "overview" && (
             <>
               {/* Bio */}
               {helper.bio && (
@@ -272,7 +279,10 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   <h3 className="text-lg font-semibold text-white mb-3">Recent TradeScout Jobs</h3>
                   <div className="space-y-3">
                     {platformJobs.slice(0, 3).map((job, index) => (
-                      <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+                      <div
+                        key={index}
+                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
@@ -284,7 +294,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                         </div>
                         <p className="text-gray-300 text-sm mb-2">{job.description}</p>
                         <p className="text-gray-400 text-xs">
-                          {formatDate(job.startDate)} - {job.endDate ? formatDate(job.endDate) : 'Present'}
+                          {formatDate(job.startDate)} -{" "}
+                          {job.endDate ? formatDate(job.endDate) : "Present"}
                         </p>
                       </div>
                     ))}
@@ -294,7 +305,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             </>
           )}
 
-          {activeTab === 'experience' && (
+          {activeTab === "experience" && (
             <div className="space-y-6">
               {/* Platform Jobs */}
               {platformJobs.length > 0 && (
@@ -305,7 +316,10 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-4">
                     {platformJobs.map((job, index) => (
-                      <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+                      <div
+                        key={index}
+                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
@@ -317,7 +331,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                         </div>
                         <p className="text-gray-300 mb-3">{job.description}</p>
                         <p className="text-gray-400 text-sm">
-                          {formatDate(job.startDate)} - {job.endDate ? formatDate(job.endDate) : 'Present'}
+                          {formatDate(job.startDate)} -{" "}
+                          {job.endDate ? formatDate(job.endDate) : "Present"}
                         </p>
                       </div>
                     ))}
@@ -334,7 +349,10 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-4">
                     {otherJobs.map((job, index) => (
-                      <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+                      <div
+                        key={index}
+                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
@@ -348,7 +366,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                         </div>
                         <p className="text-gray-300 mb-3">{job.description}</p>
                         <p className="text-gray-400 text-sm">
-                          {formatDate(job.startDate)} - {job.endDate ? formatDate(job.endDate) : 'Present'}
+                          {formatDate(job.startDate)} -{" "}
+                          {job.endDate ? formatDate(job.endDate) : "Present"}
                         </p>
                       </div>
                     ))}
@@ -365,7 +384,10 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-3">
                     {helper.education.map((edu, index) => (
-                      <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+                      <div
+                        key={index}
+                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                      >
                         <h4 className="font-medium text-white">{edu.degree}</h4>
                         <p className="text-purple-400">{edu.school}</p>
                         {edu.fieldOfStudy && (
@@ -389,7 +411,10 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-3">
                     {helper.certifications.map((cert, index) => (
-                      <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+                      <div
+                        key={index}
+                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                      >
                         <h4 className="font-medium text-white">{cert.name}</h4>
                         <p className="text-yellow-400">{cert.issuer}</p>
                         <div className="flex items-center justify-between mt-2">
@@ -410,7 +435,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             </div>
           )}
 
-          {activeTab === 'portfolio' && (
+          {activeTab === "portfolio" && (
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">Portfolio</h3>
               {helper.portfolioItems && helper.portfolioItems.length > 0 ? (
@@ -418,8 +443,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   {helper.portfolioItems.map((item, index) => (
                     <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
                       {item.imageUrl && (
-                        <img 
-                          src={item.imageUrl} 
+                        <img
+                          src={item.imageUrl}
                           alt={item.title}
                           className="w-full h-48 object-cover rounded-lg mb-3"
                         />
@@ -435,7 +460,11 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                       <p className="text-gray-300 text-sm mb-3">{item.description}</p>
                       <div className="flex flex-wrap gap-1 mb-2">
                         {item.skills.map((skill, skillIndex) => (
-                          <Badge key={skillIndex} variant="secondary" className="text-xs bg-navy-600 text-gray-300">
+                          <Badge
+                            key={skillIndex}
+                            variant="secondary"
+                            className="text-xs bg-navy-600 text-gray-300"
+                          >
                             {skill}
                           </Badge>
                         ))}
@@ -455,13 +484,15 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             </div>
           )}
 
-          {activeTab === 'reviews' && (
+          {activeTab === "reviews" && (
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">RECOMMENDATIONS & Ratings</h3>
               <div className="text-center py-8">
                 <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400">RECOMMENDATIONS will be loaded here</p>
-                <p className="text-gray-500 text-sm">This feature connects to the worker RECOMMENDATIONS system</p>
+                <p className="text-gray-500 text-sm">
+                  This feature connects to the worker RECOMMENDATIONS system
+                </p>
               </div>
             </div>
           )}

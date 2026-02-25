@@ -552,7 +552,7 @@ export default function UserManagement() {
 
       {/* Edit User Roles Dialog */}
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit User Roles</DialogTitle>
           </DialogHeader>
