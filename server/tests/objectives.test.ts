@@ -12,7 +12,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { objectives, objectiveEvents, workRequests } from "@shared/schema";
+import { objectives, objectiveEvents } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import {
   classifyUserIntent,
@@ -286,9 +286,11 @@ describeWithDb("Objectives Layer - Phase 1", () => {
         .where(eq(objectives.id, result?.objectiveId as string))
         .then((r) => r[0]);
 
-      expect(objective.contextJson.countyFips).toBe(TEST_COUNTY_FIPS);
-      expect(objective.contextJson.stateCode).toBe(TEST_STATE_CODE);
-      expect(objective.contextJson.addressId).toBe("test-address-123");
+      expect(objective).toBeDefined();
+      const context = (objective.contextJson ?? {}) as Record<string, unknown>;
+      expect(context.countyFips).toBe(TEST_COUNTY_FIPS);
+      expect(context.stateCode).toBe(TEST_STATE_CODE);
+      expect(context.addressId).toBe("test-address-123");
     });
 
     test("objective summary is truncated message", async () => {
@@ -305,7 +307,8 @@ describeWithDb("Objectives Layer - Phase 1", () => {
         .where(eq(objectives.id, result?.objectiveId as string))
         .then((r) => r[0]);
 
-      expect(objective.summary.length).toBeLessThanOrEqual(500);
+      expect(objective).toBeDefined();
+      expect((objective.summary ?? "").length).toBeLessThanOrEqual(500);
     });
 
     test("objective title extracted from message", async () => {
