@@ -528,7 +528,7 @@ export default function Chat() {
 
       {/* Materials Dialog */}
       <Dialog open={showMaterialsDialog} onOpenChange={setShowMaterialsDialog}>
-        <DialogContent className="bg-navy-700 border-navy-600 max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-navy-700 border-navy-600 max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">
               Material Lists & Collaborative Shopping

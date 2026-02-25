@@ -1,10 +1,28 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bug, ExternalLink, Clock, CheckCircle, XCircle, AlertTriangle, User, Calendar, Globe, Smartphone, Monitor } from "lucide-react";
+import {
+  Bug,
+  ExternalLink,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  User,
+  Calendar,
+  Globe,
+  Smartphone,
+  Monitor,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,7 +50,7 @@ export default function AdminErrorReports() {
       return apiRequest("PATCH", `/api/admin/error-reports/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/error-reports'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-reports"] });
       toast({
         title: "Report Updated",
         description: "The error report has been updated successfully.",
@@ -46,15 +64,16 @@ export default function AdminErrorReports() {
     return true;
   });
 
-  const safeStatus = (status?: string | null) => status || 'open';
-  const safePriority = (priority?: string | null) => priority || 'medium';
-  const safeType = (type?: string | null) => type || 'bug';
+  const safeStatus = (status?: string | null) => status || "open";
+  const safePriority = (priority?: string | null) => priority || "medium";
+  const safeType = (type?: string | null) => type || "bug";
 
   const getSafePathname = (rawUrl?: string | null) => {
     if (!rawUrl) return null;
 
     try {
-      const base = typeof window !== 'undefined' ? window.location.origin : 'https://app.tradescout.co';
+      const base =
+        typeof window !== "undefined" ? window.location.origin : "https://app.tradescout.co";
       const url = new URL(rawUrl, base);
       return url.pathname || url.toString();
     } catch {
@@ -64,33 +83,50 @@ export default function AdminErrorReports() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-red-500/20 text-red-500';
-      case 'in_progress': return 'bg-yellow-500/20 text-yellow-500';
-      case 'resolved': return 'bg-green-500/20 text-green-500';
-      case 'closed': return 'bg-muted text-muted-foreground';
-      case 'duplicate': return 'bg-blue-500/20 text-blue-500';
-      default: return 'bg-muted text-muted-foreground';
+      case "open":
+        return "bg-red-500/20 text-red-500";
+      case "in_progress":
+        return "bg-yellow-500/20 text-yellow-500";
+      case "resolved":
+        return "bg-green-500/20 text-green-500";
+      case "closed":
+        return "bg-muted text-muted-foreground";
+      case "duplicate":
+        return "bg-blue-500/20 text-blue-500";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'low': return 'bg-green-500/20 text-green-500';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-500';
-      case 'high': return 'bg-orange-500/20 text-orange-500';
-      case 'critical': return 'bg-red-500/20 text-red-500';
-      default: return 'bg-muted text-muted-foreground';
+      case "low":
+        return "bg-green-500/20 text-green-500";
+      case "medium":
+        return "bg-yellow-500/20 text-yellow-500";
+      case "high":
+        return "bg-orange-500/20 text-orange-500";
+      case "critical":
+        return "bg-red-500/20 text-red-500";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'bug': return <Bug className="h-4 w-4" />;
-      case 'performance': return <Clock className="h-4 w-4" />;
-      case 'ui_issue': return <Monitor className="h-4 w-4" />;
-      case 'feature_request': return <AlertTriangle className="h-4 w-4" />;
-      case 'automatic_screenshot': return <Smartphone className="h-4 w-4" />;
-      default: return <Bug className="h-4 w-4" />;
+      case "bug":
+        return <Bug className="h-4 w-4" />;
+      case "performance":
+        return <Clock className="h-4 w-4" />;
+      case "ui_issue":
+        return <Monitor className="h-4 w-4" />;
+      case "feature_request":
+        return <AlertTriangle className="h-4 w-4" />;
+      case "automatic_screenshot":
+        return <Smartphone className="h-4 w-4" />;
+      default:
+        return <Bug className="h-4 w-4" />;
     }
   };
 
@@ -99,7 +135,7 @@ export default function AdminErrorReports() {
       return null;
     }
 
-    const screenshot = attachments.find((att: any) => att.type === 'screenshot');
+    const screenshot = attachments.find((att: any) => att.type === "screenshot");
     if (!screenshot || !screenshot.data) {
       return null;
     }
@@ -108,19 +144,19 @@ export default function AdminErrorReports() {
       <div className="mt-4">
         <Label className="text-sm font-medium text-muted-foreground mb-2 block">Screenshot</Label>
         <div className="border border-border rounded-lg overflow-hidden">
-            <img 
-              src={screenshot.data} 
-              alt="Bug report screenshot" 
-              className="w-full h-auto max-h-96 object-contain"
-              style={{ imageRendering: 'auto', backgroundColor: 'var(--surface-card)' }}
-            />
+          <img
+            src={screenshot.data}
+            alt="Bug report screenshot"
+            className="w-full h-auto max-h-96 object-contain"
+            style={{ imageRendering: "auto", backgroundColor: "var(--surface-card)" }}
+          />
         </div>
         <Button
           variant="outline"
           size="sm"
           className="mt-2"
           onClick={() => {
-            const link = document.createElement('a');
+            const link = document.createElement("a");
             link.href = screenshot.data;
             link.download = `bug-report-screenshot-${selectedReport?.id}.jpeg`;
             document.body.appendChild(link);
@@ -137,14 +173,14 @@ export default function AdminErrorReports() {
   const handleStatusChange = (reportId: string, newStatus: string) => {
     updateMutation.mutate({
       id: reportId,
-      data: { status: newStatus }
+      data: { status: newStatus },
     });
   };
 
   const handlePriorityChange = (reportId: string, newPriority: string) => {
     updateMutation.mutate({
       id: reportId,
-      data: { priority: newPriority }
+      data: { priority: newPriority },
     });
   };
 
@@ -212,19 +248,21 @@ export default function AdminErrorReports() {
                       {getTypeIcon(safeType(report.errorType))}
                       <h3 className="text-lg font-semibold text-foreground">{report.title}</h3>
                       <Badge className={getStatusColor(safeStatus(report.status))}>
-                        {safeStatus(report.status).replace('_', ' ').toUpperCase()}
+                        {safeStatus(report.status).replace("_", " ").toUpperCase()}
                       </Badge>
                       <Badge className={getPriorityColor(safePriority(report.priority))}>
                         {safePriority(report.priority).toUpperCase()}
                       </Badge>
                     </div>
-                    
+
                     <p className="text-muted-foreground mb-3 line-clamp-2">{report.description}</p>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'Unknown'}
+                        {report.createdAt
+                          ? new Date(report.createdAt).toLocaleDateString()
+                          : "Unknown"}
                       </div>
                       {report.userEmail && (
                         <div className="flex items-center gap-1">
@@ -236,7 +274,7 @@ export default function AdminErrorReports() {
                         <div className="flex items-center gap-1">
                           <Globe className="h-4 w-4" />
                           <span className="truncate max-w-40">
-                            {getSafePathname(report.currentUrl) ?? 'Unknown'}
+                            {getSafePathname(report.currentUrl) ?? "Unknown"}
                           </span>
                         </div>
                       )}
@@ -248,7 +286,7 @@ export default function AdminErrorReports() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 ml-4">
                     <Select
                       value={safeStatus(report.status)}
@@ -322,13 +360,13 @@ export default function AdminErrorReports() {
             <div className="space-y-6">
               <div className="flex gap-2">
                 <Badge className={getStatusColor(safeStatus(selectedReport.status))}>
-                  {safeStatus(selectedReport.status).replace('_', ' ').toUpperCase()}
+                  {safeStatus(selectedReport.status).replace("_", " ").toUpperCase()}
                 </Badge>
                 <Badge className={getPriorityColor(safePriority(selectedReport.priority))}>
                   {safePriority(selectedReport.priority).toUpperCase()}
                 </Badge>
                 <Badge variant="outline" className="border-border text-muted-foreground">
-                  {safeType(selectedReport.errorType).replace('_', ' ').toUpperCase()}
+                  {safeType(selectedReport.errorType).replace("_", " ").toUpperCase()}
                 </Badge>
               </div>
 
@@ -339,22 +377,34 @@ export default function AdminErrorReports() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">User Information</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                    User Information
+                  </h4>
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Email: {selectedReport.userEmail || 'Anonymous'}</p>
-                    <p>User ID: {selectedReport.userId || 'N/A'}</p>
-                    <p>Date: {selectedReport.createdAt ? new Date(selectedReport.createdAt).toLocaleString() : 'Unknown'}</p>
+                    <p>Email: {selectedReport.userEmail || "Anonymous"}</p>
+                    <p>User ID: {selectedReport.userId || "N/A"}</p>
+                    <p>
+                      Date:{" "}
+                      {selectedReport.createdAt
+                        ? new Date(selectedReport.createdAt).toLocaleString()
+                        : "Unknown"}
+                    </p>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Technical Details</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                    Technical Details
+                  </h4>
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Browser: {selectedReport.browserInfo?.name} {selectedReport.browserInfo?.version}</p>
+                    <p>
+                      Browser: {selectedReport.browserInfo?.name}{" "}
+                      {selectedReport.browserInfo?.version}
+                    </p>
                     <p>Platform: {selectedReport.browserInfo?.platform}</p>
-                    <p>Mobile: {selectedReport.browserInfo?.mobile ? 'Yes' : 'No'}</p>
+                    <p>Mobile: {selectedReport.browserInfo?.mobile ? "Yes" : "No"}</p>
                   </div>
                 </div>
               </div>

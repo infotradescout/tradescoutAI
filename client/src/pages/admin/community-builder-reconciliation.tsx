@@ -76,40 +76,42 @@ export default function AdminCommunityBuilderReconciliationPage() {
             {isLoading ? (
               <p className="text-gray-500">Loading...</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Area</TableHead>
-                    <TableHead className="text-right">Vault</TableHead>
-                    <TableHead className="text-right">Inflow</TableHead>
-                    <TableHead className="text-right">Outflow</TableHead>
-                    <TableHead className="text-right">Contribs</TableHead>
-                    <TableHead className="text-right">Payouts</TableHead>
-                    <TableHead className="text-right">Delta</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recs.map((r) => (
-                    <TableRow key={r.countyId}>
-                      <TableCell>{r.countyId}</TableCell>
-                      <TableCell className="text-right">${r.vaultBalance}</TableCell>
-                      <TableCell className="text-right">${r.ledgerInflow}</TableCell>
-                      <TableCell className="text-right">${r.ledgerOutflow}</TableCell>
-                      <TableCell className="text-right">{r.contributionCount}</TableCell>
-                      <TableCell className="text-right">{r.payoutCount}</TableCell>
-                      <TableCell className="text-right">
-                        {Math.abs(r.delta) < 1 ? (
-                          <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" /> OK
-                          </Badge>
-                        ) : (
-                          <Badge variant="error">{r.delta.toFixed(2)}</Badge>
-                        )}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Area</TableHead>
+                      <TableHead className="text-right">Vault</TableHead>
+                      <TableHead className="text-right">Inflow</TableHead>
+                      <TableHead className="text-right">Outflow</TableHead>
+                      <TableHead className="text-right">Contribs</TableHead>
+                      <TableHead className="text-right">Payouts</TableHead>
+                      <TableHead className="text-right">Delta</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recs.map((r) => (
+                      <TableRow key={r.countyId}>
+                        <TableCell>{r.countyId}</TableCell>
+                        <TableCell className="text-right">${r.vaultBalance}</TableCell>
+                        <TableCell className="text-right">${r.ledgerInflow}</TableCell>
+                        <TableCell className="text-right">${r.ledgerOutflow}</TableCell>
+                        <TableCell className="text-right">{r.contributionCount}</TableCell>
+                        <TableCell className="text-right">{r.payoutCount}</TableCell>
+                        <TableCell className="text-right">
+                          {Math.abs(r.delta) < 1 ? (
+                            <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> OK
+                            </Badge>
+                          ) : (
+                            <Badge variant="error">{r.delta.toFixed(2)}</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

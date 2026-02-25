@@ -377,7 +377,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
       </Tabs>
 
       <Dialog open={postOpen} onOpenChange={setPostOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{active === "job" ? "Post a job" : "Post a resume"}</DialogTitle>
           </DialogHeader>

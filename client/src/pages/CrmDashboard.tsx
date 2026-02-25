@@ -6,10 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Mail, MessageSquare, Users, DollarSign, Calendar, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,26 +74,29 @@ export default function CrmDashboard() {
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch CRM data
   const { data: contacts = [], isLoading: contactsLoading } = useQuery({
     queryKey: ["/api/crm/contacts", searchTerm],
-    queryFn: () => searchTerm ? 
-      fetch(`/api/crm/contacts?search=${encodeURIComponent(searchTerm)}`).then(res => res.json()) :
-      fetch("/api/crm/contacts").then(res => res.json()),
+    queryFn: () =>
+      searchTerm
+        ? fetch(`/api/crm/contacts?search=${encodeURIComponent(searchTerm)}`).then((res) =>
+            res.json()
+          )
+        : fetch("/api/crm/contacts").then((res) => res.json()),
   });
 
   const { data: deals = [], isLoading: dealsLoading } = useQuery({
     queryKey: ["/api/crm/deals"],
-    queryFn: () => fetch("/api/crm/deals").then(res => res.json()),
+    queryFn: () => fetch("/api/crm/deals").then((res) => res.json()),
   });
 
   const { data: activities = [], isLoading: activitiesLoading } = useQuery({
     queryKey: ["/api/crm/activities"],
-    queryFn: () => fetch("/api/crm/activities").then(res => res.json()),
+    queryFn: () => fetch("/api/crm/activities").then((res) => res.json()),
   });
 
   // Forms
@@ -118,11 +140,12 @@ export default function CrmDashboard() {
 
   // Mutations
   const createContactMutation = useMutation({
-    mutationFn: (data: any) => fetch("/api/crm/contacts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then(res => res.json()),
+    mutationFn: (data: any) =>
+      fetch("/api/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
       toast({ title: "Success", description: "Contact created successfully" });
@@ -135,11 +158,12 @@ export default function CrmDashboard() {
   });
 
   const createDealMutation = useMutation({
-    mutationFn: (data: any) => fetch("/api/crm/deals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then(res => res.json()),
+    mutationFn: (data: any) =>
+      fetch("/api/crm/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
       toast({ title: "Success", description: "Deal created successfully" });
@@ -152,11 +176,12 @@ export default function CrmDashboard() {
   });
 
   const createActivityMutation = useMutation({
-    mutationFn: (data: any) => fetch("/api/crm/activities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then(res => res.json()),
+    mutationFn: (data: any) =>
+      fetch("/api/crm/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities"] });
       toast({ title: "Success", description: "Activity logged successfully" });
@@ -169,17 +194,22 @@ export default function CrmDashboard() {
   });
 
   const sendInternalMessageMutation = useMutation({
-    mutationFn: (data: any) => fetch("/api/crm/internal-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then(res => res.json()),
+    mutationFn: (data: any) =>
+      fetch("/api/crm/internal-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then((res) => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities"] });
       toast({ title: "Success", description: "Internal message sent successfully" });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to send internal message", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to send internal message",
+        variant: "destructive",
+      });
     },
   });
 
@@ -200,13 +230,19 @@ export default function CrmDashboard() {
   const contactStats = {
     total: Array.isArray(contacts) ? contacts.length : 0,
     leads: Array.isArray(contacts) ? contacts.filter((c: any) => c.status === "lead").length : 0,
-    prospects: Array.isArray(contacts) ? contacts.filter((c: any) => c.status === "prospect").length : 0,
-    customers: Array.isArray(contacts) ? contacts.filter((c: any) => c.status === "customer").length : 0,
+    prospects: Array.isArray(contacts)
+      ? contacts.filter((c: any) => c.status === "prospect").length
+      : 0,
+    customers: Array.isArray(contacts)
+      ? contacts.filter((c: any) => c.status === "customer").length
+      : 0,
   };
 
   const dealStats = {
     total: Array.isArray(deals) ? deals.length : 0,
-    totalValue: Array.isArray(deals) ? deals.reduce((sum: number, deal: any) => sum + (parseFloat(deal.value) || 0), 0) : 0,
+    totalValue: Array.isArray(deals)
+      ? deals.reduce((sum: number, deal: any) => sum + (parseFloat(deal.value) || 0), 0)
+      : 0,
     won: Array.isArray(deals) ? deals.filter((d: any) => d.stage === "closed_won").length : 0,
     lost: Array.isArray(deals) ? deals.filter((d: any) => d.stage === "closed_lost").length : 0,
   };
@@ -219,7 +255,9 @@ export default function CrmDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">CRM Dashboard</h1>
-          <p className="text-muted-foreground">Manage contacts, deals, and customer relationships</p>
+          <p className="text-muted-foreground">
+            Manage contacts, deals, and customer relationships
+          </p>
         </div>
         <div className="flex gap-2">
           <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
@@ -229,7 +267,7 @@ export default function CrmDashboard() {
                 Add Contact
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Add New Contact</DialogTitle>
               </DialogHeader>
@@ -343,7 +381,11 @@ export default function CrmDashboard() {
                     )}
                   />
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setContactDialogOpen(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setContactDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" disabled={createContactMutation.isPending}>
@@ -362,7 +404,7 @@ export default function CrmDashboard() {
                 Add Deal
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Add New Deal</DialogTitle>
               </DialogHeader>
@@ -434,11 +476,12 @@ export default function CrmDashboard() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Array.isArray(contacts) && contacts.map((contact: any) => (
-                              <SelectItem key={contact.id} value={contact.id}>
-                                {contact.firstName} {contact.lastName} - {contact.email}
-                              </SelectItem>
-                            ))}
+                            {Array.isArray(contacts) &&
+                              contacts.map((contact: any) => (
+                                <SelectItem key={contact.id} value={contact.id}>
+                                  {contact.firstName} {contact.lastName} - {contact.email}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -459,7 +502,11 @@ export default function CrmDashboard() {
                     )}
                   />
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setDealDialogOpen(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDealDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" disabled={createDealMutation.isPending}>
@@ -550,11 +597,12 @@ export default function CrmDashboard() {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="">None</SelectItem>
-                              {Array.isArray(contacts) && contacts.map((contact: any) => (
-                                <SelectItem key={contact.id} value={contact.id}>
-                                  {contact.firstName} {contact.lastName}
-                                </SelectItem>
-                              ))}
+                              {Array.isArray(contacts) &&
+                                contacts.map((contact: any) => (
+                                  <SelectItem key={contact.id} value={contact.id}>
+                                    {contact.firstName} {contact.lastName}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -575,11 +623,12 @@ export default function CrmDashboard() {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="">None</SelectItem>
-                              {Array.isArray(deals) && deals.map((deal: any) => (
-                                <SelectItem key={deal.id} value={deal.id}>
-                                  {deal.title}
-                                </SelectItem>
-                              ))}
+                              {Array.isArray(deals) &&
+                                deals.map((deal: any) => (
+                                  <SelectItem key={deal.id} value={deal.id}>
+                                    {deal.title}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -588,7 +637,11 @@ export default function CrmDashboard() {
                     />
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setActivityDialogOpen(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setActivityDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" disabled={createActivityMutation.isPending}>
@@ -679,20 +732,26 @@ export default function CrmDashboard() {
             {contactsLoading ? (
               <div>Loading contacts...</div>
             ) : (
-              Array.isArray(contacts) && contacts.map((contact: any) => (
-                <Card key={contact.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => setSelectedContact(contact)}>
+              Array.isArray(contacts) &&
+              contacts.map((contact: any) => (
+                <Card
+                  key={contact.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedContact(contact)}
+                >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{contact.firstName} {contact.lastName}</h3>
+                        <h3 className="font-semibold">
+                          {contact.firstName} {contact.lastName}
+                        </h3>
                         <p className="text-sm text-muted-foreground">{contact.email}</p>
                         {contact.company && (
                           <p className="text-sm text-muted-foreground">{contact.company}</p>
                         )}
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant={contact.status === 'customer' ? 'default' : 'secondary'}>
+                        <Badge variant={contact.status === "customer" ? "default" : "secondary"}>
                           {contact.status}
                         </Badge>
                         <Button size="sm" variant="outline">
@@ -709,14 +768,18 @@ export default function CrmDashboard() {
 
         <TabsContent value="deals" className="space-y-4">
           <h2 className="text-xl font-semibold">Deals</h2>
-          
+
           <div className="grid gap-4">
             {dealsLoading ? (
               <div>Loading deals...</div>
             ) : (
-              Array.isArray(deals) && deals.map((deal: any) => (
-                <Card key={deal.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => setSelectedDeal(deal)}>
+              Array.isArray(deals) &&
+              deals.map((deal: any) => (
+                <Card
+                  key={deal.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedDeal(deal)}
+                >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
@@ -727,12 +790,14 @@ export default function CrmDashboard() {
                           </p>
                         )}
                         {deal.value && (
-                          <p className="text-sm font-medium">${parseFloat(deal.value).toLocaleString()}</p>
+                          <p className="text-sm font-medium">
+                            ${parseFloat(deal.value).toLocaleString()}
+                          </p>
                         )}
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant={deal.stage === 'closed_won' ? 'default' : 'secondary'}>
-                          {deal.stage.replace('_', ' ')}
+                        <Badge variant={deal.stage === "closed_won" ? "default" : "secondary"}>
+                          {deal.stage.replace("_", " ")}
                         </Badge>
                       </div>
                     </div>
@@ -745,7 +810,7 @@ export default function CrmDashboard() {
 
         <TabsContent value="activities" className="space-y-4">
           <h2 className="text-xl font-semibold">Recent Activities</h2>
-          
+
           <div className="space-y-3">
             {activitiesLoading ? (
               <div>Loading activities...</div>
@@ -755,10 +820,14 @@ export default function CrmDashboard() {
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        {activity.type === 'email' && <Mail className="h-4 w-4 text-blue-600" />}
-                        {activity.type === 'internal_message' && <MessageSquare className="h-4 w-4 text-green-600" />}
-                        {activity.type === 'call' && <Calendar className="h-4 w-4 text-purple-600" />}
-                        {!['email', 'internal_message', 'call'].includes(activity.type) && (
+                        {activity.type === "email" && <Mail className="h-4 w-4 text-blue-600" />}
+                        {activity.type === "internal_message" && (
+                          <MessageSquare className="h-4 w-4 text-green-600" />
+                        )}
+                        {activity.type === "call" && (
+                          <Calendar className="h-4 w-4 text-purple-600" />
+                        )}
+                        {!["email", "internal_message", "call"].includes(activity.type) && (
                           <Calendar className="h-4 w-4 text-gray-600" />
                         )}
                       </div>

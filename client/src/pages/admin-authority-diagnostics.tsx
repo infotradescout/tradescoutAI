@@ -135,7 +135,7 @@ export default function AdminAuthorityDiagnostics() {
           When users defy Scout's guidance, does it end well or badly? This reveals if boundaries
           are too strict or too loose.
         </p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
             <div className="text-2xl font-bold text-green-700 dark:text-green-400">
               {sequenceAnalysis.overrideSuccess}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Eye, Trash2, Image, FileText, Calendar, User } from "lucide-react";
@@ -6,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ErrorReportWithAttachments {
@@ -25,34 +30,39 @@ export default function AdminAttachments() {
   const [filterType, setFilterType] = useState("all");
 
   const { data: reports = [], isLoading } = useQuery<ErrorReportWithAttachments[]>({
-    queryKey: ['/api/admin/error-reports'],
+    queryKey: ["/api/admin/error-reports"],
   });
 
   // Filter reports that have attachments
-  const reportsWithAttachments = reports.filter((report: ErrorReportWithAttachments) => 
-    report.attachments && report.attachments.length > 0
+  const reportsWithAttachments = reports.filter(
+    (report: ErrorReportWithAttachments) => report.attachments && report.attachments.length > 0
   );
 
-  const filteredReports = filterType === "all" 
-    ? reportsWithAttachments 
-    : reportsWithAttachments.filter((report: ErrorReportWithAttachments) => 
-        report.errorType === filterType
-      );
+  const filteredReports =
+    filterType === "all"
+      ? reportsWithAttachments
+      : reportsWithAttachments.filter(
+          (report: ErrorReportWithAttachments) => report.errorType === filterType
+        );
 
   const getAttachmentType = (url: string) => {
-    if (url.includes('screenshot') || url.includes('image') || url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-      return 'image';
+    if (
+      url.includes("screenshot") ||
+      url.includes("image") ||
+      url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+    ) {
+      return "image";
     }
-    return 'file';
+    return "file";
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -75,7 +85,9 @@ export default function AdminAttachments() {
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">User Submitted Attachments</h1>
-          <p className="text-gray-400">Screenshots and files from bug reports and error submissions</p>
+          <p className="text-gray-400">
+            Screenshots and files from bug reports and error submissions
+          </p>
         </div>
 
         {/* Filters */}
@@ -126,18 +138,16 @@ export default function AdminAttachments() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Badge variant={report.status === 'resolved' ? 'default' : 'secondary'}>
+                      <Badge variant={report.status === "resolved" ? "default" : "secondary"}>
                         {report.status}
                       </Badge>
-                      <Badge variant="outline">
-                        {report.errorType}
-                      </Badge>
+                      <Badge variant="outline">{report.errorType}</Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-300 mb-4">{report.description}</p>
-                  
+
                   <div className="space-y-3">
                     <h4 className="text-sm font-semibold text-gray-200">
                       Attachments ({report.attachments?.length || 0})
@@ -146,33 +156,36 @@ export default function AdminAttachments() {
                       {report.attachments?.map((attachment, index) => {
                         const attachmentType = getAttachmentType(attachment);
                         return (
-                          <div key={index} className="border border-navy-600 rounded-lg p-3 bg-navy-700">
+                          <div
+                            key={index}
+                            className="border border-navy-600 rounded-lg p-3 bg-navy-700"
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                {attachmentType === 'image' ? (
+                                {attachmentType === "image" ? (
                                   <Image className="h-4 w-4 text-blue-400" />
                                 ) : (
                                   <FileText className="h-4 w-4 text-gray-400" />
                                 )}
                                 <span className="text-sm text-gray-300">
-                                  {attachmentType === 'image' ? 'Screenshot' : 'File'}
+                                  {attachmentType === "image" ? "Screenshot" : "File"}
                                 </span>
                               </div>
                             </div>
-                            
-                            {attachmentType === 'image' && (
+
+                            {attachmentType === "image" && (
                               <div className="mb-3">
-                                <img 
-                                  src={attachment} 
+                                <img
+                                  src={attachment}
                                   alt="User screenshot"
                                   className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80"
                                   onClick={() => setSelectedImage(attachment)}
                                 />
                               </div>
                             )}
-                            
+
                             <div className="flex gap-2">
-                              {attachmentType === 'image' && (
+                              {attachmentType === "image" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -186,7 +199,7 @@ export default function AdminAttachments() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => window.open(attachment, '_blank')}
+                                onClick={() => window.open(attachment, "_blank")}
                                 className="border-navy-500 text-gray-300 hover:bg-navy-600"
                               >
                                 <Download className="h-3 w-3 mr-1" />
@@ -206,14 +219,14 @@ export default function AdminAttachments() {
 
         {/* Image Preview Modal */}
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-4xl bg-navy-800 border-navy-700">
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl bg-navy-800 border-navy-700">
             <DialogHeader>
               <DialogTitle className="text-white">Screenshot Preview</DialogTitle>
             </DialogHeader>
             {selectedImage && (
               <div className="flex justify-center">
-                <img 
-                  src={selectedImage} 
+                <img
+                  src={selectedImage}
                   alt="Full size screenshot"
                   className="max-w-full max-h-[70vh] object-contain rounded"
                 />

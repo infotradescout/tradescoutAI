@@ -1021,26 +1021,28 @@ export default function AdminPanel() {
               <CardDescription>User-submitted error reports and system issues</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-navy-600">
-                    <TableHead>Date</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Error Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow className="border-navy-600">
-                    <TableCell colSpan={5} className="text-center text-navy-400 py-8">
-                      Recent error report summary is available in the dedicated Error Reports
-                      console. Use the button above to drill into full details, screenshots, and
-                      triage tools.
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-navy-600">
+                      <TableHead>Date</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Error Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow className="border-navy-600">
+                      <TableCell colSpan={5} className="text-center text-navy-400 py-8">
+                        Recent error report summary is available in the dedicated Error Reports
+                        console. Use the button above to drill into full details, screenshots, and
+                        triage tools.
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1137,7 +1139,7 @@ export default function AdminPanel() {
 
       {/* Edit/Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-slate-900 text-white max-w-2xl">
+        <DialogContent className="bg-slate-900 text-white max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Edit" : "Create"}{" "}

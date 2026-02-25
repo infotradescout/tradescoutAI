@@ -1092,312 +1092,325 @@ export default function AdminUsers() {
                 <p className="text-gray-300 mt-2">Loading users...</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-muted-foreground min-w-[280px]">User</TableHead>
-                    <TableHead className="text-muted-foreground min-w-[140px]">Role</TableHead>
-                    <TableHead className="text-muted-foreground min-w-[200px]">Status</TableHead>
-                    <TableHead className="text-muted-foreground min-w-[120px]">Joined</TableHead>
-                    <TableHead className="text-muted-foreground min-w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user: User) => {
-                    const roleInfo = getRoleInfo(user.role);
-                    const RoleIcon = roleInfo.icon;
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-muted-foreground min-w-[280px]">User</TableHead>
+                      <TableHead className="text-muted-foreground min-w-[140px]">Role</TableHead>
+                      <TableHead className="text-muted-foreground min-w-[200px]">Status</TableHead>
+                      <TableHead className="text-muted-foreground min-w-[120px]">Joined</TableHead>
+                      <TableHead className="text-muted-foreground min-w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user: User) => {
+                      const roleInfo = getRoleInfo(user.role);
+                      const RoleIcon = roleInfo.icon;
 
-                    return (
-                      <TableRow key={user.id} className="hover:bg-muted/50">
-                        <TableCell className="py-3 min-w-[280px]">
-                          <div className="text-foreground space-y-1">
-                            <div className="font-medium truncate">
-                              {user.firstName && user.lastName
-                                ? `${user.firstName} ${user.lastName}`
-                                : user.email}
+                      return (
+                        <TableRow key={user.id} className="hover:bg-muted/50">
+                          <TableCell className="py-3 min-w-[280px]">
+                            <div className="text-foreground space-y-1">
+                              <div className="font-medium truncate">
+                                {user.firstName && user.lastName
+                                  ? `${user.firstName} ${user.lastName}`
+                                  : user.email}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {user.email}
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              {user.email}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 min-w-[140px]">
-                          <Badge className={`${roleInfo.color} text-white whitespace-nowrap`}>
-                            <RoleIcon className="w-3 h-3 mr-1" />
-                            {roleInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 min-w-[200px]">
-                          <div className="flex flex-col gap-1.5">
-                            <Badge
-                              className={`text-xs whitespace-nowrap ${
-                                user.verificationStatus === "approved"
-                                  ? "bg-primary text-primary-foreground"
+                          </TableCell>
+                          <TableCell className="py-3 min-w-[140px]">
+                            <Badge className={`${roleInfo.color} text-white whitespace-nowrap`}>
+                              <RoleIcon className="w-3 h-3 mr-1" />
+                              {roleInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3 min-w-[200px]">
+                            <div className="flex flex-col gap-1.5">
+                              <Badge
+                                className={`text-xs whitespace-nowrap ${
+                                  user.verificationStatus === "approved"
+                                    ? "bg-primary text-primary-foreground"
+                                    : user.verificationStatus === "suspended"
+                                      ? "bg-destructive text-destructive-foreground"
+                                      : "bg-secondary text-secondary-foreground"
+                                }`}
+                              >
+                                {user.verificationStatus === "approved"
+                                  ? "Verified"
                                   : user.verificationStatus === "suspended"
-                                    ? "bg-destructive text-destructive-foreground"
-                                    : "bg-secondary text-secondary-foreground"
-                              }`}
-                            >
-                              {user.verificationStatus === "approved"
-                                ? "Verified"
-                                : user.verificationStatus === "suspended"
-                                  ? "Suspended"
-                                  : "Pending verification"}
-                            </Badge>
-                            <Badge
-                              className={`text-xs whitespace-nowrap ${
-                                user.addressVerified
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {user.addressVerified ? "Address ✓" : "Address ✗"}
-                            </Badge>
-                            <Badge
-                              className={`text-xs whitespace-nowrap ${
-                                user.emailVerified
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {user.emailVerified ? "Email ✓" : "Email ✗"}
-                            </Badge>
-                            <Badge
-                              variant={user.onboardingCompleted ? "outline" : "secondary"}
-                              className="text-xs whitespace-nowrap"
-                            >
-                              {user.onboardingCompleted ? "Setup ✓" : "Setup ✗"}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 min-w-[120px] text-xs text-muted-foreground">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="py-3 min-w-[100px]">
-                          {(() => {
-                            const targetLevel =
-                              roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 0;
-                            const canManage =
-                              currentUserLevel > targetLevel ||
-                              (isSuperAdmin && user.role === "super_admin");
-                            if (!canManage) return null;
+                                    ? "Suspended"
+                                    : "Pending verification"}
+                              </Badge>
+                              <Badge
+                                className={`text-xs whitespace-nowrap ${
+                                  user.addressVerified
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {user.addressVerified ? "Address ✓" : "Address ✗"}
+                              </Badge>
+                              <Badge
+                                className={`text-xs whitespace-nowrap ${
+                                  user.emailVerified
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {user.emailVerified ? "Email ✓" : "Email ✗"}
+                              </Badge>
+                              <Badge
+                                variant={user.onboardingCompleted ? "outline" : "secondary"}
+                                className="text-xs whitespace-nowrap"
+                              >
+                                {user.onboardingCompleted ? "Setup ✓" : "Setup ✗"}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3 min-w-[120px] text-xs text-muted-foreground">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="py-3 min-w-[100px]">
+                            {(() => {
+                              const targetLevel =
+                                roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 0;
+                              const canManage =
+                                currentUserLevel > targetLevel ||
+                                (isSuperAdmin && user.role === "super_admin");
+                              if (!canManage) return null;
 
-                            const canRunSuperActions =
-                              isSuperAdmin &&
-                              user.id !== (userToEdit?.id || "") &&
-                              user.role !== "super_admin";
+                              const canRunSuperActions =
+                                isSuperAdmin &&
+                                user.id !== (userToEdit?.id || "") &&
+                                user.role !== "super_admin";
 
-                            const canDeleteUser =
-                              isSuperAdmin &&
-                              String(user.id) !== currentAdminId &&
-                              (user.role !== "head_admin" || currentAdminRole === "head_admin");
+                              const canDeleteUser =
+                                isSuperAdmin &&
+                                String(user.id) !== currentAdminId &&
+                                (user.role !== "head_admin" || currentAdminRole === "head_admin");
 
-                            return (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-border text-muted-foreground hover:bg-muted"
-                                    title="User actions"
-                                  >
-                                    Actions
-                                    <MoreHorizontal className="w-4 h-4 ml-2" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-64">
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setUserToEdit(user);
-                                      setNewRole(user.role);
-                                    }}
-                                    className="cursor-pointer"
-                                  >
-                                    Edit role
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => openProfileEditor(user)}
-                                    className="cursor-pointer"
-                                  >
-                                    Edit profile
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onSelect={() => {
-                                      window.location.assign(`/profile/${user.id}`);
-                                    }}
-                                    className="cursor-pointer"
-                                  >
-                                    View public profile
-                                  </DropdownMenuItem>
+                              return (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-border text-muted-foreground hover:bg-muted"
+                                      title="User actions"
+                                    >
+                                      Actions
+                                      <MoreHorizontal className="w-4 h-4 ml-2" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-64">
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setUserToEdit(user);
+                                        setNewRole(user.role);
+                                      }}
+                                      className="cursor-pointer"
+                                    >
+                                      Edit role
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => openProfileEditor(user)}
+                                      className="cursor-pointer"
+                                    >
+                                      Edit profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onSelect={() => {
+                                        window.location.assign(`/profile/${user.id}`);
+                                      }}
+                                      className="cursor-pointer"
+                                    >
+                                      View public profile
+                                    </DropdownMenuItem>
 
-                                  {!user.emailVerified &&
-                                    user.id !== (userToEdit?.id || "") &&
-                                    user.role !== "super_admin" && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          onClick={() => handleResendVerification(user)}
-                                          disabled={pendingAction[`${user.id}:resend-verification`]}
-                                          className="cursor-pointer"
-                                        >
-                                          {pendingAction[`${user.id}:resend-verification`]
-                                            ? "Sending…"
-                                            : "Resend verification email"}
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
-
-                                  {canRunSuperActions && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={async () => {
-                                          const key = `${user.id}:impersonate`;
-                                          const reason = window
-                                            .prompt(
-                                              "Enter impersonation reason (min 5 characters):"
-                                            )
-                                            ?.trim();
-
-                                          if (!reason || reason.length < 5) {
-                                            toast({
-                                              title: "Reason required",
-                                              description:
-                                                "Impersonation requires a reason of at least 5 characters.",
-                                              variant: "destructive",
-                                            });
-                                            return;
-                                          }
-
-                                          setPendingAction((prev) => ({ ...prev, [key]: true }));
-                                          try {
-                                            const res = await fetch(
-                                              `/api/admin/impersonate/start/${user.id}`,
-                                              {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                credentials: "include",
-                                                body: JSON.stringify({ reason }),
-                                              }
-                                            );
-                                            if (!res.ok) {
-                                              const err = await res.json().catch(() => ({}));
-                                              throw new Error(
-                                                err.message || "Impersonation failed"
-                                              );
-                                            }
-                                            toast({ title: "Impersonation started" });
-                                            window.location.reload();
-                                          } catch (err: any) {
-                                            toast({
-                                              title: "Error",
-                                              description: err.message || "Impersonation failed",
-                                              variant: "destructive",
-                                            });
-                                            setPendingAction((prev) => ({ ...prev, [key]: false }));
-                                          }
-                                        }}
-                                        disabled={pendingAction[`${user.id}:impersonate`]}
-                                        className="cursor-pointer"
-                                      >
-                                        {pendingAction[`${user.id}:impersonate`]
-                                          ? "Working…"
-                                          : "Impersonate"}
-                                      </DropdownMenuItem>
-
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={() => handleUserControl("suspend", user.id)}
-                                        disabled={
-                                          pendingAction[`${user.id}:suspend`] ||
-                                          user.verificationStatus === "suspended"
-                                        }
-                                        className="cursor-pointer text-destructive"
-                                      >
-                                        {pendingAction[`${user.id}:suspend`]
-                                          ? "Working…"
-                                          : "Suspend"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleUserControl("unsuspend", user.id)}
-                                        disabled={pendingAction[`${user.id}:unsuspend`]}
-                                        className="cursor-pointer"
-                                      >
-                                        {pendingAction[`${user.id}:unsuspend`]
-                                          ? "Working…"
-                                          : "Unsuspend"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleUserControl("verify", user.id)}
-                                        disabled={
-                                          pendingAction[`${user.id}:verify`] ||
-                                          user.verificationStatus === "approved"
-                                        }
-                                        className="cursor-pointer"
-                                      >
-                                        {pendingAction[`${user.id}:verify`] ? "Working…" : "Verify"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleUserControl("revoke_verify", user.id)}
-                                        disabled={pendingAction[`${user.id}:revoke_verify`]}
-                                        className="cursor-pointer"
-                                      >
-                                        {pendingAction[`${user.id}:revoke_verify`]
-                                          ? "Working…"
-                                          : "Revoke verify"}
-                                      </DropdownMenuItem>
-
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleUserControl("role", user.id, "contractor_user")
-                                        }
-                                        disabled={pendingAction[`${user.id}:role:contractor_user`]}
-                                        className="cursor-pointer"
-                                      >
-                                        {pendingAction[`${user.id}:role:contractor_user`]
-                                          ? "Working…"
-                                          : "Set Contractor"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleUserControl("role", user.id, "homeowner")
-                                        }
-                                        disabled={pendingAction[`${user.id}:role:homeowner`]}
-                                        className="cursor-pointer"
-                                      >
-                                        {pendingAction[`${user.id}:role:homeowner`]
-                                          ? "Working…"
-                                          : "Set Homeowner"}
-                                      </DropdownMenuItem>
-                                      {canDeleteUser && (
+                                    {!user.emailVerified &&
+                                      user.id !== (userToEdit?.id || "") &&
+                                      user.role !== "super_admin" && (
                                         <>
                                           <DropdownMenuSeparator />
                                           <DropdownMenuItem
-                                            onClick={() =>
-                                              handleDeleteUser(user.id, user.role, user.email)
+                                            onClick={() => handleResendVerification(user)}
+                                            disabled={
+                                              pendingAction[`${user.id}:resend-verification`]
                                             }
-                                            disabled={deleteUserMutation.isPending}
-                                            className="cursor-pointer text-destructive"
+                                            className="cursor-pointer"
                                           >
-                                            {deleteUserMutation.isPending
-                                              ? "Deleting…"
-                                              : "Delete User"}
+                                            {pendingAction[`${user.id}:resend-verification`]
+                                              ? "Sending…"
+                                              : "Resend verification email"}
                                           </DropdownMenuItem>
                                         </>
                                       )}
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            );
-                          })()}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+
+                                    {canRunSuperActions && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={async () => {
+                                            const key = `${user.id}:impersonate`;
+                                            const reason = window
+                                              .prompt(
+                                                "Enter impersonation reason (min 5 characters):"
+                                              )
+                                              ?.trim();
+
+                                            if (!reason || reason.length < 5) {
+                                              toast({
+                                                title: "Reason required",
+                                                description:
+                                                  "Impersonation requires a reason of at least 5 characters.",
+                                                variant: "destructive",
+                                              });
+                                              return;
+                                            }
+
+                                            setPendingAction((prev) => ({ ...prev, [key]: true }));
+                                            try {
+                                              const res = await fetch(
+                                                `/api/admin/impersonate/start/${user.id}`,
+                                                {
+                                                  method: "POST",
+                                                  headers: { "Content-Type": "application/json" },
+                                                  credentials: "include",
+                                                  body: JSON.stringify({ reason }),
+                                                }
+                                              );
+                                              if (!res.ok) {
+                                                const err = await res.json().catch(() => ({}));
+                                                throw new Error(
+                                                  err.message || "Impersonation failed"
+                                                );
+                                              }
+                                              toast({ title: "Impersonation started" });
+                                              window.location.reload();
+                                            } catch (err: any) {
+                                              toast({
+                                                title: "Error",
+                                                description: err.message || "Impersonation failed",
+                                                variant: "destructive",
+                                              });
+                                              setPendingAction((prev) => ({
+                                                ...prev,
+                                                [key]: false,
+                                              }));
+                                            }
+                                          }}
+                                          disabled={pendingAction[`${user.id}:impersonate`]}
+                                          className="cursor-pointer"
+                                        >
+                                          {pendingAction[`${user.id}:impersonate`]
+                                            ? "Working…"
+                                            : "Impersonate"}
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => handleUserControl("suspend", user.id)}
+                                          disabled={
+                                            pendingAction[`${user.id}:suspend`] ||
+                                            user.verificationStatus === "suspended"
+                                          }
+                                          className="cursor-pointer text-destructive"
+                                        >
+                                          {pendingAction[`${user.id}:suspend`]
+                                            ? "Working…"
+                                            : "Suspend"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUserControl("unsuspend", user.id)}
+                                          disabled={pendingAction[`${user.id}:unsuspend`]}
+                                          className="cursor-pointer"
+                                        >
+                                          {pendingAction[`${user.id}:unsuspend`]
+                                            ? "Working…"
+                                            : "Unsuspend"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUserControl("verify", user.id)}
+                                          disabled={
+                                            pendingAction[`${user.id}:verify`] ||
+                                            user.verificationStatus === "approved"
+                                          }
+                                          className="cursor-pointer"
+                                        >
+                                          {pendingAction[`${user.id}:verify`]
+                                            ? "Working…"
+                                            : "Verify"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleUserControl("revoke_verify", user.id)
+                                          }
+                                          disabled={pendingAction[`${user.id}:revoke_verify`]}
+                                          className="cursor-pointer"
+                                        >
+                                          {pendingAction[`${user.id}:revoke_verify`]
+                                            ? "Working…"
+                                            : "Revoke verify"}
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleUserControl("role", user.id, "contractor_user")
+                                          }
+                                          disabled={
+                                            pendingAction[`${user.id}:role:contractor_user`]
+                                          }
+                                          className="cursor-pointer"
+                                        >
+                                          {pendingAction[`${user.id}:role:contractor_user`]
+                                            ? "Working…"
+                                            : "Set Contractor"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleUserControl("role", user.id, "homeowner")
+                                          }
+                                          disabled={pendingAction[`${user.id}:role:homeowner`]}
+                                          className="cursor-pointer"
+                                        >
+                                          {pendingAction[`${user.id}:role:homeowner`]
+                                            ? "Working…"
+                                            : "Set Homeowner"}
+                                        </DropdownMenuItem>
+                                        {canDeleteUser && (
+                                          <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                handleDeleteUser(user.id, user.role, user.email)
+                                              }
+                                              disabled={deleteUserMutation.isPending}
+                                              className="cursor-pointer text-destructive"
+                                            >
+                                              {deleteUserMutation.isPending
+                                                ? "Deleting…"
+                                                : "Delete User"}
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -1460,7 +1473,7 @@ export default function AdminUsers() {
 
         {/* Edit Profile Dialog */}
         <Dialog open={!!profileUser} onOpenChange={() => setProfileUser(null)}>
-          <DialogContent className="bg-card border-border max-w-2xl">
+          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-foreground">Edit Public Profile</DialogTitle>
               <DialogDescription className="text-muted-foreground">
