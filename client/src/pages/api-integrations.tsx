@@ -179,9 +179,9 @@ const APIIntegrations = memo(function APIIntegrations() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Network className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">API & Integrations</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">API & Integrations</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-gray-300 text-base md:text-lg">
             Manage third-party integrations and API configurations
           </p>
         </div>

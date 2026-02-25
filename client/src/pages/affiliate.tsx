@@ -257,8 +257,10 @@ export default function AffiliatePage() {
               <Share2 className="w-8 h-8 text-orange-500" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-white">Your Affiliate Dashboard</h1>
-              <p className="text-gray-400">
+              <h1 className="text-2xl md:text-4xl font-bold text-white">
+                Your Affiliate Dashboard
+              </h1>
+              <p className="text-sm md:text-base text-gray-400">
                 Every link you share automatically powers a 5/5/5 impact model
               </p>
             </div>

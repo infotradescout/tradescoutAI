@@ -149,9 +149,9 @@ const ApplicationTracker = memo(function ApplicationTracker() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <FileText className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Application Tracker</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-white">Application Tracker</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-gray-300 text-base md:text-lg">
             Monitor and manage all platform applications and verifications
           </p>
         </div>
