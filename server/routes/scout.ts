@@ -348,12 +348,33 @@ function buildCommunityPrefill(original: string, countyCode?: string, stateCode?
 // ====================== DEALS COMPLIANCE HELPERS ======================
 
 type ConfidenceLabel = "low" | "medium" | "high";
+type SourceConfidenceBand = ConfidenceLabel | "unknown";
 
 function normalizeConfidenceLabel(confidence: unknown): ConfidenceLabel {
   if (confidence === "low" || confidence === "medium" || confidence === "high") {
     return confidence;
   }
   return "medium";
+}
+
+function inferSourceConfidenceBand(confidence: unknown): SourceConfidenceBand {
+  if (confidence === "low" || confidence === "medium" || confidence === "high") {
+    return confidence;
+  }
+  if (typeof confidence === "number" && Number.isFinite(confidence)) {
+    if (confidence >= 0.8) return "high";
+    if (confidence >= 0.5) return "medium";
+    return "low";
+  }
+  if (typeof confidence === "string") {
+    const numeric = Number(confidence);
+    if (Number.isFinite(numeric)) {
+      if (numeric >= 0.8) return "high";
+      if (numeric >= 0.5) return "medium";
+      return "low";
+    }
+  }
+  return "unknown";
 }
 
 function shapeDealsForScout({
@@ -1677,6 +1698,10 @@ export interface ScoutResponse {
     thought_flow?: string[];
     decision?: string;
     redirect?: string;
+    sourceUsed?: string;
+    attemptedSource?: string;
+    fallbackUsed?: boolean;
+    confidenceBand?: SourceConfidenceBand;
     resolvedContext?: ResolvedContext | null;
     currentJobId?: string;
     governorAction?: string;
@@ -2517,6 +2542,17 @@ router.post("/", async (req: Request, res: Response) => {
     const wantsEnhancedV4 =
       defaultEngine === "v4" || defaultEngine === "enhanced_v4" || defaultEngine === "enhanced-v4";
 
+    let sourceAudit: {
+      sourceUsed: string;
+      attemptedSource?: string;
+      fallbackUsed: boolean;
+      confidenceBand: SourceConfidenceBand;
+    } = {
+      sourceUsed: "classic_knowledge_pipeline",
+      fallbackUsed: false,
+      confidenceBand: "unknown",
+    };
+
     if (wantsEnhancedV4) {
       const portRaw = Number(process.env.PORT || 10000);
       const port = Number.isFinite(portRaw) ? portRaw : 10000;
@@ -2552,31 +2588,61 @@ router.post("/", async (req: Request, res: Response) => {
             body: text?.slice?.(0, 500) ?? "",
           });
         } else {
+          const enhancedConfidenceRaw =
+            json?.synthesized_response?.confidence ?? json?.reflection?.confidence;
+          const enhancedConfidence = inferSourceConfidenceBand(enhancedConfidenceRaw);
           const enhancedMessage =
             String(json?.synthesized_response?.message || json?.message || "").trim() ||
             "Scout is online.";
 
           if (scoutInteractionLog) {
-            scoutInteractionLog.scoutConfidence = confidenceToScore(
-              json?.synthesized_response?.confidence ?? json?.reflection?.confidence
-            );
+            scoutInteractionLog.scoutConfidence = confidenceToScore(enhancedConfidenceRaw);
           }
 
-          return res.json({
-            message: enhancedMessage,
-            actions: [],
-            actionResults: [],
-            knowledge: {
-              layer: 1,
-              sources: ["Scout Enhanced v4 (Agent Council)"],
-              confidence: String(json?.synthesized_response?.confidence || "medium"),
-            },
-            llmProvider: "enhanced_v4",
-            promptVersion: loadSystemPrompt().version,
-            timestamp: new Date().toISOString(),
-          });
+          if (enhancedConfidence !== "high") {
+            sourceAudit = {
+              sourceUsed: "classic_knowledge_pipeline",
+              attemptedSource: "enhanced_v4",
+              fallbackUsed: true,
+              confidenceBand: enhancedConfidence,
+            };
+            console.warn("[Scout] Enhanced v4 confidence below gate, falling back to classic", {
+              confidence: enhancedConfidence,
+            });
+          } else {
+            sourceAudit = {
+              sourceUsed: "enhanced_v4",
+              fallbackUsed: false,
+              confidenceBand: enhancedConfidence,
+            };
+
+            return res.json({
+              message: enhancedMessage,
+              actions: [],
+              actionResults: [],
+              metadata: {
+                sourceUsed: "enhanced_v4",
+                fallbackUsed: false,
+                confidenceBand: enhancedConfidence,
+              },
+              knowledge: {
+                layer: 1,
+                sources: ["Scout Enhanced v4 (Agent Council)"],
+                confidence: enhancedConfidence === "unknown" ? "medium" : enhancedConfidence,
+              },
+              llmProvider: "enhanced_v4",
+              promptVersion: loadSystemPrompt().version,
+              timestamp: new Date().toISOString(),
+            });
+          }
         }
       } catch (error) {
+        sourceAudit = {
+          sourceUsed: "classic_knowledge_pipeline",
+          attemptedSource: "enhanced_v4",
+          fallbackUsed: true,
+          confidenceBand: "unknown",
+        };
         console.warn("[Scout] Enhanced v4 proxy error, falling back to classic:", error);
       }
     }
@@ -3205,6 +3271,10 @@ router.post("/", async (req: Request, res: Response) => {
         intent: synthesized.intent,
         thought_flow: synthesized.thought_flow,
         decision: synthesized.decision,
+        sourceUsed: sourceAudit.sourceUsed,
+        attemptedSource: sourceAudit.attemptedSource,
+        fallbackUsed: sourceAudit.fallbackUsed,
+        confidenceBand: sourceAudit.confidenceBand,
         currentJobId: currentJobId || undefined,
         resolvedContext,
       },
@@ -4322,6 +4392,10 @@ router.post("/", async (req: Request, res: Response) => {
     const safeMetadata = aiResponse.metadata
       ? {
           intent: aiResponse.metadata.intent,
+          sourceUsed: aiResponse.metadata.sourceUsed,
+          attemptedSource: aiResponse.metadata.attemptedSource,
+          fallbackUsed: aiResponse.metadata.fallbackUsed,
+          confidenceBand: aiResponse.metadata.confidenceBand,
           currentJobId: aiResponse.metadata.currentJobId,
           resolvedContext: aiResponse.metadata.resolvedContext ?? null,
         }
