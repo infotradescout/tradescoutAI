@@ -13,7 +13,7 @@
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { objectives, objectiveEvents } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import {
   classifyUserIntent,
   detectTopicShift,
@@ -36,7 +36,7 @@ describeWithDb("Objectives Layer - Phase 1", () => {
 
   afterAll(async () => {
     // Clean up test data
-    await db.delete(objectives).where(eq(objectives.userId, TEST_USER_ID));
+    await db.delete(objectives).where(like(objectives.userId, `${TEST_USER_ID}%`));
   });
 
   // ==========================================
