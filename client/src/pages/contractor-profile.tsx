@@ -153,7 +153,7 @@ export default function ContractorProfile() {
                 <h1 className="text-3xl font-bold text-white mb-2">{contractor.companyName}</h1>
 
                 {/* Recommendation Statistics */}
-                <div className="flex items-center space-x-6 mb-4">
+                <div className="flex flex-wrap items-center gap-4 md:gap-6 mb-4">
                   <div className="flex items-center space-x-2">
                     <ThumbsUp className="h-5 w-5 text-green-400" />
                     <span className="text-green-400 font-semibold text-lg">

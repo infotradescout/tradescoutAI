@@ -341,7 +341,7 @@ export default function AdminWorkspace() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="border-b border-navy-600">
             <TabsList className="bg-transparent border-none h-auto p-0">
-              <div className="flex space-x-8 px-6">
+              <div className="flex flex-wrap gap-4 md:gap-8 px-6">
                 <TabsTrigger
                   value="verification"
                   className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 text-gray-400 hover:text-gray-300 font-medium text-sm bg-transparent"
