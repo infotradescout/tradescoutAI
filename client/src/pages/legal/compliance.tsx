@@ -145,8 +145,8 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--surface-frame)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-[var(--surface-frame)] py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-orange-500 mb-4">Legal Compliance Dashboard</h1>

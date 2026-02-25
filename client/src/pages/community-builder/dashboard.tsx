@@ -85,7 +85,7 @@ export default function CommunityBuilderDashboard() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
         <div className="max-w-7xl mx-auto">
           <Card className="border-2 border-indigo-200">
             <CardHeader className="text-center">
@@ -130,7 +130,7 @@ export default function CommunityBuilderDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="space-y-2">

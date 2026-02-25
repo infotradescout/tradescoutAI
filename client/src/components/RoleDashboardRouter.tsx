@@ -97,7 +97,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-24">
         <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
       </div>
     );
@@ -201,7 +201,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
 
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+          <div className="flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-24">
             <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
           </div>
         }

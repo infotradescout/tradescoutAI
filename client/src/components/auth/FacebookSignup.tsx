@@ -26,7 +26,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="bg-slate-900 flex items-center justify-center p-4 py-24">
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">

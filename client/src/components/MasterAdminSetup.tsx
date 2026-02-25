@@ -106,7 +106,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
 
   if (checkingMaster) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
@@ -114,7 +114,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
 
   if (masterExists) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="flex items-center justify-center bg-background p-4 py-24">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
@@ -134,7 +134,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="flex items-center justify-center bg-background p-4 py-24">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Shield className="mx-auto h-12 w-12 text-primary mb-4" />

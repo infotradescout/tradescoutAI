@@ -15,15 +15,7 @@ import { PostCard } from "./PostCard";
 import { CreatePostModal } from "./CreatePostModal";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  Plus,
-  Search,
-  TrendingUp,
-  Users,
-  MapPin,
-  Filter,
-  Globe
-} from "lucide-react";
+import { Plus, Search, TrendingUp, Users, MapPin, Filter, Globe } from "lucide-react";
 
 interface SocialFeedProps {
   className?: string;
@@ -32,27 +24,23 @@ interface SocialFeedProps {
 export function SocialFeed({ className }: SocialFeedProps) {
   const { user, isAuthenticated } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [postType, setPostType] = useState('all');
-  const [location, setLocation] = useState('neighborhood');
-  const [sortBy, setSortBy] = useState('recent');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [scope, setScope] = useState<'all' | 'connections'>('all');
+  const [postType, setPostType] = useState("all");
+  const [location, setLocation] = useState("neighborhood");
+  const [sortBy, setSortBy] = useState("recent");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scope, setScope] = useState<"all" | "connections">("all");
 
   // Fetch social feed
-  const {
-    data,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['/api/social/feed', { postType, location, sortBy, search: searchQuery, scope }],
-    queryFn: () => apiRequest('GET', '/api/social/feed', { 
-      postType, 
-      location, 
-      sortBy, 
-      search: searchQuery,
-      scope,
-    }),
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["/api/social/feed", { postType, location, sortBy, search: searchQuery, scope }],
+    queryFn: () =>
+      apiRequest("GET", "/api/social/feed", {
+        postType,
+        location,
+        sortBy,
+        search: searchQuery,
+        scope,
+      }),
     enabled: isAuthenticated,
   });
 
@@ -61,8 +49,8 @@ export function SocialFeed({ className }: SocialFeedProps) {
   const rawPosts = Array.isArray(data)
     ? data
     : Array.isArray((data as any)?.posts)
-    ? (data as any).posts
-    : [];
+      ? (data as any).posts
+      : [];
 
   const posts = rawPosts.map((post: any) => ({
     ...post,
@@ -83,14 +71,14 @@ export function SocialFeed({ className }: SocialFeedProps) {
 
   // Fetch trending topics
   const { data: trending } = useQuery({
-    queryKey: ['/api/social/trending'],
-    queryFn: () => apiRequest('GET', '/api/social/trending'),
+    queryKey: ["/api/social/trending"],
+    queryFn: () => apiRequest("GET", "/api/social/trending"),
   });
 
   // Fetch neighborhood stats
   const { data: neighborhoodStats } = useQuery({
-    queryKey: ['/api/social/neighborhood-stats'],
-    queryFn: () => apiRequest('GET', '/api/social/neighborhood-stats'),
+    queryKey: ["/api/social/neighborhood-stats"],
+    queryFn: () => apiRequest("GET", "/api/social/neighborhood-stats"),
     enabled: isAuthenticated,
   });
 
@@ -101,7 +89,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 py-24">
         <Card className="w-full max-w-md text-center">
           <CardHeader className="space-y-4">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -130,8 +118,8 @@ export function SocialFeed({ className }: SocialFeedProps) {
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className={`bg-gray-50 dark:bg-gray-900 py-6 ${className}`}>
+      <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar - Community Stats */}
           <div className="lg:col-span-1">
@@ -205,7 +193,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
                       Connect with your neighborhood and local professionals
                     </p>
                   </div>
-                  
+
                   <Button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="flex items-center gap-2"
@@ -273,7 +261,10 @@ export function SocialFeed({ className }: SocialFeedProps) {
                           </SelectContent>
                         </Select>
 
-                        <Select value={scope} onValueChange={(v) => setScope(v as 'all' | 'connections')}>
+                        <Select
+                          value={scope}
+                          onValueChange={(v) => setScope(v as "all" | "connections")}
+                        >
                           <SelectTrigger className="w-[140px]">
                             <SelectValue />
                           </SelectTrigger>
@@ -310,11 +301,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
                 <Card className="border-destructive">
                   <CardContent className="p-6 text-center">
                     <p className="text-destructive">Failed to load community feed</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => refetch()}
-                      className="mt-2"
-                    >
+                    <Button variant="outline" onClick={() => refetch()} className="mt-2">
                       Try Again
                     </Button>
                   </CardContent>
@@ -339,10 +326,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
                         </p>
                       </div>
                       {!searchQuery && (
-                        <Button
-                          onClick={() => setIsCreateModalOpen(true)}
-                          className="mx-auto"
-                        >
+                        <Button onClick={() => setIsCreateModalOpen(true)} className="mx-auto">
                           Create First Post
                         </Button>
                       )}
@@ -356,10 +340,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
       </div>
 
       {/* Create Post Modal */}
-      <CreatePostModal
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-      />
+      <CreatePostModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} />
     </div>
   );
 }

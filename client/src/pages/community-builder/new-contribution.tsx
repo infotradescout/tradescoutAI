@@ -1,27 +1,21 @@
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { AlertCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 
 const contributionTypes = [
-  { value: 'service_hours', label: 'Service Hours' },
-  { value: 'materials', label: 'Materials & Goods' },
-  { value: 'equipment_rental', label: 'Equipment Rental' },
-  { value: 'financial', label: 'Financial Contribution' },
-  { value: 'expertise', label: 'Professional Expertise' },
-  { value: 'promotion', label: 'Marketing & Visibility' },
-  { value: 'administration', label: 'Admin & Coordination' },
+  { value: "service_hours", label: "Service Hours" },
+  { value: "materials", label: "Materials & Goods" },
+  { value: "equipment_rental", label: "Equipment Rental" },
+  { value: "financial", label: "Financial Contribution" },
+  { value: "expertise", label: "Professional Expertise" },
+  { value: "promotion", label: "Marketing & Visibility" },
+  { value: "administration", label: "Admin & Coordination" },
 ];
 
 type ContributionInput = {
@@ -39,53 +33,61 @@ type ContributionInput = {
 export default function NewContribution() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  
+
   const [formData, setFormData] = useState<ContributionInput>({
-    title: '',
-    description: '',
-    type: 'service_hours',
-    estimatedValue: '',
-    estimatedHours: '',
-    proposedStartDate: '',
-    proposedEndDate: '',
-    impact: '',
-    tags: '',
+    title: "",
+    description: "",
+    type: "service_hours",
+    estimatedValue: "",
+    estimatedHours: "",
+    proposedStartDate: "",
+    proposedEndDate: "",
+    impact: "",
+    tags: "",
   });
 
   const createMutation = useMutation<any, Error, ContributionInput>({
     mutationFn: async (data) => {
       const tags = data.tags
         ? data.tags
-            .split(',')
+            .split(",")
             .map((t: string) => t.trim())
             .filter(Boolean)
         : [];
 
-      const res = await fetch('/api/community-builder/contributions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/community-builder/contributions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
           tags,
         }),
       });
-      if (!res.ok) throw new Error('Failed to create contribution');
+      if (!res.ok) throw new Error("Failed to create contribution");
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Contribution proposed successfully!' });
+      toast({ title: "Success", description: "Contribution proposed successfully!" });
       navigate(`/community-builder/contributions/${data.id}`);
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to create contribution', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to create contribution",
+        variant: "destructive",
+      });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.description || !formData.estimatedValue) {
-      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -93,13 +95,10 @@ export default function NewContribution() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Back Button */}
-        <Button 
-          variant="ghost"
-          onClick={() => navigate('/community-builder/dashboard')}
-        >
+        <Button variant="ghost" onClick={() => navigate("/community-builder/dashboard")}>
           ← Back to Dashboard
         </Button>
 
@@ -115,17 +114,13 @@ export default function NewContribution() {
         <Card>
           <CardHeader>
             <CardTitle>Contribution Details</CardTitle>
-            <CardDescription>
-              All fields with * are required
-            </CardDescription>
+            <CardDescription>All fields with * are required</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Contribution Title *
-                </label>
+                <label className="block text-sm font-semibold mb-2">Contribution Title *</label>
                 <Input
                   type="text"
                   placeholder="e.g., Community Garden Setup & Maintenance"
@@ -140,9 +135,7 @@ export default function NewContribution() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Description *
-                </label>
+                <label className="block text-sm font-semibold mb-2">Description *</label>
                 <Textarea
                   placeholder="Describe your contribution in detail. What will you do? Why does it matter? What's the expected impact?"
                   value={formData.description}
@@ -154,9 +147,7 @@ export default function NewContribution() {
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Contribution Type *
-                </label>
+                <label className="block text-sm font-semibold mb-2">Contribution Type *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -173,9 +164,7 @@ export default function NewContribution() {
               {/* Value Grid */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Estimated Value ($) *
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Estimated Value ($) *</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -191,9 +180,7 @@ export default function NewContribution() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Estimated Hours
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Estimated Hours</label>
                   <Input
                     type="number"
                     step="0.5"
@@ -202,29 +189,25 @@ export default function NewContribution() {
                     value={formData.estimatedHours}
                     onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    If applicable (service hours)
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">If applicable (service hours)</p>
                 </div>
               </div>
 
               {/* Timeline Grid */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Proposed Start Date
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Proposed Start Date</label>
                   <Input
                     type="date"
                     value={formData.proposedStartDate}
-                    onChange={(e) => setFormData({ ...formData, proposedStartDate: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, proposedStartDate: e.target.value })
+                    }
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Proposed End Date
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Proposed End Date</label>
                   <Input
                     type="date"
                     value={formData.proposedEndDate}
@@ -248,9 +231,7 @@ export default function NewContribution() {
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Tags (Optional)
-                </label>
+                <label className="block text-sm font-semibold mb-2">Tags (Optional)</label>
                 <Input
                   type="text"
                   placeholder="community, environment, education (comma-separated)"
@@ -282,12 +263,12 @@ export default function NewContribution() {
                   disabled={createMutation.isPending}
                   className="bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {createMutation.isPending ? 'Submitting...' : 'Propose Contribution'}
+                  {createMutation.isPending ? "Submitting..." : "Propose Contribution"}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/community-builder/dashboard')}
+                  onClick={() => navigate("/community-builder/dashboard")}
                 >
                   Cancel
                 </Button>

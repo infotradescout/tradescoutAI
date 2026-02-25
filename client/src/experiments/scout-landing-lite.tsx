@@ -22,9 +22,7 @@ const isLocalHost = () => {
 // Match the production/local behavior from the full scout landing
 const apiBase =
   apiBaseEnv ||
-  ((typeof window !== "undefined" && !isLocalHost()
-    ? "https://www.thetradescout.com/api"
-    : "/api"));
+  (typeof window !== "undefined" && !isLocalHost() ? "https://www.thetradescout.com/api" : "/api");
 
 const scoutEndpoint = `${apiBase.replace(/\/$/, "")}/scout`;
 
@@ -78,8 +76,7 @@ export default function ScoutLandingLite() {
       const assistantMsg: Message = {
         id: `e-${Date.now()}`,
         role: "assistant",
-        content:
-          "Sorry, I hit an error talking to Scout. Please try again in a moment.",
+        content: "Sorry, I hit an error talking to Scout. Please try again in a moment.",
       };
       console.error("[Scout-lite] error", err);
       setMessages((prev) => [...prev, assistantMsg]);
@@ -97,21 +94,29 @@ export default function ScoutLandingLite() {
 
   return (
     <React.Fragment>
-      <div className="min-h-screen bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-10">
-        <div className="relative w-full max-w-6xl pt-6 pb-10">
+      <div className="bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-10 py-6">
+        <div className="relative w-full max-w-6xl pb-10">
           {/* Simple top bar */}
           <div className="flex items-center justify-between mb-6">
             <button
               className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
-              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)",
+                border: "1px solid var(--theme-border-secondary)",
+                color: "var(--theme-text-secondary)",
+              }}
               onClick={() => navigate("/")}
             >
-              <Home className="w-4 h-4" style={{ color: 'var(--theme-accent-primary)' }} />
+              <Home className="w-4 h-4" style={{ color: "var(--theme-accent-primary)" }} />
               <span className="font-semibold tracking-wide">TradeScout</span>
             </button>
             <button
               className="rounded-xl px-3 py-2 text-xs"
-              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)",
+                border: "1px solid var(--theme-border-secondary)",
+                color: "var(--theme-text-secondary)",
+              }}
               onClick={() => setAppDrawerOpen(true)}
             >
               Browse apps
@@ -120,26 +125,43 @@ export default function ScoutLandingLite() {
 
           {/* Hero */}
           <div className="mb-6 space-y-3">
-            <div className="inline-flex items-center rounded-full px-3 py-1 text-xs mb-2" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}>
-              <span className="mr-1" style={{ color: 'var(--theme-accent-primary)' }}>●</span>
+            <div
+              className="inline-flex items-center rounded-full px-3 py-1 text-xs mb-2"
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)",
+                border: "1px solid var(--theme-border-secondary)",
+                color: "var(--theme-text-secondary)",
+              }}
+            >
+              <span className="mr-1" style={{ color: "var(--theme-accent-primary)" }}>
+                ●
+              </span>
               Scout is your community OS
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
               Ask Scout. Ship work. <span className="ts-accent-text">Locally.</span>
             </h1>
-            <p className="max-w-2xl text-sm sm:text-base" style={{ color: 'var(--theme-text-secondary)' }}>
-              Tell Scout what you want for your home, HOA, or business.
-              Scout will search local context, call TradeScout tools, and hand
-              you links into the right pages.
+            <p
+              className="max-w-2xl text-sm sm:text-base"
+              style={{ color: "var(--theme-text-secondary)" }}
+            >
+              Tell Scout what you want for your home, HOA, or business. Scout will search local
+              context, call TradeScout tools, and hand you links into the right pages.
             </p>
           </div>
 
           {/* Chat panel */}
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
-            <div className="rounded-2xl shadow-xl flex flex-col min-h-[340px]" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)', border: '1px solid var(--theme-border-secondary)' }}>
+            <div
+              className="rounded-2xl shadow-xl flex flex-col min-h-[340px]"
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)",
+                border: "1px solid var(--theme-border-secondary)",
+              }}
+            >
               <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2 space-y-3">
                 {messages.length === 0 && (
-                  <div className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
+                  <div className="text-sm" style={{ color: "var(--theme-text-secondary)" }}>
                     {isAuthenticated
                       ? "Welcome back. Describe a project, neighbor issue, or hiring need and I’ll scout options."
                       : "Start with something like: ‘Find a roofer in my area under $20k’ or ‘Draft a post to my HOA board about parking.’"}
@@ -153,7 +175,15 @@ export default function ScoutLandingLite() {
                         ? "ml-auto max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow ts-accent-btn"
                         : "mr-auto max-w-[85%] rounded-2xl px-3 py-2 text-sm border"
                     }
-                    style={ m.role === "user" ? undefined : { backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-primary)', borderColor: 'var(--theme-border-secondary)' } }
+                    style={
+                      m.role === "user"
+                        ? undefined
+                        : {
+                            backgroundColor: "var(--theme-bg-secondary)",
+                            color: "var(--theme-text-primary)",
+                            borderColor: "var(--theme-border-secondary)",
+                          }
+                    }
                   >
                     {m.content}
                   </div>
@@ -188,7 +218,11 @@ export default function ScoutLandingLite() {
                 <Link
                   href="/community"
                   className="block rounded-xl px-3 py-3"
-                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
+                  style={{
+                    backgroundColor:
+                      "color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)",
+                    border: "1px solid var(--theme-border-secondary)",
+                  }}
                 >
                   <div className="font-semibold text-white mb-1">Community feed</div>
                   <div className="text-slate-400 text-xs">See local posts and HOA chatter.</div>
@@ -196,23 +230,39 @@ export default function ScoutLandingLite() {
                 <Link
                   href="/marketplace"
                   className="block rounded-xl px-3 py-3"
-                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
+                  style={{
+                    backgroundColor:
+                      "color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)",
+                    border: "1px solid var(--theme-border-secondary)",
+                  }}
                 >
                   <div className="font-semibold text-white mb-1">Marketplace</div>
-                  <div className="text-slate-400 text-xs">List items or browse offers from neighbors.</div>
+                  <div className="text-slate-400 text-xs">
+                    List items or browse offers from neighbors.
+                  </div>
                 </Link>
                 <Link
                   href="/hoa-dashboard"
                   className="block rounded-xl px-3 py-3"
-                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
+                  style={{
+                    backgroundColor:
+                      "color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)",
+                    border: "1px solid var(--theme-border-secondary)",
+                  }}
                 >
                   <div className="font-semibold text-white mb-1">HOA dashboard</div>
-                  <div className="text-slate-400 text-xs">If you manage an HOA, open the console.</div>
+                  <div className="text-slate-400 text-xs">
+                    If you manage an HOA, open the console.
+                  </div>
                 </Link>
                 <Link
                   href="/contractors"
                   className="block rounded-xl px-3 py-3"
-                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
+                  style={{
+                    backgroundColor:
+                      "color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)",
+                    border: "1px solid var(--theme-border-secondary)",
+                  }}
                 >
                   <div className="font-semibold text-white mb-1">Find contractors</div>
                   <div className="text-slate-400 text-xs">Search pros by trade and location.</div>
