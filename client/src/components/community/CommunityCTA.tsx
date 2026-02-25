@@ -279,7 +279,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         className={
           layout === "inline"
             ? "flex items-center gap-1 pt-2 text-[11px] text-neutral-500"
-            : "mt-2 grid grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-tsBorder/70"
+            : "mt-2 grid grid-cols-1 sm:grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-tsBorder/70"
         }
       >
         <div className="flex items-center justify-center py-2 text-neutral-600">Loading...</div>

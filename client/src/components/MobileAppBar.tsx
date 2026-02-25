@@ -119,7 +119,7 @@ export function MobileAppBar() {
             <SheetContent side="bottom" className="bg-navy-900 border-navy-700 rounded-t-2xl">
               <div className="py-4">
                 <h3 className="text-white font-semibold mb-4 text-center">Quick Actions</h3>
-                <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-6">
                   {quickActions.map((action) => {
                     const IconComponent = action.icon;
                     return (

@@ -3,21 +3,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ComponentLoadingSpinner } from "@/components/LoadingSpinner";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Sparkles, 
-  Copy, 
-  Share2, 
-  Download, 
-  Edit3, 
-  Save, 
+import {
+  Sparkles,
+  Copy,
+  Share2,
+  Download,
+  Edit3,
+  Save,
   RefreshCw,
   User,
   Briefcase,
@@ -26,7 +38,7 @@ import {
   Heart,
   Target,
   Lightbulb,
-  Zap
+  Zap,
 } from "lucide-react";
 
 interface StoryTemplate {
@@ -36,8 +48,8 @@ interface StoryTemplate {
   description: string;
   icon: React.ReactNode;
   prompts: string[];
-  tone: 'professional' | 'friendly' | 'inspiring' | 'authoritative';
-  length: 'short' | 'medium' | 'long';
+  tone: "professional" | "friendly" | "inspiring" | "authoritative";
+  length: "short" | "medium" | "long";
 }
 
 interface GeneratedStory {
@@ -50,110 +62,116 @@ interface GeneratedStory {
 
 const storyTemplates: StoryTemplate[] = [
   {
-    id: 'origin-story',
-    name: 'Origin Story',
-    category: 'Background',
-    description: 'Tell how you started your professional journey',
+    id: "origin-story",
+    name: "Origin Story",
+    category: "Background",
+    description: "Tell how you started your professional journey",
     icon: <Star className="h-4 w-4" />,
     prompts: [
-      'What inspired you to enter this field?',
-      'What was your first project or job?',
-      'What challenges did you overcome early on?'
+      "What inspired you to enter this field?",
+      "What was your first project or job?",
+      "What challenges did you overcome early on?",
     ],
-    tone: 'inspiring',
-    length: 'medium'
+    tone: "inspiring",
+    length: "medium",
   },
   {
-    id: 'expertise-showcase',
-    name: 'Expertise Showcase',
-    category: 'Skills',
-    description: 'Highlight your unique skills and experience',
+    id: "expertise-showcase",
+    name: "Expertise Showcase",
+    category: "Skills",
+    description: "Highlight your unique skills and experience",
     icon: <Trophy className="h-4 w-4" />,
     prompts: [
-      'What makes your approach unique?',
-      'What are your core specializations?',
-      'What results have you achieved?'
+      "What makes your approach unique?",
+      "What are your core specializations?",
+      "What results have you achieved?",
     ],
-    tone: 'professional',
-    length: 'short'
+    tone: "professional",
+    length: "short",
   },
   {
-    id: 'customer-focused',
-    name: 'Customer-First Story',
-    category: 'Values',
-    description: 'Show your commitment to customer satisfaction',
+    id: "customer-focused",
+    name: "Customer-First Story",
+    category: "Values",
+    description: "Show your commitment to customer satisfaction",
     icon: <Heart className="h-4 w-4" />,
     prompts: [
-      'How do you prioritize customer needs?',
-      'Share a memorable customer success story',
-      'What does quality service mean to you?'
+      "How do you prioritize customer needs?",
+      "Share a memorable customer success story",
+      "What does quality service mean to you?",
     ],
-    tone: 'friendly',
-    length: 'medium'
+    tone: "friendly",
+    length: "medium",
   },
   {
-    id: 'problem-solver',
-    name: 'Problem Solver',
-    category: 'Approach',
-    description: 'Demonstrate your analytical and solution-focused mindset',
+    id: "problem-solver",
+    name: "Problem Solver",
+    category: "Approach",
+    description: "Demonstrate your analytical and solution-focused mindset",
     icon: <Lightbulb className="h-4 w-4" />,
     prompts: [
-      'Describe a complex challenge you solved',
-      'What\'s your problem-solving process?',
-      'How do you handle unexpected issues?'
+      "Describe a complex challenge you solved",
+      "What's your problem-solving process?",
+      "How do you handle unexpected issues?",
     ],
-    tone: 'authoritative',
-    length: 'long'
+    tone: "authoritative",
+    length: "long",
   },
   {
-    id: 'innovation-leader',
-    name: 'Innovation Leader',
-    category: 'Innovation',
-    description: 'Share how you stay ahead with new techniques',
+    id: "innovation-leader",
+    name: "Innovation Leader",
+    category: "Innovation",
+    description: "Share how you stay ahead with new techniques",
     icon: <Zap className="h-4 w-4" />,
     prompts: [
-      'What new methods or technologies do you use?',
-      'How do you stay current in your field?',
-      'What innovations have you implemented?'
+      "What new methods or technologies do you use?",
+      "How do you stay current in your field?",
+      "What innovations have you implemented?",
     ],
-    tone: 'inspiring',
-    length: 'medium'
+    tone: "inspiring",
+    length: "medium",
   },
   {
-    id: 'community-builder',
-    name: 'Community Builder',
-    category: 'Impact',
-    description: 'Highlight your local community involvement',
+    id: "community-builder",
+    name: "Community Builder",
+    category: "Impact",
+    description: "Highlight your local community involvement",
     icon: <Target className="h-4 w-4" />,
     prompts: [
-      'How do you contribute to your local community?',
-      'What local partnerships have you built?',
-      'How do you give back through your work?'
+      "How do you contribute to your local community?",
+      "What local partnerships have you built?",
+      "How do you give back through your work?",
     ],
-    tone: 'friendly',
-    length: 'medium'
-  }
+    tone: "friendly",
+    length: "medium",
+  },
 ];
 
 export function StoryGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const [selectedTemplate, setSelectedTemplate] = useState<StoryTemplate | null>(null);
-  const [generatedStory, setGeneratedStory] = useState<string>('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedStory, setEditedStory] = useState<string>('');
-  const [activeCategory, setActiveCategory] = useState<string>('Background');
 
-  const categories = Array.from(new Set(storyTemplates.map(t => t.category)));
+  const [selectedTemplate, setSelectedTemplate] = useState<StoryTemplate | null>(null);
+  const [generatedStory, setGeneratedStory] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedStory, setEditedStory] = useState<string>("");
+  const [activeCategory, setActiveCategory] = useState<string>("Background");
+
+  const categories = Array.from(new Set(storyTemplates.map((t) => t.category)));
 
   const generateStoryMutation = useMutation({
-    mutationFn: async ({ templateId, userInputs }: { templateId: string; userInputs: Record<string, string> }) => {
+    mutationFn: async ({
+      templateId,
+      userInputs,
+    }: {
+      templateId: string;
+      userInputs: Record<string, string>;
+    }) => {
       return apiRequest("POST", "/api/stories/generate", {
         templateId,
         userInputs,
-        userId: user?.id
+        userId: user?.id,
       });
     },
     onSuccess: (data) => {
@@ -182,13 +200,13 @@ export function StoryGenerator() {
         title: "Story Saved!",
         description: "Your story has been saved to your profile.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/stories'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
     },
   });
 
   const handleTemplateSelect = (template: StoryTemplate) => {
     setSelectedTemplate(template);
-    setGeneratedStory('');
+    setGeneratedStory("");
     setIsEditing(false);
   };
 
@@ -203,15 +221,15 @@ export function StoryGenerator() {
     }
 
     const mockUserInputs = {
-      role: user.role || 'contractor',
-      experience: '5+ years',
-      specialty: 'Custom work',
-      location: 'Local area'
+      role: user.role || "contractor",
+      experience: "5+ years",
+      specialty: "Custom work",
+      location: "Local area",
     };
 
     generateStoryMutation.mutate({
       templateId: template.id,
-      userInputs: mockUserInputs
+      userInputs: mockUserInputs,
     });
   };
 
@@ -225,15 +243,15 @@ export function StoryGenerator() {
 
   const handleSaveStory = () => {
     if (!selectedTemplate) return;
-    
+
     saveStoryMutation.mutate({
       title: selectedTemplate.name,
       content: isEditing ? editedStory : generatedStory,
-      templateId: selectedTemplate.id
+      templateId: selectedTemplate.id,
     });
   };
 
-  const filteredTemplates = storyTemplates.filter(t => t.category === activeCategory);
+  const filteredTemplates = storyTemplates.filter((t) => t.category === activeCategory);
 
   return (
     <div className="space-y-6">
@@ -248,7 +266,7 @@ export function StoryGenerator() {
       </div>
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-6">
           {categories.map((category) => (
             <TabsTrigger key={category} value={category} className="text-xs">
               {category}
@@ -260,7 +278,10 @@ export function StoryGenerator() {
           <TabsContent key={category} value={category} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((template) => (
-                <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <Card
+                  key={template.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -298,8 +319,8 @@ export function StoryGenerator() {
                       </Button>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleTemplateSelect(template)}
                             data-testid={`button-customize-${template.id}`}
@@ -319,14 +340,17 @@ export function StoryGenerator() {
                               <h4 className="font-medium">Template Prompts:</h4>
                               <ul className="space-y-1">
                                 {template.prompts.map((prompt, index) => (
-                                  <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                                  <li
+                                    key={index}
+                                    className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2"
+                                  >
                                     <span className="text-blue-500">•</span>
                                     {prompt}
                                   </li>
                                 ))}
                               </ul>
                             </div>
-                            
+
                             {generatedStory && (
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between">
@@ -339,7 +363,7 @@ export function StoryGenerator() {
                                       data-testid="button-edit-story"
                                     >
                                       <Edit3 className="h-3 w-3 mr-1" />
-                                      {isEditing ? 'Preview' : 'Edit'}
+                                      {isEditing ? "Preview" : "Edit"}
                                     </Button>
                                     <Button
                                       size="sm"
@@ -361,7 +385,7 @@ export function StoryGenerator() {
                                     </Button>
                                   </div>
                                 </div>
-                                
+
                                 {isEditing ? (
                                   <Textarea
                                     value={editedStory}
@@ -372,14 +396,17 @@ export function StoryGenerator() {
                                   />
                                 ) : (
                                   <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                    <p className="whitespace-pre-wrap text-sm leading-relaxed" data-testid="text-generated-story">
+                                    <p
+                                      className="whitespace-pre-wrap text-sm leading-relaxed"
+                                      data-testid="text-generated-story"
+                                    >
                                       {editedStory || generatedStory}
                                     </p>
                                   </div>
                                 )}
                               </div>
                             )}
-                            
+
                             <Button
                               onClick={() => handleQuickGenerate(template)}
                               disabled={generateStoryMutation.isPending}
@@ -409,7 +436,7 @@ export function StoryGenerator() {
           </TabsContent>
         ))}
       </Tabs>
-      
+
       {generatedStory && !selectedTemplate && (
         <Card>
           <CardHeader>
@@ -420,16 +447,27 @@ export function StoryGenerator() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="whitespace-pre-wrap leading-relaxed" data-testid="text-quick-generated-story">
+              <p
+                className="whitespace-pre-wrap leading-relaxed"
+                data-testid="text-quick-generated-story"
+              >
                 {generatedStory}
               </p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleCopyStory} variant="outline" data-testid="button-copy-quick-story">
+              <Button
+                onClick={handleCopyStory}
+                variant="outline"
+                data-testid="button-copy-quick-story"
+              >
                 <Copy className="h-4 w-4 mr-2" />
                 Copy Story
               </Button>
-              <Button onClick={handleSaveStory} disabled={saveStoryMutation.isPending} data-testid="button-save-quick-story">
+              <Button
+                onClick={handleSaveStory}
+                disabled={saveStoryMutation.isPending}
+                data-testid="button-save-quick-story"
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Save to Profile
               </Button>

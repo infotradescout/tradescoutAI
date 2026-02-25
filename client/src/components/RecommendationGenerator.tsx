@@ -289,7 +289,7 @@ export default function RecommendationGenerator() {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
           <TabsTrigger value="insights" data-testid="tab-insights">
             Performance Insights
           </TabsTrigger>

@@ -508,7 +508,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
               Thanks to your Community Builder badge, you've helped unlock funding and hours for
               local causes.
             </p>
-            <div className="grid grid-cols-3 gap-3 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
               <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
                 <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
                   Verified contributions
