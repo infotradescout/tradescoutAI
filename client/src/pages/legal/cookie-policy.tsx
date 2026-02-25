@@ -13,26 +13,28 @@ export default function CookiePolicy() {
     functional: true,
     analytics: false,
     advertising: false,
-    performance: true
+    performance: true,
   });
 
   const handlePreferenceChange = (category: string, enabled: boolean) => {
-    if (category === 'necessary') return; // Cannot disable necessary cookies
-    
-    setCookiePreferences(prev => ({
+    if (category === "necessary") return; // Cannot disable necessary cookies
+
+    setCookiePreferences((prev) => ({
       ...prev,
-      [category]: enabled
+      [category]: enabled,
     }));
   };
 
   const savePreferences = () => {
     // Save to localStorage and update cookie consent
-    localStorage.setItem('cookiePreferences', JSON.stringify(cookiePreferences));
+    localStorage.setItem("cookiePreferences", JSON.stringify(cookiePreferences));
     // Trigger cookie consent update
-    window.dispatchEvent(new CustomEvent('cookiePreferencesUpdated', { 
-      detail: cookiePreferences 
-    }));
-    alert('Cookie preferences saved successfully!');
+    window.dispatchEvent(
+      new CustomEvent("cookiePreferencesUpdated", {
+        detail: cookiePreferences,
+      })
+    );
+    alert("Cookie preferences saved successfully!");
   };
 
   const acceptAllCookies = () => {
@@ -41,14 +43,16 @@ export default function CookiePolicy() {
       functional: true,
       analytics: true,
       advertising: true,
-      performance: true
+      performance: true,
     };
     setCookiePreferences(allEnabled);
-    localStorage.setItem('cookiePreferences', JSON.stringify(allEnabled));
-    window.dispatchEvent(new CustomEvent('cookiePreferencesUpdated', { 
-      detail: allEnabled 
-    }));
-    alert('All cookies accepted!');
+    localStorage.setItem("cookiePreferences", JSON.stringify(allEnabled));
+    window.dispatchEvent(
+      new CustomEvent("cookiePreferencesUpdated", {
+        detail: allEnabled,
+      })
+    );
+    alert("All cookies accepted!");
   };
 
   const rejectOptionalCookies = () => {
@@ -57,102 +61,105 @@ export default function CookiePolicy() {
       functional: false,
       analytics: false,
       advertising: false,
-      performance: false
+      performance: false,
     };
     setCookiePreferences(necessaryOnly);
-    localStorage.setItem('cookiePreferences', JSON.stringify(necessaryOnly));
-    window.dispatchEvent(new CustomEvent('cookiePreferencesUpdated', { 
-      detail: necessaryOnly 
-    }));
-    alert('Optional cookies rejected!');
+    localStorage.setItem("cookiePreferences", JSON.stringify(necessaryOnly));
+    window.dispatchEvent(
+      new CustomEvent("cookiePreferencesUpdated", {
+        detail: necessaryOnly,
+      })
+    );
+    alert("Optional cookies rejected!");
   };
 
   const cookieCategories = [
     {
-      id: 'necessary',
-      name: 'Strictly Necessary Cookies',
+      id: "necessary",
+      name: "Strictly Necessary Cookies",
       icon: <Shield className="h-5 w-5" />,
-      description: 'These cookies are essential for the website to function and cannot be disabled.',
-      purpose: 'Authentication, security, form submissions, shopping cart functionality',
+      description:
+        "These cookies are essential for the website to function and cannot be disabled.",
+      purpose: "Authentication, security, form submissions, shopping cart functionality",
       examples: [
-        'User authentication tokens',
-        'CSRF protection tokens',
-        'Session management',
-        'Security settings',
-        'Form data preservation'
+        "User authentication tokens",
+        "CSRF protection tokens",
+        "Session management",
+        "Security settings",
+        "Form data preservation",
       ],
-      retention: 'Session duration or up to 30 days',
-      canDisable: false
+      retention: "Session duration or up to 30 days",
+      canDisable: false,
     },
     {
-      id: 'functional',
-      name: 'Functional Cookies',
+      id: "functional",
+      name: "Functional Cookies",
       icon: <Settings className="h-5 w-5" />,
-      description: 'These cookies enable enhanced functionality and personalization.',
-      purpose: 'User preferences, language settings, accessibility options',
+      description: "These cookies enable enhanced functionality and personalization.",
+      purpose: "User preferences, language settings, accessibility options",
       examples: [
-        'Language preferences',
-        'Theme settings (dark/light mode)',
-        'Accessibility preferences',
-        'Region/location settings',
-        'Notification preferences'
+        "Language preferences",
+        "Theme settings (dark/light mode)",
+        "Accessibility preferences",
+        "Region/location settings",
+        "Notification preferences",
       ],
-      retention: 'Up to 1 year',
-      canDisable: true
+      retention: "Up to 1 year",
+      canDisable: true,
     },
     {
-      id: 'analytics',
-      name: 'Analytics Cookies',
+      id: "analytics",
+      name: "Analytics Cookies",
       icon: <BarChart3 className="h-5 w-5" />,
-      description: 'These cookies help us understand how visitors interact with our website.',
-      purpose: 'Traffic analysis, user behavior, performance monitoring',
+      description: "These cookies help us understand how visitors interact with our website.",
+      purpose: "Traffic analysis, user behavior, performance monitoring",
       examples: [
-        'Google Analytics',
-        'Page view tracking',
-        'User journey analysis',
-        'Feature usage statistics',
-        'Error reporting'
+        "Google Analytics",
+        "Page view tracking",
+        "User journey analysis",
+        "Feature usage statistics",
+        "Error reporting",
       ],
-      retention: 'Up to 2 years',
-      canDisable: true
+      retention: "Up to 2 years",
+      canDisable: true,
     },
     {
-      id: 'advertising',
-      name: 'Advertising Cookies',
+      id: "advertising",
+      name: "Advertising Cookies",
       icon: <Target className="h-5 w-5" />,
-      description: 'These cookies are used to deliver relevant advertisements.',
-      purpose: 'Targeted advertising, ad performance measurement',
+      description: "These cookies are used to deliver relevant advertisements.",
+      purpose: "Targeted advertising, ad performance measurement",
       examples: [
-        'Ad targeting data',
-        'Conversion tracking',
-        'Retargeting pixels',
-        'Social media advertising',
-        'Third-party ad networks'
+        "Ad targeting data",
+        "Conversion tracking",
+        "Retargeting pixels",
+        "Social media advertising",
+        "Third-party ad networks",
       ],
-      retention: 'Up to 1 year',
-      canDisable: true
+      retention: "Up to 1 year",
+      canDisable: true,
     },
     {
-      id: 'performance',
-      name: 'Performance Cookies',
+      id: "performance",
+      name: "Performance Cookies",
       icon: <CheckCircle className="h-5 w-5" />,
-      description: 'These cookies help improve website performance and user experience.',
-      purpose: 'Load balancing, caching, performance optimization',
+      description: "These cookies help improve website performance and user experience.",
+      purpose: "Load balancing, caching, performance optimization",
       examples: [
-        'CDN optimization',
-        'Load balancing',
-        'Performance monitoring',
-        'Caching preferences',
-        'Resource optimization'
+        "CDN optimization",
+        "Load balancing",
+        "Performance monitoring",
+        "Caching preferences",
+        "Resource optimization",
       ],
-      retention: 'Up to 6 months',
-      canDisable: true
-    }
+      retention: "Up to 6 months",
+      canDisable: true,
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--surface-frame)]">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-[var(--surface-frame)] py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -164,11 +171,10 @@ export default function CookiePolicy() {
             </p>
           </CardHeader>
           <CardContent>
-            
             <Alert className="mb-6">
               <Shield className="h-4 w-4" />
               <AlertDescription>
-                We use cookies to enhance your browsing experience, provide personalized content, 
+                We use cookies to enhance your browsing experience, provide personalized content,
                 and analyze our traffic. You can customize your preferences below.
               </AlertDescription>
             </Alert>
@@ -199,16 +205,20 @@ export default function CookiePolicy() {
                             <h3 className="text-lg font-semibold">{category.name}</h3>
                           </div>
                           <Switch
-                            checked={cookiePreferences[category.id as keyof typeof cookiePreferences]}
-                            onCheckedChange={(checked) => handlePreferenceChange(category.id, checked)}
+                            checked={
+                              cookiePreferences[category.id as keyof typeof cookiePreferences]
+                            }
+                            onCheckedChange={(checked) =>
+                              handlePreferenceChange(category.id, checked)
+                            }
                             disabled={!category.canDisable}
                           />
                         </div>
-                        
+
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
                           {category.description}
                         </p>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <p className="font-medium mb-2">Purpose:</p>
@@ -219,7 +229,7 @@ export default function CookiePolicy() {
                             <p className="text-gray-600 dark:text-gray-300">{category.retention}</p>
                           </div>
                         </div>
-                        
+
                         <div className="mt-4">
                           <p className="font-medium mb-2">Examples:</p>
                           <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
@@ -231,11 +241,12 @@ export default function CookiePolicy() {
                             ))}
                           </ul>
                         </div>
-                        
+
                         {!category.canDisable && (
                           <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                              These cookies are essential for website functionality and cannot be disabled.
+                              These cookies are essential for website functionality and cannot be
+                              disabled.
                             </p>
                           </div>
                         )}
@@ -256,9 +267,9 @@ export default function CookiePolicy() {
                   <section>
                     <h2 className="text-2xl font-semibold mb-4">What are Cookies?</h2>
                     <p className="mb-4">
-                      Cookies are small text files stored on your device when you visit our website. 
-                      They help us provide you with a better experience by remembering your preferences 
-                      and understanding how you use our site.
+                      Cookies are small text files stored on your device when you visit our website.
+                      They help us provide you with a better experience by remembering your
+                      preferences and understanding how you use our site.
                     </p>
                   </section>
 
@@ -268,11 +279,21 @@ export default function CookiePolicy() {
                     <h2 className="text-2xl font-semibold mb-4">How We Use Cookies</h2>
                     <p className="mb-4">We use cookies for several purposes:</p>
                     <ul className="list-disc pl-6 mb-4 space-y-2">
-                      <li><strong>Essential Functionality:</strong> To provide core website features</li>
-                      <li><strong>User Experience:</strong> To remember your preferences and settings</li>
-                      <li><strong>Analytics:</strong> To understand how our website is used</li>
-                      <li><strong>Performance:</strong> To optimize website speed and functionality</li>
-                      <li><strong>Marketing:</strong> To show relevant advertisements (with consent)</li>
+                      <li>
+                        <strong>Essential Functionality:</strong> To provide core website features
+                      </li>
+                      <li>
+                        <strong>User Experience:</strong> To remember your preferences and settings
+                      </li>
+                      <li>
+                        <strong>Analytics:</strong> To understand how our website is used
+                      </li>
+                      <li>
+                        <strong>Performance:</strong> To optimize website speed and functionality
+                      </li>
+                      <li>
+                        <strong>Marketing:</strong> To show relevant advertisements (with consent)
+                      </li>
                     </ul>
                   </section>
 
@@ -284,10 +305,18 @@ export default function CookiePolicy() {
                       We may use third-party services that set their own cookies. These include:
                     </p>
                     <ul className="list-disc pl-6 mb-4 space-y-2">
-                      <li><strong>Google Analytics:</strong> For website traffic analysis</li>
-                      <li><strong>Payment Processors:</strong> For secure payment processing</li>
-                      <li><strong>Social Media:</strong> For social sharing functionality</li>
-                      <li><strong>Advertising Networks:</strong> For targeted advertising</li>
+                      <li>
+                        <strong>Google Analytics:</strong> For website traffic analysis
+                      </li>
+                      <li>
+                        <strong>Payment Processors:</strong> For secure payment processing
+                      </li>
+                      <li>
+                        <strong>Social Media:</strong> For social sharing functionality
+                      </li>
+                      <li>
+                        <strong>Advertising Networks:</strong> For targeted advertising
+                      </li>
                     </ul>
                   </section>
 
@@ -297,15 +326,21 @@ export default function CookiePolicy() {
                     <h2 className="text-2xl font-semibold mb-4">Managing Cookies</h2>
                     <p className="mb-4">You can control cookies through:</p>
                     <ul className="list-disc pl-6 mb-4 space-y-2">
-                      <li><strong>This Page:</strong> Use our cookie preference center above</li>
-                      <li><strong>Browser Settings:</strong> Most browsers allow you to refuse cookies</li>
-                      <li><strong>Third-Party Tools:</strong> Use privacy tools and browser extensions</li>
+                      <li>
+                        <strong>This Page:</strong> Use our cookie preference center above
+                      </li>
+                      <li>
+                        <strong>Browser Settings:</strong> Most browsers allow you to refuse cookies
+                      </li>
+                      <li>
+                        <strong>Third-Party Tools:</strong> Use privacy tools and browser extensions
+                      </li>
                     </ul>
-                    
+
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mt-4">
                       <p className="text-sm">
-                        <strong>Note:</strong> Disabling certain cookies may impact website functionality 
-                        and your user experience.
+                        <strong>Note:</strong> Disabling certain cookies may impact website
+                        functionality and your user experience.
                       </p>
                     </div>
                   </section>
@@ -314,13 +349,20 @@ export default function CookiePolicy() {
 
                   <section>
                     <h2 className="text-2xl font-semibold mb-4">Legal Basis</h2>
-                    <p className="mb-4">
-                      We process cookies based on:
-                    </p>
+                    <p className="mb-4">We process cookies based on:</p>
                     <ul className="list-disc pl-6 mb-4 space-y-2">
-                      <li><strong>Legitimate Interest:</strong> For necessary cookies required for website operation</li>
-                      <li><strong>Consent:</strong> For optional cookies like analytics and advertising</li>
-                      <li><strong>Contract Performance:</strong> For cookies needed to fulfill our services</li>
+                      <li>
+                        <strong>Legitimate Interest:</strong> For necessary cookies required for
+                        website operation
+                      </li>
+                      <li>
+                        <strong>Consent:</strong> For optional cookies like analytics and
+                        advertising
+                      </li>
+                      <li>
+                        <strong>Contract Performance:</strong> For cookies needed to fulfill our
+                        services
+                      </li>
                     </ul>
                   </section>
 
@@ -329,8 +371,8 @@ export default function CookiePolicy() {
                   <section>
                     <h2 className="text-2xl font-semibold mb-4">Updates to Cookie Policy</h2>
                     <p className="mb-4">
-                      We may update this cookie policy periodically to reflect changes in our practices 
-                      or applicable laws. We will notify you of any material changes.
+                      We may update this cookie policy periodically to reflect changes in our
+                      practices or applicable laws. We will notify you of any material changes.
                     </p>
                   </section>
 
@@ -342,9 +384,15 @@ export default function CookiePolicy() {
                       <p className="mb-2">
                         If you have questions about our use of cookies, please contact us:
                       </p>
-                      <p className="mb-2"><strong>Email:</strong> privacy@tradescout.com</p>
-                      <p className="mb-2"><strong>Address:</strong> [Your Business Address]</p>
-                      <p><strong>Phone:</strong> [Your Phone Number]</p>
+                      <p className="mb-2">
+                        <strong>Email:</strong> privacy@tradescout.com
+                      </p>
+                      <p className="mb-2">
+                        <strong>Address:</strong> [Your Business Address]
+                      </p>
+                      <p>
+                        <strong>Phone:</strong> [Your Phone Number]
+                      </p>
                     </div>
                   </section>
                 </div>

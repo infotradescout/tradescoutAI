@@ -1,13 +1,20 @@
-import React from 'react';
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle, Wallet } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import React from "react";
+import { useEffect } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, CheckCircle, Wallet } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ReconciliationRow {
   countyId: string;
@@ -24,15 +31,15 @@ export default function AdminCommunityBuilderReconciliationPage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!user?.isAdmin) setLocation('/unauthorized');
+    if (!user?.isAdmin) setLocation("/unauthorized");
   }, [user?.isAdmin, setLocation]);
 
   if (!user?.isAdmin) return null;
   const { data: recs = [], isLoading } = useQuery<ReconciliationRow[]>({
-    queryKey: ['cbReconciliation'],
+    queryKey: ["cbReconciliation"],
     queryFn: async () => {
-      const res = await fetch('/api/admin/community-builder/reconciliation');
-      if (!res.ok) throw new Error('Failed to load reconciliation');
+      const res = await fetch("/api/admin/community-builder/reconciliation");
+      if (!res.ok) throw new Error("Failed to load reconciliation");
       return res.json();
     },
   });
@@ -40,7 +47,7 @@ export default function AdminCommunityBuilderReconciliationPage() {
   const warnings = recs.filter((r) => Math.abs(r.delta) > 1);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4">
+    <div className="bg-slate-50 py-10 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -92,7 +99,9 @@ export default function AdminCommunityBuilderReconciliationPage() {
                       <TableCell className="text-right">{r.payoutCount}</TableCell>
                       <TableCell className="text-right">
                         {Math.abs(r.delta) < 1 ? (
-                          <Badge className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> OK</Badge>
+                          <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> OK
+                          </Badge>
                         ) : (
                           <Badge variant="error">{r.delta.toFixed(2)}</Badge>
                         )}

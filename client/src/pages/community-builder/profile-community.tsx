@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { useRoute } from 'wouter';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import React, { useMemo, useState } from "react";
+import { useRoute } from "wouter";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 type VaultData = {
   profile: { id: string; slug: string; displayName: string; roleContext: string } | null;
@@ -43,8 +43,8 @@ type Cause = {
 
 type PlatformSupportLedgerEntry = {
   id: string;
-  allocation: 'platform' | 'community';
-  mode: 'one_time' | 'subscription';
+  allocation: "platform" | "community";
+  mode: "one_time" | "subscription";
   amount: number;
   currency: string;
   originatingProfileId?: string | null;
@@ -54,60 +54,67 @@ type PlatformSupportLedgerEntry = {
 
 function formatMoney(amount: number): string {
   const n = Number.isFinite(amount) ? amount : 0;
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(n);
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n);
 }
 
 export default function ProfileCommunityPage() {
   const { toast } = useToast();
-  const [, params] = useRoute('/profile/:profileId/community');
-  const profileId = params?.profileId || '';
+  const [, params] = useRoute("/profile/:profileId/community");
+  const profileId = params?.profileId || "";
 
-  const moneyFormatter = useMemo(() => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }), []);
+  const moneyFormatter = useMemo(
+    () => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }),
+    []
+  );
 
   const { data: vaultData, refetch: refetchVault } = useQuery<VaultData>({
-    queryKey: ['communityVault', profileId],
+    queryKey: ["communityVault", profileId],
     enabled: Boolean(profileId),
     queryFn: async () => {
       const res = await fetch(`/api/community-vault/profile/${profileId}/ledger?limit=50`);
       if (res.status === 404) {
         return { profile: null, vault: null, ledger: [] };
       }
-      if (!res.ok) throw new Error('Failed to fetch community vault');
+      if (!res.ok) throw new Error("Failed to fetch community vault");
       return res.json();
     },
   });
 
   const { data: causes = [], refetch: refetchCauses } = useQuery<Cause[]>({
-    queryKey: ['communityCauses', profileId],
+    queryKey: ["communityCauses", profileId],
     enabled: Boolean(profileId),
     queryFn: async () => {
       const res = await fetch(`/api/community-causes/profile/${profileId}`);
-      if (!res.ok) throw new Error('Failed to fetch causes');
+      if (!res.ok) throw new Error("Failed to fetch causes");
       return res.json();
     },
   });
 
-  const { data: supportLedger = [], refetch: refetchSupportLedger } = useQuery<PlatformSupportLedgerEntry[]>({
-    queryKey: ['platformSupportLedger', profileId],
+  const { data: supportLedger = [], refetch: refetchSupportLedger } = useQuery<
+    PlatformSupportLedgerEntry[]
+  >({
+    queryKey: ["platformSupportLedger", profileId],
     enabled: Boolean(profileId),
     queryFn: async () => {
-      const res = await fetch(`/api/platform-support/ledger?originatingProfileId=${encodeURIComponent(profileId)}&limit=50`);
-      if (!res.ok) throw new Error('Failed to fetch platform support ledger');
+      const res = await fetch(
+        `/api/platform-support/ledger?originatingProfileId=${encodeURIComponent(profileId)}&limit=50`
+      );
+      if (!res.ok) throw new Error("Failed to fetch platform support ledger");
       return res.json();
     },
   });
 
-  const [donationAmount, setDonationAmount] = useState('25');
-  const [supportAmount, setSupportAmount] = useState('10');
+  const [donationAmount, setDonationAmount] = useState("25");
+  const [supportAmount, setSupportAmount] = useState("10");
 
-  const [causeTitle, setCauseTitle] = useState('');
-  const [causeDescription, setCauseDescription] = useState('');
+  const [causeTitle, setCauseTitle] = useState("");
+  const [causeDescription, setCauseDescription] = useState("");
 
   const donateMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/community-vault/checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/community-vault/checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profileId,
           amount: donationAmount,
@@ -117,7 +124,7 @@ export default function ProfileCommunityPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || 'Failed to create donation checkout');
+        throw new Error(body?.error || "Failed to create donation checkout");
       }
       return res.json() as Promise<{ url: string }>;
     },
@@ -126,18 +133,18 @@ export default function ProfileCommunityPage() {
     },
     onError: (err: any) => {
       toast({
-        title: 'Donation failed',
-        description: err?.message || 'Unable to start donation checkout.',
-        variant: 'destructive',
+        title: "Donation failed",
+        description: err?.message || "Unable to start donation checkout.",
+        variant: "destructive",
       });
     },
   });
 
   const supportMutation = useMutation({
-    mutationFn: async (mode: 'one_time' | 'subscription') => {
-      const res = await fetch('/api/platform-support/checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    mutationFn: async (mode: "one_time" | "subscription") => {
+      const res = await fetch("/api/platform-support/checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: supportAmount,
           mode,
@@ -148,7 +155,7 @@ export default function ProfileCommunityPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || 'Failed to create platform support checkout');
+        throw new Error(body?.error || "Failed to create platform support checkout");
       }
       return res.json() as Promise<{ url: string }>;
     },
@@ -157,18 +164,18 @@ export default function ProfileCommunityPage() {
     },
     onError: (err: any) => {
       toast({
-        title: 'Platform support failed',
-        description: err?.message || 'Unable to start checkout.',
-        variant: 'destructive',
+        title: "Platform support failed",
+        description: err?.message || "Unable to start checkout.",
+        variant: "destructive",
       });
     },
   });
 
   const createCauseMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/community-causes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/community-causes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profileId,
           title: causeTitle,
@@ -177,21 +184,24 @@ export default function ProfileCommunityPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || body?.message || 'Failed to create cause');
+        throw new Error(body?.error || body?.message || "Failed to create cause");
       }
       return res.json();
     },
     onSuccess: async () => {
-      setCauseTitle('');
-      setCauseDescription('');
+      setCauseTitle("");
+      setCauseDescription("");
       await refetchCauses();
-      toast({ title: 'Cause created', description: 'Your cause is now visible for voting intent.' });
+      toast({
+        title: "Cause created",
+        description: "Your cause is now visible for voting intent.",
+      });
     },
     onError: (err: any) => {
       toast({
-        title: 'Create cause failed',
-        description: err?.message || 'Unable to create cause.',
-        variant: 'destructive',
+        title: "Create cause failed",
+        description: err?.message || "Unable to create cause.",
+        variant: "destructive",
       });
     },
   });
@@ -199,24 +209,24 @@ export default function ProfileCommunityPage() {
   const voteMutation = useMutation({
     mutationFn: async (causeId: string) => {
       const res = await fetch(`/api/community-causes/${causeId}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || body?.message || 'Failed to vote');
+        throw new Error(body?.error || body?.message || "Failed to vote");
       }
       return res.json();
     },
     onSuccess: async () => {
       await refetchCauses();
-      toast({ title: 'Vote recorded', description: 'Your voting intent has been recorded.' });
+      toast({ title: "Vote recorded", description: "Your voting intent has been recorded." });
     },
     onError: (err: any) => {
       toast({
-        title: 'Vote failed',
-        description: err?.message || 'Unable to record vote.',
-        variant: 'destructive',
+        title: "Vote failed",
+        description: err?.message || "Unable to record vote.",
+        variant: "destructive",
       });
     },
   });
@@ -226,7 +236,7 @@ export default function ProfileCommunityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white py-10 px-4">
+    <div className="bg-gradient-to-br from-slate-50 to-white py-10 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -236,7 +246,8 @@ export default function ProfileCommunityPage() {
             </p>
             {vaultData?.profile && (
               <p className="text-sm text-gray-500">
-                Community: <span className="font-semibold">{vaultData.profile.displayName}</span> ({vaultData.profile.slug})
+                Community: <span className="font-semibold">{vaultData.profile.displayName}</span> (
+                {vaultData.profile.slug})
               </p>
             )}
           </div>
@@ -263,8 +274,12 @@ export default function ProfileCommunityPage() {
                   <CardDescription>Current balance</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{formatMoney(vaultData.vault?.currentBalance ?? 0)}</div>
-                  <div className="text-sm text-gray-500 mt-2">Lifetime inflow: {formatMoney(vaultData.vault?.lifetimeInflow ?? 0)}</div>
+                  <div className="text-3xl font-bold">
+                    {formatMoney(vaultData.vault?.currentBalance ?? 0)}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    Lifetime inflow: {formatMoney(vaultData.vault?.lifetimeInflow ?? 0)}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -275,7 +290,9 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{vaultData.ledger?.length ?? 0}</div>
-                  <div className="text-sm text-gray-500 mt-2">Lifetime outflow: {formatMoney(vaultData.vault?.lifetimeOutflow ?? 0)}</div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    Lifetime outflow: {formatMoney(vaultData.vault?.lifetimeOutflow ?? 0)}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -286,7 +303,9 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{supportLedger.length}</div>
-                  <div className="text-sm text-gray-500 mt-2">Two rows per split payment (platform + community)</div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    Two rows per split payment (platform + community)
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -299,14 +318,19 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Input value={donationAmount} onChange={(e) => setDonationAmount(e.target.value)} placeholder="25" />
-                    <Button onClick={() => donateMutation.mutate()} disabled={donateMutation.isPending}>
+                    <Input
+                      value={donationAmount}
+                      onChange={(e) => setDonationAmount(e.target.value)}
+                      placeholder="25"
+                    />
+                    <Button
+                      onClick={() => donateMutation.mutate()}
+                      disabled={donateMutation.isPending}
+                    >
                       Donate
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    You’ll be redirected to Stripe Checkout.
-                  </p>
+                  <p className="text-xs text-gray-500">You’ll be redirected to Stripe Checkout.</p>
                 </CardContent>
               </Card>
 
@@ -319,19 +343,23 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Input value={supportAmount} onChange={(e) => setSupportAmount(e.target.value)} placeholder="10" />
+                    <Input
+                      value={supportAmount}
+                      onChange={(e) => setSupportAmount(e.target.value)}
+                      placeholder="10"
+                    />
                     <Badge variant="secondary">USD</Badge>
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => supportMutation.mutate('one_time')}
+                      onClick={() => supportMutation.mutate("one_time")}
                       disabled={supportMutation.isPending}
                     >
                       One-time
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => supportMutation.mutate('subscription')}
+                      onClick={() => supportMutation.mutate("subscription")}
                       disabled={supportMutation.isPending}
                     >
                       Monthly
@@ -347,13 +375,19 @@ export default function ProfileCommunityPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Causes (Voting Intent)</CardTitle>
-                <CardDescription>No money movement; just signal community priorities.</CardDescription>
+                <CardDescription>
+                  No money movement; just signal community priorities.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="text-sm font-semibold">Create a cause (owner-only)</div>
-                    <Input value={causeTitle} onChange={(e) => setCauseTitle(e.target.value)} placeholder="Cause title" />
+                    <Input
+                      value={causeTitle}
+                      onChange={(e) => setCauseTitle(e.target.value)}
+                      placeholder="Cause title"
+                    />
                     <Textarea
                       value={causeDescription}
                       onChange={(e) => setCauseDescription(e.target.value)}
@@ -376,10 +410,15 @@ export default function ProfileCommunityPage() {
                     ) : (
                       <div className="space-y-2">
                         {causes.slice(0, 10).map((c) => (
-                          <div key={c.id} className="flex items-start justify-between gap-3 p-3 border rounded-lg">
+                          <div
+                            key={c.id}
+                            className="flex items-start justify-between gap-3 p-3 border rounded-lg"
+                          >
                             <div className="space-y-1">
                               <div className="font-semibold">{c.title}</div>
-                              {c.description && <div className="text-sm text-gray-600">{c.description}</div>}
+                              {c.description && (
+                                <div className="text-sm text-gray-600">{c.description}</div>
+                              )}
                               <div className="text-xs text-gray-500">
                                 Votes: {c.voteCount} • Status: {c.status}
                               </div>
@@ -413,7 +452,10 @@ export default function ProfileCommunityPage() {
                   ) : (
                     <div className="space-y-2">
                       {vaultData.ledger.slice(0, 12).map((e) => (
-                        <div key={e.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+                        <div
+                          key={e.id}
+                          className="flex items-center justify-between gap-3 p-3 border rounded-lg"
+                        >
                           <div>
                             <div className="font-semibold">{moneyFormatter.format(e.amount)}</div>
                             <div className="text-xs text-gray-500">{e.memo || e.sourceType}</div>
@@ -437,15 +479,22 @@ export default function ProfileCommunityPage() {
                   ) : (
                     <div className="space-y-2">
                       {supportLedger.slice(0, 12).map((e) => (
-                        <div key={e.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+                        <div
+                          key={e.id}
+                          className="flex items-center justify-between gap-3 p-3 border rounded-lg"
+                        >
                           <div>
                             <div className="font-semibold">
                               {moneyFormatter.format(e.amount)}
                               <span className="text-xs text-gray-500"> • {e.mode}</span>
                             </div>
-                            <div className="text-xs text-gray-500">{e.memo || 'Platform Support'}</div>
+                            <div className="text-xs text-gray-500">
+                              {e.memo || "Platform Support"}
+                            </div>
                           </div>
-                          <Badge variant={e.allocation === 'community' ? 'secondary' : 'outline'}>{e.allocation}</Badge>
+                          <Badge variant={e.allocation === "community" ? "secondary" : "outline"}>
+                            {e.allocation}
+                          </Badge>
                         </div>
                       ))}
                     </div>

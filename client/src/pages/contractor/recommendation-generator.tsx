@@ -76,7 +76,7 @@ export default function RecommendationGeneratorPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--surface-app-bg)" }}>
+    <div className="py-8" style={{ backgroundColor: "var(--surface-app-bg)" }}>
       <div
         className="border-b"
         style={{

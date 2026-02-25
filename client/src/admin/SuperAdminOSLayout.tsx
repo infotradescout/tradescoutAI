@@ -86,11 +86,7 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
   };
 
   return (
-    <div
-      className={
-        density === "compact" ? "min-h-screen bg-slate-950 py-3" : "min-h-screen bg-slate-950 py-6"
-      }
-    >
+    <div className={density === "compact" ? "bg-slate-950 py-3" : "bg-slate-950 py-6"}>
       <div
         className={
           density === "compact"

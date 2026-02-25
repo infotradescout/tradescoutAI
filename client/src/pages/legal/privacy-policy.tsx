@@ -5,8 +5,8 @@ export default function PrivacyPolicy() {
   const lastUpdated = "August 11, 2025";
 
   return (
-    <div className="min-h-screen bg-[var(--surface-frame)]">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-[var(--surface-frame)] py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Privacy Policy</CardTitle>
