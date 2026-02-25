@@ -1,7 +1,6 @@
-
-import { useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useEffect, useRef } from "react";
+import { useLocation } from "wouter";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MobileGesturesProps {
   children: React.ReactNode;
@@ -31,7 +30,7 @@ export function MobileGestures({ children }: MobileGesturesProps) {
       if (!isDragging.current) {
         const deltaX = Math.abs(e.touches[0].clientX - touchStartX.current);
         const deltaY = Math.abs(e.touches[0].clientY - touchStartY.current);
-        
+
         // Start dragging if horizontal movement is greater than vertical
         if (deltaX > deltaY && deltaX > 10) {
           isDragging.current = true;
@@ -49,10 +48,10 @@ export function MobileGestures({ children }: MobileGesturesProps) {
       // Right swipe (back gesture)
       if (deltaX > threshold) {
         // Add haptic feedback if available
-        if ('vibrate' in navigator) {
+        if ("vibrate" in navigator) {
           navigator.vibrate(50);
         }
-        
+
         // Go back in history
         window.history.back();
       }
@@ -64,20 +63,20 @@ export function MobileGestures({ children }: MobileGesturesProps) {
       isDragging.current = false;
     };
 
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isMobile]);
 
   return (
-    <div ref={containerRef} className="min-h-screen">
+    <div ref={containerRef} className="">
       {children}
     </div>
   );

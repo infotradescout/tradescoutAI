@@ -98,7 +98,7 @@ export default function StaffShareLinksPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen  text-tsTextMain px-4 py-10">
+      <div className="text-tsTextMain px-4 py-10">
         <div className="max-w-5xl mx-auto">
           <Card className="bg-tsCard border-tsBorder">
             <CardHeader>
@@ -114,7 +114,7 @@ export default function StaffShareLinksPage() {
   }
 
   return (
-    <div className="min-h-screen  text-tsTextMain px-4 py-10">
+    <div className="text-tsTextMain px-4 py-10">
       <div className="max-w-6xl mx-auto space-y-6">
         <Card className="bg-tsCard border-tsBorder">
           <CardHeader className="space-y-3">

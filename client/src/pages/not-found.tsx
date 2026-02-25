@@ -12,7 +12,7 @@ export default function NotFound() {
         description="The page you're looking for doesn't exist. Return to TradeScout home, explore counties, or get help."
         canonical="https://www.thetradescout.com/404"
       />
-      <div className="min-h-screen w-full flex items-center justify-center px-4 bg-black/70">
+      <div className="w-full flex items-center justify-center px-4 bg-black/70 py-24">
         <div className="max-w-md w-full space-y-6">
           <ErrorState
             icon={<AlertCircle className="text-orange-400" />}

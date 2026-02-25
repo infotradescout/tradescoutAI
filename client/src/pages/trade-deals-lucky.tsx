@@ -103,8 +103,8 @@ export default function TradeDealsLuckyPage() {
   // Show empty state when no deals are available
   if (deals.length === 0) {
     return (
-      <div className="min-h-screen pb-24" style={{ backgroundColor: "var(--surface-base)" }}>
-        <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+      <div className="pb-24 py-12" style={{ backgroundColor: "var(--surface-base)" }}>
+        <div className="max-w-4xl mx-auto px-4 space-y-8">
           {/* Header */}
           <div className="text-center space-y-3">
             <div
@@ -348,8 +348,8 @@ export default function TradeDealsLuckyPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24" style={{ backgroundColor: "var(--surface-base)" }}>
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="pb-24 py-6" style={{ backgroundColor: "var(--surface-base)" }}>
+      <div className="max-w-7xl mx-auto px-4 space-y-6">
         {/* Header */}
         <div className="text-center space-y-3">
           <div

@@ -341,7 +341,7 @@ export default function CreateAccountPortal() {
         description="Join TradeScout and start making claims in your community."
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4 py-24">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">

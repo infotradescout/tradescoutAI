@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function UnauthorizedPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center  px-4">
+    <div className="flex items-center justify-center px-4 py-24">
       <Card className="w-full max-w-md bg-navy-900 border-navy-700 text-white">
         <CardHeader className="flex flex-row items-center gap-3 pb-2">
           <AlertCircle className="w-6 h-6 text-orange-400" />

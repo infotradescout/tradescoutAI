@@ -104,7 +104,7 @@ export default function OnboardingProfile() {
   const canContinue = !!firstName.trim() && !!lastName.trim() && !!stateCode && !!countyFips;
 
   return (
-    <div className="min-h-screen flex justify-center px-3 py-6 text-tsTextMain">
+    <div className="flex justify-center px-3 py-6 text-tsTextMain">
       <div className="w-full max-w-2xl space-y-2.5">
         <div className="flex items-center justify-between">
           <Button

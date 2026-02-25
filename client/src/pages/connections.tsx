@@ -18,7 +18,13 @@ interface ConnectionUser {
   followedAt?: string | null;
 }
 
-function SuggestedConnections({ followers, following }: { followers: ConnectionUser[]; following: ConnectionUser[] }) {
+function SuggestedConnections({
+  followers,
+  following,
+}: {
+  followers: ConnectionUser[];
+  following: ConnectionUser[];
+}) {
   // Simple suggestion heuristic: followers you don't yet follow back.
   const followingIds = new Set((following || []).map((u) => u.id));
   const suggestions = (followers || []).filter((u) => !followingIds.has(u.id));
@@ -26,7 +32,8 @@ function SuggestedConnections({ followers, following }: { followers: ConnectionU
   if (!suggestions.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        You&rsquo;re caught up for now. As more people follow you, we&rsquo;ll suggest new connections here.
+        You&rsquo;re caught up for now. As more people follow you, we&rsquo;ll suggest new
+        connections here.
       </p>
     );
   }
@@ -42,7 +49,10 @@ function ConnectionList({ users }: { users: ConnectionUser[] }) {
   return (
     <div className="space-y-3">
       {users.map((u) => {
-        const displayName = u.firstName || u.lastName ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() : "TradeScout User";
+        const displayName =
+          u.firstName || u.lastName
+            ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
+            : "TradeScout User";
         const location = [u.city, u.state].filter(Boolean).join(", ") || "Location not set";
 
         return (
@@ -55,9 +65,7 @@ function ConnectionList({ users }: { users: ConnectionUser[] }) {
                 {u.profileImageUrl ? (
                   <AvatarImage src={u.profileImageUrl} alt={displayName} />
                 ) : (
-                  <AvatarFallback>
-                    {displayName.charAt(0).toUpperCase()}
-                  </AvatarFallback>
+                  <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
                 )}
               </Avatar>
               <div className="flex flex-col">
@@ -94,8 +102,8 @@ export default function ConnectionsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 space-y-6">
+    <div className="bg-background py-8">
+      <div className="container mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Users className="h-5 w-5 text-primary" />
@@ -114,9 +122,7 @@ export default function ConnectionsPage() {
               <CardTitle className="text-sm font-medium">Followers</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
-                {summary?.followers ?? 0}
-              </p>
+              <p className="text-2xl font-bold">{summary?.followers ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
@@ -124,9 +130,7 @@ export default function ConnectionsPage() {
               <CardTitle className="text-sm font-medium">Following</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
-                {summary?.following ?? 0}
-              </p>
+              <p className="text-2xl font-bold">{summary?.following ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
@@ -134,9 +138,7 @@ export default function ConnectionsPage() {
               <CardTitle className="text-sm font-medium">Mutual Connections</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
-                {summary?.mutual ?? 0}
-              </p>
+              <p className="text-2xl font-bold">{summary?.mutual ?? 0}</p>
             </CardContent>
           </Card>
         </div>

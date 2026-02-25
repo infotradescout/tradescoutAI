@@ -82,7 +82,7 @@ export default function VerifyEmail() {
   }, [state, isAuthenticated, setLocation, verifiedEmail]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="flex items-center justify-center px-4 py-10 text-tsTextMain">
       <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-2xl font-bold text-tsTextMain">Email verification</CardTitle>

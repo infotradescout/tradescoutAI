@@ -1083,7 +1083,7 @@ export default function Home() {
   }, [trackedVariant.key]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent text-white">
+    <div className="flex flex-col bg-transparent text-white">
       <Navbar variant={trackedVariant} />
       <main>
         <HeroSection variant={trackedVariant} />

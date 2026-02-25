@@ -125,7 +125,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       // Return fallback UI with error details
       return (
         this.props.fallback || (
-          <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+          <div className="bg-gray-900 text-white p-8 flex items-center justify-center py-24">
             <div className="text-center">
               <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
               <p className="mb-4">The application encountered an error.</p>

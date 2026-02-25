@@ -38,7 +38,7 @@ export default function ConnectMasterAdmin() {
   });
 
   return (
-    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
+    <div className="gradient-bg flex items-center justify-center p-4 py-24">
       <Card className="w-full max-w-md border-orange-500/20">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center">
