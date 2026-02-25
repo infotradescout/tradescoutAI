@@ -2628,7 +2628,7 @@ router.post("/", async (req: Request, res: Response) => {
               knowledge: {
                 layer: 1,
                 sources: ["Scout Enhanced v4 (Agent Council)"],
-                confidence: enhancedConfidence === "unknown" ? "medium" : enhancedConfidence,
+                confidence: "high",
               },
               llmProvider: "enhanced_v4",
               promptVersion: loadSystemPrompt().version,
