@@ -19,7 +19,10 @@ import {
   detectTopicShift,
   classifyFromMessageHeuristics,
 } from "../services/intentsClassifier";
-import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
+import {
+  maybePromoteToWorkRequest,
+  syncObjectiveFromScoutMessage,
+} from "../scout/objectivesService";
 
 const TEST_USER_ID = "test-user-" + Date.now();
 const TEST_COUNTY_FIPS = "12345";
@@ -230,6 +233,10 @@ describeWithDb("Objectives Layer - Phase 1", () => {
 
       const shiftEvent = events.find((e) => e.eventType === "topic_shift");
       expect(shiftEvent).toBeDefined();
+      const metadata = (shiftEvent?.metadata ?? {}) as Record<string, unknown>;
+      expect(metadata.reason).toBe("user_shifted_to_new_topic");
+      expect(metadata.previousIntent).toBe("work_request");
+      expect(metadata.newIntent).toBe("local_advice");
     });
 
     test("enforces one active objective per user", async () => {
@@ -461,6 +468,10 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       const createdEvent = events.find((e) => e.eventType === "created");
       expect(createdEvent).toBeDefined();
       expect(createdEvent?.actorType).toBe("system");
+      const metadata = (createdEvent?.metadata ?? {}) as Record<string, unknown>;
+      expect(metadata.classificationSource).toBeDefined();
+      expect(metadata.intentClass).toBeDefined();
+      expect(typeof metadata.confidence).toBe("number");
     });
 
     test("logs updated event when objective is refreshed", async () => {
@@ -485,6 +496,61 @@ describeWithDb("Objectives Layer - Phase 1", () => {
 
       const updatedEvent = events.find((e) => e.eventType === "summary_updated");
       expect(updatedEvent).toBeDefined();
+      const metadata = (updatedEvent?.metadata ?? {}) as Record<string, unknown>;
+      expect(metadata.intentClass).toBeDefined();
+      expect(metadata.classificationSource).toBeDefined();
+      expect(typeof metadata.wasTopicShift).toBe("boolean");
+    });
+  });
+
+  // ==========================================
+  // Promotion Eligibility Layer
+  // ==========================================
+
+  describe("Promotion Eligibility", () => {
+    test("allows promotion for high-confidence work_request objective", async () => {
+      const result = await syncObjectiveFromScoutMessage({
+        userId: TEST_USER_ID + "-promote-1",
+        messageText: "I need to hire a roofer",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      const promotion = await maybePromoteToWorkRequest(result?.objectiveId as string);
+      expect(promotion).toEqual(
+        expect.objectContaining({
+          canPromote: true,
+        })
+      );
+    });
+
+    test("does not promote non-work_request objective", async () => {
+      const result = await syncObjectiveFromScoutMessage({
+        userId: TEST_USER_ID + "-promote-2",
+        messageText: "What should I ask a contractor about permits?",
+        userRole: "homeowner",
+        scoutIntent: "advise",
+      });
+
+      const promotion = await maybePromoteToWorkRequest(result?.objectiveId as string);
+      expect(promotion).toBeNull();
+    });
+
+    test("does not promote when objective already linked", async () => {
+      const result = await syncObjectiveFromScoutMessage({
+        userId: TEST_USER_ID + "-promote-3",
+        messageText: "I need to hire a plumber",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      await db
+        .update(objectives)
+        .set({ linkedObjectType: "workRequest", linkedObjectId: "wr-test-123" })
+        .where(eq(objectives.id, result?.objectiveId as string));
+
+      const promotion = await maybePromoteToWorkRequest(result?.objectiveId as string);
+      expect(promotion).toBeNull();
     });
   });
 
