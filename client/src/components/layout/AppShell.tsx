@@ -36,6 +36,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
+import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 
 export type NavItem = {
   label: string;
@@ -142,6 +143,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const [location, navigate] = useLocation();
   const { canPromptInstall, promptInstall } = useInstallPrompt();
   const isStandalone = useIsStandalone();
+
+  // Auto-upgrade legacy location data for existing users
+  useLocationUpgrade();
+
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const showMobileScoutHero = location === "/";
   const isAuthSurface =

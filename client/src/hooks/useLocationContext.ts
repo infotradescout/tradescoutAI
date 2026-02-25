@@ -4,11 +4,7 @@ import { safeStorage } from "@/utils/safeStorage";
 
 export type LocationLayer = "project" | "hoa" | "county" | "global";
 
-export type LocationSource =
-  | "profile"
-  | "geo_preference"
-  | "override"
-  | "session";
+export type LocationSource = "profile" | "geo_preference" | "override" | "session";
 
 // Canonical user location shape used for all county-gated experiences.
 // This intentionally matches the server-side contract (stateCode + countyFips
@@ -87,15 +83,24 @@ export function hasCountyContext(ctx: LocationContext | undefined | null): boole
   return stateCode.length === 2 && countyFips.length === 5;
 }
 
-export function useLocationContext(
-  overrides?: Partial<LocationContext>
-): LocationContext {
+export function useLocationContext(overrides?: Partial<LocationContext>): LocationContext {
   const { user } = useAuth() as any;
 
+  // Canonical fields (preferred)
   const profileStateCode: string | undefined = user?.stateCode ?? undefined;
   const profileCountyFips: string | undefined = (user as any)?.countyFips ?? undefined;
   const profileCountyId: string | undefined = (user as any)?.countyId ?? undefined;
   const profileCountyName: string | undefined = (user as any)?.countyName ?? undefined;
+
+  // Legacy fields (fallback for existing users who signed up before canonical fields)
+  const legacyState: string | undefined = user?.state ?? undefined;
+  const legacyCounty: string | undefined = user?.county ?? undefined;
+
+  // Use canonical fields if available, otherwise fall back to legacy
+  const resolvedStateCode = profileStateCode || legacyState;
+  const resolvedCountyFips = profileCountyFips; // No direct legacy equivalent for FIPS
+  const resolvedCountyName = profileCountyName || legacyCounty;
+
   const profileLat: number | undefined =
     typeof user?.latitude === "number" ? user.latitude : undefined;
   const profileLng: number | undefined =
@@ -118,10 +123,7 @@ export function useLocationContext(
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as SessionLocationPayload;
-        if (
-          parsed &&
-          (parsed.stateCode || parsed.countyFips || parsed.countyName)
-        ) {
+        if (parsed && (parsed.stateCode || parsed.countyFips || parsed.countyName)) {
           resolved = {
             ...resolved,
             layer: "county",
@@ -142,17 +144,18 @@ export function useLocationContext(
   }
 
   // 3) Profile fields (default county-level context when available)
-  if (profileStateCode || profileCountyFips || profileCountyName) {
+  // Support both canonical fields (stateCode, countyFips) and legacy fields (state, county)
+  if (resolvedStateCode || resolvedCountyFips || resolvedCountyName) {
     const label = getUserLocationLabel(user as any);
 
     resolved = {
       ...resolved,
       layer: "county",
       source: "profile",
-      stateCode: profileStateCode,
-      countyFips: profileCountyFips,
+      stateCode: resolvedStateCode,
+      countyFips: resolvedCountyFips,
       countyId: profileCountyId,
-      countyName: profileCountyName,
+      countyName: resolvedCountyName,
       lat: profileLat,
       lng: profileLng,
       label,
@@ -173,10 +176,8 @@ export function useLocationContext(
       // but prefer precise lat/lng from geo preferences when available.
       layer: resolved.layer === "global" ? "county" : resolved.layer,
       source: "geo_preference",
-      lat:
-        typeof homeLocation.lat === "number" ? homeLocation.lat : resolved.lat,
-      lng:
-        typeof homeLocation.lng === "number" ? homeLocation.lng : resolved.lng,
+      lat: typeof homeLocation.lat === "number" ? homeLocation.lat : resolved.lat,
+      lng: typeof homeLocation.lng === "number" ? homeLocation.lng : resolved.lng,
       label,
     };
   }
