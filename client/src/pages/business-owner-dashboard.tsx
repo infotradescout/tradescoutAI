@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Briefcase, 
-  DollarSign, 
-  Users, 
-  TrendingUp, 
-  Phone, 
+import {
+  Briefcase,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Phone,
   Calendar,
   FileText,
   AlertTriangle,
@@ -17,7 +17,7 @@ import {
   Building,
   Plus,
   BarChart3,
-  Store
+  Store,
 } from "lucide-react";
 
 export default function BusinessOwnerDashboard() {
@@ -99,26 +99,35 @@ export default function BusinessOwnerDashboard() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-white font-semibold mb-3">Find Business Services</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button className="bg-purple-500 hover:bg-purple-600 text-white justify-start">
                       <Building className="h-4 w-4 mr-2" />
                       Find Contractors
                     </Button>
-                    <Button variant="outline" className="border-navy-400 text-gray-300 justify-start">
+                    <Button
+                      variant="outline"
+                      className="border-navy-400 text-gray-300 justify-start"
+                    >
                       <Users className="h-4 w-4 mr-2" />
                       Business Services
                     </Button>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="text-white font-semibold mb-3">Business Tools</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="border-navy-400 text-gray-300 justify-start">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button
+                      variant="outline"
+                      className="border-navy-400 text-gray-300 justify-start"
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Project Calculator
                     </Button>
-                    <Button variant="outline" className="border-navy-400 text-gray-300 justify-start">
+                    <Button
+                      variant="outline"
+                      className="border-navy-400 text-gray-300 justify-start"
+                    >
                       <Calendar className="h-4 w-4 mr-2" />
                       Schedule Management
                     </Button>
@@ -141,11 +150,17 @@ export default function BusinessOwnerDashboard() {
                   <Plus className="h-4 w-4 mr-2" />
                   New Project
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <Users className="h-4 w-4 mr-2" />
                   Hire Services
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   View Analytics
                 </Button>

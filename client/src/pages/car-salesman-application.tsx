@@ -469,7 +469,7 @@ export default function CarSalesmanApplication() {
                   <h3 className="text-lg font-semibold text-red-400">Vehicle Specializations</h3>
                   <p className="text-sm text-gray-400">Select your areas of expertise</p>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {vehicleSpecializations.map((specialization) => (
                       <div key={specialization} className="flex items-center space-x-2">
                         <Checkbox
@@ -493,7 +493,7 @@ export default function CarSalesmanApplication() {
                   <h3 className="text-lg font-semibold text-red-400">Brand Specialties</h3>
                   <p className="text-sm text-gray-400">Select brands you specialize in selling</p>
 
-                  <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {carBrands.map((brand) => (
                       <div key={brand} className="flex items-center space-x-2">
                         <Checkbox

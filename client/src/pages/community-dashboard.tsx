@@ -2,12 +2,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  MessageSquare, 
-  Heart, 
-  Star, 
-  Shield, 
+import {
+  Users,
+  MessageSquare,
+  Heart,
+  Star,
+  Shield,
   Calendar,
   FileText,
   AlertTriangle,
@@ -15,7 +15,7 @@ import {
   Target,
   Plus,
   TrendingUp,
-  Flag
+  Flag,
 } from "lucide-react";
 
 import { useLocationContext } from "@/hooks/useLocationContext";
@@ -36,8 +36,8 @@ export default function CommunityDashboard() {
           Community Dashboard
         </h1>
         <p className="text-gray-400 mt-2">
-      Engage with your neighborhood community in {cityHeadline || "your area"}
-    </p>
+          Engage with your neighborhood community in {cityHeadline || "your area"}
+        </p>
       </div>
 
       {/* Key Metrics */}
@@ -83,7 +83,9 @@ export default function CommunityDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-400">Moderation Actions</p>
-                <p className="text-2xl font-bold text-white">{user?.role?.includes('moderator') ? '8' : '0'}</p>
+                <p className="text-2xl font-bold text-white">
+                  {user?.role?.includes("moderator") ? "8" : "0"}
+                </p>
               </div>
               <Shield className="h-8 w-8 text-purple-500" />
             </div>
@@ -107,7 +109,9 @@ export default function CommunityDashboard() {
                   <h3 className="text-white font-semibold mb-3">Recent Discussions</h3>
                   <div className="space-y-3">
                     <div className="p-3 bg-navy-600 rounded-lg">
-                      <p className="text-white text-sm">Neighborhood Safety Initiative Discussion</p>
+                      <p className="text-white text-sm">
+                        Neighborhood Safety Initiative Discussion
+                      </p>
                       <p className="text-gray-400 text-xs mt-1">12 comments • 2 hours ago</p>
                     </div>
                     <div className="p-3 bg-navy-600 rounded-lg">
@@ -116,16 +120,22 @@ export default function CommunityDashboard() {
                     </div>
                   </div>
                 </div>
-                
-                {user?.role?.includes('moderator') && (
+
+                {user?.role?.includes("moderator") && (
                   <div>
                     <h3 className="text-white font-semibold mb-3">Moderation Tools</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button variant="outline" className="border-red-500 text-red-400 justify-start">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Button
+                        variant="outline"
+                        className="border-red-500 text-red-400 justify-start"
+                      >
                         <Flag className="h-4 w-4 mr-2" />
                         Review Reports
                       </Button>
-                      <Button variant="outline" className="border-navy-400 text-gray-300 justify-start">
+                      <Button
+                        variant="outline"
+                        className="border-navy-400 text-gray-300 justify-start"
+                      >
                         <Shield className="h-4 w-4 mr-2" />
                         User Management
                       </Button>
@@ -149,11 +159,17 @@ export default function CommunityDashboard() {
                   <Plus className="h-4 w-4 mr-2" />
                   New Post
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Join Discussion
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <Calendar className="h-4 w-4 mr-2" />
                   Community Events
                 </Button>
@@ -188,20 +204,32 @@ export default function CommunityDashboard() {
       {/* Community Navigation */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-white mb-4">Explore Community</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <Button
+            variant="outline"
+            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+          >
             <MessageSquare className="h-5 w-5 text-cyan-400" />
             <span className="text-xs">Forums</span>
           </Button>
-          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+          <Button
+            variant="outline"
+            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+          >
             <Calendar className="h-5 w-5 text-green-400" />
             <span className="text-xs">Events</span>
           </Button>
-          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+          <Button
+            variant="outline"
+            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+          >
             <Users className="h-5 w-5 text-blue-400" />
             <span className="text-xs">Members</span>
           </Button>
-          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+          <Button
+            variant="outline"
+            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+          >
             <Flag className="h-5 w-5 text-orange-400" />
             <span className="text-xs">Guidelines</span>
           </Button>

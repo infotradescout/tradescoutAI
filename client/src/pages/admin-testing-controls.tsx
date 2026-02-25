@@ -174,13 +174,13 @@ export default function AdminTestingControls() {
           </CardHeader>
           <CardContent>
             {isLoadingStats ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="animate-pulse bg-navy-600 h-16 rounded"></div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-navy-600 rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-orange-400">{statsData.total || 0}</div>
                   <div className="text-gray-300 text-sm">Total Reports</div>
