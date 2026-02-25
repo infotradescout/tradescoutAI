@@ -545,8 +545,8 @@ export default function BusinessProfileEditor() {
                 </AlertDescription>
               </Alert>
               <p className="text-sm text-muted-foreground">
-                Your primary coverage area is based on your county selection during signup. To
-                change this, please contact support.
+                Your primary coverage area is based on your location during signup. To change this,
+                please contact support.
               </p>
             </TabsContent>
 

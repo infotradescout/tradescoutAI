@@ -79,6 +79,7 @@ export default function Register() {
   // State/county selection is handled via StateCountySelector, which
   // uses the canonical /api/states and /api/counties endpoints.
   const [selectedCountyFips, setSelectedCountyFips] = useState("");
+  const [selectedCountyName, setSelectedCountyName] = useState("");
 
   const createdViaScout = (() => {
     try {
@@ -93,7 +94,13 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
-      const payload: any = { ...data };
+      const payload: any = {
+        ...data,
+        // Include canonical location fields
+        stateCode: data.state, // StateCountySelector sets 'state' to the stateCode
+        countyFips: selectedCountyFips,
+        countyName: selectedCountyName || data.county,
+      };
       if (createdViaScout) {
         payload.source = "scout";
       }
@@ -101,6 +108,22 @@ export default function Register() {
       return response;
     },
     onSuccess: () => {
+      // Persist location to localStorage for immediate availability
+      try {
+        if (form.getValues("state") && selectedCountyFips) {
+          window.localStorage.setItem(
+            "userLocation",
+            JSON.stringify({
+              stateCode: form.getValues("state"),
+              countyFips: selectedCountyFips,
+              countyName: selectedCountyName || form.getValues("county"),
+            })
+          );
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
+
       toast({
         title: "Account created successfully",
         description: "Welcome to TradeScout! Next, set up your profile and colors.",
@@ -353,6 +376,7 @@ export default function Register() {
                         setSelectedCountyFips(countyFips);
                       }}
                       onCountySelected={(county) => {
+                        setSelectedCountyName(county?.name || "");
                         form.setValue("county", county?.name || "", {
                           shouldValidate: true,
                           shouldDirty: true,

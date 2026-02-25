@@ -91,7 +91,7 @@ export default function CommunityBuilderDashboard() {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Start Your Community Builder Journey</CardTitle>
               <CardDescription>
-                Claim your Community Builder badge and help decide what causes your county vault
+                Claim your Community Builder badge and help decide what causes your local vault
                 funds.
               </CardDescription>
             </CardHeader>

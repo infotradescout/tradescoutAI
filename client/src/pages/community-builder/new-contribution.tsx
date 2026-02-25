@@ -106,7 +106,7 @@ export default function NewContribution() {
         <div>
           <h1 className="text-3xl font-bold">Propose a Contribution</h1>
           <p className="text-gray-600 mt-2">
-            Share how you want to contribute to your county's community
+            Share how you want to contribute to your local community
           </p>
         </div>
 

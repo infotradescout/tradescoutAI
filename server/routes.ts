@@ -1434,8 +1434,18 @@ export async function registerRoutes(app: any) {
       const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
       const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
       const address = typeof body.address === "string" ? body.address.trim() : undefined;
+      const city = typeof body.city === "string" ? body.city.trim() : undefined;
+      const zipCode = typeof body.zipCode === "string" ? body.zipCode.trim() : undefined;
+
+      // Legacy fields (still accepted for backwards compatibility)
       const state = typeof body.state === "string" ? body.state.trim() : undefined;
       const county = typeof body.county === "string" ? body.county.trim() : undefined;
+
+      // Canonical location fields (preferred)
+      const stateCode = typeof body.stateCode === "string" ? body.stateCode.trim() : state;
+      const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : undefined;
+      const countyName = typeof body.countyName === "string" ? body.countyName.trim() : county;
+
       const phone = typeof body.phone === "string" ? body.phone.trim() : "";
       const claimBusinessId =
         typeof body.claimBusinessId === "string" ? body.claimBusinessId.trim() : "";
@@ -1592,8 +1602,15 @@ export async function registerRoutes(app: any) {
         lastName,
         phone,
         address,
+        city,
+        zipCode,
+        // Legacy fields (back-compat)
         state,
         county,
+        // Canonical machine-readable location fields
+        stateCode: stateCode ?? state ?? null,
+        countyFips: countyFips ?? null,
+        countyName: countyName ?? county ?? null,
         role: routingRole as any, // Canonical routing role (enum-safe)
         roles: rolesForDb, // Canonical first; persona tags preserved after
         activeRole: primaryRoleCandidate, // Preserve the user's selected persona when possible

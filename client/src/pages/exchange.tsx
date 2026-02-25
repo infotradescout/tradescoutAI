@@ -558,7 +558,7 @@ export default function Exchange() {
 
   const activeCategoryMeta = EXCHANGE_CATEGORIES.find((cat) => cat.id === selectedCategory);
   const localLabel = (() => {
-    if (!countyCommitted) return "Set home county";
+    if (!countyCommitted) return "Set home location";
     if (locationCtx.countyName && stateCode) return `${locationCtx.countyName}, ${stateCode}`;
     if (locationCtx.label) return locationCtx.label;
     if (stateCode) return stateCode;
@@ -593,7 +593,7 @@ export default function Exchange() {
               title={
                 countyCommitted
                   ? "Using your committed county"
-                  : "Set your county to prioritize local listings"
+                  : "Set your location to prioritize local listings"
               }
             >
               Area: {localLabel}

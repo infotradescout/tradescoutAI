@@ -84,7 +84,7 @@ export default function Home() {
                       ? "Loading..."
                       : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
                   </p>
-                  <p className="text-sm text-gray-400">Current balance reinvested in your county</p>
+                  <p className="text-sm text-gray-400">Local reinvestment balance</p>
                   <div className="mt-3 text-sm text-green-400 flex items-center space-x-2">
                     <TrendingUp className="h-4 w-4" />
                     <span>

@@ -232,8 +232,7 @@ const FindContractors = memo(function FindContractors({
 
         {!countyFips || !tradeSlug ? (
           <div className="ts-tile p-6 text-sm text-gray-400">
-            Choose your state, county, and occupation to see the top recommended contractors near
-            you.
+            Choose your location and trade to see the top recommended contractors near you.
           </div>
         ) : topLoading ? (
           <div className="flex items-center gap-3 text-gray-300">
@@ -242,7 +241,7 @@ const FindContractors = memo(function FindContractors({
           </div>
         ) : ranked.length === 0 ? (
           <div className="ts-tile p-6 text-sm text-gray-300">
-            No contractors found for that occupation in the selected county yet.
+            No contractors found for that trade in your area yet.
           </div>
         ) : (
           <div className="grid gap-3">

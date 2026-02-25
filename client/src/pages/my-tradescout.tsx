@@ -97,11 +97,10 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
     if (!county || !state) {
       recommendedActions.push({
         id: "complete-location",
-        reason:
-          "We do not yet know your county; TradeScout needs this to route local help accurately.",
+        reason: "Set your location so TradeScout can route local help accurately.",
         action: {
-          label: "Confirm my address",
-          path: "/address-verification",
+          label: "Set my location",
+          path: "/settings?tab=location",
         },
       });
     }
@@ -194,7 +193,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
     countyFips: locationCtx.countyFips,
     interest: "auto_dealers",
     timeframe: "30d",
-    fallback: "Local activity will begin to appear here as your county comes online.",
+    fallback: "Local activity will begin to appear here as your area comes online.",
   });
 
   return (
@@ -227,7 +226,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                   <span>
                     {model.context.countyLabel
                       ? model.context.countyLabel
-                      : "We have not confirmed your county yet."}
+                      : "Location not set yet."}
                   </span>
                 </div>
                 {model.context.roleLabel && (

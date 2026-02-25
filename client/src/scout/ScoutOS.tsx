@@ -2662,7 +2662,7 @@ export default function ScoutOS() {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content:
-                "Behind the scenes, TradeScout uses your saved home county as the single source of truth for what counts as local. That same county powers your community feed, marketplace, HOA tools, and leaderboards, and changing it later in Settings -> Your Home County updates everything; your device location alone does not.",
+                "Behind the scenes, TradeScout uses your saved home location as the single source of truth for what counts as local. This powers your community feed, marketplace, HOA tools, and leaderboards. You can change it anytime in Settings → Home Location.",
               timestamp: new Date().toISOString(),
             };
 
@@ -3647,7 +3647,7 @@ export default function ScoutOS() {
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          Set your home county to unlock local pros, posts, and jobs.
+                          Set your location to unlock local pros, posts, and jobs.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button

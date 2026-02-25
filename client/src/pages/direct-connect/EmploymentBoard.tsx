@@ -150,7 +150,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!isAuthenticated) throw new Error("Sign in to post.");
-      if (!selectedCountyFips) throw new Error("Set a county first.");
+      if (!selectedCountyFips) throw new Error("Set your location first.");
       const nextPayMin = payMin.trim().length ? Number(payMin) : undefined;
       const nextPayMax = payMax.trim().length ? Number(payMax) : undefined;
       if (nextPayMin != null && !Number.isFinite(nextPayMin))
@@ -263,7 +263,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 onClick={() => setShowCountySelector(true)}
                 className="h-10 w-full md:w-auto"
               >
-                {selectedCountyFips ? "Change county" : "Set county"}
+                {selectedCountyFips ? "Change location" : "Set location"}
               </Button>
 
               <div className="w-full min-w-0 md:min-w-[220px]">
@@ -464,7 +464,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
       <Dialog open={showCountySelector} onOpenChange={setShowCountySelector}>
         <DialogContent className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <DialogHeader>
-            <DialogTitle className="text-[color:var(--text-primary)]">Change your area</DialogTitle>
+            <DialogTitle className="text-[color:var(--text-primary)]">Change location</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm text-[color:var(--text-secondary)]">
             <p>
