@@ -373,6 +373,27 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       expect((objective.summary ?? "").length).toBeLessThanOrEqual(500);
     });
 
+    test("context messageText is capped at 1000 chars", async () => {
+      const veryLongMessage = "b".repeat(1400);
+
+      const result = await syncObjectiveFromScoutMessage({
+        userId: TEST_USER_ID + "-ctx-cap",
+        messageText: veryLongMessage,
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      const objective = await db
+        .select()
+        .from(objectives)
+        .where(eq(objectives.id, result?.objectiveId as string))
+        .then((r) => r[0]);
+
+      const context = (objective.contextJson ?? {}) as Record<string, unknown>;
+      expect(typeof context.messageText).toBe("string");
+      expect((context.messageText as string).length).toBeLessThanOrEqual(1000);
+    });
+
     test("objective title extracted from message", async () => {
       const result = await syncObjectiveFromScoutMessage({
         userId: TEST_USER_ID + "-7",
@@ -501,6 +522,51 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       expect(metadata.classificationSource).toBeDefined();
       expect(typeof metadata.wasTopicShift).toBe("boolean");
     });
+
+    test("logs rateLimitedReuse in summary_updated metadata when create cap is hit", async () => {
+      const userId = TEST_USER_ID + "-event-rate-limit";
+
+      const first = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Need roofer",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Need local restaurant advice",
+        userRole: "homeowner",
+        scoutIntent: "advise",
+      });
+
+      await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "I have furniture for sale",
+        userRole: "homeowner",
+        scoutIntent: "unknown",
+      });
+
+      await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Posting a neighborhood update",
+        userRole: "homeowner",
+        scoutIntent: "unknown",
+      });
+
+      const events = await db
+        .select()
+        .from(objectiveEvents)
+        .where(eq(objectiveEvents.objectiveId, first?.objectiveId as string));
+
+      const latestSummaryUpdate = [...events]
+        .filter((e) => e.eventType === "summary_updated")
+        .pop();
+
+      expect(latestSummaryUpdate).toBeDefined();
+      const metadata = (latestSummaryUpdate?.metadata ?? {}) as Record<string, unknown>;
+      expect(metadata.rateLimitedReuse).toBe(true);
+    });
   });
 
   // ==========================================
@@ -550,6 +616,23 @@ describeWithDb("Objectives Layer - Phase 1", () => {
         .where(eq(objectives.id, result?.objectiveId as string));
 
       const promotion = await maybePromoteToWorkRequest(result?.objectiveId as string);
+      expect(promotion).toBeNull();
+    });
+
+    test("does not promote when confidence threshold is set above objective confidence", async () => {
+      const result = await syncObjectiveFromScoutMessage({
+        userId: TEST_USER_ID + "-promote-threshold",
+        messageText: "I need to hire an electrician",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      const promotion = await maybePromoteToWorkRequest(result?.objectiveId as string, 0.95);
+      expect(promotion).toBeNull();
+    });
+
+    test("returns null for unknown objective id", async () => {
+      const promotion = await maybePromoteToWorkRequest("00000000-0000-0000-0000-000000000000");
       expect(promotion).toBeNull();
     });
   });
