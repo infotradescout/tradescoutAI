@@ -323,14 +323,17 @@ function buildContextJson(input: {
   stateCode?: string;
   addressId?: string;
 }): Record<string, any> {
-  return {
+  const context: Record<string, any> = {
     messageText: input.messageText?.substring(0, 1000) || "", // Cap message length
-    userRole: input.userRole,
-    countyFips: input.countyFips,
-    stateCode: input.stateCode,
-    addressId: input.addressId,
     createdFromScoutTs: new Date().toISOString(),
   };
+
+  if (input.userRole !== undefined) context.userRole = input.userRole;
+  if (input.countyFips !== undefined) context.countyFips = input.countyFips;
+  if (input.stateCode !== undefined) context.stateCode = input.stateCode;
+  if (input.addressId !== undefined) context.addressId = input.addressId;
+
+  return context;
 }
 
 /**

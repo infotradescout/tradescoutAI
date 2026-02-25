@@ -264,6 +264,61 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       expect(activeCount).toBe(1);
       expect(allUserObjectives).toHaveLength(2);
     });
+
+    test("applies create-rate-limit by reusing existing objective after 3 creations/hour", async () => {
+      const userId = TEST_USER_ID + "-rate-limit";
+
+      const step1 = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "I need roof repairs",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      const step2 = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "What restaurants are best near me?",
+        userRole: "homeowner",
+        scoutIntent: "advise",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      const step3 = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "I have a couch for sale",
+        userRole: "homeowner",
+        scoutIntent: "unknown",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      const step4 = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Sharing an update with neighbors",
+        userRole: "homeowner",
+        scoutIntent: "unknown",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      expect(step1?.isNew).toBe(true);
+      expect(step2?.isNew).toBe(true);
+      expect(step3?.isNew).toBe(true);
+
+      expect(step4?.isNew).toBe(false);
+      expect(step4?.rateLimitedReuse).toBe(true);
+      expect(step4?.objectiveId).toBe(step3?.objectiveId);
+
+      const allUserObjectives = await db
+        .select()
+        .from(objectives)
+        .where(eq(objectives.userId, userId));
+
+      expect(allUserObjectives).toHaveLength(3);
+    });
   });
 
   // ==========================================
@@ -325,6 +380,65 @@ describeWithDb("Objectives Layer - Phase 1", () => {
 
       expect(objective.title).toContain("roof");
       expect(objective.title.length).toBeLessThanOrEqual(80);
+    });
+
+    test("preserves existing location context on follow-up without location payload", async () => {
+      const userId = TEST_USER_ID + "-ctx-preserve";
+
+      const first = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Need plumbing help",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Also compare pricing options",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      const objective = await db
+        .select()
+        .from(objectives)
+        .where(eq(objectives.id, first?.objectiveId as string))
+        .then((r) => r[0]);
+
+      const context = (objective.contextJson ?? {}) as Record<string, unknown>;
+      expect(context.countyFips).toBe(TEST_COUNTY_FIPS);
+      expect(context.stateCode).toBe(TEST_STATE_CODE);
+      expect(context.lastMessageText).toBe("Also compare pricing options");
+    });
+  });
+
+  // ==========================================
+  // System Safeguards
+  // ==========================================
+
+  describe("System Safeguards", () => {
+    test("returns null when objectives layer is disabled", async () => {
+      const prev = process.env.OBJECTIVES_ENABLED;
+      process.env.OBJECTIVES_ENABLED = "false";
+
+      try {
+        const result = await syncObjectiveFromScoutMessage({
+          userId: TEST_USER_ID + "-disabled",
+          messageText: "Need a contractor",
+          userRole: "homeowner",
+          scoutIntent: "hire",
+        });
+
+        expect(result).toBeNull();
+      } finally {
+        if (prev === undefined) {
+          delete process.env.OBJECTIVES_ENABLED;
+        } else {
+          process.env.OBJECTIVES_ENABLED = prev;
+        }
+      }
     });
   });
 
