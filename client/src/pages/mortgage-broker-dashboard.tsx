@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
-import { 
-  Home, 
-  DollarSign, 
-  Users, 
-  TrendingUp, 
-  Phone, 
+import {
+  Home,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Phone,
   Calendar,
   FileText,
   AlertTriangle,
@@ -20,7 +20,7 @@ import {
   Target,
   Briefcase,
   Plus,
-  CreditCard
+  CreditCard,
 } from "lucide-react";
 
 interface LoanApplication {
@@ -28,7 +28,7 @@ interface LoanApplication {
   clientName: string;
   loanAmount: number;
   loanType: string;
-  status: 'pre_approval' | 'application' | 'underwriting' | 'approved' | 'closed' | 'denied';
+  status: "pre_approval" | "application" | "underwriting" | "approved" | "closed" | "denied";
   creditScore: number;
   submittedDate: string;
   expectedClose: string;
@@ -57,65 +57,79 @@ export default function MortgageBrokerDashboard() {
 
   const mockApplications: LoanApplication[] = [
     {
-      id: '1',
-      clientName: 'Sarah & David Chen',
+      id: "1",
+      clientName: "Sarah & David Chen",
       loanAmount: 485000,
-      loanType: 'Conventional 30-Year',
-      status: 'underwriting',
+      loanType: "Conventional 30-Year",
+      status: "underwriting",
       creditScore: 742,
-      submittedDate: '2024-01-10',
-      expectedClose: '2024-02-15',
+      submittedDate: "2024-01-10",
+      expectedClose: "2024-02-15",
     },
     {
-      id: '2',
-      clientName: 'Michael Rodriguez',
+      id: "2",
+      clientName: "Michael Rodriguez",
       loanAmount: 325000,
-      loanType: 'FHA 30-Year',
-      status: 'approved',
+      loanType: "FHA 30-Year",
+      status: "approved",
       creditScore: 698,
-      submittedDate: '2024-01-08',
-      expectedClose: '2024-02-10',
+      submittedDate: "2024-01-08",
+      expectedClose: "2024-02-10",
     },
     {
-      id: '3',
-      clientName: 'Jennifer & Mark Wilson',
+      id: "3",
+      clientName: "Jennifer & Mark Wilson",
       loanAmount: 750000,
-      loanType: 'Jumbo 15-Year',
-      status: 'application',
+      loanType: "Jumbo 15-Year",
+      status: "application",
       creditScore: 785,
-      submittedDate: '2024-01-12',
-      expectedClose: '2024-02-20',
+      submittedDate: "2024-01-12",
+      expectedClose: "2024-02-20",
     },
   ];
 
-  const getStatusColor = (status: LoanApplication['status']) => {
+  const getStatusColor = (status: LoanApplication["status"]) => {
     switch (status) {
-      case 'pre_approval': return 'bg-blue-500';
-      case 'application': return 'bg-yellow-500';
-      case 'underwriting': return 'bg-orange-500';
-      case 'approved': return 'bg-green-500';
-      case 'closed': return 'bg-emerald-500';
-      case 'denied': return 'bg-red-500';
-      default: return 'bg-slate-900/60';
+      case "pre_approval":
+        return "bg-blue-500";
+      case "application":
+        return "bg-yellow-500";
+      case "underwriting":
+        return "bg-orange-500";
+      case "approved":
+        return "bg-green-500";
+      case "closed":
+        return "bg-emerald-500";
+      case "denied":
+        return "bg-red-500";
+      default:
+        return "bg-slate-900/60";
     }
   };
 
-  const getStatusText = (status: LoanApplication['status']) => {
+  const getStatusText = (status: LoanApplication["status"]) => {
     switch (status) {
-      case 'pre_approval': return 'Pre-Approval';
-      case 'application': return 'Application';
-      case 'underwriting': return 'Underwriting';
-      case 'approved': return 'Approved';
-      case 'closed': return 'Closed';
-      case 'denied': return 'Denied';
-      default: return status;
+      case "pre_approval":
+        return "Pre-Approval";
+      case "application":
+        return "Application";
+      case "underwriting":
+        return "Underwriting";
+      case "approved":
+        return "Approved";
+      case "closed":
+        return "Closed";
+      case "denied":
+        return "Denied";
+      default:
+        return status;
     }
   };
 
   const getCreditScoreColor = (score: number) => {
-    if (score >= 740) return 'text-green-600 bg-green-100';
-    if (score >= 670) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+    if (score >= 740) return "text-green-600 bg-green-100";
+    if (score >= 670) return "text-yellow-600 bg-yellow-100";
+    return "text-red-600 bg-red-100";
   };
 
   return (
@@ -126,7 +140,9 @@ export default function MortgageBrokerDashboard() {
           <Home className="h-8 w-8 text-green-500 mr-3" />
           Mortgage Broker Dashboard
         </h1>
-        <p className="text-gray-400 mt-2">Manage loan applications, track pipeline, and grow your business</p>
+        <p className="text-gray-400 mt-2">
+          Manage loan applications, track pipeline, and grow your business
+        </p>
       </div>
 
       {/* Key Metrics */}
@@ -148,7 +164,9 @@ export default function MortgageBrokerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-400">Loan Volume</p>
-                <p className="text-2xl font-bold text-white">${(mockStats.loanVolume / 1000000).toFixed(1)}M</p>
+                <p className="text-2xl font-bold text-white">
+                  ${(mockStats.loanVolume / 1000000).toFixed(1)}M
+                </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
             </div>
@@ -160,7 +178,9 @@ export default function MortgageBrokerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-400">Commission Earned</p>
-                <p className="text-2xl font-bold text-white">${mockStats.commissionEarned.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">
+                  ${mockStats.commissionEarned.toLocaleString()}
+                </p>
               </div>
               <Target className="h-8 w-8 text-orange-500" />
             </div>
@@ -221,14 +241,18 @@ export default function MortgageBrokerDashboard() {
                       </div>
                       <div>
                         <p className="text-gray-400">Submitted</p>
-                        <p className="text-white">{new Date(app.submittedDate).toLocaleDateString()}</p>
+                        <p className="text-white">
+                          {new Date(app.submittedDate).toLocaleDateString()}
+                        </p>
                       </div>
                       <div>
                         <p className="text-gray-400">Expected Close</p>
-                        <p className="text-white">{new Date(app.expectedClose).toLocaleDateString()}</p>
+                        <p className="text-white">
+                          {new Date(app.expectedClose).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex space-x-2 mt-3">
+                    <div className="flex flex-wrap gap-2 mt-3">
                       <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
                         <Phone className="h-3 w-3 mr-1" />
                         Contact
@@ -294,15 +318,24 @@ export default function MortgageBrokerDashboard() {
                   <Calculator className="h-4 w-4 mr-2" />
                   Loan Calculator
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <CreditCard className="h-4 w-4 mr-2" />
                   Rate Sheet
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   Pre-Approval Letter
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full border-navy-400 text-gray-300 justify-start"
+                >
                   <Users className="h-4 w-4 mr-2" />
                   Find Realtors
                 </Button>
@@ -334,9 +367,7 @@ export default function MortgageBrokerDashboard() {
                   <span className="text-white font-semibold">6.75%</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-3">
-                Rates updated: Today 9:00 AM
-              </p>
+              <p className="text-xs text-gray-500 mt-3">Rates updated: Today 9:00 AM</p>
             </CardContent>
           </Card>
 
