@@ -34,7 +34,7 @@ export function ActivityStatsWidget({ className }: WidgetProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="text-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
             <div className="text-2xl font-bold text-slate-900 dark:text-white">12</div>
             <div className="text-xs text-slate-500 dark:text-slate-400">Posts</div>
@@ -289,7 +289,7 @@ export function QuickActionsWidget({ className }: WidgetProps) {
         <CardTitle className="text-base">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {quickActions.map((action, index) => (
             <Link key={index} href={action.href}>
               <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors w-full">

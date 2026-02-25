@@ -230,7 +230,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Post Type</FormLabel>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {postTypes.map((type) => (
                       <Card
                         key={type.value}
@@ -300,7 +300,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Visibility</FormLabel>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {visibilityOptions.map((option) => (
                       <Card
                         key={option.value}

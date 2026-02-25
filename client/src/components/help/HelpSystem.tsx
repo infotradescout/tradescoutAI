@@ -203,7 +203,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
         </DialogHeader>
 
         <Tabs defaultValue="topics" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-navy-700">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-navy-700">
             <TabsTrigger value="topics" className="data-[state=active]:bg-orange-500">
               All Topics
             </TabsTrigger>
@@ -308,7 +308,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Card className="bg-navy-700 border-navy-600">
                   <CardContent className="p-4 text-center">
                     <BookOpen className="h-8 w-8 text-blue-400 mx-auto mb-2" />
