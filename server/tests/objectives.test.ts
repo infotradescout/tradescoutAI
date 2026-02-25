@@ -237,6 +237,13 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       expect(metadata.reason).toBe("user_shifted_to_new_topic");
       expect(metadata.previousIntent).toBe("work_request");
       expect(metadata.newIntent).toBe("local_advice");
+
+      // New objective should have a created event (sequence integrity)
+      const newObjectiveEvents = await db
+        .select()
+        .from(objectiveEvents)
+        .where(eq(objectiveEvents.objectiveId, result2?.objectiveId as string));
+      expect(newObjectiveEvents.some((e) => e.eventType === "created")).toBe(true);
     });
 
     test("enforces one active objective per user", async () => {
@@ -325,6 +332,37 @@ describeWithDb("Objectives Layer - Phase 1", () => {
         .where(eq(objectives.userId, userId));
 
       expect(allUserObjectives).toHaveLength(3);
+    });
+
+    test("does not downgrade active objective intent on ambiguous follow-up", async () => {
+      const userId = TEST_USER_ID + "-ambiguous-followup";
+
+      const first = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "I need an electrician tomorrow",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+      const second = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "ok",
+        scoutIntent: "unknown",
+      });
+
+      expect(second?.isNew).toBe(false);
+      expect(second?.objectiveId).toBe(first?.objectiveId);
+      expect(second?.intentClass).toBe("work_request");
+
+      const objective = await db
+        .select()
+        .from(objectives)
+        .where(eq(objectives.id, first?.objectiveId as string))
+        .then((r) => r[0]);
+
+      expect(objective.intentClass).toBe("work_request");
     });
   });
 

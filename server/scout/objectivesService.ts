@@ -51,7 +51,7 @@ export async function syncObjectiveFromScoutMessage(
     const { userId, messageText, userRole, scoutIntent, countyFips, stateCode, addressId } = input;
 
     // Classify intent from Scout output + message heuristics
-    const classification = classifyUserIntent({
+    const baseClassification = classifyUserIntent({
       scoutIntent,
       messageText,
       userRole,
@@ -66,6 +66,19 @@ export async function syncObjectiveFromScoutMessage(
       .limit(1);
 
     const activeObjective = currentActive?.[0];
+
+    // If this message is ambiguous, preserve current active objective intent
+    // instead of downgrading a stable objective to "unknown".
+    const classification =
+      activeObjective && baseClassification.intentClass === "unknown"
+        ? {
+            intentClass: activeObjective.intentClass as ObjectiveIntentClass,
+            confidence: Number.isFinite(Number(activeObjective.confidence))
+              ? Number(activeObjective.confidence)
+              : 0.5,
+            source: "fallback" as const,
+          }
+        : baseClassification;
 
     // Detect topic shift if we have an active objective
     let shouldCreateNew = false;
