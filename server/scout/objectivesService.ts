@@ -49,11 +49,17 @@ export async function syncObjectiveFromScoutMessage(
     }
 
     const { userId, messageText, userRole, scoutIntent, countyFips, stateCode, addressId } = input;
+    const normalizedMessageText = (messageText ?? "").trim();
+
+    // Ignore empty/whitespace-only messages so Scout doesn't create noisy objectives.
+    if (!normalizedMessageText) {
+      return null;
+    }
 
     // Classify intent from Scout output + message heuristics
     const baseClassification = classifyUserIntent({
       scoutIntent,
-      messageText,
+      messageText: normalizedMessageText,
       userRole,
     });
 
@@ -144,7 +150,7 @@ export async function syncObjectiveFromScoutMessage(
 
       const title = extractTitleFromMessage(messageText, classification.intentClass);
       const contextJson = buildContextJson({
-        messageText,
+        messageText: normalizedMessageText,
         userRole,
         countyFips,
         stateCode,
@@ -156,7 +162,7 @@ export async function syncObjectiveFromScoutMessage(
         .values({
           userId,
           title,
-          summary: messageText.substring(0, 500), // First 500 chars as summary
+          summary: normalizedMessageText.substring(0, 500), // First 500 chars as summary
           intentClass: classification.intentClass,
           confidence: String(Math.min(classification.confidence * 100, 100) / 100), // Ensure 0-1
           contextJson,
@@ -209,12 +215,12 @@ export async function syncObjectiveFromScoutMessage(
           .insert(objectives)
           .values({
             userId,
-            title: extractTitleFromMessage(messageText, classification.intentClass),
-            summary: messageText.substring(0, 500),
+            title: extractTitleFromMessage(normalizedMessageText, classification.intentClass),
+            summary: normalizedMessageText.substring(0, 500),
             intentClass: classification.intentClass,
             confidence: String(Math.min(classification.confidence * 100, 100) / 100),
             contextJson: buildContextJson({
-              messageText,
+              messageText: normalizedMessageText,
               userRole,
               countyFips,
               stateCode,
@@ -236,10 +242,35 @@ export async function syncObjectiveFromScoutMessage(
         };
       }
 
+      const nextSummary = normalizedMessageText.substring(0, 500);
+
+      // No-op duplicate message update guard: if summary + intent are unchanged,
+      // keep objective stable and avoid duplicate summary_updated event spam.
+      if (
+        objectiveToUpdate.summary === nextSummary &&
+        objectiveToUpdate.intentClass === classification.intentClass &&
+        !wasTopicShift
+      ) {
+        return {
+          objectiveId: objectiveToUpdate.id,
+          isNew: false,
+          wasTopicShift,
+          intentClass: classification.intentClass,
+          confidence: classification.confidence,
+          rateLimitedReuse,
+        };
+      }
+
       const updatedContext = {
         ...((objectiveToUpdate.contextJson as Record<string, unknown> | null) ?? {}),
-        ...buildContextJson({ messageText, userRole, countyFips, stateCode, addressId }),
-        lastMessageText: messageText,
+        ...buildContextJson({
+          messageText: normalizedMessageText,
+          userRole,
+          countyFips,
+          stateCode,
+          addressId,
+        }),
+        lastMessageText: normalizedMessageText,
         lastMessageTs: new Date().toISOString(),
       };
 
@@ -248,8 +279,8 @@ export async function syncObjectiveFromScoutMessage(
         .set({
           title:
             objectiveToUpdate.title ||
-            extractTitleFromMessage(messageText, classification.intentClass),
-          summary: messageText.substring(0, 500),
+            extractTitleFromMessage(normalizedMessageText, classification.intentClass),
+          summary: nextSummary,
           contextJson: updatedContext,
           intentClass: classification.intentClass,
           status: "active",

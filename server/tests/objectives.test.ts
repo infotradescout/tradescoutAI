@@ -506,6 +506,17 @@ describeWithDb("Objectives Layer - Phase 1", () => {
         }
       }
     });
+
+    test("returns null for whitespace-only message", async () => {
+      const result = await syncObjectiveFromScoutMessage({
+        userId: TEST_USER_ID + "-blank-msg",
+        messageText: "    ",
+        userRole: "homeowner",
+        scoutIntent: "unknown",
+      });
+
+      expect(result).toBeNull();
+    });
   });
 
   // ==========================================
@@ -559,6 +570,33 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       expect(metadata.intentClass).toBeDefined();
       expect(metadata.classificationSource).toBeDefined();
       expect(typeof metadata.wasTopicShift).toBe("boolean");
+    });
+
+    test("does not log duplicate summary_updated for identical follow-up", async () => {
+      const userId = TEST_USER_ID + "-dup-event";
+
+      const first = await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Need HVAC service",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      await syncObjectiveFromScoutMessage({
+        userId,
+        messageText: "Need HVAC service",
+        userRole: "homeowner",
+        scoutIntent: "hire",
+      });
+
+      const events = await db
+        .select()
+        .from(objectiveEvents)
+        .where(eq(objectiveEvents.objectiveId, first?.objectiveId as string));
+
+      const updateEvents = events.filter((e) => e.eventType === "summary_updated");
+      expect(updateEvents).toHaveLength(0);
+      expect(events.some((e) => e.eventType === "created")).toBe(true);
     });
 
     test("logs rateLimitedReuse in summary_updated metadata when create cap is hit", async () => {
