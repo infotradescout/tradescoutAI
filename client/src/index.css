@@ -1793,10 +1793,10 @@ body {
   isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  background: color-mix(in oklab, var(--surface-card) 86%, transparent);
+  background: color-mix(in oklab, var(--surface-card) 90%, transparent);
   box-shadow:
-    0 18px 48px rgba(2, 6, 23, 0.55),
-    0 0 0 1px rgba(255, 140, 0, 0.05);
+    0 14px 34px rgba(2, 6, 23, 0.45),
+    0 0 0 1px rgba(255, 140, 0, 0.04);
 }
 
 .scout-panel::before {
@@ -1844,11 +1844,12 @@ body {
 .scout-thread {
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
+  padding-right: 2px;
 }
 
 .scout-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
 }
 
@@ -1883,7 +1884,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text-secondary);
-  margin: 0 0 4px 2px;
+  margin: 0 0 3px 2px;
 }
 
 /* Scout cards - tonal separation only, no borders */
@@ -1894,6 +1895,23 @@ body {
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .scout-message {
+    padding: 10px 11px;
+  }
+
+  .scout-message.user,
+  .scout-message.assistant {
+    max-width: 100%;
+  }
+
+  .scout-action-button,
+  .scout-suggestion {
+    font-size: 10px;
+    padding: 6px 10px;
+  }
 }
 
 .scout-card:hover {
@@ -1922,7 +1940,7 @@ body {
 /* Scout message blocks - minimal chat cards */
 .scout-message {
   line-height: 1.5;
-  padding: 10px 12px;
+  padding: 11px 13px;
   margin: 0;
   border: 1px solid var(--border-subtle);
   background: color-mix(in oklab, var(--surface-card) 90%, transparent);
@@ -1944,7 +1962,7 @@ body {
 .scout-message.user {
   color: var(--text-primary);
   margin-left: auto;
-  max-width: 68ch;
+  max-width: 72ch;
   background: color-mix(in oklab, var(--surface-intermediate) 95%, var(--theme-accent-primary) 5%);
   border-color: var(--border-active);
   border-radius: 16px 16px 8px 16px;
@@ -1952,7 +1970,7 @@ body {
 
 .scout-message.assistant {
   color: var(--text-primary);
-  max-width: 72ch;
+  max-width: 78ch;
   background: color-mix(in oklab, var(--surface-card) 92%, transparent);
   border-color: var(--border-subtle);
   border-radius: 16px 16px 16px 8px;
@@ -1962,11 +1980,11 @@ body {
 .scout-action-button {
   background: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);
   color: var(--text-primary);
-  padding: 7px 12px;
+  padding: 7px 11px;
   border-radius: 10px;
   border: 1px solid var(--border-subtle);
   font-weight: 500;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -1989,6 +2007,7 @@ body {
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-weight: 500;
+  font-size: 11px;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -2016,6 +2035,10 @@ body {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 24%, transparent);
   border-color: var(--border-active);
+}
+
+.scout-thread .scout-message.assistant + .mt-2 .scout-suggestion {
+  opacity: 0.92;
 }
 
 .scout-input textarea:focus-visible,

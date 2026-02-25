@@ -97,6 +97,7 @@ const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
 const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded";
 
 const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
+const SCOUT_VIEW_MODE_KEY = "scout:view_mode:v1";
 const AUTO_ROUTE_DEFAULT_ENABLED = true;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
@@ -358,6 +359,18 @@ export default function ScoutOS() {
     budgetMax?: number;
   }>(null);
   const [dcBusy, setDcBusy] = useState(false);
+  const [controllerRailOpen, setControllerRailOpen] = useState(true);
+  const [controllerShowAll, setControllerShowAll] = useState(false);
+  const [scoutViewMode, setScoutViewMode] = useState<"chat_only" | "chat_plus_controller">(() => {
+    try {
+      if (typeof window === "undefined") return "chat_plus_controller";
+      const raw = window.localStorage.getItem(SCOUT_VIEW_MODE_KEY);
+      if (raw === "chat_only") return "chat_only";
+      return "chat_plus_controller";
+    } catch {
+      return "chat_plus_controller";
+    }
+  });
   const autoRouteTimerRef = useRef<number | null>(null);
   const introTimersRef = useRef<{
     typeTimer: number | null;
@@ -611,6 +624,61 @@ export default function ScoutOS() {
     () => state.messages.some((m) => m.role === "user"),
     [state.messages]
   );
+
+  const controllerActions = useMemo(() => {
+    const actions = Array.isArray(state.lastActions) ? state.lastActions : [];
+    const filtered = actions.filter(
+      (a) =>
+        a &&
+        a.type !== "NOOP" &&
+        (typeof a.label === "string" || typeof a.to === "string" || typeof a.path === "string")
+    );
+
+    const deduped: ScoutAction[] = [];
+    const seen = new Set<string>();
+
+    const rankAction = (action: ScoutAction) => {
+      if (action.primary) return 0;
+      if (action.type === "NAVIGATE") return 1;
+      if (action.type === "CALL_TOOL") return 2;
+      return 3;
+    };
+
+    const prioritized = [...filtered].sort((a, b) => {
+      const rankDiff = rankAction(a) - rankAction(b);
+      if (rankDiff !== 0) return rankDiff;
+      const aHasPath = typeof a.to === "string" || typeof a.path === "string";
+      const bHasPath = typeof b.to === "string" || typeof b.path === "string";
+      if (aHasPath !== bHasPath) return aHasPath ? -1 : 1;
+      return 0;
+    });
+
+    for (const action of prioritized) {
+      const key = [action.type, action.label || "", action.to || "", action.path || ""].join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(action);
+      if (deduped.length >= 5) break;
+    }
+
+    return deduped;
+  }, [state.lastActions]);
+
+  const visibleControllerActions = useMemo(() => {
+    if (controllerShowAll) return controllerActions;
+    return controllerActions.slice(0, 2);
+  }, [controllerActions, controllerShowAll]);
+
+  const setViewMode = useCallback((nextMode: "chat_only" | "chat_plus_controller") => {
+    setScoutViewMode(nextMode);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(SCOUT_VIEW_MODE_KEY, nextMode);
+      }
+    } catch {
+      // ignore persistence errors
+    }
+  }, []);
 
   // Keep the Scout surface feeling like a modern chat: shortcuts are available,
   // but they shouldn't crowd the thread once a conversation has started.
@@ -3340,7 +3408,7 @@ export default function ScoutOS() {
                 : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
-            <div className="scout-panel w-full flex flex-col flex-1 min-h-0 max-w-xl rounded-2xl px-2.5 md:px-4 py-2.5">
+            <div className="scout-panel w-full flex flex-col flex-1 min-h-0 max-w-3xl rounded-2xl px-2.5 md:px-4 py-2.5">
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
               {!isMobile && (
                 <div className="flex items-center justify-end pb-2">
@@ -3485,7 +3553,14 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              <div className="mt-1 mb-2">
+              <div
+                className="mt-1 mb-2 order-2 sticky bottom-0 z-10 rounded-lg border px-1.5 py-1.5"
+                style={{
+                  borderColor: "var(--border-subtle)",
+                  backgroundColor: "color-mix(in oklab, var(--surface-card) 93%, transparent)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
@@ -3561,6 +3636,127 @@ export default function ScoutOS() {
                       </button>
                     ))}
                 </div>
+
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                    View mode
+                  </p>
+
+                  <div
+                    className="inline-flex items-center gap-1 rounded-full border p-0.5"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor:
+                        "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("chat_only")}
+                      className="rounded-full px-2 py-1 text-[10px] font-medium"
+                      style={{
+                        color:
+                          scoutViewMode === "chat_only"
+                            ? "var(--ts-text-on-accent, #0B0F14)"
+                            : "var(--text-secondary)",
+                        backgroundColor:
+                          scoutViewMode === "chat_only"
+                            ? "var(--theme-accent-primary)"
+                            : "transparent",
+                      }}
+                    >
+                      Chat only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("chat_plus_controller")}
+                      className="rounded-full px-2 py-1 text-[10px] font-medium"
+                      style={{
+                        color:
+                          scoutViewMode === "chat_plus_controller"
+                            ? "var(--ts-text-on-accent, #0B0F14)"
+                            : "var(--text-secondary)",
+                        backgroundColor:
+                          scoutViewMode === "chat_plus_controller"
+                            ? "var(--theme-accent-primary)"
+                            : "transparent",
+                      }}
+                    >
+                      Chat + controller
+                    </button>
+                  </div>
+                </div>
+
+                {scoutViewMode === "chat_plus_controller" && controllerActions.length > 0 && (
+                  <div
+                    className="mt-2 rounded-lg border p-2"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor:
+                        "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
+                    }}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p
+                        className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Controller
+                      </p>
+
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                          backgroundColor: "transparent",
+                        }}
+                        onClick={() => setControllerRailOpen((v) => !v)}
+                        aria-expanded={controllerRailOpen}
+                      >
+                        {controllerRailOpen ? "Hide" : `Show (${controllerActions.length})`}
+                      </button>
+                    </div>
+
+                    {controllerRailOpen && (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {visibleControllerActions.map((action, index) => (
+                            <button
+                              key={`controller-rail-${index}-${action.type}-${action.label || "action"}`}
+                              type="button"
+                              onClick={() => {
+                                setHasGuestInteracted(true);
+                                void handleClusterAction(action);
+                              }}
+                              className="scout-action-button"
+                            >
+                              {action.label || (action.type === "NAVIGATE" ? "Open" : "Run action")}
+                            </button>
+                          ))}
+                        </div>
+
+                        {controllerActions.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setControllerShowAll((v) => !v)}
+                            className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              color: "var(--text-secondary)",
+                              backgroundColor: "transparent",
+                            }}
+                          >
+                            {controllerShowAll
+                              ? "Show fewer"
+                              : `More actions (${controllerActions.length - 2})`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Thread + input in a single chat container that stretches toward
@@ -3568,7 +3764,7 @@ export default function ScoutOS() {
                   the global bottom nav. */}
               <div
                 className={`mt-1.5 flex flex-col flex-1 min-h-0 ${
-                  isMobile ? "space-y-2" : "space-y-2"
+                  isMobile ? "space-y-2 order-1" : "space-y-2 order-1"
                 }`}
                 style={{ paddingBottom: isMobile ? "0.75rem" : "1rem" }}
               >
@@ -3691,6 +3887,7 @@ export default function ScoutOS() {
                   messages={state.messages}
                   status={state.status}
                   mode={activeMode}
+                  showControllerExtras={scoutViewMode === "chat_plus_controller"}
                   onAction={handleClusterAction}
                   onOverride={handleOverride}
                   overridePendingScope={overridePendingScope}

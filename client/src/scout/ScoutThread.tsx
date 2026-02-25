@@ -10,12 +10,58 @@ type ScoutThreadProps = {
   messages: ScoutMessage[];
   status: ScoutStatus;
   mode?: ScoutMode;
+  showControllerExtras?: boolean;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
   onSendMessage?: (payload: any) => void;
 };
+
+function AssistantStreamedText({
+  content,
+  shouldAnimate,
+}: {
+  content: string;
+  shouldAnimate: boolean;
+}) {
+  const [visibleChars, setVisibleChars] = React.useState(() =>
+    shouldAnimate ? 0 : content.length
+  );
+
+  React.useEffect(() => {
+    if (!shouldAnimate) {
+      setVisibleChars(content.length);
+      return;
+    }
+
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion || content.length <= 60) {
+      setVisibleChars(content.length);
+      return;
+    }
+
+    setVisibleChars(0);
+    const step = Math.max(2, Math.ceil(content.length / 70));
+    const timer = window.setInterval(() => {
+      setVisibleChars((prev) => {
+        if (prev >= content.length) {
+          window.clearInterval(timer);
+          return content.length;
+        }
+        return Math.min(content.length, prev + step);
+      });
+    }, 12);
+
+    return () => window.clearInterval(timer);
+  }, [content, shouldAnimate]);
+
+  return <>{content.slice(0, visibleChars)}</>;
+}
 
 function MessageExtras({
   msg,
@@ -36,12 +82,19 @@ function MessageExtras({
 }) {
   if (isUser) return null;
 
+  const hasActionChips = Boolean(msg.frame?.actionChips && msg.frame.actionChips.length > 0);
+  const hasClusters = Boolean(msg.clusters && msg.clusters.length > 0);
+  const hasOverride = Boolean(msg.overrideOption);
+  const hasSuggestions = Boolean(msg.suggestedActions && msg.suggestedActions.length > 0);
+  const hasOnboardingPrompt = Boolean(
+    msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage)
+  );
+
+  const [controllerOpen, setControllerOpen] = React.useState(true);
+  const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
+
   const hasAnything =
-    (msg.frame?.actionChips && msg.frame.actionChips.length > 0) ||
-    (msg.clusters && msg.clusters.length > 0) ||
-    msg.overrideOption != null ||
-    (msg.suggestedActions && msg.suggestedActions.length > 0) ||
-    (msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage));
+    hasActionChips || hasClusters || hasOverride || hasSuggestions || hasOnboardingPrompt;
 
   if (!hasAnything) return null;
 
@@ -49,87 +102,152 @@ function MessageExtras({
     <div className="mt-2 space-y-2">
       {/* Keep the chat bubble clean: render actions/suggestions as separate blocks. */}
 
-      {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {msg.frame.actionChips.map((chip) => (
-            <button
-              key={`${msg.id}-chip-${chip.id}`}
-              type="button"
-              onClick={() => {
-                if (!onAction) return;
-                if (chip.kind === "NAVIGATE") {
-                  onAction({
-                    type: "NAVIGATE",
-                    label: chip.label,
-                    to: chip.target,
-                    path: chip.target,
-                    payload:
-                      chip.args && typeof chip.args === "object"
-                        ? (chip.args as Record<string, unknown>)
-                        : undefined,
-                  });
-                }
-              }}
-              className="scout-action-button"
-            >
-              <div className="flex flex-col items-start text-left">
-                <span>{chip.label}</span>
-                {chip.subtitle && <span className="text-[11px] opacity-80">{chip.subtitle}</span>}
-                {(chip as any).why && (
-                  <span className="text-[10px] opacity-70">{(chip as any).why}</span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {msg.clusters && msg.clusters.length > 0 && (
-        <div className="space-y-2">
-          {msg.clusters.map((cluster) => (
-            <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
-          ))}
-        </div>
-      )}
-
-      {msg.overrideOption && (
+      {(hasActionChips || hasClusters || hasOverride) && (
         <div
-          className="rounded-lg border border-dashed p-3"
+          className="rounded-lg border p-2"
           style={{
-            backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
             borderColor: "var(--border-subtle)",
+            backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
           }}
         >
-          <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            {msg.overrideOption.message}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              Controller actions
+            </div>
             <button
               type="button"
-              onClick={() => onOverride && onOverride(msg.overrideOption!)}
-              disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
-              className="scout-action-button"
+              className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+              style={{
+                borderColor: "var(--border-subtle)",
+                color: "var(--text-secondary)",
+                backgroundColor: "transparent",
+              }}
+              onClick={() => setControllerOpen((v) => !v)}
+              aria-expanded={controllerOpen}
             >
-              {overridePendingScope === (msg.overrideOption.scope ?? "global")
-                ? "Logging override..."
-                : msg.overrideOption.label}
+              {controllerOpen ? "Hide" : "Show"}
             </button>
           </div>
+
+          {controllerOpen && (
+            <div className="space-y-2">
+              {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {msg.frame.actionChips.map((chip) => (
+                    <button
+                      key={`${msg.id}-chip-${chip.id}`}
+                      type="button"
+                      onClick={() => {
+                        if (!onAction) return;
+                        if (chip.kind === "NAVIGATE") {
+                          onAction({
+                            type: "NAVIGATE",
+                            label: chip.label,
+                            to: chip.target,
+                            path: chip.target,
+                            payload:
+                              chip.args && typeof chip.args === "object"
+                                ? (chip.args as Record<string, unknown>)
+                                : undefined,
+                          });
+                        }
+                      }}
+                      className="scout-action-button"
+                    >
+                      <div className="flex flex-col items-start text-left">
+                        <span>{chip.label}</span>
+                        {chip.subtitle && (
+                          <span className="text-[11px] opacity-80">{chip.subtitle}</span>
+                        )}
+                        {(chip as any).why && (
+                          <span className="text-[10px] opacity-70">{(chip as any).why}</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {msg.clusters && msg.clusters.length > 0 && (
+                <div className="space-y-2">
+                  {msg.clusters.map((cluster) => (
+                    <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
+                  ))}
+                </div>
+              )}
+
+              {msg.overrideOption && (
+                <div
+                  className="rounded-lg border border-dashed p-3"
+                  style={{
+                    backgroundColor:
+                      "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                    borderColor: "var(--border-subtle)",
+                  }}
+                >
+                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {msg.overrideOption.message}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOverride && onOverride(msg.overrideOption!)}
+                      disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
+                      className="scout-action-button"
+                    >
+                      {overridePendingScope === (msg.overrideOption.scope ?? "global")
+                        ? "Logging override..."
+                        : msg.overrideOption.label}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {msg.suggestedActions.map((act) => (
+        <div
+          className="rounded-lg border p-2"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 88%, transparent)",
+          }}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              Suggested prompts
+            </div>
             <button
-              key={act}
               type="button"
-              onClick={() => onQuickAction && onQuickAction(act)}
-              className="scout-suggestion px-3 py-1.5 text-[11px] rounded-full"
+              className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+              style={{
+                borderColor: "var(--border-subtle)",
+                color: "var(--text-secondary)",
+                backgroundColor: "transparent",
+              }}
+              onClick={() => setSuggestionsOpen((v) => !v)}
+              aria-expanded={suggestionsOpen}
             >
-              {act}
+              {suggestionsOpen ? "Hide" : `Show (${msg.suggestedActions.length})`}
             </button>
-          ))}
+          </div>
+
+          {suggestionsOpen && (
+            <div className="flex flex-wrap gap-2">
+              {msg.suggestedActions.map((act) => (
+                <button
+                  key={act}
+                  type="button"
+                  onClick={() => onQuickAction && onQuickAction(act)}
+                  className="scout-suggestion px-3 py-1.5 text-[11px] rounded-full"
+                >
+                  {act}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -295,14 +413,29 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
   status,
   mode,
+  showControllerExtras = true,
   onAction,
   onQuickAction,
   onOverride,
   overridePendingScope,
   onSendMessage,
 }) => {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [progress, setProgress] = React.useState(0);
   const phaseStartRef = React.useRef<number | null>(null);
+
+  const latestAssistantMessageId = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.role === "assistant") return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  React.useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+  }, [messages.length, status]);
 
   // Reset progress whenever Scout is fully idle or in an error state.
   React.useEffect(() => {
@@ -426,6 +559,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className="scout-thread space-y-3 flex-1 min-h-0 overflow-y-auto"
       role="log"
       aria-live="polite"
@@ -472,7 +606,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 {!isUser && <div className="scout-sender">Scout</div>}
                 <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
                   {displayContent && (
-                    <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
+                    <p className="whitespace-pre-line leading-relaxed">
+                      {isUser ? (
+                        displayContent
+                      ) : (
+                        <AssistantStreamedText
+                          content={displayContent}
+                          shouldAnimate={msg.id === latestAssistantMessageId}
+                        />
+                      )}
+                    </p>
                   )}
                 </div>
               </div>
@@ -481,8 +624,8 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
             <MessageExtras
               msg={msg}
               isUser={isUser}
-              onAction={onAction}
-              onQuickAction={onQuickAction}
+              onAction={showControllerExtras ? onAction : undefined}
+              onQuickAction={showControllerExtras ? onQuickAction : undefined}
               onOverride={onOverride}
               overridePendingScope={overridePendingScope}
               onSendMessage={onSendMessage}
