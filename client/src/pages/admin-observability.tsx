@@ -490,7 +490,7 @@ export default function ObservabilityDashboard() {
           <Database className="h-5 w-5" />
           <h2 className="text-xl font-semibold">Database Connection Pool</h2>
         </div>
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600">{metrics.dbPool.current.active}</div>
             <div className="text-sm text-muted-foreground">Active</div>
@@ -560,7 +560,7 @@ export default function ObservabilityDashboard() {
             Phase 4: Clean 4xx/5xx Separation
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600">
               {metrics.http.statusClasses["2xx"]}

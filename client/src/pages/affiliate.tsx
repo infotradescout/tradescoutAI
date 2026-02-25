@@ -488,7 +488,7 @@ export default function AffiliatePage() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-slate-800">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
