@@ -155,8 +155,8 @@ export default function Notifications() {
   const incomingRequests = incomingRequestsQuery.data?.requests || [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+    <div className="bg-background py-8">
+      <div className="container mx-auto px-4 max-w-6xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">

@@ -5,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, MessageSquare, Plus, Heart, MessageCircle, Share2, ArrowLeft, Camera } from "lucide-react";
+import {
+  Users,
+  MessageSquare,
+  Plus,
+  Heart,
+  MessageCircle,
+  Share2,
+  ArrowLeft,
+  Camera,
+} from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams } from "wouter";
@@ -31,29 +40,29 @@ export default function GroupDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const params = useParams();
-  const groupId = params?.groupId || 'group-1';
-  
-  const [newPost, setNewPost] = useState('');
+  const groupId = params?.groupId || "group-1";
+
+  const [newPost, setNewPost] = useState("");
   const [showCreatePost, setShowCreatePost] = useState(false);
 
   const { data: group, isLoading: groupLoading } = useQuery({
-    queryKey: ['/api/groups', groupId],
-    queryFn: () => fetch(`/api/groups/${groupId}`).then(res => res.json())
+    queryKey: ["/api/groups", groupId],
+    queryFn: () => fetch(`/api/groups/${groupId}`).then((res) => res.json()),
   });
 
   const { data: posts = [], isLoading: postsLoading } = useQuery({
-    queryKey: ['/api/groups', groupId, 'posts'],
-    queryFn: () => fetch(`/api/groups/${groupId}/posts`).then(res => res.json())
+    queryKey: ["/api/groups", groupId, "posts"],
+    queryFn: () => fetch(`/api/groups/${groupId}/posts`).then((res) => res.json()),
   });
 
   const createPostMutation = useMutation({
     mutationFn: async (content: string) => {
       const response = await fetch(`/api/groups/${groupId}/posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, images: [], tags: [] })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, images: [], tags: [] }),
       });
-      if (!response.ok) throw new Error('Failed to create post');
+      if (!response.ok) throw new Error("Failed to create post");
       return response.json();
     },
     onSuccess: () => {
@@ -61,9 +70,9 @@ export default function GroupDetail() {
         title: "Post Created",
         description: "Your post has been shared with the group.",
       });
-      setNewPost('');
+      setNewPost("");
       setShowCreatePost(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'posts'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "posts"] });
     },
     onError: () => {
       toast({
@@ -82,7 +91,7 @@ export default function GroupDetail() {
 
   if (groupLoading || postsLoading) {
     return (
-      <div className="min-h-screen gradient-bg p-6">
+      <div className="gradient-bg p-6 py-24">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
@@ -95,7 +104,7 @@ export default function GroupDetail() {
 
   if (!group) {
     return (
-      <div className="min-h-screen gradient-bg p-6">
+      <div className="gradient-bg p-6 py-24">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Group Not Found</h1>
           <Link href="/groups">
@@ -110,7 +119,7 @@ export default function GroupDetail() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg p-6" data-testid="group-detail-page">
+    <div className="gradient-bg p-6 py-8" data-testid="group-detail-page">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -127,17 +136,14 @@ export default function GroupDetail() {
         </div>
 
         {/* Group Info */}
-        <Card
-          className="border-slate-700"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <CardTitle className="text-white text-2xl">{group.name}</CardTitle>
                 <div className="flex items-center space-x-2">
                   <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
-                    {group.type.replace('_', ' ')}
+                    {group.type.replace("_", " ")}
                   </Badge>
                   <span className="text-slate-400 flex items-center">
                     <Users className="w-4 h-4 mr-1" />
@@ -162,13 +168,10 @@ export default function GroupDetail() {
         </Card>
 
         {/* Create Post */}
-        <Card
-          className="border-slate-700"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardContent className="p-4">
             {!showCreatePost ? (
-              <Button 
+              <Button
                 onClick={() => setShowCreatePost(true)}
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600"
                 data-testid="create-post-button"
@@ -191,22 +194,22 @@ export default function GroupDetail() {
                     Add Photos
                   </Button>
                   <div className="space-x-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setShowCreatePost(false);
-                        setNewPost('');
+                        setNewPost("");
                       }}
                     >
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleCreatePost}
                       disabled={createPostMutation.isPending || !newPost.trim()}
                       className="bg-gradient-to-r from-blue-500 to-purple-600"
                       data-testid="submit-post-button"
                     >
-                      {createPostMutation.isPending ? 'Posting...' : 'Post'}
+                      {createPostMutation.isPending ? "Posting..." : "Post"}
                     </Button>
                   </div>
                 </div>
@@ -218,15 +221,14 @@ export default function GroupDetail() {
         {/* Posts Feed */}
         <div className="space-y-6">
           {posts.length === 0 ? (
-            <Card
-              className="border-slate-700"
-              style={{ backgroundColor: "var(--surface-card)" }}
-            >
+            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardContent className="p-12 text-center">
                 <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">No posts yet</h3>
-                <p className="text-slate-400 mb-6">Be the first to share something with the group!</p>
-                <Button 
+                <p className="text-slate-400 mb-6">
+                  Be the first to share something with the group!
+                </p>
+                <Button
                   onClick={() => setShowCreatePost(true)}
                   className="bg-gradient-to-r from-blue-500 to-purple-600"
                 >
@@ -247,7 +249,10 @@ export default function GroupDetail() {
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">
-                          {post.authorName.split(' ').map(n => n[0]).join('')}
+                          {post.authorName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                         </span>
                       </div>
                       <div>
@@ -266,11 +271,15 @@ export default function GroupDetail() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-slate-300 leading-relaxed">{post.content}</p>
-                  
+
                   {post.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {post.tags.map((tag: string, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs border-slate-600 text-slate-400">
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs border-slate-600 text-slate-400"
+                        >
                           #{tag}
                         </Badge>
                       ))}
@@ -279,16 +288,28 @@ export default function GroupDetail() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-700">
                     <div className="flex items-center space-x-4">
-                      <Button variant="ghost" size="sm" className="text-slate-400 hover:text-pink-400">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-400 hover:text-pink-400"
+                      >
                         <Heart className="w-4 h-4 mr-1" />
                         {post.likes}
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-slate-400 hover:text-blue-400">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-400 hover:text-blue-400"
+                      >
                         <MessageCircle className="w-4 h-4 mr-1" />
                         {post.comments}
                       </Button>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-slate-400 hover:text-green-400">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-400 hover:text-green-400"
+                    >
                       <Share2 className="w-4 h-4 mr-1" />
                       Share
                     </Button>

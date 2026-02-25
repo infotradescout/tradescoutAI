@@ -436,7 +436,7 @@ export default function PreScoutSetup() {
           canonical="https://www.thetradescout.com/pre-scout-setup"
           noIndex
         />
-        <div className="min-h-screen flex items-center justify-center px-3 py-4 md:px-4 md:py-8 text-tsTextMain">
+        <div className="flex items-center justify-center px-3 py-4 md:px-4 md:py-8 text-tsTextMain">
           <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.05fr_minmax(0,1fr)] gap-4 md:gap-6">
             <div className="space-y-3 md:space-y-4">
               <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-tsAccentSoft">
@@ -781,7 +781,7 @@ export default function PreScoutSetup() {
         canonical="https://www.thetradescout.com/pre-scout-setup"
         noIndex
       />
-      <div className="min-h-screen flex justify-center px-3 py-4 md:px-4 md:py-8 text-tsTextMain">
+      <div className="flex justify-center px-3 py-4 md:px-4 md:py-8 text-tsTextMain">
         <div className="w-full max-w-3xl space-y-3">
           <Button
             variant="ghost"

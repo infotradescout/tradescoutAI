@@ -1,7 +1,7 @@
 export default function SafeLanding() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-slate-900 text-white">
-      <div className="container mx-auto px-4 py-16">
+    <div className="bg-gradient-to-br from-blue-950 to-slate-900 text-white py-16">
+      <div className="container mx-auto px-4">
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
             TradeScout Social Platform

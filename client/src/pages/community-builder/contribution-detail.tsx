@@ -1,26 +1,12 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useLocation, useRoute } from 'wouter';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  Clock, 
-  FileText, 
-  Upload,
-  Trash2,
-  Edit
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation, useRoute } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, CheckCircle, Clock, FileText, Upload, Trash2, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Contribution {
   id: string;
@@ -54,14 +40,14 @@ interface Contribution {
 }
 
 const statusColors: Record<string, string> = {
-  proposed: 'bg-blue-100 text-blue-800',
-  pending_approval: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
-  in_progress: 'bg-purple-100 text-purple-800',
-  completed: 'bg-teal-100 text-teal-800',
-  verified: 'bg-emerald-100 text-emerald-800',
-  disputed: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-100 text-gray-800',
+  proposed: "bg-blue-100 text-blue-800",
+  pending_approval: "bg-yellow-100 text-yellow-800",
+  approved: "bg-green-100 text-green-800",
+  in_progress: "bg-purple-100 text-purple-800",
+  completed: "bg-teal-100 text-teal-800",
+  verified: "bg-emerald-100 text-emerald-800",
+  disputed: "bg-red-100 text-red-800",
+  cancelled: "bg-gray-100 text-gray-800",
 };
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -72,18 +58,18 @@ const statusIcons: Record<string, React.ReactNode> = {
 };
 
 export default function ContributionDetail() {
-  const [match, params] = useRoute('/community-builder/contributions/:id');
+  const [match, params] = useRoute("/community-builder/contributions/:id");
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const { data: contribution, isLoading } = useQuery<Contribution>({
-    queryKey: ['contribution', params?.id],
+    queryKey: ["contribution", params?.id],
     queryFn: async () => {
       const res = await fetch(`/api/community-builder/contributions/${params?.id}`);
-      if (!res.ok) throw new Error('Failed to fetch contribution');
+      if (!res.ok) throw new Error("Failed to fetch contribution");
       return res.json();
     },
     enabled: !!params?.id,
@@ -92,52 +78,53 @@ export default function ContributionDetail() {
   const updateMutation = useMutation({
     mutationFn: async (data) => {
       const res = await fetch(`/api/community-builder/contributions/${params?.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Failed to update contribution');
+      if (!res.ok) throw new Error("Failed to update contribution");
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: 'Updated', description: 'Contribution updated successfully' });
+      toast({ title: "Updated", description: "Contribution updated successfully" });
       setIsEditing(false);
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to update contribution', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to update contribution",
+        variant: "destructive",
+      });
     },
   });
 
   const addEvidenceMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const res = await fetch(`/api/community-builder/contributions/${params?.id}/evidence`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error('Failed to add evidence');
+      if (!res.ok) throw new Error("Failed to add evidence");
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: 'Success', description: 'Evidence added successfully' });
+      toast({ title: "Success", description: "Evidence added successfully" });
     },
   });
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="flex items-center justify-center p-8">Loading...</div>;
   }
 
   if (!contribution) {
-    return <div className="min-h-screen flex items-center justify-center">Contribution not found</div>;
+    return <div className="flex items-center justify-center p-8">Contribution not found</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Back Button */}
-        <Button 
-          variant="ghost"
-          onClick={() => navigate('/community-builder/dashboard')}
-        >
+        <Button variant="ghost" onClick={() => navigate("/community-builder/dashboard")}>
           ← Back to Dashboard
         </Button>
 
@@ -151,20 +138,20 @@ export default function ContributionDetail() {
             <Badge className={statusColors[contribution.status]}>
               <span className="flex items-center gap-1">
                 {statusIcons[contribution.status]}
-                {contribution.status.replace('_', ' ').toUpperCase()}
+                {contribution.status.replace("_", " ").toUpperCase()}
               </span>
             </Badge>
           </div>
         </div>
 
         {/* Edit Section (if proposed) */}
-        {contribution.status === 'proposed' && (
+        {contribution.status === "proposed" && (
           <Card className="border-2 border-blue-200">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Edit Contribution</span>
                 {!isEditing && (
-                  <Button 
+                  <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
@@ -206,10 +193,7 @@ export default function ContributionDetail() {
                   >
                     Save Changes
                   </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setIsEditing(false)}
-                  >
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -236,9 +220,7 @@ export default function ContributionDetail() {
             <CardContent>
               <p className="text-2xl font-bold">${contribution.estimatedValue}</p>
               {contribution.actualValue && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Verified: ${contribution.actualValue}
-                </p>
+                <p className="text-sm text-gray-600 mt-1">Verified: ${contribution.actualValue}</p>
               )}
             </CardContent>
           </Card>
@@ -323,9 +305,7 @@ export default function ContributionDetail() {
               <FileText className="w-5 h-5" />
               Evidence & Documentation
             </CardTitle>
-            <CardDescription>
-              {contribution.evidence?.length || 0} file(s) attached
-            </CardDescription>
+            <CardDescription>{contribution.evidence?.length || 0} file(s) attached</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {contribution.evidence && contribution.evidence.length > 0 ? (
@@ -363,7 +343,7 @@ export default function ContributionDetail() {
             <CardContent className="space-y-3">
               {contribution.auditLogs.map((log) => (
                 <div key={log.id} className="p-3 border rounded-lg">
-                  <p className="font-semibold">{log.action.replace('_', ' ').toUpperCase()}</p>
+                  <p className="font-semibold">{log.action.replace("_", " ").toUpperCase()}</p>
                   {log.notes && <p className="text-sm text-gray-600 mt-1">{log.notes}</p>}
                   <p className="text-xs text-gray-500 mt-2">
                     {new Date(log.createdAt).toLocaleString()}

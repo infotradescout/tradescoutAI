@@ -48,7 +48,7 @@ export default function PrivacyRequest() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
+      <div className="gradient-bg flex items-center justify-center py-24">
         <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -56,7 +56,7 @@ export default function PrivacyRequest() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center px-4">
+      <div className="gradient-bg flex items-center justify-center px-4 py-24">
         <Card className="bg-navy-700 border-navy-600 w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-white text-xl">Privacy Requests</CardTitle>
@@ -75,7 +75,7 @@ export default function PrivacyRequest() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg px-4 py-10">
+    <div className="gradient-bg px-4 py-10">
       <div className="max-w-2xl mx-auto">
         <Card className="bg-navy-800 border-navy-700">
           <CardHeader>

@@ -32,7 +32,7 @@ const SavedContractorsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
+      <div className="gradient-bg flex items-center justify-center py-24">
         <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
       </div>
     );
@@ -40,7 +40,7 @@ const SavedContractorsPage = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
+      <div className="gradient-bg flex items-center justify-center py-24">
         <p className="text-slate-200 text-sm">Failed to load saved contractors.</p>
       </div>
     );
@@ -49,7 +49,7 @@ const SavedContractorsPage = () => {
   const saved = data ?? [];
 
   return (
-    <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
+    <div className="gradient-bg pt-24 pb-16 px-4">
       <div className="container mx-auto max-w-5xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -72,10 +72,12 @@ const SavedContractorsPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-slate-300 text-sm mb-3">
-                Use the Save or Bookmark actions on contractor cards to keep track of pros you want to compare later.
+                Use the Save or Bookmark actions on contractor cards to keep track of pros you want
+                to compare later.
               </p>
               <p className="text-slate-400 text-xs">
-                Once you&apos;ve saved a few, they&apos;ll show up here for quick access and side-by-side review.
+                Once you&apos;ve saved a few, they&apos;ll show up here for quick access and
+                side-by-side review.
               </p>
             </CardContent>
           </Card>
@@ -98,7 +100,9 @@ const SavedContractorsPage = () => {
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base text-white truncate flex items-center gap-2">
                       <span className="truncate">{c.name}</span>
-                      {c.verified && <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                      {c.verified && (
+                        <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      )}
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
                       {c.category && <span className="truncate">{c.category}</span>}

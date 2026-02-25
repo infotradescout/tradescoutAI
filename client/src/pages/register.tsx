@@ -123,7 +123,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] flex items-center justify-center px-4 py-8 text-tsTextMain">
+    <div className="flex items-center justify-center px-4 py-8 text-tsTextMain">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6 order-2 lg:order-1">
           <Link href="/">

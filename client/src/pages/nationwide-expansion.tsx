@@ -105,7 +105,7 @@ export default function NationwideExpansion() {
 
   if (metricsLoading) {
     return (
-      <div className="min-h-screen gradient-bg p-6">
+      <div className="gradient-bg p-6 py-24">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
@@ -117,7 +117,7 @@ export default function NationwideExpansion() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg p-6" data-testid="nationwide-expansion-page">
+    <div className="gradient-bg p-6 py-8" data-testid="nationwide-expansion-page">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">

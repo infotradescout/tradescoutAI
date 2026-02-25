@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { TrendingUp, Lock, MapPin, DollarSign, BarChart3, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { TrendingUp, Lock, MapPin, DollarSign, BarChart3, AlertCircle } from "lucide-react";
 
 interface Vault {
   id: string;
@@ -27,60 +27,60 @@ export default function CommunityVaultsPage() {
 
   // Fetch all vaults statistics
   const { data: stats } = useQuery({
-    queryKey: ['community-vaults-statistics'],
+    queryKey: ["community-vaults-statistics"],
     queryFn: async () => {
-      const res = await fetch('/api/community-vaults/statistics');
-      if (!res.ok) throw new Error('Failed to fetch statistics');
+      const res = await fetch("/api/community-vaults/statistics");
+      if (!res.ok) throw new Error("Failed to fetch statistics");
       return res.json();
-    }
+    },
   });
 
   // Fetch all vaults
   const { data: vaults = [] } = useQuery({
-    queryKey: ['community-vaults'],
+    queryKey: ["community-vaults"],
     queryFn: async () => {
-      const res = await fetch('/api/community-vaults/vaults');
-      if (!res.ok) throw new Error('Failed to fetch vaults');
+      const res = await fetch("/api/community-vaults/vaults");
+      if (!res.ok) throw new Error("Failed to fetch vaults");
       return res.json();
-    }
+    },
   });
 
   // Fetch ledger for selected vault
   const { data: ledger = [] } = useQuery({
-    queryKey: ['community-vault-ledger', selectedVault],
+    queryKey: ["community-vault-ledger", selectedVault],
     queryFn: async () => {
       if (!selectedVault) return [];
       const res = await fetch(`/api/community-vaults/vaults/${selectedVault}/ledger`);
-      if (!res.ok) throw new Error('Failed to fetch ledger');
+      if (!res.ok) throw new Error("Failed to fetch ledger");
       return res.json();
     },
-    enabled: !!selectedVault
+    enabled: !!selectedVault,
   });
 
   const formatCurrency = (value: string | number) => {
-    const num = parseFloat(value?.toString() || '0');
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    const num = parseFloat(value?.toString() || "0");
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(num);
   };
 
   const formatSourceType = (type: string) => {
     const mapping: { [key: string]: string } = {
-      'platform_support_share': 'Platform Support',
-      'direct_donation': 'Direct Donation',
-      'manual_adjustment': 'Admin Adjustment',
-      'other': 'Other'
+      platform_support_share: "Platform Support",
+      direct_donation: "Direct Donation",
+      manual_adjustment: "Admin Adjustment",
+      other: "Other",
     };
     return mapping[type] || type;
   };
 
-  const selectedVaultData = selectedVault 
+  const selectedVaultData = selectedVault
     ? vaults.find((v: Vault) => v.id === selectedVault)
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
@@ -88,7 +88,9 @@ export default function CommunityVaultsPage() {
             <Lock className="w-10 h-10" />
             <span>Community Vaults</span>
           </h1>
-          <p className="text-lg text-slate-300">Transparent fund management for local communities</p>
+          <p className="text-lg text-slate-300">
+            Transparent fund management for local communities
+          </p>
         </div>
       </div>
 
@@ -101,7 +103,9 @@ export default function CommunityVaultsPage() {
                 <DollarSign className="w-4 h-4" />
                 <span>Total Balance</span>
               </p>
-              <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.totalBalance)}</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {formatCurrency(stats.totalBalance)}
+              </p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-gray-600 flex items-center space-x-1">
@@ -122,7 +126,7 @@ export default function CommunityVaultsPage() {
               <p className="text-3xl font-bold text-gray-900">
                 {stats.topVaults && stats.topVaults.length > 0
                   ? formatCurrency(stats.topVaults[0].currentBalance)
-                  : '$0'}
+                  : "$0"}
               </p>
             </div>
           </div>
@@ -155,8 +159,8 @@ export default function CommunityVaultsPage() {
                     onClick={() => setSelectedVault(vault.id)}
                     className={`cursor-pointer p-6 rounded-lg border-2 transition ${
                       selectedVault === vault.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-blue-300'
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 bg-white hover:border-blue-300"
                     }`}
                   >
                     <div className="flex items-start justify-between mb-4">
@@ -165,7 +169,9 @@ export default function CommunityVaultsPage() {
                           <Lock className="text-blue-600 w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900">Vault {vault.id.slice(0, 8)}</p>
+                          <p className="font-semibold text-gray-900">
+                            Vault {vault.id.slice(0, 8)}
+                          </p>
                           <p className="text-sm text-gray-600">Community Fund</p>
                         </div>
                       </div>
@@ -180,25 +186,23 @@ export default function CommunityVaultsPage() {
                     <div className="mb-3">
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-600">Lifetime Inflow</span>
-                        <span className="font-semibold">{formatCurrency(vault.lifetimeInflow)}</span>
+                        <span className="font-semibold">
+                          {formatCurrency(vault.lifetimeInflow)}
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div
                           className="bg-green-500 h-1.5 rounded-full"
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         />
                       </div>
                     </div>
 
                     {/* Metadata */}
                     <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>
-                        Total Outflow: {formatCurrency(vault.lifetimeOutflow)}
-                      </span>
+                      <span>Total Outflow: {formatCurrency(vault.lifetimeOutflow)}</span>
                       {vault.lastContributionAt && (
-                        <span>
-                          Last: {new Date(vault.lastContributionAt).toLocaleDateString()}
-                        </span>
+                        <span>Last: {new Date(vault.lastContributionAt).toLocaleDateString()}</span>
                       )}
                     </div>
                   </div>
@@ -216,7 +220,9 @@ export default function CommunityVaultsPage() {
                 {/* Balance Cards */}
                 <div className="space-y-3 mb-6">
                   <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                    <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Current Balance</p>
+                    <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                      Current Balance
+                    </p>
                     <p className="text-2xl font-bold text-green-900 mt-1">
                       {formatCurrency(selectedVaultData.currentBalance)}
                     </p>
@@ -224,13 +230,17 @@ export default function CommunityVaultsPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Inflow</p>
+                      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                        Inflow
+                      </p>
                       <p className="text-lg font-bold text-blue-900 mt-1">
                         {formatCurrency(selectedVaultData.lifetimeInflow)}
                       </p>
                     </div>
                     <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                      <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Outflow</p>
+                      <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">
+                        Outflow
+                      </p>
                       <p className="text-lg font-bold text-red-900 mt-1">
                         {formatCurrency(selectedVaultData.lifetimeOutflow)}
                       </p>
@@ -246,10 +256,13 @@ export default function CommunityVaultsPage() {
                   ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {ledger.map((entry: LedgerEntry) => {
-                        const amount = parseFloat(entry.amount?.toString() || '0');
+                        const amount = parseFloat(entry.amount?.toString() || "0");
                         const isPositive = amount >= 0;
                         return (
-                          <div key={entry.id} className="flex items-start justify-between text-sm border-b pb-2">
+                          <div
+                            key={entry.id}
+                            className="flex items-start justify-between text-sm border-b pb-2"
+                          >
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">
                                 {formatSourceType(entry.sourceType)}
@@ -261,8 +274,11 @@ export default function CommunityVaultsPage() {
                                 <p className="text-xs text-gray-600 mt-1">{entry.memo}</p>
                               )}
                             </div>
-                            <p className={`font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                              {isPositive ? '+' : ''}{formatCurrency(amount)}
+                            <p
+                              className={`font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {isPositive ? "+" : ""}
+                              {formatCurrency(amount)}
                             </p>
                           </div>
                         );

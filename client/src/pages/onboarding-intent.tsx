@@ -64,7 +64,7 @@ export default function OnboardingIntent() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center px-3 py-6 text-tsTextMain">
+    <div className="flex justify-center px-3 py-6 text-tsTextMain">
       <div className="w-full max-w-xl space-y-2.5">
         <div className="flex items-center justify-between">
           <Button

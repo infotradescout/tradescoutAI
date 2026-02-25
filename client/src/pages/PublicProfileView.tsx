@@ -243,7 +243,7 @@ export default function PublicProfileView() {
 
   if (loading) {
     return (
-      <div className="bg-app min-h-screen flex items-center justify-center">
+      <div className="bg-app flex items-center justify-center py-24">
         <p className="text-muted">Loading profile...</p>
       </div>
     );
@@ -251,7 +251,7 @@ export default function PublicProfileView() {
 
   if (notFound || !profile) {
     return (
-      <div className="bg-app min-h-screen flex flex-col items-center justify-center text-center px-4">
+      <div className="bg-app flex flex-col items-center justify-center text-center px-4 py-24">
         <Eye className="h-12 w-12 text-muted mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-primary mb-2">Profile Not Found</h2>
         <p className="text-muted">This profile is private or doesn't exist.</p>
@@ -398,7 +398,7 @@ export default function PublicProfileView() {
   };
 
   return (
-    <div className="bg-app min-h-screen text-primary">
+    <div className="bg-app text-primary py-8">
       <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
         <ThemeScope themeId={profileThemeId || undefined}>
           <div className="ts-card rounded-2xl p-6 md:p-8 border-subtle space-y-6">

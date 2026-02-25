@@ -1,10 +1,10 @@
-import { memo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Upload, Shield, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
+import { memo, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Upload, Shield, CheckCircle, AlertTriangle, FileText } from "lucide-react";
 
 const InsuranceVerification = memo(function InsuranceVerification() {
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -14,26 +14,26 @@ const InsuranceVerification = memo(function InsuranceVerification() {
       type: "General Liability",
       minimum: "$1,000,000",
       required: true,
-      description: "Covers property damage and bodily injury claims"
+      description: "Covers property damage and bodily injury claims",
     },
     {
       type: "Workers' Compensation",
       minimum: "State Required",
       required: true,
-      description: "Required for businesses with employees"
+      description: "Required for businesses with employees",
     },
     {
       type: "Professional Liability",
       minimum: "$500,000",
       required: false,
-      description: "Covers errors and omissions in professional services"
+      description: "Covers errors and omissions in professional services",
     },
     {
       type: "Commercial Auto",
       minimum: "$500,000",
       required: false,
-      description: "Required if using vehicles for business"
-    }
+      description: "Required if using vehicles for business",
+    },
   ];
 
   const handleFileUpload = (insuranceType: string) => {
@@ -42,7 +42,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 py-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -53,10 +53,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
         </div>
 
         {/* Requirements Overview */}
-        <Card
-          className="border-slate-700 mb-8"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-orange-500" />
@@ -71,14 +68,14 @@ const InsuranceVerification = memo(function InsuranceVerification() {
               {insuranceRequirements.map((req, index) => {
                 const isUploaded = uploadedFiles.includes(req.type);
                 return (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`p-4 rounded-lg border-2 ${
-                      isUploaded 
-                        ? 'border-emerald-500/50 bg-emerald-500/10' 
-                        : req.required 
-                        ? 'border-red-500/50 bg-red-500/10' 
-                        : 'border-blue-500/50 bg-blue-500/10'
+                      isUploaded
+                        ? "border-emerald-500/50 bg-emerald-500/10"
+                        : req.required
+                          ? "border-red-500/50 bg-red-500/10"
+                          : "border-blue-500/50 bg-blue-500/10"
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -88,24 +85,24 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                       </div>
                       <div className="flex items-center gap-2">
                         {req.required && (
-                          <Badge variant="error" className="text-xs">Required</Badge>
+                          <Badge variant="error" className="text-xs">
+                            Required
+                          </Badge>
                         )}
-                        {isUploaded && (
-                          <CheckCircle className="w-5 h-5 text-emerald-400" />
-                        )}
+                        {isUploaded && <CheckCircle className="w-5 h-5 text-emerald-400" />}
                       </div>
                     </div>
-                    
+
                     <p className="text-sm text-gray-300 mb-4">{req.description}</p>
-                    
+
                     {!isUploaded ? (
-                      <Button 
+                      <Button
                         onClick={() => handleFileUpload(req.type)}
-                        size="sm" 
+                        size="sm"
                         className={`w-full ${
-                          req.required 
-                            ? 'bg-red-600 hover:bg-red-700' 
-                            : 'bg-blue-600 hover:bg-blue-700'
+                          req.required
+                            ? "bg-red-600 hover:bg-red-700"
+                            : "bg-blue-600 hover:bg-blue-700"
                         }`}
                       >
                         <Upload className="w-4 h-4 mr-2" />
@@ -125,10 +122,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
         </Card>
 
         {/* Upload Form */}
-        <Card
-          className="border-slate-700 mb-8"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white">Insurance Certificate Upload</CardTitle>
             <CardDescription className="text-gray-400">
@@ -143,46 +137,58 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                   <h3 className="text-lg font-semibold text-white">General Liability Insurance</h3>
                   <Badge variant="error">Required</Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="gl-policy" className="text-gray-300">Policy Number</Label>
-                    <Input 
+                    <Label htmlFor="gl-policy" className="text-gray-300">
+                      Policy Number
+                    </Label>
+                    <Input
                       id="gl-policy"
                       placeholder="Enter policy number"
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gl-coverage" className="text-gray-300">Coverage Amount</Label>
-                    <Input 
+                    <Label htmlFor="gl-coverage" className="text-gray-300">
+                      Coverage Amount
+                    </Label>
+                    <Input
                       id="gl-coverage"
                       placeholder="e.g., $1,000,000"
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gl-carrier" className="text-gray-300">Insurance Carrier</Label>
-                    <Input 
+                    <Label htmlFor="gl-carrier" className="text-gray-300">
+                      Insurance Carrier
+                    </Label>
+                    <Input
                       id="gl-carrier"
                       placeholder="Enter carrier name"
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gl-expiry" className="text-gray-300">Expiration Date</Label>
-                    <Input 
+                    <Label htmlFor="gl-expiry" className="text-gray-300">
+                      Expiration Date
+                    </Label>
+                    <Input
                       id="gl-expiry"
                       type="date"
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                 </div>
-                
+
                 <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center">
                   <Upload className="w-8 h-8 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-300 mb-2">Drop your certificate here or click to browse</p>
-                  <p className="text-sm text-gray-500">Supported formats: PDF, JPG, PNG (Max 10MB)</p>
+                  <p className="text-gray-300 mb-2">
+                    Drop your certificate here or click to browse
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Supported formats: PDF, JPG, PNG (Max 10MB)
+                  </p>
                   <Button variant="outline" className="mt-4">
                     Select File
                   </Button>

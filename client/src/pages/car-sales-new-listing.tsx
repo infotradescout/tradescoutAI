@@ -4,19 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Car, 
-  DollarSign, 
-  Camera, 
-  FileText, 
+import {
+  Car,
+  DollarSign,
+  Camera,
+  FileText,
   MapPin,
   Calendar,
   Gauge,
   Fuel,
   Settings,
-  Upload
+  Upload,
 } from "lucide-react";
 
 export default function CarSalesNewListing() {
@@ -33,16 +39,16 @@ export default function CarSalesNewListing() {
     interiorColor: "",
     description: "",
     features: [],
-    images: []
+    images: [],
   });
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <div className="container mx-auto px-6 py-8">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-8">
+      <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-3 bg-orange-500/20 rounded-xl">
@@ -50,7 +56,9 @@ export default function CarSalesNewListing() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Create New Vehicle Listing</h1>
-              <p className="text-gray-400">List your vehicle for sale on the TradeScout marketplace</p>
+              <p className="text-gray-400">
+                List your vehicle for sale on the TradeScout marketplace
+              </p>
             </div>
           </div>
 
@@ -224,7 +232,9 @@ export default function CarSalesNewListing() {
               <CardContent>
                 <div className="border-2 border-dashed border-navy-600 rounded-lg p-8 text-center">
                   <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-2">Drop your vehicle photos here, or click to browse</p>
+                  <p className="text-gray-400 mb-2">
+                    Drop your vehicle photos here, or click to browse
+                  </p>
                   <p className="text-sm text-gray-500">Upload up to 20 high-quality images</p>
                   <Button variant="outline" className="mt-4">
                     <Upload className="h-4 w-4 mr-2" />
@@ -236,19 +246,15 @@ export default function CarSalesNewListing() {
 
             {/* Action Buttons */}
             <div className="flex gap-4 pt-6">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-orange-600 hover:bg-orange-700 flex-1"
                 data-testid="button-publish-listing"
               >
                 <Car className="h-5 w-5 mr-2" />
                 Publish Listing
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                data-testid="button-save-draft"
-              >
+              <Button variant="outline" size="lg" data-testid="button-save-draft">
                 Save as Draft
               </Button>
             </div>

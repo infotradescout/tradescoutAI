@@ -25,7 +25,7 @@ export default function Help() {
   }, []);
 
   return (
-    <div className="min-h-screen gradient-bg">
+    <div className="gradient-bg py-8">
       <div className="w-full max-w-4xl mx-auto px-3 md:px-4 py-6 md:py-10">
         <SEOHelmet
           title="Help Center – Articles and Guides | TradeScout"
@@ -61,9 +61,8 @@ export default function Help() {
             TradeScout Help Home
           </h1>
           <p className="text-sm md:text-base text-slate-200 max-w-2xl">
-            TradeScout is built around Connection Without Compromise. Start here
-            to understand how jobs, messaging, money, community, and Scout work
-            together.
+            TradeScout is built around Connection Without Compromise. Start here to understand how
+            jobs, messaging, money, community, and Scout work together.
           </p>
         </div>
 
@@ -78,8 +77,8 @@ export default function Help() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
               <p>
-                TradeScout is built around Connection Without Compromise. Start
-                here to understand how jobs, messaging, and money work together.
+                TradeScout is built around Connection Without Compromise. Start here to understand
+                how jobs, messaging, and money work together.
               </p>
               <Button
                 size="sm"
@@ -205,7 +204,9 @@ export default function Help() {
                   variant="outline"
                   size="sm"
                   className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
-                  onClick={() => navigate("/help/how-tradescout-works#connection-without-compromise")}
+                  onClick={() =>
+                    navigate("/help/how-tradescout-works#connection-without-compromise")
+                  }
                 >
                   What Scout can and can&apos;t do
                 </Button>

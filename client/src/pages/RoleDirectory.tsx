@@ -3,13 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { RoleBadge, RoleHierarchy, PermissionIndicator } from "@/components/ui/RoleBadge";
 import { TradeBadge, TradeCategoryHeader } from "@/components/ui/TradeBadge";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  ROLE_CATEGORIES, 
+import {
+  ROLE_CATEGORIES,
   TRADE_CATEGORIES,
   getRoleDisplayName,
   getTradeDisplayName,
   getRolePermissions,
-  getRoleHierarchyLevel
+  getRoleHierarchyLevel,
 } from "@shared/roles";
 import type { UserRole, TradeCategory } from "@shared/roles";
 import { Users, Shield, Briefcase, Crown, Star, Building, Hammer } from "lucide-react";
@@ -21,7 +21,7 @@ export default function RoleDirectory() {
   const currentUserLevel = currentUserRole ? getRoleHierarchyLevel(currentUserRole) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6 py-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -39,10 +39,7 @@ export default function RoleDirectory() {
         </div>
 
         {/* User Roles Section */}
-        <Card
-          className="border-slate-700"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-6 w-6" />
@@ -57,28 +54,33 @@ export default function RoleDirectory() {
               <div key={categoryName} className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    {categoryName === 'admin' && <Crown className="h-5 w-5 text-red-500" />}
-                    {categoryName === 'staff' && <Star className="h-5 w-5 text-yellow-500" />}
-                    {categoryName === 'community' && <Users className="h-5 w-5 text-green-500" />}
-                    {categoryName === 'service_provider' && <Briefcase className="h-5 w-5 text-blue-500" />}
-                    {categoryName === 'customer' && <Building className="h-5 w-5 text-gray-500" />}
+                    {categoryName === "admin" && <Crown className="h-5 w-5 text-red-500" />}
+                    {categoryName === "staff" && <Star className="h-5 w-5 text-yellow-500" />}
+                    {categoryName === "community" && <Users className="h-5 w-5 text-green-500" />}
+                    {categoryName === "service_provider" && (
+                      <Briefcase className="h-5 w-5 text-blue-500" />
+                    )}
+                    {categoryName === "customer" && <Building className="h-5 w-5 text-gray-500" />}
                     <h3 className="text-xl font-semibold text-white capitalize">
-                      {categoryName.replace('_', ' ')} Roles
+                      {categoryName.replace("_", " ")} Roles
                     </h3>
                   </div>
                   <Badge variant="secondary" className="text-xs">
                     {roles.length} roles
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {roles.map((role) => {
                     const permissions = getRolePermissions(role as UserRole);
                     const hierarchyLevel = getRoleHierarchyLevel(role as UserRole);
                     const isCurrentRole = currentUserRole === role;
-                    
+
                     return (
-                      <Card key={role} className={`bg-slate-700/50 border-slate-600 ${isCurrentRole ? 'ring-2 ring-orange-500' : ''}`}>
+                      <Card
+                        key={role}
+                        className={`bg-slate-700/50 border-slate-600 ${isCurrentRole ? "ring-2 ring-orange-500" : ""}`}
+                      >
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <RoleBadge role={role as UserRole} size="md" />
@@ -90,9 +92,10 @@ export default function RoleDirectory() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           <div className="text-sm text-gray-300">
-                            Authority Level: <span className="font-medium text-white">{hierarchyLevel}</span>
+                            Authority Level:{" "}
+                            <span className="font-medium text-white">{hierarchyLevel}</span>
                           </div>
-                          
+
                           <div className="space-y-2">
                             <h4 className="text-sm font-medium text-white">Key Permissions</h4>
                             <div className="grid grid-cols-1 gap-1">
@@ -103,13 +106,16 @@ export default function RoleDirectory() {
                                   <PermissionIndicator
                                     key={permission}
                                     hasPermission={true}
-                                    permissionName={permission.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                                    permissionName={permission
+                                      .replace(/([A-Z])/g, " $1")
+                                      .toLowerCase()}
                                     size="sm"
                                   />
                                 ))}
                               {Object.values(permissions).filter(Boolean).length > 4 && (
                                 <div className="text-xs text-gray-400 mt-1">
-                                  +{Object.values(permissions).filter(Boolean).length - 4} more permissions
+                                  +{Object.values(permissions).filter(Boolean).length - 4} more
+                                  permissions
                                 </div>
                               )}
                             </div>
@@ -125,10 +131,7 @@ export default function RoleDirectory() {
         </Card>
 
         {/* Trade Categories Section */}
-        <Card
-          className="border-slate-700"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Hammer className="h-6 w-6" />
@@ -141,11 +144,11 @@ export default function RoleDirectory() {
           <CardContent className="space-y-8">
             {Object.entries(TRADE_CATEGORIES).map(([categoryName, trades]) => (
               <div key={categoryName} className="space-y-4">
-                <TradeCategoryHeader 
+                <TradeCategoryHeader
                   category={categoryName as keyof typeof TRADE_CATEGORIES}
                   trades={[...trades] as TradeCategory[]}
                 />
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {trades.map((trade) => (
                     <div key={trade} className="flex justify-center">
@@ -159,10 +162,7 @@ export default function RoleDirectory() {
         </Card>
 
         {/* Role Permissions Matrix */}
-        <Card
-          className="border-slate-700"
-          style={{ backgroundColor: "var(--surface-card)" }}
-        >
+        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-6 w-6" />
@@ -187,54 +187,57 @@ export default function RoleDirectory() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.values(ROLE_CATEGORIES).flat().slice(0, 10).map((role) => {
-                    const permissions = getRolePermissions(role as UserRole);
-                    const level = getRoleHierarchyLevel(role as UserRole);
-                    
-                    return (
-                      <tr key={role} className="border-b border-slate-700/50">
-                        <td className="py-2">
-                          <RoleBadge role={role as UserRole} size="sm" />
-                        </td>
-                        <td className="text-center py-2 text-white">{level}</td>
-                        <td className="text-center py-2">
-                          {permissions.canAccessAdminPanel ? (
-                            <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
-                          ) : (
-                            <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
-                          )}
-                        </td>
-                        <td className="text-center py-2">
-                          {permissions.canModerateContent ? (
-                            <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
-                          ) : (
-                            <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
-                          )}
-                        </td>
-                        <td className="text-center py-2">
-                          {permissions.canEditUsers ? (
-                            <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
-                          ) : (
-                            <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
-                          )}
-                        </td>
-                        <td className="text-center py-2">
-                          {permissions.canViewAnalytics ? (
-                            <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
-                          ) : (
-                            <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
-                          )}
-                        </td>
-                        <td className="text-center py-2">
-                          {permissions.canManagePayments ? (
-                            <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
-                          ) : (
-                            <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {Object.values(ROLE_CATEGORIES)
+                    .flat()
+                    .slice(0, 10)
+                    .map((role) => {
+                      const permissions = getRolePermissions(role as UserRole);
+                      const level = getRoleHierarchyLevel(role as UserRole);
+
+                      return (
+                        <tr key={role} className="border-b border-slate-700/50">
+                          <td className="py-2">
+                            <RoleBadge role={role as UserRole} size="sm" />
+                          </td>
+                          <td className="text-center py-2 text-white">{level}</td>
+                          <td className="text-center py-2">
+                            {permissions.canAccessAdminPanel ? (
+                              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
+                            ) : (
+                              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
+                            )}
+                          </td>
+                          <td className="text-center py-2">
+                            {permissions.canModerateContent ? (
+                              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
+                            ) : (
+                              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
+                            )}
+                          </td>
+                          <td className="text-center py-2">
+                            {permissions.canEditUsers ? (
+                              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
+                            ) : (
+                              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
+                            )}
+                          </td>
+                          <td className="text-center py-2">
+                            {permissions.canViewAnalytics ? (
+                              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
+                            ) : (
+                              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
+                            )}
+                          </td>
+                          <td className="text-center py-2">
+                            {permissions.canManagePayments ? (
+                              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto" />
+                            ) : (
+                              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto" />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>

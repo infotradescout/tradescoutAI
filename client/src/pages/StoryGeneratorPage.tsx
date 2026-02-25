@@ -6,16 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { 
-  ArrowLeft, 
-  FileText, 
-  Eye, 
-  Share2, 
-  Edit,
-  Trash2,
-  Copy,
-  Star
-} from "lucide-react";
+import { ArrowLeft, FileText, Eye, Share2, Edit, Trash2, Copy, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -119,19 +110,21 @@ export default function StoryGeneratorPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-navy-900 to-navy-800 flex items-center justify-center">
+      <div className="bg-gradient-to-br from-navy-900 to-navy-800 flex items-center justify-center py-24">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
-            <p className="text-center text-gray-600">Please log in to access the story generator.</p>
+            <p className="text-center text-gray-600">
+              Please log in to access the story generator.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -139,13 +132,17 @@ export default function StoryGeneratorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 to-navy-800 p-4">
+    <div className="bg-gradient-to-br from-navy-900 to-navy-800 p-4 py-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <Link href="/contractor-dashboard">
-              <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
@@ -154,8 +151,9 @@ export default function StoryGeneratorPage() {
           <div className="text-center">
             <h1 className="text-4xl font-bold text-white mb-4">Professional Story Generator</h1>
             <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-              Create compelling professional narratives to enhance your profile and connect with potential clients. 
-              Choose from different story templates and let AI help craft your unique story.
+              Create compelling professional narratives to enhance your profile and connect with
+              potential clients. Choose from different story templates and let AI help craft your
+              unique story.
             </p>
           </div>
         </div>
@@ -185,7 +183,7 @@ export default function StoryGeneratorPage() {
               <CardContent>
                 {isLoadingStories ? (
                   <div className="space-y-3">
-                    {[1, 2, 3].map(i => (
+                    {[1, 2, 3].map((i) => (
                       <div key={i} className="animate-pulse">
                         <div className="h-4 bg-gray-600 rounded mb-2"></div>
                         <div className="h-3 bg-gray-700 rounded w-3/4"></div>
@@ -196,37 +194,43 @@ export default function StoryGeneratorPage() {
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-400 mb-4">No stories yet</p>
-                    <p className="text-gray-500 text-sm">Generate your first professional story using the form</p>
+                    <p className="text-gray-500 text-sm">
+                      Generate your first professional story using the form
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {(savedStories as GeneratedStory[]).map((story: GeneratedStory) => (
-                      <div 
+                      <div
                         key={story.id}
                         className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                          selectedStory?.id === story.id 
-                            ? 'border-blue-500 bg-blue-900/20' 
-                            : 'border-gray-600 hover:border-gray-500'
+                          selectedStory?.id === story.id
+                            ? "border-blue-500 bg-blue-900/20"
+                            : "border-gray-600 hover:border-gray-500"
                         }`}
                         onClick={() => setSelectedStory(story)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h4 className="text-white font-medium text-sm mb-1">
-                              {story.title}
-                            </h4>
+                            <h4 className="text-white font-medium text-sm mb-1">{story.title}</h4>
                             <p className="text-gray-400 text-xs mb-2">
                               {formatDate(story.createdAt)}
                             </p>
                             <div className="flex items-center gap-2 text-xs">
                               {story.isPinned && (
-                                <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                                <Badge
+                                  variant="outline"
+                                  className="border-yellow-500 text-yellow-500"
+                                >
                                   <Star className="h-3 w-3 mr-1" />
                                   Pinned
                                 </Badge>
                               )}
                               {story.isPublic && (
-                                <Badge variant="outline" className="border-green-500 text-green-500">
+                                <Badge
+                                  variant="outline"
+                                  className="border-green-500 text-green-500"
+                                >
                                   Public
                                 </Badge>
                               )}
@@ -251,7 +255,7 @@ export default function StoryGeneratorPage() {
                     <div className="text-gray-300 text-sm leading-relaxed">
                       {selectedStory.content}
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-xs text-gray-400">
                       <Eye className="h-3 w-3" />
                       {selectedStory.viewCount} views

@@ -140,14 +140,14 @@ export default function ProfilePage() {
 
   return (
     <div
-      className="min-h-screen transition-colors duration-300"
+      className="transition-colors duration-300 py-8"
       style={{
         ...profileThemeVars,
         backgroundColor: "var(--user-background)",
         color: "var(--user-text)",
       }}
     >
-      <div className="container mx-auto py-8 space-y-6 max-w-6xl">
+      <div className="container mx-auto space-y-6 max-w-6xl">
         {/* Profile Header */}
         <div
           className="rounded-lg p-8 shadow-lg border"
