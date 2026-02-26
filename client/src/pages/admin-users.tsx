@@ -130,6 +130,8 @@ const roleHierarchy = {
   },
 };
 
+const ADMIN_SAFETY_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
+
 export default function AdminUsers() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -206,6 +208,15 @@ export default function AdminUsers() {
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
   const currentAdminId = String((user as any)?.id || "");
   const currentAdminRole = String((user as any)?.role || "");
+  const readAdminSafetyKey = () => {
+    if (typeof window === "undefined") return "";
+    return String(window.localStorage.getItem("ts:admin:safety-key") || "").trim();
+  };
+  const buildAdminSafety = (reason: string) => ({
+    reason,
+    confirmPhrase: ADMIN_SAFETY_CONFIRM_PHRASE,
+    safetyKey: readAdminSafetyKey() || undefined,
+  });
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -216,6 +227,7 @@ export default function AdminUsers() {
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: string }) => {
       const response = await apiRequest("PUT", `/api/admin/users/${userId}/role`, {
         role: newRole,
+        adminSafety: buildAdminSafety(`Role update requested by admin for user ${userId}`),
       });
       return response;
     },
@@ -237,8 +249,10 @@ export default function AdminUsers() {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`, {
+        adminSafety: buildAdminSafety(`Account deletion requested by admin for user ${userId}`),
+      });
       return response;
     },
     onSuccess: () => {
@@ -299,6 +313,9 @@ export default function AdminUsers() {
           profileSections: profileForm.profileSections,
           ...(colorScheme ? { colorScheme } : {}),
         },
+        adminSafety: buildAdminSafety(
+          `Profile support edit requested by admin for user ${profileUser.id}`
+        ),
       };
       return apiRequest("PUT", `/api/admin/users/${profileUser.id}/profile`, payload);
     },
@@ -520,7 +537,7 @@ export default function AdminUsers() {
         `Delete user ${userEmail || userId}? This permanently removes account access and cannot be undone.`
       )
     ) {
-      deleteUserMutation.mutate(userId);
+      deleteUserMutation.mutate({ userId });
     }
   };
 

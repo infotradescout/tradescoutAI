@@ -128,6 +128,8 @@ type ContractorSetting = {
   updatedAt: string;
 };
 
+const ADMIN_SAFETY_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
+
 export default function AdminPanel() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -1181,6 +1183,8 @@ function LLMAdminPanel() {
   const [infoInput, setInfoInput] = useState({ email: "", userId: "" });
   const [userInfo, setUserInfo] = useState<any>(null);
   const [resetInput, setResetInput] = useState({ email: "", userId: "", newPassword: "" });
+  const [resetReason, setResetReason] = useState("Support password reset requested by user");
+  const [resetSafetyKey, setResetSafetyKey] = useState("");
 
   const uploadMutation = useMutation({
     mutationFn: async (selected: File[]) => {
@@ -1249,10 +1253,18 @@ function LLMAdminPanel() {
       if (!resetInput.newPassword || resetInput.newPassword.length < 8) {
         throw new Error("Password must be at least 8 characters");
       }
+      if (!resetReason || resetReason.trim().length < 12) {
+        throw new Error("Reason is required and must be at least 12 characters");
+      }
       const res = await apiRequest("POST", "/api/admin/users/reset-password", {
         email: resetInput.email || undefined,
         userId: resetInput.userId || undefined,
         newPassword: resetInput.newPassword,
+        adminSafety: {
+          reason: resetReason.trim(),
+          confirmPhrase: ADMIN_SAFETY_CONFIRM_PHRASE,
+          safetyKey: resetSafetyKey.trim() || undefined,
+        },
       });
       return res;
     },
@@ -1404,6 +1416,27 @@ function LLMAdminPanel() {
                 value={resetInput.newPassword}
                 onChange={(e) => setResetInput((p) => ({ ...p, newPassword: e.target.value }))}
                 placeholder="min 8 chars"
+                className="bg-slate-900 border-slate-700"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-slate-200">Audit Reason</Label>
+              <Input
+                value={resetReason}
+                onChange={(e) => setResetReason(e.target.value)}
+                placeholder="Why this reset is needed"
+                className="bg-slate-900 border-slate-700"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-200">Safety Key (optional)</Label>
+              <Input
+                type="password"
+                value={resetSafetyKey}
+                onChange={(e) => setResetSafetyKey(e.target.value)}
+                placeholder="Required only when strict safety key mode is enabled"
                 className="bg-slate-900 border-slate-700"
               />
             </div>

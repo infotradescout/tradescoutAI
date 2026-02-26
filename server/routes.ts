@@ -6791,7 +6791,7 @@ export async function registerRoutes(app: any) {
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
       const { role } = (req.body ?? {}) as any;
-      const requestedRole = normalizeAdminRoleToken(role);
+      const requestedRoleToken = normalizeAdminRoleToken(role);
 
       if (
         !adminUser ||
@@ -6800,9 +6800,15 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      if (!requestedRole) {
+      if (!requestedRoleToken) {
         return res.status(400).json({ message: "role is required" });
       }
+
+      if (!USER_ROLE_ENUM_VALUES.has(requestedRoleToken)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const requestedRole = requestedRoleToken as UserRoleEnumValue;
 
       // Only head_admin can promote to head_admin or modify other head_admins
       if (requestedRole === "head_admin" && adminUser.role !== "head_admin") {
@@ -10460,11 +10466,9 @@ export async function registerRoutes(app: any) {
 
         const targetProtected = isProtectedAdminUser(target);
         if (targetProtected && !isHeadOrSuperAdminUser(actor)) {
-          return res
-            .status(403)
-            .json({
-              error: "Only head/super admins can reset passwords for protected admin users",
-            });
+          return res.status(403).json({
+            error: "Only head/super admins can reset passwords for protected admin users",
+          });
         }
 
         const safety = validateAdminWriteSafety(req.body ?? {}, req.headers as any, {
