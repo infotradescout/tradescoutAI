@@ -22,6 +22,7 @@ Ensure the following environment variables are set in the production environment
 | `GOOGLE_CLIENT_SECRET` | No | Required for Google OAuth |
 | `FACEBOOK_APP_ID` | No | Required for Facebook OAuth |
 | `FACEBOOK_APP_SECRET` | No | Required for Facebook OAuth |
+| `ADMIN_SAFETY_KEY` | Recommended | Required for safeguarded admin support edits when configured |
 
 ## 2. Security
 - [x] **Rate Limiting**: Configured for sensitive endpoints (login, password reset, AI).
@@ -105,3 +106,17 @@ This section extends the core checklist above for the HOA capability pack only.
 - [ ] Archive strict skip report: `artifacts/test-skip-delta.no-skips.json`
 - [ ] Archive HOA UX acceptance screenshots (simple view and full view)
 - [ ] Archive HOA e2e run results for release packet
+
+## 9. Admin Account Compromise Safeguards
+
+### Safeguarded edit flow
+- [x] Added explicit safeguarded admin support edit API: `POST /api/admin/users/support-edit`.
+- [x] Requires audit reason (minimum length) and fixed confirm phrase.
+- [x] Supports optional `ADMIN_SAFETY_KEY` validation for step-up control.
+- [x] Blocks protected admin-target edits unless actor is head/super and explicit override is set.
+- [x] Restricts updates to whitelisted profile-safe fields and logs admin action.
+
+### Operational policy
+- [ ] Set `ADMIN_SAFETY_KEY` in production secrets.
+- [ ] Rotate `ADMIN_SAFETY_KEY` on regular schedule and incident response.
+- [ ] Require support ticket/reference in `adminSafety.reason` policy.

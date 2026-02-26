@@ -10422,6 +10422,228 @@ export async function registerRoutes(app: any) {
     }
   );
 
+  const ADMIN_SUPPORT_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
+  const PROTECTED_ADMIN_ROLES = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+
+  const normalizeRoleForProtection = (role: unknown): string =>
+    String(role || "")
+      .trim()
+      .toLowerCase();
+
+  const userHasProtectedAdminRole = (user: any): boolean => {
+    if (!user) return false;
+    const primaryRole = normalizeRoleForProtection(user.role);
+    const activeRole = normalizeRoleForProtection(user.activeRole);
+    const roleList = Array.isArray(user.roles)
+      ? user.roles.map((r: unknown) => normalizeRoleForProtection(r))
+      : [];
+    const roles = new Set([primaryRole, activeRole, ...roleList].filter(Boolean));
+    for (const role of roles) {
+      if (PROTECTED_ADMIN_ROLES.has(role)) return true;
+    }
+    return false;
+  };
+
+  const userIsHeadOrSuperAdmin = (user: any): boolean => {
+    if (!user) return false;
+    const primaryRole = normalizeRoleForProtection(user.role);
+    const activeRole = normalizeRoleForProtection(user.activeRole);
+    const roleList = Array.isArray(user.roles)
+      ? user.roles.map((r: unknown) => normalizeRoleForProtection(r))
+      : [];
+    const roles = new Set([primaryRole, activeRole, ...roleList].filter(Boolean));
+    return roles.has("head_admin") || roles.has("super_admin");
+  };
+
+  // Admin Support Edit: safeguarded "edit user for them" endpoint.
+  // Requires explicit reason + confirm phrase. Optionally requires ADMIN_SAFETY_KEY if configured.
+  app.post(
+    "/api/admin/users/support-edit",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        if (!actorId) return res.status(401).json({ message: "Unauthorized" });
+
+        const body = (req.body ?? {}) as any;
+        const adminSafety =
+          body.adminSafety && typeof body.adminSafety === "object" ? body.adminSafety : {};
+
+        const reason = String(adminSafety.reason || "").trim();
+        if (reason.length < 12) {
+          return res.status(400).json({ message: "adminSafety.reason is required (min 12 chars)" });
+        }
+
+        const confirmPhrase = String(adminSafety.confirmPhrase || "").trim();
+        if (confirmPhrase !== ADMIN_SUPPORT_CONFIRM_PHRASE) {
+          return res
+            .status(400)
+            .json({
+              message: `adminSafety.confirmPhrase must be exactly: ${ADMIN_SUPPORT_CONFIRM_PHRASE}`,
+            });
+        }
+
+        const configuredSafetyKey = String(process.env.ADMIN_SAFETY_KEY || "").trim();
+        if (configuredSafetyKey) {
+          const providedSafetyKey = String(
+            adminSafety.safetyKey || req.headers["x-admin-safety-key"] || ""
+          ).trim();
+          if (!providedSafetyKey || providedSafetyKey !== configuredSafetyKey) {
+            return res.status(403).json({ message: "Admin safety key validation failed" });
+          }
+        }
+
+        const targetUserId = String(body.targetUserId || "").trim();
+        const targetEmail = String(body.targetEmail || "")
+          .trim()
+          .toLowerCase();
+
+        if (!targetUserId && !targetEmail) {
+          return res.status(400).json({ message: "Provide targetUserId or targetEmail" });
+        }
+
+        const target = targetUserId
+          ? await storage.getUser(targetUserId)
+          : await storage.getUserByEmail(targetEmail);
+
+        if (!target) {
+          return res.status(404).json({ message: "Target user not found" });
+        }
+
+        const actor = await storage.getUser(actorId);
+        if (!actor) {
+          return res.status(401).json({ message: "Actor not found" });
+        }
+
+        const targetProtected = userHasProtectedAdminRole(target);
+        if (targetProtected) {
+          if (!userIsHeadOrSuperAdmin(actor)) {
+            return res
+              .status(403)
+              .json({ message: "Only head/super admins can edit protected admin users" });
+          }
+          if (adminSafety.allowPrivilegedTargetEdit !== true) {
+            return res.status(400).json({
+              message:
+                "adminSafety.allowPrivilegedTargetEdit=true is required for protected targets",
+            });
+          }
+        }
+
+        const patch = body.patch && typeof body.patch === "object" ? body.patch : {};
+        const preferencesPatch =
+          patch.preferencesPatch && typeof patch.preferencesPatch === "object"
+            ? patch.preferencesPatch
+            : {};
+
+        const allowedUserFields = [
+          "firstName",
+          "lastName",
+          "phone",
+          "address",
+          "city",
+          "state",
+          "stateCode",
+          "zipCode",
+          "county",
+          "countyName",
+          "countyFips",
+          "countyId",
+          "latitude",
+          "longitude",
+          "profileImageUrl",
+        ] as const;
+
+        const allowedPreferenceFields = [
+          "bio",
+          "servicesDescription",
+          "profileVisibility",
+          "profileSections",
+          "colorScheme",
+        ] as const;
+
+        const changedUserKeys = allowedUserFields.filter((key) => patch[key] !== undefined);
+        const changedPreferenceKeys = allowedPreferenceFields.filter(
+          (key) => preferencesPatch[key] !== undefined
+        );
+        const totalChanged = changedUserKeys.length + changedPreferenceKeys.length;
+
+        if (totalChanged === 0) {
+          return res.status(400).json({ message: "No editable fields supplied in patch" });
+        }
+
+        if (totalChanged > 12) {
+          return res.status(400).json({ message: "Too many fields in one operation (max 12)" });
+        }
+
+        if (patch.countyFips !== undefined) {
+          const trimmed = String(patch.countyFips || "").trim();
+          if (trimmed && !/^\d{5}$/.test(trimmed)) {
+            return res
+              .status(400)
+              .json({ message: "Invalid countyFips; expected a 5-digit FIPS code." });
+          }
+          patch.countyFips = trimmed || undefined;
+        }
+
+        const existingPreferences: any =
+          target && typeof (target as any).preferences === "object" && (target as any).preferences
+            ? (target as any).preferences
+            : {};
+
+        const safeUserPatch: Record<string, unknown> = { updatedAt: new Date() };
+        for (const key of changedUserKeys) {
+          const value = patch[key];
+          if (key === "latitude" || key === "longitude") {
+            safeUserPatch[key] =
+              typeof value === "number"
+                ? String(value)
+                : typeof value === "string" && value.trim()
+                  ? value.trim()
+                  : undefined;
+            continue;
+          }
+          safeUserPatch[key] = typeof value === "string" ? value.trim() || undefined : value;
+        }
+
+        if (changedPreferenceKeys.length > 0) {
+          const safePrefs: Record<string, unknown> = {};
+          for (const key of changedPreferenceKeys) {
+            safePrefs[key] = preferencesPatch[key];
+          }
+          safeUserPatch.preferences = { ...existingPreferences, ...safePrefs };
+        }
+
+        const updated = await storage.updateUser(target.id, safeUserPatch as any);
+
+        await logAdminAction({
+          action: "admin_support_user_edit",
+          actorUserId: actorId,
+          targetUserId: target.id,
+          targetEmail: target.email,
+          reason,
+          protectedTarget: targetProtected,
+          changedFields: [
+            ...changedUserKeys,
+            ...changedPreferenceKeys.map((k) => `preferences.${k}`),
+          ],
+        });
+
+        return res.json({
+          ok: true,
+          user: sanitizeUserForResponse(updated),
+          protectedTarget: targetProtected,
+        });
+      } catch (error: any) {
+        console.error("Error in admin support-edit:", error);
+        return res.status(500).json({ message: error?.message || "Failed to edit user" });
+      }
+    }
+  );
+
   // Admin: provision any user account (non-admin roles only)
   // - Creates user if missing
   // - Optionally sends a single "account setup" email (password set + verify email)

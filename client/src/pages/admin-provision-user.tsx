@@ -39,6 +39,21 @@ export default function AdminProvisionUser() {
   const [requestBudgetMin, setRequestBudgetMin] = useState("");
   const [requestBudgetMax, setRequestBudgetMax] = useState("");
   const [targetContractorIds, setTargetContractorIds] = useState("");
+  const [editTargetEmail, setEditTargetEmail] = useState("");
+  const [editTargetUserId, setEditTargetUserId] = useState("");
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editStateCode, setEditStateCode] = useState("");
+  const [editCountyFips, setEditCountyFips] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editProfileVisibility, setEditProfileVisibility] = useState<"public" | "private">(
+    "public"
+  );
+  const [editReason, setEditReason] = useState("");
+  const [editSafetyKey, setEditSafetyKey] = useState("");
+  const [editAllowPrivilegedTarget, setEditAllowPrivilegedTarget] = useState(false);
 
   const provision = useMutation({
     mutationFn: async () => {
@@ -117,6 +132,51 @@ export default function AdminProvisionUser() {
     },
   });
 
+  const supportEditUser = useMutation({
+    mutationFn: async () => {
+      const patch: Record<string, unknown> = {};
+      const preferencesPatch: Record<string, unknown> = {};
+
+      if (editFirstName.trim()) patch.firstName = editFirstName.trim();
+      if (editLastName.trim()) patch.lastName = editLastName.trim();
+      if (editPhone.trim()) patch.phone = editPhone.trim();
+      if (editCity.trim()) patch.city = editCity.trim();
+      if (editStateCode.trim()) patch.stateCode = editStateCode.trim().toUpperCase();
+      if (editCountyFips.trim()) patch.countyFips = editCountyFips.trim();
+      if (editBio.trim()) preferencesPatch.bio = editBio.trim();
+      preferencesPatch.profileVisibility = editProfileVisibility;
+
+      if (Object.keys(preferencesPatch).length > 0) {
+        patch.preferencesPatch = preferencesPatch;
+      }
+
+      return apiRequest("POST", "/api/admin/users/support-edit", {
+        targetUserId: editTargetUserId.trim() || undefined,
+        targetEmail: editTargetEmail.trim() || undefined,
+        patch,
+        adminSafety: {
+          reason: editReason.trim(),
+          confirmPhrase: "I UNDERSTAND THIS EDIT IS AUDITED",
+          safetyKey: editSafetyKey.trim() || undefined,
+          allowPrivilegedTargetEdit: editAllowPrivilegedTarget,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "User updated",
+        description: "Support edit completed and logged.",
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        title: "Support edit failed",
+        description: e?.message || "Could not edit user",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
       <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -182,6 +242,168 @@ export default function AdminProvisionUser() {
             className="bg-orange-500 hover:bg-orange-600"
           >
             {provision.isPending ? "Provisioning..." : "Provision user"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardHeader>
+          <CardTitle className="text-white">Support Edit User (Safeguarded)</CardTitle>
+          <CardDescription className="text-[color:var(--text-secondary)]">
+            Edit a user on their behalf with mandatory reason + audit confirmation. If
+            `ADMIN_SAFETY_KEY` is configured, enter it below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Target user email</label>
+              <Input
+                value={editTargetEmail}
+                onChange={(e) => setEditTargetEmail(e.target.value)}
+                placeholder="user@example.com"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Target user ID (optional)</label>
+              <Input
+                value={editTargetUserId}
+                onChange={(e) => setEditTargetUserId(e.target.value)}
+                placeholder="uuid..."
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">First name (optional)</label>
+              <Input
+                value={editFirstName}
+                onChange={(e) => setEditFirstName(e.target.value)}
+                placeholder="First"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Last name (optional)</label>
+              <Input
+                value={editLastName}
+                onChange={(e) => setEditLastName(e.target.value)}
+                placeholder="Last"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">Phone (optional)</label>
+              <Input
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="(555) 555-5555"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">City (optional)</label>
+              <Input
+                value={editCity}
+                onChange={(e) => setEditCity(e.target.value)}
+                placeholder="City"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">State code (optional)</label>
+              <Input
+                value={editStateCode}
+                onChange={(e) => setEditStateCode(e.target.value)}
+                placeholder="FL"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">County FIPS (optional)</label>
+              <Input
+                value={editCountyFips}
+                onChange={(e) => setEditCountyFips(e.target.value)}
+                placeholder="12033"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Profile visibility</label>
+              <select
+                value={editProfileVisibility}
+                onChange={(e) =>
+                  setEditProfileVisibility(e.target.value === "private" ? "private" : "public")
+                }
+                className="w-full rounded-md border border-[color:var(--border-subtle)] bg-slate-950/40 px-3 py-2 text-slate-100"
+              >
+                <option value="public">public</option>
+                <option value="private">private</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400">Bio (optional)</label>
+            <Textarea
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              placeholder="Support note or user-provided profile text"
+              className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 min-h-20"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400">
+                Audit reason (required, min 12 chars)
+              </label>
+              <Input
+                value={editReason}
+                onChange={(e) => setEditReason(e.target.value)}
+                placeholder="User requested profile correction via support ticket..."
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Admin safety key (if required)</label>
+              <Input
+                value={editSafetyKey}
+                onChange={(e) => setEditSafetyKey(e.target.value)}
+                placeholder="Enter key if server requires it"
+                type="password"
+                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-slate-300">
+            <Checkbox
+              checked={editAllowPrivilegedTarget}
+              onCheckedChange={(v) => setEditAllowPrivilegedTarget(v === true)}
+            />
+            Allow edit for protected admin target (head/super only)
+          </label>
+
+          <Button
+            onClick={() => supportEditUser.mutate()}
+            disabled={
+              supportEditUser.isPending ||
+              (!editTargetEmail.trim() && !editTargetUserId.trim()) ||
+              editReason.trim().length < 12
+            }
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            {supportEditUser.isPending ? "Applying edit..." : "Apply safeguarded support edit"}
           </Button>
         </CardContent>
       </Card>
