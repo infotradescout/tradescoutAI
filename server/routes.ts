@@ -10883,16 +10883,35 @@ export async function registerRoutes(app: any) {
 
       const profileInput =
         body && typeof body.profile === "object" && body.profile ? (body.profile as any) : null;
-      const createBusinessProfile = profileInput?.create === true;
+      const legacyBusinessInput =
+        body && typeof body.business === "object" && body.business ? (body.business as any) : null;
+
+      const legacyBusinessName =
+        typeof legacyBusinessInput?.name === "string" ? legacyBusinessInput.name.trim() : "";
+      const legacyBusinessPhone =
+        typeof legacyBusinessInput?.phone === "string" ? legacyBusinessInput.phone.trim() : "";
+      const legacyBusinessWebsite =
+        typeof legacyBusinessInput?.website === "string" ? legacyBusinessInput.website.trim() : "";
+
+      const createBusinessProfile = profileInput?.create === true || legacyBusinessName.length >= 2;
       const profileDisplayName =
-        typeof profileInput?.displayName === "string" ? profileInput.displayName.trim() : "";
+        typeof profileInput?.displayName === "string"
+          ? profileInput.displayName.trim()
+          : legacyBusinessName;
       const profileRoleContext =
         typeof profileInput?.roleContext === "string" ? profileInput.roleContext.trim() : "";
       const profileHeadline =
         typeof profileInput?.headline === "string" ? profileInput.headline.trim() : "";
-      const createBusinessRecord = profileInput?.createBusinessRecord === true;
+      const createBusinessRecord =
+        profileInput?.createBusinessRecord === true || legacyBusinessName.length >= 2;
       const businessNameInput =
-        typeof profileInput?.businessName === "string" ? profileInput.businessName.trim() : "";
+        typeof profileInput?.businessName === "string"
+          ? profileInput.businessName.trim()
+          : legacyBusinessName;
+
+      const resolvedProvisionRole = (
+        role || (createBusinessProfile ? "business_owner" : "")
+      ).trim();
 
       if (profileRoleContext && (profileRoleContext.length < 2 || profileRoleContext.length > 64)) {
         return res.status(400).json({
@@ -10907,7 +10926,7 @@ export async function registerRoutes(app: any) {
       }
 
       // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
-      if (["moderator", "ops_admin", "super_admin", "head_admin"].includes(role)) {
+      if (["moderator", "ops_admin", "super_admin", "head_admin"].includes(resolvedProvisionRole)) {
         return res.status(400).json({
           message:
             "Admin roles must be created via the dedicated admin creation flow (not user provisioning).",
@@ -10924,7 +10943,9 @@ export async function registerRoutes(app: any) {
           password: passwordHash,
           firstName,
           lastName,
-          role: (role || null) as any,
+          role: (resolvedProvisionRole || null) as any,
+          roles: resolvedProvisionRole ? [resolvedProvisionRole] : undefined,
+          activeRole: resolvedProvisionRole || undefined,
           emailVerified: false,
           addressVerified: false,
         } as any);
@@ -10932,7 +10953,21 @@ export async function registerRoutes(app: any) {
         const patch: any = {};
         if (firstName) patch.firstName = firstName;
         if (lastName) patch.lastName = lastName;
-        // Never mutate roles here.
+        if (resolvedProvisionRole) {
+          const currentRoles: string[] = Array.isArray((user as any).roles)
+            ? ((user as any).roles as string[]).filter(Boolean)
+            : [];
+          const nextRoles = Array.from(new Set([...currentRoles, resolvedProvisionRole]));
+          if (nextRoles.length !== currentRoles.length) {
+            patch.roles = nextRoles;
+          }
+          if (!(user as any).role) {
+            patch.role = resolvedProvisionRole;
+          }
+          if (!(user as any).activeRole) {
+            patch.activeRole = resolvedProvisionRole;
+          }
+        }
         if (password) patch.password = await hashPassword(password);
         if (Object.keys(patch).length > 0) {
           patch.updatedAt = new Date();
@@ -10981,6 +11016,8 @@ export async function registerRoutes(app: any) {
               profileData: {
                 description: profileHeadline || undefined,
                 email: user.email,
+                phone: legacyBusinessPhone || undefined,
+                website: legacyBusinessWebsite || undefined,
               } as any,
               status: "active" as any,
               countyIds: [],
@@ -11097,6 +11134,7 @@ export async function registerRoutes(app: any) {
       const dryRun = body.dryRun === true;
       const sendActivationEmails = body.sendActivationEmails === true;
       const includeActivationLinks = body.includeActivationLinks === true;
+      const createPublicProfiles = body.createPublicProfiles === true;
       const defaultCountyFips =
         typeof body.defaultCountyFips === "string" ? body.defaultCountyFips.trim() : "";
       const defaultStateCode =
@@ -11316,6 +11354,7 @@ export async function registerRoutes(app: any) {
       let updatedBusinesses = 0;
       let createdUnclaimedBusinesses = 0;
       let updatedUnclaimedBusinesses = 0;
+      let createdPublicProfiles = 0;
       let activationPrepared = 0;
       let activationEmailed = 0;
 
@@ -11405,6 +11444,7 @@ export async function registerRoutes(app: any) {
           let userId: string | null = null;
           let businessId: string | null = null;
           let profileSlug: string | null = null;
+          let publicProfileSlug: string | null = null;
 
           const knownKeys = new Set([
             "email",
@@ -11564,6 +11604,31 @@ export async function registerRoutes(app: any) {
                 updatedAt: new Date().toISOString(),
                 publishedAt: new Date().toISOString(),
               } as any);
+
+              if (createPublicProfiles) {
+                const existingProfiles = await storage.listProfilesByOwner(userId);
+                if (existingProfiles.length > 0) {
+                  publicProfileSlug = String(existingProfiles[0]?.slug || "") || null;
+                  if (!(existingUser as any)?.activeProfileId && existingProfiles[0]?.id) {
+                    await storage.setUserActiveProfile(userId, existingProfiles[0].id);
+                  }
+                } else {
+                  const createdProfile = await storage.createProfileForOwner(userId, {
+                    businessId: businessId || undefined,
+                    roleContext: "business_owner" as any,
+                    slug: businessName,
+                    displayName: businessName,
+                    headline: null,
+                    contentBlocks: [],
+                    ctaConfig: {},
+                    seoMeta: {},
+                    status: "published" as any,
+                  } as any);
+                  createdPublicProfiles++;
+                  publicProfileSlug = createdProfile.slug;
+                  await storage.setUserActiveProfile(userId, createdProfile.id);
+                }
+              }
             }
 
             // Claim-first: write claim event for representsBusiness in this county (only with county scope)
@@ -11683,6 +11748,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             userId: dryRun ? null : userId,
             businessId,
             profileSlug,
+            publicProfileSlug,
             activationLink,
           });
         } catch (e: any) {
@@ -11705,6 +11771,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           updatedBusinesses,
           createdUnclaimedBusinesses,
           updatedUnclaimedBusinesses,
+          createdPublicProfiles,
           activationPrepared,
           activationEmailed,
         },

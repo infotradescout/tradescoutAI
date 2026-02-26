@@ -53,6 +53,14 @@ export default function AdminProvisioning() {
         sendVerificationEmail,
       };
       if (createBusiness) {
+        payload.profile = {
+          create: true,
+          displayName: businessName.trim() || undefined,
+          roleContext: "business_owner",
+          headline: undefined,
+          createBusinessRecord: true,
+          businessName: businessName.trim() || undefined,
+        };
         payload.business = {
           name: businessName.trim(),
           slug: (businessSlug.trim() || slugSuggestion || "").trim() || undefined,
@@ -87,8 +95,8 @@ export default function AdminProvisioning() {
             User Provisioning
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
-            Create a user account and (optionally) an unclaimed business directory entry for Claim
-            My Business. Email verification is always required.
+            Create a user account and (optionally) a public business profile with a linked business
+            record. Email verification is always required.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -164,7 +172,7 @@ export default function AdminProvisioning() {
               checked={createBusiness}
               onCheckedChange={(v) => setCreateBusiness(v === true)}
             />
-            Create unclaimed business directory entry (for Claim My Business)
+            Create business profile + linked business record
           </label>
 
           {createBusiness ? (

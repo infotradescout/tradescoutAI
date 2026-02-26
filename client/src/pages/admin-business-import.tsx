@@ -20,6 +20,7 @@ type ImportResponse = {
     updatedBusinesses: number;
     createdUnclaimedBusinesses?: number;
     updatedUnclaimedBusinesses?: number;
+    createdPublicProfiles?: number;
     activationPrepared: number;
     activationEmailed: number;
   };
@@ -34,6 +35,7 @@ type ImportResponse = {
     userId?: string | null;
     businessId?: string | null;
     profileSlug?: string | null;
+    publicProfileSlug?: string | null;
     activationLink?: string;
   }>;
 };
@@ -72,6 +74,7 @@ export default function AdminBusinessImport() {
   const [dryRun, setDryRun] = useState(false);
   const [sendActivationEmails, setSendActivationEmails] = useState(false);
   const [includeActivationLinks, setIncludeActivationLinks] = useState(false);
+  const [createPublicProfiles, setCreatePublicProfiles] = useState(false);
   const [defaultCountyFips, setDefaultCountyFips] = useState("");
   const [defaultStateCode, setDefaultStateCode] = useState("");
   const [selectedBatchId, setSelectedBatchId] = useState("");
@@ -123,6 +126,7 @@ export default function AdminBusinessImport() {
         dryRun,
         sendActivationEmails,
         includeActivationLinks,
+        createPublicProfiles,
         defaultCountyFips: defaultCountyFips.trim() || undefined,
         defaultStateCode: defaultStateCode.trim() || undefined,
       });
@@ -245,6 +249,13 @@ export default function AdminBusinessImport() {
                 onCheckedChange={(v) => setIncludeActivationLinks(v === true)}
               />
               Include activation links in response (sensitive)
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-200">
+              <Checkbox
+                checked={createPublicProfiles}
+                onCheckedChange={(v) => setCreatePublicProfiles(v === true)}
+              />
+              Create public profiles for owner-email rows
             </label>
           </div>
 
@@ -395,6 +406,9 @@ export default function AdminBusinessImport() {
               {typeof result.totals.updatedUnclaimedBusinesses === "number" ? (
                 <div>Unclaimed businesses matched: {result.totals.updatedUnclaimedBusinesses}</div>
               ) : null}
+              {typeof result.totals.createdPublicProfiles === "number" ? (
+                <div>Public profiles created: {result.totals.createdPublicProfiles}</div>
+              ) : null}
               <div>Activation prepared: {result.totals.activationPrepared}</div>
               <div>Activation emailed: {result.totals.activationEmailed}</div>
             </div>
@@ -425,6 +439,12 @@ export default function AdminBusinessImport() {
                   {r.profileSlug ? (
                     <div className="mt-1">
                       Profile: <span className="text-orange-200">/business/{r.profileSlug}</span>
+                    </div>
+                  ) : null}
+                  {r.publicProfileSlug ? (
+                    <div className="mt-1">
+                      Public profile slug:{" "}
+                      <span className="text-emerald-200">{r.publicProfileSlug}</span>
                     </div>
                   ) : null}
                   {r.activationLink ? (
