@@ -623,7 +623,7 @@ describeWithDb("Objectives Layer - Phase 1", () => {
         scoutIntent: "unknown",
       });
 
-      await syncObjectiveFromScoutMessage({
+      const reused = await syncObjectiveFromScoutMessage({
         userId,
         messageText: "Posting a neighborhood update",
         userRole: "homeowner",
@@ -633,7 +633,7 @@ describeWithDb("Objectives Layer - Phase 1", () => {
       const events = await db
         .select()
         .from(objectiveEvents)
-        .where(eq(objectiveEvents.objectiveId, first?.objectiveId as string));
+        .where(eq(objectiveEvents.objectiveId, reused?.objectiveId as string));
 
       const latestSummaryUpdate = [...events]
         .filter((e) => e.eventType === "summary_updated")
@@ -757,16 +757,8 @@ describeWithDb("Objectives Layer - Phase 1", () => {
 /**
  * PHASE 2 Tests (Not yet implemented, placeholder)
  */
-describe.skip("Objectives Layer - Phase 2 (Promotion to other object types)", () => {
-  test("promotes community_post intent to draft post", () => {
-    // When available
-  });
-
-  test("promotes marketplace_sell intent to draft listing", () => {
-    // When available
-  });
-
-  test("marketplace_buy intent creates search or browse routing", () => {
-    // When available
-  });
+describe("Objectives Layer - Phase 2 (Promotion to other object types)", () => {
+  test.todo("promotes community_post intent to draft post");
+  test.todo("promotes marketplace_sell intent to draft listing");
+  test.todo("marketplace_buy intent creates search or browse routing");
 });

@@ -74,6 +74,55 @@ interface KnowledgeResponse {
   };
 }
 
+interface InternetFallbackDecisionInput {
+  message: string;
+  mode: ReturnType<typeof chooseKnowledgeMode>;
+  sources: string[];
+  meta: KnowledgeResponse["meta"];
+  hasManualOverride: boolean;
+}
+
+export function shouldUseInternetFallback(input: InternetFallbackDecisionInput): boolean {
+  const { message, mode, sources, meta, hasManualOverride } = input;
+
+  if (hasManualOverride) return false;
+  if (mode !== "kb_site_then_web") return false;
+
+  const lower = message.toLowerCase();
+  const isExternalDiscoveryQuery =
+    /\b(find|looking for|near me|best|compare|review|quote|estimate|price|cost|contractor|roofer|plumber|electrician|hvac|handyman|service)\b/.test(
+      lower
+    );
+
+  if (!isExternalDiscoveryQuery) {
+    return false;
+  }
+
+  const hasWebsiteData = sources.some(
+    (source) => source.startsWith("TradeScout Cache") || source.startsWith("TradeScout Database")
+  );
+  const localSupplyCount = Math.max(
+    meta?.contractors?.count ?? 0,
+    meta?.communityPosts?.count ?? 0
+  );
+  const hasHealthyLocalSupply = localSupplyCount >= 3;
+
+  const hasOnlyKnowledgeDocs =
+    sources.length > 0 &&
+    sources.every(
+      (source) =>
+        source === "TradeScout Brain (data folder)" ||
+        source.startsWith("Admin ") ||
+        source.startsWith("Admin County Override")
+    );
+
+  if (hasOnlyKnowledgeDocs) {
+    return true;
+  }
+
+  return !hasWebsiteData || !hasHealthyLocalSupply;
+}
+
 /**
  * Read a cached JSON file
  */
@@ -724,6 +773,7 @@ export async function resolveKnowledge(
   let highestLayer = 4;
   let hasManualOverride = false;
   const meta: KnowledgeResponse["meta"] = {};
+  const mode = chooseKnowledgeMode(message);
 
   // LAYER 1: Manual Admin Overrides (Highest Authority)
   // If admin has set a rule, local guide, or override → use it exactly and STOP
@@ -815,6 +865,27 @@ export async function resolveKnowledge(
 
   // If we have enough content from Layers 1-2, return it (no need to hit the wider web)
   if (aggregatedContent.length > 0) {
+    const shouldFallbackToInternet = shouldUseInternetFallback({
+      message,
+      mode,
+      sources,
+      meta,
+      hasManualOverride,
+    });
+
+    if (shouldFallbackToInternet) {
+      const internetResult = await searchInternet(gemini, message, countyCode, stateCode);
+      if (internetResult.source === "internet" && internetResult.data?.content) {
+        return {
+          answer: String(internetResult.data.content),
+          sources: [...sources, "Internet Search (Not Local TradeScout Data)"],
+          layer: 3,
+          confidence: "medium",
+          meta,
+        };
+      }
+    }
+
     // Combine all sources and truncate to reasonable size
     const combinedAnswer = aggregatedContent.join("\n\n========\n\n").slice(0, 5000);
     return {
@@ -844,7 +915,6 @@ export async function resolveKnowledge(
   // LAYER 3: Hyperlocal internet search (only when internal knowledge is insufficient)
   // Use real web sources - DO NOT invent local businesses, prices, or county rules.
   // Location (county/state) must be used when available and answers should be framed as "here's what I found locally".
-  const mode = chooseKnowledgeMode(message);
   if (mode === "kb_site_then_web") {
     const internetResult = await searchInternet(gemini, message, countyCode, stateCode);
     if (internetResult.source === "internet" && internetResult.data?.content) {

@@ -1,0 +1,52 @@
+name: Nightly DB Verify
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  db-verify:
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate test database secret
+        run: test -n "$TEST_DATABASE_URL"
+
+      - name: Bootstrap test database
+        run: npm run db:bootstrap:test
+
+      - name: Run strict DB tests with JSON output
+        run: node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run -- --reporter=json --outputFile=test-results/vitest-results.db-strict.json
+
+      - name: Build skip delta report
+        if: always()
+        run: npm run report:test-skip-delta -- --report test-results/vitest-results.db-strict.json --out artifacts/test-skip-delta.json --markdown artifacts/test-skip-delta.md --baseline .github/test-baselines/nightly-db-skip-baseline.json --fail-on-increase
+
+      - name: Run full DB verify lane
+        run: npm run verify:db
+
+      - name: Upload DB verify artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-db-verify-artifacts
+          path: |
+            artifacts/test-skip-delta.json
+            artifacts/test-skip-delta.md
+            test-results/vitest-results.db-strict.json
+          retention-days: 14

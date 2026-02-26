@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-02-26T00:53:48.838Z",
+  "sourceReport": "test-results/vitest-results.json",
+  "status": "no_baseline",
+  "failOnIncrease": false,
+  "current": {
+    "totalTests": 231,
+    "passedTests": 153,
+    "pendingTests": 78,
+    "failedTests": 0,
+    "totalSuites": 120,
+    "pendingSuites": 0
+  },
+  "baseline": null,
+  "delta": null,
+  "reasonCounts": [
+    {
+      "reason": "unspecified_skip_guard",
+      "count": 73
+    },
+    {
+      "reason": "requires_TEST_DATABASE_URL",
+      "count": 5
+    }
+  ],
+  "topSkippedFiles": [
+    {
+      "file": "server/tests/objectives.test.ts",
+      "skipped": 37
+    },
+    {
+      "file": "server/tests/d3-messaging-authority.test.ts",
+      "skipped": 18
+    },
+    {
+      "file": "server/tests/hoa-api.test.ts",
+      "skipped": 5
+    },
+    {
+      "file": "server/tests/observations.test.ts",
+      "skipped": 3
+    },
+    {
+      "file": "server/tests/groups-api.test.ts",
+      "skipped": 2
+    },
+    {
+      "file": "server/tests/marketplace-api.test.ts",
+      "skipped": 2
+    },
+    {
+      "file": "server/tests/messages-api.test.ts",
+      "skipped": 2
+    },
+    {
+      "file": "server/tests/notifications-api.test.ts",
+      "skipped": 2
+    },
+    {
+      "file": "server/tests/acceptance-realignment.test.ts",
+      "skipped": 1
+    },
+    {
+      "file": "server/tests/auth-account-flow.test.ts",
+      "skipped": 1
+    },
+    {
+      "file": "server/tests/commercial-directory-gating.test.ts",
+      "skipped": 1
+    },
+    {
+      "file": "server/tests/community-feed-api.test.ts",
+      "skipped": 1
+    },
+    {
+      "file": "server/tests/direct-connect-redaction.test.ts",
+      "skipped": 1
+    },
+    {
+      "file": "server/tests/e2e-flows.test.ts",
+      "skipped": 1
+    },
+    {
+      "file": "server/tests/public-proof-metrics.test.ts",
+      "skipped": 1
+    }
+  ]
+}

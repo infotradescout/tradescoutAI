@@ -1,0 +1,239 @@
+{
+  "version": "2026-02-24",
+  "entries": [
+    {
+      "id": "client.explicit-nav-intent",
+      "surface": "client",
+      "label": "EXPLICIT NAV INTENT (high confidence; user asked to be routed)",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/actionValidation.test.ts"
+      ],
+      "targetBelief": "Scout routes intentionally and transparently.",
+      "targetBehavior": "User trusts explicit route intents and follows suggested actions.",
+      "psychologicalPrinciples": ["predictability", "control"],
+      "riskPrevented": "Perceived randomness that erodes trust in Scout authority."
+    },
+    {
+      "id": "client.explanation-why-not-moving",
+      "surface": "client",
+      "label": "EXPLANATION: \"Why isn't this moving yet?\"",
+      "tests": ["client/src/scout/messageBuilders.test.ts"],
+      "targetBelief": "State transitions are explainable.",
+      "targetBehavior": "User requests clarification instead of abandoning flow.",
+      "psychologicalPrinciples": ["transparency", "certainty"],
+      "riskPrevented": "Confusion interpreted as platform unreliability."
+    },
+    {
+      "id": "client.explanation-why-cannot-message",
+      "surface": "client",
+      "label": "EXPLANATION: \"Why can't I message yet?\"",
+      "tests": [
+        "client/src/scout/contextRoles.test.ts",
+        "client/src/scout/messageBuilders.test.ts"
+      ],
+      "targetBelief": "Contact gating is intentional and fair.",
+      "targetBehavior": "User completes required intent/decision steps before contact.",
+      "psychologicalPrinciples": ["fair-process", "clarity"],
+      "riskPrevented": "Bypass pressure on gated discovery-to-contact pathway."
+    },
+    {
+      "id": "client.onboarding-intent",
+      "surface": "client",
+      "label": "SCOUT ONBOARDING INTENT (fast win)",
+      "tests": ["client/src/scout/localIntents.test.ts"],
+      "targetBelief": "Onboarding is guided and immediate.",
+      "targetBehavior": "User takes first eligible action quickly.",
+      "psychologicalPrinciples": ["momentum", "guided-choice"],
+      "riskPrevented": "Early-session drop-off due to uncertainty."
+    },
+    {
+      "id": "client.provider-intent-offer-services",
+      "surface": "client",
+      "label": "PROVIDER INTENT A: \"I want to offer services here\"",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/scoutTiles.test.ts"
+      ],
+      "targetBelief": "Provider pathways are structured and rule-based.",
+      "targetBehavior": "Provider follows claim-first steps rather than role assumption.",
+      "psychologicalPrinciples": ["structure", "legibility"],
+      "riskPrevented": "Role-first misuse that violates claims-first law."
+    },
+    {
+      "id": "client.provider-intent-presence-strength",
+      "surface": "client",
+      "label": "PROVIDER INTENT B: \"How strong is my presence here?\"",
+      "tests": ["client/src/scout/scout.eval.test.ts"],
+      "targetBelief": "Exposure is merit/trust driven, not arbitrary.",
+      "targetBehavior": "Provider improves trust signals instead of seeking shortcuts.",
+      "psychologicalPrinciples": ["feedback-loops", "agency"],
+      "riskPrevented": "Assumption that spend or noise overrides trust/CVS."
+    },
+    {
+      "id": "client.provider-intent-promotion",
+      "surface": "client",
+      "label": "PROVIDER INTENT C: \"Help me run a promotion/deal\"",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/scoutTiles.test.ts"
+      ],
+      "targetBelief": "Promotions are eligibility-governed, not pay-to-play.",
+      "targetBehavior": "Provider aligns promotion requests with trust/relevance gates.",
+      "psychologicalPrinciples": ["constraint-legibility", "integrity"],
+      "riskPrevented": "Perception of lead-selling or exposure-for-payment."
+    },
+    {
+      "id": "client.community-intent",
+      "surface": "client",
+      "label": "COMMUNITY INTENT: \"Help me post an announcement/update\"",
+      "tests": ["client/src/scout/localIntents.test.ts"],
+      "targetBelief": "Community memory is governed and purposeful.",
+      "targetBehavior": "User uses Scout-guided posting path instead of open feed behavior.",
+      "psychologicalPrinciples": ["norm-setting", "contextual-guidance"],
+      "riskPrevented": "Social-feed expectations that conflict with authority model."
+    },
+    {
+      "id": "client.contractor-search-intent",
+      "surface": "client",
+      "label": "CONTRACTOR SEARCH INTENT",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/actionValidation.test.ts"
+      ],
+      "targetBelief": "Discovery resolves through Scout mediation.",
+      "targetBehavior": "User follows discovery -> Scout -> intent pathway.",
+      "psychologicalPrinciples": ["guided-discovery", "decision-framing"],
+      "riskPrevented": "Ungated direct contact assumptions."
+    },
+    {
+      "id": "client.marketplace-intent",
+      "surface": "client",
+      "label": "MARKETPLACE INTENT: search vs post",
+      "tests": ["client/src/scout/localIntents.test.ts"],
+      "targetBelief": "Marketplace actions are scoped and policy-bound.",
+      "targetBehavior": "User selects policy-compatible path (search or post).",
+      "psychologicalPrinciples": ["bounded-choice", "clarity"],
+      "riskPrevented": "Marketplace framing drift into ad-tech behavior."
+    },
+    {
+      "id": "client.contact-support-intent",
+      "surface": "client",
+      "label": "CONTACT SUPPORT INTENT",
+      "tests": ["client/src/scout/localIntents.test.ts"],
+      "targetBelief": "Support access is reliable and available.",
+      "targetBehavior": "User escalates via approved support pathways.",
+      "psychologicalPrinciples": ["safety-net", "trust repair"],
+      "riskPrevented": "Dead-end frustration in edge or blocked states."
+    },
+    {
+      "id": "client.fallback-server-flow",
+      "surface": "client",
+      "label": "FALLBACK: Use existing server flow if no intent matched",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/messageBuilders.test.ts"
+      ],
+      "targetBelief": "Scout remains responsive when local matching is uncertain.",
+      "targetBehavior": "User continues asking instead of abandoning due to miss.",
+      "psychologicalPrinciples": ["graceful-degradation", "continuity"],
+      "riskPrevented": "Perceived dead-end when local intent classifier misses."
+    },
+    {
+      "id": "server.smart-synthesis-contract",
+      "surface": "server",
+      "label": "Smart synthesis that ENFORCES the execution contract",
+      "tests": [
+        "server/tests/scout-policy.test.ts",
+        "server/tests/scoutDeterministicIntent.test.ts"
+      ],
+      "targetBelief": "Scout output follows enforceable contracts.",
+      "targetBehavior": "Operators trust action payloads for deterministic handling.",
+      "psychologicalPrinciples": ["consistency", "institutional trust"],
+      "riskPrevented": "Contract drift producing unsafe or non-actionable outputs."
+    },
+    {
+      "id": "server.oversize-hard-slice-fallback",
+      "surface": "server",
+      "label": "Fallback: take a hard slice if everything is oversized",
+      "tests": ["server/tests/scout-policy.test.ts"],
+      "targetBelief": "Scout degrades safely under payload pressure.",
+      "targetBehavior": "Users still receive bounded responses in heavy contexts.",
+      "psychologicalPrinciples": ["resilience", "continuity"],
+      "riskPrevented": "Timeouts or null responses interpreted as system failure."
+    },
+    {
+      "id": "server.intro-overview-special-handling",
+      "surface": "server",
+      "label": "SPECIAL HANDLING: Detect intro/overview questions and use comprehensive synthesis",
+      "tests": ["server/tests/scout-policy.test.ts"],
+      "targetBelief": "First-time questions receive coherent orientation.",
+      "targetBehavior": "Users build mental model before taking actions.",
+      "psychologicalPrinciples": ["orientation", "cognitive scaffolding"],
+      "riskPrevented": "Early confusion that reduces trust in controller outputs."
+    },
+    {
+      "id": "server.governor-mode-situation",
+      "surface": "server",
+      "label": "GOVERNOR MODE: Situation-driven intelligence",
+      "tests": ["server/tests/scoutDeterministicIntent.test.ts"],
+      "targetBelief": "Governance constraints are active, not decorative.",
+      "targetBehavior": "System routes by situation and policy instead of role assumptions.",
+      "psychologicalPrinciples": ["authority-legibility", "rule-consistency"],
+      "riskPrevented": "Authority bypass or misrouting under ambiguous prompts."
+    },
+    {
+      "id": "server.layer-resolution",
+      "surface": "server",
+      "label": "LAYER RESOLUTION: Use knowledge service 4-layer system",
+      "tests": ["server/tests/scout-policy.test.ts"],
+      "targetBelief": "Scout answers are sourced through layered retrieval.",
+      "targetBehavior": "Operators trust provenance and fallback behavior.",
+      "psychologicalPrinciples": ["traceability", "reliability"],
+      "riskPrevented": "Opaque sourcing undermining confidence in responses."
+    },
+    {
+      "id": "server.smart-synthesis-deterministic-routing",
+      "surface": "server",
+      "label": "SMART SYNTHESIS / DETERMINISTIC ROUTING",
+      "tests": ["server/tests/scoutDeterministicIntent.test.ts"],
+      "targetBelief": "Routing remains stable across equivalent intents.",
+      "targetBehavior": "Users repeat successful prompts with consistent outcomes.",
+      "psychologicalPrinciples": ["determinism", "predictability"],
+      "riskPrevented": "Perceived randomness in action routing."
+    },
+    {
+      "id": "server.deterministic-early-exit",
+      "surface": "server",
+      "label": "Deterministic early-exit: if user intent maps cleanly to an allowed",
+      "tests": ["server/tests/scoutDeterministicIntent.test.ts"],
+      "targetBelief": "Simple intents complete quickly without unnecessary friction.",
+      "targetBehavior": "User trusts direct, policy-safe outcomes.",
+      "psychologicalPrinciples": ["efficiency", "confidence"],
+      "riskPrevented": "Latency frustration for obvious intents."
+    },
+    {
+      "id": "server.brand-identity-firewall",
+      "surface": "server",
+      "label": "Brand identity firewall: if the synthesized answer clearly violates",
+      "tests": ["server/tests/scout-policy.test.ts"],
+      "targetBelief": "Brand and authority boundaries are actively protected.",
+      "targetBehavior": "System resists identity drift or off-brand responses.",
+      "psychologicalPrinciples": ["boundary-enforcement", "institutional coherence"],
+      "riskPrevented": "Brand confusion and trust erosion from identity violations."
+    },
+    {
+      "id": "server.auth-required-intent",
+      "surface": "server",
+      "label": "Handle auth-required intent",
+      "tests": [
+        "server/tests/scout-policy.test.ts",
+        "server/tests/scoutDeterministicIntent.test.ts"
+      ],
+      "targetBelief": "Protected actions require authentication consistently.",
+      "targetBehavior": "User authenticates before proceeding with gated intents.",
+      "psychologicalPrinciples": ["safety", "rule-legibility"],
+      "riskPrevented": "Unauthorized action expectations and gate bypass attempts."
+    }
+  ]
+}

@@ -63,9 +63,78 @@ function AssistantStreamedText({
   return <>{content.slice(0, visibleChars)}</>;
 }
 
+function humanizeToken(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function buildEvidenceChips(msg: ScoutMessage): string[] {
+  const provenance = msg.provenance;
+  if (!provenance) return [];
+
+  const chips: string[] = [];
+
+  if (provenance.sourceUsed) {
+    chips.push(`Source: ${humanizeToken(provenance.sourceUsed)}`);
+  }
+
+  if (provenance.confidenceBand) {
+    chips.push(`Confidence: ${humanizeToken(provenance.confidenceBand)}`);
+  }
+
+  if (typeof provenance.knowledgeLayer === "number") {
+    chips.push(`Layer: ${provenance.knowledgeLayer}`);
+  }
+
+  if (provenance.fallbackUsed) {
+    chips.push("Fallback: Active");
+  }
+
+  if (provenance.blockingReason) {
+    chips.push(`Authority: Gated (${humanizeToken(provenance.blockingReason)})`);
+  } else if (Array.isArray(provenance.allowedActions) && provenance.allowedActions.length > 0) {
+    chips.push("Authority: Clear");
+  }
+
+  return chips;
+}
+
+function EvidenceStrip({ msg }: { msg: ScoutMessage }) {
+  const chips = React.useMemo(() => buildEvidenceChips(msg), [msg]);
+  const evidenceSources = React.useMemo(() => {
+    const sourceTitles = Array.isArray(msg.provenance?.sourceTitles)
+      ? msg.provenance?.sourceTitles
+      : [];
+    return sourceTitles.slice(0, 2);
+  }, [msg.provenance?.sourceTitles]);
+
+  if (chips.length === 0 && evidenceSources.length === 0) return null;
+
+  return (
+    <div className="scout-evidence-strip" aria-label="Scout evidence and authority">
+      {chips.length > 0 && (
+        <div className="scout-evidence-chip-row">
+          {chips.map((chip) => (
+            <span key={`${msg.id}-${chip}`} className="scout-evidence-chip">
+              {chip}
+            </span>
+          ))}
+        </div>
+      )}
+      {evidenceSources.length > 0 && (
+        <div className="scout-evidence-sources">Evidence: {evidenceSources.join(" • ")}</div>
+      )}
+    </div>
+  );
+}
+
 function MessageExtras({
   msg,
   isUser,
+  showControllerExtras,
   onAction,
   onQuickAction,
   onOverride,
@@ -74,6 +143,7 @@ function MessageExtras({
 }: {
   msg: ScoutMessage;
   isUser: boolean;
+  showControllerExtras: boolean;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
@@ -91,10 +161,37 @@ function MessageExtras({
   );
 
   const [controllerOpen, setControllerOpen] = React.useState(true);
+  const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
 
+  const prioritizedActionChips = React.useMemo(() => {
+    const chips = Array.isArray(msg.frame?.actionChips) ? msg.frame.actionChips : [];
+    return [...chips].sort((a, b) => {
+      const aIsNavigate = a.kind === "NAVIGATE";
+      const bIsNavigate = b.kind === "NAVIGATE";
+      if (aIsNavigate !== bIsNavigate) return aIsNavigate ? -1 : 1;
+      const aHasSubtitle = Boolean(a.subtitle);
+      const bHasSubtitle = Boolean(b.subtitle);
+      if (aHasSubtitle !== bHasSubtitle) return aHasSubtitle ? -1 : 1;
+      return 0;
+    });
+  }, [msg.frame?.actionChips]);
+
+  const visibleActionChips = React.useMemo(() => {
+    if (controllerShowAll) return prioritizedActionChips;
+    return prioritizedActionChips.slice(0, 2);
+  }, [controllerShowAll, prioritizedActionChips]);
+
+  const visibleClusters = React.useMemo(() => {
+    const clusters = Array.isArray(msg.clusters) ? msg.clusters : [];
+    if (controllerShowAll) return clusters;
+    return clusters.slice(0, 2);
+  }, [controllerShowAll, msg.clusters]);
+
+  const showControllerSections = showControllerExtras;
   const hasAnything =
-    hasActionChips || hasClusters || hasOverride || hasSuggestions || hasOnboardingPrompt;
+    (showControllerSections && (hasActionChips || hasClusters || hasOverride || hasSuggestions)) ||
+    hasOnboardingPrompt;
 
   if (!hasAnything) return null;
 
@@ -102,7 +199,7 @@ function MessageExtras({
     <div className="mt-2 space-y-2">
       {/* Keep the chat bubble clean: render actions/suggestions as separate blocks. */}
 
-      {(hasActionChips || hasClusters || hasOverride) && (
+      {showControllerSections && (hasActionChips || hasClusters || hasOverride) && (
         <div
           className="rounded-lg border p-2"
           style={{
@@ -132,47 +229,83 @@ function MessageExtras({
           {controllerOpen && (
             <div className="space-y-2">
               {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {msg.frame.actionChips.map((chip) => (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {visibleActionChips.map((chip) => (
+                      <button
+                        key={`${msg.id}-chip-${chip.id}`}
+                        type="button"
+                        onClick={() => {
+                          if (!onAction) return;
+                          if (chip.kind === "NAVIGATE") {
+                            onAction({
+                              type: "NAVIGATE",
+                              label: chip.label,
+                              to: chip.target,
+                              path: chip.target,
+                              payload:
+                                chip.args && typeof chip.args === "object"
+                                  ? (chip.args as Record<string, unknown>)
+                                  : undefined,
+                            });
+                          }
+                        }}
+                        className="scout-action-button"
+                      >
+                        <div className="flex flex-col items-start text-left">
+                          <span>{chip.label}</span>
+                          {chip.subtitle && (
+                            <span className="text-[11px] opacity-80">{chip.subtitle}</span>
+                          )}
+                          {(chip as any).why && (
+                            <span className="text-[10px] opacity-70">{(chip as any).why}</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {prioritizedActionChips.length > 2 && (
                     <button
-                      key={`${msg.id}-chip-${chip.id}`}
                       type="button"
-                      onClick={() => {
-                        if (!onAction) return;
-                        if (chip.kind === "NAVIGATE") {
-                          onAction({
-                            type: "NAVIGATE",
-                            label: chip.label,
-                            to: chip.target,
-                            path: chip.target,
-                            payload:
-                              chip.args && typeof chip.args === "object"
-                                ? (chip.args as Record<string, unknown>)
-                                : undefined,
-                          });
-                        }
+                      onClick={() => setControllerShowAll((v) => !v)}
+                      className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        color: "var(--text-secondary)",
+                        backgroundColor: "transparent",
                       }}
-                      className="scout-action-button"
                     >
-                      <div className="flex flex-col items-start text-left">
-                        <span>{chip.label}</span>
-                        {chip.subtitle && (
-                          <span className="text-[11px] opacity-80">{chip.subtitle}</span>
-                        )}
-                        {(chip as any).why && (
-                          <span className="text-[10px] opacity-70">{(chip as any).why}</span>
-                        )}
-                      </div>
+                      {controllerShowAll
+                        ? "Show fewer"
+                        : `More actions (${prioritizedActionChips.length - 2})`}
                     </button>
-                  ))}
+                  )}
                 </div>
               )}
 
               {msg.clusters && msg.clusters.length > 0 && (
                 <div className="space-y-2">
-                  {msg.clusters.map((cluster) => (
+                  {visibleClusters.map((cluster) => (
                     <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
                   ))}
+
+                  {msg.clusters.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setControllerShowAll((v) => !v)}
+                      className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        color: "var(--text-secondary)",
+                        backgroundColor: "transparent",
+                      }}
+                    >
+                      {controllerShowAll
+                        ? "Show fewer sections"
+                        : `More sections (${msg.clusters.length - 2})`}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -207,7 +340,7 @@ function MessageExtras({
         </div>
       )}
 
-      {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+      {showControllerSections && msg.suggestedActions && msg.suggestedActions.length > 0 && (
         <div
           className="rounded-lg border p-2"
           style={{
@@ -305,6 +438,23 @@ function ClusterCard({
     }
   };
 
+  const [showAllActions, setShowAllActions] = React.useState(false);
+  const prioritizedActions = React.useMemo(() => {
+    const actions = Array.isArray(cluster.actions) ? cluster.actions : [];
+    return [...actions].sort((a, b) => {
+      if (a.primary !== b.primary) return a.primary ? -1 : 1;
+      const aIsNavigate = a.type === "NAVIGATE";
+      const bIsNavigate = b.type === "NAVIGATE";
+      if (aIsNavigate !== bIsNavigate) return aIsNavigate ? -1 : 1;
+      return 0;
+    });
+  }, [cluster.actions]);
+
+  const visibleActions = React.useMemo(() => {
+    if (showAllActions) return prioritizedActions;
+    return prioritizedActions.slice(0, 2);
+  }, [prioritizedActions, showAllActions]);
+
   return (
     <div className="scout-card mt-3 rounded-xl px-3 py-2">
       {cluster.title && (
@@ -337,27 +487,44 @@ function ClusterCard({
       )}
 
       {cluster.actions && cluster.actions.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {cluster.actions.map((action) => (
+        <div className="mt-2 space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {visibleActions.map((action) => (
+              <button
+                key={`${cluster.id}-${action.label}`}
+                type="button"
+                onClick={() => handleAction(action)}
+                className="scout-action-button"
+              >
+                <div className="flex flex-col items-start text-left">
+                  <span>{action.label}</span>
+                  {action.subtitle && (
+                    <span className="text-[11px] opacity-80">{action.subtitle}</span>
+                  )}
+                  {(action.why || (action as any)._scoutWhy) && (
+                    <span className="text-[10px] opacity-70">
+                      {action.why ?? (action as any)._scoutWhy}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {prioritizedActions.length > 2 && (
             <button
-              key={`${cluster.id}-${action.label}`}
               type="button"
-              onClick={() => handleAction(action)}
-              className="scout-action-button"
+              onClick={() => setShowAllActions((v) => !v)}
+              className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+              style={{
+                borderColor: "var(--border-subtle)",
+                color: "var(--text-secondary)",
+                backgroundColor: "transparent",
+              }}
             >
-              <div className="flex flex-col items-start text-left">
-                <span>{action.label}</span>
-                {action.subtitle && (
-                  <span className="text-[11px] opacity-80">{action.subtitle}</span>
-                )}
-                {(action.why || (action as any)._scoutWhy) && (
-                  <span className="text-[10px] opacity-70">
-                    {action.why ?? (action as any)._scoutWhy}
-                  </span>
-                )}
-              </div>
+              {showAllActions ? "Show fewer" : `More actions (${prioritizedActions.length - 2})`}
             </button>
-          ))}
+          )}
         </div>
       )}
 
@@ -434,8 +601,20 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   React.useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage) return;
+
+    if (lastMessage.role === "assistant") {
+      const target = node.querySelector<HTMLElement>(`[data-scout-message-id="${lastMessage.id}"]`);
+      if (target) {
+        target.scrollIntoView({ block: "start", behavior: "smooth" });
+        return;
+      }
+    }
+
     node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
-  }, [messages.length, status]);
+  }, [messages]);
 
   // Reset progress whenever Scout is fully idle or in an error state.
   React.useEffect(() => {
@@ -594,7 +773,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         }
 
         return (
-          <div key={msg.id} className="space-y-2">
+          <div key={msg.id} className="space-y-2" data-scout-message-id={msg.id}>
             <div className={clsx("scout-row", isUser ? "user" : "assistant")}>
               {!isUser && (
                 <div className="scout-avatar" aria-hidden="true">
@@ -603,7 +782,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               )}
 
               <div className="min-w-0">
-                {!isUser && <div className="scout-sender">Scout</div>}
+                <div className={clsx("scout-sender", isUser ? "user" : "assistant")}>
+                  {isUser ? "You" : "Scout"}
+                </div>
                 <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
                   {displayContent && (
                     <p className="whitespace-pre-line leading-relaxed">
@@ -618,12 +799,14 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     </p>
                   )}
                 </div>
+                {!isUser && <EvidenceStrip msg={msg} />}
               </div>
             </div>
 
             <MessageExtras
               msg={msg}
               isUser={isUser}
+              showControllerExtras={showControllerExtras}
               onAction={showControllerExtras ? onAction : undefined}
               onQuickAction={showControllerExtras ? onQuickAction : undefined}
               onOverride={onOverride}

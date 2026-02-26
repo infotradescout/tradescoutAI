@@ -66,11 +66,12 @@ describe("Scout Tool Evals", () => {
       }
 
       if (url === "/api/notes" && method === "POST") {
+        const parsedBody = init?.body ? JSON.parse(String(init.body)) : {};
         return makeJsonResponse({
           id: "n1",
-          title: "Speed test",
-          content: "Testing latency budget",
-          type: "quick",
+          title: parsedBody.title || "Scout Note",
+          content: parsedBody.content || "",
+          type: parsedBody.type || "quick",
           createdAt: new Date().toISOString(),
         });
       }
@@ -180,7 +181,7 @@ describe("Scout Tool Evals", () => {
     });
   });
 
-  describe.skip("Contractor Search Tool", () => {
+  describe("Contractor Search Tool", () => {
     // Skip tool tests - these are integration tests requiring a running server
     it("should return success with valid results", async () => {
       const result = await searchContractors({
@@ -260,7 +261,7 @@ describe("Scout Tool Evals", () => {
     });
   });
 
-  describe.skip("Marketplace Search Tool", () => {
+  describe("Marketplace Search Tool", () => {
     // Skip - integration test requiring server
     it("should return success with valid results", async () => {
       const result = await searchMarketplace({
@@ -319,7 +320,7 @@ describe("Scout Tool Evals", () => {
     });
   });
 
-  describe.skip("Note Creation Tool", () => {
+  describe("Note Creation Tool", () => {
     // Skip - integration test requiring server
     it("should create note with valid input", async () => {
       const result = await createNote({
@@ -388,7 +389,7 @@ describe("Scout Tool Evals", () => {
     });
   });
 
-  describe.skip("Error Handling", () => {
+  describe("Error Handling", () => {
     // Skip - integration test requiring mocked fetch/server
     it("should classify network errors correctly", async () => {
       // Mock fetch to fail

@@ -1,5 +1,16 @@
 import { runTool, ToolDefinition, ToolContext } from "./toolRunner";
 
+async function safeErrorText(res: Response): Promise<string> {
+  try {
+    if (typeof (res as any).text === "function") {
+      return await res.text();
+    }
+  } catch {
+    // best effort only
+  }
+  return "";
+}
+
 /* ======================== Notes (Mutating) ======================== */
 
 export interface CreateNoteInput {
@@ -40,7 +51,8 @@ const createNoteTool: ToolDefinition<CreateNoteInput, NoteResult> = {
     });
 
     if (!res.ok) {
-      throw new Error(`Create note HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+      const detail = await safeErrorText(res);
+      throw new Error(`Create note HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
     const note = await res.json();
@@ -105,7 +117,8 @@ const createProjectTool: ToolDefinition<CreateProjectInput, ProjectResult> = {
     });
 
     if (!res.ok) {
-      throw new Error(`Create project HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+      const detail = await safeErrorText(res);
+      throw new Error(`Create project HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
     const project = await res.json();
@@ -153,10 +166,11 @@ const affiliateEnrollTool: ToolDefinition<AffiliateEnrollInput, AffiliateEnrollR
     });
 
     if (!res.ok) {
-      throw new Error(`Affiliate enroll HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+      const detail = await safeErrorText(res);
+      throw new Error(`Affiliate enroll HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
-    const data = await res.json().catch(() => ({} as any));
+    const data = await res.json().catch(() => ({}) as any);
     return {
       affiliateId: String(data.affiliateId || data.id || ""),
       status: (data.status as any) || "active",
@@ -194,10 +208,11 @@ const affiliateLinkTool: ToolDefinition<AffiliateLinkInput, AffiliateLinkResult>
     });
 
     if (!res.ok) {
-      throw new Error(`Affiliate link HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+      const detail = await safeErrorText(res);
+      throw new Error(`Affiliate link HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
-    const data = await res.json().catch(() => ({} as any));
+    const data = await res.json().catch(() => ({}) as any);
     const url: string = String(data.url || "");
     return { url };
   },
@@ -221,7 +236,10 @@ export interface AffiliateReferralLogResult {
   success: boolean;
 }
 
-const affiliateReferralLogTool: ToolDefinition<AffiliateReferralLogInput, AffiliateReferralLogResult> = {
+const affiliateReferralLogTool: ToolDefinition<
+  AffiliateReferralLogInput,
+  AffiliateReferralLogResult
+> = {
   name: "affiliate_referral_log",
   description: "Log an attributed action for affiliate tracking (non-throwing)",
   timeout: 4000,
@@ -283,7 +301,7 @@ const promotionCreateTool: ToolDefinition<PromotionCreateInput, PromotionCreateR
     if (!res.ok) {
       throw new Error(`Promotion create HTTP ${res.status}: ${await res.text().catch(() => "")}`);
     }
-    const data = await res.json().catch(() => ({} as any));
+    const data = await res.json().catch(() => ({}) as any);
     return { promotionId: String(data.promotionId || data.id || "") };
   },
 };
@@ -318,7 +336,7 @@ const promotionTrackTool: ToolDefinition<PromotionTrackInput, PromotionMetricsRe
     if (!res.ok) {
       throw new Error(`Promotion metrics HTTP ${res.status}: ${await res.text().catch(() => "")}`);
     }
-    const data = await res.json().catch(() => ({} as any));
+    const data = await res.json().catch(() => ({}) as any);
     return {
       impressions: typeof data.impressions === "number" ? data.impressions : 0,
       actions: typeof data.actions === "number" ? data.actions : 0,

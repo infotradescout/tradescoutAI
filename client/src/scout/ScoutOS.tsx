@@ -77,6 +77,8 @@ import {
 import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 import { useScoutOnboarding } from "./useScoutOnboarding";
 import { ClaimConfirmationCard as ClaimConfirmationCardComponent } from "./ClaimConfirmationCard";
+import { buildScoutProvenance } from "./provenance";
+import { enforceResponseQualityContract } from "./responseQuality";
 import type { ClaimType } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { useScoutMode } from "./useScoutMode";
@@ -363,12 +365,13 @@ export default function ScoutOS() {
   const [controllerShowAll, setControllerShowAll] = useState(false);
   const [scoutViewMode, setScoutViewMode] = useState<"chat_only" | "chat_plus_controller">(() => {
     try {
-      if (typeof window === "undefined") return "chat_plus_controller";
+      if (typeof window === "undefined") return "chat_only";
       const raw = window.localStorage.getItem(SCOUT_VIEW_MODE_KEY);
       if (raw === "chat_only") return "chat_only";
-      return "chat_plus_controller";
+      if (raw === "chat_plus_controller") return "chat_plus_controller";
+      return "chat_only";
     } catch {
-      return "chat_plus_controller";
+      return "chat_only";
     }
   });
   const autoRouteTimerRef = useRef<number | null>(null);
@@ -679,6 +682,10 @@ export default function ScoutOS() {
       // ignore persistence errors
     }
   }, []);
+
+  const effectiveViewMode: "chat_only" | "chat_plus_controller" = isMobile
+    ? "chat_only"
+    : scoutViewMode;
 
   // Keep the Scout surface feeling like a modern chat: shortcuts are available,
   // but they shouldn't crowd the thread once a conversation has started.
@@ -2612,10 +2619,20 @@ export default function ScoutOS() {
             ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}...`
             : enrichedContent;
 
-        const resolvedContent =
+        const preliminaryContent =
           typeof finalContent === "string" && finalContent.trim().length > 0
             ? finalContent
             : "I'm here and ready. Choose an action below or ask me for the next step.";
+
+        const hasActionOptions =
+          (Array.isArray(res.actions) && res.actions.length > 0) ||
+          (Array.isArray(clusters) && clusters.length > 0);
+
+        const resolvedContent = enforceResponseQualityContract({
+          userMessage: value,
+          content: preliminaryContent,
+          hasActionOptions,
+        });
 
         // Attach CTA hints from server (community posts, trade deals, etc.)
         if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
@@ -2654,6 +2671,7 @@ export default function ScoutOS() {
                 return (nav?.to as string) || (nav?.path as string) || undefined;
               })()
             : undefined,
+          provenance: buildScoutProvenance(res),
         };
 
         applyServerResponse(msg, res.actions);
@@ -3554,7 +3572,7 @@ export default function ScoutOS() {
               )}
 
               <div
-                className="mt-1 mb-2 order-2 sticky bottom-0 z-10 rounded-lg border px-1.5 py-1.5"
+                className="scout-composer-dock mt-1.5 order-2 z-10 rounded-lg border px-1.5 py-1.5"
                 style={{
                   borderColor: "var(--border-subtle)",
                   backgroundColor: "color-mix(in oklab, var(--surface-card) 93%, transparent)",
@@ -3599,95 +3617,99 @@ export default function ScoutOS() {
                   </div>
                 )}
 
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setShortcutsOpen((v) => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor:
-                        "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                      color: "var(--text-secondary)",
-                    }}
-                    aria-expanded={shortcutsOpen}
-                  >
-                    {shortcutsOpen ? "Hide shortcuts" : "Shortcuts"}
-                  </button>
+                {!isMobile && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShortcutsOpen((v) => !v)}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        backgroundColor:
+                          "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                        color: "var(--text-secondary)",
+                      }}
+                      aria-expanded={shortcutsOpen}
+                    >
+                      {shortcutsOpen ? "Hide shortcuts" : "Shortcuts"}
+                    </button>
 
-                  {shortcutsOpen &&
-                    resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
+                    {shortcutsOpen &&
+                      resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
+                        <button
+                          key={`dock-${tile.id}`}
+                          type="button"
+                          onClick={() => {
+                            setHasGuestInteracted(true);
+                            handleActionTile(tile);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
+                          style={{
+                            borderColor: "var(--border-subtle)",
+                            backgroundColor:
+                              "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          <span>{tile.label}</span>
+                        </button>
+                      ))}
+                  </div>
+                )}
+
+                {!isMobile && (
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                      View mode
+                    </p>
+
+                    <div
+                      className="inline-flex items-center gap-1 rounded-full border p-0.5"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        backgroundColor:
+                          "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
+                      }}
+                    >
                       <button
-                        key={`dock-${tile.id}`}
                         type="button"
-                        onClick={() => {
-                          setHasGuestInteracted(true);
-                          handleActionTile(tile);
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
+                        onClick={() => setViewMode("chat_only")}
+                        className="rounded-full px-2 py-1 text-[10px] font-medium"
                         style={{
-                          borderColor: "var(--border-subtle)",
+                          color:
+                            scoutViewMode === "chat_only"
+                              ? "var(--ts-text-on-accent, #0B0F14)"
+                              : "var(--text-secondary)",
                           backgroundColor:
-                            "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                          color: "var(--text-secondary)",
+                            scoutViewMode === "chat_only"
+                              ? "var(--theme-accent-primary)"
+                              : "transparent",
                         }}
                       >
-                        <span>{tile.label}</span>
+                        Chat only
                       </button>
-                    ))}
-                </div>
-
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                    View mode
-                  </p>
-
-                  <div
-                    className="inline-flex items-center gap-1 rounded-full border p-0.5"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor:
-                        "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("chat_only")}
-                      className="rounded-full px-2 py-1 text-[10px] font-medium"
-                      style={{
-                        color:
-                          scoutViewMode === "chat_only"
-                            ? "var(--ts-text-on-accent, #0B0F14)"
-                            : "var(--text-secondary)",
-                        backgroundColor:
-                          scoutViewMode === "chat_only"
-                            ? "var(--theme-accent-primary)"
-                            : "transparent",
-                      }}
-                    >
-                      Chat only
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("chat_plus_controller")}
-                      className="rounded-full px-2 py-1 text-[10px] font-medium"
-                      style={{
-                        color:
-                          scoutViewMode === "chat_plus_controller"
-                            ? "var(--ts-text-on-accent, #0B0F14)"
-                            : "var(--text-secondary)",
-                        backgroundColor:
-                          scoutViewMode === "chat_plus_controller"
-                            ? "var(--theme-accent-primary)"
-                            : "transparent",
-                      }}
-                    >
-                      Chat + controller
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode("chat_plus_controller")}
+                        className="rounded-full px-2 py-1 text-[10px] font-medium"
+                        style={{
+                          color:
+                            scoutViewMode === "chat_plus_controller"
+                              ? "var(--ts-text-on-accent, #0B0F14)"
+                              : "var(--text-secondary)",
+                          backgroundColor:
+                            scoutViewMode === "chat_plus_controller"
+                              ? "var(--theme-accent-primary)"
+                              : "transparent",
+                        }}
+                      >
+                        Chat + controller
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {scoutViewMode === "chat_plus_controller" && controllerActions.length > 0 && (
+                {effectiveViewMode === "chat_plus_controller" && controllerActions.length > 0 && (
                   <div
                     className="mt-2 rounded-lg border p-2"
                     style={{
@@ -3887,7 +3909,7 @@ export default function ScoutOS() {
                   messages={state.messages}
                   status={state.status}
                   mode={activeMode}
-                  showControllerExtras={scoutViewMode === "chat_plus_controller"}
+                  showControllerExtras={effectiveViewMode === "chat_plus_controller"}
                   onAction={handleClusterAction}
                   onOverride={handleOverride}
                   overridePendingScope={overridePendingScope}

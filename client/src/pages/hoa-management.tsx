@@ -23,9 +23,15 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { HOAManagementShell } from "@/shells/HOAManagementShell";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
+import { HOANextStepsCard } from "@/components/hoa/HOANextStepsCard";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const HOA_SIMPLE_VIEW_KEY = "ts:hoa:simple_view:v1";
 
 interface HOA {
   id: string;
@@ -135,6 +141,37 @@ export default function HOAManagement() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [simpleView, setSimpleView] = useState(false);
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [targetRole, setTargetRole] = useState<"president" | "vice_president">("president");
+  const [nomineeEmail, setNomineeEmail] = useState("");
+  const [transferReason, setTransferReason] = useState("");
+  const [durationHours, setDurationHours] = useState("168");
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [leaveReason, setLeaveReason] = useState("");
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      setSimpleView(window.localStorage.getItem(HOA_SIMPLE_VIEW_KEY) === "1");
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  const toggleSimpleView = () => {
+    setSimpleView((prev) => {
+      const next = !prev;
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(HOA_SIMPLE_VIEW_KEY, next ? "1" : "0");
+        }
+      } catch {
+        // no-op
+      }
+      return next;
+    });
+  };
 
   const leaveHoAMutation = useMutation({
     mutationFn: async (data: { reason: string }) => {
@@ -341,6 +378,58 @@ export default function HOAManagement() {
   const [serviceTypeByVendor, setServiceTypeByVendor] = useState<Record<string, string>>({});
   const [urgencyByVendor, setUrgencyByVendor] = useState<Record<string, string>>({});
 
+  const handleStartTransferVote = () => {
+    const nominee = hoaMembersDirectory.find(
+      (m) => (m.userEmail || "").toLowerCase() === nomineeEmail.trim().toLowerCase()
+    );
+    if (!nominee?.userId) {
+      toast({
+        title: "Nominee not found",
+        description: "Use an email shown in the member list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (transferReason.trim().length < 5) {
+      toast({
+        title: "Reason required",
+        description: "Please provide at least 5 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const parsedDuration = Number(durationHours);
+    if (!Number.isFinite(parsedDuration) || parsedDuration < 1 || parsedDuration > 720) {
+      toast({
+        title: "Invalid duration",
+        description: "Enter a number of hours between 1 and 720.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    initiateBoardTransferVoteMutation.mutate({
+      targetRole,
+      nomineeUserId: nominee.userId,
+      reason: transferReason.trim(),
+      durationHours: parsedDuration,
+    });
+  };
+
+  const handleLeaveHoa = () => {
+    if (leaveReason.trim().length < 5) {
+      toast({
+        title: "Reason required",
+        description: "Please provide at least 5 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+    leaveHoAMutation.mutate({ reason: leaveReason.trim() });
+  };
+
   const requestServiceMutation = useMutation({
     mutationFn: async ({ vendorId }: { vendorId: string }) => {
       const serviceType =
@@ -502,102 +591,131 @@ export default function HOAManagement() {
         )}
       </div>
 
+      <HOANextStepsCard
+        title="What to do next"
+        description="Start with one workflow at a time. You can keep the interface simple and still complete every HOA task."
+        steps={[
+          "Review Overview for board, amenities, and current status.",
+          "Open Voting to cast or monitor active decisions.",
+          "Use Vendors to request scoped service work.",
+        ]}
+        simpleViewEnabled={simpleView}
+        onToggleSimpleView={toggleSimpleView}
+      />
+
       {activeHoaId && (
-        <div className="flex justify-center">
-          <Button
-            disabled={initiateBoardTransferVoteMutation.isPending}
-            onClick={() => {
-              const targetRoleRaw = window
-                .prompt("Transfer which role? Type: president or vice_president", "president")
-                ?.trim();
-              if (!targetRoleRaw) return;
-              const targetRole =
-                targetRoleRaw === "president" || targetRoleRaw === "vice_president"
-                  ? (targetRoleRaw as "president" | "vice_president")
-                  : null;
-              if (!targetRole) {
-                toast({
-                  title: "Invalid role",
-                  description: "Enter 'president' or 'vice_president'.",
-                  variant: "destructive",
-                });
-                return;
-              }
+        <div className="space-y-4">
+          <div className="flex justify-center gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowTransferForm((v) => !v)}>
+              {showTransferForm ? "Close Transfer Form" : "Open Transfer Vote Form"}
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => setShowLeaveForm((v) => !v)}>
+              {showLeaveForm ? "Cancel Leave HOA" : "Leave HOA"}
+            </Button>
+          </div>
 
-              const nomineeEmail = window
-                .prompt("Nominee email (must be a current member)")
-                ?.trim();
-              if (!nomineeEmail) return;
+          {showTransferForm && (
+            <Card className="bg-slate-800/60 border-slate-700 max-w-3xl mx-auto">
+              <CardHeader>
+                <CardTitle className="text-white">Start Transfer Vote</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="transfer-role" className="text-slate-200">
+                    Target role
+                  </Label>
+                  <select
+                    id="transfer-role"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                    value={targetRole}
+                    onChange={(e) =>
+                      setTargetRole(
+                        e.target.value === "vice_president" ? "vice_president" : "president"
+                      )
+                    }
+                  >
+                    <option value="president">President</option>
+                    <option value="vice_president">Vice President</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="nominee-email" className="text-slate-200">
+                    Nominee email
+                  </Label>
+                  <Input
+                    id="nominee-email"
+                    value={nomineeEmail}
+                    onChange={(e) => setNomineeEmail(e.target.value)}
+                    placeholder="member@example.com"
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label htmlFor="transfer-reason" className="text-slate-200">
+                    Reason (minimum 5 characters)
+                  </Label>
+                  <Input
+                    id="transfer-reason"
+                    value={transferReason}
+                    onChange={(e) => setTransferReason(e.target.value)}
+                    placeholder="Why this transfer vote is needed"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="duration-hours" className="text-slate-200">
+                    Vote duration (hours)
+                  </Label>
+                  <Input
+                    id="duration-hours"
+                    type="number"
+                    min={1}
+                    max={720}
+                    value={durationHours}
+                    onChange={(e) => setDurationHours(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    type="button"
+                    disabled={initiateBoardTransferVoteMutation.isPending}
+                    onClick={handleStartTransferVote}
+                  >
+                    Start Transfer Vote
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              const nominee = hoaMembersDirectory.find(
-                (m) => (m.userEmail || "").toLowerCase() === nomineeEmail.toLowerCase()
-              );
-              if (!nominee?.userId) {
-                toast({
-                  title: "Nominee not found",
-                  description: "Use an email shown in the member list.",
-                  variant: "destructive",
-                });
-                return;
-              }
-
-              const reason = window
-                .prompt("Reason for this transfer vote (min 5 characters)")
-                ?.trim();
-              if (!reason) return;
-              if (reason.length < 5) {
-                toast({
-                  title: "Reason required",
-                  description: "Please provide at least 5 characters.",
-                  variant: "destructive",
-                });
-                return;
-              }
-
-              const durationRaw = window.prompt("Vote duration in hours (1–720)", "168")?.trim();
-              if (!durationRaw) return;
-              const durationHours = Number(durationRaw);
-              if (!Number.isFinite(durationHours) || durationHours < 1 || durationHours > 720) {
-                toast({
-                  title: "Invalid duration",
-                  description: "Enter a number of hours between 1 and 720.",
-                  variant: "destructive",
-                });
-                return;
-              }
-
-              initiateBoardTransferVoteMutation.mutate({
-                targetRole,
-                nomineeUserId: nominee.userId,
-                reason,
-                durationHours,
-              });
-            }}
-          >
-            Start Transfer Vote
-          </Button>
-
-          <Button
-            variant="destructive"
-            disabled={leaveHoAMutation.isPending}
-            onClick={() => {
-              const reason = window.prompt(
-                `Why are you leaving ${hoa?.name || "this HOA"}? (min 5 characters)`
-              );
-              if (!reason) return;
-              if (reason.trim().length < 5) {
-                toast({
-                  title: "Reason required",
-                  description: "Please provide at least 5 characters.",
-                  variant: "destructive",
-                });
-                return;
-              }
-              leaveHoAMutation.mutate({ reason: reason.trim() });
-            }}
-          >
-            Leave HOA
-          </Button>
+          {showLeaveForm && (
+            <Card className="bg-slate-800/60 border-slate-700 max-w-2xl mx-auto">
+              <CardHeader>
+                <CardTitle className="text-white">Leave HOA Membership</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="leave-reason" className="text-slate-200">
+                    Reason (minimum 5 characters)
+                  </Label>
+                  <Input
+                    id="leave-reason"
+                    value={leaveReason}
+                    onChange={(e) => setLeaveReason(e.target.value)}
+                    placeholder="Tell us why you are leaving"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={leaveHoAMutation.isPending}
+                    onClick={handleLeaveHoa}
+                  >
+                    Confirm Leave HOA
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -660,17 +778,19 @@ export default function HOAManagement() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList
           className={`grid w-full ${
-            memberData?.canViewFinances && hoa?.governance?.votingEnabled !== false
-              ? "grid-cols-5"
-              : memberData?.canViewFinances || hoa?.governance?.votingEnabled !== false
-                ? "grid-cols-4"
-                : "grid-cols-3"
+            simpleView
+              ? "grid-cols-3"
+              : memberData?.canViewFinances && hoa?.governance?.votingEnabled !== false
+                ? "grid-cols-5"
+                : memberData?.canViewFinances || hoa?.governance?.votingEnabled !== false
+                  ? "grid-cols-4"
+                  : "grid-cols-3"
           } bg-slate-800/50`}
         >
           <TabsTrigger value="overview" className="data-[state=active]:bg-orange-500">
             Overview
           </TabsTrigger>
-          {memberData?.canViewFinances && (
+          {!simpleView && memberData?.canViewFinances && (
             <TabsTrigger
               value="finances"
               className="data-[state=active]:bg-orange-500"
@@ -687,9 +807,11 @@ export default function HOAManagement() {
           <TabsTrigger value="vendors" className="data-[state=active]:bg-orange-500">
             Vendors
           </TabsTrigger>
-          <TabsTrigger value="documents" className="data-[state=active]:bg-orange-500">
-            Documents
-          </TabsTrigger>
+          {!simpleView && (
+            <TabsTrigger value="documents" className="data-[state=active]:bg-orange-500">
+              Documents
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

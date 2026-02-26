@@ -74,3 +74,34 @@ npm run report:release-gates
 ### Evidence Artifacts
 - `.playwright/test-results/results.json`
 - `artifacts/release-gate-metrics.json`
+
+## 8. HOA Module Production Delta (Non-duplicate extension)
+
+This section extends the core checklist above for the HOA capability pack only.
+
+### Completed in current tranche
+- [x] HOA pages compile cleanly (`npm run check`).
+- [x] Full platform verification passes (`npm run verify`).
+- [x] Production build passes (`npm run build`).
+- [x] Added guided "What to do next" support blocks on:
+	- `client/src/pages/hoa-dashboard.tsx`
+	- `client/src/pages/hoa-management.tsx`
+	- `client/src/pages/hoa-maintenance.tsx`
+- [x] Added shared HOA guidance component to avoid duplicate implementations:
+	- `client/src/components/hoa/HOANextStepsCard.tsx`
+- [x] Replaced prompt-based HOA management actions with explicit form flows in `hoa-management`.
+- [x] Added persistent HOA Simple View toggle for lower-tech users across HOA surfaces.
+
+### Remaining for release sign-off
+- [ ] Run DB-backed strict no-skip lane and archive artifacts:
+	- `npm run test:run:no-skips`
+	- `npm run verify:db`
+- [ ] Execute HOA-specific end-to-end smoke run against running app:
+	- `npx playwright test tests/hoa.e2e.spec.ts`
+- [ ] Validate mobile accessibility pass (keyboard + screen reader labels) on HOA pages.
+- [ ] Confirm production observability dashboards include HOA action funnel metrics.
+
+### HOA release evidence
+- [ ] Archive strict skip report: `artifacts/test-skip-delta.no-skips.json`
+- [ ] Archive HOA UX acceptance screenshots (simple view and full view)
+- [ ] Archive HOA e2e run results for release packet

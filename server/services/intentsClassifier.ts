@@ -128,7 +128,7 @@ export function classifyFromMessageHeuristics(messageText: string): {
 
   // Community post signals: share, tell, announce, happened, found, lost
   if (
-    /(tell|share|announce|happened|found|lost|here's|look at|check out|alert|warning|safety)/i.test(
+    /(tell|share|sharing|announce|post|posting|update|updating|happened|found|lost|here's|look at|check out|alert|warning|safety)/i.test(
       text
     )
   ) {

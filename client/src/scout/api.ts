@@ -124,6 +124,10 @@ export interface ScoutBackendResponse {
     thought_flow?: string[];
     decision?: string;
     redirect?: string;
+    sourceUsed?: string;
+    attemptedSource?: string;
+    fallbackUsed?: boolean;
+    confidenceBand?: "low" | "medium" | "high" | "unknown";
     resolvedContext?: {
       stage?: string;
       blockingReason?: string | null;

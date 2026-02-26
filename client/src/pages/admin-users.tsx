@@ -1651,7 +1651,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         setProfileForm((p) => ({ ...p, colorPrimary: e.target.value }))
                       }
-                      placeholder="#ff6600"
+                      placeholder="hsl(var(--primary))"
                       className="bg-input border-input text-foreground"
                     />
                   </div>
@@ -1662,7 +1662,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         setProfileForm((p) => ({ ...p, colorSecondary: e.target.value }))
                       }
-                      placeholder="#00bcd4"
+                      placeholder="hsl(var(--secondary))"
                       className="bg-input border-input text-foreground"
                     />
                   </div>
@@ -1673,7 +1673,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         setProfileForm((p) => ({ ...p, colorBackground: e.target.value }))
                       }
-                      placeholder="#0b1220"
+                      placeholder="hsl(var(--background))"
                       className="bg-input border-input text-foreground"
                     />
                   </div>
@@ -1682,7 +1682,7 @@ export default function AdminUsers() {
                     <Input
                       value={profileForm.colorText}
                       onChange={(e) => setProfileForm((p) => ({ ...p, colorText: e.target.value }))}
-                      placeholder="#ffffff"
+                      placeholder="hsl(var(--foreground))"
                       className="bg-input border-input text-foreground"
                     />
                   </div>

@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-02-26T04:07:49.963Z",
+  "sourceReport": "test-results/vitest-results.no-skips.json",
+  "status": "pass",
+  "failOnIncrease": true,
+  "current": {
+    "totalTests": 235,
+    "passedTests": 232,
+    "pendingTests": 0,
+    "failedTests": 0,
+    "totalSuites": 120,
+    "pendingSuites": 0
+  },
+  "baseline": {
+    "source": ".github/test-baselines/nightly-db-skip-baseline.json",
+    "pendingTests": 0,
+    "pendingSuites": 0,
+    "generatedAt": "2026-02-25T00:00:00.000Z"
+  },
+  "delta": {
+    "pendingTests": 0,
+    "pendingSuites": 0
+  },
+  "reasonCounts": [],
+  "topSkippedFiles": []
+}

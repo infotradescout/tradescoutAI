@@ -5,6 +5,17 @@
 
 import { runTool, ToolDefinition, ToolContext } from "./toolRunner";
 
+async function safeErrorText(res: Response): Promise<string> {
+  try {
+    if (typeof (res as any).text === "function") {
+      return await res.text();
+    }
+  } catch {
+    // best effort only
+  }
+  return "";
+}
+
 /* ======================== Contractor Search Tool ======================== */
 
 export interface ContractorSearchInput {
@@ -57,7 +68,8 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
     });
 
     if (!res.ok) {
-      throw new Error(`Contractor search HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+      const detail = await safeErrorText(res);
+      throw new Error(`Contractor search HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
     const data = await res.json();
@@ -140,7 +152,8 @@ const marketplaceSearchTool: ToolDefinition<MarketplaceSearchInput, MarketplaceR
     });
 
     if (!res.ok) {
-      throw new Error(`Marketplace search HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+      const detail = await safeErrorText(res);
+      throw new Error(`Marketplace search HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
     const data = await res.json();
@@ -259,7 +272,7 @@ export type AffiliateApplicationProposal = {
 };
 
 export function proposeAffiliateApplication(
-  input: AffiliateApplicationProposalPayload,
+  input: AffiliateApplicationProposalPayload
 ): AffiliateApplicationProposal {
   return {
     type: "AFFILIATE_APPLICATION_PROPOSAL",
@@ -311,9 +324,7 @@ export type CommunityPostProposal = {
   payload: CommunityPostProposalPayload & { proposedAt: number };
 };
 
-export function proposeCommunityPost(
-  input: CommunityPostProposalPayload,
-): CommunityPostProposal {
+export function proposeCommunityPost(input: CommunityPostProposalPayload): CommunityPostProposal {
   return {
     type: "COMMUNITY_POST_PROPOSAL",
     payload: {

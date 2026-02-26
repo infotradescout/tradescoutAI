@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ import { useParams } from "wouter";
 import { Wrench, Phone, Mail, Star, CheckCircle, XCircle } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { HOAManagementShell } from "@/shells/HOAManagementShell";
+import { HOANextStepsCard } from "@/components/hoa/HOANextStepsCard";
+
+const HOA_SIMPLE_VIEW_KEY = "ts:hoa:simple_view:v1";
 
 /**
  * /hoa/maintenance - HOA Vendor Directory and Service Requests
@@ -69,6 +72,30 @@ const HOAMaintenance = memo(function HOAMaintenance() {
   const [serviceType, setServiceType] = useState("");
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("normal");
+  const [simpleView, setSimpleView] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      setSimpleView(window.localStorage.getItem(HOA_SIMPLE_VIEW_KEY) === "1");
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  const toggleSimpleView = () => {
+    setSimpleView((prev) => {
+      const next = !prev;
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(HOA_SIMPLE_VIEW_KEY, next ? "1" : "0");
+        }
+      } catch {
+        // no-op
+      }
+      return next;
+    });
+  };
 
   // Load HOA memberships for the current user
   const { data: hoaMembershipData } = useQuery<{ memberships: HoaMembership[] }>({
@@ -197,7 +224,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
         canonical="https://www.thetradescout.com/hoa/maintenance"
         noIndex
       />
-      <div className="space-y-6">
+      <div className={`space-y-6 ${simpleView ? "text-base" : ""}`}>
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Wrench className="h-8 w-8 text-orange-400" />
@@ -205,6 +232,18 @@ const HOAMaintenance = memo(function HOAMaintenance() {
           </h1>
           <p className="text-gray-300 mt-2">{memberships[0]?.hoaName || "Your HOA"}</p>
         </div>
+
+        <HOANextStepsCard
+          title="What to do next"
+          description="Submit one clear request at a time so your board and vendors can process it correctly."
+          steps={[
+            "Choose a vendor approved by your HOA.",
+            "Select service type and urgency.",
+            "Describe the issue clearly, then submit.",
+          ]}
+          simpleViewEnabled={simpleView}
+          onToggleSimpleView={toggleSimpleView}
+        />
 
         {/* Service Request Form */}
         <Card className="bg-navy-800/60 border-navy-600">

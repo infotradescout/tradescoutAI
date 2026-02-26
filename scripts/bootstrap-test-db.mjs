@@ -231,6 +231,27 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS hoa_governance (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        hoa_id varchar NOT NULL UNIQUE REFERENCES homeowner_associations(id) ON DELETE CASCADE,
+        governance_model varchar NOT NULL DEFAULT 'elected_board',
+        voting_enabled boolean DEFAULT true,
+        financials_enabled boolean DEFAULT true,
+        vendor_management_enabled boolean DEFAULT true,
+        document_library_enabled boolean DEFAULT true,
+        residents_directory_enabled boolean DEFAULT true,
+        maintenance_requests_enabled boolean DEFAULT true,
+        custom_roles jsonb,
+        quorum_percentage integer DEFAULT 50,
+        vote_pass_threshold integer DEFAULT 51,
+        allow_proxy_voting boolean DEFAULT false,
+        governance_notes text,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS xp_ledger (
         id bigserial PRIMARY KEY,
         user_id varchar NOT NULL,

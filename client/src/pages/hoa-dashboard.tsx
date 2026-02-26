@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   Home,
   DollarSign,
@@ -24,6 +24,9 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { useParams } from "wouter";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { HOANextStepsCard } from "@/components/hoa/HOANextStepsCard";
+
+const HOA_SIMPLE_VIEW_KEY = "ts:hoa:simple_view:v1";
 
 type HoaDashboard = {
   hoaId: string;
@@ -65,6 +68,7 @@ type HoaDashboard = {
 
 const HOADashboard = memo(function HOADashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [simpleView, setSimpleView] = useState(false);
   const { unreadCount } = useNotifications();
   const { user } = useAuth();
   const params = useParams();
@@ -111,6 +115,32 @@ const HOADashboard = memo(function HOADashboard() {
   });
 
   const dashboard = data?.dashboard;
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      setSimpleView(window.localStorage.getItem(HOA_SIMPLE_VIEW_KEY) === "1");
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  const toggleSimpleView = () => {
+    setSimpleView((prev) => {
+      const next = !prev;
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(HOA_SIMPLE_VIEW_KEY, next ? "1" : "0");
+        }
+      } catch {
+        // no-op
+      }
+      if (next) {
+        setActiveTab("overview");
+      }
+      return next;
+    });
+  };
 
   if (countyCommitted && isLoading) {
     return (
@@ -179,6 +209,20 @@ const HOADashboard = memo(function HOADashboard() {
         <p className="text-gray-300 text-lg">{`${dashboard?.hoaName ?? "Your HOA"} Dashboard`}</p>
       </div>
 
+      <div className="mb-6">
+        <HOANextStepsCard
+          title="What to do next"
+          description="Use this dashboard as your HOA home base. Start with one action and TradeScout keeps everything in the right workflow."
+          steps={[
+            "Check Overview for current HOA status.",
+            "Open Maintenance to submit or track service requests.",
+            "Review Voting when community decisions are active.",
+          ]}
+          simpleViewEnabled={simpleView}
+          onToggleSimpleView={toggleSimpleView}
+        />
+      </div>
+
       {/* Quick Stats */}
       <div
         className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
@@ -241,13 +285,17 @@ const HOADashboard = memo(function HOADashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 bg-navy-800/50 backdrop-blur-sm">
+        <TabsList
+          className={`grid w-full ${simpleView ? "grid-cols-3" : "grid-cols-6"} bg-navy-800/50 backdrop-blur-sm`}
+        >
           <TabsTrigger value="overview" className="data-[state=active]:bg-orange-600">
             Overview
           </TabsTrigger>
-          <TabsTrigger value="financials" className="data-[state=active]:bg-orange-600">
-            Financials
-          </TabsTrigger>
+          {!simpleView && (
+            <TabsTrigger value="financials" className="data-[state=active]:bg-orange-600">
+              Financials
+            </TabsTrigger>
+          )}
           <TabsTrigger value="maintenance" className="data-[state=active]:bg-orange-600">
             Maintenance
           </TabsTrigger>
@@ -256,12 +304,16 @@ const HOADashboard = memo(function HOADashboard() {
               Voting
             </TabsTrigger>
           )}
-          <TabsTrigger value="documents" className="data-[state=active]:bg-orange-600">
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="residents" className="data-[state=active]:bg-orange-600">
-            Residents
-          </TabsTrigger>
+          {!simpleView && (
+            <TabsTrigger value="documents" className="data-[state=active]:bg-orange-600">
+              Documents
+            </TabsTrigger>
+          )}
+          {!simpleView && (
+            <TabsTrigger value="residents" className="data-[state=active]:bg-orange-600">
+              Residents
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">

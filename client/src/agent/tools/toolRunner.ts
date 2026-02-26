@@ -28,6 +28,7 @@ export interface ToolResult<T = unknown> {
     completedAt: number;
     durationMs: number;
     attemptCount: number;
+    timestamp: string;
   };
 }
 
@@ -86,6 +87,7 @@ class ToolRunnerImpl {
           completedAt,
           durationMs: completedAt - startedAt,
           attemptCount: 0,
+          timestamp: new Date().toISOString(),
         },
       };
     }
@@ -120,6 +122,7 @@ class ToolRunnerImpl {
             completedAt,
             durationMs: completedAt - startedAt,
             attemptCount,
+            timestamp: new Date().toISOString(),
           },
         };
       } catch (err: any) {
@@ -139,13 +142,12 @@ class ToolRunnerImpl {
     const completedAt = performance.now();
     this.recordFailure(tool.name);
 
-    const finalError =
-      lastError || {
-        code: "UNKNOWN_ERROR",
-        message: "Tool failed without classified error",
-        category: "unknown" as const,
-        retryable: false,
-      };
+    const finalError = lastError || {
+      code: "UNKNOWN_ERROR",
+      message: "Tool failed without classified error",
+      category: "unknown" as const,
+      retryable: false,
+    };
     if (this.config.telemetryEnabled) {
       this.emitTelemetry({
         tool: tool.name,
@@ -164,6 +166,7 @@ class ToolRunnerImpl {
         completedAt,
         durationMs: completedAt - startedAt,
         attemptCount,
+        timestamp: new Date().toISOString(),
       },
     };
   }
@@ -171,9 +174,7 @@ class ToolRunnerImpl {
   private async executeWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
       promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs)
-      ),
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs)),
     ]);
   }
 
@@ -190,7 +191,11 @@ class ToolRunnerImpl {
       };
     }
 
-    if (lowerMsg.includes("network") || lowerMsg.includes("fetch") || lowerMsg.includes("econnrefused")) {
+    if (
+      lowerMsg.includes("network") ||
+      lowerMsg.includes("fetch") ||
+      lowerMsg.includes("econnrefused")
+    ) {
       return {
         code: "NETWORK_ERROR",
         message,
@@ -199,7 +204,25 @@ class ToolRunnerImpl {
       };
     }
 
-    if (lowerMsg.includes("401") || lowerMsg.includes("unauthorized") || lowerMsg.includes("forbidden")) {
+    if (
+      lowerMsg.includes("temporary") ||
+      lowerMsg.includes("temporarily") ||
+      lowerMsg.includes("try again") ||
+      lowerMsg.includes("etimedout")
+    ) {
+      return {
+        code: "NETWORK_ERROR",
+        message,
+        category: "network",
+        retryable: true,
+      };
+    }
+
+    if (
+      lowerMsg.includes("401") ||
+      lowerMsg.includes("unauthorized") ||
+      lowerMsg.includes("forbidden")
+    ) {
       return {
         code: "AUTH_ERROR",
         message,
@@ -217,7 +240,11 @@ class ToolRunnerImpl {
       };
     }
 
-    if (lowerMsg.includes("400") || lowerMsg.includes("invalid") || lowerMsg.includes("validation")) {
+    if (
+      lowerMsg.includes("400") ||
+      lowerMsg.includes("invalid") ||
+      lowerMsg.includes("validation")
+    ) {
       return {
         code: "VALIDATION_ERROR",
         message,
@@ -274,6 +301,10 @@ class ToolRunnerImpl {
     attemptCount: number;
     error?: ToolResult["error"];
   }): void {
+    if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+      return;
+    }
+
     // Send to analytics/logging endpoint
     // For now, just console in dev
     if (import.meta.env.DEV) {

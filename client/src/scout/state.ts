@@ -131,6 +131,17 @@ export interface ScoutMessage {
   contextRoles?: string[];
   // D2: Onboarding metadata (server-controlled, client renders only)
   onboarding?: OnboardingMetadata;
+  provenance?: {
+    sourceUsed?: string;
+    attemptedSource?: string;
+    fallbackUsed?: boolean;
+    confidenceBand?: "low" | "medium" | "high" | "unknown";
+    knowledgeLayer?: number;
+    sourceTitles?: string[];
+    resolvedStage?: string;
+    blockingReason?: string | null;
+    allowedActions?: string[];
+  };
 }
 
 export interface ScoutState {
