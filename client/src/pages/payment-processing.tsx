@@ -15,8 +15,9 @@ const PaymentProcessing = memo(function PaymentProcessing() {
           </CardHeader>
           <CardContent className="space-y-4 text-tsTextSecondary">
             <p>
-              TradeScout revenue is transaction-based and value-movement based only. Payment data is
-              isolated from ranking, recommendation, and trust scoring.
+              Access to TradeScout features, connections, and information is $0. Revenue comes from
+              separate optional products and connected platforms, and payment data is isolated from
+              ranking, recommendation, and trust scoring.
             </p>
             <p>
               No paid access tiers, no pay-for-lead extraction, and no paid exposure controls are

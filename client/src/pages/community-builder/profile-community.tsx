@@ -4,7 +4,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,6 +38,8 @@ type Cause = {
   status: string;
   createdAt: string;
   voteCount: number;
+  weightedVoteTotal: number;
+  allocationShare: number;
 };
 
 type PlatformSupportLedgerEntry = {
@@ -55,6 +56,10 @@ type PlatformSupportLedgerEntry = {
 function formatMoney(amount: number): string {
   const n = Number.isFinite(amount) ? amount : 0;
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n);
+}
+
+function clamp(value: number, min = 0, max = 100): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 export default function ProfileCommunityPage() {
@@ -106,9 +111,6 @@ export default function ProfileCommunityPage() {
 
   const [donationAmount, setDonationAmount] = useState("25");
   const [supportAmount, setSupportAmount] = useState("10");
-
-  const [causeTitle, setCauseTitle] = useState("");
-  const [causeDescription, setCauseDescription] = useState("");
 
   const donateMutation = useMutation({
     mutationFn: async () => {
@@ -171,41 +173,6 @@ export default function ProfileCommunityPage() {
     },
   });
 
-  const createCauseMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/community-causes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profileId,
-          title: causeTitle,
-          description: causeDescription || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error || body?.message || "Failed to create cause");
-      }
-      return res.json();
-    },
-    onSuccess: async () => {
-      setCauseTitle("");
-      setCauseDescription("");
-      await refetchCauses();
-      toast({
-        title: "Cause created",
-        description: "Your cause is now visible for voting intent.",
-      });
-    },
-    onError: (err: any) => {
-      toast({
-        title: "Create cause failed",
-        description: err?.message || "Unable to create cause.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const voteMutation = useMutation({
     mutationFn: async (causeId: string) => {
       const res = await fetch(`/api/community-causes/${causeId}/vote`, {
@@ -218,9 +185,14 @@ export default function ProfileCommunityPage() {
       }
       return res.json();
     },
-    onSuccess: async () => {
+    onSuccess: async (result: any) => {
       await refetchCauses();
-      toast({ title: "Vote recorded", description: "Your voting intent has been recorded." });
+      toast({
+        title: "Vote recorded",
+        description: `Vote weight ${Number(result?.voteWeight || 1).toFixed(2)} • Current share ${Number(
+          result?.allocationShare || 0
+        ).toFixed(2)}%`,
+      });
     },
     onError: (err: any) => {
       toast({
@@ -234,6 +206,33 @@ export default function ProfileCommunityPage() {
   const refreshAll = async () => {
     await Promise.all([refetchVault(), refetchCauses(), refetchSupportLedger()]);
   };
+
+  const communityEvaluation = useMemo(() => {
+    const vault = vaultData?.vault;
+    const balance = Number(vault?.currentBalance || 0);
+    const inflow = Number(vault?.lifetimeInflow || 0);
+    const outflow = Number(vault?.lifetimeOutflow || 0);
+
+    const netRetention = inflow > 0 ? clamp(((inflow - outflow) / inflow) * 100) : 0;
+    const fundingDepth = clamp((inflow / 10000) * 100);
+    const participation = clamp((causes.length / 10) * 100);
+    const supportSignal = clamp((supportLedger.length / 20) * 100);
+
+    const totalScore = clamp(
+      Math.round(
+        fundingDepth * 0.35 + netRetention * 0.25 + participation * 0.2 + supportSignal * 0.2
+      )
+    );
+
+    return {
+      totalScore,
+      fundingDepth,
+      netRetention,
+      participation,
+      supportSignal,
+      balance,
+    };
+  }, [vaultData?.vault, causes.length, supportLedger.length]);
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-white py-10 px-4">
@@ -310,6 +309,46 @@ export default function ProfileCommunityPage() {
               </Card>
             </div>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Community Health Snapshot</CardTitle>
+                <CardDescription>
+                  Evaluation based on funding depth, retention, participation, and support signals.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Current score</p>
+                    <p className="text-3xl font-bold">{communityEvaluation.totalScore}/100</p>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Current balance: {formatMoney(communityEvaluation.balance)}
+                  </p>
+                </div>
+
+                {[
+                  { label: "Funding depth", value: communityEvaluation.fundingDepth },
+                  { label: "Net retention", value: communityEvaluation.netRetention },
+                  { label: "Cause participation", value: communityEvaluation.participation },
+                  { label: "Support signal", value: communityEvaluation.supportSignal },
+                ].map((metric) => (
+                  <div key={metric.label} className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>{metric.label}</span>
+                      <span>{Math.round(metric.value)}%</span>
+                    </div>
+                    <div className="h-2 rounded bg-slate-100 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500"
+                        style={{ width: `${Math.round(metric.value)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
             <div className="grid md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -374,68 +413,54 @@ export default function ProfileCommunityPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Causes (Voting Intent)</CardTitle>
+                <CardTitle>Causes (Weighted Representation)</CardTitle>
                 <CardDescription>
-                  No money movement; just signal community priorities.
+                  Platform-curated causes with proportional representation by weighted community
+                  vote.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="text-sm font-semibold">Create a cause (owner-only)</div>
-                    <Input
-                      value={causeTitle}
-                      onChange={(e) => setCauseTitle(e.target.value)}
-                      placeholder="Cause title"
-                    />
-                    <Textarea
-                      value={causeDescription}
-                      onChange={(e) => setCauseDescription(e.target.value)}
-                      placeholder="Optional description"
-                      rows={4}
-                    />
-                    <Button
-                      onClick={() => createCauseMutation.mutate()}
-                      disabled={createCauseMutation.isPending || !causeTitle.trim()}
-                    >
-                      Create Cause
-                    </Button>
-                    <p className="text-xs text-gray-500">Requires login and profile ownership.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-sm font-semibold">Active causes</div>
-                    {causes.length === 0 ? (
-                      <p className="text-sm text-gray-500">No causes yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {causes.slice(0, 10).map((c) => (
-                          <div
-                            key={c.id}
-                            className="flex items-start justify-between gap-3 p-3 border rounded-lg"
-                          >
-                            <div className="space-y-1">
-                              <div className="font-semibold">{c.title}</div>
-                              {c.description && (
-                                <div className="text-sm text-gray-600">{c.description}</div>
-                              )}
-                              <div className="text-xs text-gray-500">
-                                Votes: {c.voteCount} • Status: {c.status}
-                              </div>
+                <p className="text-xs text-gray-500">
+                  Representation shares are normalized to 100.00% after rounding for transparent
+                  allocation.
+                </p>
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold">Active causes</div>
+                  {causes.length === 0 ? (
+                    <p className="text-sm text-gray-500">No causes available.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {causes.slice(0, 10).map((c) => (
+                        <div
+                          key={c.id}
+                          className="flex items-start justify-between gap-3 p-3 border rounded-lg"
+                        >
+                          <div className="space-y-1">
+                            <div className="font-semibold">{c.title}</div>
+                            {c.description && (
+                              <div className="text-sm text-gray-600">{c.description}</div>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              Votes: {c.voteCount} • Weighted total:{" "}
+                              {Number(c.weightedVoteTotal || 0).toFixed(2)}
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => voteMutation.mutate(c.id)}
-                              disabled={voteMutation.isPending}
-                            >
-                              Vote
-                            </Button>
+                            <div className="text-xs text-gray-500">
+                              Representation share: {Number(c.allocationShare || 0).toFixed(2)}% •
+                              Status: {c.status}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => voteMutation.mutate(c.id)}
+                            disabled={voteMutation.isPending}
+                          >
+                            Vote
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

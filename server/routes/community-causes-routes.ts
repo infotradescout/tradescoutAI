@@ -1,18 +1,18 @@
-import { Router, type Request, type Response } from 'express';
-import { z } from 'zod';
-import { isAuthenticated } from '../auth';
-import { storage } from '../storage';
+import { Router, type Request, type Response } from "express";
+import { z } from "zod";
+import { isAuthenticated } from "../auth";
+import { storage } from "../storage";
 
 const router = Router();
 
-router.get('/profile/:profileId', async (req: Request, res: Response) => {
+router.get("/profile/:profileId", async (req: Request, res: Response) => {
   try {
     const profileId = String(req.params.profileId);
     const causes = await storage.listCommunityCausesByProfile(profileId);
     res.json(causes);
   } catch (error) {
-    console.error('Error listing community causes:', error);
-    res.status(500).json({ error: 'Failed to list causes' });
+    console.error("Error listing community causes:", error);
+    res.status(500).json({ error: "Failed to list causes" });
   }
 });
 
@@ -22,15 +22,17 @@ const createCauseSchema = z.object({
   description: z.string().max(5000).optional(),
 });
 
-router.post('/', isAuthenticated, async (req: any, res: Response) => {
+const PLATFORM_CAUSE_CURATOR_ROLES = new Set(["head_admin", "super_admin", "ops_admin"]);
+
+router.post("/", isAuthenticated, async (req: any, res: Response) => {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const user = await storage.getUser(userId);
     const roles = Array.isArray(user?.roles) ? (user!.roles as string[]) : [];
-    if (!roles.includes('community_builder')) {
-      return res.status(403).json({ error: 'Community Builder badge required to create causes' });
+    if (!roles.some((role) => PLATFORM_CAUSE_CURATOR_ROLES.has(role))) {
+      return res.status(403).json({ error: "Platform curator access required to create causes" });
     }
 
     const parsed = createCauseSchema.parse(req.body);
@@ -43,23 +45,23 @@ router.post('/', isAuthenticated, async (req: any, res: Response) => {
 
     res.status(201).json(created);
   } catch (error: any) {
-    if (error?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Invalid request', details: error.errors });
+    if (error?.name === "ZodError") {
+      return res.status(400).json({ error: "Invalid request", details: error.errors });
     }
-    console.error('Error creating community cause:', error);
-    res.status(500).json({ error: error?.message || 'Failed to create cause' });
+    console.error("Error creating community cause:", error);
+    res.status(500).json({ error: error?.message || "Failed to create cause" });
   }
 });
 
-router.post('/:causeId/vote', isAuthenticated, async (req: any, res: Response) => {
+router.post("/:causeId/vote", isAuthenticated, async (req: any, res: Response) => {
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
     const user = await storage.getUser(userId);
     const roles = Array.isArray(user?.roles) ? (user!.roles as string[]) : [];
-    if (!roles.includes('community_builder')) {
-      return res.status(403).json({ error: 'Community Builder badge required to vote on causes' });
+    if (!roles.includes("community_builder")) {
+      return res.status(403).json({ error: "Community Builder badge required to vote on causes" });
     }
 
     const causeId = String(req.params.causeId);
@@ -69,10 +71,13 @@ router.post('/:causeId/vote', isAuthenticated, async (req: any, res: Response) =
       success: true,
       vote: result.vote,
       voteCount: result.voteCount,
+      weightedVoteTotal: result.weightedVoteTotal,
+      allocationShare: result.allocationShare,
+      voteWeight: result.voteWeight,
     });
   } catch (error: any) {
-    console.error('Error voting for community cause:', error);
-    res.status(500).json({ error: error?.message || 'Failed to vote' });
+    console.error("Error voting for community cause:", error);
+    res.status(500).json({ error: error?.message || "Failed to vote" });
   }
 });
 

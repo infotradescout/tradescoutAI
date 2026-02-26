@@ -445,6 +445,7 @@ import { getTableColumns } from "drizzle-orm/utils";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { applyPrivilegedVerificationBypass } from "./utils/privilegedVerification";
+import { computeAllocationShares } from "./utils/communityCauseAllocation";
 
 // Helper to safely convert strings/numbers to Decimal format
 const decimal = (value: any): string => {
@@ -1450,7 +1451,11 @@ export interface IStorage {
   // Causes + voting intent (MVP)
   listCommunityCausesByProfile(
     profileId: string
-  ): Promise<Array<CommunityCause & { voteCount: number }>>;
+  ): Promise<
+    Array<
+      CommunityCause & { voteCount: number; weightedVoteTotal: number; allocationShare: number }
+    >
+  >;
   createCommunityCauseForOwner(
     ownerUserId: string,
     data: { profileId: string; title: string; description?: string | null }
@@ -1458,7 +1463,13 @@ export interface IStorage {
   voteForCommunityCause(
     userId: string,
     causeId: string
-  ): Promise<{ vote: CommunityCauseVote; voteCount: number }>;
+  ): Promise<{
+    vote: CommunityCauseVote;
+    voteCount: number;
+    weightedVoteTotal: number;
+    allocationShare: number;
+    voteWeight: number;
+  }>;
 
   // Platform Support ledger (MVP)
   insertPlatformSupportLedgerEntry(
@@ -9748,9 +9759,41 @@ export class DatabaseStorage implements IStorage {
 
   // -------------------- Causes + Voting Intent (MVP) --------------------
 
+  private async computeCommunityCauseVoteWeight(userId: string): Promise<number> {
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+    const builderProfile = await this.getBuilderProfile(userId);
+    if (!builderProfile) return 1;
+
+    const stats = await this.calculateBuilderStats(builderProfile.id);
+    const totalValue = Number(stats.totalValue ?? 0);
+    const verificationRate = Number(stats.verificationRate ?? 0);
+
+    const individualImpact =
+      1 + clamp(Math.log10(totalValue + 1) / 2, 0, 2) + clamp(verificationRate / 100, 0, 1);
+
+    const countyContributions = await this.getCountyContributions(
+      builderProfile.countyId,
+      "verified"
+    );
+    const countyImpact = countyContributions.reduce((sum, contribution) => {
+      const value = contribution.actualValue || contribution.estimatedValue || "0";
+      return sum + Number(value);
+    }, 0);
+
+    const communityMultiplier = 1 + clamp(Math.log10(countyImpact + 1) / 3, 0, 1);
+    const hybridWeight = clamp(individualImpact * communityMultiplier, 1, 5);
+
+    return Number(hybridWeight.toFixed(3));
+  }
+
   async listCommunityCausesByProfile(
     profileId: string
-  ): Promise<Array<CommunityCause & { voteCount: number }>> {
+  ): Promise<
+    Array<
+      CommunityCause & { voteCount: number; weightedVoteTotal: number; allocationShare: number }
+    >
+  > {
     const causes = await db
       .select()
       .from(communityCauses)
@@ -9759,22 +9802,51 @@ export class DatabaseStorage implements IStorage {
 
     if (!causes.length) return [];
 
-    const counts = await db
-      .select({
-        causeId: communityCauseVotes.causeId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(communityCauseVotes)
-      .where(
-        inArray(
-          communityCauseVotes.causeId,
-          causes.map((c) => c.id)
-        )
-      )
-      .groupBy(communityCauseVotes.causeId);
+    const causeIds = causes.map((cause) => cause.id);
 
-    const byId = new Map(counts.map((r) => [r.causeId, Number(r.count ?? 0)]));
-    return causes.map((c) => ({ ...(c as any), voteCount: byId.get(c.id) ?? 0 }));
+    const votes = await db
+      .select({ causeId: communityCauseVotes.causeId, userId: communityCauseVotes.userId })
+      .from(communityCauseVotes)
+      .where(inArray(communityCauseVotes.causeId, causeIds));
+
+    const voteCountByCause = new Map<string, number>();
+    const weightedVoteByCause = new Map<string, number>();
+    const weightCache = new Map<string, number>();
+
+    for (const vote of votes) {
+      voteCountByCause.set(vote.causeId, (voteCountByCause.get(vote.causeId) ?? 0) + 1);
+
+      const cachedWeight = weightCache.get(vote.userId);
+      const voteWeight =
+        typeof cachedWeight === "number"
+          ? cachedWeight
+          : await this.computeCommunityCauseVoteWeight(vote.userId);
+      weightCache.set(vote.userId, voteWeight);
+
+      weightedVoteByCause.set(
+        vote.causeId,
+        (weightedVoteByCause.get(vote.causeId) ?? 0) + voteWeight
+      );
+    }
+
+    const allocationShareByCause = computeAllocationShares(
+      causes.map((cause) => ({
+        id: cause.id,
+        weightedVoteTotal: Number((weightedVoteByCause.get(cause.id) ?? 0).toFixed(3)),
+      }))
+    );
+
+    return causes.map((cause) => {
+      const weightedVoteTotal = Number((weightedVoteByCause.get(cause.id) ?? 0).toFixed(3));
+      const allocationShare = Number(allocationShareByCause[cause.id] ?? 0);
+
+      return {
+        ...(cause as any),
+        voteCount: voteCountByCause.get(cause.id) ?? 0,
+        weightedVoteTotal,
+        allocationShare,
+      };
+    });
   }
 
   async createCommunityCauseForOwner(
@@ -9802,34 +9874,51 @@ export class DatabaseStorage implements IStorage {
   async voteForCommunityCause(
     userId: string,
     causeId: string
-  ): Promise<{ vote: CommunityCauseVote; voteCount: number }> {
+  ): Promise<{
+    vote: CommunityCauseVote;
+    voteCount: number;
+    weightedVoteTotal: number;
+    allocationShare: number;
+    voteWeight: number;
+  }> {
     const [cause] = await db
-      .select({ id: communityCauses.id })
+      .select({ id: communityCauses.id, profileId: communityCauses.profileId })
       .from(communityCauses)
       .where(eq(communityCauses.id, causeId))
       .limit(1);
     if (!cause) throw new Error("Cause not found");
 
-    let vote: CommunityCauseVote | undefined;
-    try {
-      const [created] = await db
-        .insert(communityCauseVotes)
-        .values({
-          causeId,
-          userId,
-          createdAt: new Date(),
-        } as any)
-        .returning();
-      vote = created as any;
-    } catch {
-      const [existing] = await db
-        .select()
-        .from(communityCauseVotes)
-        .where(
-          and(eq(communityCauseVotes.causeId, causeId), eq(communityCauseVotes.userId, userId))
-        )
-        .limit(1);
-      vote = existing as any;
+    const [existingVote] = await db
+      .select()
+      .from(communityCauseVotes)
+      .where(and(eq(communityCauseVotes.causeId, causeId), eq(communityCauseVotes.userId, userId)))
+      .orderBy(asc(communityCauseVotes.createdAt), asc(communityCauseVotes.id))
+      .limit(1);
+
+    let vote: CommunityCauseVote | undefined = existingVote as any;
+
+    if (!vote) {
+      try {
+        const [created] = await db
+          .insert(communityCauseVotes)
+          .values({
+            causeId,
+            userId,
+            createdAt: new Date(),
+          } as any)
+          .returning();
+        vote = created as any;
+      } catch {
+        const [fallbackExisting] = await db
+          .select()
+          .from(communityCauseVotes)
+          .where(
+            and(eq(communityCauseVotes.causeId, causeId), eq(communityCauseVotes.userId, userId))
+          )
+          .orderBy(asc(communityCauseVotes.createdAt), asc(communityCauseVotes.id))
+          .limit(1);
+        vote = fallbackExisting as any;
+      }
     }
 
     const [countRow] = await db
@@ -9837,7 +9926,17 @@ export class DatabaseStorage implements IStorage {
       .from(communityCauseVotes)
       .where(eq(communityCauseVotes.causeId, causeId));
 
-    return { vote: vote as any, voteCount: Number(countRow?.count ?? 0) };
+    const voteWeight = await this.computeCommunityCauseVoteWeight(userId);
+    const causeTallies = await this.listCommunityCausesByProfile(cause.profileId);
+    const selectedCause = causeTallies.find((item) => item.id === causeId);
+
+    return {
+      vote: vote as any,
+      voteCount: Number(countRow?.count ?? 0),
+      weightedVoteTotal: Number(selectedCause?.weightedVoteTotal ?? 0),
+      allocationShare: Number(selectedCause?.allocationShare ?? 0),
+      voteWeight,
+    };
   }
 
   // -------------------- Platform Support Ledger (MVP) --------------------

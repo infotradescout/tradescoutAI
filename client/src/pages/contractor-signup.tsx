@@ -230,8 +230,8 @@ export default function ContractorSignup() {
     <div className="h-full bg-background py-12">
       <SEOHelmet
         title="Join TradeScout - Contractor Registration"
-        description="Join TradeScout's verified contractor network. Get more leads, showcase your work, and grow your business with our contractor platform."
-        keywords="contractor registration, join contractor network, get more leads, contractor marketing"
+        description="Join TradeScout's verified contractor network. Build trust visibility, showcase your work, and grow your business without lead fees, monthly subscriptions, or post-job contractor fees."
+        keywords="contractor registration, verified contractor network, trust-based matching, contractor profile"
         canonical="https://www.thetradescout.com/contractors/apply"
       />
 
@@ -240,14 +240,14 @@ export default function ContractorSignup() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout</h1>
           <p className="text-xl text-gray-300 mb-6">
-            Get verified and start receiving quality leads from homeowners in your area
+            Get verified and start receiving qualified homeowner requests in your area
           </p>
 
           {/* Benefits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-navy-700 rounded-lg p-4">
               <Star className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-              <h3 className="text-lg font-semibold text-white">Quality Leads</h3>
+              <h3 className="text-lg font-semibold text-white">Qualified Requests</h3>
               <p className="text-gray-300 text-sm">
                 Connect with homeowners actively seeking your services
               </p>
@@ -260,7 +260,10 @@ export default function ContractorSignup() {
             <div className="bg-navy-700 rounded-lg p-4">
               <Building className="h-8 w-8 text-orange-500 mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-white">Free Listing</h3>
-              <p className="text-gray-300 text-sm">No upfront costs, only pay for quality leads</p>
+              <p className="text-gray-300 text-sm">
+                Access to features, connections, and information is $0. Optional paid products are
+                clearly labeled; unlabeled payment requests in TradeScout's name are scams
+              </p>
             </div>
           </div>
         </div>

@@ -4650,7 +4650,7 @@ export async function registerRoutes(app: any) {
     async (req: Request, res: Response) => {
       try {
         const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const { profileVisibility } = (req.body ?? {}) as any;
+        const { profileVisibility, proceedUnverified } = (req.body ?? {}) as any;
 
         if (!["public", "private"].includes(profileVisibility)) {
           return res.status(400).json({ message: "Invalid visibility option" });
@@ -4663,7 +4663,7 @@ export async function registerRoutes(app: any) {
 
         // C2-3: Soft gate - offer verification for better visibility (PUBLISH_PUBLIC_PROFILE action)
         // Not blocking; contractor can publish unverified but gets visibility boost if verified
-        if (profileVisibility === "public") {
+        if (profileVisibility === "public" && proceedUnverified !== true) {
           const isContractor = currentUser.role === "contractor";
           const isVerified =
             (currentUser as any)?.verificationStatus === "approved" ||
@@ -10880,6 +10880,14 @@ export async function registerRoutes(app: any) {
       const role = typeof body.role === "string" ? body.role.trim() : "";
       const password = typeof body.password === "string" ? body.password : "";
       const sendEmail = body.sendEmail !== false;
+      const hasActivationToggle = typeof body.sendActivationEmail === "boolean";
+      const hasVerificationToggle = typeof body.sendVerificationEmail === "boolean";
+      const sendActivationEmail = hasActivationToggle
+        ? body.sendActivationEmail === true
+        : sendEmail;
+      const sendVerificationEmail = hasVerificationToggle
+        ? body.sendVerificationEmail === true
+        : sendEmail;
 
       const profileInput =
         body && typeof body.profile === "object" && body.profile ? (body.profile as any) : null;
@@ -11068,15 +11076,15 @@ export async function registerRoutes(app: any) {
       }
 
       let emailSent = false;
-      if (sendEmail) {
+      if (sendActivationEmail || sendVerificationEmail) {
         const canSend = emailService.isConfigured();
         if (canSend) {
           const parts: string[] = [];
           parts.push(`<p>Your TradeScout account is ready.</p>`);
-          if (resetLink) {
+          if (resetLink && sendActivationEmail) {
             parts.push(`<p><a href="${resetLink}">Set your password</a>.</p>`);
           }
-          if (verifyLink) {
+          if (verifyLink && sendVerificationEmail) {
             parts.push(`<p><a href="${verifyLink}">Verify your email</a> (required).</p>`);
           }
           parts.push(`<p>If you did not request this, you can ignore this email.</p>`);
@@ -11086,8 +11094,8 @@ export async function registerRoutes(app: any) {
             subject: "Set up your TradeScout account",
             html: parts.join("\n"),
             text: [
-              resetLink ? `Set password: ${resetLink}` : null,
-              verifyLink ? `Verify email: ${verifyLink}` : null,
+              resetLink && sendActivationEmail ? `Set password: ${resetLink}` : null,
+              verifyLink && sendVerificationEmail ? `Verify email: ${verifyLink}` : null,
             ]
               .filter(Boolean)
               .join("\n"),
@@ -11095,8 +11103,8 @@ export async function registerRoutes(app: any) {
           });
           emailSent = true;
         } else if (process.env.NODE_ENV !== "production") {
-          if (resetLink) debug.activationLink = resetLink;
-          if (verifyLink) debug.verifyLink = verifyLink;
+          if (resetLink && sendActivationEmail) debug.activationLink = resetLink;
+          if (verifyLink && sendVerificationEmail) debug.verifyLink = verifyLink;
         }
       }
 
@@ -11110,8 +11118,8 @@ export async function registerRoutes(app: any) {
           lastName: user.lastName,
         },
         emailSent,
-        activationLinkIncluded: Boolean(resetLink),
-        verifyLinkIncluded: Boolean(verifyLink),
+        activationLinkIncluded: Boolean(resetLink && sendActivationEmail),
+        verifyLinkIncluded: Boolean(verifyLink && sendVerificationEmail),
         profileProvisioned: Boolean(provisionedProfile),
         profileCreated: createdProfile,
         profileId: provisionedProfile?.id || null,

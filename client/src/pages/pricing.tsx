@@ -9,7 +9,10 @@ const featureLines = [
 ];
 
 const sponsorLines = [
-  "Transaction-based and value-movement platform revenue",
+  "$0 for access to TradeScout features, connections, and information",
+  "No contractor lead fees, no monthly subscription fees, and no post-job contractor fees",
+  "Revenue comes from separate optional products and connected platforms, never from access",
+  "Marketplace Promotions and third-party TradePartners offers are clearly labeled before checkout",
   "Financially blind ranking, recommendation, and trust systems",
   "No paid access tiers and no pay-for-ranking controls",
   "Core platform access remains open for all users",
@@ -30,7 +33,7 @@ const Pricing = memo(function Pricing() {
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/50 px-4 py-2 bg-orange-500/10 text-orange-200 text-sm">
             <PartyPopper className="h-4 w-4" />
-            <span>Gotcha! TradeScout services are free forever.</span>
+            <span>$0 access to TradeScout features, connections, and information.</span>
           </div>
           <h1 className="text-4xl font-bold">Simple pricing: $0</h1>
           <p className="text-lg text-gray-300 max-w-3xl mx-auto">
@@ -99,6 +102,16 @@ const Pricing = memo(function Pricing() {
           <p className="text-gray-100 max-w-2xl mx-auto">
             Jump in, invite your team, and explore every feature. No payment is used to alter trust
             authority, ranking, or connection access.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-red-500/40 bg-red-600/10 p-6 text-center space-y-3">
+          <h2 className="text-2xl font-semibold text-red-200">Payment Safety Notice</h2>
+          <p className="text-gray-100 max-w-3xl mx-auto">
+            Access to TradeScout features, connections, and information is <strong>$0</strong>.
+            Revenue comes from separate optional products and connected platforms. If someone
+            requests payment in TradeScout's name outside clearly labeled checkout for Marketplace
+            Promotions or third-party TradePartners offers, treat it as a scam and do not pay.
           </p>
         </div>
       </div>

@@ -139,10 +139,18 @@ export default function TermsOfService() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">4. Payments and Fees</h2>
 
-              <h3 className="text-xl font-medium mb-3">Transaction Fees</h3>
+              <h3 className="text-xl font-medium mb-3">Access Pricing</h3>
               <ul className="list-disc pl-6 mb-6">
-                <li>Platform fees are clearly disclosed before listing</li>
-                <li>Payment processing fees apply to all transactions</li>
+                <li>Access to TradeScout features, connections, and information is $0</li>
+                <li>We do not charge access fees for core platform participation</li>
+                <li>Trust ranking and visibility are never sold as paid access controls</li>
+              </ul>
+
+              <h3 className="text-xl font-medium mb-3">Optional Paid Products and Services</h3>
+              <ul className="list-disc pl-6 mb-6">
+                <li>Optional paid products/services are clearly disclosed before checkout</li>
+                <li>Third-party offers (including TradePartners) are labeled as third-party</li>
+                <li>Any payment request outside labeled checkout should be treated as fraud</li>
                 <li>Fees are non-refundable except as required by law</li>
                 <li>Fee structure may change with 30 days notice</li>
               </ul>

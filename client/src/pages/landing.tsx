@@ -5,7 +5,7 @@
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
  *
  * KEY TRUTHS:
- * - $0 (no payment model at all)
+ * - $0 access to features, connections, and information
  * - Trust-first matching (CVS-based, not pay-to-play)
  * - 1-3 matches per request (no lead spam)
  * - Community-owned reinvestment model
@@ -568,7 +568,11 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
     { icon: Ban, title: "No Lead Spam", desc: "1-3 matches per request, not 20+" },
     { icon: TrendingUp, title: "Quality Over Quantity", desc: "Trust-ranked, not price-ranked" },
     { icon: Lock, title: "Privacy Protected", desc: "Your info stays private until you decide" },
-    { icon: DollarSign, title: "No Hidden Costs", desc: "No hidden fees, ever" },
+    {
+      icon: DollarSign,
+      title: "$0 Core Access",
+      desc: "$0 for features, connections, and information; unlabeled payment asks are scams",
+    },
   ];
 
   return (
@@ -678,7 +682,8 @@ function PricingSection() {
   ];
 
   const sponsorFeatures = [
-    "Transaction-based and value-movement revenue only",
+    "$0 access for features, connections, and information",
+    "Revenue comes from separate optional products and connected platforms",
     "Payment-blind trust and ranking systems",
     "No paywalls and no access tiers",
     "No paid ranking and no paid lead routing",
@@ -763,7 +768,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "How much does TradeScout cost?",
-      a: "Pricing is simple: $0. No credit card. No paywalls. No upsells.",
+      a: "Access is simple: $0 for features, connections, and information. Optional paid products and connected platform offers are clearly labeled before checkout.",
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",

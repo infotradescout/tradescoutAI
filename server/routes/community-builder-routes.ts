@@ -397,7 +397,22 @@ router.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const userId = (req.user as any).id;
       const { notificationId } = req.params;
+
+      const profile = await storage.getBuilderProfile(userId);
+      if (!profile) {
+        return res.status(403).json({ error: "Not a registered builder" });
+      }
+
+      const notifications = await storage.getBuilderNotifications(profile.id, false);
+      const ownsNotification = notifications.some(
+        (notification) => notification.id === notificationId
+      );
+      if (!ownsNotification) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+
       const updated = await storage.markBuilderNotificationAsRead(notificationId);
       res.json(updated);
     } catch (error) {

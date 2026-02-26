@@ -359,7 +359,7 @@ export default function AdminUsers() {
         countyName: String((u as any)?.countyName || u?.county || ""),
         profileImageUrl: String(u?.profileImageUrl || ""),
         bio: typeof prefs.bio === "string" ? prefs.bio : "",
-        profileVisibility: prefs.profileVisibility === "private" ? "private" : "public",
+        profileVisibility: prefs.profileVisibility === "public" ? "public" : "private",
         servicesDescription:
           typeof prefs.servicesDescription === "string" ? prefs.servicesDescription : "",
         profileSections: {

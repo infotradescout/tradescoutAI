@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,56 @@ const rankColors: Record<string, string> = {
   diamond: "bg-purple-100 text-purple-800",
 };
 
+const rankThresholds: Array<{ rank: string; minValue: number }> = [
+  { rank: "bronze", minValue: 1 },
+  { rank: "silver", minValue: 1000 },
+  { rank: "gold", minValue: 5000 },
+  { rank: "platinum", minValue: 25000 },
+  { rank: "diamond", minValue: 100000 },
+];
+
+function toNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function clamp(value: number, min = 0, max = 100): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function computeBuilderEvaluation(profile: BuilderProfile) {
+  const totalValue = toNumber(profile.stats?.totalValue ?? profile.totalContributionValue);
+  const completed = toNumber(profile.stats?.completedCount ?? profile.stats?.totalContributions);
+  const verificationRate = clamp(toNumber(profile.stats?.verificationRate));
+  const ratingScore = clamp((toNumber(profile.ratingScore) / 5) * 100);
+
+  const valueScore = clamp((totalValue / 100000) * 100);
+  const completionScore = clamp((completed / 100) * 100);
+  const trustScore = clamp((verificationRate + ratingScore) / 2);
+
+  const totalScore = clamp(
+    Math.round(valueScore * 0.35 + completionScore * 0.25 + trustScore * 0.4)
+  );
+
+  const nextRank =
+    rankThresholds.find((threshold) => totalValue < threshold.minValue) ||
+    rankThresholds[rankThresholds.length - 1];
+
+  return {
+    totalScore,
+    valueScore,
+    completionScore,
+    trustScore,
+    totalValue,
+    nextRank,
+    remainingToNext: Math.max(0, nextRank.minValue - totalValue),
+  };
+}
+
 export default function CommunityBuilderDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch Community Builder settings for this user
   const { data: profile, isLoading: profileLoading } = useQuery<BuilderProfile>({
@@ -72,16 +119,37 @@ export default function CommunityBuilderDashboard() {
     },
   });
 
-  // Fetch payouts
-  const { data: payouts = [] } = useQuery({
-    queryKey: ["builderPayouts"],
-    queryFn: async () => {
-      const res = await fetch("/api/community-builder/payouts");
-      if (res.status === 404) return [];
-      if (!res.ok) throw new Error("Failed to fetch payouts");
+  const evaluation = profile ? computeBuilderEvaluation(profile) : null;
+
+  const markNotificationReadMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const res = await fetch(`/api/community-builder/notifications/${notificationId}/read`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to mark notification as read");
       return res.json();
     },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["builderNotifications"] });
+    },
+    onError: () => {
+      toast({
+        title: "Update failed",
+        description: "Could not update notification status.",
+        variant: "destructive",
+      });
+    },
   });
+
+  const markAllNotificationsRead = async () => {
+    if (!notifications?.length) return;
+    await Promise.all(
+      notifications.map((notification: any) =>
+        markNotificationReadMutation.mutateAsync(notification.id)
+      )
+    );
+    toast({ title: "Updated", description: "All visible notifications marked as read." });
+  };
 
   if (!profile) {
     return (
@@ -163,17 +231,40 @@ export default function CommunityBuilderDashboard() {
         {notifications && notifications.length > 0 && (
           <Card className="border-2 border-yellow-200 bg-yellow-50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-yellow-900">
-                <AlertCircle className="w-5 h-5" />
-                You have {notifications.length} unread notification(s)
-              </CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="flex items-center gap-2 text-yellow-900">
+                  <AlertCircle className="w-5 h-5" />
+                  You have {notifications.length} unread notification(s)
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={markAllNotificationsRead}
+                  disabled={markNotificationReadMutation.isPending}
+                >
+                  Mark all read
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {notifications.slice(0, 3).map((notif: any) => (
-                  <p key={notif.id} className="text-sm text-yellow-800">
-                    <strong>{notif.title}:</strong> {notif.message}
-                  </p>
+                  <div
+                    key={notif.id}
+                    className="text-sm text-yellow-800 flex items-start justify-between gap-3"
+                  >
+                    <p>
+                      <strong>{notif.title}:</strong> {notif.message}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => markNotificationReadMutation.mutate(notif.id)}
+                      disabled={markNotificationReadMutation.isPending}
+                    >
+                      Mark read
+                    </Button>
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -236,7 +327,70 @@ export default function CommunityBuilderDashboard() {
         </div>
 
         {/* Verification Status */}
-        {!profile.isVerified && (
+        {evaluation && (
+          <Card className="border-2 border-indigo-200 bg-indigo-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-indigo-900">
+                <TrendingUp className="w-5 h-5" />
+                Evaluation Snapshot
+              </CardTitle>
+              <CardDescription className="text-indigo-800">
+                Community Builder evaluation reflects trust, delivery consistency, and verified
+                contribution impact.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-sm text-indigo-700">Current score</p>
+                  <p className="text-3xl font-bold text-indigo-900">{evaluation.totalScore}/100</p>
+                </div>
+                <div className="text-right text-sm text-indigo-700">
+                  <p>Current rank: {profile.currentRank.toUpperCase()}</p>
+                  <p>
+                    Next milestone: {evaluation.nextRank.rank.toUpperCase()} at $
+                    {evaluation.nextRank.minValue.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { label: "Trust quality", value: evaluation.trustScore },
+                  { label: "Contribution completion", value: evaluation.completionScore },
+                  { label: "Verified value impact", value: evaluation.valueScore },
+                ].map((metric) => (
+                  <div key={metric.label} className="space-y-1">
+                    <div className="flex justify-between text-xs text-indigo-800">
+                      <span>{metric.label}</span>
+                      <span>{Math.round(metric.value)}%</span>
+                    </div>
+                    <div className="h-2 rounded bg-indigo-100 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500"
+                        style={{ width: `${Math.round(metric.value)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {evaluation.remainingToNext > 0 ? (
+                <p className="text-sm text-indigo-800">
+                  ${evaluation.remainingToNext.toLocaleString()} remaining to unlock the next rank
+                  threshold.
+                </p>
+              ) : (
+                <p className="text-sm text-indigo-800">
+                  You&apos;re at the current top threshold. Keep contributing to strengthen county
+                  trust authority.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {!profile.isVerified ? (
           <Card className="border-2 border-orange-200 bg-orange-50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-orange-900">
@@ -244,7 +398,7 @@ export default function CommunityBuilderDashboard() {
                 Verification Pending
               </CardTitle>
               <CardDescription className="text-orange-800">
-                Complete your verification to unlock higher earning tiers
+                Complete your verification to improve trust quality and ranking readiness.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -255,6 +409,18 @@ export default function CommunityBuilderDashboard() {
                 Complete Verification
               </Button>
             </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-2 border-emerald-200 bg-emerald-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-emerald-900">
+                <CheckCircle className="w-5 h-5" />
+                Verification Active
+              </CardTitle>
+              <CardDescription className="text-emerald-800">
+                Your verification is active. Keep evidence quality high to preserve trust authority.
+              </CardDescription>
+            </CardHeader>
           </Card>
         )}
 
@@ -305,36 +471,6 @@ export default function CommunityBuilderDashboard() {
                         <Clock className="w-5 h-5 text-yellow-600" />
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Payouts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payout History</CardTitle>
-            <CardDescription>Your earnings and payouts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {payouts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No payouts yet. Complete and verify contributions to earn!</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {payouts.map((payout: any) => (
-                  <div
-                    key={payout.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-semibold">${payout.amount}</p>
-                      <p className="text-sm text-gray-600">{payout.payoutType}</p>
-                    </div>
-                    <Badge variant="outline">{payout.status}</Badge>
                   </div>
                 ))}
               </div>

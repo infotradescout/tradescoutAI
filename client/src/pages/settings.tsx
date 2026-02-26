@@ -517,6 +517,7 @@ export default function Settings() {
       // profileVisibility has a dedicated endpoint (also updates prefs internally)
       await apiRequest("PATCH", "/api/users/profile-visibility", {
         profileVisibility: nextPrivacy.profileVisibility,
+        ...(nextPrivacy.profileVisibility === "public" ? { proceedUnverified: true } : {}),
       });
       return apiRequest("PATCH", "/api/users/preferences", {
         showInSearch: nextPrivacy.showInSearch,

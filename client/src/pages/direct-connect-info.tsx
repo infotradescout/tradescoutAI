@@ -36,7 +36,12 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "Do contractors pay to receive my request?",
       answer:
-        "No. Direct Connect matches are based on trust, relevance, and availability - not payment. Contractors pay TradeScout only when work is completed (transaction fee), not per lead.",
+        "No. Direct Connect matching is based on trust, relevance, and availability - not payment. TradeScout access to features, connections, and information is $0, with no contractor lead fee, monthly fee, or post-job contractor fee.",
+    },
+    {
+      question: "What payment requests are legitimate?",
+      answer:
+        "Only clearly labeled checkout for optional products (such as Marketplace Promotions or third-party TradePartners offers) is legitimate. Any unlabeled payment request made in TradeScout's name should be treated as a scam.",
     },
     {
       question: "What information does Scout send to contractors?",
@@ -247,8 +252,8 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
                   <span>
-                    <strong>No pay-per-lead</strong>: Contractors don't pay for every request (only
-                    completed work transaction fees)
+                    <strong>$0 access</strong>: No fee for TradeScout features, connections, or
+                    information in Direct Connect routing
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -277,6 +282,13 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                   <span>
                     <strong>Trust determines visibility</strong>: High CVS = more matches,
                     regardless of ad spend
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Scam safety</strong>: Only pay through clearly labeled checkout for paid
+                    options; unlabeled money requests in TradeScout's name are scams
                   </span>
                 </li>
               </ul>

@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CheckCircle, Clock, FileText, Upload, Trash2, Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, CheckCircle, Clock, FileText, Upload, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Contribution {
@@ -61,9 +62,14 @@ export default function ContributionDetail() {
   const [match, params] = useRoute("/community-builder/contributions/:id");
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [evidenceType, setEvidenceType] = useState("documentation");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [evidenceDescription, setEvidenceDescription] = useState("");
+  const [checkoutAmount, setCheckoutAmount] = useState("");
 
   const { data: contribution, isLoading } = useQuery<Contribution>({
     queryKey: ["contribution", params?.id],
@@ -76,7 +82,7 @@ export default function ContributionDetail() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: { title?: string; description?: string }) => {
       const res = await fetch(`/api/community-builder/contributions/${params?.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -88,6 +94,7 @@ export default function ContributionDetail() {
     onSuccess: () => {
       toast({ title: "Updated", description: "Contribution updated successfully" });
       setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["contribution", params?.id] });
     },
     onError: () => {
       toast({
@@ -99,18 +106,82 @@ export default function ContributionDetail() {
   });
 
   const addEvidenceMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
+    mutationFn: async (data: { type: string; url: string; description?: string }) => {
       const res = await fetch(`/api/community-builder/contributions/${params?.id}/evidence`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to add evidence");
       return res.json();
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Evidence added successfully" });
+      setEvidenceUrl("");
+      setEvidenceDescription("");
+      queryClient.invalidateQueries({ queryKey: ["contribution", params?.id] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add evidence",
+        variant: "destructive",
+      });
     },
   });
+
+  const checkoutMutation = useMutation({
+    mutationFn: async () => {
+      const contributionId = params?.id;
+      if (!contributionId) {
+        throw new Error("Contribution not found");
+      }
+
+      const amount = Number(checkoutAmount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error("Enter a valid amount greater than 0");
+      }
+
+      const res = await fetch("/api/community-builder/checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contributionId,
+          amount: amount.toFixed(2),
+          payoutToVault: true,
+          successUrl: `${window.location.origin}/community-builder/contributions/${contributionId}/success`,
+          cancelUrl: `${window.location.origin}/community-builder/contributions/${contributionId}`,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to create checkout session");
+      }
+      return data as { url?: string };
+    },
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      toast({ title: "Session created", description: "Checkout session is ready." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Checkout failed",
+        description: error?.message || "Unable to create checkout session",
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!contribution) return;
+    const defaultAmount = contribution.actualValue || contribution.estimatedValue || "";
+    if (defaultAmount && !checkoutAmount) {
+      setCheckoutAmount(String(defaultAmount));
+    }
+  }, [contribution, checkoutAmount]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">Loading...</div>;
@@ -188,7 +259,12 @@ export default function ContributionDetail() {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => updateMutation.mutate()}
+                    onClick={() =>
+                      updateMutation.mutate({
+                        title: editTitle,
+                        description: editDescription,
+                      })
+                    }
                     disabled={updateMutation.isPending}
                   >
                     Save Changes
@@ -298,6 +374,28 @@ export default function ContributionDetail() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Session</CardTitle>
+            <CardDescription>
+              Create a checkout session for this contribution and route funds to the community
+              vault.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid md:grid-cols-1 gap-2">
+              <Input
+                value={checkoutAmount}
+                onChange={(e) => setCheckoutAmount(e.target.value)}
+                placeholder="Amount"
+              />
+            </div>
+            <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending}>
+              Start Checkout
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Evidence */}
         <Card>
           <CardHeader>
@@ -308,6 +406,37 @@ export default function ContributionDetail() {
             <CardDescription>{contribution.evidence?.length || 0} file(s) attached</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-4 gap-2">
+              <Input
+                value={evidenceType}
+                onChange={(e) => setEvidenceType(e.target.value)}
+                placeholder="Type"
+              />
+              <Input
+                value={evidenceUrl}
+                onChange={(e) => setEvidenceUrl(e.target.value)}
+                placeholder="https://..."
+                className="md:col-span-2"
+              />
+              <Button
+                onClick={() =>
+                  addEvidenceMutation.mutate({
+                    type: evidenceType || "documentation",
+                    url: evidenceUrl,
+                    description: evidenceDescription || undefined,
+                  })
+                }
+                disabled={addEvidenceMutation.isPending || !evidenceUrl.trim()}
+              >
+                Add Evidence
+              </Button>
+            </div>
+            <Textarea
+              value={evidenceDescription}
+              onChange={(e) => setEvidenceDescription(e.target.value)}
+              rows={2}
+              placeholder="Optional evidence description"
+            />
             {contribution.evidence && contribution.evidence.length > 0 ? (
               <div className="space-y-2">
                 {contribution.evidence.map((file, i) => (

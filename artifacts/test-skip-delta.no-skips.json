@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-02-26T04:07:49.963Z",
+  "generatedAt": "2026-02-26T21:22:33.015Z",
   "sourceReport": "test-results/vitest-results.no-skips.json",
   "status": "pass",
   "failOnIncrease": true,
   "current": {
-    "totalTests": 235,
-    "passedTests": 232,
+    "totalTests": 262,
+    "passedTests": 259,
     "pendingTests": 0,
     "failedTests": 0,
-    "totalSuites": 120,
+    "totalSuites": 134,
     "pendingSuites": 0
   },
   "baseline": {

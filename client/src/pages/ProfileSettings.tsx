@@ -377,14 +377,40 @@ export default function ProfileSettings() {
     const visibility = isPublic ? "public" : "private";
 
     try {
-      const response = await fetch("/api/users/profile-visibility", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ profileVisibility: visibility }),
-      });
+      const requestVisibility = async (proceed = false) => {
+        const response = await fetch("/api/users/profile-visibility", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            profileVisibility: visibility,
+            ...(proceed ? { proceedUnverified: true } : {}),
+          }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        return { response, payload };
+      };
+
+      const { response, payload } = await requestVisibility(false);
 
       if (!response.ok) throw new Error("Failed to update visibility");
+
+      if (payload?.allowProceedUnverified && visibility === "public") {
+        const proceed = window.confirm(
+          "Verification is recommended before publishing. Publish publicly now anyway?"
+        );
+        if (!proceed) {
+          toast({
+            title: "Verification recommended",
+            description: "Profile visibility was not changed.",
+          });
+          return;
+        }
+
+        const retry = await requestVisibility(true);
+        if (!retry.response.ok) throw new Error("Failed to update visibility");
+      }
 
       setPreferences((prev) => ({ ...prev, profileVisibility: visibility }));
       await refetch();

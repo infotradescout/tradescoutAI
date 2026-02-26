@@ -12,7 +12,7 @@ import { UserPlus, Mail, ShieldCheck, Building2 } from "lucide-react";
 type ProvisionResponse = {
   user: { id: string; email: string; emailVerified?: boolean };
   activationLink?: string;
-  verificationLink?: string;
+  verifyLink?: string;
   business?: { id: string; name: string; slug: string } | null;
   message?: string;
 };
@@ -49,6 +49,7 @@ export default function AdminProvisioning() {
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
         phone: phone.trim() || undefined,
+        sendEmail: sendActivationEmail || sendVerificationEmail,
         sendActivationEmail,
         sendVerificationEmail,
       };
@@ -242,8 +243,8 @@ export default function AdminProvisioning() {
               {mutation.data.activationLink ? (
                 <div className="break-all">Activation: {mutation.data.activationLink}</div>
               ) : null}
-              {mutation.data.verificationLink ? (
-                <div className="break-all">Verify: {mutation.data.verificationLink}</div>
+              {mutation.data.verifyLink ? (
+                <div className="break-all">Verify: {mutation.data.verifyLink}</div>
               ) : null}
             </div>
           ) : null}

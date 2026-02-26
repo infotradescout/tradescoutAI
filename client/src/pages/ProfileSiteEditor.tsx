@@ -113,6 +113,47 @@ export default function ProfileSiteEditor() {
     }
 
     try {
+      const allowedBlockTypes = new Set([
+        "hero",
+        "about",
+        "services",
+        "gallery",
+        "faq",
+        "reviews",
+        "cta",
+        "custom",
+      ]);
+
+      const normalizeContentBlocks = Array.isArray(parsedPayload.contentBlocks)
+        ? parsedPayload.contentBlocks
+            .filter((block: any) => block && typeof block === "object")
+            .map((block: any) => ({
+              type: allowedBlockTypes.has(String(block.type || "")) ? String(block.type) : "custom",
+              data:
+                block.data && typeof block.data === "object" && !Array.isArray(block.data)
+                  ? block.data
+                  : {},
+            }))
+        : [];
+
+      const normalizeCta = (cta: any) => {
+        if (!cta || typeof cta !== "object") return undefined;
+        const label = typeof cta.label === "string" ? cta.label.trim() : "";
+        const kind = typeof cta.kind === "string" ? cta.kind.trim() : "";
+        const value = typeof cta.value === "string" ? cta.value.trim() : "";
+        if (!label || !kind || !value) return undefined;
+        return { label, kind, value };
+      };
+
+      const normalizedCtaConfig = {
+        ...(normalizeCta((parsedPayload.ctaConfig as any)?.primary)
+          ? { primary: normalizeCta((parsedPayload.ctaConfig as any)?.primary) }
+          : {}),
+        ...(normalizeCta((parsedPayload.ctaConfig as any)?.secondary)
+          ? { secondary: normalizeCta((parsedPayload.ctaConfig as any)?.secondary) }
+          : {}),
+      };
+
       const seoMetaFromText =
         parsedPayload.seoMeta && typeof parsedPayload.seoMeta === "object"
           ? { ...(parsedPayload.seoMeta as Record<string, unknown>) }
@@ -124,12 +165,27 @@ export default function ProfileSiteEditor() {
         delete (seoMetaFromText as any).customDomain;
       }
 
+      const normalizedSeoMeta = {
+        ...(typeof (seoMetaFromText as any).title === "string"
+          ? { title: String((seoMetaFromText as any).title) }
+          : {}),
+        ...(typeof (seoMetaFromText as any).description === "string"
+          ? { description: String((seoMetaFromText as any).description) }
+          : {}),
+        ...(typeof (seoMetaFromText as any).imageUrl === "string"
+          ? { imageUrl: String((seoMetaFromText as any).imageUrl) }
+          : {}),
+        ...(typeof (seoMetaFromText as any).customDomain === "string"
+          ? { customDomain: String((seoMetaFromText as any).customDomain) }
+          : {}),
+      };
+
       const res = await apiRequest("PUT", `/api/profiles/${profile.id}`, {
         displayName,
         headline: headline || null,
-        contentBlocks: parsedPayload.contentBlocks,
-        ctaConfig: parsedPayload.ctaConfig,
-        seoMeta: seoMetaFromText,
+        contentBlocks: normalizeContentBlocks,
+        ctaConfig: normalizedCtaConfig,
+        seoMeta: normalizedSeoMeta,
       });
       const updated = (await res.json()) as ProfileDetail;
       setProfile(updated);
@@ -181,7 +237,26 @@ export default function ProfileSiteEditor() {
 
   const setVisibility = async (next: "public" | "private") => {
     try {
-      await apiRequest("PATCH", "/api/users/profile-visibility", { profileVisibility: next });
+      const firstRes = await apiRequest("PATCH", "/api/users/profile-visibility", {
+        profileVisibility: next,
+      });
+      const firstPayload = await firstRes.json().catch(() => ({}) as any);
+
+      if (firstPayload?.allowProceedUnverified && next === "public") {
+        const proceed = window.confirm(
+          "Verification is recommended before publishing. Make profile public now anyway?"
+        );
+        if (!proceed) {
+          toast({ title: "Verification recommended", description: "Visibility not changed." });
+          return;
+        }
+
+        await apiRequest("PATCH", "/api/users/profile-visibility", {
+          profileVisibility: next,
+          proceedUnverified: true,
+        });
+      }
+
       toast({ title: "Updated", description: `Profile visibility set to ${next}.` });
       setLocation(`/u/${slug}/edit`);
     } catch (error: any) {

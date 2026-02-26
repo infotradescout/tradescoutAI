@@ -221,6 +221,11 @@ const TrustModelPage = memo(function TrustModelPage() {
               <p className="text-tsTextSecondary">
                 A contractor with CVS 40 cannot pay to rank above a contractor with CVS 80.
               </p>
+              <p className="text-tsTextSecondary mt-2">
+                Access to TradeScout features, connections, and information is
+                <strong> $0</strong>. Revenue comes from separate optional products and connected
+                platforms, and any unlabeled payment request made in TradeScout's name is a scam.
+              </p>
             </div>
           </section>
 

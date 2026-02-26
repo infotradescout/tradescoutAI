@@ -24,7 +24,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "What is the main difference between TradeScout and HomeAdvisor?",
       answer:
-        "HomeAdvisor uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching where contractors pay only on completed work. This fundamentally changes incentives: HomeAdvisor maximizes lead volume; TradeScout maximizes match quality.",
+        "HomeAdvisor uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no contractor lead fees, no monthly subscription, and no post-job contractor fee. This fundamentally changes incentives: HomeAdvisor maximizes lead volume; TradeScout maximizes match quality.",
     },
     {
       question: "Why do I get bombarded with calls on HomeAdvisor?",
@@ -45,6 +45,11 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
       question: "What is different about Scout?",
       answer:
         "Scout is TradeScout's AI helper that controls the platform. You ask Scout questions, request matches, and manage projects from one conversation. Scout prioritizes outcomes over impressions. HomeAdvisor requires navigating forms and browsing listings.",
+    },
+    {
+      question: "Is TradeScout really $0 to use?",
+      answer:
+        "Access to TradeScout features, connections, and information is $0 for residents and contractors. Revenue comes from separate optional products and connected platforms (like Marketplace Promotions or third-party TradePartners offers), clearly labeled before checkout. Unlabeled payment requests in TradeScout's name are scams.",
     },
   ];
 
@@ -88,7 +93,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                   TradeScout (Trust-Based Matching)
                 </h3>
                 <p className="text-tsTextSecondary">
-                  Contractors pay only when work is completed (transaction fee). No pay-per-lead.
+                  Contractors are not charged per lead, per month, or after completed work.
                 </p>
                 <p className="text-tsTextSecondary mt-2">
                   <strong>Incentive:</strong> Match quality over volume.
@@ -124,7 +129,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                       Lead sales (pay-per-request)
                     </td>
                     <td className="p-4 text-center text-tsTextSecondary">
-                      Transaction fees (pay-on-completion)
+                      Trust-based matching (no lead sales)
                     </td>
                   </tr>
 
@@ -137,9 +142,9 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                       (win or lose)
                     </td>
                     <td className="p-4 text-center text-tsTextSecondary">
-                      0% upfront
+                      No lead fees
                       <br />
-                      (fee only on completed work)
+                      (no monthly or post-job contractor fee)
                     </td>
                   </tr>
 
