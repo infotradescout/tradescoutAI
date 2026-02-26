@@ -150,6 +150,7 @@ export default function AdminUsers() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<"all" | "24h" | "7d" | "30d">("all");
+  const [adminSafetyKey, setAdminSafetyKey] = useState("");
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
   const [profileUser, setProfileUser] = useState<User | null>(null);
@@ -208,14 +209,10 @@ export default function AdminUsers() {
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
   const currentAdminId = String((user as any)?.id || "");
   const currentAdminRole = String((user as any)?.role || "");
-  const readAdminSafetyKey = () => {
-    if (typeof window === "undefined") return "";
-    return String(window.localStorage.getItem("ts:admin:safety-key") || "").trim();
-  };
   const buildAdminSafety = (reason: string) => ({
     reason,
     confirmPhrase: ADMIN_SAFETY_CONFIRM_PHRASE,
-    safetyKey: readAdminSafetyKey() || undefined,
+    safetyKey: adminSafetyKey.trim() || undefined,
   });
 
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -592,6 +589,25 @@ export default function AdminUsers() {
   }, [user?.id]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = window.localStorage.getItem("ts:admin:safety-key") || "";
+      setAdminSafetyKey(String(saved));
+    } catch (e) {
+      console.error("Failed to load admin safety key", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("ts:admin:safety-key", adminSafetyKey);
+    } catch (e) {
+      console.error("Failed to persist admin safety key", e);
+    }
+  }, [adminSafetyKey]);
+
+  useEffect(() => {
     if (!user?.id) return;
     try {
       window.localStorage.setItem(`adminUsersSavedViews:${user.id}`, JSON.stringify(savedViews));
@@ -910,6 +926,34 @@ export default function AdminUsers() {
                   >
                     {pendingAction["manual:resend-verification"] ? "Sending..." : "Send link"}
                   </Button>
+                </div>
+
+                <div className="h-px bg-border" />
+
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-foreground">
+                    Admin write safety key
+                  </div>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-end">
+                    <div className="flex-1">
+                      <Label className="text-muted-foreground text-xs">Safety key</Label>
+                      <Input
+                        type="password"
+                        value={adminSafetyKey}
+                        onChange={(e) => setAdminSafetyKey(e.target.value)}
+                        placeholder="Required only when strict admin safety key mode is enabled"
+                        className="bg-input border-input text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-input text-foreground hover:bg-muted"
+                      onClick={() => setAdminSafetyKey("")}
+                    >
+                      Clear key
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="h-px bg-border" />

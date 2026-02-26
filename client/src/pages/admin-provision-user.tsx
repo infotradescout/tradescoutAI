@@ -15,6 +15,12 @@ type ProvisionResponse = {
   emailSent: boolean;
   activationLinkIncluded: boolean;
   verifyLinkIncluded: boolean;
+  profileProvisioned?: boolean;
+  profileCreated?: boolean;
+  profileId?: string | null;
+  profileSlug?: string | null;
+  businessId?: string | null;
+  businessSlug?: string | null;
   activationLink?: string;
   verifyLink?: string;
   message?: string;
@@ -27,6 +33,12 @@ export default function AdminProvisionUser() {
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
+  const [createBusinessProfile, setCreateBusinessProfile] = useState(false);
+  const [profileDisplayName, setProfileDisplayName] = useState("");
+  const [profileRoleContext, setProfileRoleContext] = useState("business_owner");
+  const [profileHeadline, setProfileHeadline] = useState("");
+  const [createBusinessRecord, setCreateBusinessRecord] = useState(false);
+  const [businessName, setBusinessName] = useState("");
   const [result, setResult] = useState<ProvisionResponse | null>(null);
   const [targetUserEmail, setTargetUserEmail] = useState("");
   const [targetUserId, setTargetUserId] = useState("");
@@ -63,6 +75,16 @@ export default function AdminProvisionUser() {
         lastName: lastName.trim() || undefined,
         password: password || undefined,
         sendEmail,
+        profile: createBusinessProfile
+          ? {
+              create: true,
+              displayName: profileDisplayName.trim() || undefined,
+              roleContext: profileRoleContext.trim() || undefined,
+              headline: profileHeadline.trim() || undefined,
+              createBusinessRecord,
+              businessName: businessName.trim() || undefined,
+            }
+          : undefined,
       };
       return (await apiRequest("POST", "/api/admin/users/provision", payload)) as ProvisionResponse;
     },
@@ -235,6 +257,69 @@ export default function AdminProvisionUser() {
             <Checkbox checked={sendEmail} onCheckedChange={(v) => setSendEmail(v === true)} />
             Send setup email (recommended)
           </label>
+
+          <label className="flex items-center gap-2 text-xs text-slate-300">
+            <Checkbox
+              checked={createBusinessProfile}
+              onCheckedChange={(v) => setCreateBusinessProfile(v === true)}
+            />
+            Create public business profile during provisioning
+          </label>
+
+          {createBusinessProfile ? (
+            <div className="space-y-3 rounded-md border border-[color:var(--border-subtle)] bg-slate-950/30 p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400">Profile display name</label>
+                  <Input
+                    value={profileDisplayName}
+                    onChange={(e) => setProfileDisplayName(e.target.value)}
+                    placeholder="Company or profile name"
+                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Role context</label>
+                  <Input
+                    value={profileRoleContext}
+                    onChange={(e) => setProfileRoleContext(e.target.value)}
+                    placeholder="business_owner"
+                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400">Profile headline (optional)</label>
+                <Input
+                  value={profileHeadline}
+                  onChange={(e) => setProfileHeadline(e.target.value)}
+                  placeholder="Trusted local service provider"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-xs text-slate-300">
+                <Checkbox
+                  checked={createBusinessRecord}
+                  onCheckedChange={(v) => setCreateBusinessRecord(v === true)}
+                />
+                Also create linked business record
+              </label>
+
+              {createBusinessRecord ? (
+                <div>
+                  <label className="text-xs text-slate-400">Business name</label>
+                  <Input
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="Acme Services LLC"
+                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <Button
             onClick={() => provision.mutate()}
@@ -420,6 +505,10 @@ export default function AdminProvisionUser() {
           </CardHeader>
           <CardContent className="space-y-2 text-xs text-slate-200">
             <div>User: {result.user.email}</div>
+            <div>Business profile provisioned: {String(result.profileProvisioned === true)}</div>
+            {result.profileId ? <div>Profile ID: {result.profileId}</div> : null}
+            {result.profileSlug ? <div>Profile slug: {result.profileSlug}</div> : null}
+            {result.businessId ? <div>Business ID: {result.businessId}</div> : null}
             {result.activationLink ? (
               <div className="break-all">Activation: {result.activationLink}</div>
             ) : null}

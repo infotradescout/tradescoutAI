@@ -10881,6 +10881,31 @@ export async function registerRoutes(app: any) {
       const password = typeof body.password === "string" ? body.password : "";
       const sendEmail = body.sendEmail !== false;
 
+      const profileInput =
+        body && typeof body.profile === "object" && body.profile ? (body.profile as any) : null;
+      const createBusinessProfile = profileInput?.create === true;
+      const profileDisplayName =
+        typeof profileInput?.displayName === "string" ? profileInput.displayName.trim() : "";
+      const profileRoleContext =
+        typeof profileInput?.roleContext === "string" ? profileInput.roleContext.trim() : "";
+      const profileHeadline =
+        typeof profileInput?.headline === "string" ? profileInput.headline.trim() : "";
+      const createBusinessRecord = profileInput?.createBusinessRecord === true;
+      const businessNameInput =
+        typeof profileInput?.businessName === "string" ? profileInput.businessName.trim() : "";
+
+      if (profileRoleContext && (profileRoleContext.length < 2 || profileRoleContext.length > 64)) {
+        return res.status(400).json({
+          message: "profile.roleContext must be between 2 and 64 characters",
+        });
+      }
+
+      if (profileHeadline && profileHeadline.length > 160) {
+        return res.status(400).json({
+          message: "profile.headline must be 160 characters or fewer",
+        });
+      }
+
       // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
       if (["moderator", "ops_admin", "super_admin", "head_admin"].includes(role)) {
         return res.status(400).json({
@@ -10912,6 +10937,75 @@ export async function registerRoutes(app: any) {
         if (Object.keys(patch).length > 0) {
           patch.updatedAt = new Date();
           user = (await storage.updateUser(user.id, patch)) || user;
+        }
+      }
+
+      let provisionedProfile: any = null;
+      let createdProfile = false;
+      let provisionedBusiness: any = null;
+
+      if (createBusinessProfile) {
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+        const defaultDisplayName =
+          profileDisplayName ||
+          businessNameInput ||
+          fullName ||
+          String(user.email || "TradeScout Business").split("@")[0];
+
+        const resolvedDisplayName = String(defaultDisplayName || "TradeScout Business").trim();
+        if (resolvedDisplayName.length < 2) {
+          return res.status(400).json({
+            message: "profile.displayName must be at least 2 characters",
+          });
+        }
+
+        const resolvedRoleContext = profileRoleContext || role || "business_owner";
+        const existingProfiles = await storage.listProfilesByOwner(user.id);
+
+        if (existingProfiles.length > 0) {
+          provisionedProfile = existingProfiles[0];
+        } else {
+          if (createBusinessRecord) {
+            const resolvedBusinessName = (businessNameInput || resolvedDisplayName).trim();
+            if (resolvedBusinessName.length < 2) {
+              return res.status(400).json({
+                message: "profile.businessName must be at least 2 characters",
+              });
+            }
+
+            provisionedBusiness = await storage.createBusinessForOwner(user.id, {
+              name: resolvedBusinessName,
+              slug: resolvedBusinessName,
+              type: "other" as any,
+              roleContext: resolvedRoleContext as any,
+              profileData: {
+                description: profileHeadline || undefined,
+                email: user.email,
+              } as any,
+              status: "active" as any,
+              countyIds: [],
+            });
+
+            await storage.setUserActiveBusiness(user.id, provisionedBusiness.id);
+          }
+
+          provisionedProfile = await storage.createProfileForOwner(user.id, {
+            businessId: provisionedBusiness?.id || undefined,
+            roleContext: resolvedRoleContext as any,
+            slug: resolvedDisplayName,
+            displayName: resolvedDisplayName,
+            headline: profileHeadline || null,
+            contentBlocks: [],
+            ctaConfig: {},
+            seoMeta: {},
+            status: "published" as any,
+          } as any);
+
+          createdProfile = true;
+        }
+
+        if (provisionedProfile?.id) {
+          await storage.setUserActiveProfile(user.id, provisionedProfile.id);
         }
       }
 
@@ -10981,6 +11075,12 @@ export async function registerRoutes(app: any) {
         emailSent,
         activationLinkIncluded: Boolean(resetLink),
         verifyLinkIncluded: Boolean(verifyLink),
+        profileProvisioned: Boolean(provisionedProfile),
+        profileCreated: createdProfile,
+        profileId: provisionedProfile?.id || null,
+        profileSlug: provisionedProfile?.slug || null,
+        businessId: provisionedBusiness?.id || null,
+        businessSlug: provisionedBusiness?.slug || null,
         ...debug,
       });
     } catch (error: any) {
