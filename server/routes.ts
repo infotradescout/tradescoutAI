@@ -6678,6 +6678,76 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin user management endpoints
+  const ADMIN_WRITE_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
+  const PROTECTED_ADMIN_ROLE_SET = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+
+  const normalizeAdminRoleToken = (role: unknown): string =>
+    String(role || "")
+      .trim()
+      .toLowerCase();
+
+  const hasRole = (user: any, role: string): boolean => {
+    const target = normalizeAdminRoleToken(role);
+    if (!target) return false;
+    const roles = [
+      normalizeAdminRoleToken(user?.role),
+      normalizeAdminRoleToken(user?.activeRole),
+      ...(Array.isArray(user?.roles)
+        ? user.roles.map((value: unknown) => normalizeAdminRoleToken(value))
+        : []),
+    ].filter(Boolean);
+    return new Set(roles).has(target);
+  };
+
+  const isHeadOrSuperAdminUser = (user: any): boolean =>
+    hasRole(user, "head_admin") || hasRole(user, "super_admin");
+
+  const isProtectedAdminUser = (user: any): boolean => {
+    if (!user) return false;
+    for (const role of PROTECTED_ADMIN_ROLE_SET) {
+      if (hasRole(user, role)) return true;
+    }
+    return false;
+  };
+
+  const validateAdminWriteSafety = (
+    body: any,
+    headers: Record<string, unknown>,
+    opts?: { forceStrict?: boolean }
+  ): { ok: boolean; message?: string } => {
+    const adminSafety =
+      body && typeof body.adminSafety === "object" && body.adminSafety ? body.adminSafety : {};
+    const configuredSafetyKey = String(process.env.ADMIN_SAFETY_KEY || "").trim();
+    const providedSafetyKey = String(
+      adminSafety.safetyKey || headers["x-admin-safety-key"] || ""
+    ).trim();
+
+    if (configuredSafetyKey && providedSafetyKey !== configuredSafetyKey) {
+      return { ok: false, message: "Admin safety key validation failed" };
+    }
+
+    const strictRequired =
+      opts?.forceStrict === true || process.env.ADMIN_HARDENED_WRITES === "true";
+    if (!strictRequired) {
+      return { ok: true };
+    }
+
+    const reason = String(adminSafety.reason || "").trim();
+    if (reason.length < 12) {
+      return { ok: false, message: "adminSafety.reason is required (min 12 chars)" };
+    }
+
+    const confirmPhrase = String(adminSafety.confirmPhrase || "").trim();
+    if (confirmPhrase !== ADMIN_WRITE_CONFIRM_PHRASE) {
+      return {
+        ok: false,
+        message: `adminSafety.confirmPhrase must be exactly: ${ADMIN_WRITE_CONFIRM_PHRASE}`,
+      };
+    }
+
+    return { ok: true };
+  };
+
   app.get("/api/admin/users", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
@@ -6721,6 +6791,7 @@ export async function registerRoutes(app: any) {
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
       const { role } = (req.body ?? {}) as any;
+      const requestedRole = normalizeAdminRoleToken(role);
 
       if (
         !adminUser ||
@@ -6729,17 +6800,57 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
+      if (!requestedRole) {
+        return res.status(400).json({ message: "role is required" });
+      }
+
       // Only head_admin can promote to head_admin or modify other head_admins
-      if (role === "head_admin" && adminUser.role !== "head_admin") {
+      if (requestedRole === "head_admin" && adminUser.role !== "head_admin") {
         return res.status(403).json({ message: "Only head admin can promote to head admin" });
       }
 
       const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+
+      const targetProtected = isProtectedAdminUser(targetUser);
+      const actorHeadOrSuper = isHeadOrSuperAdminUser(adminUser);
+
+      if (targetProtected && !actorHeadOrSuper) {
+        return res
+          .status(403)
+          .json({ message: "Only head/super admins can modify protected admin users" });
+      }
+
+      if (PROTECTED_ADMIN_ROLE_SET.has(requestedRole) && !actorHeadOrSuper) {
+        return res
+          .status(403)
+          .json({ message: "Only head/super admins can assign protected admin roles" });
+      }
+
+      const safety = validateAdminWriteSafety(req.body ?? {}, req.headers as any, {
+        forceStrict: targetProtected,
+      });
+      if (!safety.ok) {
+        return res.status(403).json({ message: safety.message });
+      }
+
       if (targetUser?.role === "head_admin" && adminUser.role !== "head_admin") {
         return res.status(403).json({ message: "Only head admin can modify other head admins" });
       }
 
-      const updatedUser = await storage.updateUser(userId, { role });
+      const updatedUser = await storage.updateUser(userId, { role: requestedRole });
+
+      await logAdminAction({
+        action: "admin_user_role_update",
+        actorUserId: adminUserId,
+        targetUserId: userId,
+        oldRole: targetUser.role,
+        newRole: requestedRole,
+        protectedTarget: targetProtected,
+      });
+
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating user role:", error);
@@ -6761,6 +6872,26 @@ export async function registerRoutes(app: any) {
       }
 
       const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+
+      const targetProtected = isProtectedAdminUser(targetUser);
+      const actorHeadOrSuper = isHeadOrSuperAdminUser(adminUser);
+
+      if (targetProtected && !actorHeadOrSuper) {
+        return res
+          .status(403)
+          .json({ message: "Only head/super admins can delete protected admin users" });
+      }
+
+      const safety = validateAdminWriteSafety(req.body ?? {}, req.headers as any, {
+        forceStrict: targetProtected,
+      });
+      if (!safety.ok) {
+        return res.status(403).json({ message: safety.message });
+      }
+
       if (targetUser?.role === "head_admin" && adminUser.role !== "head_admin") {
         return res.status(403).json({ message: "Only head admin can delete other head admins" });
       }
@@ -6771,6 +6902,15 @@ export async function registerRoutes(app: any) {
       }
 
       await storage.deleteUser(userId);
+
+      await logAdminAction({
+        action: "admin_user_delete",
+        actorUserId: adminUserId,
+        targetUserId: userId,
+        targetRole: targetUser.role,
+        protectedTarget: targetProtected,
+      });
+
       res.status(204).send();
     } catch (error: any) {
       console.error("Error deleting user:", error);
@@ -10310,10 +10450,42 @@ export async function registerRoutes(app: any) {
           return res.status(404).json({ error: "User not found" });
         }
 
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const actor = await storage.getUser(actorId);
+        if (!actor) {
+          return res.status(401).json({ error: "Actor not found" });
+        }
+
+        const targetProtected = isProtectedAdminUser(target);
+        if (targetProtected && !isHeadOrSuperAdminUser(actor)) {
+          return res
+            .status(403)
+            .json({
+              error: "Only head/super admins can reset passwords for protected admin users",
+            });
+        }
+
+        const safety = validateAdminWriteSafety(req.body ?? {}, req.headers as any, {
+          forceStrict: targetProtected,
+        });
+        if (!safety.ok) {
+          return res.status(403).json({ error: safety.message });
+        }
+
         const passwordHash = await hashPassword(newPassword);
         await storage.updateUser(target.id, {
           password: passwordHash,
           updatedAt: new Date(),
+        });
+
+        await logAdminAction({
+          action: "admin_user_reset_password",
+          actorUserId: actorId,
+          targetUserId: target.id,
+          targetEmail: target.email,
+          protectedTarget: targetProtected,
         });
 
         res.json({
@@ -10340,6 +10512,28 @@ export async function registerRoutes(app: any) {
 
         const existing = await storage.getUser(targetUserId);
         if (!existing) return res.status(404).json({ message: "User not found" });
+
+        const actorId = String(
+          (req as any)?.user?.id || (req as any)?.user?.claims?.sub || ""
+        ).trim();
+        const actor = await storage.getUser(actorId);
+        if (!actor) {
+          return res.status(401).json({ message: "Actor not found" });
+        }
+
+        const targetProtected = isProtectedAdminUser(existing);
+        if (targetProtected && !isHeadOrSuperAdminUser(actor)) {
+          return res
+            .status(403)
+            .json({ message: "Only head/super admins can edit protected admin users" });
+        }
+
+        const safety = validateAdminWriteSafety(req.body ?? {}, (req as any).headers ?? {}, {
+          forceStrict: targetProtected,
+        });
+        if (!safety.ok) {
+          return res.status(403).json({ message: safety.message });
+        }
 
         const body = (req.body ?? {}) as any;
         const {
@@ -10414,6 +10608,31 @@ export async function registerRoutes(app: any) {
           updatedAt: new Date(),
         } as any);
 
+        await logAdminAction({
+          action: "admin_user_profile_update",
+          actorUserId: actorId,
+          targetUserId,
+          protectedTarget: targetProtected,
+          changedFields: [
+            "firstName",
+            "lastName",
+            "phone",
+            "address",
+            "city",
+            "state",
+            "stateCode",
+            "zipCode",
+            "county",
+            "countyName",
+            "countyFips",
+            "countyId",
+            "latitude",
+            "longitude",
+            "profileImageUrl",
+            patchPreferences ? "preferencesPatch" : null,
+          ].filter(Boolean),
+        });
+
         return res.json({ user: sanitizeUserForResponse(updated) });
       } catch (error: any) {
         console.error("Error updating admin user profile:", error);
@@ -10479,11 +10698,9 @@ export async function registerRoutes(app: any) {
 
         const confirmPhrase = String(adminSafety.confirmPhrase || "").trim();
         if (confirmPhrase !== ADMIN_SUPPORT_CONFIRM_PHRASE) {
-          return res
-            .status(400)
-            .json({
-              message: `adminSafety.confirmPhrase must be exactly: ${ADMIN_SUPPORT_CONFIRM_PHRASE}`,
-            });
+          return res.status(400).json({
+            message: `adminSafety.confirmPhrase must be exactly: ${ADMIN_SUPPORT_CONFIRM_PHRASE}`,
+          });
         }
 
         const configuredSafetyKey = String(process.env.ADMIN_SAFETY_KEY || "").trim();
