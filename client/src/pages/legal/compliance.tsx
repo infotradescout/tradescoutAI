@@ -335,6 +335,12 @@ export default function CompliancePage() {
                   Dispute Resolution
                 </a>
               </Button>
+              <Button variant="outline" className="justify-start" asChild>
+                <a href="/legal/remote-notary">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Remote Notary
+                </a>
+              </Button>
             </div>
           </CardContent>
         </Card>

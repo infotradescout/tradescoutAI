@@ -318,6 +318,7 @@ const TrustModel = React.lazy(() => import("./pages/trust-model"));
 const DirectConnectInfo = React.lazy(() => import("./pages/direct-connect-info"));
 const CompareAngi = React.lazy(() => import("./pages/compare-angi"));
 const CompareHomeAdvisor = React.lazy(() => import("./pages/compare-homeadvisor"));
+const RemoteNotary = React.lazy(() => import("./pages/legal/remote-notary"));
 const NotFound = React.lazy(() => import("./pages/not-found"));
 const Unauthorized = React.lazy(() => import("./pages/Unauthorized"));
 
@@ -1582,6 +1583,12 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/privacy-request">
                     <LazyPage Component={PrivacyRequest} />
+                  </Route>
+                  <Route path="/legal/remote-notary">
+                    <LazyPage Component={RemoteNotary} />
+                  </Route>
+                  <Route path="/services/remote-notary">
+                    <LazyPage Component={RemoteNotary} />
                   </Route>
                   <Route path="/about">
                     <LazyPage Component={About} />
