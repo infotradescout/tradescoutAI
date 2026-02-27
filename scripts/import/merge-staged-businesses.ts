@@ -37,10 +37,10 @@ function buildImportExtras(
   const jurisdiction =
     readRawValue(row, ["license_state", "license_jurisdiction", "license_state_code"]) ||
     String(row.stateCode || "").trim();
-  const statusRaw =
-    readRawValue(row, ["license_status", "license_verified_status"]) ||
-    defaults.licenseStatusDefault ||
-    "";
+  const statusFromPayload = readRawValue(row, ["license_status", "license_verified_status"]);
+  // Only apply a default status when we have a license number; otherwise we'd be asserting verification
+  // for rows that might not even have licensing data.
+  const statusRaw = statusFromPayload || (licenseNumber ? defaults.licenseStatusDefault || "" : "");
   const licenseStatus = coerceLicenseStatus(statusRaw);
   const verifiedAt =
     readRawValue(row, ["license_verified_at", "license_verified_date", "verified_at"]) ||
@@ -50,7 +50,8 @@ function buildImportExtras(
   const out: Record<string, string> = {};
   if (licenseNumber) out.license_number = licenseNumber.slice(0, 120);
   if (jurisdiction) out.license_jurisdiction = jurisdiction.slice(0, 40);
-  if (licenseStatus) out.license_status = licenseStatus.slice(0, 32);
+  if (licenseStatus && (licenseNumber || statusFromPayload))
+    out.license_status = licenseStatus.slice(0, 32);
   if (verifiedAt) out.license_verified_at = verifiedAt.slice(0, 40);
   if (expiresAt) out.license_expires_at = expiresAt.slice(0, 40);
   if (defaults.licenseSource) out.license_source = String(defaults.licenseSource).slice(0, 64);
