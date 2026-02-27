@@ -5,7 +5,8 @@ import { storage } from "../storage";
 import { communityCauses, communityCauseVotes, profiles, users } from "@shared/schema";
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
-const describeDb = hasTestDb ? describe : describe.skip;
+const shouldRunIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
+const describeDb = hasTestDb && shouldRunIntegration ? describe : describe.skip;
 
 describeDb("community causes allocation integration", () => {
   const ownerUserId = "test-cause-owner";

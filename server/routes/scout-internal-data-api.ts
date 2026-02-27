@@ -13,7 +13,7 @@
  * - Header: X-Scout-Signature
  */
 
-import { Router, type Request, Response } from "express";
+import { Router, type NextFunction, type Request, Response } from "express";
 import ScoutInternalDataAPI, { type SIDARequest } from "../services/scoutInternalDataAPI";
 import ScoutDataFactory from "../services/scoutDataFactory";
 
@@ -23,7 +23,7 @@ const sidaService = new ScoutInternalDataAPI();
 /**
  * Middleware: Validate SIDA authentication
  */
-const validateSIDAAuth = (req: Request, res: Response, next: Function) => {
+const validateSIDAAuth = (req: Request, res: Response, next: NextFunction) => {
   try {
     const apiKey = req.headers["x-scout-api-key"] as string;
     const projectId = req.headers["x-scout-project-id"] as string;

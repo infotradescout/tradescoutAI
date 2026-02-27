@@ -166,7 +166,7 @@ router.post("/message-v4", async (req: Request, res: Response) => {
     }
 
     // PHASE 4: Synthesize agent responses
-    let synthesizedResponse: EnhancedScoutResponseV4["synthesized_response"] = {
+    const synthesizedResponse: EnhancedScoutResponseV4["synthesized_response"] = {
       message: "I've consulted with my specialist agents to provide you with expert guidance.",
       key_insights: [] as string[],
       recommendations: [] as string[],

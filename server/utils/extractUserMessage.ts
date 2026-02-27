@@ -1,10 +1,10 @@
 /**
  * Canonical Scout response extractor
- * 
+ *
  * Enforces single, trusted choke point for converting raw model output
  * into safe, user-facing messages. Preserves intelligence while eliminating
  * leakage of reasoning, intent, or internal deliberation.
- * 
+ *
  * Philosophy:
  * - Model can reason freely internally
  * - Frontend sees only polished output
@@ -48,11 +48,11 @@ const LEAKAGE_PATTERNS = [
   /step\s*\d+:/i, // Step-by-step breakdown
   /^analysis:/im, // Analysis: prefix
   /^reasoning:/im, // Reasoning: prefix
+  /^decision:/im, // Decision: prefix
   /^thought process:/im, // Internal deliberation
 ];
 
-const FALLBACK_MESSAGE =
-  "I can help with that. Here's how TradeScout can support you right now:";
+const FALLBACK_MESSAGE = "I can help with that. Here's how TradeScout can support you right now:";
 
 /**
  * Extract user-facing message from raw model output.
@@ -86,8 +86,8 @@ export function extractUserMessage(
   if (typeof raw === "object" && raw !== null) {
     // Check for reasoning fields that should never be rendered
     const reasoningKeys = ["intent", "thought_flow", "reasoning", "decision", "analysis"];
-    const foundReasoningFields = reasoningKeys.filter((key) =>
-      key in raw && raw[key as keyof typeof raw] !== undefined
+    const foundReasoningFields = reasoningKeys.filter(
+      (key) => key in raw && raw[key as keyof typeof raw] !== undefined
     );
 
     if (foundReasoningFields.length > 0) {
@@ -135,11 +135,12 @@ export function extractUserMessage(
  * - Reasoning keywords (step-by-step, analysis, etc.)
  * - Excessive length (cap at MAX_CHARS)
  */
-function sanitizeString(
-  text: string,
-  leakageFields: string[] = []
-): string {
+function sanitizeString(text: string, leakageFields: string[] = []): string {
   const trimmed = text.trim();
+  if (!trimmed) {
+    leakageFields.push("empty");
+    return FALLBACK_MESSAGE;
+  }
 
   // Check for leakage patterns
   for (const pattern of LEAKAGE_PATTERNS) {
@@ -165,8 +166,7 @@ export function extractMetadata(raw: RawScoutOutput) {
   if (typeof raw === "object" && raw !== null) {
     return {
       intent: typeof raw.intent === "string" ? raw.intent : undefined,
-      confidence:
-        typeof raw.confidence === "number" ? raw.confidence : undefined,
+      confidence: typeof raw.confidence === "number" ? raw.confidence : undefined,
       resolvedContext: raw.resolvedContext,
     };
   }

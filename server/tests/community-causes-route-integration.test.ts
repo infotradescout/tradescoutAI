@@ -7,7 +7,8 @@ import communityCausesRouter from "../routes/community-causes-routes";
 import { communityCauses, communityCauseVotes, profiles, users } from "@shared/schema";
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
-const describeDb = hasTestDb ? describe : describe.skip;
+const shouldRunIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
+const describeDb = hasTestDb && shouldRunIntegration ? describe : describe.skip;
 
 describeDb("community causes route integration", () => {
   const ownerUserId = "route-cause-owner";

@@ -12,10 +12,7 @@ FORMAT_FILES="$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx|json|md)$' ||
 
 if [ -n "$ESLINT_FILES" ]; then
   # shellcheck disable=SC2086
-  eslint --fix $ESLINT_FILES || {
-    echo "WARN: eslint failed (known ESLint/AJV tooling issue). Skipping eslint for this commit."
-    echo "WARN: Run 'npm run check' (and lint in CI) to validate before merging."
-  }
+  npx eslint --fix $ESLINT_FILES
 fi
 
 if [ -n "$FORMAT_FILES" ]; then

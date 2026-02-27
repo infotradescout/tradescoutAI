@@ -164,7 +164,6 @@ export default function PropertyListing() {
         });
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const createListingMutation = useMutation({

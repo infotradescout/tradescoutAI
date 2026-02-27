@@ -44,7 +44,7 @@
     "check:scale-readiness": "node scripts/check-scale-readiness.mjs",
     "db:baseline": "node scripts/db-baseline-drizzle.mjs",
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
-    "test:run:db": "npm run db:push:test && npm run test:run",
+    "test:run:db": "npm run db:push:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
     "test:run:db:strict": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
     "test:run:no-skips": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run -- --reporter=json --outputFile=test-results/vitest-results.no-skips.json && npm run report:test-skip-delta -- --report test-results/vitest-results.no-skips.json --out artifacts/test-skip-delta.no-skips.json --markdown artifacts/test-skip-delta.no-skips.md --baseline .github/test-baselines/nightly-db-skip-baseline.json --fail-on-increase",
     "verify:db": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run verify",
@@ -270,9 +270,11 @@
   },
   "overrides": {
     "minimatch": "^10.2.1",
-    "ajv": "^8.17.1",
     "glob": "^10.5.0",
     "rimraf": "^5.0.10",
-    "gaxios": "^7.1.3"
+    "gaxios": "^7.1.3",
+    "@eslint/eslintrc": {
+      "ajv": "6.12.6"
+    }
   }
 }

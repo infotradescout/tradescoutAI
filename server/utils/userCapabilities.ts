@@ -1,14 +1,14 @@
 /**
  * User Capabilities System
- * 
+ *
  * Infers what a user can do based on:
  * - Profile data (roles, tags) — optional hints
  * - Observed behavior (actions, tools used) — strong signals
  * - Current context (page, message, intent) — immediate signals
- * 
+ *
  * No role ever blocks functionality.
  * Capabilities are inferred from signal aggregation.
- * 
+ *
  * Philosophy:
  * "Watch what they're doing and help. Roles just improve the guess."
  */
@@ -183,6 +183,7 @@ export interface CapabilitySignals {
     mentionsBilling?: boolean;
     mentionsCrew?: boolean;
     mentionsSchedule?: boolean;
+    mentionsContractorSearch?: boolean;
   };
 }
 
@@ -201,7 +202,9 @@ export function extractMessageSignals(message: string): CapabilitySignals["messa
     mentionsInvoice: /invoice|bill|charge|amount.*owed|receipt/.test(lower),
     mentionsPaid: /paid|payment|received|collected|cleared|settled/.test(lower),
     mentionsJob: /job|project|work|task|bid|estimate|quote|contract|repair|install/.test(lower),
-    mentionsHOA: /hoa|homeowners?.*association|condo.*board|association.*board|board meeting/.test(lower),
+    mentionsHOA: /hoa|homeowners?.*association|condo.*board|association.*board|board meeting/.test(
+      lower
+    ),
     mentionsBoard: /board|governance|policy|bylaws|rules|decision/.test(lower),
     mentionsVoting: /vote|voting|vote on|decision|approve|approval/.test(lower),
     mentionsGroup: /group|groups|club|clubs|meetup|community group|neighborhood group/.test(lower),
@@ -212,12 +215,14 @@ export function extractMessageSignals(message: string): CapabilitySignals["messa
     mentionsBilling: /bill|invoice|accounting|finance|receipt|ledger|balance/.test(lower),
     mentionsCrew: /crew|team|staff|workers?|employees?|subcontractor/.test(lower),
     mentionsSchedule: /schedule|calendar|when|timing|availability|book|appointment/.test(lower),
+    mentionsContractorSearch:
+      /roof|roofer|roofing|contractor|plumber|electrician|hvac|handyman/.test(lower),
   };
 }
 
 /**
  * CORE FUNCTION: Infer capabilities from signal aggregation
- * 
+ *
  * This is where Scout's intelligence lives.
  * No role ever blocks functionality.
  * Multiple signals can unlock the same capability.
@@ -242,6 +247,7 @@ export function inferCapabilities(signals: CapabilitySignals): Set<Capability> {
     roles.includes("property_manager") ||
     roles.includes("investor") ||
     msg.mentionsJob ||
+    msg.mentionsContractorSearch ||
     context.currentPage?.includes("contractors") ||
     context.parentObjectType === "job"
   ) {
@@ -297,15 +303,7 @@ export function inferCapabilities(signals: CapabilitySignals): Set<Capability> {
   if (
     roles.includes("business_owner") ||
     tags.some((t) =>
-      [
-        "restaurant",
-        "food_truck",
-        "bar",
-        "cafe",
-        "bakery",
-        "brewery",
-        "catering",
-      ].includes(t)
+      ["restaurant", "food_truck", "bar", "cafe", "bakery", "brewery", "catering"].includes(t)
     ) ||
     history.hasPostedMarketplaceListing ||
     msg.mentionsMarketplace ||
