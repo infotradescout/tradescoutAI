@@ -73,6 +73,18 @@ export default function HomesVault() {
   const appliances = Array.isArray(homeDetail?.appliances) ? homeDetail.appliances : [];
   const documents = Array.isArray(homeDetail?.documents) ? homeDetail.documents : [];
 
+  const schedulesQuery = useQuery({
+    queryKey: [
+      selectedHomeId
+        ? `/api/homes/${selectedHomeId}/maintenance-schedules`
+        : "/api/homes/_none/maintenance-schedules",
+    ],
+    enabled: Boolean(selectedHomeId),
+  });
+  const schedules = Array.isArray((schedulesQuery.data as any)?.schedules)
+    ? (schedulesQuery.data as any).schedules
+    : [];
+
   const [newHome, setNewHome] = useState({
     nickname: "",
     address1: "",
@@ -102,6 +114,14 @@ export default function HomesVault() {
 
   const [docType, setDocType] = useState<(typeof DOCUMENT_TYPES)[number]["value"]>("other");
   const [docFile, setDocFile] = useState<File | null>(null);
+
+  const [newSchedule, setNewSchedule] = useState({
+    title: "",
+    cadenceDays: "90",
+    nextDueAt: "",
+    assignedBusinessSlug: "",
+    shareWithAssignedProvider: false,
+  });
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -237,6 +257,77 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Upload failed",
+        description: err?.message || "Try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createScheduleMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedHomeId) throw new Error("Select a home first");
+      if (!newSchedule.title.trim()) throw new Error("Schedule title is required");
+      const cadenceDays = Number.parseInt(String(newSchedule.cadenceDays || "90"), 10);
+      if (!Number.isFinite(cadenceDays) || cadenceDays < 1) throw new Error("Cadence invalid");
+
+      const payload: any = {
+        title: newSchedule.title.trim(),
+        cadenceDays,
+        nextDueAt: newSchedule.nextDueAt?.trim() || undefined,
+        assignedBusinessSlug: newSchedule.assignedBusinessSlug?.trim() || undefined,
+        shareWithAssignedProvider: newSchedule.shareWithAssignedProvider === true,
+      };
+
+      return apiRequest("POST", `/api/homes/${selectedHomeId}/maintenance-schedules`, payload);
+    },
+    onSuccess: async () => {
+      toast({ title: "Schedule created" });
+      setNewSchedule({
+        title: "",
+        cadenceDays: "90",
+        nextDueAt: "",
+        assignedBusinessSlug: "",
+        shareWithAssignedProvider: false,
+      });
+      if (selectedHomeId) {
+        await queryClient.invalidateQueries({
+          queryKey: [`/api/homes/${selectedHomeId}/maintenance-schedules`],
+        });
+        await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
+      }
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to create schedule",
+        description: err?.message || "Try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const completeScheduleMutation = useMutation({
+    mutationFn: async (scheduleId: string) => {
+      if (!selectedHomeId) throw new Error("Select a home first");
+      if (!scheduleId) throw new Error("scheduleId required");
+      return apiRequest(
+        "POST",
+        `/api/homes/${selectedHomeId}/maintenance-schedules/${scheduleId}/complete`,
+        {}
+      );
+    },
+    onSuccess: async () => {
+      toast({ title: "Marked complete" });
+      if (selectedHomeId) {
+        await queryClient.invalidateQueries({
+          queryKey: [`/api/homes/${selectedHomeId}/maintenance-schedules`],
+        });
+        await queryClient.invalidateQueries({ queryKey: [`/api/homes/${selectedHomeId}`] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
+      }
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to complete schedule",
         description: err?.message || "Try again",
         variant: "destructive",
       });
@@ -595,6 +686,122 @@ export default function HomesVault() {
                       >
                         {startSaleMutation.isPending ? "Starting..." : "Start sale listing"}
                       </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Maintenance schedules</CardTitle>
+                      <CardDescription className="text-xs">
+                        Recurring maintenance for this home. If you assign a provider business and
+                        enable sharing, it can sync to them without exposing your address by
+                        default.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label>Title</Label>
+                          <Input
+                            value={newSchedule.title}
+                            onChange={(e) =>
+                              setNewSchedule((p) => ({ ...p, title: e.target.value }))
+                            }
+                            placeholder="HVAC tune-up"
+                          />
+                        </div>
+                        <div>
+                          <Label>Cadence (days)</Label>
+                          <Input
+                            value={newSchedule.cadenceDays}
+                            onChange={(e) =>
+                              setNewSchedule((p) => ({ ...p, cadenceDays: e.target.value }))
+                            }
+                            placeholder="90"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div>
+                          <Label>Next due (optional ISO)</Label>
+                          <Input
+                            value={newSchedule.nextDueAt}
+                            onChange={(e) =>
+                              setNewSchedule((p) => ({ ...p, nextDueAt: e.target.value }))
+                            }
+                            placeholder="2026-03-30T12:00:00.000Z"
+                          />
+                        </div>
+                        <div>
+                          <Label>Provider business slug (optional)</Label>
+                          <Input
+                            value={newSchedule.assignedBusinessSlug}
+                            onChange={(e) =>
+                              setNewSchedule((p) => ({
+                                ...p,
+                                assignedBusinessSlug: e.target.value,
+                              }))
+                            }
+                            placeholder="acme-hvac"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="shareWithProvider"
+                          type="checkbox"
+                          checked={newSchedule.shareWithAssignedProvider === true}
+                          onChange={(e) =>
+                            setNewSchedule((p) => ({
+                              ...p,
+                              shareWithAssignedProvider: e.target.checked,
+                            }))
+                          }
+                        />
+                        <Label htmlFor="shareWithProvider">
+                          Share schedule with assigned provider
+                        </Label>
+                      </div>
+
+                      <Button
+                        onClick={() => createScheduleMutation.mutate()}
+                        disabled={createScheduleMutation.isPending}
+                      >
+                        Create schedule
+                      </Button>
+
+                      <div className="space-y-2">
+                        {schedulesQuery.isLoading ? (
+                          <div className="text-sm text-muted-foreground">Loading schedules...</div>
+                        ) : schedules.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">No schedules yet.</div>
+                        ) : (
+                          schedules.map((s: any) => (
+                            <div
+                              key={String(s.id)}
+                              className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium truncate">{s.title}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Next due:{" "}
+                                  {s.nextDueAt ? new Date(s.nextDueAt).toLocaleDateString() : "n/a"}
+                                  {s.assignedBusiness?.slug
+                                    ? ` | Provider: ${s.assignedBusiness.slug}`
+                                    : ""}
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                onClick={() => completeScheduleMutation.mutate(String(s.id))}
+                                disabled={completeScheduleMutation.isPending}
+                              >
+                                Mark complete
+                              </Button>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
 

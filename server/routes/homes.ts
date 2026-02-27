@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
 import {
   USER_HOME_DOCUMENT_TYPES,
   USER_HOME_RECORD_TYPES,
+  businesses,
+  homeMaintenanceSchedules,
   propertyPrograms,
   userHomeAppliances,
   userHomeDocuments,
@@ -59,6 +61,35 @@ const addDocumentSchema = z.object({
   recordId: z.string().trim().optional(),
 });
 
+const createMaintenanceScheduleSchema = z.object({
+  title: z.string().trim().min(2).max(220),
+  description: z.string().trim().max(20_000).optional(),
+  category: z.string().trim().max(64).optional(),
+  cadenceDays: z.number().int().min(1).max(3650).default(90),
+  nextDueAt: z.string().trim().optional(), // ISO date
+  assignedBusinessSlug: z.string().trim().min(2).max(140).optional(),
+  shareWithAssignedProvider: z.boolean().optional(),
+  shareAddress: z.boolean().optional(),
+});
+
+const updateMaintenanceScheduleSchema = z.object({
+  title: z.string().trim().min(2).max(220).optional(),
+  description: z.string().trim().max(20_000).optional(),
+  category: z.string().trim().max(64).optional(),
+  cadenceDays: z.number().int().min(1).max(3650).optional(),
+  nextDueAt: z.string().trim().optional(), // ISO date
+  status: z.enum(["active", "paused", "archived"]).optional(),
+  assignedBusinessSlug: z.string().trim().min(0).max(140).optional(), // empty string clears assignment
+  shareWithAssignedProvider: z.boolean().optional(),
+  shareAddress: z.boolean().optional(),
+});
+
+const completeMaintenanceScheduleSchema = z.object({
+  occurredAt: z.string().trim().optional(), // YYYY-MM-DD
+  notes: z.string().trim().max(20_000).optional(),
+  cost: z.number().finite().nonnegative().optional(),
+});
+
 function getUserId(req: any): string {
   return String((req.user as any)?.claims?.sub || (req.user as any)?.id || "").trim();
 }
@@ -85,6 +116,19 @@ async function getLinkedPropertyProgramIdsForHome(homeId: string): Promise<strin
 function dateToNoonUtc(value: string): Date {
   // Stored as YYYY-MM-DD in the Home Vault. Convert to a stable timestamp.
   return new Date(`${value}T12:00:00.000Z`);
+}
+
+function parseIsoDateOrNull(value: string | undefined): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return null;
+  return d;
+}
+
+function addDays(d: Date, days: number): Date {
+  const next = new Date(d.getTime());
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
 }
 
 router.get("/api/homes", isAuthenticated, async (req: any, res) => {
@@ -159,6 +203,288 @@ router.get("/api/homes/:homeId", isAuthenticated, async (req: any, res) => {
 
   res.json({ home, records, appliances, documents });
 });
+
+router.get("/api/homes/:homeId/maintenance-schedules", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const rows = await db
+    .select({
+      schedule: homeMaintenanceSchedules,
+      businessName: businesses.name,
+      businessSlug: businesses.slug,
+    })
+    .from(homeMaintenanceSchedules)
+    .leftJoin(businesses, eq(businesses.id, homeMaintenanceSchedules.assignedBusinessId))
+    .where(
+      and(
+        eq(homeMaintenanceSchedules.userHomeId, homeId),
+        eq(homeMaintenanceSchedules.ownerUserId, userId)
+      )
+    )
+    .orderBy(desc(homeMaintenanceSchedules.updatedAt))
+    .limit(200);
+
+  res.json({
+    schedules: rows.map((row) => ({
+      ...row.schedule,
+      assignedBusiness: row.businessSlug
+        ? { name: row.businessName, slug: row.businessSlug }
+        : null,
+    })),
+  });
+});
+
+router.post("/api/homes/:homeId/maintenance-schedules", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const body = createMaintenanceScheduleSchema.parse(req.body ?? {});
+  const nextDueAt = parseIsoDateOrNull(body.nextDueAt) || addDays(new Date(), body.cadenceDays);
+
+  let assignedBusinessId: string | null = null;
+  if (body.assignedBusinessSlug) {
+    const [biz] = await db
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(
+        and(eq(businesses.slug, body.assignedBusinessSlug), eq(businesses.status, "active" as any))
+      )
+      .limit(1);
+    assignedBusinessId = biz?.id ?? null;
+  }
+
+  const [created] = await db
+    .insert(homeMaintenanceSchedules)
+    .values({
+      ownerUserId: userId,
+      userHomeId: homeId,
+      title: body.title,
+      description: body.description || null,
+      category: body.category || null,
+      cadenceDays: body.cadenceDays,
+      nextDueAt,
+      status: "active",
+      assignedBusinessId,
+      shareWithAssignedProvider: body.shareWithAssignedProvider === true,
+      shareAddress: body.shareAddress === true,
+      metadata: {},
+      updatedAt: new Date(),
+    } as any)
+    .returning();
+
+  await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+  // Optional: log schedule creation to any linked property programs.
+  try {
+    const propertyProgramIds = await getLinkedPropertyProgramIdsForHome(homeId);
+    for (const propertyProgramId of propertyProgramIds) {
+      await addPropertyLifecycleEvent({
+        propertyProgramId,
+        actionType: "maintenance_schedule_created",
+        phase: "operate",
+        title: `Maintenance scheduled: ${body.title}`,
+        description: body.description || null,
+        occurredAt: new Date(),
+        source: "user",
+        status: "done",
+        metadata: {
+          homeId,
+          maintenanceScheduleId: created?.id ?? null,
+          cadenceDays: body.cadenceDays,
+          nextDueAt: nextDueAt.toISOString(),
+        },
+        createdByUserId: userId,
+        sourceSurface: "home_vault",
+        idempotencyKey: `home:${homeId}:maint_sched:create:${created?.id ?? "missing"}`,
+      });
+    }
+  } catch (err) {
+    console.error("[homes] Failed to sync maintenance schedule create into property program:", err);
+  }
+
+  res.status(201).json({ schedule: created });
+});
+
+router.patch(
+  "/api/homes/:homeId/maintenance-schedules/:scheduleId",
+  isAuthenticated,
+  async (req: any, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    const scheduleId = String(req.params.scheduleId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+    if (!scheduleId) return res.status(400).json({ message: "scheduleId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const body = updateMaintenanceScheduleSchema.parse(req.body ?? {});
+    const nextDueAt = body.nextDueAt ? parseIsoDateOrNull(body.nextDueAt) : null;
+    if (body.nextDueAt && !nextDueAt) {
+      return res.status(400).json({ message: "nextDueAt must be a valid ISO date" });
+    }
+
+    let assignedBusinessId: string | null | undefined = undefined;
+    if (body.assignedBusinessSlug != null) {
+      if (!body.assignedBusinessSlug) {
+        assignedBusinessId = null;
+      } else {
+        const [biz] = await db
+          .select({ id: businesses.id })
+          .from(businesses)
+          .where(
+            and(
+              eq(businesses.slug, body.assignedBusinessSlug),
+              eq(businesses.status, "active" as any)
+            )
+          )
+          .limit(1);
+        assignedBusinessId = biz?.id ?? null;
+      }
+    }
+
+    const rows = await db
+      .update(homeMaintenanceSchedules)
+      .set({
+        ...(body.title != null ? { title: body.title } : {}),
+        ...(body.description != null ? { description: body.description || null } : {}),
+        ...(body.category != null ? { category: body.category || null } : {}),
+        ...(body.cadenceDays != null ? { cadenceDays: body.cadenceDays } : {}),
+        ...(nextDueAt ? { nextDueAt } : {}),
+        ...(body.status != null ? { status: body.status } : {}),
+        ...(assignedBusinessId !== undefined ? { assignedBusinessId } : {}),
+        ...(body.shareWithAssignedProvider != null
+          ? { shareWithAssignedProvider: body.shareWithAssignedProvider === true }
+          : {}),
+        ...(body.shareAddress != null ? { shareAddress: body.shareAddress === true } : {}),
+        updatedAt: new Date(),
+      } as any)
+      .where(
+        and(
+          eq(homeMaintenanceSchedules.id, scheduleId),
+          eq(homeMaintenanceSchedules.userHomeId, homeId),
+          eq(homeMaintenanceSchedules.ownerUserId, userId)
+        )
+      )
+      .returning();
+
+    const updated = rows[0];
+    if (!updated) return res.status(404).json({ message: "Schedule not found" });
+
+    await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+    res.json({ schedule: updated });
+  }
+);
+
+router.post(
+  "/api/homes/:homeId/maintenance-schedules/:scheduleId/complete",
+  isAuthenticated,
+  async (req: any, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    const scheduleId = String(req.params.scheduleId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+    if (!scheduleId) return res.status(400).json({ message: "scheduleId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const body = completeMaintenanceScheduleSchema.parse(req.body ?? {});
+    const occurredAt =
+      body.occurredAt && /^\d{4}-\d{2}-\d{2}$/.test(body.occurredAt) ? body.occurredAt : null;
+
+    const [schedule] = await db
+      .select()
+      .from(homeMaintenanceSchedules)
+      .where(
+        and(
+          eq(homeMaintenanceSchedules.id, scheduleId),
+          eq(homeMaintenanceSchedules.userHomeId, homeId),
+          eq(homeMaintenanceSchedules.ownerUserId, userId)
+        )
+      )
+      .limit(1);
+    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
+
+    const completedAt = occurredAt ? dateToNoonUtc(occurredAt) : new Date();
+    const nextDueAt = addDays(completedAt, Number(schedule.cadenceDays || 30));
+
+    const [record] = await db
+      .insert(userHomeRecords)
+      .values({
+        homeId,
+        createdByUserId: userId,
+        recordType: "maintenance",
+        occurredAt,
+        title: `Maintenance: ${schedule.title}`,
+        details: body.notes || null,
+        cost: body.cost != null ? String(body.cost) : null,
+        tags: ["scheduled"],
+        updatedAt: new Date(),
+      } as any)
+      .returning();
+
+    const [updated] = await db
+      .update(homeMaintenanceSchedules)
+      .set({
+        lastCompletedAt: completedAt,
+        nextDueAt,
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(homeMaintenanceSchedules.id, scheduleId))
+      .returning();
+
+    await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+    try {
+      const propertyProgramIds = await getLinkedPropertyProgramIdsForHome(homeId);
+      for (const propertyProgramId of propertyProgramIds) {
+        await addPropertyLifecycleEvent({
+          propertyProgramId,
+          actionType: "home_record_maintenance",
+          phase: "operate",
+          title: `Maintenance: ${schedule.title}`,
+          description: body.notes || null,
+          occurredAt: completedAt,
+          source: "user",
+          status: "done",
+          costAmount: body.cost ?? null,
+          metadata: {
+            homeId,
+            homeRecordId: record?.id ?? null,
+            maintenanceScheduleId: schedule.id,
+            nextDueAt: nextDueAt.toISOString(),
+            tags: ["scheduled"],
+          },
+          createdByUserId: userId,
+          sourceSurface: "home_vault",
+          idempotencyKey: `home:${homeId}:record:${record?.id ?? "missing"}`,
+        });
+      }
+    } catch (err) {
+      console.error("[homes] Failed to sync maintenance completion into property program:", err);
+    }
+
+    res.status(201).json({ schedule: updated, record });
+  }
+);
 
 router.post("/api/homes/:homeId/records", isAuthenticated, async (req: any, res) => {
   const userId = getUserId(req);
@@ -472,6 +798,60 @@ router.get("/api/homes/:homeId/prefill-homescout", isAuthenticated, async (req: 
     stateCode: stateCode || undefined,
     countyFips: countyFips || undefined,
     zipCode: zipCode || undefined,
+  });
+});
+
+// Provider-side view: schedules explicitly shared with a provider's owned business listing(s).
+// Intentionally minimal payload: no street address by default; homeowners control sharing.
+router.get("/api/provider/maintenance-schedules", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const ownedBusinesses = await db
+    .select({ id: businesses.id })
+    .from(businesses)
+    .where(and(eq(businesses.ownerUserId, userId), eq(businesses.status, "active" as any)))
+    .limit(200);
+
+  const ownedIds = ownedBusinesses.map((b) => String(b.id)).filter(Boolean);
+  if (ownedIds.length === 0) return res.json({ schedules: [] });
+
+  const results = await db
+    .select({
+      schedule: homeMaintenanceSchedules,
+      homeNickname: userHomes.nickname,
+      homeStateCode: userHomes.stateCode,
+      homeCountyFips: userHomes.countyFips,
+      assignedBusinessSlug: businesses.slug,
+      assignedBusinessName: businesses.name,
+    })
+    .from(homeMaintenanceSchedules)
+    .innerJoin(businesses, eq(businesses.id, homeMaintenanceSchedules.assignedBusinessId))
+    .innerJoin(userHomes, eq(userHomes.id, homeMaintenanceSchedules.userHomeId))
+    .where(
+      and(
+        inArray(homeMaintenanceSchedules.assignedBusinessId, ownedIds as any),
+        eq(homeMaintenanceSchedules.shareWithAssignedProvider, true),
+        eq(homeMaintenanceSchedules.status, "active")
+      )
+    )
+    .orderBy(desc(homeMaintenanceSchedules.nextDueAt))
+    .limit(500);
+
+  return res.json({
+    schedules: results.map((r) => ({
+      ...r.schedule,
+      home: {
+        nickname: r.homeNickname || "Home",
+        stateCode: r.homeStateCode,
+        countyFips: r.homeCountyFips,
+        shareAddress: (r.schedule as any).shareAddress === true,
+      },
+      assignedBusiness: {
+        name: r.assignedBusinessName,
+        slug: r.assignedBusinessSlug,
+      },
+    })),
   });
 });
 

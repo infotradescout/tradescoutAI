@@ -4087,7 +4087,9 @@ export const profileBookingRequests = pgTable(
     requestedStartAt: timestamp("requested_start_at"),
     requestedEndAt: timestamp("requested_end_at"),
     timezone: varchar("timezone", { length: 80 }),
-    deliveryMode: varchar("delivery_mode", { enum: ["mobile", "remote", "onsite"] }).default("onsite"),
+    deliveryMode: varchar("delivery_mode", { enum: ["mobile", "remote", "onsite"] }).default(
+      "onsite"
+    ),
     locationNote: text("location_note"),
     depositRequired: boolean("deposit_required").notNull().default(false),
     depositAmountUsd: decimal("deposit_amount_usd", { precision: 10, scale: 2 }),
@@ -5142,6 +5144,56 @@ export type UserHomeDocument = typeof userHomeDocuments.$inferSelect;
 export type InsertUserHomeDocument = typeof userHomeDocuments.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Home Maintenance Schedules (private Home Vault, optionally shared with a provider)
+// ---------------------------------------------------------------------------
+
+export const homeMaintenanceSchedules = pgTable(
+  "home_maintenance_schedules",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    userHomeId: varchar("user_home_id")
+      .notNull()
+      .references(() => userHomes.id, { onDelete: "cascade" }),
+
+    title: varchar("title", { length: 220 }).notNull(),
+    description: text("description"),
+    category: varchar("category", { length: 64 }),
+
+    cadenceDays: integer("cadence_days").notNull().default(30),
+    nextDueAt: timestamp("next_due_at").notNull(),
+    lastCompletedAt: timestamp("last_completed_at"),
+
+    // active | paused | archived
+    status: varchar("status", { length: 24 }).notNull().default("active"),
+
+    assignedBusinessId: varchar("assigned_business_id").references(() => businesses.id, {
+      onDelete: "set null",
+    }),
+    shareWithAssignedProvider: boolean("share_with_assigned_provider").notNull().default(false),
+    shareAddress: boolean("share_address").notNull().default(false),
+
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_home_maint_sched_owner").on(table.ownerUserId),
+    index("idx_home_maint_sched_home").on(table.userHomeId),
+    index("idx_home_maint_sched_next_due").on(table.nextDueAt),
+    index("idx_home_maint_sched_assigned_biz").on(table.assignedBusinessId),
+  ]
+);
+
+export type HomeMaintenanceSchedule = typeof homeMaintenanceSchedules.$inferSelect;
+export type InsertHomeMaintenanceSchedule = typeof homeMaintenanceSchedules.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Property Lifecycle OS (Build / Existing / Upgrades / Maintain / Sell)
 // ---------------------------------------------------------------------------
 
@@ -5196,7 +5248,9 @@ export const propertyParticipants = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     participantRole: varchar("participant_role", { length: 64 }).notNull(),
     permissions: jsonb("permissions").$type<Record<string, any>>().notNull().default({}),
-    status: varchar("status", { enum: ["active", "invited", "removed"] }).notNull().default("active"),
+    status: varchar("status", { enum: ["active", "invited", "removed"] })
+      .notNull()
+      .default("active"),
     invitedByUserId: varchar("invited_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -5321,7 +5375,9 @@ export const propertyUpgradeEvents = pgTable(
       .references(() => propertyUpgrades.id, { onDelete: "cascade" }),
     eventType: varchar("event_type", { length: 80 }).notNull(),
     title: text("title").notNull(),
-    status: varchar("status", { enum: ["planned", "done", "blocked"] }).notNull().default("planned"),
+    status: varchar("status", { enum: ["planned", "done", "blocked"] })
+      .notNull()
+      .default("planned"),
     occurredAt: timestamp("occurred_at").notNull(),
     metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
     createdAt: timestamp("created_at").defaultNow(),
@@ -5359,7 +5415,10 @@ export const propertyEventLog = pgTable(
     costAmount: numeric("cost_amount", { precision: 12, scale: 2 }),
     timeDeltaHours: numeric("time_delta_hours", { precision: 12, scale: 3 }),
     riskDelta: numeric("risk_delta", { precision: 8, scale: 3 }),
-    trustSnapshotIds: jsonb("trust_snapshot_ids").$type<Record<string, any>>().notNull().default({}),
+    trustSnapshotIds: jsonb("trust_snapshot_ids")
+      .$type<Record<string, any>>()
+      .notNull()
+      .default({}),
     verificationSnapshot: jsonb("verification_snapshot")
       .$type<Record<string, any>>()
       .notNull()
@@ -5422,7 +5481,12 @@ export const propertyReadinessSnapshots = pgTable(
     computedAt: timestamp("computed_at").defaultNow(),
     version: integer("version").notNull().default(1),
   },
-  (table) => [index("idx_property_readiness_snapshots_property").on(table.propertyProgramId, table.computedAt)]
+  (table) => [
+    index("idx_property_readiness_snapshots_property").on(
+      table.propertyProgramId,
+      table.computedAt
+    ),
+  ]
 );
 
 export type PropertyReadinessSnapshot = typeof propertyReadinessSnapshots.$inferSelect;
@@ -5444,11 +5508,17 @@ export const propertySellReadinessSnapshots = pgTable(
     computedAt: timestamp("computed_at").defaultNow(),
     version: integer("version").notNull().default(1),
   },
-  (table) => [index("idx_property_sell_readiness_snapshots_property").on(table.propertyProgramId, table.computedAt)]
+  (table) => [
+    index("idx_property_sell_readiness_snapshots_property").on(
+      table.propertyProgramId,
+      table.computedAt
+    ),
+  ]
 );
 
 export type PropertySellReadinessSnapshot = typeof propertySellReadinessSnapshots.$inferSelect;
-export type InsertPropertySellReadinessSnapshot = typeof propertySellReadinessSnapshots.$inferInsert;
+export type InsertPropertySellReadinessSnapshot =
+  typeof propertySellReadinessSnapshots.$inferInsert;
 
 export const propertyHomefaxSnapshots = pgTable(
   "property_homefax_snapshots",
@@ -5464,7 +5534,9 @@ export const propertyHomefaxSnapshots = pgTable(
     computedAt: timestamp("computed_at").defaultNow(),
     version: integer("version").notNull().default(1),
   },
-  (table) => [index("idx_property_homefax_snapshots_property").on(table.propertyProgramId, table.computedAt)]
+  (table) => [
+    index("idx_property_homefax_snapshots_property").on(table.propertyProgramId, table.computedAt),
+  ]
 );
 
 export type PropertyHomefaxSnapshot = typeof propertyHomefaxSnapshots.$inferSelect;
