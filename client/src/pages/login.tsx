@@ -4,10 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 
 export default function Login() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
   const params = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -33,7 +33,7 @@ export default function Login() {
 
   const beginOAuth = (provider: "google" | "facebook") => {
     const next = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
-    window.location.assign(`${apiBaseUrl}/api/auth/${provider}${next}`);
+    window.location.assign(buildApiUrl(`/api/auth/${provider}${next}`));
   };
 
   return (

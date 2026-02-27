@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -35,7 +36,6 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -157,7 +157,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/google`)}
+            onClick={() => (window.location.href = buildApiUrl("/api/auth/google"))}
             data-testid="button-google-login"
           >
             <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
@@ -170,7 +170,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
+              onClick={() => (window.location.href = buildApiUrl("/api/auth/facebook"))}
               data-testid="button-facebook-login"
             >
               <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
