@@ -1770,14 +1770,92 @@ export class DatabaseStorage implements IStorage {
   }
 
   async claimUnclaimedBusinessForUser(businessId: string, userId: string): Promise<Business> {
-    const rows = await db
-      .update(businesses)
-      .set({ ownerUserId: userId, claimStatus: "claimed", updatedAt: new Date() } as any)
-      .where(and(eq(businesses.id, businessId), isNull(businesses.ownerUserId)))
-      .returning();
-    const business = rows[0];
-    if (!business) throw new Error("Business is not claimable");
-    return business as Business;
+    const claimed = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(businesses)
+        .set({ ownerUserId: userId, claimStatus: "claimed", updatedAt: new Date() } as any)
+        .where(and(eq(businesses.id, businessId), isNull(businesses.ownerUserId)))
+        .returning();
+
+      const business = rows[0];
+      if (!business) throw new Error("Business is not claimable");
+
+      // If this unclaimed directory listing was preseeded with license verification signals,
+      // convert them into the user's verification ledger at claim-time (user-based table).
+      try {
+        const profileData: any = (business as any).profileData || {};
+        const importExtras: any =
+          profileData && typeof profileData === "object" ? (profileData as any).importExtras : null;
+
+        const licenseStatus = String(
+          importExtras?.license_status ?? importExtras?.licenseStatus ?? ""
+        )
+          .trim()
+          .toLowerCase();
+
+        if (licenseStatus) {
+          const jurisdiction = String(
+            importExtras?.license_jurisdiction ?? importExtras?.licenseJurisdiction ?? ""
+          ).trim();
+          const licenseNumber = String(
+            importExtras?.license_number ?? importExtras?.licenseNumber ?? ""
+          ).trim();
+          const verifiedAtRaw = String(
+            importExtras?.license_verified_at ?? importExtras?.licenseVerifiedAt ?? ""
+          ).trim();
+          const expiresAtRaw = String(
+            importExtras?.license_expires_at ?? importExtras?.licenseExpiresAt ?? ""
+          ).trim();
+          const source = String(importExtras?.license_source ?? importExtras?.licenseSource ?? "")
+            .trim()
+            .slice(0, 64);
+
+          const verifiedAt = verifiedAtRaw ? new Date(verifiedAtRaw) : null;
+          const expiresAt = expiresAtRaw ? new Date(expiresAtRaw) : null;
+          const verifiedAtSafe =
+            verifiedAt && Number.isFinite(verifiedAt.getTime()) ? verifiedAt : null;
+          const expiresAtSafe =
+            expiresAt && Number.isFinite(expiresAt.getTime()) ? expiresAt : null;
+
+          // Idempotency: if claim is retried, don't duplicate the import-derived verification.
+          const existing = await tx.execute(sql`
+            SELECT 1
+            FROM business_verifications
+            WHERE provider_user_id = ${userId}
+              AND verification_type = 'license'
+              AND (metadata ->> 'importBusinessId') = ${business.id}
+            LIMIT 1
+          `);
+
+          if ((existing as any)?.rows?.length === 0) {
+            await tx.insert(businessVerifications).values({
+              providerUserId: userId,
+              verificationType: "license",
+              jurisdiction: jurisdiction || null,
+              status: licenseStatus.slice(0, 32),
+              verifiedAt: verifiedAtSafe,
+              expiresAt: expiresAtSafe,
+              source: source || "preseed_import",
+              metadata: {
+                importBusinessId: business.id,
+                importBusinessSlug: (business as any).slug,
+                importBusinessName: (business as any).name,
+                licenseNumber: licenseNumber || null,
+                licenseJurisdiction: jurisdiction || null,
+                licenseVerifiedAtRaw: verifiedAtRaw || null,
+                licenseExpiresAtRaw: expiresAtRaw || null,
+              },
+            } as any);
+          }
+        }
+      } catch (err) {
+        console.warn("[claim-business] failed to convert imported license extras:", err);
+      }
+
+      return business as Business;
+    });
+
+    return claimed;
   }
 
   async updateBusinessForOwner(

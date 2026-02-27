@@ -6,6 +6,58 @@ import { normalizePhone, normalizeWebsite, parseArgs, slugify } from "./utils";
 
 type StageRow = typeof listingImportStaging.$inferSelect;
 
+function readRawValue(row: StageRow, keys: string[]): string {
+  const payload: any = (row as any).rawPayload || {};
+  for (const key of keys) {
+    const value = String(payload?.[key] ?? "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function coerceLicenseStatus(input: string): string {
+  const v = String(input || "")
+    .trim()
+    .toLowerCase();
+  if (!v) return "";
+  if (["approved", "active", "verified", "valid", "good"].includes(v)) return "approved";
+  if (["pending", "in_review", "review", "submitted"].includes(v)) return "pending";
+  if (["rejected", "denied", "invalid"].includes(v)) return "rejected";
+  if (["expired", "inactive"].includes(v)) return "expired";
+  return v.slice(0, 32);
+}
+
+function buildImportExtras(
+  row: StageRow,
+  defaults: { licenseStatusDefault?: string; licenseSource?: string }
+) {
+  const licenseNumber =
+    readRawValue(row, ["license_number", "license_no", "license", "licenseid"]) ||
+    readRawValue(row, ["license_num", "licensenumber"]);
+  const jurisdiction =
+    readRawValue(row, ["license_state", "license_jurisdiction", "license_state_code"]) ||
+    String(row.stateCode || "").trim();
+  const statusRaw =
+    readRawValue(row, ["license_status", "license_verified_status"]) ||
+    defaults.licenseStatusDefault ||
+    "";
+  const licenseStatus = coerceLicenseStatus(statusRaw);
+  const verifiedAt =
+    readRawValue(row, ["license_verified_at", "license_verified_date", "verified_at"]) ||
+    readRawValue(row, ["license_checked_at", "checked_at"]);
+  const expiresAt = readRawValue(row, ["license_expires_at", "license_expiration", "expires_at"]);
+
+  const out: Record<string, string> = {};
+  if (licenseNumber) out.license_number = licenseNumber.slice(0, 120);
+  if (jurisdiction) out.license_jurisdiction = jurisdiction.slice(0, 40);
+  if (licenseStatus) out.license_status = licenseStatus.slice(0, 32);
+  if (verifiedAt) out.license_verified_at = verifiedAt.slice(0, 40);
+  if (expiresAt) out.license_expires_at = expiresAt.slice(0, 40);
+  if (defaults.licenseSource) out.license_source = String(defaults.licenseSource).slice(0, 64);
+
+  return Object.keys(out).length ? out : null;
+}
+
 async function ensureUniqueBusinessSlug(base: string): Promise<string> {
   const baseSlug = slugify(base);
   for (let attempt = 0; attempt < 200; attempt++) {
@@ -141,6 +193,15 @@ async function main() {
   const dryRun = String(args.dryRun || "false").toLowerCase() === "true";
   const limitRaw = Number.parseInt(String(args.limit || "500"), 10);
   const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(limitRaw, 5000)) : 500;
+  const businessType = String(args.businessType || "other")
+    .trim()
+    .toLowerCase();
+  const roleContext = String(args.roleContext || "business_owner").trim();
+  const status = String(args.status || "draft")
+    .trim()
+    .toLowerCase();
+  const licenseStatusDefault = String(args.licenseStatus || "").trim();
+  const licenseSource = String(args.licenseSource || "").trim();
 
   const rows = await db
     .select()
@@ -180,6 +241,7 @@ async function main() {
 
       const existing = await findExistingBusiness(row);
       const sourceLabel = String(row.source || "csv_import");
+      const importedExtras = buildImportExtras(row, { licenseStatusDefault, licenseSource });
 
       if (existing) {
         const isClaimed = Boolean(existing.ownerUserId) || existing.claimStatus === "claimed";
@@ -214,6 +276,17 @@ async function main() {
           nextProfile.services = row.tradeCategories;
         }
 
+        if (importedExtras && typeof importedExtras === "object") {
+          const nextExtras: Record<string, string> =
+            nextProfile.importExtras && typeof nextProfile.importExtras === "object"
+              ? { ...(nextProfile.importExtras as any) }
+              : {};
+          for (const [k, v] of Object.entries(importedExtras)) {
+            if (!nextExtras[k] && v) nextExtras[k] = String(v);
+          }
+          if (Object.keys(nextExtras).length) nextProfile.importExtras = nextExtras;
+        }
+
         if (!dryRun) {
           await db
             .update(businesses)
@@ -237,14 +310,15 @@ async function main() {
       const countyId = await findCountyId(row.countyFips || null);
 
       if (!dryRun) {
+        const profileExtras = importedExtras ? { importExtras: importedExtras } : {};
         const inserted = await db
           .insert(businesses)
           .values({
             name: row.name,
             slug: nextSlug,
-            type: "other" as any,
+            type: businessType as any,
             ownerUserId: null,
-            roleContext: "business_owner" as any,
+            roleContext: roleContext as any,
             claimStatus: "unclaimed",
             sources: [sourceLabel],
             profileData: {
@@ -255,8 +329,9 @@ async function main() {
                 Array.isArray(row.tradeCategories) && row.tradeCategories.length
                   ? row.tradeCategories
                   : undefined,
+              ...profileExtras,
             },
-            status: "draft" as any,
+            status: status as any,
           } as any)
           .returning({ id: businesses.id });
 

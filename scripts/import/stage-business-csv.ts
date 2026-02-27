@@ -10,8 +10,8 @@ import {
   normalizePhone,
   normalizeWebsite,
   parseArgs,
-  parseCsv,
   parseTradeCategories,
+  streamCsvFile,
 } from "./utils";
 
 function resolveDelimiter(input: string): string {
@@ -36,17 +36,47 @@ async function main() {
     .toLowerCase()
     .slice(0, 64);
   const delimiter = resolveDelimiter(String(args.delimiter || "comma"));
+  const chunkSizeRaw = Number.parseInt(String(args.chunkSize || "1000"), 10);
+  const chunkSize = Number.isFinite(chunkSizeRaw)
+    ? Math.max(50, Math.min(chunkSizeRaw, 5000))
+    : 1000;
+  const maxRowsRaw = args.maxRows ? Number.parseInt(String(args.maxRows), 10) : null;
+  const maxRows =
+    maxRowsRaw != null && Number.isFinite(maxRowsRaw) ? Math.max(1, maxRowsRaw) : undefined;
 
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-  const content = fs.readFileSync(absolutePath, "utf-8");
-  const records = parseCsv(content, delimiter);
 
-  if (!records.length) {
-    throw new Error("No records parsed from CSV");
+  if (!fs.existsSync(absolutePath)) {
+    throw new Error(`File not found: ${absolutePath}`);
   }
 
-  const rows = records
-    .map((record) => {
+  let inputRows = 0;
+  let stagedRows = 0;
+  let buffer: any[] = [];
+
+  const flush = async () => {
+    if (!buffer.length) return;
+    const chunk = buffer;
+    buffer = [];
+    await db
+      .insert(listingImportStaging)
+      .values(chunk)
+      .onConflictDoNothing({
+        target: [
+          listingImportStaging.batchId,
+          listingImportStaging.source,
+          listingImportStaging.externalId,
+        ],
+      });
+  };
+
+  await streamCsvFile({
+    absolutePath,
+    delimiter,
+    maxRecords: maxRows,
+    onRecord: async (record) => {
+      inputRows++;
+
       const name = getFirstValue(record, [
         "business_name",
         "name",
@@ -54,7 +84,7 @@ async function main() {
         "company",
         "legal_name",
       ]);
-      if (!name) return null;
+      if (!name) return;
 
       const stateCode = getFirstValue(record, ["state_code", "state", "st"]).toUpperCase();
       const countyFips = getFirstValue(record, ["county_fips", "fips", "countyfips"]);
@@ -85,7 +115,7 @@ async function main() {
       const lat = latRaw ? Number(latRaw) : null;
       const lng = lngRaw ? Number(lngRaw) : null;
 
-      return {
+      buffer.push({
         id: randomUUID(),
         batchId,
         source,
@@ -104,28 +134,16 @@ async function main() {
         dedupeKey,
         rawPayload: record,
         status: "pending",
-      } as any;
-    })
-    .filter((row): row is NonNullable<typeof row> => row !== null);
+      } as any);
 
-  if (!rows.length) {
-    throw new Error("No stageable rows found (missing business names)");
-  }
+      stagedRows++;
+      if (buffer.length >= chunkSize) {
+        await flush();
+      }
+    },
+  });
 
-  const chunkSize = 250;
-  for (let idx = 0; idx < rows.length; idx += chunkSize) {
-    const chunk = rows.slice(idx, idx + chunkSize);
-    await db
-      .insert(listingImportStaging)
-      .values(chunk)
-      .onConflictDoNothing({
-        target: [
-          listingImportStaging.batchId,
-          listingImportStaging.source,
-          listingImportStaging.externalId,
-        ],
-      });
-  }
+  await flush();
 
   console.log(
     JSON.stringify(
@@ -133,8 +151,8 @@ async function main() {
         ok: true,
         batchId,
         source,
-        inputRows: records.length,
-        stagedRows: rows.length,
+        inputRows,
+        stagedRows,
       },
       null,
       2
