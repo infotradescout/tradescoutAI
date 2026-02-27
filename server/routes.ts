@@ -21399,6 +21399,23 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     });
   });
 
+  // 1c. PUBLIC CONFIG (safe, non-auth, non-secret)
+  // Used by client-only features that may need a public key at runtime
+  // (e.g. Google Maps JS API key). Do NOT include secrets here.
+  app.get("/api/public-config", (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+
+    const googleMapsApiKey = String(
+      process.env.GOOGLE_MAPS_API_KEY ||
+        process.env.PUBLIC_GOOGLE_MAPS_API_KEY ||
+        process.env.VITE_GOOGLE_MAPS_API_KEY ||
+        ""
+    ).trim();
+
+    res.json({ googleMapsApiKey });
+  });
+
   // 2. MESSAGING API - Basic endpoints (real-time via WebSocket in WebSocketManager)
   app.post("/api/conversations", isAuthenticated, async (req: AuthedRequest, res: Response) => {
     try {
