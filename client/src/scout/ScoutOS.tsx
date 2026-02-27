@@ -3709,7 +3709,8 @@ export default function ScoutOS() {
                   </div>
                 )}
 
-                {effectiveViewMode === "chat_plus_controller" && controllerActions.length > 0 && (
+                {/* Avoid duplicated action rails: in "Chat + controller" view, actions render per-message. */}
+                {effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
                   <div
                     className="mt-2 rounded-lg border p-2"
                     style={{

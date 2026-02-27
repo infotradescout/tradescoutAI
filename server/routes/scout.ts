@@ -938,7 +938,7 @@ ${JSON.stringify(resolvedContext, null, 2)}
     let userContextPrompt = "";
     if (userContext) {
       userContextPrompt = formatUserContextForPrompt(userContext);
-      userContextPrompt += `\n${generateThinkingContext(userContext)}\n`;
+      userContextPrompt += `\n${generateThinkingContext(userContext, userMessage)}\n`;
     }
 
     const activityContext = recentActivityPrompt ? `\n${recentActivityPrompt}\n` : "";
@@ -3006,7 +3006,7 @@ router.post("/", async (req: Request, res: Response) => {
     // [USER-CONTEXT] Build and inject user context for personalized responses
     // Phase 3B: Accept optional countyHint from request for jurisdiction-aware bias
     const countyHint = rawBody.countyHint || countyCode; // countyHint from URL param (?county=FIPS)
-    const userContext = await buildUserContext(userId, countyHint);
+    const userContext = await buildUserContext(userId, countyHint, { currentMessage: message });
 
     // Telemetry: Track county hint injection (Phase 2)
     if (countyHint && userId) {
@@ -4555,7 +4555,6 @@ router.get("/health", (req: Request, res: Response) => {
   let manualCachePresent = false;
   let autoCachePresent = false;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const status = getKnowledgeBaseStatus();
     knowledgeBasePresent = Boolean(status.knowledgeBasePresent);
     manualCachePresent = Boolean(status.manualCachePresent);

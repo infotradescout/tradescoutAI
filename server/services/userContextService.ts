@@ -63,6 +63,53 @@ interface LanguageProfile {
   contextualHints: string[]; // Contextual language hints
 }
 
+type ConversationPerspective = "hire" | "work" | "unknown";
+
+function inferConversationPerspective(message?: string | null): ConversationPerspective {
+  const lower = String(message || "").toLowerCase();
+  if (!lower.trim()) return "unknown";
+
+  // Looking for work / leads
+  const workSignals = [
+    "leads",
+    "clients",
+    "customer acquisition",
+    "get more jobs",
+    "find jobs",
+    "looking for work",
+    "bid",
+    "subcontract",
+    "my business",
+    "marketing",
+  ];
+
+  // Hiring / getting work done
+  const hireSignals = [
+    "hire",
+    "quote",
+    "estimate",
+    "find a",
+    "need a",
+    "i need",
+    "i want",
+    "my house",
+    "my home",
+    "repair",
+    "fix",
+    "replace",
+    "install",
+    "build",
+    "remodel",
+  ];
+
+  const hasWork = workSignals.some((s) => lower.includes(s));
+  const hasHire = hireSignals.some((s) => lower.includes(s));
+
+  if (hasWork && !hasHire) return "work";
+  if (hasHire && !hasWork) return "hire";
+  return "unknown";
+}
+
 /**
  * Normalize roles for any user:
  * - Uses multi-role array (user.roles) as the source of truth
@@ -71,9 +118,7 @@ interface LanguageProfile {
  */
 function getNormalizedUserTypesFromUser(user: User): string[] {
   // Raw role ids from DB
-  const arrayRoles = Array.isArray((user as any).roles)
-    ? ((user as any).roles as string[])
-    : [];
+  const arrayRoles = Array.isArray((user as any).roles) ? ((user as any).roles as string[]) : [];
 
   const legacyRole = user.role ? [user.role] : [];
 
@@ -113,7 +158,11 @@ function getNormalizedUserTypesFromUser(user: User): string[] {
  * @param userId - User ID to fetch context for
  * @param countyHint - Optional county FIPS code for jurisdiction-aware bias (Phase 3B)
  */
-export async function buildUserContext(userId?: string, countyHint?: string): Promise<UserContext> {
+export async function buildUserContext(
+  userOrId?: string | User,
+  countyHint?: string,
+  opts?: { currentMessage?: string }
+): Promise<UserContext> {
   const defaultContext: UserContext = {
     profile: {},
     userTypes: [],
@@ -134,17 +183,20 @@ export async function buildUserContext(userId?: string, countyHint?: string): Pr
     },
   };
 
-  if (!userId) {
+  const resolvedUserId =
+    typeof userOrId === "string"
+      ? userOrId
+      : userOrId && typeof (userOrId as any).id === "string"
+        ? String((userOrId as any).id)
+        : undefined;
+
+  if (!resolvedUserId) {
     return defaultContext;
   }
 
   try {
     // Fetch user profile
-    const userRecords = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    const userRecords = await db.select().from(users).where(eq(users.id, resolvedUserId)).limit(1);
 
     if (!userRecords || userRecords.length === 0) {
       return defaultContext;
@@ -162,13 +214,19 @@ export async function buildUserContext(userId?: string, countyHint?: string): Pr
     const location = buildLocationContext(user, countyHint);
 
     // Fetch recent interactions (last 30 days)
-    const recentInteractions = await fetchRecentInteractions(userId);
+    const recentInteractions = await fetchRecentInteractions(resolvedUserId);
 
-    // Optional: use userTypes + location + interactions to drive tone
-    const languageProfile = buildLanguageProfile(userTypes, location, recentInteractions);
+    // Optional: use userTypes + location + interactions to drive tone.
+    // CURRENT MESSAGE matters: don't assume a contractor's question is about lead-gen.
+    const languageProfile = buildLanguageProfile(
+      userTypes,
+      location,
+      recentInteractions,
+      opts?.currentMessage
+    );
 
     return {
-      userId,
+      userId: resolvedUserId,
       profile: {
         id: user.id,
         firstName: user.firstName ?? undefined,
@@ -256,11 +314,22 @@ function buildUserPreferences(userTypes: string[]): UserPreferences {
   const hasTag = (...tags: string[]) => userTypes.some((t) => tags.includes(t));
 
   return {
-    isBusiness: hasTag("business", "commercial_property", "business_owner", "startup_founder", "franchise_owner"),
+    isBusiness: hasTag(
+      "business",
+      "commercial_property",
+      "business_owner",
+      "startup_founder",
+      "franchise_owner"
+    ),
     isContractor: hasTag("contractor", "service_provider", "specialty_tradesperson", "handyman"),
     isHomowner: hasTag("homeowner", "renter", "landlord", "property_manager"),
     isCommunityBuilder: hasTag("community_builder", "nonprofit_org", "hoa_member", "hoa_board"),
-    isAffiliate: hasTag("affiliate", "content_creator", "marketing_specialist", "analytics_specialist"),
+    isAffiliate: hasTag(
+      "affiliate",
+      "content_creator",
+      "marketing_specialist",
+      "analytics_specialist"
+    ),
   };
 }
 
@@ -321,8 +390,13 @@ async function fetchRecentInteractions(userId: string): Promise<RecentInteractio
 
     // Analyze message content for interaction patterns
     recentMessages.forEach((msg) => {
-      const msgDate = msg.createdAt instanceof Date ? msg.createdAt : (msg.createdAt ? new Date(msg.createdAt) : null);
-      
+      const msgDate =
+        msg.createdAt instanceof Date
+          ? msg.createdAt
+          : msg.createdAt
+            ? new Date(msg.createdAt)
+            : null;
+
       // Skip if message is too old or has no date
       if (!msgDate || msgDate < thirtyDaysAgo) {
         return;
@@ -400,11 +474,13 @@ async function fetchRecentInteractions(userId: string): Promise<RecentInteractio
 function buildLanguageProfile(
   userTypes: string[],
   location: LocationContext,
-  recentInteractions: RecentInteraction[]
+  recentInteractions: RecentInteraction[],
+  currentMessage?: string
 ): LanguageProfile {
   const focusAreas: string[] = [];
   const localTerms: string[] = [];
   const contextualHints: string[] = [];
+  const perspective = inferConversationPerspective(currentMessage);
 
   // Formality level based on user type
   let formalityLevel: "casual" | "professional" | "formal" = "casual";
@@ -415,12 +491,27 @@ function buildLanguageProfile(
     formalityLevel = "formal";
   }
 
-  // Focus areas based on user type
-  if (userTypes.includes("contractor")) {
-    focusAreas.push("project leads", "client communication", "service coverage");
+  // Multi-hat guardrail: account tags are not the same as current intent.
+  contextualHints.push(
+    "Do not assume the user's perspective based on account tags alone (many users are both homeowners and contractors).",
+    "Treat the CURRENT message as primary. If it's ambiguous, ask one clarifying question before giving a long answer."
+  );
+
+  // Focus areas based on current perspective first.
+  if (perspective === "work") {
+    focusAreas.push("service coverage", "quoting and scope clarity", "scheduling");
     contextualHints.push(
-      "Use trade-specific terminology. Emphasize ROI and lead quality.",
-      "Scout can help with project discovery and client outreach."
+      "If the user is asking as a service provider, focus on process and trust signals (not marketing hype)."
+    );
+  } else if (perspective === "hire") {
+    focusAreas.push("scope and requirements", "local matching", "pricing expectations");
+    contextualHints.push(
+      "If the user is trying to get work done, focus on scoping the job and routing into the correct next step (Direct Connect, Project Tracker, or community)."
+    );
+  } else if (userTypes.includes("contractor")) {
+    focusAreas.push("next steps", "local context", "clear options");
+    contextualHints.push(
+      "If you can't tell whether the user is hiring or seeking work, ask: 'Are you trying to hire someone, or get leads for your business?'"
     );
   }
 
@@ -462,13 +553,19 @@ function buildLanguageProfile(
   // Add contextual hints based on recent interactions
   const interactionTypes = recentInteractions.map((i) => i.type);
   if (interactionTypes.includes("contractor")) {
-    contextualHints.push("User recently searched for contractors - emphasize contractor network features.");
+    contextualHints.push(
+      "User recently searched for contractors - emphasize contractor network features."
+    );
   }
   if (interactionTypes.includes("marketplace")) {
-    contextualHints.push("User recently used marketplace - highlight listing and discovery features.");
+    contextualHints.push(
+      "User recently used marketplace - highlight listing and discovery features."
+    );
   }
   if (interactionTypes.includes("builder")) {
-    contextualHints.push("User is active in Community Builder - emphasize community reach and fundraising.");
+    contextualHints.push(
+      "User is active in Community Builder - emphasize community reach and fundraising."
+    );
   }
 
   return {
@@ -494,11 +591,15 @@ Emphasize the platform's value proposition and encourage exploration.
   }
 
   const locationStr = formatLocation(context.location);
-  const typesStr = context.userTypes.join(", ") || "community member";
+  const profileViews = ["homeowner", "contractor", "business", "professional", "admin"].filter(
+    (v) => context.userTypes.includes(v)
+  );
+  const identityLabel = profileViews.length > 0 ? profileViews.join(" + ") : "community member";
+  const hasMultipleViews = profileViews.length > 1;
 
   let contextPrompt = `
 ## User Context: Personalized Guidance
-**User Type:** ${typesStr}
+**Profile Views:** ${identityLabel}${hasMultipleViews ? " (multi-hat user)" : ""}
 **Location:** ${locationStr}
 **Formality:** ${context.languageProfile.formalityLevel}
 
@@ -561,15 +662,16 @@ function formatTimeAgo(date: Date): string {
  * Generate thinking-process-friendly context summary
  * For LLM's internal reasoning before generating response
  */
-export function generateThinkingContext(context: UserContext): string {
+export function generateThinkingContext(context: UserContext, currentMessage?: string): string {
   if (!context.userId) {
     return `[REASONING] Guest user - keep response accessible and value-focused`;
   }
 
+  const profileViews = ["homeowner", "contractor", "business", "professional", "admin"].filter(
+    (v) => context.userTypes.includes(v)
+  );
   const typeContext =
-    context.userTypes.length > 0
-      ? `${context.userTypes.join("/")} user`
-      : "community member";
+    profileViews.length > 0 ? `${profileViews.join("/")} user` : "community member";
 
   let thinkingContext = `[REASONING] ${typeContext}`;
 
@@ -577,14 +679,17 @@ export function generateThinkingContext(context: UserContext): string {
     thinkingContext += ` in ${formatLocation(context.location)}`;
   }
 
-  if (context.preferences.isContractor) {
-    thinkingContext += ` - emphasize lead generation and service discovery`;
-  } else if (context.preferences.isHomowner) {
-    thinkingContext += ` - emphasize trusted local networks and pricing context`;
+  const perspective = inferConversationPerspective(currentMessage);
+  if (perspective === "work") {
+    thinkingContext += ` - provider perspective (help them win work through trust + process)`;
+  } else if (perspective === "hire") {
+    thinkingContext += ` - hiring perspective (scope, route to Direct Connect / Project Tracker)`;
   } else if (context.preferences.isCommunityBuilder) {
     thinkingContext += ` - emphasize community reach and builder features`;
   } else if (context.preferences.isBusiness) {
-    thinkingContext += ` - emphasize growth and market positioning`;
+    thinkingContext += ` - emphasize practical business outcomes (no hype)`;
+  } else {
+    thinkingContext += ` - keep options clear; ask one clarifier if needed`;
   }
 
   if (context.recentInteractions.length > 0) {

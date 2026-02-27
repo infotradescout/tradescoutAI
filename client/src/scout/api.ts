@@ -165,6 +165,9 @@ const SCOUT_POST_TIMEOUT_MS = 25_000;
 
 function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutMode {
   const lower = message.toLowerCase();
+  // IMPORTANT: Do not force a "contractors" mode just because the user has a contractor profile.
+  // People often wear multiple hats (homeowner + contractor). Mode should primarily follow the
+  // current question, not the account's tags, otherwise Scout answers from the wrong perspective.
   const roleSet = new Set((roles ?? []).map((r) => r.toLowerCase()));
 
   // Message-driven
@@ -178,14 +181,6 @@ function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutM
   const rolesArray = Array.from(roleSet);
 
   // Role-driven
-  if (
-    rolesArray.some(
-      (r) =>
-        r.startsWith("contractor") || r === "service_provider" || r === "specialty_tradesperson"
-    )
-  ) {
-    return "contractors";
-  }
   if (rolesArray.some((r) => r.includes("car_dealer") || r.includes("auto_service"))) {
     return "marketplace";
   }
