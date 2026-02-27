@@ -112,7 +112,12 @@ These are operational states, not popularity ranks.
 - What it is: a capped ranking lift for proven TradePartner usage signals.
 - Current implementation:
   - in partner recommendation ranking, reads `metadata.tradePartnerUsageCount`
-  - bonus formula: `min(10, tradePartnerUsageCount * 0.1)`
+  - bonus formula: `min(cap, tradePartnerUsageCount * slope)`
+  - default: `slope=0.1`, `cap=10`, `usage_cap=100`
+  - runtime tuning keys (`site_settings`, category `matching`):
+    - `tradepartner_bonus_slope`
+    - `tradepartner_bonus_cap`
+    - `tradepartner_bonus_usage_cap`
 - Allowed influence:
   - ordering priority in recommendation lists
 - Not allowed to influence:

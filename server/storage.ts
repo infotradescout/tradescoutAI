@@ -5622,6 +5622,65 @@ export class DatabaseStorage implements IStorage {
       return Number.isFinite(n) ? n : null;
     };
     const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+    const toSettingNumber = (value: unknown): number | null => {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      if (typeof value === "string") {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      }
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const obj = value as Record<string, unknown>;
+        const preferredKeys = ["value", "amount", "number", "slope", "cap"];
+        for (const key of preferredKeys) {
+          const n = toNum(obj[key]);
+          if (n !== null) return n;
+        }
+      }
+      return null;
+    };
+
+    const TRADEPARTNER_BONUS_SLOPE_DEFAULT = 0.1;
+    const TRADEPARTNER_BONUS_CAP_DEFAULT = 10;
+    const TRADEPARTNER_BONUS_USAGE_CAP_DEFAULT = 100;
+
+    const matchingSettings = await db
+      .select({
+        key: siteSettings.key,
+        value: siteSettings.value,
+      })
+      .from(siteSettings)
+      .where(
+        and(
+          eq(siteSettings.category, "matching"),
+          eq(siteSettings.isActive, true),
+          inArray(siteSettings.key, [
+            "tradepartner_bonus_slope",
+            "tradepartner_bonus_cap",
+            "tradepartner_bonus_usage_cap",
+          ])
+        )
+      );
+
+    const settingsMap = new Map<string, unknown>(
+      matchingSettings.map((row) => [String(row.key), row.value])
+    );
+    const tradePartnerBonusSlope = clamp(
+      toSettingNumber(settingsMap.get("tradepartner_bonus_slope")) ??
+        TRADEPARTNER_BONUS_SLOPE_DEFAULT,
+      0,
+      2
+    );
+    const tradePartnerBonusCap = clamp(
+      toSettingNumber(settingsMap.get("tradepartner_bonus_cap")) ?? TRADEPARTNER_BONUS_CAP_DEFAULT,
+      0,
+      25
+    );
+    const tradePartnerUsageCap = clamp(
+      toSettingNumber(settingsMap.get("tradepartner_bonus_usage_cap")) ??
+        TRADEPARTNER_BONUS_USAGE_CAP_DEFAULT,
+      1,
+      500
+    );
 
     const entityRows = await db
       .select()
@@ -5714,8 +5773,15 @@ export class DatabaseStorage implements IStorage {
       const cvsScore = toNum((trust as any)?.cvs_score);
       const priority = clamp(toNum(meta.priority) ?? 0, 0, 5);
       const localDeals = clamp(toNum(meta.localClosedDeals) ?? 0, 0, 50);
-      const tradePartnerUsageCount = clamp(toNum(meta.tradePartnerUsageCount) ?? 0, 0, 100);
-      const tradePartnerBonus = Math.min(10, tradePartnerUsageCount * 0.1);
+      const tradePartnerUsageCount = clamp(
+        toNum(meta.tradePartnerUsageCount) ?? 0,
+        0,
+        tradePartnerUsageCap
+      );
+      const tradePartnerBonus = Math.min(
+        tradePartnerBonusCap,
+        tradePartnerUsageCount * tradePartnerBonusSlope
+      );
       const isFeatured = Boolean(meta.featured);
       const verified =
         String(
