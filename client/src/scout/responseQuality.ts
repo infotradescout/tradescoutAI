@@ -74,7 +74,8 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   }
 
   if (hasActionOptions && !hasActionableLanguage(output)) {
-    output = `${output} Next: choose one action below to continue.`;
+    // Keep this phrasing neutral and non-jargony. The UI already shows the buttons.
+    output = `${output} Pick a next step below.`;
   }
 
   return collapseWhitespace(output);
