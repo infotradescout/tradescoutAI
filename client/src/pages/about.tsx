@@ -1,344 +1,362 @@
-import { memo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Hammer, Heart, Users, Shield, Target, Award, Building, Globe } from 'lucide-react';
+import { memo, useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Hammer, Heart, Users, Shield, Target, Award, Building, Globe } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
+
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 28, filter: "blur(8px)" }}
+      animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const About = memo(function About() {
   const missionPoints = [
     {
       icon: Hammer,
       title: "Connecting Quality Contractors",
-      description: "We verify and showcase the best local pros, organizations, and leaders in every community—so residents and partners can find the right people fast."
+      description:
+        "We verify and showcase the best local pros, organizations, and leaders in every community — so residents and partners can find the right people fast.",
     },
     {
       icon: Heart,
       title: "Supporting Communities",
-      description: "10% of our profits support the Mike Rowe Works Foundation and local community projects."
+      description:
+        "10% of our profits support the Mike Rowe Works Foundation and local community projects.",
     },
     {
       icon: Users,
       title: "Building Trust",
-      description: "Our verification system and community feedback create a trusted marketplace for home improvement."
+      description:
+        "Our verification system and community feedback create a trusted marketplace for home improvement.",
     },
     {
       icon: Shield,
       title: "Ensuring Quality",
-      description: "Rigorous verification, insurance requirements, and quality standards protect everyone using TradeScout: residents, contractors, businesses, and community teams."
-    }
+      description:
+        "Rigorous verification, insurance requirements, and quality standards protect everyone using TradeScout: residents, contractors, businesses, and community teams.",
+    },
   ];
 
   const stats = [
-    { number: '3,112', label: 'Counties Covered', description: 'Nationwide coverage across all 50 states' },
-    { number: '15,000+', label: 'Verified Contractors', description: 'Licensed and insured professionals' },
-    { number: '250,000+', label: 'Projects Completed', description: 'Successful home improvements' },
-    { number: '$50M+', label: 'Community Investment', description: 'Economic impact in local communities' }
+    { number: "3,112", label: "Counties Covered", description: "Nationwide coverage across all 50 states" },
+    { number: "15,000+", label: "Verified Contractors", description: "Licensed and insured professionals" },
+    { number: "250,000+", label: "Projects Completed", description: "Successful home improvements" },
+    { number: "$50M+", label: "Community Investment", description: "Economic impact in local communities" },
   ];
 
   const timeline = [
     {
-      year: '2023',
-      title: 'Launch',
-      description: 'TradeScout founded with a mission to connect local people, pros, and organizations around real projects and decisions'
+      year: "2023",
+      title: "Launch",
+      description: "TradeScout founded with a mission to connect local people, pros, and organizations around real projects and decisions",
     },
     {
-      year: '2024',
-      title: 'National Expansion',
-      description: 'Expanded to cover all 3,112 counties across the United States'
+      year: "2024",
+      title: "National Expansion",
+      description: "Expanded to cover all 3,112 counties across the United States",
     },
     {
-      year: '2024',
-      title: 'HOA Partnership',
-      description: 'Launched comprehensive HOA management and community features'
+      year: "2024",
+      title: "HOA Partnership",
+      description: "Launched comprehensive HOA management and community features",
     },
     {
-      year: '2024',
-      title: 'Foundation Partnership',
-      description: 'Partnered with Mike Rowe Works Foundation to support skilled trades'
-    }
+      year: "2024",
+      title: "Foundation Partnership",
+      description: "Partnered with Mike Rowe Works Foundation to support skilled trades",
+    },
   ];
 
   const values = [
     {
       icon: Target,
       title: "Quality First",
-      description: "We prioritize quality contractors and workmanship above all else. Every contractor goes through our rigorous verification process."
+      description: "We prioritize quality contractors and workmanship above all else. Every contractor goes through our rigorous verification process.",
     },
     {
       icon: Users,
       title: "Community-Centered",
-      description: "Local communities are at the heart of everything we do. We organize by local areas — counties, cities, and towns — to strengthen connections."
+      description: "Local communities are at the heart of everything we do. We organize by local areas — counties, cities, and towns — to strengthen connections.",
     },
     {
       icon: Shield,
       title: "Trust & Transparency",
-      description: "Open feedback systems, verified RECOMMENDATIONS, and transparent pricing help build trust across neighbors, pros, and community stakeholders."
+      description: "Open feedback systems, verified recommendations, and transparent pricing help build trust across neighbors, pros, and community stakeholders.",
     },
     {
       icon: Heart,
       title: "Giving Back",
-      description: "We donate 10% of profits to support trade education and community development programs."
-    }
+      description: "We donate 10% of profits to support trade education and community development programs.",
+    },
   ];
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="relative z-10 container mx-auto px-6 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <Badge className="mb-6 bg-orange-600/20 text-orange-400 border-orange-600/30 text-sm px-4 py-2">
-              About TradeScout
-            </Badge>
-            
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Building America's
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                Home Improvement Future
-              </span>
-            </h1>
-            
-            <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              TradeScout connects residents, pros, and community leaders while supporting local projects 
-              and the skilled trades through our partnership with the Mike Rowe Works Foundation.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-orange-600 hover:bg-orange-700 px-8 py-4 text-lg">
-                Join Our Mission
-              </Button>
-              <Button size="lg" variant="outline" className="px-8 py-4 text-lg">
-                Learn More
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-6 py-16">
-        {/* Mission Section */}
-        <div className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Our Mission</h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              To create the most trusted community operating system for real-world work by connecting local residents,
-              professionals, and organizations while supporting skilled trades and local communities.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {missionPoints.map((point, index) => {
-              const Icon = point.icon;
-              return (
-                <Card
-                  key={index}
-                  className="border-slate-700 text-center"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
-                >
-                  <CardContent className="p-6">
-                    <div className="w-16 h-16 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Icon className="w-8 h-8 text-orange-400" />
-                    </div>
-                    <h3 className="font-semibold text-white mb-3">{point.title}</h3>
-                    <p className="text-gray-400 text-sm">{point.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Stats Section */}
-        <div className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Impact by the Numbers</h2>
-            <p className="text-xl text-gray-300">
-              See how TradeScout is transforming the home improvement industry
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <Card
-                key={index}
-                className="border-slate-700 text-center"
-                style={{ backgroundColor: 'var(--surface-card)' }}
+    <>
+      <SEOHelmet
+        title="About TradeScout – Trust-First Local Matching"
+        description="TradeScout connects residents, pros, and community leaders while supporting local projects and the skilled trades. Learn about our mission, values, and community impact."
+        canonical="https://www.thetradescout.com/about"
+      />
+      <div className="text-white font-body">
+        {/* Hero */}
+        <section className="relative py-16 md:py-24 bg-transparent overflow-hidden">
+          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-4"
+            >
+              <Shield className="w-4 h-4 text-ts-orange" />
+              <span className="text-sm font-medium text-ts-orange">About TradeScout</span>
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="font-display text-4xl md:text-6xl font-extrabold text-white leading-tight tracking-tight mb-4"
+            >
+              Building America's{" "}
+              <span className="text-ts-orange">Home Improvement Future</span>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-lg text-white/70 max-w-2xl mx-auto mb-6 leading-relaxed"
+            >
+              TradeScout connects residents, pros, and community leaders while supporting local
+              projects and the skilled trades through our partnership with the Mike Rowe Works
+              Foundation.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="flex flex-col sm:flex-row gap-3 justify-center"
+            >
+              <a
+                href="/register"
+                className="inline-flex items-center justify-center bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-6 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]"
               >
-                <CardContent className="p-6">
-                  <div className="text-4xl font-bold text-orange-400 mb-2">{stat.number}</div>
-                  <h3 className="font-semibold text-white mb-2">{stat.label}</h3>
-                  <p className="text-gray-400 text-sm">{stat.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+                Join Our Mission
+              </a>
+              <a
+                href="/how-it-works"
+                className="inline-flex items-center justify-center border border-white/20 text-white hover:bg-white/10 font-semibold px-6 h-11 rounded-lg transition-all"
+              >
+                Learn More
+              </a>
+            </motion.div>
           </div>
-        </div>
+        </section>
 
-        {/* Values Section */}
-        <div className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Our Values</h2>
-            <p className="text-xl text-gray-300">
-              The principles that guide everything we do
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {values.map((value, index) => {
-              const Icon = value.icon;
-              return (
-                <Card
-                  key={index}
-                  className="border-slate-700"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-orange-400" />
-                      </div>
-                      {value.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300">{value.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Timeline Section */}
-        <div className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Our Journey</h2>
-            <p className="text-xl text-gray-300">
-              Key milestones in building the future of home improvement
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-orange-600/30"></div>
-            <div className="space-y-12">
-              {timeline.map((event, index) => (
-                <div key={index} className={`flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
-                  <div className="flex-1">
-                    <Card
-                      className={`border-slate-700 ${index % 2 === 0 ? 'mr-8' : 'ml-8'}`}
-                      style={{ backgroundColor: 'var(--surface-card)' }}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-16">
+          {/* Mission Section */}
+          <section>
+            <Reveal className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Target className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">Our Mission</span>
+              </div>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">Why We Exist</h2>
+              <p className="text-white/60 max-w-2xl mx-auto">
+                To create the most trusted community operating system for real-world work by
+                connecting local residents, professionals, and organizations while supporting skilled
+                trades and local communities.
+              </p>
+            </Reveal>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {missionPoints.map((point, index) => {
+                const Icon = point.icon;
+                return (
+                  <Reveal key={index} delay={index * 0.08}>
+                    <motion.div
+                      whileHover={{ y: -4 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="bg-tsCard border border-white/10 rounded-xl p-5 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center"
                     >
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Badge className="bg-orange-600 hover:bg-orange-700">
-                            {event.year}
-                          </Badge>
-                          <h3 className="font-semibold text-white">{event.title}</h3>
-                        </div>
-                        <p className="text-gray-300">{event.description}</p>
-                      </CardContent>
-                    </Card>
+                      <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <Icon className="w-5 h-5 text-ts-orange" />
+                      </div>
+                      <h3 className="font-semibold text-white mb-2 text-sm">{point.title}</h3>
+                      <p className="text-xs text-white/60 leading-relaxed">{point.description}</p>
+                    </motion.div>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Stats Section */}
+          <section>
+            <Reveal className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Award className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">Impact</span>
+              </div>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">Impact by the Numbers</h2>
+              <p className="text-white/60">See how TradeScout is transforming the home improvement industry</p>
+            </Reveal>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {stats.map((stat, index) => (
+                <Reveal key={index} delay={index * 0.08}>
+                  <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
+                    <div className="font-display text-3xl font-extrabold text-ts-orange mb-1">{stat.number}</div>
+                    <h3 className="font-semibold text-white mb-1 text-sm">{stat.label}</h3>
+                    <p className="text-xs text-white/50">{stat.description}</p>
                   </div>
-                  
-                  <div className="w-4 h-4 bg-orange-600 rounded-full border-4 border-slate-900 z-10"></div>
-                  
-                  <div className="flex-1"></div>
-                </div>
+                </Reveal>
               ))}
             </div>
-          </div>
+          </section>
+
+          {/* Values Section */}
+          <section>
+            <Reveal className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Heart className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">Our Values</span>
+              </div>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">The Principles That Guide Us</h2>
+              <p className="text-white/60">The principles that guide everything we do</p>
+            </Reveal>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {values.map((value, index) => {
+                const Icon = value.icon;
+                return (
+                  <Reveal key={index} delay={index * 0.08}>
+                    <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)] flex gap-4">
+                      <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-5 h-5 text-ts-orange" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white mb-1">{value.title}</h3>
+                        <p className="text-sm text-white/60 leading-relaxed">{value.description}</p>
+                      </div>
+                    </div>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Timeline Section */}
+          <section>
+            <Reveal className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Building className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">Our Story</span>
+              </div>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">How We Got Here</h2>
+            </Reveal>
+            <div className="space-y-3">
+              {timeline.map((event, index) => (
+                <Reveal key={index} delay={index * 0.08}>
+                  <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)] flex gap-4 items-start">
+                    <div className="inline-flex items-center justify-center bg-ts-orange/20 border border-ts-orange/30 rounded-full px-3 py-1 text-xs font-bold text-ts-orange flex-shrink-0">
+                      {event.year}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white mb-1">{event.title}</h3>
+                      <p className="text-sm text-white/60">{event.description}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </section>
+
+          {/* Foundation Partnership */}
+          <Reveal>
+            <div className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-6 md:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Award className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <h2 className="font-display text-2xl font-extrabold text-white">Mike Rowe Works Foundation</h2>
+                  </div>
+                  <p className="text-white/70 mb-5 text-sm leading-relaxed">
+                    We're proud to partner with the Mike Rowe Works Foundation, donating 10% of our
+                    profits to support skilled trades education and workforce development. This
+                    partnership helps ensure the next generation of skilled workers has the tools and
+                    training they need to succeed.
+                  </p>
+                  <a
+                    href="/scout"
+                    className="inline-flex items-center justify-center bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm"
+                  >
+                    Learn About Our Partnership
+                  </a>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: Building, label: "Trade Schools", sub: "Supported nationwide" },
+                    { icon: Users, label: "Students", sub: "Scholarships provided" },
+                    { icon: Globe, label: "Communities", sub: "Local programs funded" },
+                    { icon: Heart, label: "Impact", sub: "Lives changed" },
+                  ].map((item, i) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={i} className="bg-tsCard border border-white/10 rounded-xl p-4 text-center">
+                        <Icon className="w-6 h-6 text-ts-orange mx-auto mb-2" />
+                        <p className="font-semibold text-white text-sm">{item.label}</p>
+                        <p className="text-xs text-white/50">{item.sub}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Call to Action */}
+          <Reveal>
+            <div className="bg-tsCard border border-white/10 rounded-xl p-8 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">Join the TradeScout Community</h2>
+              <p className="text-white/60 mb-6 max-w-xl mx-auto">
+                Whether you're a resident, contractor, local business, organizer, or civic leader,
+                TradeScout is here to help you and your community succeed.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href="/register"
+                  className="inline-flex items-center justify-center bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-6 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:scale-[1.02]"
+                >
+                  Find Contractors
+                </a>
+                <a
+                  href="/register"
+                  className="inline-flex items-center justify-center border border-white/20 text-white hover:bg-white/10 font-semibold px-6 h-11 rounded-lg transition-all"
+                >
+                  Become a Contractor
+                </a>
+              </div>
+            </div>
+          </Reveal>
         </div>
-
-        {/* Foundation Partnership */}
-        <Card className="bg-gradient-to-r from-orange-600/20 to-orange-500/20 border-orange-500/30 mb-20">
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <Award className="w-8 h-8 text-orange-400" />
-                  <h2 className="text-3xl font-bold text-white">Mike Rowe Works Foundation</h2>
-                </div>
-                <p className="text-gray-300 mb-6">
-                  We're proud to partner with the Mike Rowe Works Foundation, donating 50% of our 
-                  profits to support skilled trades education and workforce development. This partnership 
-                  helps ensure the next generation of skilled workers has the tools and training they need to succeed.
-                </p>
-                <Button className="bg-orange-600 hover:bg-orange-700">
-                  Learn About Our Partnership
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div
-                  className="p-4 rounded-lg text-center"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
-                >
-                  <Building className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <p className="font-semibold text-white">Trade Schools</p>
-                  <p className="text-sm text-gray-400">Supported nationwide</p>
-                </div>
-                <div
-                  className="p-4 rounded-lg text-center"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
-                >
-                  <Users className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <p className="font-semibold text-white">Students</p>
-                  <p className="text-sm text-gray-400">Scholarships provided</p>
-                </div>
-                <div
-                  className="p-4 rounded-lg text-center"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
-                >
-                  <Globe className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <p className="font-semibold text-white">Communities</p>
-                  <p className="text-sm text-gray-400">Local programs funded</p>
-                </div>
-                <div
-                  className="p-4 rounded-lg text-center"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
-                >
-                  <Heart className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <p className="font-semibold text-white">Impact</p>
-                  <p className="text-sm text-gray-400">Lives changed</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Call to Action */}
-        <Card
-          className="border-slate-700"
-          style={{ backgroundColor: 'var(--surface-card)' }}
-        >
-          <CardContent className="p-8 text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">Join the TradeScout Community</h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Whether you're a resident, contractor, local business, organizer, or civic leader,
-              TradeScout is here to help you and your community succeed.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-orange-600 hover:bg-orange-700">
-                Find Contractors
-              </Button>
-              <Button size="lg" variant="outline">
-                Become a Contractor
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
-    </div>
+    </>
   );
 });
 

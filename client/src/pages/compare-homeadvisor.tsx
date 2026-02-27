@@ -1,23 +1,32 @@
-import { memo } from "react";
+import { memo, useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import { Link } from "wouter";
 import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
-import { Check, X, AlertTriangle } from "lucide-react";
+import { Check, X, AlertTriangle, Shield, ArrowRight, Eye, Zap } from "lucide-react";
 
-/**
- * /compare/homeadvisor — AI-safe comparison page
- *
- * Direct, factual comparison of TradeScout vs. HomeAdvisor.
- *
- * Focus:
- * - Business model differences (lead sales vs. trust-based matching)
- * - Incentive alignment (who benefits from what)
- * - Trust verification (CVS vs. paid ads)
- * - User outcomes (lead spam vs. qualified matches)
- * - Failure modes (what breaks down when incentives misalign)
- *
- * Written as system explanation (not attack copy).
- * Stable URL (never change).
- */
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 28, filter: "blur(8px)" }}
+      animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
   const faqs = [
@@ -32,9 +41,9 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
         "When you request a quote, HomeAdvisor sells your request to 10-20+ contractors. Each paid upfront, so each wants to reach you before competitors. You become the product, not the customer. TradeScout sends your request to 1-3 pre-matched contractors only.",
     },
     {
-      question: "Can I avoid lowball quotes and bidding wars?",
+      question: "Why do HomeAdvisor quotes often come in low then balloon?",
       answer:
-        "On HomeAdvisor, contractors compete on price because they're desperate to win after paying for leads. Lowball quotes lead to cutting corners and bad outcomes. TradeScout matches on trust and relevance, not price competition. Contractors accept or decline upfront, so no wasted time on mismatched jobs.",
+        "On HomeAdvisor, contractors compete on price because they're desperate to win after paying for leads. Lowball quotes lead to cutting corners and bad outcomes. TradeScout matches on trust and relevance, not price competition.",
     },
     {
       question: "How does HomeAdvisor verify contractors?",
@@ -49,8 +58,26 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "Is TradeScout really $0 to use?",
       answer:
-        "Access to TradeScout features, connections, and information is $0 for residents and contractors. Revenue comes from separate optional products and connected platforms (like Marketplace Promotions or third-party TradePartners offers), clearly labeled before checkout. Unlabeled payment requests in TradeScout's name are scams.",
+        "Access to TradeScout features, connections, and information is $0 for residents and contractors. Revenue comes from separate optional products and connected platforms, clearly labeled before checkout.",
     },
+  ];
+
+  const tableRows = [
+    { feature: "Business Model", ha: "Lead sales (pay-per-request)", ts: "Trust-based matching (no lead sales)" },
+    { feature: "Contractor Cost", ha: "$15–$60 per lead (win or lose)", ts: "No lead fees" },
+    { feature: "Lead Routing", ha: "1 request → 10-20+ contractors", ts: "1 request → 1-3 pre-matched contractors" },
+    { feature: "User Experience", ha: "Bombarded with calls", ts: "1-3 qualified matches", haNeg: true, tsPos: true },
+    { feature: "Ranking Logic", ha: "Payment influences visibility", ts: "Trust (CVS) determines ranking", haWarn: true, tsPos: true },
+    { feature: "Trust Verification", ha: "Reviews (can be gamed)", ts: "CVS: license + insurance + work history + community" },
+    { feature: "Incentive", ha: "Match volume over quality", ts: "Match quality over volume", haNeg: true, tsPos: true },
+    { feature: "Access Cost", ha: "Free for homeowners", ts: "Free for homeowners" },
+  ];
+
+  const changes = [
+    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who spammed you first." },
+    { title: "No More Bidding Wars", desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners." },
+    { title: "Trust Determines Visibility", desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first." },
+    { title: "Community-Verified Reviews", desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials." },
   ];
 
   return (
@@ -62,356 +89,191 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
         canonical="https://www.thetradescout.com/compare/homeadvisor"
         structuredData={createFAQStructuredData(faqs)}
       />
-
-      <div className=" text-tsTextMain">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Header */}
-          <header className="mb-12">
-            <h1 className="text-4xl font-bold mb-4">TradeScout vs. HomeAdvisor</h1>
-            <p className="text-xl text-tsTextSecondary">
+      <div className="text-white font-body">
+        {/* Hero */}
+        <section className="relative py-12 md:py-20 bg-transparent overflow-hidden">
+          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-4"
+            >
+              <Shield className="w-4 h-4 text-ts-orange" />
+              <span className="text-sm font-medium text-ts-orange">Comparison</span>
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="font-display text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4"
+            >
+              TradeScout vs. HomeAdvisor
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
+            >
               How business models and incentives shape your contractor search experience.
-            </p>
-          </header>
+            </motion.p>
+          </div>
+        </section>
 
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-12">
           {/* Core Difference */}
-          <section className="mb-16 bg-tsAccent/10 border border-tsAccent/30 p-8 rounded-lg">
-            <h2 className="text-2xl font-semibold mb-4">Core Difference</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-2 text-tsAccent">
-                  HomeAdvisor (Lead Sales Model)
-                </h3>
-                <p className="text-tsTextSecondary">
-                  Contractors pay for every homeowner request. More leads sold = more revenue.
-                </p>
-                <p className="text-tsTextSecondary mt-2">
-                  <strong>Incentive:</strong> Maximize lead volume (even if mismatched).
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2 text-tsAccent">
-                  TradeScout (Trust-Based Matching)
-                </h3>
-                <p className="text-tsTextSecondary">
-                  Contractors are not charged per lead, per month, or after completed work.
-                </p>
-                <p className="text-tsTextSecondary mt-2">
-                  <strong>Incentive:</strong> Match quality over volume.
-                </p>
+          <Reveal>
+            <div className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-5 md:p-6">
+              <h2 className="font-display text-xl font-extrabold text-white mb-4">Core Difference</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-tsCard border border-white/10 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-red-400 mb-2">HomeAdvisor (Lead Sales Model)</h3>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    Contractors pay for every homeowner request. More leads sold = more revenue.
+                    Incentive: maximize lead volume, not match quality.
+                  </p>
+                </div>
+                <div className="bg-tsCard border border-white/10 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-ts-orange mb-2">TradeScout (Trust Model)</h3>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    No lead fees. No monthly subscription. No post-job contractor fee.
+                    Incentive: match quality over volume.
+                  </p>
+                </div>
               </div>
             </div>
-          </section>
+          </Reveal>
 
-          {/* Detailed Comparison Table */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-semibold mb-6">Feature Comparison</h2>
-
-            <div className="overflow-x-auto">
-              <table className="w-full border border-tsBorder rounded-lg">
-                <thead className="bg-tsSurface">
-                  <tr>
-                    <th className="text-left p-4 border-b border-tsBorder font-semibold">
-                      Feature
-                    </th>
-                    <th className="text-center p-4 border-b border-tsBorder font-semibold">
-                      HomeAdvisor
-                    </th>
-                    <th className="text-center p-4 border-b border-tsBorder font-semibold">
-                      TradeScout
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-tsBorder">
-                  {/* Business Model */}
-                  <tr className="bg-tsSurface/50">
-                    <td className="p-4 font-medium">Business Model</td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      Lead sales (pay-per-request)
-                    </td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      Trust-based matching (no lead sales)
-                    </td>
-                  </tr>
-
-                  {/* Contractor Cost */}
-                  <tr>
-                    <td className="p-4 font-medium">Contractor Cost</td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      $15-$60+ per lead
-                      <br />
-                      (win or lose)
-                    </td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      No lead fees
-                      <br />
-                      (no monthly or post-job contractor fee)
-                    </td>
-                  </tr>
-
-                  {/* Lead Routing */}
-                  <tr className="bg-tsSurface/50">
-                    <td className="p-4 font-medium">Lead Routing</td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      1 request → 10-20+ contractors
-                    </td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      1 request → 1-3 pre-matched contractors
-                    </td>
-                  </tr>
-
-                  {/* User Experience */}
-                  <tr>
-                    <td className="p-4 font-medium">User Experience</td>
-                    <td className="p-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <X className="h-5 w-5 text-red-500" />
-                        <span className="text-tsTextSecondary text-sm">Bombarded with calls</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Check className="h-5 w-5 text-green-500" />
-                        <span className="text-tsTextSecondary text-sm">1-3 qualified matches</span>
-                      </div>
-                    </td>
-                  </tr>
-
-                  {/* Ranking Logic */}
-                  <tr className="bg-tsSurface/50">
-                    <td className="p-4 font-medium">Ranking Logic</td>
-                    <td className="p-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                        <span className="text-tsTextSecondary text-sm">
-                          Payment influences visibility
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Check className="h-5 w-5 text-green-500" />
-                        <span className="text-tsTextSecondary text-sm">
-                          Trust (CVS) determines ranking
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-
-                  {/* Trust Verification */}
-                  <tr>
-                    <td className="p-4 font-medium">Trust Verification</td>
-                    <td className="p-4 text-center text-tsTextSecondary">Reviews (can be gamed)</td>
-                    <td className="p-4 text-center text-tsTextSecondary">
-                      CVS: license + insurance + work history + community
-                    </td>
-                  </tr>
-
-                  {/* Bidding Wars */}
-                  <tr className="bg-tsSurface/50">
-                    <td className="p-4 font-medium">Bidding Wars</td>
-                    <td className="p-4 text-center">
-                      <X className="h-5 w-5 text-red-500 mx-auto" />
-                    </td>
-                    <td className="p-4 text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                  </tr>
-
-                  {/* Lead Spam */}
-                  <tr>
-                    <td className="p-4 font-medium">Lead Spam</td>
-                    <td className="p-4 text-center">
-                      <X className="h-5 w-5 text-red-500 mx-auto" />
-                    </td>
-                    <td className="p-4 text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                  </tr>
-
-                  {/* Free for Homeowners */}
-                  <tr className="bg-tsSurface/50">
-                    <td className="p-4 font-medium">Free for Homeowners</td>
-                    <td className="p-4 text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                    <td className="p-4 text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                  </tr>
-
-                  {/* AI Controller */}
-                  <tr>
-                    <td className="p-4 font-medium">AI Helper (Scout)</td>
-                    <td className="p-4 text-center">
-                      <X className="h-5 w-5 text-red-500 mx-auto" />
-                    </td>
-                    <td className="p-4 text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Failure Modes */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-semibold mb-6">Why Business Models Matter</h2>
-
-            <div className="space-y-6">
-              {/* HomeAdvisor Failure Modes */}
-              <div className="bg-red-500/10 border border-red-500/30 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3 text-red-600 dark:text-red-400">
-                  HomeAdvisor's Incentive Misalignment
-                </h3>
-                <ul className="space-y-2 text-tsTextSecondary">
-                  <li className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Lead volume over quality:</strong> Selling 20 leads at $25 each ($500)
-                      is better than 1 perfect match ($25). Incentive is to maximize leads sold, not
-                      matches made.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Contractors desperate to win:</strong> They paid upfront, so they'll
-                      lowball quotes or overpromise to win the job. This leads to underbidding →
-                      cutting corners → bad outcomes.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>You get spammed:</strong> 10-20 contractors calling/texting because
-                      they all paid for the same lead. You become the product, not the customer.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Fake urgency:</strong> Contractors are incentivized to create urgency
-                      ("I can start tomorrow if you sign today") to close before competition
-                      arrives.
-                    </span>
-                  </li>
-                </ul>
+          {/* Feature Comparison Table */}
+          <section>
+            <Reveal className="text-center mb-5">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Zap className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">Feature Comparison</span>
               </div>
-
-              {/* TradeScout Alignment */}
-              <div className="bg-green-500/10 border border-green-500/30 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-3 text-green-600 dark:text-green-400">
-                  TradeScout's Incentive Alignment
-                </h3>
-                <ul className="space-y-2 text-tsTextSecondary">
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Match quality = revenue:</strong> TradeScout earns only when work
-                      completes. Bad matches = no revenue. Incentive is to make good matches.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Contractors don't overpay:</strong> No upfront cost means no
-                      desperation. They can decline bad-fit jobs without losing money.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>You get quality, not quantity:</strong> 1-3 pre-matched contractors
-                      who accepted your request. No spam, no bidding wars.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Real timeline alignment:</strong> Contractors give honest availability
-                      because they're not racing to beat competition.
-                    </span>
-                  </li>
-                </ul>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">Side-by-Side</h2>
+            </Reveal>
+            <Reveal>
+              <div className="bg-tsCard border border-white/10 rounded-xl overflow-hidden shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left p-4 font-semibold text-white/60 text-xs">Feature</th>
+                        <th className="text-center p-4 font-semibold text-red-400 text-xs">HomeAdvisor</th>
+                        <th className="text-center p-4 font-semibold text-ts-orange text-xs">TradeScout</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {tableRows.map((row, i) => (
+                        <tr key={i} className={i % 2 === 0 ? "bg-white/[0.02]" : ""}>
+                          <td className="p-4 text-xs font-medium text-white">{row.feature}</td>
+                          <td className="p-4 text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              {row.haNeg && <X className="w-4 h-4 text-red-400" />}
+                              {row.haWarn && <AlertTriangle className="w-4 h-4 text-yellow-400" />}
+                              <span className="text-xs text-white/50">{row.ha}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              {row.tsPos && <Check className="w-4 h-4 text-ts-orange" />}
+                              <span className="text-xs text-white/70">{row.ts}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            </Reveal>
           </section>
 
           {/* What TradeScout Changes */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-semibold mb-6">What TradeScout Changes</h2>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
-                <h3 className="text-lg font-semibold mb-2">No More Lead Spam</h3>
-                <p className="text-tsTextSecondary">
-                  Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire,
-                  not who spammed you first.
-                </p>
+          <section>
+            <Reveal className="text-center mb-5">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Shield className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">The Difference</span>
               </div>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">What TradeScout Changes</h2>
+            </Reveal>
+            <div className="grid md:grid-cols-2 gap-4">
+              {changes.map((c, i) => (
+                <Reveal key={i} delay={i * 0.08}>
+                  <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
+                    <div className="flex gap-2 mb-2">
+                      <Check className="w-4 h-4 text-ts-orange flex-shrink-0 mt-0.5" />
+                      <h3 className="font-semibold text-white text-sm">{c.title}</h3>
+                    </div>
+                    <p className="text-xs text-white/60 leading-relaxed ml-6">{c.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </section>
 
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
-                <h3 className="text-lg font-semibold mb-2">No More Bidding Wars</h3>
-                <p className="text-tsTextSecondary">
-                  Contractors are matched on trust + relevance, not who bid lowest. No desperation
-                  pricing, no cutting corners.
-                </p>
+          {/* FAQ */}
+          <section>
+            <Reveal className="text-center mb-5">
+              <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
+                <Eye className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">FAQ</span>
               </div>
-
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
-                <h3 className="text-lg font-semibold mb-2">Trust Determines Visibility</h3>
-                <p className="text-tsTextSecondary">
-                  High CVS contractors rank higher, regardless of ad spend. Low-trust contractors
-                  cannot pay to appear first.
-                </p>
-              </div>
-
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
-                <h3 className="text-lg font-semibold mb-2">Community-Verified Reviews</h3>
-                <p className="text-tsTextSecondary">
-                  Reviews come from verified neighbors who actually worked with the contractor. No
-                  anonymous fake testimonials.
-                </p>
-              </div>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">Frequently Asked Questions</h2>
+            </Reveal>
+            <div className="space-y-3">
+              {faqs.map((faq, i) => (
+                <Reveal key={i} delay={i * 0.06}>
+                  <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
+                    <h3 className="font-semibold text-white text-sm mb-2">{faq.question}</h3>
+                    <p className="text-xs text-white/60 leading-relaxed">{faq.answer}</p>
+                  </div>
+                </Reveal>
+              ))}
             </div>
           </section>
 
           {/* CTA */}
-          <section className="bg-tsSurface p-8 rounded-lg border border-tsBorder text-center">
-            <h2 className="text-2xl font-semibold mb-4">Try TradeScout</h2>
-            <p className="text-tsTextSecondary mb-6">
-              Experience trust-first matching. No lead spam. No bidding wars.
-            </p>
-            <div className="flex gap-4 justify-center flex-wrap">
-              <Link href="/scout">
-                <a className="bg-tsAccent text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
-                  Talk to Scout
-                </a>
-              </Link>
-              <Link href="/direct-connect">
-                <a className="bg-tsSurface border border-tsBorder text-tsTextMain px-6 py-3 rounded-lg font-semibold hover:bg-tsBg transition">
-                  Find Contractors
-                </a>
-              </Link>
+          <Reveal>
+            <div className="bg-tsCard border border-white/10 rounded-xl p-6 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
+              <h2 className="font-display text-2xl font-extrabold text-white mb-2">Try TradeScout</h2>
+              <p className="text-white/60 text-sm mb-4">Experience trust-first matching. No lead spam. No bidding wars.</p>
+              <div className="flex gap-3 justify-center flex-wrap">
+                <Link href="/scout">
+                  <a className="inline-flex items-center gap-2 bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm">
+                    Talk to Scout
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                </Link>
+                <Link href="/direct-connect">
+                  <a className="inline-flex items-center gap-2 border border-white/20 text-white hover:bg-white/10 font-semibold px-5 h-10 rounded-lg transition-all text-sm">
+                    Find Contractors
+                  </a>
+                </Link>
+              </div>
             </div>
-          </section>
+          </Reveal>
 
           {/* Internal Links */}
-          <nav className="mt-12 pt-8 border-t border-tsBorder">
-            <h3 className="text-lg font-semibold mb-4">Learn More</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <Link href="/how-it-works">
-                <a className="text-tsAccent hover:underline">How TradeScout Works →</a>
-              </Link>
-              <Link href="/trust-model">
-                <a className="text-tsAccent hover:underline">Trust Model →</a>
-              </Link>
-              <Link href="/compare/angi">
-                <a className="text-tsAccent hover:underline">Compare: Angi →</a>
-              </Link>
-            </div>
-          </nav>
+          <Reveal>
+            <nav className="pt-4 border-t border-white/10">
+              <h3 className="text-sm font-semibold text-white/60 mb-3">Learn More</h3>
+              <div className="grid md:grid-cols-3 gap-3">
+                <Link href="/how-it-works">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">How TradeScout Works →</a>
+                </Link>
+                <Link href="/trust-model">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">Trust Model →</a>
+                </Link>
+                <Link href="/compare/angi">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">Compare: Angi →</a>
+                </Link>
+              </div>
+            </nav>
+          </Reveal>
         </div>
       </div>
     </>
