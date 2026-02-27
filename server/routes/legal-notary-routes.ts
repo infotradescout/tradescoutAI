@@ -14,7 +14,7 @@ const STATE_POLICIES: Record<string, NotaryStatePolicy> = {
     stateName: "Louisiana",
     status: "live",
     mobileNotaryAvailable: true,
-    remoteOnlineNotaryAllowed: false,
+    remoteOnlineNotaryAllowed: true,
     lastReviewedOn: "2026-02-27",
     serviceSummary:
       "Louisiana mobile notary support is enabled for in-person travel appointments with policy checks.",
@@ -26,6 +26,7 @@ const STATE_POLICIES: Record<string, NotaryStatePolicy> = {
       "real_estate_closing_package",
       "business_authorization",
     ],
+    remoteEligibleServiceTypes: ["acknowledgment", "jurat", "affidavit", "power_of_attorney"],
     restrictedDocumentTypes: ["testament", "codicil", "family_law_final_order"],
     requiredIntakeFields: [
       "stateCode",
@@ -38,6 +39,7 @@ const STATE_POLICIES: Record<string, NotaryStatePolicy> = {
       "preferredArrivalWindow",
       "government_id_front",
       "government_id_back",
+      "signer_selfie",
       "unsigned_document_pdf",
     ],
     complianceNotes: [
@@ -53,6 +55,7 @@ const STATE_POLICIES: Record<string, NotaryStatePolicy> = {
 
 const intakeSchema = z.object({
   stateCode: z.string().length(2),
+  deliveryMode: z.enum(["mobile", "remote"]).optional(),
   serviceType: z.string().min(2).max(100),
   documentType: z.string().min(2).max(120),
   countyFips: z.string().length(5).optional().nullable(),
@@ -100,6 +103,7 @@ function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
 
   const normalizedServiceType = input.serviceType.trim().toLowerCase();
   const normalizedDocumentType = input.documentType.trim().toLowerCase();
+  const deliveryMode = input.deliveryMode ?? "mobile";
   const restricted = policy.restrictedDocumentTypes.includes(normalizedDocumentType);
   const serviceAllowed = policy.allowedServiceTypes.includes(normalizedServiceType);
   const hasMobileLocation =
@@ -107,20 +111,6 @@ function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
     Boolean(input.serviceCity?.trim()) &&
     Boolean(input.serviceZipCode?.trim()) &&
     Boolean(input.preferredArrivalWindow?.trim());
-
-  if (!hasMobileLocation) {
-    return {
-      eligible: false,
-      stateCode,
-      status: "manual_review",
-      reason: "Mobile appointment details are incomplete.",
-      nextSteps: [
-        "Provide service address, city, zip code, and preferred arrival window.",
-        "Resubmit intake for automated path eligibility.",
-      ],
-      requiredUploads: [],
-    };
-  }
 
   if (restricted) {
     return {
@@ -152,6 +142,69 @@ function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
         "A notary operations specialist will confirm allowed handling.",
       ],
       requiredUploads: ["government_id_front", "government_id_back", "unsigned_document_pdf"],
+    };
+  }
+
+  if (deliveryMode === "remote") {
+    if (!policy.remoteOnlineNotaryAllowed) {
+      return {
+        eligible: false,
+        stateCode,
+        status: "unsupported",
+        reason: "Remote online notary support is not live for this state.",
+        nextSteps: [
+          "Switch to mobile in-person notary service.",
+          "Or join the remote service waitlist for this state.",
+        ],
+        requiredUploads: [],
+      };
+    }
+
+    const remoteEligible = policy.remoteEligibleServiceTypes.includes(normalizedServiceType);
+    if (!remoteEligible) {
+      return {
+        eligible: false,
+        stateCode,
+        status: "manual_review",
+        reason: "Selected service is not in the automated remote support set.",
+        nextSteps: [
+          "Choose a remote-eligible service type, or",
+          "Switch to mobile notary and continue with in-person scheduling.",
+        ],
+        requiredUploads: ["government_id_front", "government_id_back", "signer_selfie"],
+      };
+    }
+
+    return {
+      eligible: true,
+      stateCode,
+      status: "approved_path",
+      reason: "Eligible for the Louisiana remote notary path.",
+      nextSteps: [
+        "Complete signer identity verification and selfie check.",
+        "Upload unsigned document package.",
+        "Schedule remote online notary session.",
+      ],
+      requiredUploads: [
+        "government_id_front",
+        "government_id_back",
+        "signer_selfie",
+        "unsigned_document_pdf",
+      ],
+    };
+  }
+
+  if (!hasMobileLocation) {
+    return {
+      eligible: false,
+      stateCode,
+      status: "manual_review",
+      reason: "Mobile appointment details are incomplete.",
+      nextSteps: [
+        "Provide service address, city, zip code, and preferred arrival window.",
+        "Resubmit intake for automated path eligibility.",
+      ],
+      requiredUploads: [],
     };
   }
 

@@ -9,6 +9,7 @@ export interface NotaryStatePolicy {
   lastReviewedOn: string;
   serviceSummary: string;
   allowedServiceTypes: string[];
+  remoteEligibleServiceTypes: string[];
   restrictedDocumentTypes: string[];
   requiredIntakeFields: string[];
   complianceNotes: string[];
@@ -17,6 +18,7 @@ export interface NotaryStatePolicy {
 
 export interface NotaryIntakeRequest {
   stateCode: string;
+  deliveryMode?: "mobile" | "remote";
   serviceType: string;
   documentType: string;
   countyFips?: string | null;

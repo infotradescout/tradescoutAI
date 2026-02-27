@@ -21,7 +21,7 @@ describe("legal notary routes", () => {
     expect(louisiana).toBeTruthy();
     expect(louisiana.status).toBe("live");
     expect(louisiana.mobileNotaryAvailable).toBe(true);
-    expect(louisiana.remoteOnlineNotaryAllowed).toBe(false);
+    expect(louisiana.remoteOnlineNotaryAllowed).toBe(true);
   });
 
   it("returns Louisiana policy details", async () => {
@@ -94,6 +94,37 @@ describe("legal notary routes", () => {
       stateCode: "LA",
       serviceType: "affidavit",
       documentType: "general_affidavit",
+      signerCount: 1,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.eligible).toBe(false);
+    expect(res.body.status).toBe("manual_review");
+  });
+
+  it("approves remote intake for Louisiana remote-eligible service types", async () => {
+    const app = createApp();
+    const res = await request(app).post("/api/legal/notary/intake").send({
+      stateCode: "LA",
+      deliveryMode: "remote",
+      serviceType: "affidavit",
+      documentType: "general_affidavit",
+      signerCount: 1,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.eligible).toBe(true);
+    expect(res.body.status).toBe("approved_path");
+    expect(String(res.body.reason).toLowerCase()).toContain("remote notary");
+  });
+
+  it("routes non-remote-eligible services to manual review for remote mode", async () => {
+    const app = createApp();
+    const res = await request(app).post("/api/legal/notary/intake").send({
+      stateCode: "LA",
+      deliveryMode: "remote",
+      serviceType: "real_estate_closing_package",
+      documentType: "closing_packet",
       signerCount: 1,
     });
 

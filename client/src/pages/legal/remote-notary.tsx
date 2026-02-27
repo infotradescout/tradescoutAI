@@ -118,6 +118,17 @@ export default function RemoteNotaryPage() {
               </div>
 
               <div>
+                <h3 className="font-medium mb-2">Remote-Eligible Service Types</h3>
+                <div className="flex flex-wrap gap-2">
+                  {policy.remoteEligibleServiceTypes.map((service) => (
+                    <Badge key={`remote-${service}`} variant="default">
+                      {service}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <h3 className="font-medium mb-2">Restricted Document Types</h3>
                 <div className="flex flex-wrap gap-2">
                   {policy.restrictedDocumentTypes.map((docType) => (
