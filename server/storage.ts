@@ -5714,6 +5714,8 @@ export class DatabaseStorage implements IStorage {
       const cvsScore = toNum((trust as any)?.cvs_score);
       const priority = clamp(toNum(meta.priority) ?? 0, 0, 5);
       const localDeals = clamp(toNum(meta.localClosedDeals) ?? 0, 0, 50);
+      const tradePartnerUsageCount = clamp(toNum(meta.tradePartnerUsageCount) ?? 0, 0, 100);
+      const tradePartnerBonus = Math.min(10, tradePartnerUsageCount * 0.1);
       const isFeatured = Boolean(meta.featured);
       const verified =
         String(
@@ -5724,6 +5726,7 @@ export class DatabaseStorage implements IStorage {
         priority * 9 +
         Math.min(45, (cvsScore ?? 0) * 0.45) +
         Math.min(15, localDeals * 0.6) +
+        tradePartnerBonus +
         (isFeatured ? 7 : 0) +
         (verified ? 8 : 0);
 

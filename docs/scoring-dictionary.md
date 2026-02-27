@@ -99,11 +99,26 @@ These are operational states, not popularity ranks.
   - verification status
   - relevance/context fit
   - county/entity metadata (priority, local outcomes, etc.)
+  - TradePartner engagement bonus (usage-based, capped)
 - Allowed influence:
   - ordering in recommendations/matching
 - Not allowed to influence:
   - bypass of trust or verification gates
   - direct contact permission without required flow invariants
+
+### 4a) TradePartner Engagement Bonus (within match ranking only)
+
+- Canonical id: `tradepartner_engagement_bonus`
+- What it is: a capped ranking lift for proven TradePartner usage signals.
+- Current implementation:
+  - in partner recommendation ranking, reads `metadata.tradePartnerUsageCount`
+  - bonus formula: `min(10, tradePartnerUsageCount * 0.1)`
+- Allowed influence:
+  - ordering priority in recommendation lists
+- Not allowed to influence:
+  - base profile CVS
+  - verification state
+  - hard action/contact gates
 
 ## 5) Community Outcome Score (Outcome Quality Layer)
 
@@ -197,4 +212,3 @@ Important naming note: this has historically been called "CVS" in ad comments. I
   - allowed influence
   - prohibited influence
   - user-facing label/copy
-
