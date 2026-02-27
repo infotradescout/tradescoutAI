@@ -9,6 +9,7 @@ import { randomUUID } from "crypto";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { businessesRouter } from "./routes/businesses";
 import { profilesRouter } from "./routes/profiles";
+import { propertyProgramsRouter } from "./routes/property-programs";
 import { homesRouter } from "./routes/homes";
 import { vehiclesRouter } from "./routes/vehicles";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
@@ -57,6 +58,7 @@ import { logAdminAction } from "./services/adminAuditLogService";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
+import { addPropertyLifecycleEvent, requirePropertyProgramAccess } from "./services/propertyLifecycleService";
 import {
   users,
   userRoleEnum,
@@ -4960,6 +4962,39 @@ export async function registerRoutes(app: any) {
           },
         } as any);
 
+        // Optional: sync booking activity into a linked Property Program so HomeFax/readiness stays current.
+        try {
+          const ctx = bookingContext && typeof bookingContext === "object" ? (bookingContext as any) : {};
+          const propertyProgramId =
+            typeof ctx.propertyProgramId === "string" ? String(ctx.propertyProgramId).trim() : "";
+          if (propertyProgramId) {
+            await requirePropertyProgramAccess({
+              propertyProgramId,
+              userId: String(requesterUserId || ""),
+            });
+            await addPropertyLifecycleEvent({
+              propertyProgramId,
+              actionType: "booking_request_created",
+              phase: "bookings",
+              title: serviceLabel ? `Booking requested: ${serviceLabel}` : "Booking requested",
+              description: requestMessage || null,
+              occurredAt: requestedStartAt || new Date(),
+              source: "user",
+              status: "done",
+              metadata: {
+                bookingRequestId: created?.id ?? null,
+                ownerUserId,
+                deliveryMode,
+              },
+              createdByUserId: String(requesterUserId || ""),
+              sourceSurface: "profile_booking",
+              idempotencyKey: `profile_booking:request:${created?.id ?? "missing"}`,
+            });
+          }
+        } catch (err) {
+          console.warn("[profile-booking] Failed to sync booking request to property program:", err);
+        }
+
         res.status(201).json(created);
       } catch (error: any) {
         console.error("Error creating profile booking request:", error);
@@ -5034,6 +5069,43 @@ export async function registerRoutes(app: any) {
         const updated = await storage.updateProfileBookingRequest(id, {
           status: nextStatus as any,
         });
+
+        // Optional: sync status transitions into a linked Property Program.
+        try {
+          const ctx =
+            existing.bookingContext && typeof existing.bookingContext === "object"
+              ? (existing.bookingContext as any)
+              : {};
+          const propertyProgramId =
+            typeof ctx.propertyProgramId === "string" ? String(ctx.propertyProgramId).trim() : "";
+          if (propertyProgramId) {
+            await requirePropertyProgramAccess({
+              propertyProgramId,
+              userId: String(actorUserId || ""),
+            });
+            await addPropertyLifecycleEvent({
+              propertyProgramId,
+              actionType: `booking_request_${nextStatus}`,
+              phase: "bookings",
+              title: `Booking ${nextStatus}`,
+              description: null,
+              occurredAt: new Date(),
+              source: "user",
+              status: "done",
+              metadata: {
+                bookingRequestId: existing?.id ?? null,
+                ownerUserId: existing?.ownerUserId ?? null,
+                requesterUserId: existing?.requesterUserId ?? null,
+              },
+              createdByUserId: String(actorUserId || ""),
+              sourceSurface: "profile_booking",
+              idempotencyKey: `profile_booking:status:${existing?.id ?? "missing"}:${nextStatus}`,
+            });
+          }
+        } catch (err) {
+          console.warn("[profile-booking] Failed to sync status change to property program:", err);
+        }
+
         res.json(updated);
       } catch (error: any) {
         console.error("Error updating booking request status:", error);
@@ -19397,6 +19469,42 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           paymentStatus: "processing",
         } as any);
 
+        // Optional: sync payment intent creation into a linked Property Program.
+        try {
+          const ctx =
+            requestRecord?.bookingContext && typeof requestRecord.bookingContext === "object"
+              ? (requestRecord.bookingContext as any)
+              : (bookingContext as any) || {};
+          const propertyProgramId =
+            typeof ctx.propertyProgramId === "string" ? String(ctx.propertyProgramId).trim() : "";
+          if (propertyProgramId) {
+            await requirePropertyProgramAccess({
+              propertyProgramId,
+              userId: String(buyerUserId || ""),
+            });
+            await addPropertyLifecycleEvent({
+              propertyProgramId,
+              actionType: "booking_payment_intent_created",
+              phase: "bookings",
+              title: "Booking payment started",
+              description: description || null,
+              occurredAt: new Date(),
+              source: "system",
+              status: "done",
+              metadata: {
+                bookingRequestId: requestRecord?.id ?? null,
+                paymentIntentId: intent.id,
+                amountUsd: finalAmount,
+              },
+              createdByUserId: String(buyerUserId || ""),
+              sourceSurface: "profile_booking",
+              idempotencyKey: `profile_booking:payment_intent:${intent.id}`,
+            });
+          }
+        } catch (err) {
+          console.warn("[profile-booking] Failed to sync payment intent to property program:", err);
+        }
+
         res.json({
           clientSecret: intent.client_secret,
           paymentIntentId: intent.id,
@@ -20482,6 +20590,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register Profile website routes
   app.use(profilesRouter);
+
+  // Property Lifecycle OS routes (Build / Existing / Upgrades / Maintain / Sell)
+  app.use(propertyProgramsRouter);
 
   // Account-only Home Vault routes ("Carfax for your home")
   app.use(homesRouter);

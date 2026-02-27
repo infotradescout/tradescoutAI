@@ -6,11 +6,13 @@ import { db } from "../db";
 import {
   USER_HOME_DOCUMENT_TYPES,
   USER_HOME_RECORD_TYPES,
+  propertyPrograms,
   userHomeAppliances,
   userHomeDocuments,
   userHomeRecords,
   userHomes,
 } from "../../shared/schema";
+import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
 
 const router = Router();
 
@@ -68,6 +70,21 @@ async function requireHomeOwner(userId: string, homeId: string) {
     .where(and(eq(userHomes.id, homeId), eq(userHomes.ownerUserId, userId)))
     .limit(1);
   return home ?? null;
+}
+
+async function getLinkedPropertyProgramIdsForHome(homeId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: propertyPrograms.id })
+    .from(propertyPrograms)
+    .where(eq(propertyPrograms.userHomeId, homeId))
+    .orderBy(desc(propertyPrograms.updatedAt))
+    .limit(5);
+  return rows.map((r) => String(r.id)).filter(Boolean);
+}
+
+function dateToNoonUtc(value: string): Date {
+  // Stored as YYYY-MM-DD in the Home Vault. Convert to a stable timestamp.
+  return new Date(`${value}T12:00:00.000Z`);
 }
 
 router.get("/api/homes", isAuthenticated, async (req: any, res) => {
@@ -174,6 +191,35 @@ router.post("/api/homes/:homeId/records", isAuthenticated, async (req: any, res)
 
   await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
 
+  // Auto-sync Home Vault action into any linked Property Program(s) so Scout + lifecycle
+  // surfaces stay current without manual duplication.
+  try {
+    const propertyProgramIds = await getLinkedPropertyProgramIdsForHome(homeId);
+    for (const propertyProgramId of propertyProgramIds) {
+      await addPropertyLifecycleEvent({
+        propertyProgramId,
+        actionType: `home_record_${body.recordType}`,
+        phase: "operate",
+        title: body.title,
+        description: body.details || null,
+        occurredAt: occurredAt ? dateToNoonUtc(occurredAt) : new Date(),
+        source: "user",
+        status: "done",
+        costAmount: body.cost ?? null,
+        metadata: {
+          homeId,
+          homeRecordId: created?.id ?? null,
+          tags: body.tags ?? [],
+        },
+        createdByUserId: userId,
+        sourceSurface: "home_vault",
+        idempotencyKey: `home:${homeId}:record:${created?.id ?? "missing"}`,
+      });
+    }
+  } catch (err) {
+    console.error("[homes] Failed to sync record into property program:", err);
+  }
+
   res.status(201).json({ record: created });
 });
 
@@ -207,6 +253,33 @@ router.post("/api/homes/:homeId/appliances", isAuthenticated, async (req: any, r
     .returning();
 
   await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+  try {
+    const propertyProgramIds = await getLinkedPropertyProgramIdsForHome(homeId);
+    const label = [body.category, body.brand, body.model].filter(Boolean).join(" ").trim();
+    for (const propertyProgramId of propertyProgramIds) {
+      await addPropertyLifecycleEvent({
+        propertyProgramId,
+        actionType: "home_appliance_added",
+        phase: "operate",
+        title: label ? `Appliance added: ${label}` : `Appliance added: ${body.category}`,
+        description: body.notes || null,
+        occurredAt: installedAt ? dateToNoonUtc(installedAt) : new Date(),
+        source: "user",
+        status: "done",
+        metadata: {
+          homeId,
+          applianceId: created?.id ?? null,
+          category: body.category,
+        },
+        createdByUserId: userId,
+        sourceSurface: "home_vault",
+        idempotencyKey: `home:${homeId}:appliance:${created?.id ?? "missing"}`,
+      });
+    }
+  } catch (err) {
+    console.error("[homes] Failed to sync appliance into property program:", err);
+  }
 
   res.status(201).json({ appliance: created });
 });
@@ -252,6 +325,34 @@ router.post("/api/homes/:homeId/documents", isAuthenticated, async (req: any, re
     .returning();
 
   await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+  try {
+    const propertyProgramIds = await getLinkedPropertyProgramIdsForHome(homeId);
+    for (const propertyProgramId of propertyProgramIds) {
+      await addPropertyLifecycleEvent({
+        propertyProgramId,
+        actionType: "home_document_added",
+        phase: "operate",
+        title: `Document added: ${body.documentType || "other"}`,
+        description: body.originalName || null,
+        occurredAt: new Date(),
+        source: "user",
+        status: "done",
+        metadata: {
+          homeId,
+          homeRecordId: recordId,
+          homeDocumentId: created?.id ?? null,
+          documentType: body.documentType || "other",
+          objectKey: body.objectKey,
+        },
+        createdByUserId: userId,
+        sourceSurface: "home_vault",
+        idempotencyKey: `home:${homeId}:document:${created?.id ?? "missing"}`,
+      });
+    }
+  } catch (err) {
+    console.error("[homes] Failed to sync document into property program:", err);
+  }
 
   res.status(201).json({ document: created });
 });

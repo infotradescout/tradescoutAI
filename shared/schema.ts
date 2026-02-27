@@ -4102,6 +4102,7 @@ export const profileBookingRequests = pgTable(
         category?: "general" | "legal_notary";
         stateCode?: string;
         countyFips?: string | null;
+        propertyProgramId?: string;
         serviceType?: string;
         documentType?: string;
         deliveryMode?: "mobile" | "remote" | "onsite";
@@ -5139,6 +5140,335 @@ export const userHomeDocuments = pgTable(
 
 export type UserHomeDocument = typeof userHomeDocuments.$inferSelect;
 export type InsertUserHomeDocument = typeof userHomeDocuments.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// Property Lifecycle OS (Build / Existing / Upgrades / Maintain / Sell)
+// ---------------------------------------------------------------------------
+
+export const propertyPrograms = pgTable(
+  "property_programs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    primaryUserId: varchar("primary_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    countyFips: varchar("county_fips", { length: 5 }).notNull(),
+    stateCode: varchar("state_code", { length: 2 }).notNull(),
+    mode: varchar("mode", { enum: ["build", "existing"] }).notNull(),
+    status: varchar("status", { enum: ["draft", "active", "paused", "completed"] })
+      .notNull()
+      .default("draft"),
+    addressJson: jsonb("address_json").$type<Record<string, any>>().notNull().default({}),
+    userHomeId: varchar("user_home_id").references(() => userHomes.id, { onDelete: "set null" }),
+    parcelId: text("parcel_id"),
+    propertyType: varchar("property_type", { length: 64 }),
+    yearBuilt: integer("year_built"),
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_programs_owner").on(table.ownerUserId),
+    index("idx_property_programs_primary").on(table.primaryUserId),
+    index("idx_property_programs_county_state").on(table.countyFips, table.stateCode),
+  ]
+);
+
+export type PropertyProgram = typeof propertyPrograms.$inferSelect;
+export type InsertPropertyProgram = typeof propertyPrograms.$inferInsert;
+
+export const propertyParticipants = pgTable(
+  "property_participants",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    participantRole: varchar("participant_role", { length: 64 }).notNull(),
+    permissions: jsonb("permissions").$type<Record<string, any>>().notNull().default({}),
+    status: varchar("status", { enum: ["active", "invited", "removed"] }).notNull().default("active"),
+    invitedByUserId: varchar("invited_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_participants_property").on(table.propertyProgramId),
+    index("idx_property_participants_user").on(table.userId),
+  ]
+);
+
+export type PropertyParticipant = typeof propertyParticipants.$inferSelect;
+export type InsertPropertyParticipant = typeof propertyParticipants.$inferInsert;
+
+export const propertyLifecycleEvents = pgTable(
+  "property_lifecycle_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    actionType: varchar("action_type", { length: 80 }).notNull(),
+    phase: varchar("phase", { length: 80 }),
+    title: text("title").notNull(),
+    description: text("description"),
+    occurredAt: timestamp("occurred_at").notNull(),
+    source: varchar("source", { enum: ["user", "scout", "integration", "system"] })
+      .notNull()
+      .default("system"),
+    status: varchar("status", { enum: ["planned", "in_progress", "done", "blocked"] })
+      .notNull()
+      .default("planned"),
+    costAmount: numeric("cost_amount", { precision: 12, scale: 2 }),
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+    createdByUserId: varchar("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_lifecycle_events_property").on(table.propertyProgramId),
+    index("idx_property_lifecycle_events_occurred").on(table.occurredAt),
+  ]
+);
+
+export type PropertyLifecycleEvent = typeof propertyLifecycleEvents.$inferSelect;
+export type InsertPropertyLifecycleEvent = typeof propertyLifecycleEvents.$inferInsert;
+
+export const propertyDocuments = pgTable(
+  "property_documents",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    lifecycleEventId: varchar("lifecycle_event_id").references(() => propertyLifecycleEvents.id, {
+      onDelete: "set null",
+    }),
+    documentType: varchar("document_type", { length: 80 }).notNull(),
+    fileUrl: text("file_url").notNull(),
+    checksum: varchar("checksum", { length: 120 }),
+    verified: boolean("verified").notNull().default(false),
+    uploadedByUserId: varchar("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_documents_property").on(table.propertyProgramId),
+    index("idx_property_documents_event").on(table.lifecycleEventId),
+  ]
+);
+
+export type PropertyDocument = typeof propertyDocuments.$inferSelect;
+export type InsertPropertyDocument = typeof propertyDocuments.$inferInsert;
+
+export const propertyUpgrades = pgTable(
+  "property_upgrades",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    category: varchar("category", { length: 80 }).notNull(),
+    scope: text("scope").notNull(),
+    budgetAmount: numeric("budget_amount", { precision: 12, scale: 2 }),
+    status: varchar("status", { enum: ["planned", "active", "done", "cancelled"] })
+      .notNull()
+      .default("planned"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_upgrades_property").on(table.propertyProgramId),
+    index("idx_property_upgrades_status").on(table.propertyProgramId, table.status),
+  ]
+);
+
+export type PropertyUpgrade = typeof propertyUpgrades.$inferSelect;
+export type InsertPropertyUpgrade = typeof propertyUpgrades.$inferInsert;
+
+export const propertyUpgradeEvents = pgTable(
+  "property_upgrade_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyUpgradeId: varchar("property_upgrade_id")
+      .notNull()
+      .references(() => propertyUpgrades.id, { onDelete: "cascade" }),
+    eventType: varchar("event_type", { length: 80 }).notNull(),
+    title: text("title").notNull(),
+    status: varchar("status", { enum: ["planned", "done", "blocked"] }).notNull().default("planned"),
+    occurredAt: timestamp("occurred_at").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_upgrade_events_upgrade").on(table.propertyUpgradeId),
+    index("idx_property_upgrade_events_occurred").on(table.occurredAt),
+  ]
+);
+
+export type PropertyUpgradeEvent = typeof propertyUpgradeEvents.$inferSelect;
+export type InsertPropertyUpgradeEvent = typeof propertyUpgradeEvents.$inferInsert;
+
+export const propertyEventLog = pgTable(
+  "property_event_log",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    eventId: varchar("event_id", { length: 80 }).notNull(),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    actionType: varchar("action_type", { length: 80 }).notNull(),
+    actorUserId: varchar("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorRole: varchar("actor_role", { length: 64 }),
+    countyFips: varchar("county_fips", { length: 5 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    occurredAtUtc: timestamp("occurred_at_utc").notNull(),
+    recordedAtUtc: timestamp("recorded_at_utc").notNull().defaultNow(),
+    timezone: varchar("timezone", { length: 80 }),
+    localDate: date("local_date"),
+    statusBefore: varchar("status_before", { length: 64 }),
+    statusAfter: varchar("status_after", { length: 64 }),
+    costAmount: numeric("cost_amount", { precision: 12, scale: 2 }),
+    timeDeltaHours: numeric("time_delta_hours", { precision: 12, scale: 3 }),
+    riskDelta: numeric("risk_delta", { precision: 8, scale: 3 }),
+    trustSnapshotIds: jsonb("trust_snapshot_ids").$type<Record<string, any>>().notNull().default({}),
+    verificationSnapshot: jsonb("verification_snapshot")
+      .$type<Record<string, any>>()
+      .notNull()
+      .default({}),
+    documentRefs: jsonb("document_refs").$type<any[]>().notNull().default([]),
+    sourceSurface: varchar("source_surface", { length: 80 }),
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+    idempotencyKey: varchar("idempotency_key", { length: 180 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_property_event_log_recorded").on(table.recordedAtUtc),
+    index("idx_property_event_log_property").on(table.propertyProgramId, table.occurredAtUtc),
+    index("idx_property_event_log_idempotency").on(table.idempotencyKey),
+  ]
+);
+
+export type PropertyEventLogRow = typeof propertyEventLog.$inferSelect;
+export type InsertPropertyEventLogRow = typeof propertyEventLog.$inferInsert;
+
+export const propertyEventQuarantine = pgTable(
+  "property_event_quarantine",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    rawPayload: jsonb("raw_payload").$type<Record<string, any>>().notNull(),
+    reason: varchar("reason", { length: 160 }).notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 180 }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [index("idx_property_event_quarantine_created").on(table.createdAt)]
+);
+
+export type PropertyEventQuarantineRow = typeof propertyEventQuarantine.$inferSelect;
+export type InsertPropertyEventQuarantineRow = typeof propertyEventQuarantine.$inferInsert;
+
+export const propertyPipelineCheckpoints = pgTable("property_pipeline_checkpoints", {
+  key: varchar("key", { length: 120 }).primaryKey(),
+  value: jsonb("value").$type<Record<string, any>>().notNull().default({}),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type PropertyPipelineCheckpoint = typeof propertyPipelineCheckpoints.$inferSelect;
+export type InsertPropertyPipelineCheckpoint = typeof propertyPipelineCheckpoints.$inferInsert;
+
+export const propertyReadinessSnapshots = pgTable(
+  "property_readiness_snapshots",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    readinessScore: numeric("readiness_score", { precision: 5, scale: 2 }).notNull(),
+    hardBlockers: jsonb("hard_blockers").$type<any[]>().notNull().default([]),
+    softBlockers: jsonb("soft_blockers").$type<any[]>().notNull().default([]),
+    nextBestActions: jsonb("next_best_actions").$type<any[]>().notNull().default([]),
+    computedAt: timestamp("computed_at").defaultNow(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [index("idx_property_readiness_snapshots_property").on(table.propertyProgramId, table.computedAt)]
+);
+
+export type PropertyReadinessSnapshot = typeof propertyReadinessSnapshots.$inferSelect;
+export type InsertPropertyReadinessSnapshot = typeof propertyReadinessSnapshots.$inferInsert;
+
+export const propertySellReadinessSnapshots = pgTable(
+  "property_sell_readiness_snapshots",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    readinessScore: numeric("readiness_score", { precision: 5, scale: 2 }).notNull(),
+    hardBlockers: jsonb("hard_blockers").$type<any[]>().notNull().default([]),
+    softBlockers: jsonb("soft_blockers").$type<any[]>().notNull().default([]),
+    packetSummary: jsonb("packet_summary").$type<Record<string, any>>().notNull().default({}),
+    computedAt: timestamp("computed_at").defaultNow(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [index("idx_property_sell_readiness_snapshots_property").on(table.propertyProgramId, table.computedAt)]
+);
+
+export type PropertySellReadinessSnapshot = typeof propertySellReadinessSnapshots.$inferSelect;
+export type InsertPropertySellReadinessSnapshot = typeof propertySellReadinessSnapshots.$inferInsert;
+
+export const propertyHomefaxSnapshots = pgTable(
+  "property_homefax_snapshots",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    summary: jsonb("summary").$type<Record<string, any>>().notNull().default({}),
+    timeline: jsonb("timeline").$type<any[]>().notNull().default([]),
+    computedAt: timestamp("computed_at").defaultNow(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [index("idx_property_homefax_snapshots_property").on(table.propertyProgramId, table.computedAt)]
+);
+
+export type PropertyHomefaxSnapshot = typeof propertyHomefaxSnapshots.$inferSelect;
+export type InsertPropertyHomefaxSnapshot = typeof propertyHomefaxSnapshots.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // Private vehicle vault (account-only): "Carfax for your vehicle"
