@@ -45,7 +45,10 @@ export const normalizeProfileBookingPrefs = (raw: unknown): NormalizedProfileBoo
     ? source.slots
         .filter((slot) => slot && typeof slot === "object")
         .map((slot: any) => ({
-          id: typeof slot.id === "string" && slot.id.trim().length > 0 ? slot.id.trim().slice(0, 80) : "",
+          id:
+            typeof slot.id === "string" && slot.id.trim().length > 0
+              ? slot.id.trim().slice(0, 80)
+              : "",
           dayOfWeek:
             typeof slot.dayOfWeek === "number" && slot.dayOfWeek >= 0 && slot.dayOfWeek <= 6
               ? slot.dayOfWeek
@@ -69,10 +72,14 @@ export const normalizeProfileBookingPrefs = (raw: unknown): NormalizedProfileBoo
     ? source.pricingRows
         .filter((row) => row && typeof row === "object")
         .map((row: any) => ({
-          id: typeof row.id === "string" && row.id.trim().length > 0 ? row.id.trim().slice(0, 80) : "",
+          id:
+            typeof row.id === "string" && row.id.trim().length > 0
+              ? row.id.trim().slice(0, 80)
+              : "",
           name: typeof row.name === "string" ? row.name.trim().slice(0, 80) : "",
           priceLabel: typeof row.priceLabel === "string" ? row.priceLabel.trim().slice(0, 40) : "",
-          description: typeof row.description === "string" ? row.description.trim().slice(0, 240) : "",
+          description:
+            typeof row.description === "string" ? row.description.trim().slice(0, 240) : "",
         }))
         .filter((row) => row.id.length > 0 && row.name.length > 0 && row.priceLabel.length > 0)
         .slice(0, 32)
@@ -126,7 +133,9 @@ export const evaluateNotaryPaidRemoteGate = (input: NotaryGateInput) => {
   const category = String(input.bookingContext?.category || "").toLowerCase();
   const stateCode = String(input.bookingContext?.stateCode || "").toUpperCase();
   const deliveryMode = String(input.bookingContext?.deliveryMode || "").toLowerCase();
-  const serviceType = String(input.bookingContext?.serviceType || "").trim().toLowerCase();
+  const serviceType = String(input.bookingContext?.serviceType || "")
+    .trim()
+    .toLowerCase();
 
   const gateApplies =
     input.paidBooking &&
@@ -140,9 +149,9 @@ export const evaluateNotaryPaidRemoteGate = (input: NotaryGateInput) => {
 
   const roles = new Set([
     String(input.owner.role || "").toLowerCase(),
-    ...((Array.isArray(input.owner.roles) ? input.owner.roles : []).map((role) =>
+    ...(Array.isArray(input.owner.roles) ? input.owner.roles : []).map((role) =>
       String(role || "").toLowerCase()
-    )),
+    ),
   ]);
 
   const notaryPrefs = (input.owner.preferences?.notaryVerification || {}) as {
@@ -178,6 +187,11 @@ export const evaluateNotaryPaidRemoteGate = (input: NotaryGateInput) => {
     allowed: missing.length === 0,
     applied: true as const,
     missing,
-    requiredUploads: ["government_id_front", "government_id_back", "signer_selfie", "unsigned_document_pdf"],
+    requiredUploads: [
+      "government_id_front",
+      "government_id_back",
+      "signer_selfie",
+      "unsigned_document_pdf",
+    ],
   };
 };
