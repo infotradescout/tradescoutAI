@@ -22,6 +22,7 @@ import {
   messages,
   quotes,
   schedules,
+  profileBookingRequests,
   materialLists,
   siteSettings,
   prizeConfigurations,
@@ -188,6 +189,8 @@ import {
   type InsertQuote,
   type Schedule,
   type InsertSchedule,
+  type ProfileBookingRequest,
+  type InsertProfileBookingRequest,
   type MaterialList,
   type InsertMaterialList,
   type SiteSetting,
@@ -646,6 +649,16 @@ export interface IStorage {
     updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
   ): Promise<Profile>;
   setUserActiveProfile(userId: string, profileId: string | null): Promise<User>;
+  createProfileBookingRequest(
+    input: Omit<InsertProfileBookingRequest, "id" | "createdAt" | "updatedAt">
+  ): Promise<ProfileBookingRequest>;
+  getProfileBookingRequestById(id: string): Promise<ProfileBookingRequest | undefined>;
+  listProfileBookingRequestsForOwner(ownerUserId: string): Promise<ProfileBookingRequest[]>;
+  listProfileBookingRequestsForRequester(requesterUserId: string): Promise<ProfileBookingRequest[]>;
+  updateProfileBookingRequest(
+    id: string,
+    patch: Partial<Omit<InsertProfileBookingRequest, "id" | "ownerUserId" | "requesterUserId">>
+  ): Promise<ProfileBookingRequest>;
 
   // County operations
   getCounties(stateCode?: string): Promise<County[]>;
@@ -2097,6 +2110,56 @@ export class DatabaseStorage implements IStorage {
       .from(profiles)
       .where(eq(profiles.id, profileId));
     return row?.ownerUserId ?? null;
+  }
+
+  async createProfileBookingRequest(
+    input: Omit<InsertProfileBookingRequest, "id" | "createdAt" | "updatedAt">
+  ): Promise<ProfileBookingRequest> {
+    const [row] = await db
+      .insert(profileBookingRequests)
+      .values({
+        ...input,
+        updatedAt: new Date(),
+      } as any)
+      .returning();
+    if (!row) throw new Error("Failed to create profile booking request");
+    return row as ProfileBookingRequest;
+  }
+
+  async getProfileBookingRequestById(id: string): Promise<ProfileBookingRequest | undefined> {
+    const [row] = await db.select().from(profileBookingRequests).where(eq(profileBookingRequests.id, id));
+    return row as ProfileBookingRequest | undefined;
+  }
+
+  async listProfileBookingRequestsForOwner(ownerUserId: string): Promise<ProfileBookingRequest[]> {
+    return (await db
+      .select()
+      .from(profileBookingRequests)
+      .where(eq(profileBookingRequests.ownerUserId, ownerUserId))
+      .orderBy(desc(profileBookingRequests.createdAt))) as ProfileBookingRequest[];
+  }
+
+  async listProfileBookingRequestsForRequester(
+    requesterUserId: string
+  ): Promise<ProfileBookingRequest[]> {
+    return (await db
+      .select()
+      .from(profileBookingRequests)
+      .where(eq(profileBookingRequests.requesterUserId, requesterUserId))
+      .orderBy(desc(profileBookingRequests.createdAt))) as ProfileBookingRequest[];
+  }
+
+  async updateProfileBookingRequest(
+    id: string,
+    patch: Partial<Omit<InsertProfileBookingRequest, "id" | "ownerUserId" | "requesterUserId">>
+  ): Promise<ProfileBookingRequest> {
+    const [row] = await db
+      .update(profileBookingRequests)
+      .set({ ...(patch as any), updatedAt: new Date() })
+      .where(eq(profileBookingRequests.id, id))
+      .returning();
+    if (!row) throw new Error("Profile booking request not found");
+    return row as ProfileBookingRequest;
   }
 
   private normalizeDecimal(value: any): number {

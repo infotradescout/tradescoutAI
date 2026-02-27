@@ -552,6 +552,38 @@ export const users = pgTable("users", {
     // Natural-language services description that Scout and routing can use
     // to better match this user with the right jobs and connections.
     servicesDescription?: string;
+
+    // Public profile booking configuration.
+    profileBooking?: {
+      enabled?: boolean;
+      paidBookings?: boolean;
+      bookingPriceUsd?: number;
+      calendarVisibility?: "public" | "private";
+      timezone?: string;
+      slots?: Array<{
+        id: string;
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+        label?: string;
+        active?: boolean;
+      }>;
+      pricingTableEnabled?: boolean;
+      pricingRows?: Array<{
+        id: string;
+        name: string;
+        priceLabel: string;
+        description?: string;
+      }>;
+    };
+
+    // Notary-specific verification evidence captured for state-dependent remote services.
+    notaryVerification?: {
+      commissionActive?: boolean;
+      backgroundScreened?: boolean;
+      remoteProviderCertified?: boolean;
+      reviewedAt?: string;
+    };
   }>(),
   themePreference: varchar("theme_preference").default("default"), // Selected theme ID
   customThemeColors: text("custom_theme_colors"), // JSON string of custom colors
@@ -4033,6 +4065,67 @@ export const schedules = pgTable("schedules", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const profileBookingRequests = pgTable(
+  "profile_booking_requests",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    requesterUserId: varchar("requester_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["requested", "accepted", "declined", "cancelled", "completed"],
+    })
+      .notNull()
+      .default("requested"),
+    requestMessage: text("request_message"),
+    serviceLabel: varchar("service_label", { length: 120 }),
+    requestedStartAt: timestamp("requested_start_at"),
+    requestedEndAt: timestamp("requested_end_at"),
+    timezone: varchar("timezone", { length: 80 }),
+    deliveryMode: varchar("delivery_mode", { enum: ["mobile", "remote", "onsite"] }).default("onsite"),
+    locationNote: text("location_note"),
+    depositRequired: boolean("deposit_required").notNull().default(false),
+    depositAmountUsd: decimal("deposit_amount_usd", { precision: 10, scale: 2 }),
+    paymentStatus: varchar("payment_status", {
+      enum: ["none", "requires_payment", "processing", "paid", "failed", "refunded"],
+    })
+      .notNull()
+      .default("none"),
+    paymentIntentId: varchar("payment_intent_id", { length: 120 }),
+    bookingContext: jsonb("booking_context")
+      .$type<{
+        category?: "general" | "legal_notary";
+        stateCode?: string;
+        countyFips?: string | null;
+        serviceType?: string;
+        documentType?: string;
+        deliveryMode?: "mobile" | "remote" | "onsite";
+      }>()
+      .default(sql`'{}'::jsonb`),
+    verificationSnapshot: jsonb("verification_snapshot")
+      .$type<{
+        gate?: "none" | "notary_remote_paid_la";
+        passed?: boolean;
+        missing?: string[];
+        checkedAt?: string;
+      }>()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_profile_booking_requests_owner").on(table.ownerUserId),
+    index("idx_profile_booking_requests_requester").on(table.requesterUserId),
+    index("idx_profile_booking_requests_status").on(table.status),
+    index("idx_profile_booking_requests_created_at").on(table.createdAt),
+  ]
+);
+
 export const materialLists = pgTable("material_lists", {
   id: varchar("id")
     .primaryKey()
@@ -4142,6 +4235,8 @@ export type InsertQuote = typeof quotes.$inferInsert;
 export type Quote = typeof quotes.$inferSelect;
 export type InsertSchedule = typeof schedules.$inferInsert;
 export type Schedule = typeof schedules.$inferSelect;
+export type InsertProfileBookingRequest = typeof profileBookingRequests.$inferInsert;
+export type ProfileBookingRequest = typeof profileBookingRequests.$inferSelect;
 export type InsertMaterialList = typeof materialLists.$inferInsert;
 export type MaterialList = typeof materialLists.$inferSelect;
 

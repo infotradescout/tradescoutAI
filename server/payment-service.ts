@@ -495,6 +495,12 @@ export class PaymentService {
               e
             );
           }
+        } else if (metadata.type === "profile_booking" && metadata.bookingRequestId) {
+          await storage.updateProfileBookingRequest(metadata.bookingRequestId, {
+            paymentStatus: "paid",
+            status: "accepted",
+            paymentIntentId: paymentIntent.id,
+          } as any);
         }
         break;
       }
@@ -513,6 +519,11 @@ export class PaymentService {
             isOffPlatform: false,
             status: "failed",
           });
+        } else if (failedMetadata.type === "profile_booking" && failedMetadata.bookingRequestId) {
+          await storage.updateProfileBookingRequest(failedMetadata.bookingRequestId, {
+            paymentStatus: "failed",
+            paymentIntentId: failedIntent.id,
+          } as any);
         }
         break;
     }

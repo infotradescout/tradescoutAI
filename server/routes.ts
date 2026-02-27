@@ -163,6 +163,11 @@ import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
 import { notificationService } from "./notification-service";
 import { resolveCapabilities, type CapabilityStatus } from "./capabilities";
+import {
+  evaluateNotaryPaidRemoteGate,
+  normalizeProfileBookingPrefs,
+  toPublicProfileBookingPrefs,
+} from "./services/profileBookingService";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -225,101 +230,6 @@ const getPublicBaseUrlFromRequest = (req: Request): string => {
   const host = hostHeader;
   if (!host) return "https://www.thetradescout.com";
   return `${proto}://${host}`;
-};
-
-type ProfileBookingSlot = {
-  id: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  label: string;
-  active: boolean;
-};
-
-type ProfilePricingRow = {
-  id: string;
-  name: string;
-  priceLabel: string;
-  description: string;
-};
-
-const normalizeProfileBookingPrefs = (raw: unknown) => {
-  const source = raw && typeof raw === "object" ? (raw as Record<string, any>) : {};
-  const enabled = source.enabled === true;
-  const paidBookings = source.paidBookings === true;
-  const calendarVisibility = source.calendarVisibility === "private" ? "private" : "public";
-  const timezone =
-    typeof source.timezone === "string" && source.timezone.trim().length > 0
-      ? source.timezone.trim().slice(0, 80)
-      : "America/Chicago";
-  const bookingPriceUsdRaw = Number(source.bookingPriceUsd);
-  const bookingPriceUsd =
-    Number.isFinite(bookingPriceUsdRaw) && bookingPriceUsdRaw >= 0
-      ? Number(bookingPriceUsdRaw.toFixed(2))
-      : 0;
-  const pricingTableEnabled = source.pricingTableEnabled === true;
-
-  const slots: ProfileBookingSlot[] = Array.isArray(source.slots)
-    ? source.slots
-        .filter((slot) => slot && typeof slot === "object")
-        .map((slot: any) => ({
-          id:
-            typeof slot.id === "string" && slot.id.trim().length > 0
-              ? slot.id.trim().slice(0, 80)
-              : randomUUID(),
-          dayOfWeek:
-            typeof slot.dayOfWeek === "number" && slot.dayOfWeek >= 0 && slot.dayOfWeek <= 6
-              ? slot.dayOfWeek
-              : 0,
-          startTime:
-            typeof slot.startTime === "string" && /^\d{2}:\d{2}$/.test(slot.startTime)
-              ? slot.startTime
-              : "09:00",
-          endTime:
-            typeof slot.endTime === "string" && /^\d{2}:\d{2}$/.test(slot.endTime)
-              ? slot.endTime
-              : "17:00",
-          label: typeof slot.label === "string" ? slot.label.trim().slice(0, 80) : "",
-          active: slot.active !== false,
-        }))
-        .slice(0, 120)
-    : [];
-
-  const pricingRows: ProfilePricingRow[] = Array.isArray(source.pricingRows)
-    ? source.pricingRows
-        .filter((row) => row && typeof row === "object")
-        .map((row: any) => ({
-          id:
-            typeof row.id === "string" && row.id.trim().length > 0
-              ? row.id.trim().slice(0, 80)
-              : randomUUID(),
-          name: typeof row.name === "string" ? row.name.trim().slice(0, 80) : "",
-          priceLabel: typeof row.priceLabel === "string" ? row.priceLabel.trim().slice(0, 40) : "",
-          description:
-            typeof row.description === "string" ? row.description.trim().slice(0, 240) : "",
-        }))
-        .filter((row) => row.name.length > 0 && row.priceLabel.length > 0)
-        .slice(0, 32)
-    : [];
-
-  return {
-    enabled,
-    paidBookings,
-    bookingPriceUsd,
-    calendarVisibility,
-    timezone,
-    slots,
-    pricingTableEnabled,
-    pricingRows,
-  };
-};
-
-const toPublicProfileBookingPrefs = (raw: unknown) => {
-  const normalized = normalizeProfileBookingPrefs(raw);
-  return {
-    ...normalized,
-    slots: normalized.calendarVisibility === "public" ? normalized.slots : [],
-  };
 };
 
 type StaffShareableTemplate = {
@@ -4941,6 +4851,169 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error updating profile booking settings:", error);
       res.status(500).json({ message: "Failed to update profile booking settings" });
+    }
+  });
+
+  app.post("/api/profile-booking/requests", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const requesterUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const ownerUserId = String((req.body as any)?.ownerUserId || "").trim();
+      const requestMessage =
+        typeof (req.body as any)?.requestMessage === "string"
+          ? (req.body as any).requestMessage.trim().slice(0, 1000)
+          : null;
+      const serviceLabel =
+        typeof (req.body as any)?.serviceLabel === "string"
+          ? (req.body as any).serviceLabel.trim().slice(0, 120)
+          : null;
+      const timezone =
+        typeof (req.body as any)?.timezone === "string"
+          ? (req.body as any).timezone.trim().slice(0, 80)
+          : null;
+      const requestedStartAtRaw = (req.body as any)?.requestedStartAt;
+      const requestedEndAtRaw = (req.body as any)?.requestedEndAt;
+      const requestedStartAt =
+        requestedStartAtRaw && !Number.isNaN(new Date(requestedStartAtRaw).getTime())
+          ? new Date(requestedStartAtRaw)
+          : null;
+      const requestedEndAt =
+        requestedEndAtRaw && !Number.isNaN(new Date(requestedEndAtRaw).getTime())
+          ? new Date(requestedEndAtRaw)
+          : null;
+      const deliveryModeRaw = String((req.body as any)?.deliveryMode || "").toLowerCase();
+      const deliveryMode =
+        deliveryModeRaw === "remote" || deliveryModeRaw === "mobile" ? deliveryModeRaw : "onsite";
+      const locationNote =
+        typeof (req.body as any)?.locationNote === "string"
+          ? (req.body as any).locationNote.trim().slice(0, 500)
+          : null;
+      const bookingContext =
+        (req.body as any)?.bookingContext && typeof (req.body as any).bookingContext === "object"
+          ? (req.body as any).bookingContext
+          : {};
+
+      if (!ownerUserId) {
+        return res.status(400).json({ message: "ownerUserId is required" });
+      }
+      if (ownerUserId === requesterUserId) {
+        return res.status(400).json({ message: "Cannot create booking request for your own profile" });
+      }
+
+      const owner = await storage.getUser(ownerUserId);
+      if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+      if ((owner.preferences?.profileVisibility || "private") !== "public") {
+        return res.status(404).json({ message: "Profile not available for booking" });
+      }
+
+      const booking = normalizeProfileBookingPrefs((owner.preferences as any)?.profileBooking);
+      if (!booking.enabled) {
+        return res.status(400).json({ message: "Bookings are not enabled on this profile" });
+      }
+
+      const verificationGate = evaluateNotaryPaidRemoteGate({
+        owner: {
+          verificationStatus: owner.verificationStatus,
+          addressVerified: owner.addressVerified,
+          role: owner.role,
+          roles: owner.roles || [],
+          preferences: owner.preferences,
+        },
+        bookingContext: bookingContext as any,
+        paidBooking: booking.paidBookings,
+      });
+
+      if (verificationGate.applied && !verificationGate.allowed) {
+        return res.status(403).json({
+          message: "Louisiana remote notary paid bookings require additional verification",
+          verificationGate,
+        });
+      }
+
+      const created = await storage.createProfileBookingRequest({
+        ownerUserId,
+        requesterUserId,
+        status: "requested",
+        requestMessage,
+        serviceLabel,
+        requestedStartAt,
+        requestedEndAt,
+        timezone,
+        deliveryMode,
+        locationNote,
+        depositRequired: booking.paidBookings,
+        depositAmountUsd: booking.paidBookings ? String(booking.bookingPriceUsd.toFixed(2)) : null,
+        paymentStatus: booking.paidBookings ? "requires_payment" : "none",
+        paymentIntentId: null,
+        bookingContext,
+        verificationSnapshot: {
+          gate: verificationGate.applied ? "notary_remote_paid_la" : "none",
+          passed: verificationGate.allowed,
+          missing: verificationGate.missing || [],
+          checkedAt: new Date().toISOString(),
+        },
+      } as any);
+
+      res.status(201).json(created);
+    } catch (error: any) {
+      console.error("Error creating profile booking request:", error);
+      res.status(500).json({ message: "Failed to create profile booking request" });
+    }
+  });
+
+  app.get("/api/profile-booking/requests/incoming", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const ownerUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const rows = await storage.listProfileBookingRequestsForOwner(ownerUserId);
+      res.json(rows);
+    } catch (error: any) {
+      console.error("Error fetching incoming booking requests:", error);
+      res.status(500).json({ message: "Failed to fetch incoming booking requests" });
+    }
+  });
+
+  app.get("/api/profile-booking/requests/outgoing", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const requesterUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const rows = await storage.listProfileBookingRequestsForRequester(requesterUserId);
+      res.json(rows);
+    } catch (error: any) {
+      console.error("Error fetching outgoing booking requests:", error);
+      res.status(500).json({ message: "Failed to fetch outgoing booking requests" });
+    }
+  });
+
+  app.patch("/api/profile-booking/requests/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const actorUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const id = String(req.params.id || "").trim();
+      const nextStatus = String((req.body as any)?.status || "").trim().toLowerCase();
+      if (!id) return res.status(400).json({ message: "Request id required" });
+      if (!["accepted", "declined", "cancelled", "completed"].includes(nextStatus)) {
+        return res.status(400).json({ message: "Invalid status transition" });
+      }
+
+      const existing = await storage.getProfileBookingRequestById(id);
+      if (!existing) return res.status(404).json({ message: "Booking request not found" });
+
+      const actorIsOwner = existing.ownerUserId === actorUserId;
+      const actorIsRequester = existing.requesterUserId === actorUserId;
+      if (!actorIsOwner && !actorIsRequester) {
+        return res.status(403).json({ message: "Not authorized to update this request" });
+      }
+      if ((nextStatus === "accepted" || nextStatus === "declined" || nextStatus === "completed") && !actorIsOwner) {
+        return res.status(403).json({ message: "Only profile owner can set this status" });
+      }
+      if (nextStatus === "cancelled" && !actorIsRequester && !actorIsOwner) {
+        return res.status(403).json({ message: "Only participants can cancel this request" });
+      }
+
+      const updated = await storage.updateProfileBookingRequest(id, {
+        status: nextStatus as any,
+      });
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating booking request status:", error);
+      res.status(500).json({ message: "Failed to update booking request status" });
     }
   });
 
@@ -19156,30 +19229,42 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     async (req: any, res: any) => {
       try {
-        if (!stripe) {
-          return res.status(400).json({ message: "Stripe not configured" });
-        }
-
         const buyerUserId = req.user?.claims?.sub || req.user?.id;
+        const bookingRequestId = String(req.body?.bookingRequestId || "").trim();
         const ownerUserId = String(req.body?.ownerUserId || "").trim();
         const requestedAmount = Number(req.body?.amount);
         const descriptionRaw =
           typeof req.body?.description === "string" ? req.body.description.trim() : "";
         const slotId = typeof req.body?.slotId === "string" ? req.body.slotId.trim() : "";
+        const requestMessage =
+          typeof req.body?.requestMessage === "string" ? req.body.requestMessage.trim().slice(0, 1000) : null;
+        const serviceLabel =
+          typeof req.body?.serviceLabel === "string" ? req.body.serviceLabel.trim().slice(0, 120) : null;
+        const bookingContext =
+          req.body?.bookingContext && typeof req.body.bookingContext === "object"
+            ? req.body.bookingContext
+            : {};
 
         if (!buyerUserId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
-        if (!ownerUserId) {
-          return res.status(400).json({ message: "ownerUserId is required" });
-        }
-        if (ownerUserId === buyerUserId) {
-          return res
-            .status(400)
-            .json({ message: "You cannot create a paid booking intent for your own profile" });
+        let requestRecord = bookingRequestId
+          ? await storage.getProfileBookingRequestById(bookingRequestId)
+          : undefined;
+
+        if (requestRecord && requestRecord.requesterUserId !== buyerUserId) {
+          return res.status(403).json({ message: "Not authorized to pay this booking request" });
         }
 
-        const owner = await storage.getUser(ownerUserId);
+        const resolvedOwnerUserId = requestRecord?.ownerUserId || ownerUserId;
+        if (!resolvedOwnerUserId) {
+          return res.status(400).json({ message: "ownerUserId is required" });
+        }
+        if (resolvedOwnerUserId === buyerUserId) {
+          return res.status(400).json({ message: "You cannot create a paid booking intent for your own profile" });
+        }
+
+        const owner = await storage.getUser(resolvedOwnerUserId);
         if (!owner) {
           return res.status(404).json({ message: "Profile owner not found" });
         }
@@ -19198,6 +19283,25 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(400).json({ message: "Booking payment amount is not configured" });
         }
 
+        const verificationGate = evaluateNotaryPaidRemoteGate({
+          owner: {
+            verificationStatus: owner.verificationStatus,
+            addressVerified: owner.addressVerified,
+            role: owner.role,
+            roles: owner.roles || [],
+            preferences: owner.preferences,
+          },
+          bookingContext: (requestRecord?.bookingContext as any) || bookingContext,
+          paidBooking: booking.paidBookings,
+        });
+
+        if (verificationGate.applied && !verificationGate.allowed) {
+          return res.status(403).json({
+            message: "Louisiana remote notary paid bookings require additional verification",
+            verificationGate,
+          });
+        }
+
         const finalAmount =
           Number.isFinite(requestedAmount) && requestedAmount > 0
             ? Number(requestedAmount.toFixed(2))
@@ -19213,22 +19317,59 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             ? descriptionRaw.slice(0, 280)
             : `Booking deposit for ${owner.firstName || "TradeScout"} ${owner.lastName || "User"}`.trim();
 
+        if (!requestRecord) {
+          requestRecord = await storage.createProfileBookingRequest({
+            ownerUserId: resolvedOwnerUserId,
+            requesterUserId: String(buyerUserId),
+            status: "requested",
+            requestMessage,
+            serviceLabel,
+            requestedStartAt: null,
+            requestedEndAt: null,
+            timezone: booking.timezone,
+            deliveryMode: "onsite",
+            locationNote: null,
+            depositRequired: true,
+            depositAmountUsd: String(finalAmount.toFixed(2)),
+            paymentStatus: "requires_payment",
+            paymentIntentId: null,
+            bookingContext,
+            verificationSnapshot: {
+              gate: verificationGate.applied ? "notary_remote_paid_la" : "none",
+              passed: verificationGate.allowed,
+              missing: verificationGate.missing || [],
+              checkedAt: new Date().toISOString(),
+            },
+          } as any);
+        }
+
+        if (!stripe) {
+          return res.status(400).json({ message: "Stripe not configured" });
+        }
+
         const intent = await stripe.paymentIntents.create({
           amount: Math.round(finalAmount * 100),
           currency: "usd",
           description,
           metadata: {
             type: "profile_booking",
-            ownerUserId,
+            ownerUserId: resolvedOwnerUserId,
             buyerUserId: String(buyerUserId),
+            bookingRequestId: String(requestRecord.id),
             slotId,
             timestamp: new Date().toISOString(),
           },
         });
 
+        await storage.updateProfileBookingRequest(requestRecord.id, {
+          paymentIntentId: intent.id,
+          paymentStatus: "processing",
+        } as any);
+
         res.json({
           clientSecret: intent.client_secret,
           paymentIntentId: intent.id,
+          bookingRequestId: requestRecord.id,
           amount: finalAmount,
           currency: "usd",
         });
