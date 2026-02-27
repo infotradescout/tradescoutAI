@@ -5,16 +5,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-[13px] font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tsAccent focus-visible:border-tsAccent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-[13px] font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tsAccent focus-visible:border-tsAccent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-tsAccent text-tsOnAccent hover:bg-tsAccent/92",
+        default:
+          "bg-tsAccent text-black hover:bg-ts-orange-dark shadow-[0_14px_30px_-18px_rgba(249,115,22,0.95)] hover:shadow-[0_18px_36px_-18px_rgba(249,115,22,1)]",
         destructive: "bg-tsError text-tsOnAccent hover:bg-tsError/90",
         outline:
-          "border border-tsBorder bg-tsCard text-tsText hover:bg-tsCardMuted hover:text-tsText",
-        secondary: "bg-tsCard text-tsText border border-tsBorder hover:bg-tsCardMuted",
-        ghost: "bg-transparent text-tsTextSecondary hover:bg-tsCardMuted hover:text-tsText",
+          "border border-white/15 bg-white/5 text-tsTextMain hover:bg-white/10 hover:text-tsTextMain",
+        secondary:
+          "border border-white/10 bg-white/5 text-tsTextMain hover:bg-white/10 hover:text-tsTextMain",
+        ghost: "bg-transparent text-tsTextMain hover:bg-white/5 hover:text-tsTextMain",
         link: "text-tsAccent underline-offset-4 hover:underline",
       },
       size: {

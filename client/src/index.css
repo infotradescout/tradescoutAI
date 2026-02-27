@@ -358,24 +358,73 @@ html {
   }
 }
 
-.ts-input {
-  background-color: var(--ts-input-bg);
-  border: 1px solid var(--ts-input-border);
-  color: var(--ts-text);
-}
-.ts-input::placeholder {
-  color: var(--ts-text-muted);
-}
+@layer components {
+  /*
+    Landing-driven UI primitives
+    - Keep these stable and reuse everywhere so /landing stays the design source of truth.
+  */
 
-.ts-focus:focus-visible {
-  outline: 3px solid var(--ts-focus-ring);
-  outline-offset: 2px;
-}
+  .ts-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
 
-.ts-card {
-  background-color: var(--ts-surface);
-  border: 1px solid var(--ts-border-subtle);
-  box-shadow: var(--ts-shadow-soft);
+  .ts-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase text-tsAccentSoft;
+    box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.7);
+  }
+
+  .ts-h1 {
+    @apply font-display text-4xl sm:text-6xl lg:text-7xl font-extrabold leading-[0.95] tracking-tight;
+  }
+
+  .ts-h2 {
+    @apply font-display text-3xl sm:text-4xl font-bold tracking-tight;
+  }
+
+  .ts-lead {
+    @apply text-base sm:text-lg text-white/70;
+  }
+
+  .ts-input {
+    background-color: var(--ts-input-bg);
+    border: 1px solid var(--ts-input-border);
+    color: var(--ts-text);
+  }
+  .ts-input::placeholder {
+    color: var(--ts-text-muted);
+  }
+
+  .ts-focus:focus-visible {
+    outline: 3px solid var(--ts-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Default card surface: glass, subtle border, predictable shadow. */
+  .ts-card {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 30px 80px -44px rgba(0, 0, 0, 0.78);
+  }
+
+  .ts-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012)),
+      var(--surface-card);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    pointer-events: none;
+  }
+
+  .ts-card:hover {
+    border-color: rgba(249, 115, 22, 0.22);
+  }
 }
 
 /* Background is provided by TradeScoutBackground component. */
@@ -1044,14 +1093,6 @@ html {
       z-index: 1;
     }
 
-    .ts-card {
-      @apply border-0 rounded-2xl bg-navy-800/70 shadow-md transition-all duration-300;
-    }
-
-    .ts-card:hover {
-      @apply shadow-lg;
-    }
-
     .ts-tile {
       @apply rounded-xl shadow-sm transition-all duration-300;
       background: var(--surface-card);
@@ -1086,17 +1127,6 @@ html {
     .ts-panel > * {
       position: relative;
       z-index: 1;
-    }
-
-    .ts-input {
-      @apply border-0 shadow-inner;
-      background-color: var(--charcoal-700);
-      color: var(--text-primary);
-    }
-    .ts-input:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
-      border-color: var(--theme-border-primary);
     }
 
     .ts-hero-header {
