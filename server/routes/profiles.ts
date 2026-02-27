@@ -243,6 +243,62 @@ function sanitizePublicProfileBookingConfig(raw: unknown) {
   };
 }
 
+function buildAutoSeoMeta(args: {
+  displayName: string;
+  roleContext?: string | null;
+  headline?: string | null;
+  business?: { categories?: string[]; serviceAreas?: string[] } | null;
+  servicesDescription?: string | null;
+  seoMeta?: { title?: string; description?: string; imageUrl?: string } | null;
+}) {
+  const displayName = args.displayName.trim();
+  const roleContext = String(args.roleContext || "").trim();
+  const headline = String(args.headline || "").trim();
+  const servicesDescription = String(args.servicesDescription || "").trim();
+  const categories = Array.isArray(args.business?.categories)
+    ? args.business?.categories
+        .filter((c) => typeof c === "string" && c.trim().length > 0)
+        .slice(0, 3)
+    : [];
+  const serviceAreaCount = Array.isArray(args.business?.serviceAreas)
+    ? args.business?.serviceAreas.length
+    : 0;
+
+  const fallbackTitleParts = [displayName];
+  if (roleContext) fallbackTitleParts.push(roleContext.replace(/_/g, " "));
+  fallbackTitleParts.push("TradeScout");
+  const fallbackTitle = fallbackTitleParts.join(" | ").slice(0, 120);
+
+  const descriptionCandidates = [
+    headline,
+    servicesDescription,
+    categories.length > 0
+      ? `${displayName} serves ${categories.join(", ")} needs on TradeScout.`
+      : "",
+    serviceAreaCount > 0
+      ? `${displayName} supports ${serviceAreaCount} service area${serviceAreaCount === 1 ? "" : "s"}.`
+      : "",
+    `${displayName} profile on TradeScout with protected Direct Connect contact.`,
+  ].filter((value) => value && value.trim().length > 0);
+
+  const fallbackDescription = descriptionCandidates.join(" ").slice(0, 320);
+
+  const title =
+    typeof args.seoMeta?.title === "string" && args.seoMeta.title.trim().length > 0
+      ? args.seoMeta.title.trim().slice(0, 120)
+      : fallbackTitle;
+  const description =
+    typeof args.seoMeta?.description === "string" && args.seoMeta.description.trim().length > 0
+      ? args.seoMeta.description.trim().slice(0, 320)
+      : fallbackDescription;
+  const imageUrl =
+    typeof args.seoMeta?.imageUrl === "string" && args.seoMeta.imageUrl.trim().length > 0
+      ? args.seoMeta.imageUrl.trim().slice(0, 500)
+      : undefined;
+
+  return { title, description, imageUrl };
+}
+
 function getCanonicalBaseUrl(req: any): string {
   const configured = String(process.env.PUBLIC_WEB_URL || process.env.APP_URL || "").trim();
   if (configured) {
@@ -518,6 +574,14 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         serviceAreas: business.serviceAreas || [],
       }
     : null;
+  const effectiveSeoMeta = buildAutoSeoMeta({
+    displayName: profile.displayName,
+    roleContext: profile.roleContext,
+    headline: profile.headline,
+    business: safeBusiness,
+    servicesDescription: profile.servicesDescription,
+    seoMeta: profile.seoMeta,
+  });
 
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   return res.json({
@@ -529,7 +593,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       headline: profile.headline,
       contentBlocks: profile.contentBlocks,
       ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
-      seoMeta: profile.seoMeta,
+      seoMeta: effectiveSeoMeta,
       profileSections: profile.profileSections || null,
       profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
       contactPolicy: {
@@ -575,6 +639,7 @@ router.get("/robots.txt", async (req, res) => {
       "Allow: /tradepartners/",
       "Allow: /homescout/",
       "Allow: /homescout/listings/",
+      "Allow: /llms.txt",
       "Disallow: /api/",
       "Disallow: /admin/",
       "Disallow: /dashboard/",
@@ -583,6 +648,32 @@ router.get("/robots.txt", async (req, res) => {
       "Disallow: /scout/",
       "Disallow: /auth/",
       `Sitemap: ${baseUrl}/sitemap.xml`,
+      "",
+    ].join("\n")
+  );
+});
+
+router.get("/llms.txt", async (req, res) => {
+  const baseUrl = getCanonicalBaseUrl(req);
+  res.type("text/plain");
+  res.send(
+    [
+      "TradeScout public web guidance for AI/LLM crawlers",
+      "",
+      "Canonical host:",
+      `${baseUrl}`,
+      "",
+      "Primary public profile pattern:",
+      `${baseUrl}/u/{slug}`,
+      "",
+      "Discoverability feeds:",
+      `${baseUrl}/sitemap.xml`,
+      `${baseUrl}/sitemap-profiles.xml`,
+      "",
+      "Public profile constraints:",
+      "- Contact is intentionally gated through Direct Connect.",
+      "- Do not infer direct contact methods from profile pages.",
+      "- Treat profile titles, descriptions, and structured data as canonical summary fields.",
       "",
     ].join("\n")
   );

@@ -13,7 +13,15 @@ type PublicProfileData = {
     displayName: string;
     headline?: string | null;
     roleContext?: string | null;
+    servicesDescription?: string | null;
     seoMeta?: { title?: string; description?: string; imageUrl?: string; customDomain?: string };
+    profileBooking?: {
+      enabled?: boolean;
+      paidBookings?: boolean;
+      bookingPriceUsd?: number;
+      pricingTableEnabled?: boolean;
+      pricingRows?: Array<{ name?: string; priceLabel?: string }>;
+    } | null;
   };
   business?: {
     name?: string;
@@ -44,12 +52,17 @@ function injectJsonLd(html: string, jsonLd: object) {
   return html.replace("</head>", `${script}\n</head>`);
 }
 
+function injectProfileSummary(html: string, summaryHtml: string) {
+  return html.replace(/<div id="root"><\/div>/i, `<div id="root">${summaryHtml}</div>`);
+}
+
 function buildJsonLd(profile: PublicProfileData, origin: string) {
   const profileUrl = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
   const description =
     profile.profile.seoMeta?.description ||
     profile.profile.headline ||
+    profile.profile.servicesDescription ||
     profile.profile.roleContext ||
     "TradeScout public profile";
 
@@ -77,20 +90,33 @@ function buildJsonLd(profile: PublicProfileData, origin: string) {
 
 function buildMeta(profile: PublicProfileData, origin: string) {
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
-  const title = profile.profile.seoMeta?.title || `${displayName} · TradeScout`;
+  const title = profile.profile.seoMeta?.title || `${displayName} | TradeScout`;
   const description =
     profile.profile.seoMeta?.description ||
     profile.profile.headline ||
+    profile.profile.servicesDescription ||
     profile.profile.roleContext ||
     "TradeScout public profile";
   const imageUrl = profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-logo.png?v=3`;
   const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
+  const keywords = [
+    displayName,
+    profile.profile.roleContext || "",
+    ...(profile.business?.categories || []),
+    "TradeScout profile",
+    "local services",
+  ]
+    .map((value) => String(value).trim())
+    .filter((value) => value.length > 0)
+    .slice(0, 12)
+    .join(", ");
 
   return {
     title,
     description,
     imageUrl,
     canonical,
+    keywords,
   };
 }
 
@@ -113,7 +139,9 @@ export async function buildPublicProfileHtml({
       displayName: profileRecord.displayName,
       headline: profileRecord.headline,
       roleContext: profileRecord.roleContext,
+      servicesDescription: profileRecord.servicesDescription || undefined,
       seoMeta: profileRecord.seoMeta || undefined,
+      profileBooking: profileRecord.profileBooking || undefined,
     },
     business: businessRecord
       ? {
@@ -137,6 +165,16 @@ export async function buildPublicProfileHtml({
   );
   html = upsertTag(
     html,
+    /<meta name="keywords"[^>]*>/i,
+    `<meta name="keywords" content="${escapeHtml(meta.keywords)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta name="robots"[^>]*>/i,
+    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+  );
+  html = upsertTag(
+    html,
     /<meta property="og:title"[^>]*>/i,
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`
   );
@@ -149,6 +187,11 @@ export async function buildPublicProfileHtml({
     html,
     /<meta property="og:image"[^>]*>/i,
     `<meta property="og:image" content="${escapeHtml(meta.imageUrl)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:locale"[^>]*>/i,
+    `<meta property="og:locale" content="en_US" />`
   );
   html = upsertTag(
     html,
@@ -176,6 +219,41 @@ export async function buildPublicProfileHtml({
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
 
+  const bookingRows =
+    profileRecord.profileBooking?.pricingTableEnabled &&
+    Array.isArray(profileRecord.profileBooking?.pricingRows)
+      ? profileRecord.profileBooking.pricingRows
+          .map((row: any) =>
+            [String(row?.name || "").trim(), String(row?.priceLabel || "").trim()]
+              .filter((part) => part.length > 0)
+              .join(": ")
+          )
+          .filter((line: string) => line.length > 0)
+          .slice(0, 6)
+      : [];
+  const bookingSummary =
+    profileRecord.profileBooking?.enabled === true
+      ? profileRecord.profileBooking?.paidBookings
+        ? `Bookings enabled. Paid booking deposit: $${Number(profileRecord.profileBooking?.bookingPriceUsd || 0).toFixed(2)}.`
+        : "Bookings enabled."
+      : "Bookings not enabled.";
+  const categoriesSummary = (businessRecord?.categories || []).slice(0, 6).join(", ");
+  const areasSummary = (businessRecord?.serviceAreas || []).slice(0, 8).join(", ");
+  const rootSummary = `
+<main data-seo-profile="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <article>
+    <h1>${escapeHtml(profileRecord.displayName)}</h1>
+    <p>${escapeHtml(meta.description)}</p>
+    ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
+    ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
+    ${profileRecord.servicesDescription ? `<p>${escapeHtml(profileRecord.servicesDescription)}</p>` : ""}
+    <p>${escapeHtml(bookingSummary)}</p>
+    ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
+    <p>Contact is protected through TradeScout Direct Connect.</p>
+  </article>
+</main>`;
+
+  html = injectProfileSummary(html, rootSummary);
   html = injectJsonLd(html, jsonLd);
   return html;
 }

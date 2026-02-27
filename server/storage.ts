@@ -525,6 +525,13 @@ type PublicProfileRecord = {
   businessId: string | null;
   profileSections: any | null;
   profileBooking: any | null;
+  ownerFirstName: string | null;
+  ownerLastName: string | null;
+  ownerProfileImageUrl: string | null;
+  ownerCity: string | null;
+  ownerState: string | null;
+  ownerRoles: string[] | null;
+  servicesDescription: string | null;
 };
 
 type PublicBusinessRecord = {
@@ -1885,6 +1892,13 @@ export class DatabaseStorage implements IStorage {
         businessId: profiles.businessId,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
         profileBooking: sql`(${users.preferences} -> 'profileBooking')`,
+        ownerFirstName: users.firstName,
+        ownerLastName: users.lastName,
+        ownerProfileImageUrl: users.profileImageUrl,
+        ownerCity: users.city,
+        ownerState: users.state,
+        ownerRoles: users.roles,
+        servicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -2127,7 +2141,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProfileBookingRequestById(id: string): Promise<ProfileBookingRequest | undefined> {
-    const [row] = await db.select().from(profileBookingRequests).where(eq(profileBookingRequests.id, id));
+    const [row] = await db
+      .select()
+      .from(profileBookingRequests)
+      .where(eq(profileBookingRequests.id, id));
     return row as ProfileBookingRequest | undefined;
   }
 

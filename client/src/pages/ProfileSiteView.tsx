@@ -160,17 +160,39 @@ export default function ProfileSiteView() {
   const displayName =
     business?.name && business.name.trim().length > 0 ? business.name : profile.displayName;
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const seoTitle =
+    typeof profile.seoMeta?.title === "string" && profile.seoMeta.title.trim().length > 0
+      ? profile.seoMeta.title
+      : `${displayName} | TradeScout Public Profile`;
+  const seoDescription =
+    typeof profile.seoMeta?.description === "string" &&
+    profile.seoMeta.description.trim().length > 0
+      ? profile.seoMeta.description
+      : profile.headline ||
+        `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`;
+  const seoImage =
+    typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
+      ? profile.seoMeta.imageUrl
+      : undefined;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": business?.name ? "LocalBusiness" : "Person",
+    name: displayName,
+    description: seoDescription,
+    url: `${window.location.origin}/u/${encodeURIComponent(profile.slug)}`,
+    ...(business?.categories?.length ? { category: business.categories.slice(0, 6) } : {}),
+    ...(business?.serviceAreas?.length ? { areaServed: business.serviceAreas.slice(0, 10) } : {}),
+  };
 
   return (
     <div className=" py-8">
       <SEOHelmet
-        title={`${displayName} | TradeScout Public Profile`}
-        description={
-          profile.headline ||
-          `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`
-        }
+        title={seoTitle}
+        description={seoDescription}
         canonical={`${window.location.origin}/u/${encodeURIComponent(profile.slug)}`}
         ogType="profile"
+        ogImage={seoImage}
+        structuredData={structuredData}
       />
       <div className="container mx-auto px-4 max-w-5xl">
         <Card className="bg-navy-800 border-navy-700">
