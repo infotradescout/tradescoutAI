@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { EmailPasswordAuth } from "@/components/EmailPasswordAuth";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
@@ -44,7 +45,7 @@ export default function Login() {
         canonical="https://www.thetradescout.com/login"
         noIndex
       />
-      <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
+      <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-tsAccent to-orange-700 flex items-center justify-center shadow-lg shadow-orange-500/30">
             <Home className="h-6 w-6 text-white" />
@@ -57,29 +58,31 @@ export default function Login() {
           </p>
         </CardHeader>
         <CardContent>
-          <div className="bg-tsBg border border-tsBorder rounded-xl p-4">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <div className="text-sm text-slate-300">Continue with</div>
             <div className="mt-3 grid grid-cols-1 gap-2">
-              <button
+              <Button
                 type="button"
-                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
                 onClick={() => beginOAuth("google")}
                 disabled={isLoading}
+                variant="secondary"
+                className="w-full"
               >
                 Google
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
                 onClick={() => beginOAuth("facebook")}
                 disabled={isLoading}
+                variant="secondary"
+                className="w-full"
               >
                 Facebook
-              </button>
+              </Button>
             </div>
             {isLoading && <div className="mt-2 text-xs text-slate-400">Checking session...</div>}
           </div>
-          <div className="bg-tsBg border border-tsBorder rounded-xl p-4 mt-3">
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-4">
             <EmailPasswordAuth />
           </div>
         </CardContent>
