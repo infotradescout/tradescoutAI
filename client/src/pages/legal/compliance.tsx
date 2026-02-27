@@ -336,9 +336,9 @@ export default function CompliancePage() {
                 </a>
               </Button>
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/remote-notary">
+                <a href="/legal/mobile-notary">
                   <Shield className="h-4 w-4 mr-2" />
-                  Remote Notary
+                  Mobile Notary
                 </a>
               </Button>
             </div>

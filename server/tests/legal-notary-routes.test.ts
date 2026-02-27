@@ -20,7 +20,8 @@ describe("legal notary routes", () => {
     const louisiana = res.body.find((state: any) => state.stateCode === "LA");
     expect(louisiana).toBeTruthy();
     expect(louisiana.status).toBe("live");
-    expect(louisiana.remoteOnlineNotaryAllowed).toBe(true);
+    expect(louisiana.mobileNotaryAvailable).toBe(true);
+    expect(louisiana.remoteOnlineNotaryAllowed).toBe(false);
   });
 
   it("returns Louisiana policy details", async () => {
@@ -40,6 +41,10 @@ describe("legal notary routes", () => {
       serviceType: "affidavit",
       documentType: "general_affidavit",
       signerCount: 1,
+      serviceAddress1: "123 Main St",
+      serviceCity: "Baton Rouge",
+      serviceZipCode: "70801",
+      preferredArrivalWindow: "2026-03-03 10:00-12:00",
     });
 
     expect(res.status).toBe(200);
@@ -54,6 +59,10 @@ describe("legal notary routes", () => {
       serviceType: "affidavit",
       documentType: "testament",
       signerCount: 1,
+      serviceAddress1: "123 Main St",
+      serviceCity: "Baton Rouge",
+      serviceZipCode: "70801",
+      preferredArrivalWindow: "2026-03-03 10:00-12:00",
     });
 
     expect(res.status).toBe(200);
@@ -68,10 +77,28 @@ describe("legal notary routes", () => {
       serviceType: "affidavit",
       documentType: "general_affidavit",
       signerCount: 1,
+      serviceAddress1: "100 Congress Ave",
+      serviceCity: "Austin",
+      serviceZipCode: "78701",
+      preferredArrivalWindow: "2026-03-03 10:00-12:00",
     });
 
     expect(res.status).toBe(200);
     expect(res.body.eligible).toBe(false);
     expect(res.body.status).toBe("unsupported");
+  });
+
+  it("requires mobile appointment details for automated path", async () => {
+    const app = createApp();
+    const res = await request(app).post("/api/legal/notary/intake").send({
+      stateCode: "LA",
+      serviceType: "affidavit",
+      documentType: "general_affidavit",
+      signerCount: 1,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.eligible).toBe(false);
+    expect(res.body.status).toBe("manual_review");
   });
 });

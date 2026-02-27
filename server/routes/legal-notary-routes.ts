@@ -13,10 +13,11 @@ const STATE_POLICIES: Record<string, NotaryStatePolicy> = {
     stateCode: "LA",
     stateName: "Louisiana",
     status: "live",
-    remoteOnlineNotaryAllowed: true,
+    mobileNotaryAvailable: true,
+    remoteOnlineNotaryAllowed: false,
     lastReviewedOn: "2026-02-27",
     serviceSummary:
-      "Louisiana remote notary support is enabled for core civil/commercial document flows with policy checks.",
+      "Louisiana mobile notary support is enabled for in-person travel appointments with policy checks.",
     allowedServiceTypes: [
       "acknowledgment",
       "jurat",
@@ -31,14 +32,17 @@ const STATE_POLICIES: Record<string, NotaryStatePolicy> = {
       "serviceType",
       "documentType",
       "signerCount",
+      "serviceAddress1",
+      "serviceCity",
+      "serviceZipCode",
+      "preferredArrivalWindow",
       "government_id_front",
       "government_id_back",
-      "signer_selfie",
       "unsigned_document_pdf",
     ],
     complianceNotes: [
       "Final notary assignment must use an active Louisiana-commissioned notary.",
-      "Identity proofing and credential checks are mandatory before a live session.",
+      "Identity proofing and credential checks are mandatory before an in-person signing session.",
       "Certain high-risk document classes are routed to manual legal review.",
       "Parish or court-specific filing rules may add document handling requirements.",
     ],
@@ -53,6 +57,13 @@ const intakeSchema = z.object({
   documentType: z.string().min(2).max(120),
   countyFips: z.string().length(5).optional().nullable(),
   signerCount: z.number().int().min(1).max(20).optional(),
+  serviceAddress1: z.string().min(5).max(180).optional(),
+  serviceCity: z.string().min(2).max(80).optional(),
+  serviceZipCode: z
+    .string()
+    .regex(/^\d{5}$/)
+    .optional(),
+  preferredArrivalWindow: z.string().min(4).max(120).optional(),
 });
 
 function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
@@ -73,10 +84,43 @@ function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
     };
   }
 
+  if (!policy.mobileNotaryAvailable) {
+    return {
+      eligible: false,
+      stateCode,
+      status: "unsupported",
+      reason: "Mobile notary support is not live for this state.",
+      nextSteps: [
+        "Join the mobile notary waitlist for this state.",
+        "Use a local in-person notary office if immediate service is required.",
+      ],
+      requiredUploads: [],
+    };
+  }
+
   const normalizedServiceType = input.serviceType.trim().toLowerCase();
   const normalizedDocumentType = input.documentType.trim().toLowerCase();
   const restricted = policy.restrictedDocumentTypes.includes(normalizedDocumentType);
   const serviceAllowed = policy.allowedServiceTypes.includes(normalizedServiceType);
+  const hasMobileLocation =
+    Boolean(input.serviceAddress1?.trim()) &&
+    Boolean(input.serviceCity?.trim()) &&
+    Boolean(input.serviceZipCode?.trim()) &&
+    Boolean(input.preferredArrivalWindow?.trim());
+
+  if (!hasMobileLocation) {
+    return {
+      eligible: false,
+      stateCode,
+      status: "manual_review",
+      reason: "Mobile appointment details are incomplete.",
+      nextSteps: [
+        "Provide service address, city, zip code, and preferred arrival window.",
+        "Resubmit intake for automated path eligibility.",
+      ],
+      requiredUploads: [],
+    };
+  }
 
   if (restricted) {
     return {
@@ -86,7 +130,7 @@ function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
       reason: "Document type requires manual legal/compliance review before scheduling.",
       nextSteps: [
         "Submit intake package for manual legal review.",
-        "Await case-level guidance before a remote session is scheduled.",
+        "Await case-level guidance before a mobile appointment is scheduled.",
       ],
       requiredUploads: [
         "government_id_front",
@@ -115,18 +159,14 @@ function evaluateIntake(input: NotaryIntakeRequest): NotaryIntakeDecision {
     eligible: true,
     stateCode,
     status: "approved_path",
-    reason: "Eligible for the Louisiana remote notary path.",
+    reason: "Eligible for the Louisiana mobile notary path.",
     nextSteps: [
       "Complete signer identity verification.",
       "Upload unsigned document package.",
-      "Schedule remote session with Louisiana notary coverage.",
+      "Confirm mobile service address and arrival window.",
+      "Schedule in-person mobile notary appointment.",
     ],
-    requiredUploads: [
-      "government_id_front",
-      "government_id_back",
-      "signer_selfie",
-      "unsigned_document_pdf",
-    ],
+    requiredUploads: ["government_id_front", "government_id_back", "unsigned_document_pdf"],
   };
 }
 
@@ -135,6 +175,7 @@ router.get("/states", (_req: Request, res: Response) => {
     stateCode: policy.stateCode,
     stateName: policy.stateName,
     status: policy.status,
+    mobileNotaryAvailable: policy.mobileNotaryAvailable,
     remoteOnlineNotaryAllowed: policy.remoteOnlineNotaryAllowed,
     serviceSummary: policy.serviceSummary,
   }));

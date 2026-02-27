@@ -1590,6 +1590,12 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/services/remote-notary">
                     <LazyPage Component={RemoteNotary} />
                   </Route>
+                  <Route path="/legal/mobile-notary">
+                    <LazyPage Component={RemoteNotary} />
+                  </Route>
+                  <Route path="/services/mobile-notary">
+                    <LazyPage Component={RemoteNotary} />
+                  </Route>
                   <Route path="/about">
                     <LazyPage Component={About} />
                   </Route>

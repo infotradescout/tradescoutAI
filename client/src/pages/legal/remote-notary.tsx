@@ -8,7 +8,12 @@ import type { NotaryStatePolicy } from "@shared/legalNotary";
 
 type NotaryStateSummary = Pick<
   NotaryStatePolicy,
-  "stateCode" | "stateName" | "status" | "remoteOnlineNotaryAllowed" | "serviceSummary"
+  | "stateCode"
+  | "stateName"
+  | "status"
+  | "mobileNotaryAvailable"
+  | "remoteOnlineNotaryAllowed"
+  | "serviceSummary"
 >;
 
 export default function RemoteNotaryPage() {
@@ -37,11 +42,11 @@ export default function RemoteNotaryPage() {
     <div className="container mx-auto max-w-5xl p-4 md:p-8 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Remote Notary Services</CardTitle>
+          <CardTitle>Mobile Notary Services</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            State-based remote legal notary support. Louisiana is enabled first and additional
+            State-based mobile legal notary support. Louisiana is enabled first and additional
             states can be added in policy configuration.
           </p>
 
@@ -87,6 +92,10 @@ export default function RemoteNotaryPage() {
               <div className="grid gap-2">
                 <div className="text-sm">
                   <span className="font-medium">State:</span> {policy.stateName}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Mobile Notary Available:</span>{" "}
+                  {policy.mobileNotaryAvailable ? "Yes" : "No"}
                 </div>
                 <div className="text-sm">
                   <span className="font-medium">RON Allowed:</span>{" "}

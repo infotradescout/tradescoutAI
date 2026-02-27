@@ -4,6 +4,7 @@ export interface NotaryStatePolicy {
   stateCode: string;
   stateName: string;
   status: NotarySupportStatus;
+  mobileNotaryAvailable: boolean;
   remoteOnlineNotaryAllowed: boolean;
   lastReviewedOn: string;
   serviceSummary: string;
@@ -20,6 +21,10 @@ export interface NotaryIntakeRequest {
   documentType: string;
   countyFips?: string | null;
   signerCount?: number;
+  serviceAddress1?: string;
+  serviceCity?: string;
+  serviceZipCode?: string;
+  preferredArrivalWindow?: string;
 }
 
 export interface NotaryIntakeDecision {
