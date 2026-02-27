@@ -58,7 +58,10 @@ import { logAdminAction } from "./services/adminAuditLogService";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
-import { addPropertyLifecycleEvent, requirePropertyProgramAccess } from "./services/propertyLifecycleService";
+import {
+  addPropertyLifecycleEvent,
+  requirePropertyProgramAccess,
+} from "./services/propertyLifecycleService";
 import {
   users,
   userRoleEnum,
@@ -4964,7 +4967,8 @@ export async function registerRoutes(app: any) {
 
         // Optional: sync booking activity into a linked Property Program so HomeFax/readiness stays current.
         try {
-          const ctx = bookingContext && typeof bookingContext === "object" ? (bookingContext as any) : {};
+          const ctx =
+            bookingContext && typeof bookingContext === "object" ? (bookingContext as any) : {};
           const propertyProgramId =
             typeof ctx.propertyProgramId === "string" ? String(ctx.propertyProgramId).trim() : "";
           if (propertyProgramId) {
@@ -4992,7 +4996,10 @@ export async function registerRoutes(app: any) {
             });
           }
         } catch (err) {
-          console.warn("[profile-booking] Failed to sync booking request to property program:", err);
+          console.warn(
+            "[profile-booking] Failed to sync booking request to property program:",
+            err
+          );
         }
 
         res.status(201).json(created);
