@@ -36,12 +36,12 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "Do contractors pay to receive my request?",
       answer:
-        "No. Direct Connect matching is based on trust, relevance, and availability - not payment. TradeScout access to features, connections, and information is $0, with no contractor lead fee, monthly fee, or post-job contractor fee.",
+        "No. Direct Connect matching is based on trust, relevance, and availability - not payment. TradeScout access to features, connections, and information is $0. No lead sales and no pay-to-play visibility.",
     },
     {
       question: "What payment requests are legitimate?",
       answer:
-        "Only clearly labeled checkout for optional products (such as Marketplace Promotions or third-party TradePartners offers) is legitimate. Any unlabeled payment request made in TradeScout's name should be treated as a scam.",
+        "None. TradeScout does not charge for access, matching, messaging, or profiles. Any payment request made in TradeScout's name to unlock features or visibility is a scam.",
     },
     {
       question: "What information does Scout send to contractors?",

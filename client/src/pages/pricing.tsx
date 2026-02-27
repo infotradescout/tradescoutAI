@@ -35,10 +35,8 @@ const featureLines = [
 
 const sponsorLines = [
   "$0 for access to TradeScout features, connections, and information",
-  "No contractor lead fees, no monthly subscription fees, and no post-job contractor fees",
-  "Revenue comes from separate optional products and connected platforms, never from access",
-  "Marketplace Promotions and third-party TradePartners offers are clearly labeled before checkout",
-  "Financially blind ranking, recommendation, and trust systems",
+  "No lead sales and no pay-to-play visibility",
+  "Payment data is excluded from ranking and trust authority",
   "No paid access tiers and no pay-for-ranking controls",
   "Core platform access remains open for all users",
 ];
@@ -46,8 +44,6 @@ const sponsorLines = [
 const communityLines = [
   "Community Builder badge holders help decide which local causes the community vault funds",
   "Community Builders run local drives and campaigns to raise funds for their counties",
-  "10% of all platform profits are allocated to the TradeScout Community Builders fund",
-  "100% of Community Builders contributions are returned directly to the communities where they originated",
   "Transparency-first reporting so neighbors can see exactly where support goes",
 ];
 
@@ -83,8 +79,8 @@ const Pricing = memo(function Pricing() {
             className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
           >
             Use everything without a paywall. Search contractors, run community playbooks, manage
-            your Direct Connect requests, and chat with Scout — all included. Revenue is generated
-            from completed value movement, not from access or ranking.
+            your Direct Connect requests, and chat with Scout — all included. Payment never affects
+            trust authority, ranking, or routing.
           </motion.p>
         </div>
 
@@ -177,10 +173,9 @@ const Pricing = memo(function Pricing() {
             </div>
             <p className="text-sm text-white/70 leading-relaxed">
               Access to TradeScout features, connections, and information is{" "}
-              <strong className="text-white">$0</strong>. Revenue comes from separate optional
-              products and connected platforms. If someone requests payment in TradeScout's name
-              outside clearly labeled checkout for Marketplace Promotions or third-party
-              TradePartners offers, treat it as a scam and do not pay.
+              <strong className="text-white">$0</strong>. TradeScout does not charge for access or
+              visibility. Any request for payment in TradeScout's name to unlock features, ranking,
+              or access is a scam. Do not pay.
             </p>
           </div>
         </Reveal>

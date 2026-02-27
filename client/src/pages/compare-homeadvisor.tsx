@@ -33,17 +33,17 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "What is the main difference between TradeScout and HomeAdvisor?",
       answer:
-        "HomeAdvisor uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no contractor lead fees, no monthly subscription, and no post-job contractor fee. This fundamentally changes incentives: HomeAdvisor maximizes lead volume; TradeScout maximizes match quality.",
+        "HomeAdvisor uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no lead sales and no pay-to-play visibility. This changes incentives: lead volume vs. match quality.",
     },
     {
       question: "Why do I get bombarded with calls on HomeAdvisor?",
       answer:
-        "When you request a quote, HomeAdvisor sells your request to 10-20+ contractors. Each paid upfront, so each wants to reach you before competitors. You become the product, not the customer. TradeScout sends your request to 1-3 pre-matched contractors only.",
+        "When you request a quote, platforms can route your request to many contractors. Each wants to reach you before competitors. TradeScout sends your request to 1-3 pre-matched contractors only.",
     },
     {
       question: "Why do HomeAdvisor quotes often come in low then balloon?",
       answer:
-        "On HomeAdvisor, contractors compete on price because they're desperate to win after paying for leads. Lowball quotes lead to cutting corners and bad outcomes. TradeScout matches on trust and relevance, not price competition.",
+        "TradeScout is not a bidding marketplace. Scout matches on trust and relevance first, then pros accept or decline. You choose who to hire based on fit, availability, and scope.",
     },
     {
       question: "How does HomeAdvisor verify contractors?",
@@ -58,13 +58,13 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "Is TradeScout really $0 to use?",
       answer:
-        "Access to TradeScout features, connections, and information is $0 for residents and contractors. Revenue comes from separate optional products and connected platforms, clearly labeled before checkout.",
+        "Yes. TradeScout is $0 for residents and contractors. TradeScout does not charge for access, matching, messaging, or profiles. Any request for payment in TradeScout's name to unlock access or visibility is a scam.",
     },
   ];
 
   const tableRows = [
     { feature: "Business Model", ha: "Lead sales (pay-per-request)", ts: "Trust-based matching (no lead sales)" },
-    { feature: "Contractor Cost", ha: "$15–$60 per lead (win or lose)", ts: "No lead fees" },
+    { feature: "Contractor Cost", ha: "$15–$60 per lead (win or lose)", ts: "$0 platform fees" },
     { feature: "Lead Routing", ha: "1 request → 10-20+ contractors", ts: "1 request → 1-3 pre-matched contractors" },
     { feature: "User Experience", ha: "Bombarded with calls", ts: "1-3 qualified matches", haNeg: true, tsPos: true },
     { feature: "Ranking Logic", ha: "Payment influences visibility", ts: "Trust (CVS) determines ranking", haWarn: true, tsPos: true },
@@ -74,7 +74,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
   ];
 
   const changes = [
-    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who spammed you first." },
+    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first." },
     { title: "No More Bidding Wars", desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners." },
     { title: "Trust Determines Visibility", desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first." },
     { title: "Community-Verified Reviews", desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials." },
@@ -137,8 +137,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
                   <h3 className="text-sm font-semibold text-ts-orange mb-2">TradeScout (Trust Model)</h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    No lead fees. No monthly subscription. No post-job contractor fee.
-                    Incentive: match quality over volume.
+                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
                   </p>
                 </div>
               </div>

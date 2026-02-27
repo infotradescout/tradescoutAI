@@ -685,7 +685,7 @@ function PricingSection() {
 
   const sponsorFeatures = [
     "$0 access for features, connections, and information",
-    "Revenue comes from separate optional products and connected platforms",
+    "No lead sales and no pay-to-play visibility",
     "Payment-blind trust and ranking systems",
     "No paywalls and no access tiers",
     "No paid ranking and no paid lead routing",
@@ -707,7 +707,7 @@ function PricingSection() {
             Gotcha. TradeScout is for you at $0.
           </p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
-            We make money, just not from the person reading this text.
+            No paywalls. No lead sales. No pay-to-play.
           </p>
         </Reveal>
 
@@ -752,8 +752,8 @@ function PricingSection() {
             Community Builders & Local Reinvestment
           </h3>
           <p className="text-sm text-white/70 mb-2">
-            10% of all platform profits are allocated to the TradeScout Community Builders fund.
-            100% of contributions are returned directly to the communities where they originated.
+            Community Builders help direct community vault support back to their counties with
+            transparency-first reporting.
           </p>
           <p className="text-xs text-white/60">
             Community Builders earn badges that let them send and vote on causes funded from the

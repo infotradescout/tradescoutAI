@@ -33,17 +33,17 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "What is the main difference between TradeScout and Angi?",
       answer:
-        "Angi uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no contractor lead fees, no monthly subscription, and no post-job contractor fee. This fundamentally changes incentives: Angi maximizes lead volume; TradeScout maximizes match quality.",
+        "Angi uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no lead sales and no pay-to-play visibility. This changes incentives: lead volume vs. match quality.",
     },
     {
       question: "Why do I get so many calls on lead-buying platforms?",
       answer:
-        "When you request a quote, platforms sell your request to 10-20+ contractors. Each paid upfront, so each wants to reach you before competitors. You become the product, not the customer. TradeScout sends your request to 1-3 pre-matched contractors only.",
+        "When you request a quote, platforms can route your request to many contractors. Each wants to reach you before competitors. TradeScout sends your request to 1-3 pre-matched contractors only.",
     },
     {
       question: "Can I avoid bidding wars?",
       answer:
-        "On lead-buying platforms, contractors compete on price because they're desperate to win after paying for leads. TradeScout matches on trust and relevance, not price competition. Contractors accept or decline upfront, so no wasted time on mismatched jobs.",
+        "TradeScout is not a bidding marketplace. Scout matches on trust and relevance first, then pros accept or decline. You choose who to hire based on fit, availability, and scope.",
     },
     {
       question: "What is the Community Verification Score (CVS)?",
@@ -53,13 +53,13 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "Is TradeScout really free?",
       answer:
-        "Access to TradeScout features, connections, and information is $0 for residents and contractors. Revenue comes from separate optional products and connected platforms, clearly labeled before checkout.",
+        "Yes. TradeScout is $0 for residents and contractors. TradeScout does not charge for access, matching, messaging, or profiles. Any request for payment in TradeScout's name to unlock access or visibility is a scam.",
     },
   ];
 
   const tableRows = [
     { feature: "Business Model", angi: "Lead sales (pay-per-request)", ts: "Trust-based matching (no lead sales)" },
-    { feature: "Contractor Cost", angi: "$15–$60 per lead (win or lose)", ts: "No lead fees" },
+    { feature: "Contractor Cost", angi: "$15–$60 per lead (win or lose)", ts: "$0 platform fees" },
     { feature: "Lead Routing", angi: "1 request → 10-20+ contractors", ts: "1 request → 1-3 pre-matched contractors" },
     { feature: "User Experience", angi: "Bombarded with calls", ts: "1-3 qualified matches", angiNeg: true, tsPos: true },
     { feature: "Ranking Logic", angi: "Payment influences visibility", ts: "Trust (CVS) determines ranking", angiWarn: true, tsPos: true },
@@ -69,7 +69,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
   ];
 
   const changes = [
-    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who spammed you first." },
+    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first." },
     { title: "No More Bidding Wars", desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners." },
     { title: "Trust Determines Visibility", desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first." },
     { title: "Community-Verified Reviews", desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials." },
@@ -132,8 +132,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
                   <h3 className="text-sm font-semibold text-ts-orange mb-2">TradeScout (Trust Model)</h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    No lead fees. No monthly subscription. No post-job contractor fee.
-                    Incentive: match quality over volume.
+                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
                   </p>
                 </div>
               </div>

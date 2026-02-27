@@ -56,7 +56,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
       answer:
-        "TradeScout does not sell leads or charge for access to features, connections, or information. Payment data never influences ranking, routing, or trust authority. Revenue comes from separate optional products and connected platforms, clearly labeled before checkout.",
+        "TradeScout does not sell leads and does not charge for access to features, connections, or information. Payment data never influences ranking, routing, or trust authority.",
     },
     {
       question: "What is Scout?",
@@ -66,7 +66,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How does Direct Connect work?",
       answer:
-        "When you request a contractor, Scout evaluates trust, availability, and context, then routes your request directly to qualified pros. No bidding wars, no lead spam — just relevant matches.",
+        "When you request a contractor, Scout evaluates trust, availability, and context, then routes your request directly to 1-3 qualified pros. Contact stays gated until a match accepts.",
     },
   ];
 
@@ -148,7 +148,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Lock,
       title: "Free to Use",
-      desc: "Access to TradeScout features, connections, and information is $0. Revenue comes from separate optional products, clearly labeled.",
+      desc: "Access to TradeScout features, connections, and information is $0. TradeScout does not charge for access or visibility. Any request for payment in TradeScout's name to unlock access or ranking is a scam.",
     },
   ];
 
