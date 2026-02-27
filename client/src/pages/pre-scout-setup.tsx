@@ -93,6 +93,7 @@ export default function PreScoutSetup() {
   const [signInEmail, setSignInEmail] = useState(prefilledEmail);
   const [signInPassword, setSignInPassword] = useState("");
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [signInErrorCode, setSignInErrorCode] = useState<string | null>(null);
 
   const [createFirstName, setCreateFirstName] = useState("");
   const [createLastName, setCreateLastName] = useState("");
@@ -105,6 +106,7 @@ export default function PreScoutSetup() {
   const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
     setCreateError(null);
     setSignInError(null);
+    setSignInErrorCode(null);
     try {
       const params =
         typeof window !== "undefined"
@@ -141,6 +143,7 @@ export default function PreScoutSetup() {
   useEffect(() => {
     setAuthMode(requestedAuthMode);
     setSignInError(null);
+    setSignInErrorCode(null);
     setCreateError(null);
   }, [requestedAuthMode]);
 
@@ -207,12 +210,14 @@ export default function PreScoutSetup() {
     }
     if (authSubmitting) return;
     setSignInError(null);
+    setSignInErrorCode(null);
 
     const email = signInEmail.trim();
     const password = signInPassword;
     if (!email || !password) {
       const message = "Enter email and password.";
       setSignInError(message);
+      setSignInErrorCode("AUTH_MISSING_FIELDS");
       toast({
         title: "Missing fields",
         description: message,
@@ -242,16 +247,21 @@ export default function PreScoutSetup() {
       toast({ title: "Signed in", description: "Continue with local setup." });
       navigate(buildAuthReturnPath("signin"));
     } catch (error: any) {
+      const code = typeof error?.code === "string" ? error.code : null;
       const rawMessage = String(error?.message || "Please try again.");
       const lowered = rawMessage.toLowerCase();
-      const message = lowered.includes("incorrect password")
-        ? "Incorrect password."
-        : lowered.includes("account not found")
-          ? "No account found for that email."
-          : lowered.includes("social login")
-            ? "This account uses Google/Facebook sign-in."
-            : rawMessage;
+      const message =
+        code === "AUTH_INCORRECT_PASSWORD" || lowered.includes("incorrect password")
+          ? "Incorrect password."
+          : code === "AUTH_NO_ACCOUNT" ||
+              lowered.includes("account not found") ||
+              lowered.includes("no account")
+            ? "No account found for that email."
+            : code === "AUTH_SOCIAL_ONLY" || lowered.includes("social login")
+              ? "This account uses Google/Facebook sign-in."
+              : rawMessage;
       setSignInError(message);
+      setSignInErrorCode(code);
       toast({
         title: "Sign in failed",
         description: message,
@@ -544,6 +554,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => {
                           setSignInEmail(e.target.value);
                           if (signInError) setSignInError(null);
+                          if (signInErrorCode) setSignInErrorCode(null);
                         }}
                         autoComplete="email"
                         placeholder="you@example.com"
@@ -564,6 +575,7 @@ export default function PreScoutSetup() {
                         onChange={(e) => {
                           setSignInPassword(e.target.value);
                           if (signInError) setSignInError(null);
+                          if (signInErrorCode) setSignInErrorCode(null);
                         }}
                         autoComplete="current-password"
                         placeholder="Your password"
@@ -571,9 +583,32 @@ export default function PreScoutSetup() {
                         required
                       />
                       {signInError && (
-                        <p role="alert" className="mt-1 text-xs text-destructive">
-                          {signInError}
-                        </p>
+                        <div className="mt-1 space-y-2">
+                          <p role="alert" className="text-xs text-destructive">
+                            {signInError}
+                          </p>
+                          {signInErrorCode === "AUTH_NO_ACCOUNT" && (
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-tsTextMuted">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-7 rounded-full border-tsAccent/60 px-3 text-tsAccent hover:bg-tsAccent hover:text-black"
+                                onClick={() => {
+                                  setCreateEmail(signInEmail.trim());
+                                  setAuthModeAndSyncUrl("create");
+                                }}
+                              >
+                                Create an account
+                              </Button>
+                              <a
+                                href="/maps"
+                                className="underline-offset-2 hover:underline text-tsTextMuted hover:text-tsTextMain"
+                              >
+                                Find and claim a business
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center justify-between gap-3">

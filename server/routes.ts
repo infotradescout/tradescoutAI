@@ -1120,9 +1120,28 @@ export async function registerRoutes(app: any) {
           message = "Email and password are required";
         }
 
+        const infoCode = typeof info?.code === "string" ? info.code.trim() : "";
+        let code = infoCode;
+        if (!code) {
+          if (lowered.includes("no account") || lowered.includes("account not found")) {
+            code = "AUTH_NO_ACCOUNT";
+          } else if (
+            lowered.includes("incorrect password") ||
+            lowered.includes("invalid password")
+          ) {
+            code = "AUTH_INCORRECT_PASSWORD";
+          } else if (lowered.includes("required")) {
+            code = "AUTH_MISSING_FIELDS";
+          } else if (lowered.includes("social login") || lowered.includes("google/facebook")) {
+            code = "AUTH_SOCIAL_ONLY";
+          } else {
+            code = "AUTH_INVALID_CREDENTIALS";
+          }
+        }
+
         return res.status(401).json({
           message,
-          code: "AUTH_INVALID_CREDENTIALS",
+          code,
         });
       }
       req.logIn(user, (loginErr: any) => {

@@ -119,19 +119,26 @@ export async function setupAuth(app: Express) {
           .toLowerCase();
 
         if (!normalizedEmail || !password) {
-          return done(null, false, { message: "Email and password are required" });
+          return done(null, false, {
+            message: "Email and password are required",
+            code: "AUTH_MISSING_FIELDS",
+          } as any);
         }
 
         const user = await storage.getUserByEmail(normalizedEmail);
         if (!user) {
-          return done(null, false, { message: "No account found for this email" });
+          return done(null, false, {
+            message: "No account found for this email",
+            code: "AUTH_NO_ACCOUNT",
+          } as any);
         }
 
         if (!user.password) {
           return done(null, false, {
             message:
               "This account uses social login. Sign in with Google/Facebook or reset your password.",
-          });
+            code: "AUTH_SOCIAL_ONLY",
+          } as any);
         }
 
         const normalizeHash = (hash: string): string => {
@@ -280,7 +287,10 @@ export async function setupAuth(app: Express) {
             }
           }
 
-          return done(null, false, { message: "Incorrect password" });
+          return done(null, false, {
+            message: "Incorrect password",
+            code: "AUTH_INCORRECT_PASSWORD",
+          } as any);
         }
 
         return done(null, matchedUser);

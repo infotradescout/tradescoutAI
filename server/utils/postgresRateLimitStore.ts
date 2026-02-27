@@ -25,6 +25,8 @@ export function createPostgresRateLimitStore(params: {
   let windowMs = 60_000;
   let disabledBecauseMissingTable = false;
   let didWarnMissingTable = false;
+  let didAttemptCreateTable = false;
+  let createTablePromise: Promise<void> | null = null;
 
   const cleanupIntervalMs = Math.max(0, Number(params.cleanupIntervalMs ?? 0) || 0);
   let cleanupTimer: NodeJS.Timeout | undefined;
@@ -41,6 +43,35 @@ export function createPostgresRateLimitStore(params: {
       message.includes('relation "rate_limit_buckets" does not exist') ||
       (message.includes("rate_limit_buckets") && message.includes("does not exist"))
     );
+  };
+
+  const ensureRateLimitTable = async () => {
+    // Best-effort self-heal for environments where migrations haven't run yet.
+    if (createTablePromise) return createTablePromise;
+    if (didAttemptCreateTable) return;
+    didAttemptCreateTable = true;
+    createTablePromise = (async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS "rate_limit_buckets" (
+          "bucket_key" text PRIMARY KEY,
+          "hits" integer NOT NULL DEFAULT 0,
+          "reset_at" timestamptz NOT NULL,
+          "created_at" timestamptz NOT NULL DEFAULT now(),
+          "updated_at" timestamptz NOT NULL DEFAULT now()
+        );
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS "idx_rate_limit_buckets_reset_at"
+          ON "rate_limit_buckets" ("reset_at");
+      `);
+    })()
+      .catch((err) => {
+        console.warn("[rate-limit] failed to auto-create rate_limit_buckets table.", err);
+      })
+      .finally(() => {
+        createTablePromise = null;
+      });
+    return createTablePromise;
   };
 
   const maybeStartCleanup = () => {
@@ -98,14 +129,33 @@ export function createPostgresRateLimitStore(params: {
         return { totalHits, resetTime };
       } catch (err) {
         if (isMissingRateLimitTableError(err)) {
-          disabledBecauseMissingTable = true;
-          if (!didWarnMissingTable) {
-            didWarnMissingTable = true;
+          // Try to self-heal once (idempotent DDL), then retry the increment query.
+          await ensureRateLimitTable();
+          try {
+            const res = await pool.query(sql, [k, ms]);
+            const row = res?.rows?.[0] as { hits?: number; reset_at?: string | Date } | undefined;
+            const totalHits = Number(row?.hits ?? 1) || 1;
+            const resetTime = row?.reset_at
+              ? new Date(row.reset_at as any)
+              : new Date(Date.now() + ms);
+            return { totalHits, resetTime };
+          } catch (retryErr) {
+            if (isMissingRateLimitTableError(retryErr)) {
+              disabledBecauseMissingTable = true;
+              if (!didWarnMissingTable) {
+                didWarnMissingTable = true;
+                console.warn(
+                  "[rate-limit] rate_limit_buckets table missing; rate limiting is disabled until migrations run."
+                );
+              }
+              return { totalHits: 1, resetTime: new Date(Date.now() + ms) };
+            }
             console.warn(
-              "[rate-limit] rate_limit_buckets table missing; rate limiting is disabled until migrations run."
+              "[rate-limit] store error after self-heal attempt; failing open.",
+              retryErr
             );
+            return { totalHits: 1, resetTime: new Date(Date.now() + ms) };
           }
-          return { totalHits: 1, resetTime: new Date(Date.now() + ms) };
         }
         // Fail open: never block auth/register because the limiter storage is unhealthy.
         console.warn("[rate-limit] store error; failing open for this request.", err);

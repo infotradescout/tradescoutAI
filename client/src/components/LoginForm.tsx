@@ -65,10 +65,18 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     },
     onError: (error: any) => {
       console.error("Login error:", error);
+      const code = typeof error?.code === "string" ? error.code : "";
+      const description =
+        code === "AUTH_NO_ACCOUNT"
+          ? "No account found for that email. Create one, or find your business profile and claim it."
+          : code === "AUTH_INCORRECT_PASSWORD"
+            ? "Incorrect password. Please try again."
+            : code === "AUTH_SOCIAL_ONLY"
+              ? "This account uses Google/Facebook sign-in."
+              : error.message || "Unable to sign in. Please check your credentials and try again.";
       toast({
         title: "Login Failed",
-        description:
-          error.message || "Unable to sign in. Please check your credentials and try again.",
+        description,
         variant: "destructive",
       });
     },

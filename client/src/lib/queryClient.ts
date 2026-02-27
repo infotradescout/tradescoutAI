@@ -1,6 +1,17 @@
 import { QueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 
+export class ApiError extends Error {
+  code?: string;
+  status?: number;
+  constructor(message: string, opts?: { code?: string; status?: number }) {
+    super(message);
+    this.name = "ApiError";
+    this.code = opts?.code;
+    this.status = opts?.status;
+  }
+}
+
 // Enhanced API request function with better error handling
 export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
 export async function apiRequest(
@@ -74,10 +85,13 @@ export async function apiRequest(
       if (response.status === 403 && errorCode === "ONBOARDING_REQUIRED") {
         // Never hard-redirect from a low-level API helper; background fetches can
         // trip onboarding gating and yank users away from what they were doing.
-        throw new Error("Please finish updating your profile before continuing.");
+        throw new ApiError("Please finish updating your profile before continuing.", {
+          code: errorCode,
+          status: response.status,
+        });
       }
 
-      throw new Error(errorMessage);
+      throw new ApiError(errorMessage, { code: errorCode, status: response.status });
     }
 
     // Handle empty responses
@@ -143,10 +157,13 @@ export const queryClient = new QueryClient({
 
           if (response.status === 403 && code === "ONBOARDING_REQUIRED") {
             // Don't hard-redirect from queryFn (background queries should not hijack navigation).
-            throw new Error("Please finish updating your profile before continuing.");
+            throw new ApiError("Please finish updating your profile before continuing.", {
+              code,
+              status: response.status,
+            });
           }
 
-          throw new Error(message);
+          throw new ApiError(message, { code, status: response.status });
         }
 
         return response.json();

@@ -11,6 +11,7 @@ export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const params = useMemo(() => {
@@ -29,6 +30,7 @@ export function EmailPasswordAuth() {
     e.preventDefault();
     setIsLoading(true);
     setAuthError(null);
+    setAuthErrorCode(null);
 
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") ?? "").trim();
@@ -67,8 +69,19 @@ export function EmailPasswordAuth() {
       window.location.href = isSuperAdmin ? "/admin" : "/scout";
     } catch (error) {
       console.error("Authentication error:", error);
-      const message = error instanceof Error ? error.message : "Please try again.";
+      const anyErr: any = error as any;
+      const code = typeof anyErr?.code === "string" ? anyErr.code : null;
+      const rawMessage = error instanceof Error ? error.message : "Please try again.";
+      const message =
+        code === "AUTH_NO_ACCOUNT"
+          ? "No account found for that email."
+          : code === "AUTH_INCORRECT_PASSWORD"
+            ? "Incorrect password."
+            : code === "AUTH_SOCIAL_ONLY"
+              ? "This account uses Google/Facebook sign-in."
+              : rawMessage;
       setAuthError(message);
+      setAuthErrorCode(code);
       toast({
         title: "Authentication failed",
         description: message,
@@ -135,12 +148,33 @@ export function EmailPasswordAuth() {
           placeholder="Your password"
           onChange={() => {
             if (authError) setAuthError(null);
+            if (authErrorCode) setAuthErrorCode(null);
           }}
         />
         {authError && (
-          <p role="alert" className="text-sm text-destructive">
-            {authError}
-          </p>
+          <div className="space-y-2">
+            <p role="alert" className="text-sm text-destructive">
+              {authError}
+            </p>
+            {authErrorCode === "AUTH_NO_ACCOUNT" && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Link
+                  href={`/pre-scout-setup?mode=create&email=${encodeURIComponent(
+                    (emailValue || "").trim()
+                  )}`}
+                  className="inline-flex items-center justify-center rounded-full border border-tsAccent/60 px-3 py-1 font-medium text-tsAccent hover:bg-tsAccent hover:text-black transition"
+                >
+                  Create an account
+                </Link>
+                <Link
+                  href="/maps"
+                  className="inline-flex items-center justify-center rounded-full border border-[color:var(--border-subtle)] px-3 py-1 font-medium text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-elevated)] transition"
+                >
+                  Find and claim a business
+                </Link>
+              </div>
+            )}
+          </div>
         )}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
