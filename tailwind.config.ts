@@ -6,16 +6,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Sora', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        body: ["Work Sans", "Inter", "system-ui", "sans-serif"],
+        display: ["Sora", "Inter", "system-ui", "sans-serif"],
       },
       screens: {
-        'xs': '475px',
-        'sm': '640px',
-        'md': '768px',
-        'lg': '1024px',
-        'xl': '1280px',
-        '2xl': '1536px',
+        xs: "475px",
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1280px",
+        "2xl": "1536px",
       },
       colors: {
         tsBg: "#0a0f1e",
@@ -27,24 +28,24 @@ export default {
         tsTextMuted: "#94a3b8",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        
+
         // TradeScout specific colors
-        'navy-900': '#0a0f1e',
-        'navy-800': '#0f172a',
-        'navy-700': '#1e293b',
-        'navy-600': '#334155',
-        'navy-500': '#475569',
-        
-        'orange-500': '#f97316',
-        'orange-600': '#ea580c',
-        'orange-400': '#fb923c',
-        'ts-orange': '#f97316',
-        'ts-orange-light': '#fb923c',
-        'ts-orange-dark': '#ea580c',
-        'ts-navy': '#0f172a',
-        'ts-navy-deep': '#0a0f1e',
-        'ts-navy-light': '#1e293b',
-        
+        "navy-900": "#0a0f1e",
+        "navy-800": "#0f172a",
+        "navy-700": "#1e293b",
+        "navy-600": "#334155",
+        "navy-500": "#475569",
+
+        "orange-500": "#f97316",
+        "orange-600": "#ea580c",
+        "orange-400": "#fb923c",
+        "ts-orange": "#f97316",
+        "ts-orange-light": "#fb923c",
+        "ts-orange-dark": "#ea580c",
+        "ts-navy": "#0f172a",
+        "ts-navy-deep": "#0a0f1e",
+        "ts-navy-light": "#1e293b",
+
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",

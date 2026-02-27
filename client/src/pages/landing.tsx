@@ -1,5 +1,5 @@
 /**
- * TradeScout Landing Page — "Forged Trust" Design
+ * TradeScout Landing Page - "Forged Trust" Design
  *
  * Design: Bold craft-forward with diagonal sections, high-contrast orange/navy,
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
@@ -82,7 +82,7 @@ function useLandingVariant() {
   );
 }
 
-// ─── Animated counter ───
+// ---- Animated counter ----
 function AnimatedCounter({
   target,
   suffix = "",
@@ -122,7 +122,7 @@ function AnimatedCounter({
   );
 }
 
-// ─── Section reveal wrapper ───
+// ---- Section reveal wrapper ----
 function Reveal({
   children,
   className = "",
@@ -147,7 +147,7 @@ function Reveal({
   );
 }
 
-// ─── Navigation ───
+// ---- Navigation ----
 function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -175,13 +175,13 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
   return (
     <nav
-      className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-md border-b border-tsBorder/70" : "bg-transparent"}`}
+      className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-xl border-b border-white/10" : "bg-transparent"}`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-12 lg:h-14">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
             <TradeScoutLogo size="sm" className="lg:w-10 lg:h-10" />
-            <span className="font-[var(--font-display)] font-bold text-lg lg:text-xl text-white tracking-tight">
+            <span className="font-display font-bold text-lg lg:text-xl text-white tracking-tight">
               Trade<span className="text-ts-orange">Scout</span>
             </span>
           </button>
@@ -226,7 +226,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:hidden bg-transparent backdrop-blur-xl border-b border-tsBorder/70"
+          className="lg:hidden bg-transparent backdrop-blur-xl border-b border-white/10"
         >
           <div className="px-4 py-4 space-y-3">
             {links.map((link) => (
@@ -259,7 +259,7 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
   );
 }
 
-// ─── Hero Section ───
+// ---- Hero Section ----
 function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -295,7 +295,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
+            className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
             <span className="text-gradient-orange">Connection Without Compromise</span>
           </motion.h1>
@@ -379,7 +379,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
   );
 }
 
-// ─── Stats Bar ───
+// ---- Stats Bar ----
 function StatsBar() {
   const stats = [
     { value: 100, suffix: "%", label: "Trust-Based Matching" },
@@ -389,13 +389,13 @@ function StatsBar() {
   ];
 
   return (
-    <section className="relative z-10 bg-transparent border-y border-tsBorder/70">
+    <section className="relative z-10 bg-transparent border-y border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 lg:py-3">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
           {stats.map((stat, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-extrabold text-ts-orange font-[var(--font-display)] mb-0.5">
+                <div className="font-display text-xl sm:text-2xl font-extrabold text-ts-orange mb-0.5">
                   {stat.display ?? <AnimatedCounter target={stat.value} suffix={stat.suffix} />}
                 </div>
                 <div className="text-[11px] sm:text-xs text-white/60 font-medium">{stat.label}</div>
@@ -408,7 +408,7 @@ function StatsBar() {
   );
 }
 
-// ─── How It Works Section ───
+// ---- How It Works Section ----
 function HowItWorksSection() {
   const steps = [
     {
@@ -444,7 +444,7 @@ function HowItWorksSection() {
             <Zap className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">The Process</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
@@ -460,7 +460,7 @@ function HowItWorksSection() {
                 key={step.title}
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-tsCard border border-tsBorder rounded-xl p-3 hover:border-ts-orange/40 transition-colors"
+                className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)]"
               >
                 <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-2">
                   <Icon className="w-4 h-4 text-ts-orange" />
@@ -476,7 +476,7 @@ function HowItWorksSection() {
   );
 }
 
-// ─── Trust Model Section ───
+// ---- Trust Model Section ----
 function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const layers = [
     { icon: UserCheck, title: "Identity Verified", desc: "Real person, real business" },
@@ -502,7 +502,7 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
                   Community Verification Score
                 </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 Trust, Not Payment
               </h2>
               <p className="text-sm text-white/60 mb-3">
@@ -549,7 +549,9 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
           <div className="flex gap-3">
             <AlertCircle className="w-5 h-5 text-ts-orange flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-base font-bold text-white mb-1">Payment Cannot Override Trust</h3>
+              <h3 className="font-display text-base font-bold text-white mb-1">
+                Payment Cannot Override Trust
+              </h3>
               <p className="text-sm text-white/70">
                 A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Financial activity is
                 excluded from ranking logic. Trust always comes first.
@@ -562,7 +564,7 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
   );
 }
 
-// ─── Direct Connect Section ───
+// ---- Direct Connect Section ----
 function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const features = [
     { icon: Ban, title: "No Lead Spam", desc: "1-3 matches per request, not 20+" },
@@ -596,7 +598,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 <Handshake className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Direct Connection</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 No Spam.
                 <br />
                 No Bidding Wars.
@@ -633,7 +635,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
   );
 }
 
-// ─── For Contractors Section ───
+// ---- For Contractors Section ----
 function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
     <section id="audience" className="relative scroll-mt-20 py-4 md:py-6 bg-transparent">
@@ -645,7 +647,7 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
               {variant.audience.sectionLabel}
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {variant.audience.sectionTitle}
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">{variant.audience.sectionDesc}</p>
@@ -657,9 +659,9 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-tsCard border border-tsBorder rounded-xl p-3 hover:border-ts-orange/40 transition-colors"
+                className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)]"
               >
-                <h3 className="text-base font-bold text-white mb-1.5">{card.title}</h3>
+                <h3 className="font-display text-base font-bold text-white mb-1.5">{card.title}</h3>
                 <p className="text-xs text-white/60 leading-relaxed">{card.desc}</p>
               </motion.div>
             </Reveal>
@@ -670,7 +672,7 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
   );
 }
 
-// ─── Pricing Section ───
+// ---- Pricing Section ----
 function PricingSection() {
   const features = [
     "Unlimited directory search",
@@ -700,7 +702,7 @@ function PricingSection() {
             <Sparkles className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">Simple Pricing</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
             Gotcha. TradeScout is for you at $0.
           </p>
@@ -711,8 +713,8 @@ function PricingSection() {
 
         <div className="grid lg:grid-cols-2 gap-3 mb-3">
           <Reveal>
-            <div className="bg-tsCard border border-tsBorder rounded-xl p-3">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <div className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
+              <h3 className="font-display text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-ts-orange" />
                 What You Get
               </h3>
@@ -728,8 +730,8 @@ function PricingSection() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="bg-tsCard border border-tsBorder rounded-xl p-3">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <div className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
+              <h3 className="font-display text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-ts-orange" />
                 How We Keep It $0
               </h3>
@@ -746,7 +748,7 @@ function PricingSection() {
         </div>
 
         <Reveal className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-3 text-center">
-          <h3 className="text-lg font-bold text-white mb-1.5">
+          <h3 className="font-display text-lg font-bold text-white mb-1.5">
             Community Builders & Local Reinvestment
           </h3>
           <p className="text-sm text-white/70 mb-2">
@@ -763,7 +765,7 @@ function PricingSection() {
   );
 }
 
-// ─── FAQ Section ───
+// ---- FAQ Section ----
 function FAQSection() {
   const faqs = [
     {
@@ -796,7 +798,7 @@ function FAQSection() {
     <section className="relative py-4 md:py-6 bg-transparent">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-3">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
             Frequently Asked Questions
           </h2>
           <p className="text-sm text-white/60">Everything you need to know about TradeScout</p>
@@ -808,7 +810,7 @@ function FAQSection() {
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="border border-tsBorder rounded-lg px-3 data-[state=open]:bg-tsCard"
+                className="border border-white/10 rounded-lg px-3 data-[state=open]:bg-tsCard shadow-[0_10px_38px_rgba(0,0,0,0.34)]"
               >
                 <AccordionTrigger className="text-white font-semibold hover:text-ts-orange transition-colors py-2.5">
                   {faq.q}
@@ -825,7 +827,7 @@ function FAQSection() {
   );
 }
 
-// ─── CTA Section ───
+// ---- CTA Section ----
 function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
     <section id="get-started" className="relative py-4 md:py-6 bg-transparent overflow-hidden">
@@ -836,7 +838,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             <span className="text-sm font-medium text-ts-orange">{variant.cta.label}</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-3">
+          <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-3">
             {variant.cta.titleLines.map((line, idx) => (
               <span key={idx}>
                 {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
@@ -891,16 +893,16 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
   );
 }
 
-// ─── Footer ───
+// ---- Footer ----
 function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <footer className="bg-transparent border-t border-tsBorder/70 pt-5 pb-8 sm:pb-5">
+    <footer className="bg-transparent border-t border-white/10 pt-5 pb-8 sm:pb-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img src={variant.images.logo} alt="TradeScout" className="w-10 h-10 rounded-lg" />
-              <span className="font-[var(--font-display)] font-bold text-lg text-white">
+              <span className="font-display font-bold text-lg text-white">
                 Trade<span className="text-ts-orange">Scout</span>
               </span>
             </div>
@@ -1050,7 +1052,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
   );
 }
 
-// ─── Main Page ───
+// ---- Main Page ----
 export default function Home() {
   const variant = useLandingVariant();
   const trackedVariant = useMemo(
@@ -1088,7 +1090,7 @@ export default function Home() {
   }, [trackedVariant.key]);
 
   return (
-    <div className="flex flex-col bg-transparent text-white">
+    <div className="flex flex-col bg-transparent text-white font-body">
       <Navbar variant={trackedVariant} />
       <main>
         <HeroSection variant={trackedVariant} />

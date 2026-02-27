@@ -305,9 +305,11 @@ html {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background-color: var(--surface-card) !important;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+    var(--surface-card) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   pointer-events: none;
 }
 
@@ -318,9 +320,11 @@ html {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background-color: var(--surface-intermediate) !important;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)),
+    var(--surface-intermediate) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   pointer-events: none;
 }
 
