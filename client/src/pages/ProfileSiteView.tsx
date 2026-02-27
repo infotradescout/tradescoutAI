@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
-import { MessageCircle, ShieldCheck } from "lucide-react";
+import { MessageCircle, ShieldCheck, Calendar, Clock3, DollarSign } from "lucide-react";
 
 type ProfileSections = {
   about?: boolean;
@@ -31,6 +31,28 @@ type PublicProfile = {
     mode?: "direct_connect_only";
     requiresTradeScoutAccount?: boolean;
     reason?: string;
+  } | null;
+  profileBooking?: {
+    enabled?: boolean;
+    paidBookings?: boolean;
+    bookingPriceUsd?: number;
+    calendarVisibility?: "public" | "private";
+    timezone?: string;
+    slots?: Array<{
+      id: string;
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      label?: string;
+      active?: boolean;
+    }>;
+    pricingTableEnabled?: boolean;
+    pricingRows?: Array<{
+      id: string;
+      name: string;
+      priceLabel: string;
+      description?: string;
+    }>;
   } | null;
 };
 
@@ -122,8 +144,22 @@ export default function ProfileSiteView() {
   const { profile, business } = data;
   const profileSections = profile.profileSections || {};
   const showContactCard = profileSections.contactCard !== false;
+  const booking = profile.profileBooking || {};
+  const bookingEnabled = booking.enabled === true;
+  const paidBookings = booking.paidBookings === true;
+  const bookingPriceUsd = Number(booking.bookingPriceUsd || 0);
+  const calendarVisibility = booking.calendarVisibility === "private" ? "private" : "public";
+  const slots = Array.isArray(booking.slots)
+    ? booking.slots.filter((slot) => slot && slot.active !== false)
+    : [];
+  const pricingRows = Array.isArray(booking.pricingRows) ? booking.pricingRows : [];
+  const timezone =
+    typeof booking.timezone === "string" && booking.timezone.trim().length > 0
+      ? booking.timezone
+      : "America/Chicago";
   const displayName =
     business?.name && business.name.trim().length > 0 ? business.name : profile.displayName;
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   return (
     <div className=" py-8">
@@ -173,6 +209,67 @@ export default function ProfileSiteView() {
                       ? `${business.serviceAreas.length} area(s)`
                       : "None"}
                   </div>
+                </div>
+              </section>
+            ) : null}
+
+            {bookingEnabled ? (
+              <section className="space-y-3 pt-2 border-t border-navy-700">
+                <h2 className="text-white font-semibold flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-orange-400" />
+                  Bookings
+                </h2>
+                <p className="text-sm text-gray-300">
+                  Booking requests route through TradeScout Direct Connect for protected contact.
+                </p>
+                {calendarVisibility === "public" && slots.length > 0 ? (
+                  <div className="space-y-1 text-sm text-gray-300">
+                    <div className="text-xs text-gray-400 flex items-center gap-1 uppercase tracking-wider">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      Availability ({timezone})
+                    </div>
+                    {slots.slice(0, 14).map((slot) => (
+                      <div key={slot.id} className="flex justify-between gap-4">
+                        <span>{dayNames[slot.dayOfWeek] || "Day"}</span>
+                        <span>
+                          {slot.startTime} - {slot.endTime}
+                          {slot.label ? ` (${slot.label})` : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
+                  <div className="space-y-1 text-sm text-gray-300">
+                    <div className="text-xs text-gray-400 uppercase tracking-wider">
+                      Pricing table
+                    </div>
+                    {pricingRows.slice(0, 10).map((row) => (
+                      <div key={row.id} className="flex justify-between gap-4">
+                        <span>{row.name}</span>
+                        <span className="font-medium">{row.priceLabel}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
+                  >
+                    <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                      Request Booking
+                    </Button>
+                  </Link>
+                  {paidBookings && bookingPriceUsd > 0 ? (
+                    <Link
+                      href={`/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${encodeURIComponent(`Booking deposit for ${displayName}`)}`}
+                    >
+                      <Button variant="outline" className="border-navy-500 text-gray-200">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Pay deposit (${bookingPriceUsd.toFixed(2)})
+                      </Button>
+                    </Link>
+                  ) : null}
                 </div>
               </section>
             ) : null}

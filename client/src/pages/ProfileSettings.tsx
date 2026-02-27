@@ -17,7 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPresets";
-import { Palette, Home, Eye, EyeOff, LayoutTemplate } from "lucide-react";
+import { Palette, Home, Eye, EyeOff, LayoutTemplate, Calendar } from "lucide-react";
 import { applyTheme, type Theme } from "@/lib/themes";
 
 interface UserPreferences {
@@ -34,6 +34,7 @@ interface UserPreferences {
   };
   profileSections?: ProfileSections;
   servicesDescription?: string;
+  profileBooking?: ProfileBookingSettings;
 }
 
 type ProfileSections = {
@@ -47,6 +48,35 @@ type ProfileSections = {
   contactCard?: boolean;
 };
 
+type ProfileBookingSlot = {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  label?: string;
+  active?: boolean;
+};
+
+type ProfilePricingRow = {
+  id: string;
+  name: string;
+  priceLabel: string;
+  description?: string;
+};
+
+type ProfileBookingSettings = {
+  enabled?: boolean;
+  paidBookings?: boolean;
+  bookingPriceUsd?: number;
+  calendarVisibility?: "public" | "private";
+  timezone?: string;
+  slots?: ProfileBookingSlot[];
+  pricingTableEnabled?: boolean;
+  pricingRows?: ProfilePricingRow[];
+};
+
+const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
   const { updateCustomColors, setTheme } = useTheme();
@@ -59,6 +89,16 @@ export default function ProfileSettings() {
     colorScheme: { preset: "default" },
     profileSections: {},
     servicesDescription: "",
+    profileBooking: {
+      enabled: false,
+      paidBookings: false,
+      bookingPriceUsd: 0,
+      calendarVisibility: "public",
+      timezone: "America/Chicago",
+      slots: [],
+      pricingTableEnabled: false,
+      pricingRows: [],
+    },
   });
 
   const [customColors, setCustomColors] = useState<{
@@ -120,6 +160,16 @@ export default function ProfileSettings() {
         colorScheme: user.preferences.colorScheme || { preset: "default" },
         profileSections: user.preferences.profileSections || {},
         servicesDescription: user.preferences.servicesDescription || "",
+        profileBooking: user.preferences.profileBooking || {
+          enabled: false,
+          paidBookings: false,
+          bookingPriceUsd: 0,
+          calendarVisibility: "public",
+          timezone: "America/Chicago",
+          slots: [],
+          pricingTableEnabled: false,
+          pricingRows: [],
+        },
       });
 
       const scheme = user.preferences.colorScheme;
@@ -604,6 +654,123 @@ export default function ProfileSettings() {
     }
   };
 
+  const profileBooking = preferences.profileBooking || {
+    enabled: false,
+    paidBookings: false,
+    bookingPriceUsd: 0,
+    calendarVisibility: "public" as const,
+    timezone: "America/Chicago",
+    slots: [],
+    pricingTableEnabled: false,
+    pricingRows: [],
+  };
+
+  const updateProfileBooking = (patch: Partial<ProfileBookingSettings>) => {
+    setPreferences((prev) => ({
+      ...prev,
+      profileBooking: {
+        ...(prev.profileBooking || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const upsertBookingSlot = (slotId: string, patch: Partial<ProfileBookingSlot>) => {
+    const nextSlots = (profileBooking.slots || []).map((slot) =>
+      slot.id === slotId ? { ...slot, ...patch } : slot
+    );
+    updateProfileBooking({ slots: nextSlots });
+  };
+
+  const addBookingSlot = () => {
+    const nextSlots = [
+      ...(profileBooking.slots || []),
+      {
+        id: crypto.randomUUID(),
+        dayOfWeek: 1,
+        startTime: "09:00",
+        endTime: "17:00",
+        label: "",
+        active: true,
+      },
+    ];
+    updateProfileBooking({ slots: nextSlots });
+  };
+
+  const removeBookingSlot = (slotId: string) => {
+    updateProfileBooking({
+      slots: (profileBooking.slots || []).filter((slot) => slot.id !== slotId),
+    });
+  };
+
+  const upsertPricingRow = (rowId: string, patch: Partial<ProfilePricingRow>) => {
+    const nextRows = (profileBooking.pricingRows || []).map((row) =>
+      row.id === rowId ? { ...row, ...patch } : row
+    );
+    updateProfileBooking({ pricingRows: nextRows });
+  };
+
+  const addPricingRow = () => {
+    const nextRows = [
+      ...(profileBooking.pricingRows || []),
+      {
+        id: crypto.randomUUID(),
+        name: "",
+        priceLabel: "",
+        description: "",
+      },
+    ];
+    updateProfileBooking({ pricingRows: nextRows });
+  };
+
+  const removePricingRow = (rowId: string) => {
+    updateProfileBooking({
+      pricingRows: (profileBooking.pricingRows || []).filter((row) => row.id !== rowId),
+    });
+  };
+
+  const saveProfileBooking = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/users/profile-booking", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...profileBooking,
+          slots: (profileBooking.slots || []).filter(
+            (slot) => slot.startTime && slot.endTime && Number.isInteger(slot.dayOfWeek)
+          ),
+          pricingRows: (profileBooking.pricingRows || []).filter(
+            (row) => row.name?.trim().length && row.priceLabel?.trim().length
+          ),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update booking settings");
+      const data = await response.json();
+
+      setPreferences((prev) => ({
+        ...prev,
+        profileBooking: data.profileBooking || prev.profileBooking,
+      }));
+      await refetch();
+
+      toast({
+        title: "Booking settings saved",
+        description: "Public booking, calendar, and pricing preferences are updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save booking settings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const currentPreset = preferences.colorScheme?.preset || "default";
   const previewColors: ColorScheme =
     currentPreset === "custom"
@@ -1081,6 +1248,238 @@ export default function ProfileSettings() {
           <div className="flex justify-end">
             <Button onClick={saveServicesDescription} disabled={loading}>
               Save services
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-tsAccent" />
+            Booking, Calendar, and Pricing
+          </CardTitle>
+          <CardDescription>
+            Turn on public bookings, optionally collect payment, set calendar visibility, and
+            publish pricing tables.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable booking on public profile</Label>
+              <p className="text-sm text-tsTextMuted">
+                Show a booking section on your public profile for any visitor.
+              </p>
+            </div>
+            <Switch
+              checked={profileBooking.enabled === true}
+              onCheckedChange={(value) => updateProfileBooking({ enabled: value })}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable paid bookings</Label>
+              <p className="text-sm text-tsTextMuted">Require a booking deposit through Stripe.</p>
+            </div>
+            <Switch
+              checked={profileBooking.paidBookings === true}
+              onCheckedChange={(value) => updateProfileBooking({ paidBookings: value })}
+              disabled={loading || profileBooking.enabled !== true}
+            />
+          </div>
+
+          {profileBooking.paidBookings === true && (
+            <div className="space-y-2">
+              <Label>Booking deposit (USD)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={String(profileBooking.bookingPriceUsd ?? 0)}
+                onChange={(e) =>
+                  updateProfileBooking({
+                    bookingPriceUsd: Math.max(0, Number(e.target.value || 0)),
+                  })
+                }
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Calendar visibility</Label>
+            <Select
+              value={profileBooking.calendarVisibility || "public"}
+              onValueChange={(value) =>
+                updateProfileBooking({ calendarVisibility: value as "public" | "private" })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose calendar visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public (show availability)</SelectItem>
+                <SelectItem value="private">Private (hide availability)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Calendar timezone</Label>
+            <Input
+              value={profileBooking.timezone || "America/Chicago"}
+              onChange={(e) => updateProfileBooking({ timezone: e.target.value })}
+              placeholder="America/Chicago"
+            />
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-tsBorder p-4">
+            <div className="flex items-center justify-between">
+              <Label>Weekly availability slots</Label>
+              <Button type="button" variant="outline" onClick={addBookingSlot} disabled={loading}>
+                Add slot
+              </Button>
+            </div>
+            {(profileBooking.slots || []).length === 0 ? (
+              <p className="text-sm text-tsTextMuted">
+                No slots yet. Add at least one availability window.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {(profileBooking.slots || []).map((slot) => (
+                  <div key={slot.id} className="grid gap-2 md:grid-cols-5 items-end">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Day</Label>
+                      <Select
+                        value={String(slot.dayOfWeek)}
+                        onValueChange={(value) =>
+                          upsertBookingSlot(slot.id, { dayOfWeek: Number(value) })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DAYS_OF_WEEK.map((day, idx) => (
+                            <SelectItem key={day} value={String(idx)}>
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Start</Label>
+                      <Input
+                        type="time"
+                        value={slot.startTime}
+                        onChange={(e) => upsertBookingSlot(slot.id, { startTime: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">End</Label>
+                      <Input
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => upsertBookingSlot(slot.id, { endTime: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Label (optional)</Label>
+                      <Input
+                        value={slot.label || ""}
+                        onChange={(e) => upsertBookingSlot(slot.id, { label: e.target.value })}
+                        placeholder="Morning"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeBookingSlot(slot.id)}
+                      disabled={loading}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Show pricing table</Label>
+              <p className="text-sm text-tsTextMuted">
+                Publish a simple pricing table on your public profile.
+              </p>
+            </div>
+            <Switch
+              checked={profileBooking.pricingTableEnabled === true}
+              onCheckedChange={(value) => updateProfileBooking({ pricingTableEnabled: value })}
+              disabled={loading}
+            />
+          </div>
+
+          {profileBooking.pricingTableEnabled === true && (
+            <div className="space-y-3 rounded-lg border border-tsBorder p-4">
+              <div className="flex items-center justify-between">
+                <Label>Pricing rows</Label>
+                <Button type="button" variant="outline" onClick={addPricingRow} disabled={loading}>
+                  Add row
+                </Button>
+              </div>
+              {(profileBooking.pricingRows || []).length === 0 ? (
+                <p className="text-sm text-tsTextMuted">No pricing rows yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {(profileBooking.pricingRows || []).map((row) => (
+                    <div key={row.id} className="grid gap-2 md:grid-cols-4 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Service</Label>
+                        <Input
+                          value={row.name}
+                          onChange={(e) => upsertPricingRow(row.id, { name: e.target.value })}
+                          placeholder="General notarization"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Price</Label>
+                        <Input
+                          value={row.priceLabel}
+                          onChange={(e) => upsertPricingRow(row.id, { priceLabel: e.target.value })}
+                          placeholder="$125"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Description</Label>
+                        <Input
+                          value={row.description || ""}
+                          onChange={(e) =>
+                            upsertPricingRow(row.id, { description: e.target.value })
+                          }
+                          placeholder="Up to 30 minutes"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => removePricingRow(row.id)}
+                        disabled={loading}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={saveProfileBooking} disabled={loading}>
+              Save booking setup
             </Button>
           </div>
         </CardContent>

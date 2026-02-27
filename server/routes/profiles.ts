@@ -174,6 +174,75 @@ function sanitizePublicCtaConfig(ctaConfig: unknown) {
   };
 }
 
+function sanitizePublicProfileBookingConfig(raw: unknown) {
+  const source = raw && typeof raw === "object" ? (raw as Record<string, any>) : {};
+  const enabled = source.enabled === true;
+  const paidBookings = source.paidBookings === true;
+  const calendarVisibility = source.calendarVisibility === "private" ? "private" : "public";
+  const bookingPriceUsd = Number(source.bookingPriceUsd);
+  const safeBookingPriceUsd =
+    Number.isFinite(bookingPriceUsd) && bookingPriceUsd >= 0
+      ? Number(bookingPriceUsd.toFixed(2))
+      : 0;
+  const timezone =
+    typeof source.timezone === "string" && source.timezone.trim().length > 0
+      ? source.timezone.trim()
+      : "America/Chicago";
+  const pricingTableEnabled = source.pricingTableEnabled === true;
+
+  const slots = Array.isArray(source.slots)
+    ? source.slots
+        .filter((slot) => slot && typeof slot === "object")
+        .map((slot: any) => ({
+          id:
+            typeof slot.id === "string" && slot.id.trim().length > 0
+              ? slot.id.trim()
+              : Math.random().toString(36).slice(2),
+          dayOfWeek:
+            typeof slot.dayOfWeek === "number" && slot.dayOfWeek >= 0 && slot.dayOfWeek <= 6
+              ? slot.dayOfWeek
+              : 0,
+          startTime:
+            typeof slot.startTime === "string" && /^\d{2}:\d{2}$/.test(slot.startTime)
+              ? slot.startTime
+              : "09:00",
+          endTime:
+            typeof slot.endTime === "string" && /^\d{2}:\d{2}$/.test(slot.endTime)
+              ? slot.endTime
+              : "17:00",
+          label: typeof slot.label === "string" ? slot.label.trim().slice(0, 80) : "",
+          active: slot.active !== false,
+        }))
+    : [];
+
+  const pricingRows = Array.isArray(source.pricingRows)
+    ? source.pricingRows
+        .filter((row) => row && typeof row === "object")
+        .map((row: any) => ({
+          id:
+            typeof row.id === "string" && row.id.trim().length > 0
+              ? row.id.trim()
+              : Math.random().toString(36).slice(2),
+          name: typeof row.name === "string" ? row.name.trim().slice(0, 80) : "",
+          priceLabel: typeof row.priceLabel === "string" ? row.priceLabel.trim().slice(0, 40) : "",
+          description:
+            typeof row.description === "string" ? row.description.trim().slice(0, 240) : "",
+        }))
+        .filter((row) => row.name.length > 0 && row.priceLabel.length > 0)
+    : [];
+
+  return {
+    enabled,
+    paidBookings,
+    bookingPriceUsd: safeBookingPriceUsd,
+    calendarVisibility,
+    timezone,
+    slots: calendarVisibility === "public" ? slots : [],
+    pricingTableEnabled,
+    pricingRows,
+  };
+}
+
 function getCanonicalBaseUrl(req: any): string {
   const configured = String(process.env.PUBLIC_WEB_URL || process.env.APP_URL || "").trim();
   if (configured) {
@@ -462,6 +531,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
       seoMeta: profile.seoMeta,
       profileSections: profile.profileSections || null,
+      profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
       contactPolicy: {
         mode: "direct_connect_only",
         requiresTradeScoutAccount: true,

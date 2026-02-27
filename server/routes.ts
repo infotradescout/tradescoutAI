@@ -227,6 +227,101 @@ const getPublicBaseUrlFromRequest = (req: Request): string => {
   return `${proto}://${host}`;
 };
 
+type ProfileBookingSlot = {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  label: string;
+  active: boolean;
+};
+
+type ProfilePricingRow = {
+  id: string;
+  name: string;
+  priceLabel: string;
+  description: string;
+};
+
+const normalizeProfileBookingPrefs = (raw: unknown) => {
+  const source = raw && typeof raw === "object" ? (raw as Record<string, any>) : {};
+  const enabled = source.enabled === true;
+  const paidBookings = source.paidBookings === true;
+  const calendarVisibility = source.calendarVisibility === "private" ? "private" : "public";
+  const timezone =
+    typeof source.timezone === "string" && source.timezone.trim().length > 0
+      ? source.timezone.trim().slice(0, 80)
+      : "America/Chicago";
+  const bookingPriceUsdRaw = Number(source.bookingPriceUsd);
+  const bookingPriceUsd =
+    Number.isFinite(bookingPriceUsdRaw) && bookingPriceUsdRaw >= 0
+      ? Number(bookingPriceUsdRaw.toFixed(2))
+      : 0;
+  const pricingTableEnabled = source.pricingTableEnabled === true;
+
+  const slots: ProfileBookingSlot[] = Array.isArray(source.slots)
+    ? source.slots
+        .filter((slot) => slot && typeof slot === "object")
+        .map((slot: any) => ({
+          id:
+            typeof slot.id === "string" && slot.id.trim().length > 0
+              ? slot.id.trim().slice(0, 80)
+              : randomUUID(),
+          dayOfWeek:
+            typeof slot.dayOfWeek === "number" && slot.dayOfWeek >= 0 && slot.dayOfWeek <= 6
+              ? slot.dayOfWeek
+              : 0,
+          startTime:
+            typeof slot.startTime === "string" && /^\d{2}:\d{2}$/.test(slot.startTime)
+              ? slot.startTime
+              : "09:00",
+          endTime:
+            typeof slot.endTime === "string" && /^\d{2}:\d{2}$/.test(slot.endTime)
+              ? slot.endTime
+              : "17:00",
+          label: typeof slot.label === "string" ? slot.label.trim().slice(0, 80) : "",
+          active: slot.active !== false,
+        }))
+        .slice(0, 120)
+    : [];
+
+  const pricingRows: ProfilePricingRow[] = Array.isArray(source.pricingRows)
+    ? source.pricingRows
+        .filter((row) => row && typeof row === "object")
+        .map((row: any) => ({
+          id:
+            typeof row.id === "string" && row.id.trim().length > 0
+              ? row.id.trim().slice(0, 80)
+              : randomUUID(),
+          name: typeof row.name === "string" ? row.name.trim().slice(0, 80) : "",
+          priceLabel: typeof row.priceLabel === "string" ? row.priceLabel.trim().slice(0, 40) : "",
+          description:
+            typeof row.description === "string" ? row.description.trim().slice(0, 240) : "",
+        }))
+        .filter((row) => row.name.length > 0 && row.priceLabel.length > 0)
+        .slice(0, 32)
+    : [];
+
+  return {
+    enabled,
+    paidBookings,
+    bookingPriceUsd,
+    calendarVisibility,
+    timezone,
+    slots,
+    pricingTableEnabled,
+    pricingRows,
+  };
+};
+
+const toPublicProfileBookingPrefs = (raw: unknown) => {
+  const normalized = normalizeProfileBookingPrefs(raw);
+  return {
+    ...normalized,
+    slots: normalized.calendarVisibility === "public" ? normalized.slots : [],
+  };
+};
+
 type StaffShareableTemplate = {
   id: string;
   title: string;
@@ -4408,6 +4503,7 @@ export async function registerRoutes(app: any) {
           badges: user.preferences?.badges,
           profileSections: user.preferences?.profileSections,
           servicesDescription: user.preferences?.servicesDescription,
+          profileBooking: toPublicProfileBookingPrefs((user.preferences as any)?.profileBooking),
         },
         // Stats: populate from real aggregates only; omit fake zeros
         stats: credibilityStats,
@@ -4780,6 +4876,71 @@ export async function registerRoutes(app: any) {
       res.status(500).json({
         message: "Failed to update profile sections",
       });
+    }
+  });
+
+  app.get("/api/users/profile-booking", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const profileBooking = normalizeProfileBookingPrefs(
+        (currentUser.preferences as any)?.profileBooking
+      );
+      res.json({ profileBooking });
+    } catch (error: any) {
+      console.error("Error fetching profile booking settings:", error);
+      res.status(500).json({ message: "Failed to fetch profile booking settings" });
+    }
+  });
+
+  app.patch("/api/users/profile-booking", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const currentPrefs = currentUser.preferences || {};
+      const existingProfileBooking = normalizeProfileBookingPrefs(
+        (currentPrefs as any).profileBooking
+      );
+      const incoming = req.body && typeof req.body === "object" ? req.body : {};
+
+      const normalized = normalizeProfileBookingPrefs({
+        ...existingProfileBooking,
+        ...incoming,
+        slots:
+          incoming && Object.prototype.hasOwnProperty.call(incoming, "slots")
+            ? (incoming as any).slots
+            : existingProfileBooking.slots,
+        pricingRows:
+          incoming && Object.prototype.hasOwnProperty.call(incoming, "pricingRows")
+            ? (incoming as any).pricingRows
+            : existingProfileBooking.pricingRows,
+      });
+
+      const updatedPreferences = {
+        ...currentPrefs,
+        profileBooking: normalized,
+      };
+
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({
+        message: "Profile booking settings updated",
+        profileBooking: normalizeProfileBookingPrefs((user.preferences as any)?.profileBooking),
+      });
+    } catch (error: any) {
+      console.error("Error updating profile booking settings:", error);
+      res.status(500).json({ message: "Failed to update profile booking settings" });
     }
   });
 
@@ -18986,6 +19147,94 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } catch (error: any) {
         console.error("Error creating marketplace payment intent:", error);
         res.status(500).json({ message: "Failed to create payment intent" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/payments/profile-booking/create-intent",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        if (!stripe) {
+          return res.status(400).json({ message: "Stripe not configured" });
+        }
+
+        const buyerUserId = req.user?.claims?.sub || req.user?.id;
+        const ownerUserId = String(req.body?.ownerUserId || "").trim();
+        const requestedAmount = Number(req.body?.amount);
+        const descriptionRaw =
+          typeof req.body?.description === "string" ? req.body.description.trim() : "";
+        const slotId = typeof req.body?.slotId === "string" ? req.body.slotId.trim() : "";
+
+        if (!buyerUserId) {
+          return res.status(401).json({ message: "User not authenticated" });
+        }
+        if (!ownerUserId) {
+          return res.status(400).json({ message: "ownerUserId is required" });
+        }
+        if (ownerUserId === buyerUserId) {
+          return res
+            .status(400)
+            .json({ message: "You cannot create a paid booking intent for your own profile" });
+        }
+
+        const owner = await storage.getUser(ownerUserId);
+        if (!owner) {
+          return res.status(404).json({ message: "Profile owner not found" });
+        }
+        if ((owner.preferences?.profileVisibility || "private") !== "public") {
+          return res.status(404).json({ message: "Profile not available for booking" });
+        }
+
+        const booking = normalizeProfileBookingPrefs((owner.preferences as any)?.profileBooking);
+        if (!booking.enabled) {
+          return res.status(400).json({ message: "Bookings are not enabled on this profile" });
+        }
+        if (!booking.paidBookings) {
+          return res.status(400).json({ message: "Paid bookings are not enabled on this profile" });
+        }
+        if (!Number.isFinite(booking.bookingPriceUsd) || booking.bookingPriceUsd <= 0) {
+          return res.status(400).json({ message: "Booking payment amount is not configured" });
+        }
+
+        const finalAmount =
+          Number.isFinite(requestedAmount) && requestedAmount > 0
+            ? Number(requestedAmount.toFixed(2))
+            : booking.bookingPriceUsd;
+        if (Math.abs(finalAmount - booking.bookingPriceUsd) > 0.01) {
+          return res
+            .status(400)
+            .json({ message: "Booking amount does not match profile settings" });
+        }
+
+        const description =
+          descriptionRaw.length > 0
+            ? descriptionRaw.slice(0, 280)
+            : `Booking deposit for ${owner.firstName || "TradeScout"} ${owner.lastName || "User"}`.trim();
+
+        const intent = await stripe.paymentIntents.create({
+          amount: Math.round(finalAmount * 100),
+          currency: "usd",
+          description,
+          metadata: {
+            type: "profile_booking",
+            ownerUserId,
+            buyerUserId: String(buyerUserId),
+            slotId,
+            timestamp: new Date().toISOString(),
+          },
+        });
+
+        res.json({
+          clientSecret: intent.client_secret,
+          paymentIntentId: intent.id,
+          amount: finalAmount,
+          currency: "usd",
+        });
+      } catch (error: any) {
+        console.error("Error creating profile booking payment intent:", error);
+        res.status(500).json({ message: "Failed to create booking payment intent" });
       }
     }
   );

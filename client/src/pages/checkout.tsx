@@ -26,9 +26,10 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
 
 type ProcessingMethod = "ach" | "card";
 const ACH_THRESHOLD_USD = 1000;
+type CheckoutPaymentType = "contractor" | "marketplace" | "booking";
 
 interface CheckoutFormProps {
-  paymentType: "contractor" | "marketplace";
+  paymentType: CheckoutPaymentType;
   paymentId: string;
   amount: number;
   description: string;
@@ -375,7 +376,7 @@ export default function Checkout() {
   const [location, navigate] = useLocation();
   const [match, params] = useRoute("/checkout/:type/:id");
 
-  const paymentType = params?.type as "contractor" | "marketplace";
+  const paymentType = params?.type as CheckoutPaymentType;
   const paymentId = params?.id;
 
   // Parse URL parameters for payment details
@@ -443,11 +444,15 @@ export default function Checkout() {
     const endpoint =
       paymentType === "contractor"
         ? "/api/payments/contractor/create-intent"
-        : "/api/payments/marketplace/create-intent";
+        : paymentType === "booking"
+          ? "/api/payments/profile-booking/create-intent"
+          : "/api/payments/marketplace/create-intent";
     const body: any =
       paymentType === "contractor"
         ? { contractorPaymentId: paymentId }
-        : { transactionId: paymentId, processingMethod };
+        : paymentType === "booking"
+          ? { ownerUserId: paymentId, amount: baseAmount, description }
+          : { transactionId: paymentId, processingMethod };
 
     setClientSecret("");
 

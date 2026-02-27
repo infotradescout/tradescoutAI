@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getUserColorScheme } from "@shared/colorPresets";
 import { ThemeScope } from "@/components/theme/ThemeScope";
 import { UserBadges } from "@/components/user-badges";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +24,9 @@ import {
   Star,
   ShoppingBag,
   Users,
-  Share2,
   Shield,
+  Clock3,
+  DollarSign,
 } from "lucide-react";
 
 interface PublicProfile {
@@ -104,8 +106,10 @@ interface CommunityPostSummary {
 }
 
 const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function PublicProfileView() {
+  const { user } = useAuth();
   const [, params] = useRoute("/profile/:userId");
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -290,6 +294,38 @@ export default function PublicProfileView() {
   const showReviews = profileSections.reviews !== false;
   const showCommunityActivity = profileSections.communityActivity !== false;
   const showContactCard = profileSections.contactCard !== false;
+  const profileBooking = profile.preferences?.profileBooking || {};
+  const bookingEnabled = profileBooking.enabled === true;
+  const paidBookings = profileBooking.paidBookings === true;
+  const bookingPriceUsd = Number(profileBooking.bookingPriceUsd || 0);
+  const calendarVisibility = profileBooking.calendarVisibility === "private" ? "private" : "public";
+  const timezone =
+    typeof profileBooking.timezone === "string" && profileBooking.timezone.trim().length > 0
+      ? profileBooking.timezone
+      : "America/Chicago";
+  const bookingSlots = Array.isArray(profileBooking.slots)
+    ? profileBooking.slots.filter(
+        (slot: any) =>
+          slot &&
+          typeof slot.dayOfWeek === "number" &&
+          slot.dayOfWeek >= 0 &&
+          slot.dayOfWeek <= 6 &&
+          typeof slot.startTime === "string" &&
+          typeof slot.endTime === "string" &&
+          slot.active !== false
+      )
+    : [];
+  const pricingTableEnabled = profileBooking.pricingTableEnabled === true;
+  const pricingRows = Array.isArray(profileBooking.pricingRows)
+    ? profileBooking.pricingRows.filter(
+        (row: any) =>
+          row &&
+          typeof row.name === "string" &&
+          row.name.trim().length > 0 &&
+          typeof row.priceLabel === "string" &&
+          row.priceLabel.trim().length > 0
+      )
+    : [];
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
   const rawCvs =
@@ -337,6 +373,12 @@ export default function PublicProfileView() {
 
   const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+
+  const handleBookingDeposit = () => {
+    if (!paidBookings || bookingPriceUsd <= 0 || !profile?.id) return;
+    const description = encodeURIComponent(`Booking deposit for ${displayName}`);
+    window.location.href = `/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${description}`;
+  };
 
   const handleToggleConnection = async () => {
     if (isUpdatingConnection || !profile?.id) return;
@@ -855,6 +897,83 @@ export default function PublicProfileView() {
                         </span>
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {bookingEnabled && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar
+                      className="h-5 w-5"
+                      style={{ color: "var(--user-primary, #f97316)" }}
+                    />
+                    Bookings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-sm">
+                    Booking requests are handled through TradeScout to keep communication protected.
+                  </div>
+                  {calendarVisibility === "public" && bookingSlots.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs uppercase tracking-wide opacity-70 flex items-center gap-1">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        Weekly availability ({timezone})
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        {bookingSlots.slice(0, 14).map((slot: any) => (
+                          <div key={slot.id} className="flex items-center justify-between gap-3">
+                            <span className="font-medium">{DAYS[slot.dayOfWeek] || "Day"}</span>
+                            <span className="opacity-80">
+                              {slot.startTime} - {slot.endTime}
+                              {slot.label ? ` (${slot.label})` : ""}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {pricingTableEnabled && pricingRows.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs uppercase tracking-wide opacity-70">
+                        Pricing table
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        {pricingRows.slice(0, 10).map((row: any) => (
+                          <div key={row.id} className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-medium">{row.name}</div>
+                              {row.description ? (
+                                <div className="text-xs opacity-70">{row.description}</div>
+                              ) : null}
+                            </div>
+                            <div className="font-semibold">{row.priceLabel}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      onClick={() => {
+                        if (user) {
+                          window.location.href = "/direct-connect";
+                          return;
+                        }
+                        window.location.href = `/pre-scout-setup?mode=create&next=${encodeURIComponent("/direct-connect")}`;
+                      }}
+                    >
+                      Request Booking
+                    </Button>
+                    {paidBookings && bookingPriceUsd > 0 && (
+                      <Button variant="outline" onClick={handleBookingDeposit}>
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Pay booking deposit (${bookingPriceUsd.toFixed(2)})
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

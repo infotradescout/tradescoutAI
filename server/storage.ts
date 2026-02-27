@@ -521,6 +521,7 @@ type PublicProfileRecord = {
   seoMeta: any;
   businessId: string | null;
   profileSections: any | null;
+  profileBooking: any | null;
 };
 
 type PublicBusinessRecord = {
@@ -1870,6 +1871,7 @@ export class DatabaseStorage implements IStorage {
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
+        profileBooking: sql`(${users.preferences} -> 'profileBooking')`,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
