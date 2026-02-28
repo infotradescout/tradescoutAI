@@ -73,7 +73,9 @@ type ImportProgress = {
   processedRows: number;
 };
 
-const MAX_IMPORT_CHUNK_CHARS = 400_000; // keep far below the server JSON body limit (prod)
+// Large imports are uploaded in multiple requests to avoid per-request payload limits (413).
+// There is no cap on total rows; we just split into parts.
+const CHUNK_TARGET_CHARS = 400_000;
 
 function looksLikeHeaderLine(line: string): boolean {
   const normalized = String(line || "").toLowerCase();
@@ -103,7 +105,7 @@ function splitIntoImportChunks(raw: string): { chunks: string[]; estimatedRows: 
 
   for (const line of dataLines) {
     const nextLen = (line?.length ?? 0) + 1;
-    if (currentChars + nextLen > MAX_IMPORT_CHUNK_CHARS && current.length) {
+    if (currentChars + nextLen > CHUNK_TARGET_CHARS && current.length) {
       pushChunk();
     }
     current.push(line);
@@ -132,6 +134,9 @@ export default function AdminBusinessImport() {
   const [enrichLimit, setEnrichLimit] = useState("100");
   const [enrichDryRun, setEnrichDryRun] = useState(false);
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
+  const [loadedFileMeta, setLoadedFileMeta] = useState<{ name: string; sizeBytes: number } | null>(
+    null
+  );
 
   const {
     data: batchData,
@@ -310,8 +315,15 @@ export default function AdminBusinessImport() {
     if (!file) return;
     const text = await file.text();
     setContent(text);
+    setLoadedFileMeta({ name: file.name, sizeBytes: file.size });
     toast({ title: "Loaded file", description: file.name });
   };
+
+  const chunkPreview = useMemo(() => {
+    if (!content.trim()) return null;
+    const { chunks, estimatedRows } = splitIntoImportChunks(content);
+    return { chunks: chunks.length, estimatedRows };
+  }, [content]);
 
   const errorCount = useMemo(
     () => (result?.results || []).filter((r) => r.status === "error").length,
@@ -361,6 +373,18 @@ export default function AdminBusinessImport() {
             <div className="text-xs text-white/60">
               Uploading chunk {importProgress.currentChunk}/{importProgress.totalChunks}. Processed{" "}
               {importProgress.processedRows} rows so far.
+            </div>
+          ) : chunkPreview ? (
+            <div className="text-xs text-white/60">
+              {loadedFileMeta ? (
+                <>
+                  Loaded <span className="text-white/70">{loadedFileMeta.name}</span> (
+                  {(loadedFileMeta.sizeBytes / (1024 * 1024)).toFixed(1)} MB).{" "}
+                </>
+              ) : null}
+              Estimated rows: <span className="text-white/70">{chunkPreview.estimatedRows}</span>.{" "}
+              This import will upload in <span className="text-white/70">{chunkPreview.chunks}</span>{" "}
+              parts to avoid per-request payload limits. No row cap.
             </div>
           ) : null}
 
