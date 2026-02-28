@@ -28,7 +28,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MessageCircle,
   Send,
-  Star,
   Calendar,
   DollarSign,
   ShoppingCart,
@@ -36,6 +35,8 @@ import {
   FileText,
   Clock,
   CheckCircle,
+  ThumbsDown,
+  ThumbsUp,
   User,
   Building2,
   Phone,
@@ -373,8 +374,8 @@ export default function Chat() {
                           onClick={() => setShowRatingDialog(true)}
                           className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                         >
-                          <Star className="h-4 w-4 mr-1" />
-                          Rate
+                          <ThumbsUp className="h-4 w-4 mr-1" />
+                          Feedback
                         </Button>
                       </div>
                     </div>
@@ -475,33 +476,51 @@ export default function Chat() {
       <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
         <DialogContent className="bg-tsCard border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-white">Rate This Conversation</DialogTitle>
+            <DialogTitle className="text-white">Share feedback</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">
-                Rating (1-5 stars)
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => setRating(star)}
-                    className={`p-1 ${star <= rating ? "text-yellow-400" : "text-white/60"}`}
-                  >
-                    <Star className="h-6 w-6 fill-current" />
-                  </button>
-                ))}
+              <label className="block text-sm font-medium text-white/70 mb-2">How did it go?</label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={rating >= 4 ? "default" : "outline"}
+                  className={
+                    rating >= 4
+                      ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30"
+                      : "border-white/15 text-white/70 hover:bg-white/5"
+                  }
+                  onClick={() => setRating(5)}
+                >
+                  <ThumbsUp className="h-4 w-4 mr-2" />
+                  Good
+                </Button>
+                <Button
+                  type="button"
+                  variant={rating <= 2 ? "default" : "outline"}
+                  className={
+                    rating <= 2
+                      ? "bg-rose-500/20 text-rose-200 border-rose-400/40 hover:bg-rose-500/30"
+                      : "border-white/15 text-white/70 hover:bg-white/5"
+                  }
+                  onClick={() => setRating(1)}
+                >
+                  <ThumbsDown className="h-4 w-4 mr-2" />
+                  Needs work
+                </Button>
               </div>
+              <p className="mt-2 text-xs text-white/60">
+                This stays inside TradeScout and helps improve trust and routing quality.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-2">
-                Feedback (optional)
+                Notes (optional)
               </label>
               <Textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Share your experience..."
+                placeholder="Anything important we should know?"
                 className="form-field"
                 rows={3}
               />

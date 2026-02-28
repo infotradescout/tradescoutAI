@@ -32,7 +32,7 @@ import {
   Target,
   Users,
   Mail,
-  Star,
+  ThumbsUp,
   ChevronRight,
   Lightbulb,
   Trophy,
@@ -323,7 +323,7 @@ export default function RecommendationGenerator() {
                 <Card data-testid="card-total-recommendations">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Recommendations</CardTitle>
-                    <Star className="h-4 w-4 text-muted-foreground" />
+                    <ThumbsUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold" data-testid="text-total-recommendations">
@@ -338,14 +338,16 @@ export default function RecommendationGenerator() {
 
                 <Card data-testid="card-average-rating">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
+                    <CardTitle className="text-sm font-medium">Recommendation Signal</CardTitle>
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold" data-testid="text-average-rating">
-                      {parseFloat(insights.averageRating).toFixed(1)}/5.0
+                      {parseFloat(insights.averageRating).toFixed(1)}
                     </div>
-                    <p className="text-xs text-muted-foreground">Based on customer feedback</p>
+                    <p className="text-xs text-muted-foreground">
+                      Based on verified recommendations
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -567,7 +569,7 @@ export default function RecommendationGenerator() {
                           {goal.targetRecommendations} Recommendations Goal
                         </h3>
                         <p className="text-sm text-white/60">
-                          Target Rating: {goal.targetRating}/5.0 • Timeframe: {goal.targetTimeframe}
+                          Target signal: {goal.targetRating} • Timeframe: {goal.targetTimeframe}
                         </p>
                       </div>
                       <Badge variant={goal.isActive ? "default" : "secondary"}>

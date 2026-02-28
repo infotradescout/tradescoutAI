@@ -21,7 +21,7 @@ import {
   Eye,
   Building,
   Award,
-  Star,
+  ThumbsUp,
   ShoppingBag,
   Users,
   Shield,
@@ -848,8 +848,8 @@ export default function PublicProfileView() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Star
-                      className="h-5 w-5 fill-current"
+                    <ThumbsUp
+                      className="h-5 w-5"
                       style={{ color: "var(--user-primary, #f97316)" }}
                     />
                     RECOMMENDATIONS
@@ -861,15 +861,13 @@ export default function PublicProfileView() {
                       className="text-3xl font-bold"
                       style={{ color: "var(--user-primary, #f97316)" }}
                     >
-                      {sellerRatings.average.toFixed(1)}
+                      {sellerRatings.count}
                     </span>
-                    <span className="text-sm opacity-80">
-                      based on {sellerRatings.count} public recommendations
-                    </span>
+                    <span className="text-sm opacity-80">public recommendations</span>
                   </div>
                   <p className="text-xs opacity-70">
-                    Ratings are calculated from verified purchases and public recommendations on
-                    TradeScout.
+                    Recommendations are recorded inside TradeScout and are visible on this public
+                    profile.
                   </p>
                 </CardContent>
               </Card>

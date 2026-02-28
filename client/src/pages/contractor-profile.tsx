@@ -95,20 +95,16 @@ export default function ContractorProfile() {
       "@type": "PostalAddress",
       addressCountry: "US",
     },
-    aggregateRating: ratingSummary
-      ? {
-          "@type": "AggregateRating",
-          ratingValue: ratingSummary.average,
-          recommendationCount: ratingSummary.count,
-        }
-      : undefined,
     priceRange: "$$",
     serviceType: "Home Improvement Contractor",
     areaServed: "Local Area",
   };
 
   const seoTitle = `${contractor.companyName} - Verified Local Contractor | TradeScout`;
-  const seoDescription = `Hire ${contractor.companyName} for quality home improvement services. ${ratingSummary ? `${ratingSummary.average} star rating` : "Verified"} contractor${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ""}. Licensed and insured.`;
+  const cvsScoreRaw = (contractor as any)?.cvsScore;
+  const cvsScore =
+    typeof cvsScoreRaw === "number" && Number.isFinite(cvsScoreRaw) ? cvsScoreRaw : null;
+  const seoDescription = `Hire ${contractor.companyName} for quality home improvement services. ${cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS pending"}${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ""}. Licensed and insured when applicable.`;
   const directConnectHref = `/direct-connect?intent=hire&contractor=${encodeURIComponent(String(slug || contractor.id))}`;
 
   return (

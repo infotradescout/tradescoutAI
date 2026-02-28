@@ -12,7 +12,6 @@ import {
   Calendar,
   Building,
   Award,
-  Star,
   Settings,
   Eye,
   Share2,
@@ -177,9 +176,7 @@ export default function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-4xl font-bold text-white mb-2 break-words">
-                    {displayName}
-                  </h1>
+                  <h1 className="text-4xl font-bold text-white mb-2 break-words">{displayName}</h1>
                   <div className="flex flex-wrap gap-3 text-sm text-white/60">
                     {location && (
                       <div className="flex items-center gap-1">
@@ -433,9 +430,11 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-ts-orange flex items-center justify-center gap-1">
-                        {user?.stats?.rating ?? "—"} <Star className="h-4 w-4 fill-current" />
+                        {typeof (user as any)?.cvsScore === "number"
+                          ? Math.round((user as any).cvsScore)
+                          : "—"}
                       </div>
-                      <div className="text-xs text-white/60">Rating</div>
+                      <div className="text-xs text-white/60">CVS</div>
                     </div>
                   </div>
                 </CardContent>

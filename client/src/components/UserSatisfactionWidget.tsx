@@ -2,64 +2,66 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Star, 
-  Smile, 
-  Meh, 
-  Frown,
-  ThumbsUp,
-  MessageSquare,
-  X,
-  Gift
-} from "lucide-react";
+import { Smile, Meh, Frown, ThumbsUp, MessageSquare, X, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface UserSatisfactionWidgetProps {
   onClose?: () => void;
-  trigger?: 'time' | 'action' | 'manual';
+  trigger?: "time" | "action" | "manual";
   context?: string;
 }
 
-export function UserSatisfactionWidget({ 
+export function UserSatisfactionWidget({
   onClose,
-  trigger = 'manual',
-  context = 'general'
+  trigger = "manual",
+  context = "general",
 }: UserSatisfactionWidgetProps) {
-  const [step, setStep] = useState<'rating' | 'feedback' | 'thanks'>('rating');
+  const [step, setStep] = useState<"rating" | "feedback" | "thanks">("rating");
   const [rating, setRating] = useState(0);
-  const [satisfaction, setSatisfaction] = useState<'happy' | 'neutral' | 'sad' | null>(null);
-  const [feedback, setFeedback] = useState('');
+  const [satisfaction, setSatisfaction] = useState<"happy" | "neutral" | "sad" | null>(null);
+  const [feedback, setFeedback] = useState("");
   const { toast } = useToast();
 
   const handleRatingSubmit = () => {
     if (rating > 0 || satisfaction) {
-      setStep('feedback');
+      setStep("feedback");
     }
   };
 
   const handleFeedbackSubmit = async () => {
     // Submit feedback to backend
     try {
-      await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const normalizedRating =
+        rating > 0
+          ? rating
+          : satisfaction === "happy"
+            ? 5
+            : satisfaction === "neutral"
+              ? 3
+              : satisfaction === "sad"
+                ? 1
+                : 0;
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          rating,
+          rating: normalizedRating,
           satisfaction,
           feedback,
           context,
-          trigger
-        })
+          trigger,
+        }),
       });
-      
-      setStep('thanks');
-      
+
+      setStep("thanks");
+
       // Show reward if high rating
-      if (rating >= 4) {
+      if (normalizedRating >= 4) {
         toast({
           title: "Thank you! 🎉",
-          description: "Your positive feedback helps us improve. Check your notifications for a small reward!",
+          description:
+            "Your positive feedback helps us improve. Check your notifications for a small reward!",
         });
       }
     } catch (error) {
@@ -67,16 +69,20 @@ export function UserSatisfactionWidget({
         title: "Thanks for your feedback!",
         description: "Your input helps us make TradeScout better.",
       });
-      setStep('thanks');
+      setStep("thanks");
     }
   };
 
   const getSatisfactionColor = (type: string) => {
     switch (type) {
-      case 'happy': return 'text-green-500 bg-green-500/20 border-green-500/30';
-      case 'neutral': return 'text-yellow-500 bg-yellow-500/20 border-yellow-500/30';
-      case 'sad': return 'text-red-500 bg-red-500/20 border-red-500/30';
-      default: return 'text-white/60 bg-white/10 border-white/15';
+      case "happy":
+        return "text-green-500 bg-green-500/20 border-green-500/30";
+      case "neutral":
+        return "text-yellow-500 bg-yellow-500/20 border-yellow-500/30";
+      case "sad":
+        return "text-red-500 bg-red-500/20 border-red-500/30";
+      default:
+        return "text-white/60 bg-white/10 border-white/15";
     }
   };
 
@@ -94,48 +100,28 @@ export function UserSatisfactionWidget({
             </button>
           )}
 
-          {step === 'rating' && (
+          {step === "rating" && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">
-                How was your experience?
-              </h3>
-              
-              {/* Star Rating */}
-              <div className="space-y-2">
-                <p className="text-sm text-white/70">Rate your experience:</p>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setRating(star)}
-                      className="transition-all hover:scale-110"
-                    >
-                      <Star
-                        className={cn(
-                          "h-6 w-6",
-                          star <= rating ? "text-yellow-500 fill-current" : "text-white/60"
-                        )}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold text-white">How was your experience?</h3>
 
               {/* Emoji Satisfaction */}
               <div className="space-y-2">
                 <p className="text-sm text-white/70">Quick feedback:</p>
                 <div className="flex space-x-3">
                   {[
-                    { type: 'happy', icon: Smile, label: 'Great!' },
-                    { type: 'neutral', icon: Meh, label: 'Okay' },
-                    { type: 'sad', icon: Frown, label: 'Poor' }
+                    { type: "happy", icon: Smile, label: "Great!" },
+                    { type: "neutral", icon: Meh, label: "Okay" },
+                    { type: "sad", icon: Frown, label: "Poor" },
                   ].map(({ type, icon: Icon, label }) => (
                     <button
                       key={type}
-                      onClick={() => setSatisfaction(type as any)}
+                      onClick={() => {
+                        setSatisfaction(type as any);
+                        setRating(0);
+                      }}
                       className={cn(
                         "flex flex-col items-center p-3 rounded-lg border transition-all",
-                        satisfaction === type 
+                        satisfaction === type
                           ? getSatisfactionColor(type)
                           : "text-white/60 bg-white/10 border-white/15 hover:border-white/15"
                       )}
@@ -147,7 +133,7 @@ export function UserSatisfactionWidget({
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={handleRatingSubmit}
                 disabled={rating === 0 && !satisfaction}
                 className="w-full"
@@ -157,12 +143,10 @@ export function UserSatisfactionWidget({
             </div>
           )}
 
-          {step === 'feedback' && (
+          {step === "feedback" && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">
-                Tell us more (optional)
-              </h3>
-              
+              <h3 className="text-lg font-semibold text-white">Tell us more (optional)</h3>
+
               <textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
@@ -172,26 +156,22 @@ export function UserSatisfactionWidget({
               />
 
               <div className="flex space-x-2">
-                <Button 
-                  onClick={() => setStep('rating')}
+                <Button
+                  onClick={() => setStep("rating")}
                   variant="outline"
                   size="sm"
                   className="flex-1"
                 >
                   Back
                 </Button>
-                <Button 
-                  onClick={handleFeedbackSubmit}
-                  size="sm"
-                  className="flex-1"
-                >
+                <Button onClick={handleFeedbackSubmit} size="sm" className="flex-1">
                   Submit
                 </Button>
               </div>
             </div>
           )}
 
-          {step === 'thanks' && (
+          {step === "thanks" && (
             <div className="text-center space-y-4">
               <div className="flex justify-center">
                 {rating >= 4 ? (
@@ -204,11 +184,9 @@ export function UserSatisfactionWidget({
                   </div>
                 )}
               </div>
-              
+
               <div>
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Thank you!
-                </h3>
+                <h3 className="text-lg font-semibold text-white mb-2">Thank you!</h3>
                 <p className="text-sm text-white/70">
                   Your feedback helps us make TradeScout better for everyone.
                 </p>
@@ -220,11 +198,7 @@ export function UserSatisfactionWidget({
                 )}
               </div>
 
-              <Button 
-                onClick={onClose}
-                size="sm" 
-                className="w-full"
-              >
+              <Button onClick={onClose} size="sm" className="w-full">
                 Done
               </Button>
             </div>
@@ -250,7 +224,7 @@ export function useSatisfactionTracking() {
   useEffect(() => {
     // Trigger after certain time on site
     const timer = setTimeout(() => {
-      triggerSatisfactionWidget('time-based');
+      triggerSatisfactionWidget("time-based");
     }, 120000); // 2 minutes
 
     return () => clearTimeout(timer);
@@ -259,6 +233,6 @@ export function useSatisfactionTracking() {
   return {
     showWidget,
     setShowWidget,
-    triggerSatisfactionWidget
+    triggerSatisfactionWidget,
   };
 }

@@ -69,13 +69,13 @@ const BackgroundCheck = memo(function BackgroundCheck() {
     },
     {
       icon: Award,
-      title: "Elite Status",
-      description: "Join the top tier of verified contractors on the platform",
+      title: "Background Verified",
+      description: "Show an additional verification signal on your profile",
     },
     {
       icon: DollarSign,
-      title: "Better Opportunities",
-      description: "Access to higher-value projects and premium leads",
+      title: "More Eligibility",
+      description: "Some workflows may require additional verification signals",
     },
   ];
 
@@ -86,7 +86,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Background Check Verification</h1>
           <p className="text-xl text-white/70">
-            Complete a professional background check to achieve elite verification status
+            Complete a professional background check to add an additional verification signal
           </p>
         </div>
 
@@ -95,7 +95,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-ts-orange" />
-              Elite Verification Benefits
+              Background Verification Benefits
             </CardTitle>
             <CardDescription className="text-white/60">
               Why contractors choose background verification
@@ -297,7 +297,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                 <div>
                   <h3 className="font-semibold text-white mb-1">Verification Complete</h3>
                   <p className="text-white/60 text-sm">
-                    Receive your elite verification badge and enhanced profile features
+                    Receive your background verification badge and updated profile status
                   </p>
                 </div>
               </div>

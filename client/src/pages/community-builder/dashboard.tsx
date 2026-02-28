@@ -314,14 +314,14 @@ export default function CommunityBuilderDashboard() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-white/60">Rating</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/60">Score</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
                 <Users className="w-6 h-6 text-yellow-600" />
                 <span className="text-2xl font-bold">{profile.ratingScore?.toFixed(1) || "-"}</span>
               </div>
-              <p className="text-xs text-white/60 mt-2">Out of 5 stars</p>
+              <p className="text-xs text-white/60 mt-2">Internal signal (0-5)</p>
             </CardContent>
           </Card>
         </div>

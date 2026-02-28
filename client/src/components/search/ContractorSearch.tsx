@@ -4,19 +4,36 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SearchTooltip, FilterTooltip, ContextualTooltip } from "@/components/ui/contextual-tooltip";
-import { Search, MapPin, Filter, Star, Wrench, Clock, DollarSign } from "lucide-react";
+import {
+  SearchTooltip,
+  FilterTooltip,
+  ContextualTooltip,
+} from "@/components/ui/contextual-tooltip";
+import { Search, MapPin, Filter, ShieldCheck, Wrench, Clock, DollarSign } from "lucide-react";
 
 const searchFormSchema = z.object({
   location: z.string().min(2, "Location must be at least 2 characters"),
   service: z.string().optional(),
   budget: z.string().optional(),
   timeline: z.string().optional(),
-  rating: z.string().optional()
+  rating: z.string().optional(),
 });
 
 type SearchFormData = z.infer<typeof searchFormSchema>;
@@ -28,7 +45,7 @@ interface ContractorSearchProps {
 
 const services = [
   "Kitchen Remodeling",
-  "Bathroom Renovation", 
+  "Bathroom Renovation",
   "Flooring Installation",
   "Roofing",
   "Electrical Work",
@@ -36,16 +53,16 @@ const services = [
   "HVAC",
   "Painting",
   "Deck Building",
-  "Landscaping"
+  "Landscaping",
 ];
 
 const budgetRanges = [
   "Under $1,000",
   "$1,000 - $5,000",
-  "$5,000 - $15,000", 
+  "$5,000 - $15,000",
   "$15,000 - $50,000",
   "$50,000 - $100,000",
-  "Over $100,000"
+  "Over $100,000",
 ];
 
 const timelineOptions = [
@@ -54,7 +71,7 @@ const timelineOptions = [
   "Within 1 month",
   "Within 3 months",
   "Within 6 months",
-  "No rush"
+  "No rush",
 ];
 
 export function ContractorSearch({ onSearch, className = "" }: ContractorSearchProps) {
@@ -68,25 +85,24 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
       service: "",
       budget: "",
       timeline: "",
-      rating: ""
-    }
+      rating: "",
+    },
   });
 
   const onSubmit = async (data: SearchFormData) => {
     setIsSearching(true);
     try {
       // Simulate search API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       onSearch?.(data);
-      
+
       // Update active filters for display
       const filters = [];
       if (data.service) filters.push(data.service);
       if (data.budget) filters.push(data.budget);
       if (data.timeline) filters.push(data.timeline);
-      if (data.rating) filters.push(`${data.rating}+ stars`);
+      if (data.rating) filters.push(`CVS ${data.rating}+`);
       setActiveFilters(filters);
-      
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
@@ -132,8 +148,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                     />
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       className="bg-tsCard border-white/10 text-white"
                       placeholder="Enter your city or zip code"
                     />
@@ -171,7 +187,11 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                       </FormControl>
                       <SelectContent className="bg-tsCard border-white/10">
                         {services.map((service) => (
-                          <SelectItem key={service} value={service} className="text-white hover:bg-tsCard">
+                          <SelectItem
+                            key={service}
+                            value={service}
+                            className="text-white hover:bg-tsCard"
+                          >
                             {service}
                           </SelectItem>
                         ))}
@@ -205,7 +225,11 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                       </FormControl>
                       <SelectContent className="bg-tsCard border-white/10">
                         {budgetRanges.map((range) => (
-                          <SelectItem key={range} value={range} className="text-white hover:bg-tsCard">
+                          <SelectItem
+                            key={range}
+                            value={range}
+                            className="text-white hover:bg-tsCard"
+                          >
                             {range}
                           </SelectItem>
                         ))}
@@ -239,7 +263,11 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                       </FormControl>
                       <SelectContent className="bg-tsCard border-white/10">
                         {timelineOptions.map((option) => (
-                          <SelectItem key={option} value={option} className="text-white hover:bg-tsCard">
+                          <SelectItem
+                            key={option}
+                            value={option}
+                            className="text-white hover:bg-tsCard"
+                          >
                             {option}
                           </SelectItem>
                         ))}
@@ -256,10 +284,10 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-white/70 flex items-center gap-2">
-                      <Star className="h-4 w-4 text-ts-orange" />
-                      Min Rating
+                      <ShieldCheck className="h-4 w-4 text-ts-orange" />
+                      Min Trust (CVS)
                       <ContextualTooltip
-                        content="Higher ratings mean happier customers - though sometimes the best contractors are too busy for RECOMMENDATIONS!"
+                        content="CVS is TradeScout's trust authority score (0-100). It reflects verification and performance signals, not payment."
                         illustration="paintbrush"
                         size="sm"
                         variant="contractor"
@@ -268,14 +296,19 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                          <SelectValue placeholder="Any rating" />
+                          <SelectValue placeholder="Any trust level" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-tsCard border-white/10">
-                        <SelectItem value="3" className="text-white hover:bg-tsCard">3+ Stars</SelectItem>
-                        <SelectItem value="4" className="text-white hover:bg-tsCard">4+ Stars</SelectItem>
-                        <SelectItem value="4.5" className="text-white hover:bg-tsCard">4.5+ Stars</SelectItem>
-                        <SelectItem value="5" className="text-white hover:bg-tsCard">5 Stars Only</SelectItem>
+                        <SelectItem value="40" className="text-white hover:bg-tsCard">
+                          CVS 40+
+                        </SelectItem>
+                        <SelectItem value="70" className="text-white hover:bg-tsCard">
+                          CVS 70+
+                        </SelectItem>
+                        <SelectItem value="85" className="text-white hover:bg-tsCard">
+                          CVS 85+
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -286,8 +319,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
 
             {/* Search Button */}
             <div className="flex justify-center pt-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSearching}
                 className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 py-3 text-lg flex items-center gap-2"
               >
@@ -311,9 +344,9 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
             </div>
             <div className="flex flex-wrap gap-2">
               {activeFilters.map((filter, index) => (
-                <Badge 
-                  key={index} 
-                  variant="secondary" 
+                <Badge
+                  key={index}
+                  variant="secondary"
                   className="bg-ts-orange/20 text-ts-orange border-ts-orange/30"
                 >
                   {filter}
