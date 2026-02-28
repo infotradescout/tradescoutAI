@@ -654,9 +654,7 @@ export default function Settings() {
               </div>
               <div>
                 <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">Settings</h1>
-                <p className="text-lg text-white/60">
-                  Manage your account preferences and privacy
-                </p>
+                <p className="text-lg text-white/60">Manage your account preferences and privacy</p>
               </div>
             </div>
           </div>
@@ -1255,12 +1253,32 @@ export default function Settings() {
                       profile colors will update how TradeScout looks to you and how your public
                       profile appears to others.
                     </p>
-                    <Button
-                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
-                      asChild
-                    >
-                      <Link href="/profile-settings">Open Profile Settings</Link>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
+                        asChild
+                      >
+                        <Link href="/profile-settings">Open Profile Settings</Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
+                        onClick={async () => {
+                          try {
+                            await fetch("/api/users/color-scheme", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              credentials: "include",
+                              body: JSON.stringify({ preset: "default" }),
+                            });
+                            await refetch();
+                            window.location.reload();
+                          } catch {}
+                        }}
+                      >
+                        Reset to Default
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 

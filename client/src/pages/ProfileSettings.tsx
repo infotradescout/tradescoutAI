@@ -962,7 +962,19 @@ export default function ProfileSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Select Preset</Label>
+            <div className="flex items-center justify-between">
+              <Label>Select Preset</Label>
+              {preferences.colorScheme?.preset && preferences.colorScheme.preset !== "default" && (
+                <button
+                  type="button"
+                  onClick={() => handlePresetChange("default")}
+                  disabled={loading}
+                  className="text-xs text-ts-orange hover:text-ts-orange-light underline underline-offset-2 transition-colors disabled:opacity-50"
+                >
+                  Reset to Default
+                </button>
+              )}
+            </div>
             <Select
               value={preferences.colorScheme?.preset || "default"}
               onValueChange={handlePresetChange}

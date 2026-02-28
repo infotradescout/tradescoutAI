@@ -34,14 +34,14 @@ export interface ColorScheme {
 
 export const COLOR_PRESETS: Record<string, ColorScheme> = {
   default: {
-    primary: "#FF6A00", // Orange accent
-    secondary: "#FF8A3D", // Accent secondary
-    background: "#0B0F14", // Charcoal background
-    surface: "#121A24", // UI surface (cards)
-    text: "#F6F7FB", // Near-white
-    textMuted: "#B8C0CC", // Muted text
-    accent: "#FF6A00",
-    border: "rgba(255,255,255,0.12)",
+    primary: "#f97316", // ts-orange (matches landing)
+    secondary: "#fb923c", // ts-orange-light
+    background: "#0a0f1e", // tsBg — near-black (matches landing)
+    surface: "#111827", // tsCard — dark slate (matches landing)
+    text: "#ffffff", // Pure white (matches landing)
+    textMuted: "rgba(255,255,255,0.70)", // white/70 (matches landing)
+    accent: "#f97316",
+    border: "rgba(255,255,255,0.10)",
   },
   warm: {
     primary: "#dc2626", // Red
