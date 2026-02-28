@@ -30,6 +30,8 @@ export default function BusinessProfileView() {
   const { user } = useAuth();
 
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [profileSource, setProfileSource] = useState<"published" | "directory" | null>(null);
+  const [directoryBusinessId, setDirectoryBusinessId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,16 +63,56 @@ export default function BusinessProfileView() {
         const response = await fetch(`/api/business-profile/slug/${slug}`);
 
         if (!response.ok) {
-          if (response.status === 404) {
-            setError("Business profile not found");
-          } else {
+          if (response.status !== 404) {
             setError("Failed to load profile");
+            setLoading(false);
+            return;
           }
+
+          // Fallback: directory listing (unclaimed/claimable businesses table).
+          const directoryRes = await fetch(`/api/public/businesses/${slug}`);
+          if (!directoryRes.ok) {
+            setError("Business profile not found");
+            setLoading(false);
+            return;
+          }
+
+          const directoryData: any = await directoryRes.json();
+          const counties = Array.isArray(directoryData?.counties) ? directoryData.counties : [];
+          const primaryCounty = counties[0] || null;
+
+          const directoryProfile: BusinessProfile = {
+            id: String(directoryData?.id || ""),
+            userId: null as any,
+            slug: String(directoryData?.slug || slug),
+            name: String(directoryData?.name || slug),
+            description: directoryData?.profile?.description ?? null,
+            countyFips: primaryCounty?.fips || null,
+            countyName: primaryCounty?.name || null,
+            city: null,
+            stateCode: primaryCounty?.stateCode || null,
+            serviceAreas: counties.map((c: any) => String(c?.name || "")).filter(Boolean),
+            // Prevent contact bypass for directory shells; contact stays Scout-gated.
+            website: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            publishedAt: null as any,
+            // These optional fields are read by the view; keep safe defaults.
+            verificationStatus: "pending" as any,
+            addressVerified: false as any,
+            cvsScore: null as any,
+          } as any;
+
+          setDirectoryBusinessId(String(directoryData?.id || ""));
+          setProfileSource("directory");
+          setProfile(directoryProfile);
           setLoading(false);
           return;
         }
 
         const data = await response.json();
+        setProfileSource("published");
+        setDirectoryBusinessId(null);
         setProfile(data);
 
         // Show marketplace catalog without introducing contact bypass.
@@ -190,6 +232,7 @@ export default function BusinessProfileView() {
     : `${profile.name} serving ${profile.countyName || "local areas"}${profile.serviceAreas && profile.serviceAreas.length > 0 ? " and nearby areas" : ""}. Contact via TradeScout.`;
 
   const canonicalUrl = `${window.location.origin}/business/${profile.slug}`;
+  const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -270,18 +313,20 @@ export default function BusinessProfileView() {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
-            ) : (
+            ) : showClaimCta ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  setLocation(`/claim-my-business?slug=${encodeURIComponent(profile.slug)}`)
+                  setLocation(
+                    `/claim-my-business?businessId=${encodeURIComponent(String(directoryBusinessId))}`
+                  )
                 }
               >
                 <Shield className="h-4 w-4 mr-2" />
                 Claim This Business
               </Button>
-            )}
+            ) : null}
           </div>
         </CardHeader>
 

@@ -70,6 +70,8 @@ export default function PreScoutSetup() {
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
   const prefilledEmail = (searchParams.get("email") || "").trim();
+  const claimSlug = (searchParams.get("claim") || "").trim();
+  const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
   const requestedAuthMode: AuthMode =
     parseAuthMode(windowSearchParams.get("mode")) ||
     parseAuthMode(locationSearchParams.get("mode")) ||
@@ -166,9 +168,14 @@ export default function PreScoutSetup() {
       if (safeNext) {
         params.set("next", safeNext);
       }
+      if (claimBusinessIdParam) {
+        params.set("claimBusinessId", claimBusinessIdParam);
+      } else if (claimSlug) {
+        params.set("claim", claimSlug);
+      }
       return `/pre-scout-setup?${params.toString()}`;
     },
-    [safeNext]
+    [safeNext, claimBusinessIdParam, claimSlug]
   );
 
   const beginOAuth = (provider: "google" | "facebook") => {
@@ -324,6 +331,19 @@ export default function PreScoutSetup() {
 
     setAuthSubmitting(true);
     try {
+      let claimBusinessId = claimBusinessIdParam;
+      if (!claimBusinessId && claimSlug) {
+        try {
+          const res = await fetch(
+            `/api/business-claim/resolve?slug=${encodeURIComponent(claimSlug)}`
+          );
+          const data: any = res.ok ? await res.json() : null;
+          claimBusinessId = String(data?.business?.id || "").trim();
+        } catch {
+          // fail-soft: claim is optional
+        }
+      }
+
       const resp: any = await apiRequest("POST", "/api/auth/register", {
         firstName,
         lastName,
@@ -334,6 +354,7 @@ export default function PreScoutSetup() {
         userIntent: "",
         acceptTerms: true,
         allowPhoneCalls: false,
+        ...(claimBusinessId ? { claimBusinessId } : {}),
       });
 
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });

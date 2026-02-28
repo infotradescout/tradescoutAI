@@ -27,6 +27,7 @@ import TradeScoutBackground from "./components/TradeScoutBackground";
 import SmartHome from "./SmartHome";
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
 import SimpleSubtleHints from "./components/onboarding/SimpleSubtleHints";
+import ProfileCompletionBanner from "./components/onboarding/ProfileCompletionBanner";
 import SimpleBugReportTool from "./components/SimpleBugReportTool";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
@@ -1706,6 +1707,9 @@ const AppLayout = memo(function AppLayout() {
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
       {!isLlmRoute && !isLandingRoute && !FEATURE_EDUCATION_REPLACEMENT && <SimpleSubtleHints />}
+
+      {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
+      {!isLlmRoute && !isLandingRoute && <ProfileCompletionBanner />}
 
       {/* Bug report tool - always available */}
       <SimpleBugReportTool />

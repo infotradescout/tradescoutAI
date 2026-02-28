@@ -4260,7 +4260,9 @@ export async function registerRoutes(app: any) {
         /^\d{5}$/.test(countyFips);
 
       const currentProfileVersion =
-        typeof (currentUser as any)?.profileVersion === "number" ? (currentUser as any).profileVersion : 0;
+        typeof (currentUser as any)?.profileVersion === "number"
+          ? (currentUser as any).profileVersion
+          : 0;
 
       const userUpdate: any = {
         preferences: updatedPreferences,
@@ -12314,6 +12316,270 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     } catch (error: any) {
       console.error("Error searching claimable businesses:", error);
       res.status(500).json({ message: "Failed to search businesses" });
+    }
+  });
+
+  function normalizeClaimEmail(value: unknown): string {
+    return typeof value === "string" ? value.trim().toLowerCase() : "";
+  }
+
+  function normalizeClaimPhone(value: unknown): string {
+    const digits = typeof value === "string" ? value.replace(/\D/g, "") : "";
+    // Keep the last 10 for consistent matching (US default); if longer, keep tail.
+    if (digits.length > 10) return digits.slice(-10);
+    return digits;
+  }
+
+  function normalizeClaimWebsiteDomain(value: unknown): string {
+    if (typeof value !== "string") return "";
+    let raw = value.trim().toLowerCase();
+    if (!raw) return "";
+
+    // Allow inputs like "example.com", "https://example.com/path", "www.example.com"
+    try {
+      if (!raw.includes("://")) raw = `https://${raw}`;
+      const parsed = new URL(raw);
+      const host = parsed.hostname
+        .replace(/^www\./, "")
+        .replace(/\.$/, "")
+        .trim();
+      return host;
+    } catch {
+      return "";
+    }
+  }
+
+  // Public: Resolve a claimable directory business by slug (used for claim links).
+  app.get("/api/business-claim/resolve", async (req: Request, res: Response) => {
+    try {
+      const slug = typeof req.query.slug === "string" ? req.query.slug.trim() : "";
+      if (!slug) return res.status(400).json({ message: "slug is required" });
+
+      const rowsResult = (await db.execute(sql`
+        select
+          b.id,
+          b.name,
+          b.slug,
+          b.type,
+          b.status,
+          b.claim_status as "claimStatus",
+          b.sources,
+          coalesce(
+            json_agg(distinct jsonb_build_object(
+              'fips', co.fips,
+              'stateCode', co.state_code,
+              'name', co.name
+            )) filter (where co.fips is not null),
+            '[]'::json
+          ) as counties
+        from businesses b
+        left join business_counties bc on bc.business_id = b.id
+        left join counties co on co.id = bc.county_id
+        where b.slug = ${slug}
+          and b.status <> 'suspended'
+        group by b.id, b.name, b.slug, b.type, b.status
+        limit 1
+      `)) as any;
+
+      const row = Array.isArray(rowsResult?.rows) ? rowsResult.rows[0] : null;
+      if (!row) return res.status(404).json({ message: "Business not found" });
+      return res.json({ business: row });
+    } catch (error: any) {
+      console.error("Error resolving claim business slug:", error);
+      return res.status(500).json({ message: "Failed to resolve business" });
+    }
+  });
+
+  // Public: Find-or-create an unclaimed business shell so any business can be claimed without bulk uploads.
+  app.post("/api/business-claim/find-or-create", async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as any;
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const stateCode =
+        typeof body.stateCode === "string" ? body.stateCode.trim().toUpperCase() : "";
+      const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : "";
+      const email = normalizeClaimEmail(body.email);
+      const phone = normalizeClaimPhone(body.phone);
+      const websiteDomain = normalizeClaimWebsiteDomain(body.website);
+      const category = typeof body.category === "string" ? body.category.trim().slice(0, 120) : "";
+      const type = typeof body.type === "string" ? body.type.trim() : "contractor";
+      const roleContext =
+        typeof body.roleContext === "string" && body.roleContext.trim()
+          ? body.roleContext.trim().slice(0, 64)
+          : "contractor";
+
+      if (name.length < 2) return res.status(400).json({ message: "name is required" });
+      if (!/^[A-Z]{2}$/.test(stateCode)) {
+        return res.status(400).json({ message: "stateCode is required (2-letter code)" });
+      }
+      if (!/^\d{5}$/.test(countyFips)) {
+        return res.status(400).json({ message: "countyFips is required (5-digit FIPS)" });
+      }
+
+      const countyRows = await db
+        .select({
+          id: counties.id,
+          fips: counties.fips,
+          stateCode: counties.stateCode,
+          name: counties.name,
+        })
+        .from(counties)
+        .where(and(eq(counties.fips, countyFips), eq(counties.stateCode, stateCode)))
+        .limit(1);
+
+      const county = countyRows[0];
+      if (!county) {
+        return res.status(400).json({ message: "Unknown county for stateCode/countyFips" });
+      }
+
+      // Dedupe: try strong keys first, then fall back to name+county.
+      const existingResult = (await db.execute(sql`
+        select
+          b.id,
+          b.name,
+          b.slug,
+          b.type,
+          b.status,
+          b.claim_status as "claimStatus",
+          b.sources,
+          coalesce(
+            json_agg(distinct jsonb_build_object(
+              'fips', co.fips,
+              'stateCode', co.state_code,
+              'name', co.name
+            )) filter (where co.fips is not null),
+            '[]'::json
+          ) as counties
+        from businesses b
+        left join business_counties bc on bc.business_id = b.id
+        left join counties co on co.id = bc.county_id
+        where b.status <> 'suspended'
+          and b.owner_user_id is null
+          and b.claim_status = 'unclaimed'
+          and (
+            ${email ? sql`lower(coalesce(b.profile_data->>'email','')) = ${email}` : sql`false`}
+            or ${phone ? sql`regexp_replace(coalesce(b.profile_data->>'phone',''), '\\D','','g') = ${phone}` : sql`false`}
+            or ${websiteDomain ? sql`lower(coalesce(b.profile_data->>'website','')) like ${`%${websiteDomain}%`}` : sql`false`}
+            or (lower(b.name) = ${name.toLowerCase()} and co.fips = ${countyFips} and co.state_code = ${stateCode})
+          )
+        group by b.id, b.name, b.slug, b.type, b.status
+        order by b.name asc
+        limit 1
+      `)) as any;
+
+      const existing = Array.isArray(existingResult?.rows) ? existingResult.rows[0] : null;
+      if (existing) {
+        return res.json({ created: false, business: existing });
+      }
+
+      const created = await storage.createUnclaimedBusiness({
+        name,
+        slug: name,
+        type: (["contractor", "community", "vendor", "other"].includes(type)
+          ? type
+          : "contractor") as any,
+        roleContext,
+        status: "active" as any,
+        // Store contact fields for later verification/outreach, but do not expose them publicly by default.
+        profileData: {
+          ...(category ? { category } : {}),
+          ...(email ? { email } : {}),
+          ...(phone ? { phone } : {}),
+          ...(body.website && typeof body.website === "string"
+            ? { website: body.website.trim() }
+            : {}),
+          contactPreference: "message",
+        } as any,
+        sources: ["lazy_seed"],
+        countyIds: [county.id],
+      } as any);
+
+      return res.status(201).json({
+        created: true,
+        business: {
+          id: created.id,
+          name: created.name,
+          slug: created.slug,
+          type: created.type,
+          status: created.status,
+          claimStatus: created.claimStatus,
+          counties: [{ fips: county.fips, stateCode: county.stateCode, name: county.name }],
+        },
+      });
+    } catch (error: any) {
+      console.error("Error creating claimable business:", error);
+      return res.status(500).json({ message: "Failed to create business shell" });
+    }
+  });
+
+  // Auth: Claim an unclaimed business directory entry for the current user (email/phone verified).
+  app.post("/api/business-claim/claim", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const body = (req.body ?? {}) as any;
+      const businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
+      if (!businessId) return res.status(400).json({ message: "businessId is required" });
+
+      const user = await storage.getUser(String(userId));
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const rows = await db
+        .select({
+          id: businesses.id,
+          slug: businesses.slug,
+          ownerUserId: businesses.ownerUserId,
+          claimStatus: businesses.claimStatus,
+          status: businesses.status,
+          profileData: businesses.profileData,
+        })
+        .from(businesses)
+        .where(eq(businesses.id, businessId))
+        .limit(1);
+
+      const biz = rows[0] as any;
+      if (!biz || biz.status === "suspended") {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      if (biz.ownerUserId || biz.claimStatus !== "unclaimed") {
+        return res.status(409).json({ message: "Business already claimed" });
+      }
+
+      const signupEmail = normalizeClaimEmail((user as any).email);
+      const signupPhone = normalizeClaimPhone((user as any).phone);
+      const bizEmail = normalizeClaimEmail(biz.profileData?.email);
+      const bizPhone = normalizeClaimPhone(biz.profileData?.phone);
+
+      const verifiedByEmail = Boolean(bizEmail) && bizEmail === signupEmail;
+      const verifiedByPhone =
+        Boolean(bizPhone) && bizPhone.length >= 10 && bizPhone === signupPhone;
+
+      if (!verifiedByEmail && !verifiedByPhone) {
+        return res.status(403).json({
+          message: "Claim requires verification. Email/phone did not match the business on file.",
+          code: "CLAIM_NOT_VERIFIED",
+        });
+      }
+
+      const claimed = await storage.claimUnclaimedBusinessForUser(biz.id, String(userId));
+      await storage.updateUser(String(userId), {
+        activeBusinessId: biz.id,
+        role: "business_owner" as any,
+        activeRole: "business_owner",
+        roles: Array.from(
+          new Set([
+            ...(Array.isArray((user as any).roles) ? (user as any).roles : []),
+            "business_owner",
+          ])
+        ),
+        updatedAt: new Date(),
+      } as any);
+
+      return res.json({ status: "claimed", businessId: claimed.id, slug: claimed.slug });
+    } catch (error: any) {
+      console.error("Error claiming business:", error);
+      return res.status(500).json({ message: "Failed to claim business" });
     }
   });
 
