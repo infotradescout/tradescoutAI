@@ -125,19 +125,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       // Return fallback UI with error details
       return (
         this.props.fallback || (
-          <div className="bg-gray-900 text-white p-8 flex items-center justify-center py-24">
+          <div className="bg-tsBg text-white p-8 flex items-center justify-center py-24">
             <div className="text-center">
               <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
               <p className="mb-4">The application encountered an error.</p>
               {this.state.error && (
-                <details className="text-left bg-gray-800 p-4 rounded">
+                <details className="text-left bg-tsCard border border-white/10 p-4 rounded-xl">
                   <summary className="cursor-pointer">Error details</summary>
                   <pre className="mt-2 text-sm overflow-auto">{this.state.error.toString()}</pre>
                 </details>
               )}
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+                className="mt-4 px-4 py-2 bg-ts-orange text-white rounded-xl hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25"
               >
                 Reload Page
               </button>

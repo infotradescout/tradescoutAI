@@ -21,7 +21,7 @@ const getCTAConfig = (location: string) => {
       type: 'contractor-profile',
       text: 'Contact This Contractor',
       icon: MessageCircle,
-      color: 'bg-blue-500 hover:bg-blue-600'
+      color: 'bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25'
     };
   }
 
@@ -30,7 +30,7 @@ const getCTAConfig = (location: string) => {
       type: 'scout-estimate',
       text: 'Ask Scout for Estimates',
       icon: Calculator,
-      color: 'bg-orange-500 hover:bg-orange-600'
+      color: 'bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25'
     };
   }
 
@@ -39,7 +39,7 @@ const getCTAConfig = (location: string) => {
       type: 'general',
       text: 'Get 3 Free Quotes',
       icon: Users,
-      color: 'bg-orange-500 hover:bg-orange-600'
+      color: 'bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25'
     };
   }
 
@@ -112,7 +112,7 @@ export default function MobileCTA() {
         }`}
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="bg-navy-800/95 glass-bottom-cta border-t border-navy-600 p-4">
+        <div className="bg-tsCard/95 backdrop-blur-sm border-t border-white/10 p-4">
           <Sheet open={isQuoteSheetOpen} onOpenChange={setIsQuoteSheetOpen}>
             <SheetTrigger asChild>
               <Button
@@ -125,7 +125,7 @@ export default function MobileCTA() {
 
             <SheetContent
               side="bottom"
-              className="bg-navy-800 border-navy-600 max-h-[90vh] overflow-y-auto"
+              className="bg-tsCard border-white/10 max-h-[90vh] overflow-y-auto"
             >
               <SheetHeader className="text-left mb-6">
                 <SheetTitle className="text-white text-xl">
@@ -149,7 +149,7 @@ export default function MobileCTA() {
       {!isVisible && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-40 md:hidden w-12 h-12 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 glow-effect"
+          className="fixed bottom-6 right-6 z-40 md:hidden w-12 h-12 bg-ts-orange hover:bg-ts-orange-dark text-white rounded-full shadow-lg shadow-ts-orange/25 flex items-center justify-center transition-all duration-300"
           aria-label="Scroll to top"
         >
           <ArrowUp className="h-5 w-5" />

@@ -130,19 +130,19 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
   if (isSubmitted) {
     return (
       <div className="text-center py-8">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
         <h3 className="text-xl font-semibold text-white mb-2">Request Submitted!</h3>
-        <p className="text-gray-300 mb-4">
+        <p className="text-white/70 mb-4">
           We'll connect you with the top 3 contractors in your area within 1 hour.
         </p>
         <Button
           onClick={() => setIsSubmitted(false)}
           variant="outline"
-          className="border-navy-500 text-gray-300 hover:bg-navy-600"
+          className="border-white/10 text-white/60 hover:bg-white/5"
         >
           Submit Another Request
         </Button>
@@ -159,12 +159,12 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">First Name</FormLabel>
+                <FormLabel className="text-white/70">First Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="John"
                     {...field}
-                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                    className="bg-white/5 border-white/10 text-white placeholder-white/40"
                   />
                 </FormControl>
                 <FormMessage />
@@ -176,12 +176,12 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">Last Name</FormLabel>
+                <FormLabel className="text-white/70">Last Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Smith"
                     {...field}
-                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                    className="bg-white/5 border-white/10 text-white placeholder-white/40"
                   />
                 </FormControl>
                 <FormMessage />
@@ -196,13 +196,13 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">Email</FormLabel>
+                <FormLabel className="text-white/70">Email</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
                     placeholder="john@example.com"
                     {...field}
-                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                    className="bg-white/5 border-white/10 text-white placeholder-white/40"
                   />
                 </FormControl>
                 <FormMessage />
@@ -214,13 +214,13 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">Phone</FormLabel>
+                <FormLabel className="text-white/70">Phone</FormLabel>
                 <FormControl>
                   <Input
                     type="tel"
                     placeholder="(555) 123-4567"
                     {...field}
-                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                    className="bg-white/5 border-white/10 text-white placeholder-white/40"
                   />
                 </FormControl>
                 <FormMessage />
@@ -235,7 +235,7 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="state"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">State / Territory</FormLabel>
+                <FormLabel className="text-white/70">State / Territory</FormLabel>
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
@@ -244,16 +244,16 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
                   value={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Select state or territory" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-navy-700 border-navy-600">
+                  <SelectContent className="bg-tsCard border-white/10">
                     {US_STATES.map((state) => (
                       <SelectItem
                         key={state.code}
                         value={state.code}
-                        className="text-white hover:bg-navy-600"
+                        className="text-white hover:bg-white/10"
                       >
                         {state.name}
                       </SelectItem>
@@ -270,14 +270,14 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="county"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">County / Parish / Borough</FormLabel>
+                <FormLabel className="text-white/70">County / Parish / Borough</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
                   disabled={!selectedState}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue
                         placeholder={
                           selectedState ? "Select your area" : "Select state first"
@@ -285,9 +285,9 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
                       />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-navy-700 border-navy-600">
+                  <SelectContent className="bg-tsCard border-white/10">
                     {counties.map((county: any) => (
-                      <SelectItem key={county.id} value={county.id} className="text-white hover:bg-navy-600">
+                      <SelectItem key={county.id} value={county.id} className="text-white hover:bg-white/10">
                         {county.name}
                       </SelectItem>
                     ))}
@@ -302,16 +302,16 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="projectType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">Project Type</FormLabel>
+                <FormLabel className="text-white/70">Project Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Select project type" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-navy-700 border-navy-600">
+                  <SelectContent className="bg-tsCard border-white/10">
                     {Array.isArray(trades) && trades.map((trade: any) => (
-                      <SelectItem key={trade.id} value={trade.id} className="text-white hover:bg-navy-600">
+                      <SelectItem key={trade.id} value={trade.id} className="text-white hover:bg-white/10">
                         {trade.name}
                       </SelectItem>
                     ))}
@@ -328,19 +328,19 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
           name="timeline"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-300">Project Timeline</FormLabel>
+              <FormLabel className="text-white/70">Project Timeline</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
                     <SelectValue placeholder="When do you want to start?" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="bg-navy-700 border-navy-600">
-                  <SelectItem value="asap" className="text-white hover:bg-navy-600">As soon as possible</SelectItem>
-                  <SelectItem value="1-month" className="text-white hover:bg-navy-600">Within 1 month</SelectItem>
-                  <SelectItem value="3-months" className="text-white hover:bg-navy-600">Within 3 months</SelectItem>
-                  <SelectItem value="6-months" className="text-white hover:bg-navy-600">Within 6 months</SelectItem>
-                  <SelectItem value="planning" className="text-white hover:bg-navy-600">Just planning/getting quotes</SelectItem>
+                <SelectContent className="bg-tsCard border-white/10">
+                  <SelectItem value="asap" className="text-white hover:bg-white/10">As soon as possible</SelectItem>
+                  <SelectItem value="1-month" className="text-white hover:bg-white/10">Within 1 month</SelectItem>
+                  <SelectItem value="3-months" className="text-white hover:bg-white/10">Within 3 months</SelectItem>
+                  <SelectItem value="6-months" className="text-white hover:bg-white/10">Within 6 months</SelectItem>
+                  <SelectItem value="planning" className="text-white hover:bg-white/10">Just planning/getting quotes</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -354,12 +354,12 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="projectDescription"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">Project Description (Optional)</FormLabel>
+                <FormLabel className="text-white/70">Project Description (Optional)</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Tell us more about your project..."
                     {...field}
-                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400 min-h-[100px]"
+                    className="bg-white/5 border-white/10 text-white placeholder-white/40 min-h-[100px]"
                   />
                 </FormControl>
                 <FormMessage />
@@ -370,7 +370,7 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
 
         <Button
           type="submit"
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 font-semibold glow-effect"
+          className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white py-3 font-semibold shadow-lg shadow-ts-orange/25"
           disabled={submitQuoteMutation.isPending}
         >
           {submitQuoteMutation.isPending ? "Submitting..." : "Get My Free Quotes"}

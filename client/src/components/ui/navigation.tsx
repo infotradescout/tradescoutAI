@@ -50,15 +50,15 @@ export default function Navigation() {
   const navItems = isAuthenticated ? authNavItems : publicNavItems;
 
   return (
-    <nav className="bg-navy-800 border-b border-navy-600 sticky top-0 z-50">
+    <nav className="bg-tsCard/95 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center">
                 <Building className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-orange-500">TradeScout</span>
+              <span className="text-xl font-display font-bold text-ts-orange">TradeScout</span>
             </Link>
           </div>
 
@@ -72,8 +72,8 @@ export default function Navigation() {
                     variant="ghost"
                     className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-orange-500/20 text-orange-400"
-                        : "text-gray-300 hover:text-white hover:bg-navy-700"
+                        ? "bg-ts-orange/20 text-ts-orange"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
                     }`}
                   >
                     <item.icon className="h-4 w-4" />
@@ -90,11 +90,11 @@ export default function Navigation() {
               <>
                 {user && (
                   <div className="flex items-center space-x-2">
-                    <span className="text-gray-300 text-sm">
+                    <span className="text-white/60 text-sm">
                       Welcome, {user.firstName || user.email}
                     </span>
                     {isContractor && (
-                      <Badge className="bg-orange-500/20 text-orange-400 text-xs">Contractor</Badge>
+                      <Badge className="bg-ts-orange/20 text-ts-orange text-xs">Contractor</Badge>
                     )}
                   </div>
                 )}
@@ -102,7 +102,7 @@ export default function Navigation() {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="border-gray-600 text-gray-300 hover:bg-navy-700"
+                  className="border-white/10 text-white/60 hover:bg-white/5"
                 >
                   Sign Out
                 </Button>
@@ -113,7 +113,7 @@ export default function Navigation() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                   >
                     Join as Contractor
                   </Button>
@@ -121,7 +121,7 @@ export default function Navigation() {
                 <Button
                   size="sm"
                   onClick={() => navigate("/pre-scout-setup?mode=signin")}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  className="bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg shadow-ts-orange/25"
                 >
                   Sign In
                 </Button>
@@ -135,8 +135,7 @@ export default function Navigation() {
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-300 hover:text-white"
-            >
+              className="text-white/60 hover:text-white">
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
           </div>
@@ -145,7 +144,7 @@ export default function Navigation() {
 
       {/* Mobile Navigation Menu */}
       {isOpen && (
-        <div className="md:hidden bg-navy-700 border-t border-navy-600">
+        <div className="md:hidden bg-tsCard border-t border-white/10">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {navItems.map((item) => {
               const isActive = location === item.href;
@@ -155,8 +154,8 @@ export default function Navigation() {
                     variant="ghost"
                     className={`w-full justify-start flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium ${
                       isActive
-                        ? "bg-orange-500/20 text-orange-400"
-                        : "text-gray-300 hover:text-white hover:bg-navy-600"
+                        ? "bg-ts-orange/20 text-ts-orange"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
@@ -169,11 +168,11 @@ export default function Navigation() {
           </div>
 
           {/* Mobile Auth Actions */}
-          <div className="px-2 py-3 border-t border-navy-600">
+          <div className="px-2 py-3 border-t border-white/10">
             {isAuthenticated ? (
               <>
                 {user && (
-                  <div className="px-3 py-2 text-sm text-gray-300">
+                  <div className="px-3 py-2 text-sm text-white/60">
                     Welcome, {user.firstName || user.email}
                     {isContractor && (
                       <Badge className="ml-2 bg-orange-500/20 text-orange-400 text-xs">
@@ -186,7 +185,7 @@ export default function Navigation() {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="w-full mt-2 border-gray-600 text-gray-300 hover:bg-navy-600"
+                  className="w-full mt-2 border-white/10 text-white/60 hover:bg-white/5"
                 >
                   Sign Out
                 </Button>
@@ -197,7 +196,7 @@ export default function Navigation() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                     onClick={() => setIsOpen(false)}
                   >
                     Join as Contractor
@@ -209,7 +208,7 @@ export default function Navigation() {
                     setIsOpen(false);
                     navigate("/pre-scout-setup?mode=signin");
                   }}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                  className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg shadow-ts-orange/25"
                 >
                   Sign In
                 </Button>

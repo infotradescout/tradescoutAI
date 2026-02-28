@@ -37,17 +37,17 @@ export function GuestGate({
     return (
       <div className="space-y-4">
         {/* Guest limitation notice */}
-        <Card className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-orange-500/30">
+        <Card className="bg-ts-orange/10 border-ts-orange/30">
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                <Lock className="w-6 h-6 text-orange-400" />
+                <Lock className="w-6 h-6 text-ts-orange" />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-                <p className="text-gray-300 mb-4">{description}</p>
+                <p className="text-white/70 mb-4">{description}</p>
                 
-                <div className="space-y-2 mb-4 text-sm text-gray-400">
+                <div className="space-y-2 mb-4 text-sm text-white/60">
                   <div className="flex items-center space-x-2">
                     <Shield className="w-4 h-4" />
                     <span>Verified contractor interactions</span>
@@ -64,7 +64,7 @@ export function GuestGate({
 
                 <Button 
                   onClick={() => setShowAuthModal(true)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  className="bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg shadow-ts-orange/25"
                 >
                   Create Free Account to {action}
                 </Button>

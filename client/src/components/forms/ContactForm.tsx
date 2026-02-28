@@ -99,11 +99,11 @@ export function ContactForm({
   };
 
   return (
-    <Card className={`bg-navy-800 border-navy-600 ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 rounded-xl shadow-[0_18px_52px_rgba(0,0,0,0.36)] ${className}`}>
       <CardHeader>
         <CardTitle className="text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-orange-400" />
+            <MessageSquare className="h-5 w-5 text-ts-orange" />
             Get In Touch
           </div>
           <MessagingTooltip>
@@ -125,7 +125,7 @@ export function ContactForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
+                    <FormLabel className="text-white/70 flex items-center gap-2">
                       Your Name
                       <ContextualTooltip
                         content="Use your real name - contractors prefer working with people, not 'HomeBuyer123'"
@@ -137,7 +137,7 @@ export function ContactForm({
                     <FormControl>
                       <Input
                         {...field}
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-white/5 border-white/10 text-white"
                         placeholder="John Smith"
                       />
                     </FormControl>
@@ -151,7 +151,7 @@ export function ContactForm({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
+                    <FormLabel className="text-white/70 flex items-center gap-2">
                       Email Address
                       <ContextualTooltip
                         content="This is how contractors will reach you with quotes and updates"
@@ -164,7 +164,7 @@ export function ContactForm({
                       <Input
                         {...field}
                         type="email"
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-white/5 border-white/10 text-white"
                         placeholder="john@example.com"
                       />
                     </FormControl>
@@ -180,7 +180,7 @@ export function ContactForm({
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
+                    <FormLabel className="text-white/70 flex items-center gap-2">
                       Phone Number (Optional)
                       <ContextualTooltip
                         content="Contractors often prefer calling for complex projects - it's faster than 20 text messages"
@@ -193,7 +193,7 @@ export function ContactForm({
                       <Input
                         {...field}
                         type="tel"
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-white/5 border-white/10 text-white"
                         placeholder="(555) 123-4567"
                       />
                     </FormControl>
@@ -207,7 +207,7 @@ export function ContactForm({
                 name="projectType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
+                    <FormLabel className="text-white/70 flex items-center gap-2">
                       Project Type
                       <ContextualTooltip
                         content="Help contractors understand your project scope - kitchen remodel, deck repair, etc."
@@ -219,7 +219,7 @@ export function ContactForm({
                     <FormControl>
                       <Input
                         {...field}
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-white/5 border-white/10 text-white"
                         placeholder="Kitchen remodel, deck repair, etc."
                       />
                     </FormControl>
@@ -234,7 +234,7 @@ export function ContactForm({
               name="subject"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-300 flex items-center gap-2">
+                  <FormLabel className="text-white/70 flex items-center gap-2">
                     Subject
                     <ContextualTooltip
                       content="A clear subject line gets faster responses - like a good tool label"
@@ -246,7 +246,7 @@ export function ContactForm({
                   <FormControl>
                     <Input
                       {...field}
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-white/5 border-white/10 text-white"
                       placeholder="Need quote for bathroom renovation"
                     />
                   </FormControl>
@@ -260,7 +260,7 @@ export function ContactForm({
               name="message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-300 flex items-center gap-2">
+                  <FormLabel className="text-white/70 flex items-center gap-2">
                     Project Details
                     <MessagingTooltip>
                       <ContextualTooltip
@@ -274,7 +274,7 @@ export function ContactForm({
                   <FormControl>
                     <Textarea
                       {...field}
-                      className="bg-navy-700 border-navy-600 text-white min-h-32"
+                      className="bg-white/5 border-white/10 text-white min-h-32"
                       placeholder="Describe your project in detail: room size, current condition, timeline, budget range, specific requirements..."
                     />
                   </FormControl>
@@ -287,7 +287,7 @@ export function ContactForm({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 flex items-center gap-2"
+                className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 py-2 flex items-center gap-2 shadow-lg shadow-ts-orange/25"
               >
                 {isSubmitting ? (
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
@@ -301,13 +301,13 @@ export function ContactForm({
         </Form>
 
         {/* Request alternatives */}
-        <div className="mt-6 pt-6 border-t border-navy-600">
-          <p className="text-sm text-gray-400 mb-3">Prefer request-based routing?</p>
+        <div className="mt-6 pt-6 border-t border-white/10">
+          <p className="text-sm text-white/60 mb-3">Prefer request-based routing?</p>
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
               size="sm"
-              className="border-navy-600 text-gray-300 hover:text-white"
+              className="border-white/10 text-white/60 hover:text-white"
             >
               <ClipboardList className="h-4 w-4 mr-2" />
               Request Quote

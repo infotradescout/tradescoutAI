@@ -162,7 +162,7 @@ export function EmailPasswordAuth() {
                   href={`/pre-scout-setup?mode=create&email=${encodeURIComponent(
                     (emailValue || "").trim()
                   )}`}
-                  className="inline-flex items-center justify-center rounded-full border border-tsAccent/60 px-3 py-1 font-medium text-tsAccent hover:bg-tsAccent hover:text-black transition"
+                  className="inline-flex items-center justify-center rounded-full border border-ts-orange/60 px-3 py-1 font-medium text-ts-orange hover:bg-ts-orange hover:text-black transition"
                 >
                   Create an account
                 </Link>
@@ -192,10 +192,10 @@ export function EmailPasswordAuth() {
       </Button>
 
       <div className="mt-3 space-y-1 text-center">
-        <p className="text-xs text-tsTextMuted">New here?</p>
+        <p className="text-xs text-white/60">New here?</p>
         <Link
           href="/pre-scout-setup?mode=create"
-          className="inline-flex items-center justify-center rounded-full border border-tsAccent/60 px-3 py-1 text-xs font-medium text-tsAccent hover:bg-tsAccent hover:text-black transition"
+          className="inline-flex items-center justify-center rounded-full border border-ts-orange/60 px-3 py-1 text-xs font-medium text-ts-orange hover:bg-ts-orange hover:text-black transition"
         >
           Create a free TradeScout account
         </Link>
