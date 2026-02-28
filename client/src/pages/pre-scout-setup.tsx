@@ -413,6 +413,17 @@ export default function PreScoutSetup() {
         body: { provisional: provisionalNext },
       });
 
+      // Ensure the authenticated user cache reflects the saved draft before
+      // navigating into Scout, otherwise protected routes can bounce users
+      // back into setup with stale profileVersion/preferences.
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      try {
+        await refetch?.();
+      } catch {
+        // fail-soft
+      }
+
       toast({
         title: "Setup saved",
         description: "Opening your workspace.",

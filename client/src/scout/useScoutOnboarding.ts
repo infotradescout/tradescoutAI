@@ -148,6 +148,14 @@ export function useScoutOnboarding() {
         throw new Error('Failed to write some claims');
       }
 
+      // Mark onboarding as completed server-side so users don't get re-routed
+      // into onboarding flows in later sessions.
+      try {
+        await apiRequest("POST", "/api/user/complete-onboarding", {});
+      } catch {
+        // fail-soft: claims have already been persisted
+      }
+
       // Mark onboarding as done
       try {
         sessionStorage.setItem(SESSION_DONE_KEY, '1');

@@ -23,6 +23,10 @@ const PaymentProcessing = memo(function PaymentProcessing() {
               unlock TradeScout features or ranking is a scam.
             </p>
             <p>
+              Legitimate checkouts (for example, booking payments between users) are always clearly
+              labeled in-app. Payment activity never changes ranking or exposure.
+            </p>
+            <p>
               No paid access tiers, no pay-for-lead extraction, and no paid exposure controls are
               available in this system.
             </p>

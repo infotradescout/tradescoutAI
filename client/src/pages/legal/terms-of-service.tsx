@@ -146,13 +146,14 @@ export default function TermsOfService() {
                 <li>Trust ranking and visibility are never sold as paid access controls</li>
               </ul>
 
-              <h3 className="text-xl font-medium mb-3">Optional Paid Products and Services</h3>
+              <h3 className="text-xl font-medium mb-3">Payment Safety</h3>
               <ul className="list-disc pl-6 mb-6">
-                <li>Optional paid products/services are clearly disclosed before checkout</li>
-                <li>Third-party offers (including TradePartners) are labeled as third-party</li>
+                <li>Access is $0; no one can pay to unlock access, ranking, or visibility</li>
                 <li>Any payment request outside labeled checkout should be treated as fraud</li>
-                <li>Fees are non-refundable except as required by law</li>
-                <li>Fee structure may change with 30 days notice</li>
+                <li>
+                  If you use payment features (for example, paying a provider for an agreed booking),
+                  the checkout will be clearly labeled in-app
+                </li>
               </ul>
 
               <h3 className="text-xl font-medium mb-3">Payment Processing</h3>

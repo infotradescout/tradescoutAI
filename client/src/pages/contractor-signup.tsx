@@ -261,8 +261,9 @@ export default function ContractorSignup() {
               <Building className="h-8 w-8 text-orange-500 mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-white">Free Listing</h3>
               <p className="text-gray-300 text-sm">
-                Access to features, connections, and information is $0. Optional paid products are
-                clearly labeled; unlabeled payment requests in TradeScout's name are scams
+                Access to features, connections, and information is $0. If you ever see a checkout
+                (for example, a booking payment you choose to send or accept), it will be clearly
+                labeled in-app. Unlabeled payment requests in TradeScout's name are scams.
               </p>
             </div>
           </div>

@@ -770,7 +770,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "How much does TradeScout cost?",
-      a: "Access is simple: $0 for features, connections, and information. Optional paid products and connected platform offers are clearly labeled before checkout.",
+      a: "Access is simple: $0 for features, connections, and information. If you ever see a checkout (for example, a booking payment you choose to send or accept), it will be clearly labeled in-app. Any payment request claiming to unlock access, ranking, or visibility is a scam.",
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",

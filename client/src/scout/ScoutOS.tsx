@@ -847,6 +847,11 @@ export default function ScoutOS() {
     const userId = (user as any)?.id;
     const provisional = (user as any)?.preferences?.provisional;
     const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+    const alreadyCompleted = (user as any)?.onboardingCompleted === true;
+
+    // Once a user has completed onboarding, never auto-trigger it again
+    // from lingering onboarding query params.
+    if (alreadyCompleted) return;
 
     if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
       return;
