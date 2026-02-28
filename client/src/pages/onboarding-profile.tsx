@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,11 +12,32 @@ import { StateCountySelector } from "@/components/state-county-selector";
 import { apiRequest } from "@/lib/queryClient";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
+function sanitizeNext(next: string) {
+  if (!next.startsWith("/")) return "/scout?onboarding=true";
+  if (
+    next.startsWith("/pre-scout-setup") ||
+    next.startsWith("/login") ||
+    next.startsWith("/register")
+  ) {
+    return "/scout?onboarding=true";
+  }
+  return next;
+}
+
 export default function OnboardingProfile() {
   const { user, isAuthenticated, isLoading, refetch } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
+
+  const search = useMemo(() => {
+    const raw = String(location || "");
+    const query = raw.includes("?") ? raw.split("?", 2)[1] : "";
+    return new URLSearchParams(query);
+  }, [location]);
+  const nextParam = (search.get("next") || "").trim();
+  const safeNext = nextParam.startsWith("/") ? nextParam : "";
+  const postProfileNext = sanitizeNext(safeNext);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -33,7 +54,7 @@ export default function OnboardingProfile() {
 
     // If already on or above the current profile version, skip ahead.
     if (profileVersion >= CURRENT_PROFILE_VERSION) {
-      navigate("/onboarding/intent");
+      navigate(postProfileNext);
       return;
     }
 
@@ -42,7 +63,7 @@ export default function OnboardingProfile() {
     setStateCode(anyUser.stateCode || "");
     setCountyFips(anyUser.countyFips || "");
     setCountyName(anyUser.countyName || undefined);
-  }, [user, isAuthenticated, navigate]);
+  }, [user, isAuthenticated, navigate, postProfileNext]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -84,7 +105,7 @@ export default function OnboardingProfile() {
         description:
           "You're all set. You won't be asked to update this again unless something important changes.",
       });
-      navigate("/onboarding/intent");
+      navigate(postProfileNext);
     },
     onError: (error: any) => {
       toast({
@@ -122,14 +143,10 @@ export default function OnboardingProfile() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
-                <span className="text-xs uppercase tracking-[0.2em] text-white/60">
-                  TRADESCOUT
-                </span>
+                <span className="text-xs uppercase tracking-[0.2em] text-white/60">TRADESCOUT</span>
               </div>
             </div>
-            <CardTitle className="text-lg font-semibold text-white">
-              Quick profile check
-            </CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">Quick profile check</CardTitle>
           </CardHeader>
 
           <CardContent>

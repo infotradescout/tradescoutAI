@@ -190,6 +190,8 @@ const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const Landing = React.lazy(() => import("./pages/landing"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
+const OnboardingIntent = React.lazy(() => import("./pages/onboarding-intent"));
+const OnboardingProfile = React.lazy(() => import("./pages/onboarding-profile"));
 const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 
@@ -794,15 +796,19 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/pre-scout-setup">
                     <LazyPage Component={PreScoutSetup} />
                   </Route>
-                  {/* Deprecated onboarding aliases routed into pre-scout setup. */}
-                  <Route path="/onboarding/intent">
-                    <RedirectTo to="/pre-scout-setup?mode=create" />
-                  </Route>
+                  {/* Onboarding: profile normalization flow (auth required). */}
                   <Route path="/onboarding/profile">
-                    <RedirectTo to="/pre-scout-setup?mode=create" />
+                    <ProtectedRoute>
+                      <LazyPage Component={OnboardingProfile} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/onboarding/intent">
+                    <ProtectedRoute>
+                      <LazyPage Component={OnboardingIntent} />
+                    </ProtectedRoute>
                   </Route>
                   <Route path="/profile-setup">
-                    <RedirectTo to="/pre-scout-setup?mode=create" />
+                    <RedirectTo to="/onboarding/profile" />
                   </Route>
 
                   {/* Legacy auth URLs map directly to mode-specific pre-scout entry. */}

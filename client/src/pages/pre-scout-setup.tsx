@@ -13,6 +13,7 @@ import { buildApiUrl, getApiBaseUrl } from "@/lib/apiBaseUrl";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine";
+import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
 type AuthMode = "create" | "signin";
 
@@ -70,6 +71,14 @@ export default function PreScoutSetup() {
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
   const isAdminDestination = postSetupNext.startsWith("/admin");
+  const anyUser: any = user || {};
+  const currentProfileVersion: number =
+    typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+  const hasCanonicalLocation =
+    typeof anyUser.stateCode === "string" &&
+    anyUser.stateCode.length === 2 &&
+    typeof anyUser.countyFips === "string" &&
+    anyUser.countyFips.length === 5;
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const claimSlug = (searchParams.get("claim") || "").trim();
   const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
@@ -163,6 +172,29 @@ export default function PreScoutSetup() {
     if (!isAdminDestination) return;
     navigate(postSetupNext);
   }, [isAuthenticated, isAdminDestination, postSetupNext, navigate]);
+
+  // If the user already has a committed location, don't send them through local setup again.
+  // Route them into profile normalization if needed, otherwise take them to their destination.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (isAdminDestination) return;
+    if (!hasCanonicalLocation) return;
+
+    const next = postSetupNext;
+    if (currentProfileVersion < CURRENT_PROFILE_VERSION) {
+      navigate(`/onboarding/profile?next=${encodeURIComponent(next)}`);
+      return;
+    }
+
+    navigate(next);
+  }, [
+    isAuthenticated,
+    isAdminDestination,
+    hasCanonicalLocation,
+    currentProfileVersion,
+    postSetupNext,
+    navigate,
+  ]);
 
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;
@@ -447,6 +479,25 @@ export default function PreScoutSetup() {
         body: { provisional: provisionalNext },
       });
 
+      // Fail-soft: persist the user's locality to local storage so the session layer can
+      // immediately route even if auth cache propagation lags.
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            "userLocation",
+            JSON.stringify({
+              stateCode,
+              countyFips,
+              countyName: countyName || undefined,
+              label: countyName ? `${countyName}, ${stateCode}` : `${stateCode} ${countyFips}`,
+              committedAt: new Date().toISOString(),
+            })
+          );
+        }
+      } catch {
+        // ignore
+      }
+
       // Ensure the authenticated user cache reflects the saved draft before
       // navigating into Scout, otherwise protected routes can bounce users
       // back into setup with stale profileVersion/preferences.
@@ -469,6 +520,18 @@ export default function PreScoutSetup() {
         stateCode,
         countyFips,
       });
+
+      if (isAdminDestination) {
+        navigate(postSetupNext);
+        return;
+      }
+
+      // After local setup, continue into the profile normalization flow so the user
+      // finishes the full signup path (name + location get committed to the account).
+      if (currentProfileVersion < CURRENT_PROFILE_VERSION) {
+        navigate(`/onboarding/profile?next=${encodeURIComponent(postSetupNext)}`);
+        return;
+      }
 
       navigate(postSetupNext);
     } catch (error: any) {

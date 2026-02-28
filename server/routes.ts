@@ -4256,8 +4256,8 @@ export async function registerRoutes(app: any) {
       const updatedPreferences = { ...currentPrefs, ...(req.body ?? {}) };
 
       // If pre-Scout setup has captured a canonical locality draft, commit the minimal
-      // location fields onto the user record and advance profileVersion so protected
-      // routes don't keep re-sending logged-in users through setup loops.
+      // location fields onto the user record so protected routes don't keep re-sending
+      // logged-in users through setup loops.
       const provisional = (updatedPreferences as any)?.provisional;
       const profileDraft = provisional?.profileDraft;
       const presenceType = profileDraft?.presenceType;
@@ -4271,10 +4271,9 @@ export async function registerRoutes(app: any) {
         typeof countyFips === "string" &&
         /^\d{5}$/.test(countyFips);
 
-      const currentProfileVersion =
-        typeof (currentUser as any)?.profileVersion === "number"
-          ? (currentUser as any).profileVersion
-          : 0;
+      const normalizedStateCode =
+        typeof stateCode === "string" ? stateCode.trim().toUpperCase() : stateCode;
+      const normalizedCountyFips = typeof countyFips === "string" ? countyFips.trim() : countyFips;
 
       const userUpdate: any = {
         preferences: updatedPreferences,
@@ -4282,15 +4281,12 @@ export async function registerRoutes(app: any) {
       };
 
       if (shouldCommitLocality) {
-        userUpdate.stateCode = stateCode;
-        userUpdate.countyFips = countyFips;
+        userUpdate.stateCode = normalizedStateCode;
+        userUpdate.countyFips = normalizedCountyFips;
         if (typeof countyName === "string" && countyName.trim()) {
           userUpdate.countyName = countyName.trim();
         }
         userUpdate.locationCommitted = true;
-        if (currentProfileVersion < CURRENT_PROFILE_VERSION) {
-          userUpdate.profileVersion = CURRENT_PROFILE_VERSION;
-        }
       }
 
       const user = await storage.updateUser(userId, userUpdate);

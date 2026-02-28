@@ -83,6 +83,7 @@ export function ProtectedRoute({
     const isSetupRoute =
       location.startsWith("/pre-scout-setup") ||
       location.startsWith("/onboarding/profile") ||
+      location.startsWith("/onboarding/intent") ||
       location.startsWith("/profile-setup");
 
     if (
@@ -93,7 +94,15 @@ export function ProtectedRoute({
       !isSetupRoute
     ) {
       const next = encodeURIComponent(location || "/");
-      setLocation(`/pre-scout-setup?mode=signin&next=${next}`);
+      const hasCanonicalLocation = Boolean((user as any)?.stateCode && (user as any)?.countyFips);
+
+      // If locality is already committed, send them through the profile normalization flow
+      // instead of looping them back into local setup.
+      if (hasCanonicalLocation) {
+        setLocation(`/onboarding/profile?next=${next}`);
+      } else {
+        setLocation(`/pre-scout-setup?mode=signin&next=${next}`);
+      }
       return;
     }
 
