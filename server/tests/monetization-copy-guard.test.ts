@@ -46,7 +46,6 @@ describe("public monetization copy guards", () => {
 
     expect(howItWorks).toContain("does not sell leads");
     expect(howItWorks).toContain("does not charge to connect");
-    expect(howItWorks).toContain("Optional paid services");
     expect(howItWorks).toContain("is a scam");
 
     expect(directConnectInfo).toContain("never charges to connect");

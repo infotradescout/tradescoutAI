@@ -770,7 +770,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "How much does TradeScout cost?",
-      a: "Access is simple: no charge to connect, and information is free. If you ever see a checkout (for example, a booking payment you choose to send or accept), it will be clearly labeled in-app. Any payment request claiming to unlock access, ranking, or visibility is a scam.",
+      a: "Access is simple: no charge to connect, and information is free. Any payment request claiming to unlock access, ranking, or visibility is a scam.",
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",

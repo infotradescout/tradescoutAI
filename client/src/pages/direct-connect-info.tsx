@@ -41,7 +41,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "What payment requests are legitimate?",
       answer:
-        "TradeScout never charges to connect, to be routed, or to unlock visibility. Some optional paid services may exist (and will always be clearly labeled in-app before checkout), but payment never changes matching, ranking, or contact authority.",
+        "TradeScout never charges to connect, to be routed, or to unlock visibility. Payment never changes matching, ranking, or contact authority.",
     },
     {
       question: "What information does Scout send to contractors?",
@@ -286,8 +286,8 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
                   <span>
-                    <strong>Scam safety</strong>: Only pay through clearly labeled checkout for paid
-                    options; unlabeled money requests in TradeScout's name are scams
+                    <strong>Scam safety</strong>: Any unlabeled money request in TradeScout's name
+                    is a scam
                   </span>
                 </li>
               </ul>

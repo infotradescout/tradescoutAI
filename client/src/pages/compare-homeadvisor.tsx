@@ -58,7 +58,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "Is TradeScout really $0 to use?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching.",
+        "TradeScout does not sell leads and does not charge to connect. Payment never affects CVS, ranking, or matching.",
     },
   ];
 

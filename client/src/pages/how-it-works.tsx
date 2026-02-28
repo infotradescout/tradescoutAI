@@ -148,7 +148,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Lock,
       title: "Free to Use",
-      desc: "TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect matching, ranking, or contact authority. Any request for payment claiming to unlock matching, ranking, or visibility is a scam.",
+      desc: "TradeScout does not sell leads and does not charge to connect. Any payment request claiming to unlock matching, ranking, or visibility is a scam.",
     },
   ];
 
