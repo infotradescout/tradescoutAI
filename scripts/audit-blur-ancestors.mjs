@@ -52,11 +52,29 @@ async function main() {
       lines.forEach((line, index) => {
         if (!BLUR_TOKENS.some((token) => line.includes(token))) return;
 
-        // Look a bit further back for selector context so
-        // `.foo::before {\n  backdrop-filter: blur(...)` is allowed.
-        const contextStart = Math.max(0, index - 8);
-        const context = lines.slice(contextStart, index + 1).join("\n");
-        if (context.includes("::before") || context.includes("::after")) return;
+        // Find the start of the current CSS block, then inspect the selector lines
+        // immediately above it. This avoids false positives when the selector is
+        // far above the blur property (long blocks).
+        let braceLine = -1;
+        for (let i = index; i >= 0; i--) {
+          if (lines[i].includes("{")) {
+            braceLine = i;
+            break;
+          }
+          // Stop at end of previous block; we won't cross block boundaries.
+          if (lines[i].includes("}")) break;
+        }
+
+        if (braceLine >= 0) {
+          const selectorStart = Math.max(0, braceLine - 20);
+          const selectorContext = lines.slice(selectorStart, braceLine + 1).join("\n");
+          if (selectorContext.includes("::before") || selectorContext.includes("::after")) return;
+        } else {
+          // Fallback: scan a wider window.
+          const contextStart = Math.max(0, index - 60);
+          const context = lines.slice(contextStart, index + 1).join("\n");
+          if (context.includes("::before") || context.includes("::after")) return;
+        }
 
         violations.push({
           file: filePath,
