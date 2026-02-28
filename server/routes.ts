@@ -12447,15 +12447,20 @@ export async function registerRoutes(app: any) {
         );
         const businessName = getFirstNonEmpty(rec, [
           "business_name",
+          "businessname",
           "business",
           "name",
           "company_name",
+          "companyname",
           "company",
           "trade_name",
+          "tradename",
           "dba",
           "legal_name",
+          "legalname",
           "organization",
           "org_name",
+          "orgname",
         ]);
         const countyFips =
           getFirstNonEmpty(rec, ["county_fips", "countyfips", "fips", "county_fips_code"]).trim() ||
