@@ -879,12 +879,20 @@ app.use((req, res, next) => {
                 // If an asset was requested but not found by express.static, do NOT
                 // return index.html – this would surface as a MIME-type error in the browser.
                 if (reqPath.startsWith("/assets")) {
+                  // Avoid caching missing hashed chunks. Some CDNs/proxies will cache 404s,
+                  // which can make a partial deploy look "permanently broken".
+                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader("CDN-Cache-Control", "no-store");
+                  res.setHeader("Surrogate-Control", "no-store");
                   return res.status(404).end();
                 }
 
                 // If it looks like a file request (e.g. /favicon.ico), never fall back to index.html.
                 const base = path.posix.basename(reqPath);
                 if (base.includes(".")) {
+                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader("CDN-Cache-Control", "no-store");
+                  res.setHeader("Surrogate-Control", "no-store");
                   return res.status(404).end();
                 }
 

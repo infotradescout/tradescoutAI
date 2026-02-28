@@ -12054,7 +12054,8 @@ export async function registerRoutes(app: any) {
         return Array.from(
           new Set(
             raw
-              .split(/[;|]/g)
+              // Allow comma-separated category lists (e.g. Maps-scraper exports).
+              .split(/[;,|]/g)
               .map((s) => s.trim())
               .filter(Boolean)
           )
@@ -12157,8 +12158,15 @@ export async function registerRoutes(app: any) {
           "tel",
         ]);
         const website = getFirstNonEmpty(rec, ["website", "url", "web", "site"]);
-        const category = getFirstNonEmpty(rec, ["category", "business_category", "industry"]);
-        const services = normalizeServices(getFirstNonEmpty(rec, ["services", "service_list"]));
+        const category = getFirstNonEmpty(rec, [
+          "category",
+          "categories",
+          "business_category",
+          "industry",
+        ]);
+        const services = normalizeServices(
+          getFirstNonEmpty(rec, ["services", "service_list", "categories"])
+        );
         const ownerFirstName = getFirstNonEmpty(rec, [
           "owner_first_name",
           "first_name",
@@ -12449,8 +12457,8 @@ export async function registerRoutes(app: any) {
                 const createdBiz = await storage.createUnclaimedBusiness({
                   name: businessName,
                   slug: businessName,
-                  type: "other" as any,
-                  roleContext: "business_owner" as any,
+                  type: "contractor" as any,
+                  roleContext: "contractor" as any,
                   profileData: {
                     category: category || undefined,
                     services: services.length ? services : undefined,
@@ -12459,7 +12467,7 @@ export async function registerRoutes(app: any) {
                     importExtras: Object.keys(importExtras).length ? importExtras : undefined,
                   },
                   sources: [sourceLabel],
-                  status: "draft" as any,
+                  status: "active" as any,
                   countyIds,
                 } as any);
                 businessId = createdBiz.id;
