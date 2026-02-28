@@ -21,6 +21,32 @@ function resolveDelimiter(input: string): string {
   return ",";
 }
 
+function extractStateCodeFromLooseAddress(input: string): string {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+
+  // Common patterns:
+  // - "Pensacola, FL 32501"
+  // - "..., Pensacola, FL 32501"
+  // - "..., FL"
+  const match = raw.match(/\b([A-Z]{2})\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+  return match?.[1] || "";
+}
+
+function extractGoogleCid(input: string): string {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    const cid = url.searchParams.get("cid");
+    if (cid) return cid.trim();
+  } catch {
+    // ignore
+  }
+  const cidMatch = raw.match(/[?&]cid=(\d{6,})\b/);
+  return cidMatch?.[1] || "";
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const filePath = String(args.file || "").trim();
@@ -86,7 +112,13 @@ async function main() {
       ]);
       if (!name) return;
 
-      const stateCode = getFirstValue(record, ["state_code", "state", "st"]).toUpperCase();
+      const stateCodeRaw = getFirstValue(record, ["state_code", "state", "st"]).toUpperCase();
+      const municipality = getFirstValue(record, ["municipality", "city_state_zip", "city"]);
+      const fulladdress = getFirstValue(record, ["fulladdress", "full_address", "address"]);
+      const stateCode =
+        stateCodeRaw ||
+        extractStateCodeFromLooseAddress(municipality) ||
+        extractStateCodeFromLooseAddress(fulladdress);
       const countyFips = getFirstValue(record, ["county_fips", "fips", "countyfips"]);
       const countyName = getFirstValue(record, ["county_name", "county"]);
       const phone = normalizePhone(
@@ -96,7 +128,10 @@ async function main() {
         getFirstValue(record, ["email", "business_email", "contact_email", "owner_email"])
       );
       const website = normalizeWebsite(getFirstValue(record, ["website", "url", "site"]));
-      const externalId = getFirstValue(record, ["external_id", "source_id", "id"]);
+      const googleMapsUrl = getFirstValue(record, ["google_maps_url", "google_maps", "maps_url"]);
+      const externalId =
+        getFirstValue(record, ["external_id", "source_id", "id"]) ||
+        extractGoogleCid(googleMapsUrl);
       const latRaw = getFirstValue(record, ["lat", "latitude"]);
       const lngRaw = getFirstValue(record, ["lng", "longitude", "lon"]);
       const tradeCategories = parseTradeCategories(

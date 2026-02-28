@@ -56,6 +56,27 @@ function buildImportExtras(
   if (expiresAt) out.license_expires_at = expiresAt.slice(0, 40);
   if (defaults.licenseSource) out.license_source = String(defaults.licenseSource).slice(0, 64);
 
+  // Maps-scraper / directory enrichment (do not treat as verification)
+  const mapsFullAddress = readRawValue(row, ["fulladdress", "full_address", "address"]);
+  const mapsStreet = readRawValue(row, ["street"]);
+  const mapsMunicipality = readRawValue(row, ["municipality"]);
+  const mapsCategories = readRawValue(row, ["categories", "category"]);
+  const mapsReviewCount = readRawValue(row, ["review_count"]);
+  const mapsAverageRating = readRawValue(row, ["average_rating"]);
+  const mapsReviewUrl = readRawValue(row, ["review_url"]);
+  const mapsUrl = readRawValue(row, ["google_maps_url"]);
+  const mapsFeaturedImage = readRawValue(row, ["featured_image"]);
+
+  if (mapsFullAddress) out.gmb_full_address = mapsFullAddress.slice(0, 300);
+  if (mapsStreet) out.gmb_street = mapsStreet.slice(0, 220);
+  if (mapsMunicipality) out.gmb_municipality = mapsMunicipality.slice(0, 220);
+  if (mapsCategories) out.gmb_categories = mapsCategories.slice(0, 500);
+  if (mapsReviewCount) out.gmb_review_count = mapsReviewCount.slice(0, 40);
+  if (mapsAverageRating) out.gmb_average_rating = mapsAverageRating.slice(0, 40);
+  if (mapsReviewUrl) out.gmb_review_url = mapsReviewUrl.slice(0, 500);
+  if (mapsUrl) out.gmb_maps_url = mapsUrl.slice(0, 500);
+  if (mapsFeaturedImage) out.gmb_featured_image = mapsFeaturedImage.slice(0, 500);
+
   return Object.keys(out).length ? out : null;
 }
 
@@ -243,6 +264,12 @@ async function main() {
       const existing = await findExistingBusiness(row);
       const sourceLabel = String(row.source || "csv_import");
       const importedExtras = buildImportExtras(row, { licenseStatusDefault, licenseSource });
+      const primaryCategory =
+        Array.isArray(row.tradeCategories) && row.tradeCategories.length
+          ? String(row.tradeCategories[0] || "").trim()
+          : String(readRawValue(row, ["categories", "category"]) || "")
+              .split(",")[0]
+              ?.trim();
 
       if (existing) {
         const isClaimed = Boolean(existing.ownerUserId) || existing.claimStatus === "claimed";
@@ -269,6 +296,7 @@ async function main() {
         if (!nextProfile.phone && row.phone) nextProfile.phone = row.phone;
         if (!nextProfile.email && row.email) nextProfile.email = row.email;
         if (!nextProfile.website && row.website) nextProfile.website = row.website;
+        if (!nextProfile.category && primaryCategory) nextProfile.category = primaryCategory;
         if (
           !nextProfile.services &&
           Array.isArray(row.tradeCategories) &&
@@ -323,6 +351,7 @@ async function main() {
             claimStatus: "unclaimed",
             sources: [sourceLabel],
             profileData: {
+              category: primaryCategory || undefined,
               phone: row.phone || undefined,
               email: row.email || undefined,
               website: row.website || undefined,
