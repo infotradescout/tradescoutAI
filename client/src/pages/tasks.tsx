@@ -92,6 +92,7 @@ export default function TasksHub({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
+  const MAX_DIRECT_PROS = 3;
 
   const [activeTab, setActiveTab] = useState<"browse" | "post">(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
@@ -292,6 +293,10 @@ export default function TasksHub({
         nextErrors.pay = "Enter a valid pay amount.";
       }
       if (!selectedCountyFips) nextErrors.county = "Set a county before posting.";
+      // If the user is not direct-requesting specific pros, require a trade so the board can filter correctly.
+      if (!selectedProviderIds.length && !resolvedTradeSlug) {
+        nextErrors.form = "Pick a trade so the right pros can see this.";
+      }
       if (Object.keys(nextErrors).length > 0) {
         setFieldErrors(nextErrors);
         throw new Error("Fix the highlighted fields.");
@@ -911,7 +916,7 @@ export default function TasksHub({
                           <div className="grid gap-2">
                             <div className="flex items-center justify-between">
                               <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                                Invite providers
+                                Choose your pros (optional)
                               </Label>
                               <Button
                                 type="button"
@@ -922,6 +927,11 @@ export default function TasksHub({
                               >
                                 {showProviderInvites ? "Hide" : "Show"}
                               </Button>
+                            </div>
+                            <div className="text-xs text-white/60">
+                              Pick up to {MAX_DIRECT_PROS}. If you pick 1-{MAX_DIRECT_PROS}, this is
+                              a private direct request to those pros. If you pick none, it posts to
+                              the board for relevant pros.
                             </div>
                             {showProviderInvites && (
                               <>
@@ -978,16 +988,28 @@ export default function TasksHub({
                                 ) : providersLoading ? (
                                   <p className="text-sm text-white/60">Loading providers...</p>
                                 ) : !tradeSlugForCategory ? (
-                                  <p className="text-sm text-white/60">
-                                    Pick a trade for matches.
-                                  </p>
+                                  <p className="text-sm text-white/60">Pick a trade for matches.</p>
                                 ) : (recommendedProviders || []).length === 0 ? (
-                                  <p className="text-sm text-white/60">
-                                    No provider matches yet.
-                                  </p>
+                                  <p className="text-sm text-white/60">No provider matches yet.</p>
                                 ) : (
                                   <div className="space-y-2">
-                                    <p className="text-xs text-white/60">Suggested providers:</p>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-xs text-white/60">
+                                        Suggested providers (selected {selectedProviderIds.length}/
+                                        {MAX_DIRECT_PROS})
+                                      </p>
+                                      {selectedProviderIds.length > 0 && (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 px-2 text-xs text-white/60 hover:text-white"
+                                          onClick={() => setSelectedProviderIds([])}
+                                        >
+                                          Clear
+                                        </Button>
+                                      )}
+                                    </div>
                                     <div className="space-y-1.5">
                                       {recommendedProviders!.map((provider) => {
                                         const checked = selectedProviderIds.includes(provider.id);
@@ -1000,7 +1022,21 @@ export default function TasksHub({
                                               checked={checked}
                                               onCheckedChange={(val) => {
                                                 setSelectedProviderIds((prev) => {
-                                                  if (val) {
+                                                  const wantsOn = Boolean(val);
+                                                  if (
+                                                    wantsOn &&
+                                                    !prev.includes(provider.id) &&
+                                                    prev.length >= MAX_DIRECT_PROS
+                                                  ) {
+                                                    toast({
+                                                      title: `Limit ${MAX_DIRECT_PROS} pros`,
+                                                      description: `You can direct-request up to ${MAX_DIRECT_PROS} pros. Remove one to add another.`,
+                                                      variant: "destructive",
+                                                    });
+                                                    return prev;
+                                                  }
+
+                                                  if (wantsOn) {
                                                     const next = [...prev, provider.id];
                                                     return Array.from(new Set(next));
                                                   }
@@ -1115,9 +1151,7 @@ export default function TasksHub({
             <div className="space-y-4 text-sm text-white/60">
               <p>
                 Your current area:{" "}
-                <span className="font-semibold text-white">
-                  {selectedCountyFips || "Not set"}
-                </span>
+                <span className="font-semibold text-white">{selectedCountyFips || "Not set"}</span>
               </p>
               <Input
                 type="text"

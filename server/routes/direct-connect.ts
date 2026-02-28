@@ -948,6 +948,9 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
+        const isDirectToProviders =
+          Array.isArray(body.targetContractorIds) && body.targetContractorIds.length > 0;
+
         const [created] = await db
           .insert(workRequests)
           .values({
@@ -957,10 +960,11 @@ export function registerDirectConnectRoutes(app: Express) {
             category: body.category,
             countyFips,
             stateCode,
-            scope: "community",
+            // Direct-to-provider requests should not be listed as "community board" jobs.
+            scope: isDirectToProviders ? "personal" : "community",
             source: "direct_connect" as any,
             status: "open",
-            visibility: "community",
+            visibility: isDirectToProviders ? "private" : "community",
             exposureMode: "guided",
             competitionMode: "none",
             budgetMin,
