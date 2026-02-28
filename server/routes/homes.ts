@@ -7,6 +7,8 @@ import {
   USER_HOME_DOCUMENT_TYPES,
   USER_HOME_RECORD_TYPES,
   businesses,
+  homeProjectPlans,
+  homeProjects,
   homeMaintenanceSchedules,
   propertyPrograms,
   userHomeAppliances,
@@ -90,6 +92,41 @@ const completeMaintenanceScheduleSchema = z.object({
   cost: z.number().finite().nonnegative().optional(),
 });
 
+const createHomeProjectSchema = z.object({
+  title: z.string().trim().min(2).max(220),
+  description: z.string().trim().max(20_000).optional(),
+  projectType: z.string().trim().max(80).optional(),
+  estimatedCost: z.number().finite().nonnegative().optional(),
+  desiredStartAt: z.string().trim().optional(), // YYYY-MM-DD
+
+  hasBudgetNow: z.boolean().optional(),
+  monthlySavings: z.number().finite().nonnegative().optional(),
+  targetBy: z.string().trim().optional(), // YYYY-MM-DD
+  fundingSources: z.array(z.string().trim().min(1).max(80)).max(12).optional(),
+  planNotes: z.string().trim().max(20_000).optional(),
+});
+
+const updateHomeProjectSchema = z.object({
+  title: z.string().trim().min(2).max(220).optional(),
+  description: z.string().trim().max(20_000).optional(),
+  projectType: z.string().trim().max(80).optional(),
+  estimatedCost: z.number().finite().nonnegative().optional(),
+  desiredStartAt: z.string().trim().optional(), // YYYY-MM-DD
+  status: z
+    .enum(["planning", "saving", "ready", "in_progress", "completed", "paused", "canceled"])
+    .optional(),
+});
+
+const upsertHomeProjectPlanSchema = z.object({
+  planType: z.enum(["savings", "funding"]).optional(),
+  targetAmount: z.number().finite().positive(),
+  currentSaved: z.number().finite().nonnegative().optional(),
+  targetBy: z.string().trim().optional(), // YYYY-MM-DD
+  monthlyContribution: z.number().finite().nonnegative().optional(),
+  fundingSources: z.array(z.string().trim().min(1).max(80)).max(12).optional(),
+  notes: z.string().trim().max(20_000).optional(),
+});
+
 function getUserId(req: any): string {
   return String((req.user as any)?.claims?.sub || (req.user as any)?.id || "").trim();
 }
@@ -125,10 +162,25 @@ function parseIsoDateOrNull(value: string | undefined): Date | null {
   return d;
 }
 
+function parseYmdOrNull(value: string | undefined): string | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  return v;
+}
+
 function addDays(d: Date, days: number): Date {
   const next = new Date(d.getTime());
   next.setUTCDate(next.getUTCDate() + days);
   return next;
+}
+
+function monthsBetweenInclusive(from: Date, to: Date): number {
+  const f = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
+  const t = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1));
+  const months =
+    (t.getUTCFullYear() - f.getUTCFullYear()) * 12 + (t.getUTCMonth() - f.getUTCMonth());
+  return Math.max(1, months + 1);
 }
 
 router.get("/api/homes", isAuthenticated, async (req: any, res) => {
@@ -240,6 +292,288 @@ router.get("/api/homes/:homeId/maintenance-schedules", isAuthenticated, async (r
     })),
   });
 });
+
+// ---------------------------------------------------------------------------
+// Home Projects (Home Vault)
+// ---------------------------------------------------------------------------
+
+router.get("/api/homes/:homeId/projects", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const projects = await db
+    .select()
+    .from(homeProjects)
+    .where(and(eq(homeProjects.userHomeId, homeId), eq(homeProjects.ownerUserId, userId)))
+    .orderBy(desc(homeProjects.updatedAt))
+    .limit(200);
+
+  const projectIds = projects.map((p) => String((p as any).id)).filter(Boolean);
+  const plans = projectIds.length
+    ? await db
+        .select()
+        .from(homeProjectPlans)
+        .where(
+          and(
+            eq(homeProjectPlans.ownerUserId, userId),
+            inArray(homeProjectPlans.homeProjectId, projectIds)
+          )
+        )
+        .orderBy(desc(homeProjectPlans.updatedAt))
+    : [];
+
+  const plansByProject = new Map<string, any>();
+  for (const plan of plans) {
+    const pid = String((plan as any).homeProjectId || "");
+    if (pid && !plansByProject.has(pid)) plansByProject.set(pid, plan);
+  }
+
+  res.json({
+    projects: projects.map((p: any) => ({ ...p, plan: plansByProject.get(String(p.id)) || null })),
+  });
+});
+
+router.post("/api/homes/:homeId/projects", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const body = createHomeProjectSchema.parse(req.body ?? {});
+
+  const desiredStartAt = parseYmdOrNull(body.desiredStartAt);
+  const targetBy = parseYmdOrNull(body.targetBy);
+
+  const hasBudgetNow = body.hasBudgetNow === true;
+  const estimatedCost = body.estimatedCost != null ? Number(body.estimatedCost) : null;
+
+  const status: any = hasBudgetNow ? "planning" : "saving";
+
+  const [createdProject] = await db
+    .insert(homeProjects)
+    .values({
+      ownerUserId: userId,
+      userHomeId: homeId,
+      title: body.title,
+      description: body.description || null,
+      projectType: body.projectType || null,
+      status,
+      estimatedCost: estimatedCost != null ? String(estimatedCost) : null,
+      desiredStartAt,
+      metadata: {},
+      updatedAt: new Date(),
+    } as any)
+    .returning();
+
+  if (!createdProject) return res.status(500).json({ message: "Failed to create project" });
+
+  let createdPlan: any = null;
+
+  if (!hasBudgetNow && estimatedCost != null && estimatedCost > 0) {
+    let monthlyContribution: number | null = null;
+
+    if (body.monthlySavings != null && Number(body.monthlySavings) > 0) {
+      monthlyContribution = Number(body.monthlySavings);
+    } else {
+      const targetDate = targetBy
+        ? dateToNoonUtc(targetBy)
+        : desiredStartAt
+          ? dateToNoonUtc(desiredStartAt)
+          : null;
+      if (targetDate) {
+        const months = monthsBetweenInclusive(new Date(), targetDate);
+        monthlyContribution = Math.ceil((estimatedCost / months) * 100) / 100;
+      }
+    }
+
+    const [plan] = await db
+      .insert(homeProjectPlans)
+      .values({
+        ownerUserId: userId,
+        homeProjectId: String((createdProject as any).id),
+        planType: (body.fundingSources && body.fundingSources.length
+          ? "funding"
+          : "savings") as any,
+        targetAmount: String(estimatedCost),
+        currentSaved: "0",
+        targetBy: targetBy || null,
+        monthlyContribution: monthlyContribution != null ? String(monthlyContribution) : null,
+        fundingSources: body.fundingSources ?? [],
+        notes: body.planNotes || null,
+        updatedAt: new Date(),
+      } as any)
+      .returning();
+
+    createdPlan = plan ?? null;
+  }
+
+  await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+  try {
+    const propertyProgramIds = await getLinkedPropertyProgramIdsForHome(homeId);
+    for (const propertyProgramId of propertyProgramIds) {
+      await addPropertyLifecycleEvent({
+        propertyProgramId,
+        actionType: "home_project_created",
+        phase: "plan",
+        title: body.title,
+        description: body.description || null,
+        occurredAt: new Date(),
+        source: "user",
+        status: hasBudgetNow ? "planned" : "blocked",
+        costAmount: estimatedCost,
+        metadata: {
+          homeId,
+          homeProjectId: createdProject.id,
+          projectType: body.projectType || null,
+          desiredStartAt,
+          hasBudgetNow,
+          plan: createdPlan ? { id: createdPlan.id, planType: createdPlan.planType } : null,
+        },
+        createdByUserId: userId,
+        sourceSurface: "home_vault",
+        idempotencyKey: `home:${homeId}:project:${createdProject.id}:created`,
+      });
+    }
+  } catch (err) {
+    console.error("[homes] Failed to sync project creation into property program:", err);
+  }
+
+  res.status(201).json({ project: createdProject, plan: createdPlan });
+});
+
+router.put("/api/homes/:homeId/projects/:projectId", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  const projectId = String(req.params.projectId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+  if (!projectId) return res.status(400).json({ message: "projectId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const updates = updateHomeProjectSchema.parse(req.body ?? {});
+  const desiredStartAt = parseYmdOrNull(updates.desiredStartAt);
+
+  const patch: any = {
+    updatedAt: new Date(),
+  };
+  if (updates.title !== undefined) patch.title = updates.title;
+  if (updates.description !== undefined) patch.description = updates.description || null;
+  if (updates.projectType !== undefined) patch.projectType = updates.projectType || null;
+  if (updates.status !== undefined) patch.status = updates.status;
+  if (updates.estimatedCost !== undefined)
+    patch.estimatedCost = updates.estimatedCost != null ? String(updates.estimatedCost) : null;
+  if (updates.desiredStartAt !== undefined) patch.desiredStartAt = desiredStartAt;
+
+  const rows = await db
+    .update(homeProjects)
+    .set(patch)
+    .where(
+      and(
+        eq(homeProjects.id, projectId),
+        eq(homeProjects.userHomeId, homeId),
+        eq(homeProjects.ownerUserId, userId)
+      )
+    )
+    .returning();
+
+  const updated = rows[0];
+  if (!updated) return res.status(404).json({ message: "Project not found" });
+
+  await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+  res.json({ project: updated });
+});
+
+router.post(
+  "/api/homes/:homeId/projects/:projectId/plan",
+  isAuthenticated,
+  async (req: any, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    const projectId = String(req.params.projectId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+    if (!projectId) return res.status(400).json({ message: "projectId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const [project] = await db
+      .select()
+      .from(homeProjects)
+      .where(
+        and(
+          eq(homeProjects.id, projectId),
+          eq(homeProjects.userHomeId, homeId),
+          eq(homeProjects.ownerUserId, userId)
+        )
+      )
+      .limit(1);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const body = upsertHomeProjectPlanSchema.parse(req.body ?? {});
+    const targetBy = parseYmdOrNull(body.targetBy);
+
+    const [existing] = await db
+      .select()
+      .from(homeProjectPlans)
+      .where(
+        and(eq(homeProjectPlans.homeProjectId, projectId), eq(homeProjectPlans.ownerUserId, userId))
+      )
+      .orderBy(desc(homeProjectPlans.updatedAt))
+      .limit(1);
+
+    const values: any = {
+      ownerUserId: userId,
+      homeProjectId: projectId,
+      planType: body.planType || (existing as any)?.planType || "savings",
+      targetAmount: String(body.targetAmount),
+      currentSaved:
+        body.currentSaved != null
+          ? String(body.currentSaved)
+          : (existing as any)?.currentSaved || "0",
+      targetBy: targetBy || null,
+      monthlyContribution:
+        body.monthlyContribution != null
+          ? String(body.monthlyContribution)
+          : (existing as any)?.monthlyContribution || null,
+      fundingSources: body.fundingSources ?? (existing as any)?.fundingSources ?? [],
+      notes: body.notes ?? (existing as any)?.notes ?? null,
+      updatedAt: new Date(),
+    };
+
+    let saved: any = null;
+    if (existing?.id) {
+      const [row] = await db
+        .update(homeProjectPlans)
+        .set(values)
+        .where(eq(homeProjectPlans.id, (existing as any).id))
+        .returning();
+      saved = row ?? null;
+    } else {
+      const [row] = await db.insert(homeProjectPlans).values(values).returning();
+      saved = row ?? null;
+    }
+
+    await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+    res.status(201).json({ plan: saved });
+  }
+);
 
 router.post("/api/homes/:homeId/maintenance-schedules", isAuthenticated, async (req: any, res) => {
   const userId = getUserId(req);

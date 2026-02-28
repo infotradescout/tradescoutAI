@@ -85,6 +85,16 @@ export default function HomesVault() {
     ? (schedulesQuery.data as any).schedules
     : [];
 
+  const projectsQuery = useQuery({
+    queryKey: [
+      selectedHomeId ? `/api/homes/${selectedHomeId}/projects` : "/api/homes/_none/projects",
+    ],
+    enabled: Boolean(selectedHomeId),
+  });
+  const projects = Array.isArray((projectsQuery.data as any)?.projects)
+    ? (projectsQuery.data as any).projects
+    : [];
+
   const [newHome, setNewHome] = useState({
     nickname: "",
     address1: "",
@@ -121,6 +131,17 @@ export default function HomesVault() {
     nextDueAt: "",
     assignedBusinessSlug: "",
     shareWithAssignedProvider: false,
+  });
+
+  const [newProject, setNewProject] = useState({
+    title: "",
+    projectType: "",
+    description: "",
+    estimatedCost: "",
+    desiredStartAt: "",
+    hasBudgetNow: "no" as "yes" | "no",
+    monthlySavings: "",
+    fundingSources: "",
   });
 
   const createHomeMutation = useMutation({
@@ -328,6 +349,67 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to complete schedule",
+        description: err?.message || "Try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedHomeId) throw new Error("Select a home first");
+      if (!newProject.title.trim()) throw new Error("Project title is required");
+
+      const estimatedCost = newProject.estimatedCost?.trim()
+        ? Number.parseFloat(newProject.estimatedCost)
+        : undefined;
+      const monthlySavings = newProject.monthlySavings?.trim()
+        ? Number.parseFloat(newProject.monthlySavings)
+        : undefined;
+
+      const fundingSources = newProject.fundingSources
+        ? newProject.fundingSources
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .slice(0, 12)
+        : undefined;
+
+      const payload: any = {
+        title: newProject.title.trim(),
+        projectType: newProject.projectType?.trim() || undefined,
+        description: newProject.description?.trim() || undefined,
+        estimatedCost: Number.isFinite(estimatedCost as any) ? estimatedCost : undefined,
+        desiredStartAt: newProject.desiredStartAt?.trim() || undefined,
+        hasBudgetNow: newProject.hasBudgetNow === "yes",
+        monthlySavings: Number.isFinite(monthlySavings as any) ? monthlySavings : undefined,
+        fundingSources,
+      };
+
+      return apiRequest("POST", `/api/homes/${selectedHomeId}/projects`, payload);
+    },
+    onSuccess: async () => {
+      toast({ title: "Project started" });
+      setNewProject({
+        title: "",
+        projectType: "",
+        description: "",
+        estimatedCost: "",
+        desiredStartAt: "",
+        hasBudgetNow: "no",
+        monthlySavings: "",
+        fundingSources: "",
+      });
+      if (selectedHomeId) {
+        await queryClient.invalidateQueries({
+          queryKey: [`/api/homes/${selectedHomeId}/projects`],
+        });
+        await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
+      }
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to start project",
         description: err?.message || "Try again",
         variant: "destructive",
       });
@@ -686,6 +768,163 @@ export default function HomesVault() {
                       >
                         {startSaleMutation.isPending ? "Starting..." : "Start sale listing"}
                       </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Projects</CardTitle>
+                      <CardDescription className="text-xs">
+                        Start a home project and track planning. If you don't have budget yet, make
+                        a savings plan.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label>Project title</Label>
+                          <Input
+                            value={newProject.title}
+                            onChange={(e) =>
+                              setNewProject((p) => ({ ...p, title: e.target.value }))
+                            }
+                            placeholder="Build a deck"
+                          />
+                        </div>
+                        <div>
+                          <Label>Type (optional)</Label>
+                          <Input
+                            value={newProject.projectType}
+                            onChange={(e) =>
+                              setNewProject((p) => ({ ...p, projectType: e.target.value }))
+                            }
+                            placeholder="carpentry, roofing, HVAC..."
+                          />
+                        </div>
+                        <div>
+                          <Label>Estimated cost (optional)</Label>
+                          <Input
+                            value={newProject.estimatedCost}
+                            onChange={(e) =>
+                              setNewProject((p) => ({ ...p, estimatedCost: e.target.value }))
+                            }
+                            placeholder="5000"
+                            inputMode="decimal"
+                          />
+                        </div>
+                        <div>
+                          <Label>Desired start (optional)</Label>
+                          <Input
+                            type="date"
+                            value={newProject.desiredStartAt}
+                            onChange={(e) =>
+                              setNewProject((p) => ({ ...p, desiredStartAt: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Details (optional)</Label>
+                        <Textarea
+                          value={newProject.description}
+                          onChange={(e) =>
+                            setNewProject((p) => ({ ...p, description: e.target.value }))
+                          }
+                          placeholder="Size, materials, constraints, HOA rules..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label>Do you have budget now?</Label>
+                          <Select
+                            value={newProject.hasBudgetNow}
+                            onValueChange={(v) =>
+                              setNewProject((p) => ({ ...p, hasBudgetNow: v as any }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="no">Not yet</SelectItem>
+                              <SelectItem value="yes">Yes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {newProject.hasBudgetNow === "no" ? (
+                          <div>
+                            <Label>Monthly savings (optional)</Label>
+                            <Input
+                              value={newProject.monthlySavings}
+                              onChange={(e) =>
+                                setNewProject((p) => ({ ...p, monthlySavings: e.target.value }))
+                              }
+                              placeholder="250"
+                              inputMode="decimal"
+                            />
+                          </div>
+                        ) : (
+                          <div />
+                        )}
+                      </div>
+                      {newProject.hasBudgetNow === "no" ? (
+                        <div>
+                          <Label>Possible funding sources (optional)</Label>
+                          <Input
+                            value={newProject.fundingSources}
+                            onChange={(e) =>
+                              setNewProject((p) => ({ ...p, fundingSources: e.target.value }))
+                            }
+                            placeholder="savings, HELOC, credit union loan, insurance... (comma separated)"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Informational only. TradeScout does not sell leads or charge to connect.
+                          </p>
+                        </div>
+                      ) : null}
+
+                      <Button
+                        onClick={() => createProjectMutation.mutate()}
+                        disabled={createProjectMutation.isPending}
+                      >
+                        {createProjectMutation.isPending ? "Starting..." : "Start project"}
+                      </Button>
+
+                      <div className="pt-2 border-t space-y-2">
+                        {projectsQuery.isLoading ? (
+                          <div className="text-sm text-muted-foreground">Loading projects...</div>
+                        ) : projects.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">No projects yet.</div>
+                        ) : (
+                          projects.slice(0, 10).map((p: any) => {
+                            const id = String(p?.id || "");
+                            const title =
+                              typeof p?.title === "string" && p.title ? p.title : "Project";
+                            const status =
+                              typeof p?.status === "string" && p.status ? p.status : "planning";
+                            const est = p?.estimatedCost ? String(p.estimatedCost) : "";
+                            const plan = p?.plan || null;
+                            return (
+                              <div
+                                key={id}
+                                className="rounded-md border px-3 py-2 flex items-start justify-between gap-3"
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium truncate">{title}</div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    Status: {status}
+                                    {est ? ` • Est: $${est}` : ""}
+                                    {plan?.monthlyContribution
+                                      ? ` • Save: $${plan.monthlyContribution}/mo`
+                                      : ""}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
 

@@ -5194,6 +5194,87 @@ export type HomeMaintenanceSchedule = typeof homeMaintenanceSchedules.$inferSele
 export type InsertHomeMaintenanceSchedule = typeof homeMaintenanceSchedules.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Home Projects (private Home Vault): project planning + savings/funding plans
+// ---------------------------------------------------------------------------
+
+export const homeProjects = pgTable(
+  "home_projects",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    userHomeId: varchar("user_home_id")
+      .notNull()
+      .references(() => userHomes.id, { onDelete: "cascade" }),
+
+    title: varchar("title", { length: 220 }).notNull(),
+    description: text("description"),
+    projectType: varchar("project_type", { length: 80 }),
+
+    status: varchar("status", {
+      length: 20,
+      enum: ["planning", "saving", "ready", "in_progress", "completed", "paused", "canceled"],
+    })
+      .notNull()
+      .default("planning"),
+
+    estimatedCost: numeric("estimated_cost", { precision: 14, scale: 2 }),
+    desiredStartAt: date("desired_start_at"),
+
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_home_projects_owner_updated").on(table.ownerUserId, table.updatedAt),
+    index("idx_home_projects_home_updated").on(table.userHomeId, table.updatedAt),
+    index("idx_home_projects_status_updated").on(table.status, table.updatedAt),
+  ]
+);
+
+export type HomeProject = typeof homeProjects.$inferSelect;
+export type InsertHomeProject = typeof homeProjects.$inferInsert;
+
+export const homeProjectPlans = pgTable(
+  "home_project_plans",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    homeProjectId: varchar("home_project_id")
+      .notNull()
+      .references(() => homeProjects.id, { onDelete: "cascade" }),
+
+    planType: varchar("plan_type", { length: 16, enum: ["savings", "funding"] })
+      .notNull()
+      .default("savings"),
+    targetAmount: numeric("target_amount", { precision: 14, scale: 2 }).notNull(),
+    currentSaved: numeric("current_saved", { precision: 14, scale: 2 }).notNull().default("0"),
+    targetBy: date("target_by"),
+    monthlyContribution: numeric("monthly_contribution", { precision: 14, scale: 2 }),
+    fundingSources: jsonb("funding_sources").$type<string[]>().notNull().default([]),
+    notes: text("notes"),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_home_project_plans_owner_updated").on(table.ownerUserId, table.updatedAt),
+    index("idx_home_project_plans_project_updated").on(table.homeProjectId, table.updatedAt),
+  ]
+);
+
+export type HomeProjectPlan = typeof homeProjectPlans.$inferSelect;
+export type InsertHomeProjectPlan = typeof homeProjectPlans.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Property Lifecycle OS (Build / Existing / Upgrades / Maintain / Sell)
 // ---------------------------------------------------------------------------
 
