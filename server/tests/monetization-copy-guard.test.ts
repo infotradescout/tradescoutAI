@@ -20,8 +20,8 @@ describe("public monetization copy guards", () => {
     const angi = read("client/src/pages/compare-angi.tsx");
     const homeAdvisor = read("client/src/pages/compare-homeadvisor.tsx");
 
-    expect(angi).toContain("TradeScout is $0 for residents and contractors");
-    expect(homeAdvisor).toContain("TradeScout is $0 for residents and contractors");
+    expect(angi).toContain("Core access is $0 for features, connections, and information");
+    expect(homeAdvisor).toContain("Core access is $0 for features, connections, and information");
 
     expect(angi).not.toContain("pay-on-completion");
     expect(homeAdvisor).not.toContain("pay-on-completion");
@@ -43,7 +43,9 @@ describe("public monetization copy guards", () => {
     const landing = read("client/src/pages/landing.tsx");
 
     expect(howItWorks).toContain("does not sell leads");
-    expect(howItWorks).toContain("does not charge for access to features, connections, or information");
+    expect(howItWorks).toContain(
+      "does not charge for access to features, connections, or information"
+    );
     expect(howItWorks).toContain("is a scam");
 
     expect(directConnectInfo).toContain("features, connections, and information is $0");

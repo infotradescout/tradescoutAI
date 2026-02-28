@@ -53,26 +53,68 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "Is TradeScout really free?",
       answer:
-        "Yes. TradeScout is $0 for residents and contractors. TradeScout does not charge for access, matching, messaging, or profiles. Any request for payment in TradeScout's name to unlock access or visibility is a scam.",
+        "Core access is $0 for features, connections, and information. TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching. Any request for payment claiming to unlock access or visibility is a scam.",
     },
   ];
 
   const tableRows = [
-    { feature: "Business Model", angi: "Lead sales (pay-per-request)", ts: "Trust-based matching (no lead sales)" },
+    {
+      feature: "Business Model",
+      angi: "Lead sales (pay-per-request)",
+      ts: "Trust-based matching (no lead sales)",
+    },
     { feature: "Contractor Cost", angi: "$15–$60 per lead (win or lose)", ts: "$0 platform fees" },
-    { feature: "Lead Routing", angi: "1 request → 10-20+ contractors", ts: "1 request → 1-3 pre-matched contractors" },
-    { feature: "User Experience", angi: "Bombarded with calls", ts: "1-3 qualified matches", angiNeg: true, tsPos: true },
-    { feature: "Ranking Logic", angi: "Payment influences visibility", ts: "Trust (CVS) determines ranking", angiWarn: true, tsPos: true },
-    { feature: "Trust Verification", angi: "Reviews (can be gamed)", ts: "CVS: license + insurance + work history + community" },
-    { feature: "Incentive", angi: "Match volume over quality", ts: "Match quality over volume", angiNeg: true, tsPos: true },
+    {
+      feature: "Lead Routing",
+      angi: "1 request → 10-20+ contractors",
+      ts: "1 request → 1-3 pre-matched contractors",
+    },
+    {
+      feature: "User Experience",
+      angi: "Bombarded with calls",
+      ts: "1-3 qualified matches",
+      angiNeg: true,
+      tsPos: true,
+    },
+    {
+      feature: "Ranking Logic",
+      angi: "Payment influences visibility",
+      ts: "Trust (CVS) determines ranking",
+      angiWarn: true,
+      tsPos: true,
+    },
+    {
+      feature: "Trust Verification",
+      angi: "Reviews (can be gamed)",
+      ts: "CVS: license + insurance + work history + community",
+    },
+    {
+      feature: "Incentive",
+      angi: "Match volume over quality",
+      ts: "Match quality over volume",
+      angiNeg: true,
+      tsPos: true,
+    },
     { feature: "Access Cost", angi: "Free for homeowners", ts: "Free for homeowners" },
   ];
 
   const changes = [
-    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first." },
-    { title: "No More Bidding Wars", desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners." },
-    { title: "Trust Determines Visibility", desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first." },
-    { title: "Community-Verified Reviews", desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials." },
+    {
+      title: "No More Lead Spam",
+      desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first.",
+    },
+    {
+      title: "No More Bidding Wars",
+      desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners.",
+    },
+    {
+      title: "Trust Determines Visibility",
+      desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first.",
+    },
+    {
+      title: "Community-Verified Reviews",
+      desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials.",
+    },
   ];
 
   return (
@@ -120,19 +162,26 @@ const CompareAngiPage = memo(function CompareAngiPage() {
           {/* Core Difference */}
           <Reveal>
             <div className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-5 md:p-6">
-              <h2 className="font-display text-xl font-extrabold text-white mb-4">Core Difference</h2>
+              <h2 className="font-display text-xl font-extrabold text-white mb-4">
+                Core Difference
+              </h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
-                  <h3 className="text-sm font-semibold text-red-400 mb-2">Angi (Lead Sales Model)</h3>
+                  <h3 className="text-sm font-semibold text-red-400 mb-2">
+                    Angi (Lead Sales Model)
+                  </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
                     Contractors pay for every homeowner request. More leads sold = more revenue.
                     Incentive: maximize lead volume, not match quality.
                   </p>
                 </div>
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
-                  <h3 className="text-sm font-semibold text-ts-orange mb-2">TradeScout (Trust Model)</h3>
+                  <h3 className="text-sm font-semibold text-ts-orange mb-2">
+                    TradeScout (Trust Model)
+                  </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
+                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match
+                    quality over volume.
                   </p>
                 </div>
               </div>
@@ -156,9 +205,13 @@ const CompareAngiPage = memo(function CompareAngiPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left p-4 font-semibold text-white/60 text-xs">Feature</th>
+                        <th className="text-left p-4 font-semibold text-white/60 text-xs">
+                          Feature
+                        </th>
                         <th className="text-center p-4 font-semibold text-red-400 text-xs">Angi</th>
-                        <th className="text-center p-4 font-semibold text-ts-orange text-xs">TradeScout</th>
+                        <th className="text-center p-4 font-semibold text-ts-orange text-xs">
+                          TradeScout
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -168,7 +221,9 @@ const CompareAngiPage = memo(function CompareAngiPage() {
                           <td className="p-4 text-center">
                             <div className="flex flex-col items-center gap-1">
                               {row.angiNeg && <X className="w-4 h-4 text-red-400" />}
-                              {row.angiWarn && <AlertTriangle className="w-4 h-4 text-yellow-400" />}
+                              {row.angiWarn && (
+                                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                              )}
                               <span className="text-xs text-white/50">{row.angi}</span>
                             </div>
                           </td>
@@ -239,7 +294,9 @@ const CompareAngiPage = memo(function CompareAngiPage() {
           {/* CTA */}
           <Reveal>
             <div className="bg-tsCard border border-white/10 rounded-xl p-6 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
-              <h2 className="font-display text-2xl font-extrabold text-white mb-2">Try TradeScout</h2>
+              <h2 className="font-display text-2xl font-extrabold text-white mb-2">
+                Try TradeScout
+              </h2>
               <p className="text-white/60 text-sm mb-4">
                 Experience trust-first matching. No lead spam. No bidding wars.
               </p>
@@ -265,13 +322,19 @@ const CompareAngiPage = memo(function CompareAngiPage() {
               <h3 className="text-sm font-semibold text-white/60 mb-3">Learn More</h3>
               <div className="grid md:grid-cols-3 gap-3">
                 <Link href="/how-it-works">
-                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">How TradeScout Works →</a>
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    How TradeScout Works →
+                  </a>
                 </Link>
                 <Link href="/trust-model">
-                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">Trust Model →</a>
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Trust Model →
+                  </a>
                 </Link>
                 <Link href="/compare/homeadvisor">
-                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">Compare: HomeAdvisor →</a>
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Compare: HomeAdvisor →
+                  </a>
                 </Link>
               </div>
             </nav>

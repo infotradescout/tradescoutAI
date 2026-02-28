@@ -58,26 +58,68 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "Is TradeScout really $0 to use?",
       answer:
-        "Yes. TradeScout is $0 for residents and contractors. TradeScout does not charge for access, matching, messaging, or profiles. Any request for payment in TradeScout's name to unlock access or visibility is a scam.",
+        "Core access is $0 for features, connections, and information. TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching. Any request for payment claiming to unlock access or visibility is a scam.",
     },
   ];
 
   const tableRows = [
-    { feature: "Business Model", ha: "Lead sales (pay-per-request)", ts: "Trust-based matching (no lead sales)" },
+    {
+      feature: "Business Model",
+      ha: "Lead sales (pay-per-request)",
+      ts: "Trust-based matching (no lead sales)",
+    },
     { feature: "Contractor Cost", ha: "$15–$60 per lead (win or lose)", ts: "$0 platform fees" },
-    { feature: "Lead Routing", ha: "1 request → 10-20+ contractors", ts: "1 request → 1-3 pre-matched contractors" },
-    { feature: "User Experience", ha: "Bombarded with calls", ts: "1-3 qualified matches", haNeg: true, tsPos: true },
-    { feature: "Ranking Logic", ha: "Payment influences visibility", ts: "Trust (CVS) determines ranking", haWarn: true, tsPos: true },
-    { feature: "Trust Verification", ha: "Reviews (can be gamed)", ts: "CVS: license + insurance + work history + community" },
-    { feature: "Incentive", ha: "Match volume over quality", ts: "Match quality over volume", haNeg: true, tsPos: true },
+    {
+      feature: "Lead Routing",
+      ha: "1 request → 10-20+ contractors",
+      ts: "1 request → 1-3 pre-matched contractors",
+    },
+    {
+      feature: "User Experience",
+      ha: "Bombarded with calls",
+      ts: "1-3 qualified matches",
+      haNeg: true,
+      tsPos: true,
+    },
+    {
+      feature: "Ranking Logic",
+      ha: "Payment influences visibility",
+      ts: "Trust (CVS) determines ranking",
+      haWarn: true,
+      tsPos: true,
+    },
+    {
+      feature: "Trust Verification",
+      ha: "Reviews (can be gamed)",
+      ts: "CVS: license + insurance + work history + community",
+    },
+    {
+      feature: "Incentive",
+      ha: "Match volume over quality",
+      ts: "Match quality over volume",
+      haNeg: true,
+      tsPos: true,
+    },
     { feature: "Access Cost", ha: "Free for homeowners", ts: "Free for homeowners" },
   ];
 
   const changes = [
-    { title: "No More Lead Spam", desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first." },
-    { title: "No More Bidding Wars", desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners." },
-    { title: "Trust Determines Visibility", desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first." },
-    { title: "Community-Verified Reviews", desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials." },
+    {
+      title: "No More Lead Spam",
+      desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first.",
+    },
+    {
+      title: "No More Bidding Wars",
+      desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners.",
+    },
+    {
+      title: "Trust Determines Visibility",
+      desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first.",
+    },
+    {
+      title: "Community-Verified Reviews",
+      desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials.",
+    },
   ];
 
   return (
@@ -125,19 +167,26 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
           {/* Core Difference */}
           <Reveal>
             <div className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-5 md:p-6">
-              <h2 className="font-display text-xl font-extrabold text-white mb-4">Core Difference</h2>
+              <h2 className="font-display text-xl font-extrabold text-white mb-4">
+                Core Difference
+              </h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
-                  <h3 className="text-sm font-semibold text-red-400 mb-2">HomeAdvisor (Lead Sales Model)</h3>
+                  <h3 className="text-sm font-semibold text-red-400 mb-2">
+                    HomeAdvisor (Lead Sales Model)
+                  </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
                     Contractors pay for every homeowner request. More leads sold = more revenue.
                     Incentive: maximize lead volume, not match quality.
                   </p>
                 </div>
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
-                  <h3 className="text-sm font-semibold text-ts-orange mb-2">TradeScout (Trust Model)</h3>
+                  <h3 className="text-sm font-semibold text-ts-orange mb-2">
+                    TradeScout (Trust Model)
+                  </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
+                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match
+                    quality over volume.
                   </p>
                 </div>
               </div>
@@ -151,7 +200,9 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 <Zap className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Feature Comparison</span>
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">Side-by-Side</h2>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                Side-by-Side
+              </h2>
             </Reveal>
             <Reveal>
               <div className="bg-tsCard border border-white/10 rounded-xl overflow-hidden shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
@@ -159,9 +210,15 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left p-4 font-semibold text-white/60 text-xs">Feature</th>
-                        <th className="text-center p-4 font-semibold text-red-400 text-xs">HomeAdvisor</th>
-                        <th className="text-center p-4 font-semibold text-ts-orange text-xs">TradeScout</th>
+                        <th className="text-left p-4 font-semibold text-white/60 text-xs">
+                          Feature
+                        </th>
+                        <th className="text-center p-4 font-semibold text-red-400 text-xs">
+                          HomeAdvisor
+                        </th>
+                        <th className="text-center p-4 font-semibold text-ts-orange text-xs">
+                          TradeScout
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -197,7 +254,9 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 <Shield className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">The Difference</span>
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">What TradeScout Changes</h2>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                What TradeScout Changes
+              </h2>
             </Reveal>
             <div className="grid md:grid-cols-2 gap-4">
               {changes.map((c, i) => (
@@ -221,7 +280,9 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 <Eye className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">FAQ</span>
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">Frequently Asked Questions</h2>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                Frequently Asked Questions
+              </h2>
             </Reveal>
             <div className="space-y-3">
               {faqs.map((faq, i) => (
@@ -238,8 +299,12 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
           {/* CTA */}
           <Reveal>
             <div className="bg-tsCard border border-white/10 rounded-xl p-6 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
-              <h2 className="font-display text-2xl font-extrabold text-white mb-2">Try TradeScout</h2>
-              <p className="text-white/60 text-sm mb-4">Experience trust-first matching. No lead spam. No bidding wars.</p>
+              <h2 className="font-display text-2xl font-extrabold text-white mb-2">
+                Try TradeScout
+              </h2>
+              <p className="text-white/60 text-sm mb-4">
+                Experience trust-first matching. No lead spam. No bidding wars.
+              </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
                   <a className="inline-flex items-center gap-2 bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm">
@@ -262,13 +327,19 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
               <h3 className="text-sm font-semibold text-white/60 mb-3">Learn More</h3>
               <div className="grid md:grid-cols-3 gap-3">
                 <Link href="/how-it-works">
-                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">How TradeScout Works →</a>
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    How TradeScout Works →
+                  </a>
                 </Link>
                 <Link href="/trust-model">
-                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">Trust Model →</a>
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Trust Model →
+                  </a>
                 </Link>
                 <Link href="/compare/angi">
-                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">Compare: Angi →</a>
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Compare: Angi →
+                  </a>
                 </Link>
               </div>
             </nav>
