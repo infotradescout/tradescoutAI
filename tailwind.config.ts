@@ -19,8 +19,9 @@ export default {
         "2xl": "1536px",
       },
       colors: {
-        tsBg: "#0a0f1e",
-        tsCard: "#111827",
+        // Shift core surfaces toward neutral blacks (less navy/blue cast).
+        tsBg: "#05070A",
+        tsCard: "#0B0F14",
         tsBorder: "#020617",
         tsAccent: "#f97316",
         tsAccentSoft: "#fb923c",
