@@ -2,10 +2,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { and, eq, or, sql } from "drizzle-orm";
 import mammoth from "mammoth";
 import { db } from "../../src/db/drizzle-mock";
 import { storage } from "../storage";
 import { chooseKnowledgeMode } from "../scout/brandGuard";
+import { businesses, businessCounties, counties } from "../../shared/schema";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -619,14 +621,96 @@ async function queryWebsite(
       messageLower.includes("equipment rental")
     ) {
       // Directory businesses: awareness-only. Return links to business profiles, not phone/email.
-      const rows = await db.query.businesses.findMany({
-        where: (b, { eq }) => eq(b.status, "active" as any),
-        limit: 15,
-      });
+      const seen = new Set<string>();
+      const rows: any[] = [];
+
+      // Prefer county-scoped businesses (business_counties) when available.
+      if (countyCode) {
+        try {
+          const countyRows = await db
+            .select({
+              id: businesses.id,
+              name: businesses.name,
+              slug: businesses.slug,
+              type: businesses.type,
+              profileData: businesses.profileData,
+            })
+            .from(businesses)
+            .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+            .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+            .where(and(eq(businesses.status, "active" as any), eq(counties.fips, countyCode)))
+            .limit(15);
+          for (const r of countyRows) {
+            if (rows.length >= 15) break;
+            if (seen.has(String(r.id))) continue;
+            seen.add(String(r.id));
+            rows.push(r);
+          }
+        } catch {
+          // If joins fail for any reason, fall through to broader queries.
+        }
+      }
+
+      // Fill remaining with state-scoped businesses. Prefer business_counties if present, else importExtras.state_code.
+      if (rows.length < 15 && stateCode) {
+        const needed = 15 - rows.length;
+        try {
+          const stateRows = await db
+            .select({
+              id: businesses.id,
+              name: businesses.name,
+              slug: businesses.slug,
+              type: businesses.type,
+              profileData: businesses.profileData,
+            })
+            .from(businesses)
+            .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+            .leftJoin(counties, eq(counties.id, businessCounties.countyId))
+            .where(
+              and(
+                eq(businesses.status, "active" as any),
+                or(
+                  eq(counties.stateCode, stateCode),
+                  sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'state_code', '') = ${stateCode}`
+                )
+              )
+            )
+            .limit(Math.max(needed * 3, 20));
+          for (const r of stateRows) {
+            if (rows.length >= 15) break;
+            if (seen.has(String(r.id))) continue;
+            seen.add(String(r.id));
+            rows.push(r);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Last resort: any active businesses (kept small).
+      if (rows.length < 1) {
+        const anyRows = await db
+          .select({
+            id: businesses.id,
+            name: businesses.name,
+            slug: businesses.slug,
+            type: businesses.type,
+            profileData: businesses.profileData,
+          })
+          .from(businesses)
+          .where(eq(businesses.status, "active" as any))
+          .limit(15);
+        for (const r of anyRows) {
+          if (rows.length >= 15) break;
+          if (seen.has(String(r.id))) continue;
+          seen.add(String(r.id));
+          rows.push(r);
+        }
+      }
       result = {
         category: "businesses",
         items: rows.map((b: any) => {
-          const profile: any = b.profileData || {};
+          const profile: any = b.profileData || b.profile_data || {};
           return {
             id: b.id,
             name: b.name,

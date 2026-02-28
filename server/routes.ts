@@ -7065,48 +7065,96 @@ export async function registerRoutes(app: any) {
 
       if (wants("business")) {
         // Use geo stored inside profile_data.importExtras (no DB migration dependency).
+        // Filter bbox in SQL to avoid scanning all active businesses at scale.
+        const bizLatExpr = sql<number>`
+          nullif(
+            coalesce(
+              nullif((${businesses.profileData} -> 'importExtras' ->> 'lat')::text, ''),
+              nullif((${businesses.profileData} -> 'importExtras' ->> 'latitude')::text, '')
+            ),
+            ''
+          )::numeric
+        `;
+        const bizLngExpr = sql<number>`
+          nullif(
+            coalesce(
+              nullif((${businesses.profileData} -> 'importExtras' ->> 'lng')::text, ''),
+              nullif((${businesses.profileData} -> 'importExtras' ->> 'lon')::text, ''),
+              nullif((${businesses.profileData} -> 'importExtras' ->> 'longitude')::text, '')
+            ),
+            ''
+          )::numeric
+        `;
+
         const rows = await db
           .select({
             id: businesses.id,
             name: businesses.name,
             slug: businesses.slug,
             type: businesses.type,
-            category: sql<string | null>`
-              nullif((${businesses.profileData} ->> 'category')::text, '')
-            `,
-            lat: sql<string | null>`
-              coalesce(
-                nullif((${businesses.profileData} -> 'importExtras' ->> 'lat')::text, ''),
-                nullif((${businesses.profileData} -> 'importExtras' ->> 'latitude')::text, '')
-              )
-            `,
-            lng: sql<string | null>`
-              coalesce(
-                nullif((${businesses.profileData} -> 'importExtras' ->> 'lng')::text, ''),
-                nullif((${businesses.profileData} -> 'importExtras' ->> 'lon')::text, ''),
-                nullif((${businesses.profileData} -> 'importExtras' ->> 'longitude')::text, '')
-              )
-            `,
+            ownerUserId: businesses.ownerUserId,
+            claimStatus: businesses.claimStatus,
+            category: sql<
+              string | null
+            >`nullif((${businesses.profileData} ->> 'category')::text, '')`,
+            lat: bizLatExpr,
+            lng: bizLngExpr,
+            ownerVerificationStatus: users.verificationStatus,
+            contractorVerifiedLicensed: contractors.verifiedLicensed,
+            contractorVerifiedInsured: contractors.verifiedInsured,
           })
           .from(businesses)
-          .where(eq(businesses.status, "active" as any))
+          .leftJoin(users, eq(users.id, businesses.ownerUserId))
+          .leftJoin(contractors, eq(contractors.userId, users.id))
+          .where(
+            and(
+              eq(businesses.status, "active" as any),
+              sql`${bizLatExpr} is not null`,
+              sql`${bizLngExpr} is not null`,
+              sql`${bizLatExpr} between ${minLat} and ${maxLat}`,
+              sql`${bizLngExpr} between ${minLng} and ${maxLng}`,
+              ...(verifiedOnly
+                ? [
+                    or(
+                      eq(users.verificationStatus, "approved" as any),
+                      eq(contractors.verifiedLicensed, true),
+                      eq(contractors.verifiedInsured, true)
+                    ),
+                  ]
+                : [])
+            )
+          )
           .limit(Math.min(limit, 5000));
 
         for (const row of rows) {
           const lat = Number(row.lat);
           const lng = Number(row.lng);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-          if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) continue;
+
+          const isClaimed = Boolean(row.ownerUserId) || String(row.claimStatus || "") === "claimed";
+          const isVerified =
+            String(row.ownerVerificationStatus || "").toLowerCase() === "approved" ||
+            row.contractorVerifiedLicensed === true ||
+            row.contractorVerifiedInsured === true;
+          const verifiedStatus = isVerified ? "verified" : isClaimed ? "unverified" : "directory";
+
           points.push({
             id: String(row.id),
             type: "business",
             lat,
             lng,
             title: String(row.name || "Business"),
-            subtitle: row.category || (row.type ? String(row.type) : null),
+            subtitle:
+              verifiedStatus === "verified"
+                ? "Verified business"
+                : verifiedStatus === "unverified"
+                  ? "Business (unverified)"
+                  : "Directory listing",
             href: `/business/${encodeURIComponent(String(row.slug))}`,
             meta: {
               businessType: row.type ?? null,
+              verifiedStatus,
+              claimStatus: row.claimStatus ?? null,
             },
           });
         }
