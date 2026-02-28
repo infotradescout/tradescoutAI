@@ -134,7 +134,8 @@ html {
     );
 
     /* ACCENT (Scout only) */
-    --theme-accent-primary: var(--ts-accent, #5d8adb);
+    /* Keep fallback orange to avoid any blue cast if theme tokens fail to load. */
+    --theme-accent-primary: var(--ts-accent, #f97316);
 
     /* STATUS COLORS */
     --status-error: #ef4444;

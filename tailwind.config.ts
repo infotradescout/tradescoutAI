@@ -20,8 +20,8 @@ export default {
       },
       colors: {
         // Shift core surfaces toward neutral blacks (less navy/blue cast).
-        tsBg: "#05070A",
-        tsCard: "#0B0F14",
+        tsBg: "#07090B",
+        tsCard: "#111418",
         tsBorder: "#020617",
         tsAccent: "#f97316",
         tsAccentSoft: "#fb923c",

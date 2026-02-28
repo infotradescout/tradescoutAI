@@ -73,11 +73,12 @@ export const THEME_LABELS: Record<ThemeId, string> = {
 
 export const THEMES: Record<ThemeId, ThemeTokens> = {
   charcoal: {
-    // Neutralized blacks (reduced navy/blue cast).
-    "--ts-bg": "#05070A",
-    "--ts-surface": "#0B0F14",
-    "--ts-surface-strong": "#05070A",
-    "--ts-surface-hover": "#12161B",
+    // Neutral charcoals (less navy/blue cast) with restored separation between
+    // canvas vs cards so Scout doesn't feel "flat".
+    "--ts-bg": "#07090B",
+    "--ts-surface": "#111418",
+    "--ts-surface-strong": "#0B0D10",
+    "--ts-surface-hover": "#1A1F26",
     "--ts-border-subtle": "rgba(255,255,255,0.10)",
     "--ts-border-strong": "rgba(255,255,255,0.18)",
     "--ts-text": "#ffffff",
@@ -218,9 +219,9 @@ export const PRESET_THEMES: Theme[] = [
     description: "Default: charcoal system with orange accents. Fully customizable.",
     colors: {
       // Palette: charcoal background + white text + orange accents
-      bgPrimary: "#05070A", // Background (neutral black)
-      bgSecondary: "#0B0F14", // UI surface (neutral black)
-      bgTertiary: "#05070A", // Chrome/frame surface
+      bgPrimary: "#07090B", // Background (neutral charcoal)
+      bgSecondary: "#111418", // UI surface (card)
+      bgTertiary: "#0B0D10", // Chrome/frame surface
       textPrimary: "#ffffff", // White
       textSecondary: "rgba(255,255,255,0.70)", // Muted
       accentPrimary: "#f97316", // ts-orange accent
@@ -230,7 +231,7 @@ export const PRESET_THEMES: Theme[] = [
       borderSecondary: "rgba(255,255,255,0.06)",
     },
     backgroundGradient:
-      "radial-gradient(1200px 800px at 20% 10%, rgba(249,115,22,0.16), transparent 60%), linear-gradient(180deg, #05070A, #05070A)",
+      "radial-gradient(1200px 800px at 20% 10%, rgba(249,115,22,0.16), transparent 60%), linear-gradient(180deg, #07090B, #07090B)",
   },
 
   // ======== ALTERNATIVE THEMES (users can customize all colors) ========
