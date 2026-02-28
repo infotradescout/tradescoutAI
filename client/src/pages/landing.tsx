@@ -704,10 +704,10 @@ function PricingSection() {
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            Gotcha. TradeScout is for you at $0.
+            For you. For free. Forever.
           </p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
-            No paywalls. No lead sales. No pay-to-play.
+            We make money, just not from you reading this. No paywalls. No lead sales. No pay-to-play.
           </p>
         </Reveal>
 
