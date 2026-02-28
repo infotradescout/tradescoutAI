@@ -135,7 +135,28 @@ function chunkCsvByBytes(csvText: string, maxBytes: number): string[] {
   const lines = normalized.split("\n");
   if (lines.length <= 1) return [normalized + "\n"];
 
-  const header = lines[0];
+  const rawHeader = lines[0];
+  // Header aliasing for common scraped/enriched datasets.
+  // This lets us import production data without server changes, while keeping contact gated.
+  const headerCols = rawHeader.split(",").map((c) => c.trim());
+  const alias: Record<string, string> = {
+    // Enriched contractor contacts
+    businessName: "business_name",
+    sourceState: "state_code",
+    contact_phone: "phone",
+    licenseNumber: "license_number",
+    expiresOn: "license_expires_at",
+    // OSM ecosystem
+    lon: "lng",
+    osmType: "osm_type",
+    osmId: "osm_id",
+    categoryId: "category_id",
+    categoryLabel: "category_label",
+    mailing_address: "fulladdress",
+    // Prevent accidental user creation: treat contact emails as extra metadata, not owner emails.
+    contact_email: "extra_contact_email",
+  };
+  const header = headerCols.map((c) => alias[c] || c).join(",");
   const data = lines.slice(1).filter((l) => l.trim().length > 0);
 
   const chunks: string[] = [];
@@ -190,6 +211,10 @@ async function main() {
   const throttleMs = throttleArg
     ? Math.max(0, Number.parseInt(throttleArg.split("=", 2)[1] || "0", 10))
     : 250;
+  const maxChunksArg = args.find((a) => a.startsWith("--max-chunks="));
+  const maxChunks = maxChunksArg
+    ? Math.max(1, Number.parseInt(maxChunksArg.split("=", 2)[1] || "1", 10))
+    : null;
 
   const files = args.filter((arg) => !arg.startsWith("-"));
   if (files.length === 0) {
@@ -230,9 +255,11 @@ async function main() {
       updatedUnclaimedBusinesses: 0,
     };
 
+    let processed = 0;
     for (let i = 0; i < chunks.length; i++) {
       const chunkNo = i + 1;
       if (chunkNo < startAtChunk) continue;
+      if (maxChunks !== null && processed >= maxChunks) break;
       const chunk = chunks[i];
       const source = `file:${label}:chunk:${String(chunkNo).padStart(3, "0")}`;
       const res = await postImport(baseUrl, cookieHeader, {
@@ -256,6 +283,7 @@ async function main() {
       console.log(
         `[import]  - chunk ${chunkNo}/${chunks.length}: rows=${res.totals.rows} created_unclaimed=${res.totals.createdUnclaimedBusinesses ?? 0} updated_unclaimed=${res.totals.updatedUnclaimedBusinesses ?? 0}`
       );
+      processed += 1;
 
       if (throttleMs > 0) {
         await new Promise((r) => setTimeout(r, throttleMs));
