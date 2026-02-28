@@ -213,7 +213,22 @@ export function registerBusinessProfileRoutes(app: Express) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      res.json(profile);
+      // Public-safe view: do not expose internal userId or direct-contact vectors.
+      // All contact must remain intent-gated through Scout.
+      res.json({
+        id: profile.id,
+        slug: profile.slug,
+        name: profile.name,
+        description: profile.description,
+        countyFips: profile.countyFips,
+        countyName: profile.countyName,
+        city: profile.city,
+        stateCode: profile.stateCode,
+        serviceAreas: profile.serviceAreas,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+        publishedAt: profile.publishedAt,
+      });
     } catch (error: any) {
       console.error("Error fetching business profile by slug:", error);
       res.status(500).json({ message: error?.message || "Failed to fetch profile" });

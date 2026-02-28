@@ -191,20 +191,24 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
     const countyIdRows = await storage.getBusinessCountyIds(business.id);
     const countyRows = countyIdRows.length
       ? await db
-          .select({ id: counties.id, name: counties.name, stateCode: counties.stateCode, fips: counties.fips })
+          .select({
+            id: counties.id,
+            name: counties.name,
+            stateCode: counties.stateCode,
+            fips: counties.fips,
+          })
           .from(counties)
           .where(inArray(counties.id, countyIdRows))
       : [];
 
-    // Public-safe profile payload (do not expose ownerUserId)
+    // Public-safe profile payload (do not expose ownerUserId or any direct-contact vectors).
+    // All contact must remain intent-gated through Scout.
     const profileData: any = business.profileData || {};
     const publicProfile = {
       tagline: profileData.tagline,
       description: profileData.description,
       category: profileData.category,
       services: profileData.services,
-      website: profileData.website,
-      contactPreference: profileData.contactPreference,
     };
 
     res.json({
@@ -214,6 +218,7 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
       type: business.type,
       roleContext: business.roleContext,
       status: business.status,
+      claimStatus: (business as any).claimStatus,
       profile: publicProfile,
       counties: countyRows,
     });

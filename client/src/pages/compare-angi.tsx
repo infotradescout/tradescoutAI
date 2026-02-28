@@ -33,96 +33,93 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "What is the main difference between TradeScout and Angi?",
       answer:
-        "Angi uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no lead sales and no pay-to-play visibility. This changes incentives: lead volume vs. match quality.",
+        "TradeScout does not sell leads. Scout routes requests using trust and context, and contact stays gated until a match accepts.",
     },
     {
-      question: "Why do I get so many calls on lead-buying platforms?",
+      question: "Why does TradeScout keep contact gated?",
       answer:
-        "When you request a quote, platforms can route your request to many contractors. Each wants to reach you before competitors. TradeScout sends your request to 1-3 pre-matched contractors only.",
+        "Contact stays locked until a provider accepts your request. This keeps communication tied to a real match and prevents random outreach.",
     },
     {
-      question: "Can I avoid bidding wars?",
+      question: "Is TradeScout a bidding marketplace?",
       answer:
         "TradeScout is not a bidding marketplace. Scout matches on trust and relevance first, then pros accept or decline. You choose who to hire based on fit, availability, and scope.",
     },
     {
       question: "What is the Community Verification Score (CVS)?",
       answer:
-        "CVS is a composite trust metric based on verified identity, license/insurance, work history, and community recommendations. It's public and auditable. Payment cannot override it. On Angi and HomeAdvisor, reviews can be gamed and trust is opaque.",
+        "CVS is a composite trust metric based on verified identity, license/insurance, work history, and community signals. Payment cannot override it.",
     },
     {
       question: "Is TradeScout really free?",
       answer:
-        "Core access is $0 for features, connections, and information. TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching. Any request for payment claiming to unlock access or visibility is a scam.",
+        "TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching.",
     },
   ];
 
-  const tableRows = [
+  const tableRows: Array<{
+    feature: string;
+    angi: string;
+    ts: string;
+    angiNeg?: boolean;
+    angiWarn?: boolean;
+    tsPos?: boolean;
+  }> = [
     {
       feature: "Business Model",
-      angi: "Lead sales (pay-per-request)",
+      angi: "Varies by platform",
       ts: "Trust-based matching (no lead sales)",
     },
-    { feature: "Contractor Cost", angi: "$15–$60 per lead (win or lose)", ts: "$0 platform fees" },
     {
-      feature: "Lead Routing",
-      angi: "1 request → 10-20+ contractors",
-      ts: "1 request → 1-3 pre-matched contractors",
+      feature: "Request Routing",
+      angi: "Often broad distribution",
+      ts: "Small set of pre-matched contractors",
     },
     {
-      feature: "User Experience",
-      angi: "Bombarded with calls",
-      ts: "1-3 qualified matches",
-      angiNeg: true,
+      feature: "Contact",
+      angi: "Often opens immediately",
+      ts: "Intent-gated until acceptance",
       tsPos: true,
     },
     {
-      feature: "Ranking Logic",
-      angi: "Payment influences visibility",
-      ts: "Trust (CVS) determines ranking",
-      angiWarn: true,
+      feature: "Exposure Logic",
+      angi: "Varies by platform",
+      ts: "Trust (CVS) determines exposure",
       tsPos: true,
     },
     {
       feature: "Trust Verification",
-      angi: "Reviews (can be gamed)",
+      angi: "Varies by platform",
       ts: "CVS: license + insurance + work history + community",
     },
-    {
-      feature: "Incentive",
-      angi: "Match volume over quality",
-      ts: "Match quality over volume",
-      angiNeg: true,
-      tsPos: true,
-    },
-    { feature: "Access Cost", angi: "Free for homeowners", ts: "Free for homeowners" },
+    { feature: "Access", angi: "Varies by platform", ts: "No charge to connect" },
   ];
 
   const changes = [
     {
-      title: "No More Lead Spam",
-      desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first.",
+      title: "Smaller Routing Set",
+      desc: "Your request is routed to a small set of relevant, trust-verified contractors.",
     },
     {
-      title: "No More Bidding Wars",
-      desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners.",
+      title: "Not A Bidding Marketplace",
+      desc: "Scout matches on trust and relevance first. Pros accept or decline before contact opens.",
     },
     {
       title: "Trust Determines Visibility",
-      desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first.",
+      desc: "Trust signals determine exposure. Payment cannot override CVS.",
     },
     {
       title: "Community-Verified Reviews",
-      desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials.",
+      desc: "Reviews come from verified neighbors who actually worked with the contractor.",
     },
   ];
 
   return (
     <>
       <SEOHelmet
-        title="TradeScout vs. Angi – Trust vs. Lead Sales | TradeScout"
-        description="Compare TradeScout and Angi (formerly Angie's List). Learn how business models, incentives, and trust verification differ. Why TradeScout matches on trust, not payment."
-        keywords="tradescout vs angi, angi alternative, angie's list alternative, no lead spam, trust-verified contractors, no pay-per-lead"
+        title="TradeScout vs. Angi - Trust-First Matching | TradeScout"
+        description="Compare approaches to contractor matching. TradeScout routes requests using trust and context, with intent-gated contact and no lead sales."
+        keywords="tradescout vs angi, angi alternative, trust-first matching, intent-gated contact, no lead sales"
         canonical="https://www.thetradescout.com/compare/angi"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -180,8 +177,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
                     TradeScout (Trust Model)
                   </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match
-                    quality over volume.
+                    No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
                   </p>
                 </div>
               </div>
@@ -298,7 +294,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
                 Try TradeScout
               </h2>
               <p className="text-white/60 text-sm mb-4">
-                Experience trust-first matching. No lead spam. No bidding wars.
+                Experience trust-first matching with intent-gated contact.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">

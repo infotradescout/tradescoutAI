@@ -33,12 +33,12 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "What is the main difference between TradeScout and HomeAdvisor?",
       answer:
-        "HomeAdvisor uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching with no lead sales and no pay-to-play visibility. This changes incentives: lead volume vs. match quality.",
+        "TradeScout does not sell leads. Scout routes requests using trust and context, and contact stays gated until a match accepts.",
     },
     {
-      question: "Why do I get bombarded with calls on HomeAdvisor?",
+      question: "Why does TradeScout keep contact gated?",
       answer:
-        "When you request a quote, platforms can route your request to many contractors. Each wants to reach you before competitors. TradeScout sends your request to 1-3 pre-matched contractors only.",
+        "Contact stays locked until a provider accepts your request. This keeps communication tied to a real match and prevents random outreach.",
     },
     {
       question: "Why do HomeAdvisor quotes often come in low then balloon?",
@@ -58,76 +58,73 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "Is TradeScout really $0 to use?",
       answer:
-        "Core access is $0 for features, connections, and information. TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching. Any request for payment claiming to unlock access or visibility is a scam.",
+        "TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect CVS, ranking, or matching.",
     },
   ];
 
-  const tableRows = [
+  const tableRows: Array<{
+    feature: string;
+    ha: string;
+    ts: string;
+    haNeg?: boolean;
+    haWarn?: boolean;
+    tsPos?: boolean;
+  }> = [
     {
       feature: "Business Model",
-      ha: "Lead sales (pay-per-request)",
+      ha: "Varies by platform",
       ts: "Trust-based matching (no lead sales)",
     },
-    { feature: "Contractor Cost", ha: "$15–$60 per lead (win or lose)", ts: "$0 platform fees" },
     {
-      feature: "Lead Routing",
-      ha: "1 request → 10-20+ contractors",
-      ts: "1 request → 1-3 pre-matched contractors",
+      feature: "Request Routing",
+      ha: "Often broad distribution",
+      ts: "Small set of pre-matched contractors",
     },
     {
-      feature: "User Experience",
-      ha: "Bombarded with calls",
-      ts: "1-3 qualified matches",
-      haNeg: true,
+      feature: "Contact",
+      ha: "Often opens immediately",
+      ts: "Intent-gated until acceptance",
       tsPos: true,
     },
     {
-      feature: "Ranking Logic",
-      ha: "Payment influences visibility",
-      ts: "Trust (CVS) determines ranking",
-      haWarn: true,
+      feature: "Exposure Logic",
+      ha: "Varies by platform",
+      ts: "Trust (CVS) determines exposure",
       tsPos: true,
     },
     {
       feature: "Trust Verification",
-      ha: "Reviews (can be gamed)",
+      ha: "Varies by platform",
       ts: "CVS: license + insurance + work history + community",
     },
-    {
-      feature: "Incentive",
-      ha: "Match volume over quality",
-      ts: "Match quality over volume",
-      haNeg: true,
-      tsPos: true,
-    },
-    { feature: "Access Cost", ha: "Free for homeowners", ts: "Free for homeowners" },
+    { feature: "Access", ha: "Varies by platform", ts: "No charge to connect" },
   ];
 
   const changes = [
     {
-      title: "No More Lead Spam",
-      desc: "Your request goes to 1-3 pre-matched contractors, not 20+. You choose who to hire, not who reached you first.",
+      title: "Smaller Routing Set",
+      desc: "Your request is routed to a small set of relevant, trust-verified contractors.",
     },
     {
-      title: "No More Bidding Wars",
-      desc: "Contractors are matched on trust + relevance, not who bid lowest. No desperation pricing, no cutting corners.",
+      title: "Not A Bidding Marketplace",
+      desc: "Scout matches on trust and relevance first. Pros accept or decline before contact opens.",
     },
     {
       title: "Trust Determines Visibility",
-      desc: "High CVS contractors rank higher, regardless of ad spend. Low-trust contractors cannot pay to appear first.",
+      desc: "Trust signals determine exposure. Payment cannot override CVS.",
     },
     {
       title: "Community-Verified Reviews",
-      desc: "Reviews come from verified neighbors who actually worked with the contractor. No anonymous fake testimonials.",
+      desc: "Reviews come from verified neighbors who actually worked with the contractor.",
     },
   ];
 
   return (
     <>
       <SEOHelmet
-        title="TradeScout vs. HomeAdvisor – Trust vs. Lead Sales | TradeScout"
-        description="Compare TradeScout and HomeAdvisor. Learn how business models, incentives, and trust verification differ. Why TradeScout matches on trust, not payment."
-        keywords="tradescout vs homeadvisor, homeadvisor alternative, no lead spam, trust-verified contractors, no pay-per-lead, no bidding wars"
+        title="TradeScout vs. HomeAdvisor - Trust-First Matching | TradeScout"
+        description="Compare approaches to contractor matching. TradeScout routes requests using trust and context, with intent-gated contact and no lead sales."
+        keywords="tradescout vs homeadvisor, homeadvisor alternative, trust-first matching, intent-gated contact, no lead sales"
         canonical="https://www.thetradescout.com/compare/homeadvisor"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -185,8 +182,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                     TradeScout (Trust Model)
                   </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    $0 platform access. No lead sales. No pay-to-play visibility. Incentive: match
-                    quality over volume.
+                    No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
                   </p>
                 </div>
               </div>
@@ -303,7 +299,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 Try TradeScout
               </h2>
               <p className="text-white/60 text-sm mb-4">
-                Experience trust-first matching. No lead spam. No bidding wars.
+                Experience trust-first matching with intent-gated contact.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">

@@ -5,9 +5,9 @@
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
  *
  * KEY TRUTHS:
- * - $0 access to features, connections, and information
+ * - No lead sales; no pay-to-play visibility
  * - Trust-first matching (CVS-based, not pay-to-play)
- * - 1-3 matches per request (no lead spam)
+ * - 1-3 matches per request (contact stays intent-gated)
  * - Community-owned reinvestment model
  * - Payment CANNOT override trust tiers
  */
@@ -573,7 +573,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
     {
       icon: DollarSign,
       title: "$0 Core Access",
-      desc: "$0 for features, connections, and information; unlabeled payment asks are scams",
+      desc: "No charge to connect; information is free; unlabeled payment asks are scams",
     },
   ];
 
@@ -770,7 +770,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "How much does TradeScout cost?",
-      a: "Access is simple: $0 for features, connections, and information. If you ever see a checkout (for example, a booking payment you choose to send or accept), it will be clearly labeled in-app. Any payment request claiming to unlock access, ranking, or visibility is a scam.",
+      a: "Access is simple: no charge to connect, and information is free. If you ever see a checkout (for example, a booking payment you choose to send or accept), it will be clearly labeled in-app. Any payment request claiming to unlock access, ranking, or visibility is a scam.",
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
@@ -886,7 +886,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ) : null}
           </div>
 
-          <p className="text-xs text-white/30 mt-3">No lead spam. No pay-to-play.</p>
+          <p className="text-xs text-white/30 mt-3">No lead sales. No pay-to-play.</p>
         </Reveal>
       </div>
     </section>

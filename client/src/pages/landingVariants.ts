@@ -44,7 +44,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   headlineNoBreakAfterIndices: [1],
   headlineLines: ["Connection", "Without", "Compromise"],
   subhead:
-    "Verified people connect through Scout-powered matching. No lead spam. No pay-to-play. Just trust.",
+    "Verified people connect through Scout-powered matching. No lead sales. No pay-to-play. Just trust.",
   primaryCta: { label: "Get Started", href: "/pre-scout-setup?mode=create" },
   secondaryCta: { label: "See How It Works", scrollToId: "how-it-works" },
   navLinks: [
@@ -488,7 +488,7 @@ function buildTradePatch(trade: Trade): Partial<LandingVariant> {
         },
         {
           title: `Are You a ${tradeLabel} Pro?`,
-          desc: "Earn visibility through trust and completed work, not ad spend or bidding wars.",
+          desc: "Earn visibility through trust and completed work, not ad spend or price pressure.",
         },
       ],
     },

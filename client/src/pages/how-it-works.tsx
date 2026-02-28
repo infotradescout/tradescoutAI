@@ -56,7 +56,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
       answer:
-        "TradeScout does not sell leads and does not charge for access to features, connections, or information. Payment data never influences ranking, routing, or trust authority.",
+        "TradeScout does not sell leads and does not charge to connect. Payment never influences ranking, routing, or trust authority.",
     },
     {
       question: "What is Scout?",
@@ -84,7 +84,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: CheckCircle,
       title: "Pros Accept/Decline",
-      desc: "Pros review your request and choose to accept or pass. No spam.",
+      desc: "Pros review your request and choose to accept or pass. Contact stays gated until acceptance.",
     },
     {
       icon: Handshake,
@@ -99,7 +99,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
       title: "Trust-Based Matching",
       desc: "Scout analyzes your request context (job type, location, urgency, budget signals) and matches based on trust score, verification, and relevance — not payment.",
       bullets: [
-        "No lead spam: Your request goes to 1-3 relevant pros, not dozens",
+        "Small routing set: Your request goes to 1-3 relevant pros, not dozens",
         "Context-aware: Scout includes job details, urgency, and budget signals",
         "Trust-verified: Only verified contractors can receive requests",
       ],
@@ -148,14 +148,14 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Lock,
       title: "Free to Use",
-      desc: "Access to TradeScout features, connections, and information is $0. TradeScout does not charge for access or visibility. Any request for payment in TradeScout's name to unlock access or ranking is a scam.",
+      desc: "TradeScout does not sell leads and does not charge to connect. Optional paid services (if offered) are clearly labeled before checkout and never affect matching, ranking, or contact authority. Any request for payment claiming to unlock matching, ranking, or visibility is a scam.",
     },
   ];
 
   return (
     <>
       <SEOHelmet
-        title="How It Works – Trust-First Contractor Matching | TradeScout"
+        title="How It Works - Trust-First Contractor Matching | TradeScout"
         description="TradeScout matches you with verified contractors based on trust and relevance, not payment. Learn how our AI-controlled platform works: matching, verification, Direct Connect, and community trust."
         keywords="how tradescout works, contractor matching, trust verification, direct connect, community verification score, no pay-to-play"
         canonical="https://www.thetradescout.com/how-it-works"

@@ -20,8 +20,10 @@ describe("public monetization copy guards", () => {
     const angi = read("client/src/pages/compare-angi.tsx");
     const homeAdvisor = read("client/src/pages/compare-homeadvisor.tsx");
 
-    expect(angi).toContain("Core access is $0 for features, connections, and information");
-    expect(homeAdvisor).toContain("Core access is $0 for features, connections, and information");
+    expect(angi).toContain("does not sell leads");
+    expect(homeAdvisor).toContain("does not sell leads");
+    expect(angi).toContain("does not charge to connect");
+    expect(homeAdvisor).toContain("does not charge to connect");
 
     expect(angi).not.toContain("pay-on-completion");
     expect(homeAdvisor).not.toContain("pay-on-completion");
@@ -43,16 +45,15 @@ describe("public monetization copy guards", () => {
     const landing = read("client/src/pages/landing.tsx");
 
     expect(howItWorks).toContain("does not sell leads");
-    expect(howItWorks).toContain(
-      "does not charge for access to features, connections, or information"
-    );
+    expect(howItWorks).toContain("does not charge to connect");
+    expect(howItWorks).toContain("Optional paid services");
     expect(howItWorks).toContain("is a scam");
 
-    expect(directConnectInfo).toContain("features, connections, and information is $0");
+    expect(directConnectInfo).toContain("never charges to connect");
     expect(directConnectInfo).toContain("What payment requests are legitimate?");
-    expect(directConnectInfo).toContain("is a scam");
+    expect(directConnectInfo).toContain("scam");
 
-    expect(landing).toContain("$0 access to features, connections, and information");
+    expect(landing).toContain("No lead sales");
     expect(landing).toContain("claiming to unlock access, ranking, or visibility is a scam");
   });
 

@@ -59,7 +59,7 @@ function buildCountyFAQs(
       },
       {
         question: `How is TradeScout different from Angi/HomeAdvisor?`,
-        answer: `No lead spam. No bidding wars. Trust-first matching using Community Verification Score (CVS). We match on relevance and trust, not price competition.`,
+        answer: `Intent-gated contact. Trust-first matching using Community Verification Score (CVS). We match on relevance and trust, not price competition.`,
       },
       {
         question: `What is the Community Verification Score (CVS)?`,
@@ -95,7 +95,7 @@ function buildCountyFAQs(
     },
     {
       question: `How is TradeScout different from Angi/HomeAdvisor in ${countyName}?`,
-      answer: `No lead spam. No bidding wars. Trust-first matching using Community Verification Score (CVS). We match on trust and relevance, not price competition. ${countyName} contractors benefit from context-aware routing and no excessive request flooding.`,
+      answer: `Intent-gated contact. Trust-first matching using Community Verification Score (CVS). We match on trust and relevance, not price competition. ${countyName} contractors benefit from context-aware routing and no excessive request flooding.`,
     },
     {
       question: `What is the Community Verification Score (CVS)?`,
@@ -116,10 +116,10 @@ function buildCountyDescription(
 
   const { coverageStatus, affiliateCount } = coverage;
   if (coverageStatus === "full") {
-    return `Find ${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching with Community Verification Score (CVS). No lead spam, no bidding wars.`;
+    return `Find ${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching with Community Verification Score (CVS). Intent-gated contact.`;
   }
   if (coverageStatus === "partial") {
-    return `${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching. Growing coverage. No lead spam.`;
+    return `${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching. Growing coverage. Intent-gated contact.`;
   }
   return `Find verified contractors in ${countyName}, ${stateName}. Coverage is still building; request county coverage and use Scout to route verified intent.`;
 }

@@ -13,9 +13,9 @@ import { Zap, Target, Shield, Users, ArrowRight } from "lucide-react";
  * Topics:
  * - How Direct Connect routing works
  * - Trust-verified matching (only verified contractors)
- * - No lead spam (1-3 qualified matches, not dozens)
+ * - Small routing set (1-3 qualified matches, not broadcast)
  * - Context-aware requests (Scout includes job details)
- * - What's different from lead-buying platforms
+ * - Why contact stays gated until a match accepts
  *
  * Written as system explanation (not marketing fluff).
  * Stable URL (never change).
@@ -31,17 +31,17 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "How is this different from Angi or HomeAdvisor?",
       answer:
-        "Traditional platforms sell your request as a lead to many contractors who then compete in a bidding war. Direct Connect sends your request only to pre-matched, trust-verified contractors. No bidding wars, no lead spam.",
+        "Some platforms distribute a request broadly. Direct Connect routes your request to a small set of pre-matched, trust-verified contractors, and contact stays gated until a match accepts.",
     },
     {
       question: "Do contractors pay to receive my request?",
       answer:
-        "No. Direct Connect matching is based on trust, relevance, and availability - not payment. TradeScout access to features, connections, and information is $0. No lead sales and no pay-to-play visibility.",
+        "No. Direct Connect matching is based on trust, relevance, and availability - not payment. TradeScout does not sell leads and does not charge to route a request or open contact.",
     },
     {
       question: "What payment requests are legitimate?",
       answer:
-        "None. TradeScout does not charge for access, matching, messaging, or profiles. Any payment request made in TradeScout's name to unlock features or visibility is a scam.",
+        "TradeScout never charges to connect, to be routed, or to unlock visibility. Some optional paid services may exist (and will always be clearly labeled in-app before checkout), but payment never changes matching, ranking, or contact authority.",
     },
     {
       question: "What information does Scout send to contractors?",
@@ -59,8 +59,8 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     <>
       <SEOHelmet
         title="Direct Connect - Trust-First Matching | TradeScout"
-        description="TradeScout Direct Connect routes your request to 1-3 verified contractors based on trust and relevance, not payment. No lead spam, no bidding wars - just qualified matches."
-        keywords="direct connect, contractor matching, no lead spam, trust-verified contractors, no bidding wars, qualified matches"
+        description="TradeScout Direct Connect routes your request to 1-3 verified contractors based on trust and relevance, not payment. Contact stays intent-gated until acceptance."
+        keywords="direct connect, contractor matching, trust-verified contractors, intent-gated contact, qualified matches"
         canonical="https://www.thetradescout.com/direct-connect-info"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -71,8 +71,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <header className="mb-12">
             <h1 className="text-4xl font-bold mb-4">Direct Connect</h1>
             <p className="text-xl text-tsTextSecondary">
-              Trust-first contractor matching. No lead spam. No bidding wars. Just qualified
-              professionals.
+              Trust-first contractor matching with intent-gated contact.
             </p>
           </header>
 
