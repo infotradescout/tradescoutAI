@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import dotenv from "dotenv";
 import { db } from "../../server/db";
 import { listingImportStaging } from "../../shared/schema";
 import {
@@ -13,6 +14,8 @@ import {
   parseTradeCategories,
   streamCsvFile,
 } from "./utils";
+
+dotenv.config();
 
 function resolveDelimiter(input: string): string {
   const key = String(input || "comma").toLowerCase();

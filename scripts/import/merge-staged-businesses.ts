@@ -1,10 +1,13 @@
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import dotenv from "dotenv";
 import { db } from "../../server/db";
 import { businesses, businessCounties, counties, listingImportStaging } from "../../shared/schema";
 import { normalizePhone, normalizeWebsite, parseArgs, slugify } from "./utils";
 
 type StageRow = typeof listingImportStaging.$inferSelect;
+
+dotenv.config();
 
 function readRawValue(row: StageRow, keys: string[]): string {
   const payload: any = (row as any).rawPayload || {};
@@ -105,14 +108,25 @@ async function findCountyId(countyFips: string | null): Promise<string | null> {
 }
 
 async function findExistingBusiness(row: StageRow): Promise<any | null> {
+  const stateFilter =
+    row.stateCode && String(row.stateCode).trim()
+      ? sql`exists (
+          select 1
+          from business_counties bc
+          join counties co on co.id = bc.county_id
+          where bc.business_id = ${businesses.id}
+            and co.state_code = ${row.stateCode}
+        )`
+      : sql`true`;
+
   const countyFilter = row.countyFips
     ? sql`exists (
-        select 1
-        from business_counties bc
-        join counties co on co.id = bc.county_id
-        where bc.business_id = ${businesses.id}
-          and co.fips = ${row.countyFips}
-      )`
+          select 1
+          from business_counties bc
+          join counties co on co.id = bc.county_id
+          where bc.business_id = ${businesses.id}
+            and co.fips = ${row.countyFips}
+        )`
     : sql`true`;
 
   const normalizedWebsite = normalizeWebsite(row.website || "");
@@ -128,6 +142,7 @@ async function findExistingBusiness(row: StageRow): Promise<any | null> {
       .from(businesses)
       .where(
         and(
+          stateFilter,
           countyFilter,
           sql`lower(coalesce(${businesses.profileData} ->> 'website', '')) = ${normalizedWebsite}`
         )
@@ -149,12 +164,37 @@ async function findExistingBusiness(row: StageRow): Promise<any | null> {
       .from(businesses)
       .where(
         and(
+          stateFilter,
           countyFilter,
           sql`regexp_replace(coalesce(${businesses.profileData} ->> 'phone', ''), '\\D', '', 'g') = ${normalizedPhone}`
         )
       )
       .limit(1);
     if (byPhone[0]) return byPhone[0];
+  }
+
+  // Normalized name matching (fallback). We normalize businesses.name on the fly to avoid
+  // duplicate listings when punctuation/casing differs between uploads.
+  const normalizedName = String(row.normalizedName || "").trim();
+  if (normalizedName) {
+    const byNormalizedName = await db
+      .select({
+        id: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        claimStatus: businesses.claimStatus,
+        profileData: businesses.profileData,
+        sources: businesses.sources,
+      })
+      .from(businesses)
+      .where(
+        and(
+          stateFilter,
+          countyFilter,
+          sql`btrim(regexp_replace(regexp_replace(lower(${businesses.name}), '[^a-z0-9]+', ' ', 'g'), '\\s+', ' ', 'g')) = ${normalizedName}`
+        )
+      )
+      .limit(1);
+    if (byNormalizedName[0]) return byNormalizedName[0];
   }
 
   const byName = await db
@@ -166,7 +206,7 @@ async function findExistingBusiness(row: StageRow): Promise<any | null> {
       sources: businesses.sources,
     })
     .from(businesses)
-    .where(and(countyFilter, sql`lower(${businesses.name}) = ${row.normalizedName}`))
+    .where(and(stateFilter, countyFilter, sql`lower(${businesses.name}) = ${row.normalizedName}`))
     .limit(1);
 
   return byName[0] || null;
