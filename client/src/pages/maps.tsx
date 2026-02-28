@@ -256,7 +256,16 @@ export default function MapsPage() {
       clustererRef.current = null;
     }
 
-    const iconForType = (type: MapEntityType) => {
+    const iconForPoint = (point: MapEntityPoint) => {
+      const verifiedStatus = String((point.meta as any)?.verifiedStatus || "").toLowerCase();
+      // Verified entities should stand out. Anything not verified (including directory shells) is grey.
+      if (verifiedStatus === "verified") {
+        return "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
+      }
+      if (verifiedStatus === "unverified" || verifiedStatus === "directory") {
+        return "https://maps.google.com/mapfiles/ms/icons/grey-dot.png";
+      }
+
       const byType: Record<MapEntityType, string> = {
         provider: "orange",
         public_profile: "blue",
@@ -265,7 +274,7 @@ export default function MapsPage() {
         food_truck: "red",
         parking_pass: "yellow",
       };
-      const color = byType[type] || "gray";
+      const color = byType[point.type] || "gray";
       return `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
     };
 
@@ -273,7 +282,7 @@ export default function MapsPage() {
       const marker = new window.google.maps.Marker({
         position: { lat: point.lat, lng: point.lng },
         title: point.title,
-        icon: iconForType(point.type),
+        icon: iconForPoint(point),
       });
       marker.addListener("click", () => {
         setSelectedPoint(point);
