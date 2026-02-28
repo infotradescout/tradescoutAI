@@ -200,7 +200,7 @@ type AuthedHandler = (
   res: Response,
   next: NextFunction
 ) => void | Promise<void>;
-import { eq, desc, and, or, sql, gt, gte, lte, asc, inArray, isNull } from "drizzle-orm";
+import { eq, ne, desc, and, or, sql, gt, gte, lte, asc, inArray, isNull } from "drizzle-orm";
 // Removed duplicate User import
 // Stubs for undeclared globals
 const program = {};
@@ -12426,19 +12426,76 @@ export async function registerRoutes(app: any) {
             if (dryRun) {
               createdUnclaimedBusinesses++;
             } else {
+              const normalizedWebsite = String(website || "")
+                .trim()
+                .toLowerCase()
+                .replace(/^https?:\/\//, "")
+                .replace(/^www\./, "")
+                .replace(/\/+$/, "");
+              const normalizedPhone = String(phone || "").replace(/\D/g, "");
+
               const existingUnclaimed = await db
-                .select({ id: businesses.id })
+                .select({ id: businesses.id, profileData: businesses.profileData })
                 .from(businesses)
                 .where(
                   and(
-                    sql`${businesses.ownerUserId} is null`,
-                    sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`
+                    isNull(businesses.ownerUserId),
+                    eq(businesses.claimStatus, "unclaimed" as any),
+                    ne(businesses.status, "suspended" as any),
+                    or(
+                      normalizedWebsite
+                        ? sql`lower(coalesce(${businesses.profileData} ->> 'website', '')) = ${normalizedWebsite}`
+                        : sql`false`,
+                      normalizedPhone
+                        ? sql`regexp_replace(coalesce(${businesses.profileData} ->> 'phone', ''), '\\D', '', 'g') = ${normalizedPhone}`
+                        : sql`false`,
+                      and(
+                        sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`,
+                        resolvedStateCode
+                          ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'state_code', '') = ${resolvedStateCode}`
+                          : sql`true`
+                      )
+                    )
                   )
                 )
                 .limit(1);
 
               if (existingUnclaimed.length > 0) {
                 businessId = existingUnclaimed[0].id;
+
+                // Merge in missing profile fields (do not overwrite).
+                const existingProfile: any = existingUnclaimed[0].profileData || {};
+                const nextProfile: any = { ...existingProfile };
+                if (!nextProfile.category && category) nextProfile.category = category;
+                if (
+                  (!nextProfile.services || !Array.isArray(nextProfile.services)) &&
+                  services.length
+                ) {
+                  nextProfile.services = services;
+                }
+                if (!nextProfile.website && website) nextProfile.website = website;
+                if (!nextProfile.phone && phone) nextProfile.phone = phone;
+
+                const nextExtras: any =
+                  nextProfile.importExtras && typeof nextProfile.importExtras === "object"
+                    ? { ...nextProfile.importExtras }
+                    : {};
+                // Always record the best known state code for safer future dedupe.
+                if (resolvedStateCode && !nextExtras.state_code)
+                  nextExtras.state_code = resolvedStateCode;
+                for (const [k, v] of Object.entries(importExtras)) {
+                  if (!nextExtras[k] && v) nextExtras[k] = String(v);
+                }
+                if (Object.keys(nextExtras).length) nextProfile.importExtras = nextExtras;
+
+                await db
+                  .update(businesses)
+                  .set({
+                    profileData: nextProfile,
+                    updatedAt: new Date(),
+                  } as any)
+                  .where(eq(businesses.id, businessId));
+
                 await db.execute(sql`
                   update businesses
                   set sources = (
@@ -12454,6 +12511,12 @@ export async function registerRoutes(app: any) {
                 `);
                 updatedUnclaimedBusinesses++;
               } else {
+                // Always record state code inside importExtras so future uploads can dedupe by state
+                // even when we don't yet know county FIPS.
+                if (resolvedStateCode && !importExtras.state_code) {
+                  importExtras.state_code = resolvedStateCode;
+                }
+
                 const createdBiz = await storage.createUnclaimedBusiness({
                   name: businessName,
                   slug: businessName,
