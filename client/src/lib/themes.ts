@@ -1,9 +1,9 @@
 /**
  * TradeScout Universal Theme System
- * 
+ *
  * Users can fully customize ALL colors including the charcoal base.
  * Charcoal is the DEFAULT but users can replace every color.
- * 
+ *
  * 3-Layer Color Hierarchy (all customizable):
  * - bgTertiary (charcoal-900): Structural chrome (top/bottom nav bars only)
  * - bgPrimary (charcoal-800): Primary canvas (page backgrounds)
@@ -36,13 +36,7 @@ export interface Theme {
 }
 
 // New semantic token contract for 6 locked theme IDs.
-export type ThemeId =
-  | "charcoal"
-  | "graphite"
-  | "sand"
-  | "sage"
-  | "midnight"
-  | "ember";
+export type ThemeId = "charcoal" | "graphite" | "sand" | "sage" | "midnight" | "ember";
 
 export type ThemeTokens = {
   "--ts-bg": string;
@@ -66,14 +60,7 @@ export type ThemeTokens = {
   "--ts-shadow-soft": string;
 };
 
-export const THEME_IDS: ThemeId[] = [
-  "charcoal",
-  "graphite",
-  "sand",
-  "sage",
-  "midnight",
-  "ember",
-];
+export const THEME_IDS: ThemeId[] = ["charcoal", "graphite", "sand", "sage", "midnight", "ember"];
 
 export const THEME_LABELS: Record<ThemeId, string> = {
   charcoal: "Charcoal",
@@ -86,25 +73,25 @@ export const THEME_LABELS: Record<ThemeId, string> = {
 
 export const THEMES: Record<ThemeId, ThemeTokens> = {
   charcoal: {
-    "--ts-bg": "#0B0F14",
-    "--ts-surface": "#121A24",
-    "--ts-surface-strong": "#0F1620",
-    "--ts-surface-hover": "#1A2432",
+    "--ts-bg": "#0a0f1e",
+    "--ts-surface": "#111827",
+    "--ts-surface-strong": "#0a0f1e",
+    "--ts-surface-hover": "#1e293b",
     "--ts-border-subtle": "rgba(255,255,255,0.10)",
     "--ts-border-strong": "rgba(255,255,255,0.18)",
-    "--ts-text": "#E6EDF6",
-    "--ts-text-muted": "rgba(230,237,246,0.68)",
-    "--ts-accent": "#FF6A00",
-    "--ts-accent-strong": "#FF8A3D",
-    "--ts-accent-soft": "rgba(255,106,0,0.16)",
-    "--ts-text-on-accent": "#0B0F14",
-    "--ts-input-bg": "#0F1620",
-    "--ts-input-border": "rgba(255,255,255,0.14)",
-    "--ts-focus-ring": "rgba(255,106,0,0.55)",
+    "--ts-text": "#ffffff",
+    "--ts-text-muted": "rgba(255,255,255,0.70)",
+    "--ts-accent": "#f97316",
+    "--ts-accent-strong": "#fb923c",
+    "--ts-accent-soft": "rgba(249,115,22,0.16)",
+    "--ts-text-on-accent": "#000000",
+    "--ts-input-bg": "rgba(0,0,0,0.30)",
+    "--ts-input-border": "rgba(255,255,255,0.10)",
+    "--ts-focus-ring": "rgba(249,115,22,0.55)",
     "--ts-success": "#22C55E",
     "--ts-warning": "#F59E0B",
     "--ts-danger": "#EF4444",
-    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.45)",
+    "--ts-shadow-soft": "0 18px 52px rgba(0,0,0,0.36)",
   },
   graphite: {
     "--ts-bg": "#10141B",
@@ -225,110 +212,111 @@ export function isThemeId(x: unknown): x is ThemeId {
 export const PRESET_THEMES: Theme[] = [
   // ======== DEFAULT: CHARCOAL (can be customized) ========
   {
-    id: 'charcoal',
-    name: 'Charcoal (Default)',
-    description: 'Default: charcoal system with orange accents. Fully customizable.',
+    id: "charcoal",
+    name: "Charcoal (Default)",
+    description: "Default: charcoal system with orange accents. Fully customizable.",
     colors: {
       // Palette: charcoal background + white text + orange accents
-      bgPrimary: '#0B0F14',      // Background (Charcoal)
-      bgSecondary: '#121A24',    // UI surface
-      bgTertiary: '#0F1620',     // Chrome/frame surface
-      textPrimary: '#F6F7FB',    // Near-white
-      textSecondary: 'rgba(246,247,251,0.70)', // Muted
-      accentPrimary: '#FF6A00',  // Orange accent
-      accentSecondary: '#FF8A3D', // Accent hover/secondary
-      accentTertiary: 'rgba(255,106,0,0.16)',
-      borderPrimary: 'rgba(255,255,255,0.12)',
-      borderSecondary: 'rgba(255,255,255,0.08)',
+      bgPrimary: "#0a0f1e", // Background (deep navy)
+      bgSecondary: "#111827", // UI surface (tsCard)
+      bgTertiary: "#0a0f1e", // Chrome/frame surface
+      textPrimary: "#ffffff", // White
+      textSecondary: "rgba(255,255,255,0.70)", // Muted
+      accentPrimary: "#f97316", // ts-orange accent
+      accentSecondary: "#fb923c", // ts-orange-light
+      accentTertiary: "rgba(249,115,22,0.16)",
+      borderPrimary: "rgba(255,255,255,0.10)",
+      borderSecondary: "rgba(255,255,255,0.06)",
     },
-    backgroundGradient: 'radial-gradient(1200px 800px at 20% 10%, rgba(255,106,0,0.16), transparent 60%), linear-gradient(180deg, #0B0F14, #0B0F14)',
+    backgroundGradient:
+      "radial-gradient(1200px 800px at 20% 10%, rgba(249,115,22,0.16), transparent 60%), linear-gradient(180deg, #0a0f1e, #0a0f1e)",
   },
 
   // ======== ALTERNATIVE THEMES (users can customize all colors) ========
   {
-    id: 'tradescout-blue',
-    name: 'TradeScout Blue',
-    description: 'Blue accent theme. Customize all colors including backgrounds.',
+    id: "tradescout-blue",
+    name: "TradeScout Blue",
+    description: "Blue accent theme. Customize all colors including backgrounds.",
     colors: {
-      bgPrimary: '#0f172a',      // Slate-900
-      bgSecondary: '#1e293b',    // Slate-800
-      bgTertiary: '#09111f',     // Slate-950
-      textPrimary: '#ffffff',
-      textSecondary: '#cbd5e1',
-      accentPrimary: '#3b82f6',
-      accentSecondary: '#1e40af',
-      accentTertiary: '#60a5fa',
-      borderPrimary: '#334155',
-      borderSecondary: '#1e293b',
+      bgPrimary: "#0f172a", // Slate-900
+      bgSecondary: "#1e293b", // Slate-800
+      bgTertiary: "#09111f", // Slate-950
+      textPrimary: "#ffffff",
+      textSecondary: "#cbd5e1",
+      accentPrimary: "#3b82f6",
+      accentSecondary: "#1e40af",
+      accentTertiary: "#60a5fa",
+      borderPrimary: "#334155",
+      borderSecondary: "#1e293b",
     },
-    backgroundGradient: 'linear-gradient(135deg, #0f172a, #1e293b)',
+    backgroundGradient: "linear-gradient(135deg, #0f172a, #1e293b)",
   },
   {
-    id: 'midnight',
-    name: 'Midnight',
-    description: 'Deep midnight blue with cyan accents. All colors customizable.',
+    id: "midnight",
+    name: "Midnight",
+    description: "Deep midnight blue with cyan accents. All colors customizable.",
     colors: {
-      bgPrimary: '#0a0e14',
-      bgSecondary: '#141820',
-      bgTertiary: '#090b0f',
-      textPrimary: '#ffffff',
-      textSecondary: '#a8b2d1',
-      accentPrimary: '#00d4ff',
-      accentSecondary: '#0099cc',
-      accentTertiary: '#4de3ff',
-      borderPrimary: '#1a2430',
-      borderSecondary: '#141820',
-    },
-  },
-  {
-    id: 'forest',
-    name: 'Forest Green',
-    description: 'Forest greens with emerald accents. Fully customizable.',
-    colors: {
-      bgPrimary: '#0d1b12',
-      bgSecondary: '#1a2e23',
-      bgTertiary: '#091410',
-      textPrimary: '#ffffff',
-      textSecondary: '#c5e1d4',
-      accentPrimary: '#10b981',
-      accentSecondary: '#047857',
-      accentTertiary: '#34d399',
-      borderPrimary: '#1a3630',
-      borderSecondary: '#1a2e23',
+      bgPrimary: "#0a0e14",
+      bgSecondary: "#141820",
+      bgTertiary: "#090b0f",
+      textPrimary: "#ffffff",
+      textSecondary: "#a8b2d1",
+      accentPrimary: "#00d4ff",
+      accentSecondary: "#0099cc",
+      accentTertiary: "#4de3ff",
+      borderPrimary: "#1a2430",
+      borderSecondary: "#141820",
     },
   },
   {
-    id: 'sunset',
-    name: 'Sunset',
-    description: 'Warm sunset with purple-pink accents. All colors customizable.',
+    id: "forest",
+    name: "Forest Green",
+    description: "Forest greens with emerald accents. Fully customizable.",
     colors: {
-      bgPrimary: '#1a0f1e',
-      bgSecondary: '#2d1b33',
-      bgTertiary: '#130a16',
-      textPrimary: '#ffffff',
-      textSecondary: '#e4d4ea',
-      accentPrimary: '#e879f9',
-      accentSecondary: '#c026d3',
-      accentTertiary: '#f0abfc',
-      borderPrimary: '#3d2445',
-      borderSecondary: '#2d1b33',
+      bgPrimary: "#0d1b12",
+      bgSecondary: "#1a2e23",
+      bgTertiary: "#091410",
+      textPrimary: "#ffffff",
+      textSecondary: "#c5e1d4",
+      accentPrimary: "#10b981",
+      accentSecondary: "#047857",
+      accentTertiary: "#34d399",
+      borderPrimary: "#1a3630",
+      borderSecondary: "#1a2e23",
     },
   },
   {
-    id: 'warm',
-    name: 'Warm Amber',
-    description: 'Warm browns with amber accents. Customize every color.',
+    id: "sunset",
+    name: "Sunset",
+    description: "Warm sunset with purple-pink accents. All colors customizable.",
     colors: {
-      bgPrimary: '#1c1410',
-      bgSecondary: '#2d2318',
-      bgTertiary: '#0f0a07',
-      textPrimary: '#ffffff',
-      textSecondary: '#e7d4c5',
-      accentPrimary: '#f59e0b',
-      accentSecondary: '#d97706',
-      accentTertiary: '#fbbf24',
-      borderPrimary: '#3d3020',
-      borderSecondary: '#2d2318',
+      bgPrimary: "#1a0f1e",
+      bgSecondary: "#2d1b33",
+      bgTertiary: "#130a16",
+      textPrimary: "#ffffff",
+      textSecondary: "#e4d4ea",
+      accentPrimary: "#e879f9",
+      accentSecondary: "#c026d3",
+      accentTertiary: "#f0abfc",
+      borderPrimary: "#3d2445",
+      borderSecondary: "#2d1b33",
+    },
+  },
+  {
+    id: "warm",
+    name: "Warm Amber",
+    description: "Warm browns with amber accents. Customize every color.",
+    colors: {
+      bgPrimary: "#1c1410",
+      bgSecondary: "#2d2318",
+      bgTertiary: "#0f0a07",
+      textPrimary: "#ffffff",
+      textSecondary: "#e7d4c5",
+      accentPrimary: "#f59e0b",
+      accentSecondary: "#d97706",
+      accentTertiary: "#fbbf24",
+      borderPrimary: "#3d3020",
+      borderSecondary: "#2d2318",
     },
   },
 ];
@@ -382,31 +370,37 @@ export function applyTheme(theme: Theme) {
 
   // Maintain legacy --theme-* variables for existing CSS that still
   // references them (e.g. scout-suggestion styles).
-  root.style.setProperty('--theme-bg-primary', theme.colors.bgPrimary);
-  root.style.setProperty('--theme-bg-secondary', theme.colors.bgSecondary);
-  root.style.setProperty('--theme-bg-quaternary', theme.colors.bgTertiary);
-  root.style.setProperty('--theme-text-primary', theme.colors.textPrimary);
-  root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
-  root.style.setProperty('--theme-text-muted', theme.colors.textSecondary);
-  root.style.setProperty('--theme-accent-primary', theme.colors.accentPrimary);
-  root.style.setProperty('--theme-accent-secondary', theme.colors.accentSecondary);
+  root.style.setProperty("--theme-bg-primary", theme.colors.bgPrimary);
+  root.style.setProperty("--theme-bg-secondary", theme.colors.bgSecondary);
+  root.style.setProperty("--theme-bg-quaternary", theme.colors.bgTertiary);
+  root.style.setProperty("--theme-text-primary", theme.colors.textPrimary);
+  root.style.setProperty("--theme-text-secondary", theme.colors.textSecondary);
+  root.style.setProperty("--theme-text-muted", theme.colors.textSecondary);
+  root.style.setProperty("--theme-accent-primary", theme.colors.accentPrimary);
+  root.style.setProperty("--theme-accent-secondary", theme.colors.accentSecondary);
   if (theme.colors.accentTertiary) {
-    root.style.setProperty('--theme-accent-tertiary', theme.colors.accentTertiary);
+    root.style.setProperty("--theme-accent-tertiary", theme.colors.accentTertiary);
   }
-  root.style.setProperty('--theme-border-primary', theme.colors.borderPrimary);
-  root.style.setProperty('--theme-border-secondary', theme.colors.borderSecondary || theme.colors.bgSecondary);
+  root.style.setProperty("--theme-border-primary", theme.colors.borderPrimary);
+  root.style.setProperty(
+    "--theme-border-secondary",
+    theme.colors.borderSecondary || theme.colors.bgSecondary
+  );
 
   if (theme.backgroundGradient) {
-    root.style.setProperty('--theme-bg-gradient', theme.backgroundGradient);
+    root.style.setProperty("--theme-bg-gradient", theme.backgroundGradient);
   } else if (theme.colors.bgGradient) {
-    root.style.setProperty('--theme-bg-gradient', theme.colors.bgGradient);
+    root.style.setProperty("--theme-bg-gradient", theme.colors.bgGradient);
   } else {
-    root.style.setProperty('--theme-bg-gradient', `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`);
+    root.style.setProperty(
+      "--theme-bg-gradient",
+      `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`
+    );
   }
 
   // Save to localStorage for persistence
   try {
-    localStorage.setItem('ts-active-theme', theme.id);
+    localStorage.setItem("ts-active-theme", theme.id);
   } catch (e) {
     // Ignore localStorage errors (might be disabled or full)
   }
@@ -416,7 +410,7 @@ export function applyTheme(theme: Theme) {
  * Get a theme by ID
  */
 export function getThemeById(id: string): Theme {
-  return PRESET_THEMES.find(t => t.id === id) || PRESET_THEMES[0];
+  return PRESET_THEMES.find((t) => t.id === id) || PRESET_THEMES[0];
 }
 
 /**
@@ -424,20 +418,20 @@ export function getThemeById(id: string): Theme {
  */
 export function getActiveThemeId(): string {
   try {
-    const stored = localStorage.getItem('ts-active-theme');
-    if (stored && PRESET_THEMES.find(t => t.id === stored)) {
+    const stored = localStorage.getItem("ts-active-theme");
+    if (stored && PRESET_THEMES.find((t) => t.id === stored)) {
       return stored;
     }
   } catch (e) {
     // Ignore
   }
-  return 'charcoal'; // Always default to charcoal
+  return "charcoal"; // Always default to charcoal
 }
 
 /**
  * Initialize theme on app startup
  * Call this once in your App.tsx useEffect with empty dependency array
- * 
+ *
  * Example:
  * useEffect(() => {
  *   initializeTheme();
@@ -452,7 +446,7 @@ export function initializeTheme() {
 /**
  * Create a completely custom theme with full control over all colors
  * Users can override the charcoal base and customize EVERYTHING
- * 
+ *
  * Example:
  * const myTheme = createCustomTheme('my-theme', {
  *   bgPrimary: '#1a1a2e',
@@ -486,8 +480,8 @@ export function createCustomTheme(
 ): Theme {
   return {
     id,
-    name: options?.name || 'Custom Theme',
-    description: options?.description || 'Custom color theme',
+    name: options?.name || "Custom Theme",
+    description: options?.description || "Custom color theme",
     colors: {
       accentTertiary: colors.accentSecondary,
       borderSecondary: colors.borderPrimary,
