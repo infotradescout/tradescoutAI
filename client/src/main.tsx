@@ -143,6 +143,75 @@ if (!container) {
 
 const root = ReactDOM.createRoot(container);
 
+// Production hardening: if a deploy happens while a user has an old bundle cached,
+// dynamic chunk loads can 404 and the app can crash. Detect that case and force a
+// one-time cache/SW reset so the user gets the latest assets.
+if (import.meta.env.PROD) {
+  const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1";
+
+  const isLikelyChunkLoadError = (err: unknown) => {
+    const msg =
+      typeof err === "string"
+        ? err
+        : (err as any)?.message || (err as any)?.reason || (err as any)?.toString?.() || "";
+    return (
+      typeof msg === "string" &&
+      (msg.includes("Failed to fetch dynamically imported module") ||
+        msg.includes("Importing a module script failed") ||
+        msg.includes("Loading chunk") ||
+        msg.includes("ChunkLoadError") ||
+        msg.includes("/assets/"))
+    );
+  };
+
+  const recoverFromChunkError = async (err: unknown) => {
+    try {
+      if (sessionStorage.getItem(RECOVERY_FLAG) === "1") return;
+      sessionStorage.setItem(RECOVERY_FLAG, "1");
+    } catch {
+      // ignore
+    }
+
+    console.warn("[Boot] chunk load failure detected; resetting caches", err);
+
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys.filter((k) => k.startsWith("tradescout-")).map((k) => caches.delete(k))
+        );
+      }
+    } catch {
+      // ignore
+    }
+
+    // Force a full reload to pull the latest HTML + assets.
+    window.location.reload();
+  };
+
+  window.addEventListener("unhandledrejection", (event) => {
+    if (isLikelyChunkLoadError((event as any).reason)) {
+      recoverFromChunkError((event as any).reason);
+    }
+  });
+
+  window.addEventListener("error", (event) => {
+    const anyEvent = event as any;
+    if (isLikelyChunkLoadError(anyEvent?.error ?? anyEvent?.message)) {
+      recoverFromChunkError(anyEvent?.error ?? anyEvent?.message);
+    }
+  });
+}
+
 // IMPORTANT:
 // Do NOT wrap App in React.StrictMode here.
 // StrictMode intentionally double-mounts in dev,
