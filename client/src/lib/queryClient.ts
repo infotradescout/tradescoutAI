@@ -16,7 +16,7 @@ export class ApiError extends Error {
 export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
 export async function apiRequest(
   url: string,
-  options?: { method?: string; body?: any; data?: any } | any
+  options?: { method?: string; body?: any; data?: any; timeoutMs?: number; signal?: AbortSignal } | any
 ): Promise<any>;
 export async function apiRequest(
   methodOrUrl: string,
@@ -25,7 +25,21 @@ export async function apiRequest(
 ) {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const optionsTimeoutMs =
+      typeof urlOrData === "object" && urlOrData !== null && "timeoutMs" in urlOrData
+        ? Number((urlOrData as any).timeoutMs)
+        : NaN;
+    const timeoutMs = Number.isFinite(optionsTimeoutMs) ? Math.max(0, optionsTimeoutMs) : 15000;
+
+    // Allow callers to pass their own AbortSignal (e.g., when using react-query cancellation).
+    const externalSignal =
+      typeof urlOrData === "object" && urlOrData !== null ? ((urlOrData as any).signal as any) : null;
+    if (externalSignal && typeof externalSignal.addEventListener === "function") {
+      externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+
+    const timeoutId =
+      timeoutMs > 0 ? setTimeout(() => controller.abort(), timeoutMs) : (null as any);
 
     // Normalize arguments to support both apiRequest(method, url, data) and apiRequest(url, options)
     let method = "GET";
@@ -66,7 +80,7 @@ export async function apiRequest(
 
     const fullUrl = buildApiUrl(url);
     const response = await fetch(fullUrl, config);
-    clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();

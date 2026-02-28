@@ -179,15 +179,19 @@ export default function AdminBusinessImport() {
     mutationFn: async () => {
       const { chunks, estimatedRows } = splitIntoImportChunks(content);
       if (chunks.length <= 1) {
-        const res = await apiRequest("POST", "/api/admin/businesses/import", {
-          content,
-          source: source.trim() || "csv_manual",
-          dryRun,
-          sendActivationEmails,
-          includeActivationLinks,
-          createPublicProfiles,
-          defaultCountyFips: defaultCountyFips.trim() || undefined,
-          defaultStateCode: defaultStateCode.trim() || undefined,
+        const res = await apiRequest("/api/admin/businesses/import", {
+          method: "POST",
+          timeoutMs: 120_000,
+          body: {
+            content,
+            source: source.trim() || "csv_manual",
+            dryRun,
+            sendActivationEmails,
+            includeActivationLinks,
+            createPublicProfiles,
+            defaultCountyFips: defaultCountyFips.trim() || undefined,
+            defaultStateCode: defaultStateCode.trim() || undefined,
+          },
         });
         return res as ImportResponse;
       }
@@ -222,14 +226,18 @@ export default function AdminBusinessImport() {
         });
 
         const res = (await apiRequest("POST", "/api/admin/businesses/import", {
-          content: chunks[i],
-          source: source.trim() || "csv_manual",
-          dryRun,
-          sendActivationEmails,
-          includeActivationLinks,
-          createPublicProfiles,
-          defaultCountyFips: defaultCountyFips.trim() || undefined,
-          defaultStateCode: defaultStateCode.trim() || undefined,
+          method: "POST",
+          timeoutMs: 120_000,
+          body: {
+            content: chunks[i],
+            source: source.trim() || "csv_manual",
+            dryRun,
+            sendActivationEmails,
+            includeActivationLinks,
+            createPublicProfiles,
+            defaultCountyFips: defaultCountyFips.trim() || undefined,
+            defaultStateCode: defaultStateCode.trim() || undefined,
+          },
         })) as ImportResponse;
 
         combined.delimiter = res.delimiter;
@@ -289,10 +297,14 @@ export default function AdminBusinessImport() {
   const enrichMutation = useMutation({
     mutationFn: async () => {
       const limit = parseInt(enrichLimit, 10);
-      const res = await apiRequest("POST", "/api/admin/businesses/enrich-counties", {
-        limit: Number.isFinite(limit) ? limit : 100,
-        dryRun: enrichDryRun,
-        onlyUnclaimed: true,
+      const res = await apiRequest("/api/admin/businesses/enrich-counties", {
+        method: "POST",
+        timeoutMs: 120_000,
+        body: {
+          limit: Number.isFinite(limit) ? limit : 100,
+          dryRun: enrichDryRun,
+          onlyUnclaimed: true,
+        },
       });
       return res as any;
     },
