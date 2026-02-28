@@ -278,7 +278,9 @@ export async function getMissionControlSummary(now = new Date()): Promise<Missio
   const [success] = await db
     .select({ count: sql<number>`count(*)` })
     .from(scoutInteractions)
-    .where(and(baseWhere, inArray(scoutInteractions.outcome, ["completed", "handed_off"] as const)));
+    .where(
+      and(baseWhere, inArray(scoutInteractions.outcome, ["completed", "handed_off"] as const))
+    );
 
   const [blocked] = await db
     .select({ count: sql<number>`count(*)` })
@@ -291,8 +293,8 @@ export async function getMissionControlSummary(now = new Date()): Promise<Missio
     .where(
       and(
         baseWhere,
-        inArray(scoutInteractions.failureReason, ["unclear_copy", "ui_dead_end"] as const),
-      ),
+        inArray(scoutInteractions.failureReason, ["unclear_copy", "ui_dead_end"] as const)
+      )
     );
 
   const summary: MissionControlSummary = {
@@ -356,9 +358,10 @@ async function fetchBotFailures(since: Date): Promise<MissionControlFailure[]> {
       occurrences: (existing?.occurrences ?? 0) + 1,
       severity,
       intentStrength: intentWeight,
-      latestAt: (existing?.latestAt && existing.latestAt > (row.createdAt as any as string))
-        ? existing.latestAt
-        : new Date(row.createdAt || new Date()).toISOString(),
+      latestAt:
+        existing?.latestAt && existing.latestAt > (row.createdAt as any as string)
+          ? existing.latestAt
+          : new Date(row.createdAt || new Date()).toISOString(),
       tags: row.failureType === "stub" ? ["stub"] : undefined,
     };
 
@@ -384,8 +387,8 @@ async function fetchScoutFailures(since: Date): Promise<MissionControlFailure[]>
     .where(
       and(
         gte(scoutInteractions.createdAt, since),
-        inArray(scoutInteractions.outcome, ["blocked", "handed_off", "abandoned"] as const),
-      ),
+        inArray(scoutInteractions.outcome, ["blocked", "handed_off", "abandoned"] as const)
+      )
     )
     .orderBy(desc(scoutInteractions.createdAt));
 
@@ -406,17 +409,28 @@ async function fetchScoutFailures(since: Date): Promise<MissionControlFailure[]>
       countyFips: row.countyFips,
       role: row.userRole,
       what: row.intent || "unknown",
-      where: row.failureReason === "permission" ? "Permission" : row.failureReason === "no_route" ? "Route" : row.failureReason === "ui_dead_end" ? "UI" : "Scout",
+      where:
+        row.failureReason === "permission"
+          ? "Permission"
+          : row.failureReason === "no_route"
+            ? "Route"
+            : row.failureReason === "ui_dead_end"
+              ? "UI"
+              : "Scout",
       why: row.failureReason || row.outcome,
       fixLever: fixLeverFromScout(row as ScoutInteraction),
       impactScore,
       occurrences: (existing?.occurrences ?? 0) + 1,
       severity,
       intentStrength: intentWeight,
-      latestAt: (existing?.latestAt && existing.latestAt > (row.createdAt as any as string))
-        ? existing.latestAt
-        : new Date(row.createdAt || new Date()).toISOString(),
-      tags: row.failureReason === "ui_dead_end" || row.failureReason === "no_route" ? ["partial"] : undefined,
+      latestAt:
+        existing?.latestAt && existing.latestAt > (row.createdAt as any as string)
+          ? existing.latestAt
+          : new Date(row.createdAt || new Date()).toISOString(),
+      tags:
+        row.failureReason === "ui_dead_end" || row.failureReason === "no_route"
+          ? ["partial"]
+          : undefined,
     };
 
     grouped.set(key, failure);
@@ -436,7 +450,12 @@ async function fetchErrorFailures(since: Date): Promise<MissionControlFailure[]>
       createdAt: errorReports.createdAt,
     })
     .from(errorReports)
-    .where(and(gte(errorReports.createdAt, since), inArray(errorReports.status, ["open", "in_progress"] as const)))
+    .where(
+      and(
+        gte(errorReports.createdAt, since),
+        inArray(errorReports.status, ["open", "in_progress"] as const)
+      )
+    )
     .orderBy(desc(errorReports.createdAt));
 
   const grouped = new Map<string, MissionControlFailure>();
@@ -464,9 +483,10 @@ async function fetchErrorFailures(since: Date): Promise<MissionControlFailure[]>
       occurrences: (existing?.occurrences ?? 0) + 1,
       severity,
       intentStrength: intentWeight,
-      latestAt: (existing?.latestAt && existing.latestAt > (row.createdAt as any as string))
-        ? existing.latestAt
-        : new Date(row.createdAt || new Date()).toISOString(),
+      latestAt:
+        existing?.latestAt && existing.latestAt > (row.createdAt as any as string)
+          ? existing.latestAt
+          : new Date(row.createdAt || new Date()).toISOString(),
     };
 
     grouped.set(key, failure);
@@ -475,7 +495,9 @@ async function fetchErrorFailures(since: Date): Promise<MissionControlFailure[]>
   return Array.from(grouped.values());
 }
 
-export async function getMissionControlFailures(now = new Date()): Promise<MissionControlFailure[]> {
+export async function getMissionControlFailures(
+  now = new Date()
+): Promise<MissionControlFailure[]> {
   const since = new Date(now.getTime() - ONE_DAY_MS);
   const [bot, scout, errors] = await Promise.all([
     fetchBotFailures(since),
@@ -508,13 +530,16 @@ export async function getMissionControlFailures(now = new Date()): Promise<Missi
   });
 }
 
-export async function getMissionControlCompromises(now = new Date()): Promise<MissionControlCompromise[]> {
+export async function getMissionControlCompromises(
+  now = new Date()
+): Promise<MissionControlCompromise[]> {
   const failures = await getMissionControlFailures(now);
   const compromises: MissionControlCompromise[] = [];
 
   for (const failure of failures) {
     if (failure.sourceType === "bot_ui") {
-      const tag: MissionControlCompromise["tag"] = failure.why?.includes("stub") || failure.fixLever === "copy" ? "stub" : "partial";
+      const tag: MissionControlCompromise["tag"] =
+        failure.why?.includes("stub") || failure.fixLever === "copy" ? "stub" : "partial";
       compromises.push({
         id: `compromise:${failure.sourceId}`,
         sourceType: failure.sourceType,
@@ -526,7 +551,8 @@ export async function getMissionControlCompromises(now = new Date()): Promise<Mi
     }
 
     if (failure.sourceType === "scout") {
-      const tag: MissionControlCompromise["tag"] = failure.fixLever === "permission" ? "observer" : "partial";
+      const tag: MissionControlCompromise["tag"] =
+        failure.fixLever === "permission" ? "observer" : "partial";
       compromises.push({
         id: `compromise:${failure.sourceId}`,
         sourceType: failure.sourceType,
@@ -569,8 +595,8 @@ export async function getScopeGovernorState(now = new Date()): Promise<ScopeGove
       and(
         gte(missionControlDecisions.decisionDate, sinceDate),
         eq(missionControlDecisions.action, "defer" as const),
-        sql`coalesce(${missionControlDecisions.deferReason}, '') = ''`,
-      ),
+        sql`coalesce(${missionControlDecisions.deferReason}, '') = ''`
+      )
     );
 
   if (deferredWithoutReason.length > 0) {
@@ -596,33 +622,35 @@ export async function getScoutHealthSummary(now = new Date()): Promise<string> {
     .from(scoutInteractions)
     .where(gte(scoutInteractions.createdAt, since));
 
-  const confident = rows.filter((r) => (r.scoutConfidence ?? 0) >= 70).length;
-  const hesitant = rows.filter((r) => (r.scoutConfidence ?? 0) < 40).length;
+  const total = rows.length;
+  if (total === 0) {
+    return "Last 7 days: no Scout interactions recorded.";
+  }
+
+  const highConfidence = rows.filter((r) => (r.scoutConfidence ?? 0) >= 70).length;
+  const lowConfidence = rows.filter((r) => (r.scoutConfidence ?? 0) < 40).length;
   const handoffs = rows.filter((r) => r.outcome === "handed_off").length;
-  const trapped = rows.filter((r) => r.outcome === "blocked").length;
+  const blocked = rows.filter((r) => r.outcome === "blocked").length;
 
   const intents: Record<string, number> = {};
-  rows.forEach((r) => {
+  for (const r of rows) {
     const key = r.intent || "unknown";
     intents[key] = (intents[key] ?? 0) + 1;
-  });
+  }
 
-  const topIntent = Object.entries(intents).sort(([, a], [, b]) => b - a)[0]?.[0] ?? "unknown";
+  const topIntent = Object.entries(intents)
+    .filter(([k]) => k && k !== "unknown")
+    .sort(([, a], [, b]) => b - a)[0]?.[0];
 
   const parts = [
-    `Scout was confident in ${confident} interactions over the last 7 days (top intent: ${topIntent}).`,
-    `Hesitation showed up ${hesitant} times and ${handoffs} were correctly handed back.`,
+    `Last 7 days: ${total} Scout interactions.`,
+    `Confidence: high ${highConfidence}, low ${lowConfidence}. Handoffs: ${handoffs}.`,
+    `Top intent: ${topIntent || "not yet classified"}.`,
+    `Blocked: ${blocked}${blocked > 0 ? " (should be 0)." : " (good)."}`,
   ];
-
-  if (trapped > 0) {
-    parts.push(`🚫 ${trapped} users were trapped (must be zero).`);
-  } else {
-    parts.push("No users were trapped (good).");
-  }
 
   return parts.join(" ");
 }
-
 export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult | null> {
   const today = new Date(now);
   today.setUTCHours(0, 0, 0, 0);
@@ -637,9 +665,7 @@ export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult 
     .from(missionControlDecisions)
     .where(eq(missionControlDecisions.decisionDate, todayStr));
 
-  const excludedKeys = new Set(
-    decidedToday.map((d) => `${d.sourceType}::${d.sourceId}`)
-  );
+  const excludedKeys = new Set(decidedToday.map((d) => `${d.sourceType}::${d.sourceId}`));
 
   const existing = await db
     .select()
@@ -653,7 +679,9 @@ export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult 
     if (excludedKeys.has(key)) {
       // Already decided today; skip to next
     } else {
-      const [failure] = (await getMissionControlFailures(now)).filter((f) => f.sourceId === existing[0].sourceId);
+      const [failure] = (await getMissionControlFailures(now)).filter(
+        (f) => f.sourceId === existing[0].sourceId
+      );
       if (failure) {
         return { action: existing[0], failure };
       }
@@ -699,7 +727,7 @@ export async function updateOneFixStatus(
   id: string,
   status: "done" | "deferred",
   reason?: string,
-  decidedByUserId?: string,
+  decidedByUserId?: string
 ): Promise<MissionControlAction | null> {
   const [updated] = await db
     .update(missionControlActions)

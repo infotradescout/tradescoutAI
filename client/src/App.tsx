@@ -408,6 +408,47 @@ const LazyPage = memo(function LazyPage({
   Component: React.LazyExoticComponent<React.ComponentType<object>>;
   fallback?: React.ReactNode;
 }) {
+  const repairAndReload = async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys
+            .filter(
+              (k) =>
+                k === "tradescout-static-v1" ||
+                k.startsWith("tradescout-") ||
+                k.startsWith("workbox-") ||
+                k.startsWith("vite-")
+            )
+            .map((k) => caches.delete(k))
+        );
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      // Reset the chunk recovery session guard so ErrorBoundary can attempt auto-repair again.
+      sessionStorage.removeItem("ts_chunk_recovery_attempted");
+    } catch {
+      // ignore
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("__fresh", String(Date.now()));
+    window.location.replace(url.toString());
+  };
+
   return (
     <ErrorBoundary
       fallback={
@@ -428,9 +469,9 @@ const LazyPage = memo(function LazyPage({
               <button
                 type="button"
                 className="rounded-full border border-tsAccent/70 bg-tsAccent/20 px-4 py-2 text-xs font-semibold text-tsTextMain hover:bg-tsAccent/30"
-                onClick={() => window.location.reload()}
+                onClick={() => void repairAndReload()}
               >
-                Reload page
+                Repair & Reload
               </button>
             </div>
           </div>

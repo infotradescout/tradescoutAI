@@ -80,6 +80,8 @@ export default function AdminBusinessImport() {
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [selectedBatchStatus, setSelectedBatchStatus] = useState("all");
   const [result, setResult] = useState<ImportResponse | null>(null);
+  const [enrichLimit, setEnrichLimit] = useState("100");
+  const [enrichDryRun, setEnrichDryRun] = useState(false);
 
   const {
     data: batchData,
@@ -145,6 +147,31 @@ export default function AdminBusinessImport() {
       toast({
         title: "Import failed",
         description: error?.message || "Failed to import",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const enrichMutation = useMutation({
+    mutationFn: async () => {
+      const limit = parseInt(enrichLimit, 10);
+      const res = await apiRequest("POST", "/api/admin/businesses/enrich-counties", {
+        limit: Number.isFinite(limit) ? limit : 100,
+        dryRun: enrichDryRun,
+        onlyUnclaimed: true,
+      });
+      return res as any;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: enrichDryRun ? "Enrichment dry run complete" : "County enrichment complete",
+        description: `Scanned: ${data?.summary?.scanned ?? 0} - Enriched: ${data?.summary?.enriched ?? 0} - Not found: ${data?.summary?.notFound ?? 0}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Enrichment failed",
+        description: error?.message || "Failed to enrich counties",
         variant: "destructive",
       });
     },
@@ -268,6 +295,51 @@ export default function AdminBusinessImport() {
               </div>
             </div>
           )}
+
+          <div className="rounded-xl border border-[color:var(--border-subtle)] bg-slate-950/30 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-white">County enrichment (routing)</div>
+                <div className="text-xs text-[color:var(--text-secondary)]">
+                  Assign counties to unclaimed businesses using stored address fields so Scout can
+                  route by county. Safe to run repeatedly.
+                </div>
+              </div>
+              <Button
+                onClick={() => enrichMutation.mutate()}
+                disabled={enrichMutation.isPending}
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+              >
+                {enrichMutation.isPending
+                  ? "Enriching..."
+                  : enrichDryRun
+                    ? "Dry Run"
+                    : "Enrich Counties"}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-slate-400">Limit</label>
+                <Input
+                  value={enrichLimit}
+                  onChange={(e) => setEnrichLimit(e.target.value)}
+                  placeholder="100"
+                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                />
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 text-sm text-slate-200">
+                  <Checkbox
+                    checked={enrichDryRun}
+                    onCheckedChange={(v) => setEnrichDryRun(v === true)}
+                  />
+                  Dry run (no writes)
+                </label>
+              </div>
+            </div>
+          </div>
 
           <div>
             <label className="text-xs text-slate-400">Paste CSV/TSV/text</label>
