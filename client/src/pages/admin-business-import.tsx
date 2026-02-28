@@ -67,6 +67,55 @@ type StagedImportRow = {
   updatedAt: string | null;
 };
 
+type ImportProgress = {
+  totalChunks: number;
+  currentChunk: number;
+  processedRows: number;
+};
+
+const MAX_IMPORT_CHUNK_CHARS = 400_000; // keep far below the server JSON body limit (prod)
+
+function looksLikeHeaderLine(line: string): boolean {
+  const normalized = String(line || "").toLowerCase();
+  return ["email", "business", "company", "phone", "county", "fips", "state"].some((k) =>
+    normalized.includes(k)
+  );
+}
+
+function splitIntoImportChunks(raw: string): { chunks: string[]; estimatedRows: number } {
+  const normalized = String(raw || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n");
+  const header = lines[0] || "";
+  const includeHeader = looksLikeHeaderLine(header);
+  const dataLines = includeHeader ? lines.slice(1) : lines;
+
+  const chunks: string[] = [];
+  let current: string[] = [];
+  let currentChars = 0;
+
+  const pushChunk = () => {
+    if (!current.length) return;
+    const payload = includeHeader ? `${header}\n${current.join("\n")}` : current.join("\n");
+    chunks.push(payload);
+    current = [];
+    currentChars = 0;
+  };
+
+  for (const line of dataLines) {
+    const nextLen = (line?.length ?? 0) + 1;
+    if (currentChars + nextLen > MAX_IMPORT_CHUNK_CHARS && current.length) {
+      pushChunk();
+    }
+    current.push(line);
+    currentChars += nextLen;
+  }
+
+  pushChunk();
+
+  const estimatedRows = Math.max(0, dataLines.filter((l) => String(l || "").trim().length > 0).length);
+  return { chunks: chunks.filter((c) => c.trim().length > 0), estimatedRows };
+}
+
 export default function AdminBusinessImport() {
   const { toast } = useToast();
   const [content, setContent] = useState("");
@@ -82,6 +131,7 @@ export default function AdminBusinessImport() {
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [enrichLimit, setEnrichLimit] = useState("100");
   const [enrichDryRun, setEnrichDryRun] = useState(false);
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
 
   const {
     data: batchData,
@@ -122,19 +172,97 @@ export default function AdminBusinessImport() {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/businesses/import", {
-        content,
-        source: source.trim() || "csv_manual",
+      const { chunks, estimatedRows } = splitIntoImportChunks(content);
+      if (chunks.length <= 1) {
+        const res = await apiRequest("POST", "/api/admin/businesses/import", {
+          content,
+          source: source.trim() || "csv_manual",
+          dryRun,
+          sendActivationEmails,
+          includeActivationLinks,
+          createPublicProfiles,
+          defaultCountyFips: defaultCountyFips.trim() || undefined,
+          defaultStateCode: defaultStateCode.trim() || undefined,
+        });
+        return res as ImportResponse;
+      }
+
+      // Chunked upload to avoid 413 payload limits in production.
+      const combined: ImportResponse = {
         dryRun,
-        sendActivationEmails,
-        includeActivationLinks,
-        createPublicProfiles,
-        defaultCountyFips: defaultCountyFips.trim() || undefined,
-        defaultStateCode: defaultStateCode.trim() || undefined,
+        delimiter: "comma",
+        totals: {
+          rows: 0,
+          createdUsers: 0,
+          updatedUsers: 0,
+          createdBusinesses: 0,
+          updatedBusinesses: 0,
+          createdUnclaimedBusinesses: 0,
+          updatedUnclaimedBusinesses: 0,
+          createdPublicProfiles: 0,
+          activationPrepared: 0,
+          activationEmailed: 0,
+        },
+        results: [],
+      };
+
+      let rowOffset = 0;
+      setImportProgress({ totalChunks: chunks.length, currentChunk: 1, processedRows: 0 });
+
+      for (let i = 0; i < chunks.length; i++) {
+        setImportProgress({
+          totalChunks: chunks.length,
+          currentChunk: i + 1,
+          processedRows: combined.totals.rows,
+        });
+
+        const res = (await apiRequest("POST", "/api/admin/businesses/import", {
+          content: chunks[i],
+          source: source.trim() || "csv_manual",
+          dryRun,
+          sendActivationEmails,
+          includeActivationLinks,
+          createPublicProfiles,
+          defaultCountyFips: defaultCountyFips.trim() || undefined,
+          defaultStateCode: defaultStateCode.trim() || undefined,
+        })) as ImportResponse;
+
+        combined.delimiter = res.delimiter;
+        combined.activationLinkExport = res.activationLinkExport;
+        combined.totals.rows += res.totals.rows;
+        combined.totals.createdUsers += res.totals.createdUsers;
+        combined.totals.updatedUsers += res.totals.updatedUsers;
+        combined.totals.createdBusinesses += res.totals.createdBusinesses;
+        combined.totals.updatedBusinesses += res.totals.updatedBusinesses;
+        combined.totals.createdUnclaimedBusinesses =
+          (combined.totals.createdUnclaimedBusinesses || 0) + (res.totals.createdUnclaimedBusinesses || 0);
+        combined.totals.updatedUnclaimedBusinesses =
+          (combined.totals.updatedUnclaimedBusinesses || 0) + (res.totals.updatedUnclaimedBusinesses || 0);
+        combined.totals.createdPublicProfiles =
+          (combined.totals.createdPublicProfiles || 0) + (res.totals.createdPublicProfiles || 0);
+        combined.totals.activationPrepared += res.totals.activationPrepared;
+        combined.totals.activationEmailed += res.totals.activationEmailed;
+
+        combined.results.push(
+          ...(res.results || []).map((r) => ({
+            ...r,
+            row: typeof r.row === "number" ? r.row + rowOffset : r.row,
+          }))
+        );
+        rowOffset += res.totals.rows;
+      }
+
+      setImportProgress(null);
+
+      toast({
+        title: "Chunked import complete",
+        description: `Uploaded ${chunks.length} chunks (${combined.totals.rows}/${estimatedRows} rows processed).`,
       });
-      return res as ImportResponse;
+
+      return combined;
     },
     onSuccess: (data) => {
+      setImportProgress(null);
       setResult(data);
       void refetchBatches();
       void refetchBatchRows();
@@ -144,6 +272,7 @@ export default function AdminBusinessImport() {
       });
     },
     onError: (error: any) => {
+      setImportProgress(null);
       toast({
         title: "Import failed",
         description: error?.message || "Failed to import",
@@ -221,12 +350,19 @@ export default function AdminBusinessImport() {
             <Button
               onClick={() => importMutation.mutate()}
               disabled={importMutation.isPending || !content.trim()}
-              className="bg-ts-orange hover:bg-ts-orange-dark"
+              className="bg-ts-orange text-black hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25"
             >
               <Upload className="h-4 w-4 mr-2" />
               {importMutation.isPending ? "Importing..." : dryRun ? "Dry Run" : "Import"}
             </Button>
           </div>
+
+          {importProgress ? (
+            <div className="text-xs text-white/60">
+              Uploading chunk {importProgress.currentChunk}/{importProgress.totalChunks}. Processed{" "}
+              {importProgress.processedRows} rows so far.
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
