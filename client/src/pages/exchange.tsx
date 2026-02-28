@@ -649,9 +649,10 @@ export default function Exchange() {
               <CardTitle className="text-white text-sm">Categories</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+              {/* Mobile-first: avoid horizontal scrolling; wrap into a compact grid. */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 <Card
-                  className={`min-w-[180px] bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                  className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
                     !selectedCategory ? "border-ts-orange/30" : ""
                   }`}
                   onClick={() => setSelectedCategory("")}
@@ -663,7 +664,9 @@ export default function Exchange() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-white truncate">All</div>
-                        <div className="text-[11px] text-white/60 truncate">Browse everything</div>
+                        <div className="hidden sm:block text-[11px] text-white/60 truncate">
+                          Browse everything
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -675,7 +678,7 @@ export default function Exchange() {
                   return (
                     <Card
                       key={category.id}
-                      className={`min-w-[180px] bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                      className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
                         active ? "border-ts-orange/30" : ""
                       }`}
                       onClick={() => setSelectedCategory(category.id)}
@@ -689,7 +692,7 @@ export default function Exchange() {
                             <div className="text-sm font-semibold text-white truncate">
                               {category.name}
                             </div>
-                            <div className="text-[11px] text-white/60 truncate">
+                            <div className="hidden sm:block text-[11px] text-white/60 truncate">
                               {category.description}
                             </div>
                           </div>
@@ -1080,9 +1083,7 @@ export default function Exchange() {
                       <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-3 mb-4">
                         <div className="flex items-center mb-2">
                           <Percent className="h-4 w-4 text-ts-orange mr-2" />
-                          <span className="text-ts-orange font-semibold">
-                            {promo.offerDetails}
-                          </span>
+                          <span className="text-ts-orange font-semibold">{promo.offerDetails}</span>
                         </div>
                         {promo.promoCode && (
                           <div className="flex items-center justify-between bg-white/10 rounded p-2">
