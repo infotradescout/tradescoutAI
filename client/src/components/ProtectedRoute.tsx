@@ -67,7 +67,9 @@ export function ProtectedRoute({
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      setLocation("/pre-scout-setup");
+      // Preserve the user's intended destination so auth can return them correctly.
+      const next = encodeURIComponent(location || "/");
+      setLocation(`/pre-scout-setup?mode=signin&next=${next}`);
       return;
     }
 
@@ -90,7 +92,8 @@ export function ProtectedRoute({
       profileVersion < CURRENT_PROFILE_VERSION &&
       !isSetupRoute
     ) {
-      setLocation("/pre-scout-setup");
+      const next = encodeURIComponent(location || "/");
+      setLocation(`/pre-scout-setup?mode=signin&next=${next}`);
       return;
     }
 

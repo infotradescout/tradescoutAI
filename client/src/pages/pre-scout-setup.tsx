@@ -69,6 +69,7 @@ export default function PreScoutSetup() {
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
+  const isAdminDestination = postSetupNext.startsWith("/admin");
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const claimSlug = (searchParams.get("claim") || "").trim();
   const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
@@ -154,6 +155,14 @@ export default function PreScoutSetup() {
     bootstrapDemandAttribution();
     void trackDemandEvent("auth_view", { mode: authMode });
   }, [authMode, isAuthenticated]);
+
+  // Admin should not be blocked by local setup. If auth returns to setup with an admin destination,
+  // forward immediately.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (!isAdminDestination) return;
+    navigate(postSetupNext);
+  }, [isAuthenticated, isAdminDestination, postSetupNext, navigate]);
 
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;
@@ -252,7 +261,11 @@ export default function PreScoutSetup() {
       }
       void trackDemandEvent("signin_success", { mode: "signin" });
       toast({ title: "Signed in", description: "Continue with local setup." });
-      navigate(buildAuthReturnPath("signin"));
+      if (isAdminDestination) {
+        navigate(postSetupNext);
+      } else {
+        navigate(buildAuthReturnPath("signin"));
+      }
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const rawMessage = String(error?.message || "Please try again.");
