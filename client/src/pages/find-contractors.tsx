@@ -1,6 +1,15 @@
 import { memo, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Sparkles, Zap, MapPin, Star, ThumbsUp, Briefcase, Loader2 } from "lucide-react";
+import {
+  Search,
+  Sparkles,
+  Zap,
+  MapPin,
+  ShieldCheck,
+  ThumbsUp,
+  Briefcase,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StateCountySelector } from "@/components/state-county-selector";
 import {
@@ -251,7 +260,9 @@ const FindContractors = memo(function FindContractors({
                 className="ts-card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
               >
                 <div className="flex items-center gap-3">
-                  <Badge className="bg-ts-orange-dark text-white text-sm px-3 py-1">#{idx + 1}</Badge>
+                  <Badge className="bg-ts-orange-dark text-white text-sm px-3 py-1">
+                    #{idx + 1}
+                  </Badge>
                   <div>
                     <div className="text-lg font-semibold text-white">
                       {contractor.businessName || contractor.name || "Contractor"}
@@ -274,7 +285,7 @@ const FindContractors = memo(function FindContractors({
                             contractor.localStats.peopleHelped > 0) && (
                             <span className="text-white/60">
                               {" "}
-                              · {contractor.localStats.jobsCompleted} jobs completed,{" "}
+                              - {contractor.localStats.jobsCompleted} jobs completed,{" "}
                               {contractor.localStats.peopleHelped} people helped
                             </span>
                           )}
@@ -285,8 +296,15 @@ const FindContractors = memo(function FindContractors({
 
                 <div className="flex items-center gap-4 text-sm text-white/70">
                   <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-yellow-400" />
-                    <span>{contractor.rating ?? "N/A"}</span>
+                    <ShieldCheck className="h-4 w-4 text-ts-orange" />
+                    <span>
+                      CVS{" "}
+                      {typeof (contractor as any).cvsScore === "number"
+                        ? Math.round((contractor as any).cvsScore)
+                        : typeof contractor.rating === "number"
+                          ? Math.round(contractor.rating)
+                          : "pending"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <ThumbsUp className="h-4 w-4 text-emerald-400" />
@@ -321,36 +339,36 @@ const FindContractors = memo(function FindContractors({
 
         <div className="ts-section space-y-4">
           <div className="flex items-center gap-2 text-ts-orange">
-            <Star className="h-5 w-5" />
+            <ShieldCheck className="h-5 w-5" />
             <span className="font-semibold">At a glance</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="ts-tile p-4">
               <div className="text-xs uppercase tracking-wide text-white/60">Results</div>
               <div className="text-2xl font-semibold text-ts-orange">
-                {countyFips && tradeSlug ? snapshot.results : "—"}
+                {countyFips && tradeSlug ? snapshot.results : "-"}
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-white/60">Avg. Rating</div>
+              <div className="text-xs uppercase tracking-wide text-white/60">Avg. CVS</div>
               <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug && snapshot.avgRating !== null
-                  ? snapshot.avgRating.toFixed(1)
-                  : "—"}
+                  ? snapshot.avgRating.toFixed(0)
+                  : "-"}
               </div>
             </div>
             <div className="ts-tile p-4">
               <div className="text-xs uppercase tracking-wide text-white/60">Total Recs</div>
               <div className="text-2xl font-semibold text-ts-orange">
-                {countyFips && tradeSlug ? snapshot.totalRecs : "—"}
+                {countyFips && tradeSlug ? snapshot.totalRecs : "-"}
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-white/60">Top Rating</div>
+              <div className="text-xs uppercase tracking-wide text-white/60">Top CVS</div>
               <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug && snapshot.topRating !== null
-                  ? snapshot.topRating.toFixed(1)
-                  : "—"}
+                  ? snapshot.topRating.toFixed(0)
+                  : "-"}
               </div>
             </div>
           </div>
@@ -397,7 +415,12 @@ const FindContractors = memo(function FindContractors({
                 </p>
                 <div className="flex justify-between items-center text-sm">
                   <span className="ts-accent-text">
-                    {typeof contractor.rating === "number" ? contractor.rating.toFixed(1) : "N/A"} ★
+                    Trust (CVS):{" "}
+                    {typeof (contractor as any).cvsScore === "number"
+                      ? (contractor as any).cvsScore.toFixed(0)
+                      : typeof (contractor as any).rating === "number"
+                        ? (contractor as any).rating.toFixed(0)
+                        : "pending"}
                   </span>
                   <a
                     className="ts-accent-btn px-3 py-2 rounded-lg transition-colors"
@@ -419,7 +442,7 @@ const FindContractors = memo(function FindContractors({
           style={{ color: "var(--theme-text-secondary)" }}
         >
           Ask Scout to draft bids, verify licenses, or queue tasks on your board. Or jump in with
-          search, quick actions, and the featured list—no waiting on chat.
+          search, quick actions, and the featured list - no waiting on chat.
         </p>
       </section>
     </div>

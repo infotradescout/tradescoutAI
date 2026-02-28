@@ -163,7 +163,7 @@ export default function ProfileSetup() {
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Find verified local contractors</li>
                   <li>• Get free project estimates</li>
-                  <li>• Read RECOMMENDATIONS and ratings</li>
+                  <li>• Read RECOMMENDATIONS and trust (CVS)</li>
                   <li>• Compare multiple quotes</li>
                 </ul>
               </CardContent>

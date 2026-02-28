@@ -74,7 +74,7 @@ const DailyDeals = memo(function DailyDeals() {
                 <h3 className="text-xl font-semibold mb-2 text-ts-orange">{deal.title}</h3>
                 <p className="text-white/70 mb-2">by {deal.contractor}</p>
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-yellow-400">★★★★★ {deal.rating}</span>
+                  <span className="text-white/70">Signal: {deal.rating}</span>
                   <span className="text-sm text-white/60">Expires today</span>
                 </div>
                 <button

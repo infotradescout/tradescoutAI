@@ -57,7 +57,7 @@ export default function ContractorCard({
   return (
     <Card className="ts-card" data-testid={`contractor-card`}>
       <CardContent className={`${compact ? "p-4" : "p-3 md:p-6"}`}>
-        {/* Company Avatar + Rating */}
+        {/* Company Avatar + Trust */}
         <div className="flex items-start justify-between mb-4">
           <div
             className={`${

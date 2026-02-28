@@ -161,7 +161,7 @@ export default function PublicProfileView() {
 
   const profileThemeId = profileThemeIdRef.current;
 
-  // Load additional public data tied to this user: handmade offerings, ratings, community posts
+  // Load additional public data tied to this user: handmade offerings, trust summary, community posts
   useEffect(() => {
     if (!profile?.id) return;
 
@@ -195,7 +195,7 @@ export default function PublicProfileView() {
           }
         }
 
-        // Seller ratings (recommendation count + average rating)
+        // Seller trust summary (recommendation count; no star ratings)
         try {
           const res = await fetch(`/api/handmade/sellers/${userId}/ratings`, { signal });
           if (res.ok) {
@@ -206,7 +206,7 @@ export default function PublicProfileView() {
           }
         } catch (err) {
           if (!(err instanceof DOMException && err.name === "AbortError")) {
-            console.error("Error fetching seller ratings for profile:", err);
+            console.error("Error fetching seller trust summary for profile:", err);
           }
         }
 

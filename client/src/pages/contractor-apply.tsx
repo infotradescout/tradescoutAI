@@ -600,7 +600,7 @@ export default function ContractorApply() {
                 <div>
                   <h4 className="text-white font-semibold">Build Your Reputation</h4>
                   <p className="text-white/70 text-sm">
-                    Customer RECOMMENDATIONS and ratings system
+                    Customer RECOMMENDATIONS and trust (CVS) system
                   </p>
                 </div>
               </div>

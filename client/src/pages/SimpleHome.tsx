@@ -10,7 +10,7 @@ import {
   DollarSign,
   TrendingUp,
   Clock,
-  Star,
+  ShieldCheck,
   Users,
   Package,
   MessageSquare,
@@ -124,13 +124,19 @@ const SimpleHome = memo(function SimpleHome() {
               <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <Star className="h-5 w-5 text-yellow-500" />
+                    <ShieldCheck className="h-5 w-5 text-ts-orange" />
                     <Badge variant="secondary" className="text-xs">
-                      4.8
+                      {typeof (user as any)?.cvsScore === "number"
+                        ? Math.round((user as any).cvsScore)
+                        : "—"}
                     </Badge>
                   </div>
-                  <div className="text-2xl font-bold text-white mb-1">4.8</div>
-                  <p className="text-xs text-white/70">Average Rating</p>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {typeof (user as any)?.cvsScore === "number"
+                      ? Math.round((user as any).cvsScore)
+                      : "—"}
+                  </div>
+                  <p className="text-xs text-white/70">Trust (CVS)</p>
                 </CardContent>
               </Card>
             </>
@@ -323,7 +329,10 @@ const SimpleHome = memo(function SimpleHome() {
                       <Home className="h-12 w-12 text-white/70 dark:text-white/60 mx-auto mb-3" />
                       <p className="text-white/70 mb-4">No projects yet</p>
                       <Link href="/request-quote">
-                        <Button size="sm" className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+                        <Button
+                          size="sm"
+                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                        >
                           Start Your First Project
                         </Button>
                       </Link>
@@ -485,7 +494,7 @@ const SimpleHome = memo(function SimpleHome() {
                         size="sm"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full justify-start"
                       >
-                        <Star className="h-4 w-4 mr-2" />
+                        <ShieldCheck className="h-4 w-4 mr-2" />
                         Update Profile
                       </Button>
                     </Link>

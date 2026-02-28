@@ -9,7 +9,6 @@ import {
   Home,
   Briefcase,
   Network,
-  Star,
   MessageSquare,
   Plus,
   ShieldCheck,
@@ -26,7 +25,7 @@ export default function RealtorConnections() {
       phone: "(555) 123-4567",
       email: "mike@elitehome.com",
       specialty: "Kitchen & Bath Remodeling",
-      rating: 4.8,
+      rating: 88,
       completedProjects: 45,
       location: "Downtown Area",
       status: "Preferred Partner",
@@ -39,7 +38,7 @@ export default function RealtorConnections() {
       phone: "(555) 234-5678",
       email: "sarah@precisionroofing.com",
       specialty: "Roofing & Gutters",
-      rating: 4.9,
+      rating: 92,
       completedProjects: 78,
       location: "Citywide",
       status: "Active Partner",
@@ -52,7 +51,7 @@ export default function RealtorConnections() {
       phone: "(555) 345-6789",
       email: "david@gardenstatescape.com",
       specialty: "Landscaping & Outdoor Living",
-      rating: 4.6,
+      rating: 84,
       completedProjects: 32,
       location: "Suburban Areas",
       status: "New Partner",
@@ -68,7 +67,7 @@ export default function RealtorConnections() {
       phone: "(555) 456-7890",
       email: "afoster@firstnational.com",
       specialty: "Conventional & FHA Loans",
-      rating: 4.7,
+      rating: 90,
       avgCloseTime: "28 days",
       approvalRate: "94%",
       status: "Preferred Lender",
@@ -80,7 +79,7 @@ export default function RealtorConnections() {
       phone: "(555) 567-8901",
       email: "jwilson@communitycu.org",
       specialty: "First-Time Buyers",
-      rating: 4.8,
+      rating: 87,
       avgCloseTime: "25 days",
       approvalRate: "91%",
       status: "Partner",
@@ -95,7 +94,7 @@ export default function RealtorConnections() {
       phone: "(555) 678-9012",
       email: "lisa@metroinspect.com",
       specialty: "Residential Inspections",
-      rating: 4.9,
+      rating: 93,
       avgTurnaround: "24 hours",
       certifications: ["ASHI", "NAHI"],
       status: "Trusted Partner",
@@ -119,13 +118,13 @@ export default function RealtorConnections() {
     }
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating) ? "text-yellow-500 fill-current" : "text-muted-foreground"}`}
-      />
-    ));
+  const renderTrust = (cvs: number) => {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <ShieldCheck className="h-4 w-4" />
+        <span className="font-medium">CVS {Math.round(cvs)}</span>
+      </div>
+    );
   };
 
   return (
@@ -202,11 +201,8 @@ export default function RealtorConnections() {
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Rating</p>
-                            <div className="flex items-center gap-2">
-                              <div className="flex">{renderStars(contractor.rating)}</div>
-                              <span className="font-medium">{contractor.rating}</span>
-                            </div>
+                            <p className="text-sm text-muted-foreground">Trust (CVS)</p>
+                            {renderTrust(contractor.rating)}
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Completed Projects</p>
@@ -287,11 +283,8 @@ export default function RealtorConnections() {
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Rating</p>
-                            <div className="flex items-center gap-2">
-                              <div className="flex">{renderStars(lender.rating)}</div>
-                              <span className="font-medium">{lender.rating}</span>
-                            </div>
+                            <p className="text-sm text-muted-foreground">Trust (CVS)</p>
+                            {renderTrust(lender.rating)}
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Avg. Close Time</p>
@@ -371,11 +364,8 @@ export default function RealtorConnections() {
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Rating</p>
-                            <div className="flex items-center gap-2">
-                              <div className="flex">{renderStars(inspector.rating)}</div>
-                              <span className="font-medium">{inspector.rating}</span>
-                            </div>
+                            <p className="text-sm text-muted-foreground">Trust (CVS)</p>
+                            {renderTrust(inspector.rating)}
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Turnaround</p>

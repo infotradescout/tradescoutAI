@@ -325,7 +325,7 @@ const ManageUsers = memo(function ManageUsers() {
                           {user.role === "contractor_user" ? "Projects" : "Requests"}
                         </div>
                         {user.rating && (
-                          <div className="text-white/60 text-sm">★ {user.rating} rating</div>
+                          <div className="text-white/60 text-sm">CVS {Math.round(user.rating)}</div>
                         )}
                         <div className="text-white/60 text-sm">
                           Joined {new Date(user.joinDate).toLocaleDateString()}
@@ -383,14 +383,14 @@ const ManageUsers = memo(function ManageUsers() {
 
             {filteredUsers.length === 0 && (
               <EmptyState
-              icon={<Users2 />}
-              title="No Users Found"
-              description={
-                searchQuery || selectedRole !== "all"
-                  ? "No users match your current filters"
-                  : "No users found in this category"
-              }
-            />
+                icon={<Users2 />}
+                title="No Users Found"
+                description={
+                  searchQuery || selectedRole !== "all"
+                    ? "No users match your current filters"
+                    : "No users found in this category"
+                }
+              />
             )}
           </TabsContent>
         </Tabs>

@@ -472,7 +472,7 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Rating Dialog */}
+      {/* Feedback Dialog */}
       <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
         <DialogContent className="bg-tsCard border-white/10">
           <DialogHeader>
@@ -538,7 +538,7 @@ export default function Chat() {
                 disabled={rateConversationMutation.isPending}
                 className="btn-primary"
               >
-                Submit Rating
+                Submit Feedback
               </Button>
             </div>
           </div>

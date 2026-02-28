@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -18,30 +18,21 @@ import {
   FormField,
   FormItem,
   FormLabel,
-} from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Bell,
-  Mail,
-  MessageSquare,
-  Smartphone,
-  Clock,
-  Moon,
-  Sun,
-  Settings2,
-} from 'lucide-react';
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Bell, Mail, MessageSquare, Smartphone, Clock, Moon, Sun, Settings2 } from "lucide-react";
 
 interface NotificationPreferences {
   id: string;
@@ -49,11 +40,14 @@ interface NotificationPreferences {
   enableEmailNotifications: boolean;
   enableSmsNotifications: boolean;
   enablePushNotifications: boolean;
-  typePreferences: Record<string, {
-    enabled: boolean;
-    delivery_methods: string[];
-    frequency?: 'instant' | 'hourly' | 'daily' | 'weekly';
-  }>;
+  typePreferences: Record<
+    string,
+    {
+      enabled: boolean;
+      delivery_methods: string[];
+      frequency?: "instant" | "hourly" | "daily" | "weekly";
+    }
+  >;
   quietHoursStart: string;
   quietHoursEnd: string;
   timezone: string;
@@ -73,11 +67,13 @@ const preferencesSchema = z.object({
   batchDailyDigest: z.boolean(),
   batchWeeklyDigest: z.boolean(),
   digestTime: z.string(),
-  typePreferences: z.record(z.object({
-    enabled: z.boolean(),
-    delivery_methods: z.array(z.string()),
-    frequency: z.enum(['instant', 'hourly', 'daily', 'weekly']).optional(),
-  })),
+  typePreferences: z.record(
+    z.object({
+      enabled: z.boolean(),
+      delivery_methods: z.array(z.string()),
+      frequency: z.enum(["instant", "hourly", "daily", "weekly"]).optional(),
+    })
+  ),
 });
 
 type PreferencesForm = z.infer<typeof preferencesSchema>;
@@ -88,22 +84,30 @@ interface NotificationPreferencesProps {
 }
 
 const notificationTypes = [
-  { key: 'birthday', label: 'Birthday Reminders', description: 'Personal birthday notifications' },
-  { key: 'anniversary', label: 'Anniversaries', description: 'Work and business anniversaries' },
-  { key: 'new_message', label: 'New Messages', description: 'Chat messages and conversations' },
-  { key: 'new_project_request', label: 'New Requests', description: 'New customer inquiries' },
-  { key: 'review_received', label: 'Recommendations', description: 'Customer recommendations and ratings' },
-  { key: 'system_update', label: 'System Updates', description: 'Platform announcements' },
-  { key: 'promotional', label: 'TradeDeals & sponsors', description: 'Exclusive TradeDeals and sponsor updates' },
-  { key: 'milestone', label: 'Milestones', description: 'Achievement notifications' },
-  { key: 'payment_received', label: 'Payments', description: 'Payment confirmations' },
+  { key: "birthday", label: "Birthday Reminders", description: "Personal birthday notifications" },
+  { key: "anniversary", label: "Anniversaries", description: "Work and business anniversaries" },
+  { key: "new_message", label: "New Messages", description: "Chat messages and conversations" },
+  { key: "new_project_request", label: "New Requests", description: "New customer inquiries" },
+  {
+    key: "review_received",
+    label: "Recommendations",
+    description: "Customer recommendations and trust (CVS)",
+  },
+  { key: "system_update", label: "System Updates", description: "Platform announcements" },
+  {
+    key: "promotional",
+    label: "TradeDeals & sponsors",
+    description: "Exclusive TradeDeals and sponsor updates",
+  },
+  { key: "milestone", label: "Milestones", description: "Achievement notifications" },
+  { key: "payment_received", label: "Payments", description: "Payment confirmations" },
 ];
 
 const deliveryMethods = [
-  { key: 'in_app', label: 'In-App', icon: Bell },
-  { key: 'email', label: 'Email', icon: Mail },
-  { key: 'sms', label: 'SMS', icon: MessageSquare },
-  { key: 'push', label: 'Push', icon: Smartphone },
+  { key: "in_app", label: "In-App", icon: Bell },
+  { key: "email", label: "Email", icon: Mail },
+  { key: "sms", label: "SMS", icon: MessageSquare },
+  { key: "push", label: "Push", icon: Smartphone },
 ];
 
 export function NotificationPreferences({ open, onOpenChange }: NotificationPreferencesProps) {
@@ -112,7 +116,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
 
   // Fetch current preferences
   const { data: preferences, isLoading } = useQuery({
-    queryKey: ['/api/notifications/preferences'],
+    queryKey: ["/api/notifications/preferences"],
     enabled: open,
   });
 
@@ -123,12 +127,12 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
       enableEmailNotifications: true,
       enableSmsNotifications: false,
       enablePushNotifications: true,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-      timezone: 'America/New_York',
+      quietHoursStart: "22:00",
+      quietHoursEnd: "08:00",
+      timezone: "America/New_York",
       batchDailyDigest: false,
       batchWeeklyDigest: false,
-      digestTime: '09:00',
+      digestTime: "09:00",
       typePreferences: {},
     },
   });
@@ -140,24 +144,24 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
 
   // Update preferences mutation
   const updatePreferencesMutation = useMutation({
-    mutationFn: (data: PreferencesForm) => 
-      apiRequest('/api/notifications/preferences', {
-        method: 'POST',
+    mutationFn: (data: PreferencesForm) =>
+      apiRequest("/api/notifications/preferences", {
+        method: "POST",
         body: data,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/preferences'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/preferences"] });
       toast({
-        title: 'Preferences Updated',
-        description: 'Your notification preferences have been saved.',
+        title: "Preferences Updated",
+        description: "Your notification preferences have been saved.",
       });
       onOpenChange(false);
     },
     onError: (error) => {
       toast({
-        title: 'Update Failed',
-        description: error.message || 'Failed to update preferences',
-        variant: 'destructive',
+        title: "Update Failed",
+        description: error.message || "Failed to update preferences",
+        variant: "destructive",
       });
     },
   });
@@ -196,7 +200,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                 <Bell className="h-5 w-5 text-ts-orange" />
                 General Settings
               </h3>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -289,7 +293,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                 <Moon className="h-5 w-5 text-ts-orange" />
                 Quiet Hours
               </h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -338,12 +342,12 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
             {/* Notification Types */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white">Notification Types</h3>
-              
+
               <div className="space-y-3">
                 {notificationTypes.map((type) => {
                   const currentPrefs = form.watch(`typePreferences.${type.key}`) || {
                     enabled: true,
-                    delivery_methods: ['in_app'],
+                    delivery_methods: ["in_app"],
                   };
 
                   return (
@@ -371,16 +375,18 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                             {deliveryMethods.map((method) => {
                               const isSelected = currentPrefs.delivery_methods.includes(method.key);
                               const Icon = method.icon;
-                              
+
                               return (
                                 <button
                                   key={method.key}
                                   type="button"
                                   onClick={() => {
                                     const newMethods = isSelected
-                                      ? currentPrefs.delivery_methods.filter(m => m !== method.key)
+                                      ? currentPrefs.delivery_methods.filter(
+                                          (m) => m !== method.key
+                                        )
                                       : [...currentPrefs.delivery_methods, method.key];
-                                    
+
                                     form.setValue(`typePreferences.${type.key}`, {
                                       ...currentPrefs,
                                       delivery_methods: newMethods,
@@ -388,8 +394,8 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                                   }}
                                   className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs transition-colors ${
                                     isSelected
-                                      ? 'bg-ts-orange text-black'
-                                      : 'bg-tsCard text-white/70 border border-white/10'
+                                      ? "bg-ts-orange text-black"
+                                      : "bg-tsCard text-white/70 border border-white/10"
                                   }`}
                                 >
                                   <Icon className="h-3 w-3" />
@@ -414,7 +420,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                 <Clock className="h-5 w-5 text-ts-orange" />
                 Digest Options
               </h3>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -488,7 +494,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                 disabled={updatePreferencesMutation.isPending}
                 className="bg-ts-orange text-white hover:bg-ts-orange-dark"
               >
-                {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Preferences'}
+                {updatePreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
               </Button>
             </div>
           </form>

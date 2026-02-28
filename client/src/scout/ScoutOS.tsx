@@ -2117,7 +2117,7 @@ export default function ScoutOS() {
               id: `contractor-${c.id}`,
               title: `${c.name} - ${c.trade}`,
               kind: "generic",
-              body: `${c.rating ? `Rating ${c.rating} (${c.reviewCount} reviews)` : "Not yet rated"}\n${c.location}\n${c.availability || "Availability unknown"}`,
+              body: `Trust (CVS): ${(c as any).cvsScore ?? (c as any).cvs ?? (c as any).rating ?? "pending"} · ${(c as any).recommendationCount ?? (c as any).recommendationsCount ?? (c as any).reviewCount ?? 0} recs\n${c.location}\n${c.availability || "Availability unknown"}`,
               primaryAction: {
                 type: "NAVIGATE",
                 label: "View profile",

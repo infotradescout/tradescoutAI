@@ -7,8 +7,8 @@ export default function ContractorCardSkeleton() {
         <div className="flex items-start justify-between mb-4">
           {/* Avatar skeleton */}
           <div className="w-16 h-16 rounded-lg skeleton-enhanced" />
-          
-          {/* Rating skeleton */}
+
+          {/* Trust skeleton */}
           <div className="flex items-center space-x-2">
             <div className="flex space-x-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -21,7 +21,7 @@ export default function ContractorCardSkeleton() {
 
         {/* Company name skeleton */}
         <div className="w-48 h-6 mb-2 skeleton-enhanced rounded" />
-        
+
         {/* Trade badges skeleton */}
         <div className="flex space-x-2 mb-3">
           <div className="w-16 h-6 rounded-full skeleton-enhanced" />

@@ -150,7 +150,7 @@ const ALL_NAVIGATION: NavItem[] = [
         roles: ["contractor_user"],
       },
       {
-        label: "Recommendations & Ratings",
+        label: "Recommendations & Trust (CVS)",
         href: "/contractor-dashboard",
         icon: Star,
         roles: ["contractor_user"],
@@ -516,7 +516,9 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
                   <Button
                     variant={location === item.href ? "default" : "ghost"}
                     size="sm"
-                    className={location === item.href ? "bg-ts-orange-dark hover:bg-ts-orange-dark" : ""}
+                    className={
+                      location === item.href ? "bg-ts-orange-dark hover:bg-ts-orange-dark" : ""
+                    }
                   >
                     <item.icon className="h-4 w-4 mr-2" />
                     {item.label}

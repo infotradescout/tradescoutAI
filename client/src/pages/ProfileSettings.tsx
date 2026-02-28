@@ -1542,7 +1542,7 @@ export default function ProfileSettings() {
             <div className="space-y-0.5">
               <Label>Stats</Label>
               <p className="text-sm text-white/60">
-                When available, show counts for listings, RECOMMENDATIONS, and rating.
+                When available, show counts for listings, RECOMMENDATIONS, and trust (CVS).
               </p>
             </div>
             <Switch
@@ -1584,7 +1584,7 @@ export default function ProfileSettings() {
             <div className="space-y-0.5">
               <Label>RECOMMENDATIONS</Label>
               <p className="text-sm text-white/60">
-                When RECOMMENDATIONS are enabled, show your rating and testimonials.
+                When RECOMMENDATIONS are enabled, show your trust (CVS) and testimonials.
               </p>
             </div>
             <Switch

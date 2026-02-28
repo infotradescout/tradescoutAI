@@ -21,7 +21,7 @@ import {
 import {
   Map,
   Users,
-  Star,
+  ShieldCheck,
   Facebook,
   MapPin,
   TrendingUp,
@@ -281,9 +281,7 @@ export function InteractiveCountyMap({
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-white/5 p-4 rounded-lg">
                           <p className="text-sm text-white/60">Total Activity</p>
-                          <p className="text-2xl font-bold text-ts-orange">
-                            {county.interactions}
-                          </p>
+                          <p className="text-2xl font-bold text-ts-orange">{county.interactions}</p>
                         </div>
                         <div className="bg-white/5 p-4 rounded-lg">
                           <p className="text-sm text-white/60">Contractors</p>
@@ -373,16 +371,13 @@ export function InteractiveCountyMap({
                                               )}
                                             </h4>
                                             <div className="flex items-center gap-2 mt-1">
-                                              <div className="flex text-yellow-400">
-                                                {[...Array(5)].map((_, i) => (
-                                                  <Star
-                                                    key={i}
-                                                    className={`w-4 h-4 ${i < contractor.rating ? "fill-current" : ""}`}
-                                                  />
-                                                ))}
-                                              </div>
-                                              <span className="text-white/60 text-sm">
-                                                ({contractor.recommendationCount} RECOMMENDATIONS)
+                                              <span className="inline-flex items-center gap-2 text-white/60 text-sm">
+                                                <ShieldCheck className="w-4 h-4 text-ts-orange" />
+                                                <span>CVS pending</span>
+                                                <span className="text-white/40">•</span>
+                                                <span>
+                                                  {contractor.recommendationCount} RECOMMENDATIONS
+                                                </span>
                                               </span>
                                             </div>
                                           </div>

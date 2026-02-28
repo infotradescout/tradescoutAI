@@ -17,7 +17,7 @@ const ContractorsTop = memo(function ContractorsTop() {
     <>
       <SEOHelmet
         title="Top Contractors by Trust | TradeScout"
-        description="Find the highest-rated contractors in your area, ranked by Community Verification Score (CVS) — not payment. Trust-first matching."
+        description="Find the highest-trust contractors in your area, ranked by Community Verification Score (CVS) - not payment. Trust-first matching."
         canonical="https://www.thetradescout.com/contractors/top"
       />
       <FindContractors title="Top Contractors by Trust" />

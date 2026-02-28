@@ -696,7 +696,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         ? [
             "Analyzing your project needs...",
             "Matching local contractors...",
-            "Loading profiles and ratings...",
+            "Loading profiles and trust (CVS)...",
           ]
         : mode === "marketplace"
           ? [

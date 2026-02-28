@@ -303,10 +303,10 @@ export default function NationwideExpansion() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-xl font-bold text-yellow-400">
-                              {county.avgRating.toFixed(1)}
+                            <div className="text-xl font-bold text-ts-orange">
+                              {county.avgRating.toFixed(0)}
                             </div>
-                            <p className="text-xs text-white/60">Average Rating</p>
+                            <p className="text-xs text-white/60">Trust snapshot (CVS)</p>
                           </div>
                         </div>
                       </CardHeader>

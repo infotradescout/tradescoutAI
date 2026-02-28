@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
-import { Check } from 'lucide-react';
-import { ACCOUNT_CREATION_USER_TYPES, USER_TYPES, USER_TYPE_CATEGORIES, getUserTypesByCategory } from '@shared/userTypes';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import { Check } from "lucide-react";
+import {
+  ACCOUNT_CREATION_USER_TYPES,
+  USER_TYPES,
+  USER_TYPE_CATEGORIES,
+  getUserTypesByCategory,
+} from "@shared/userTypes";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface UserTypeSelectProps {
   selectedTypes: string[];
@@ -13,13 +18,13 @@ interface UserTypeSelectProps {
   className?: string;
 }
 
-export function UserTypeSelect({ 
-  selectedTypes, 
-  onChange, 
+export function UserTypeSelect({
+  selectedTypes,
+  onChange,
   maxSelection,
-  className 
+  className,
 }: UserTypeSelectProps) {
-  const [expandedCategory, setExpandedCategory] = useState<string | null>('property');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>("property");
   const selectableTypeIds = new Set(ACCOUNT_CREATION_USER_TYPES);
 
   const toggleType = (typeId: string) => {
@@ -27,7 +32,7 @@ export function UserTypeSelect({
     if (!selectableTypeIds.has(typeId)) return;
 
     if (selectedTypes.includes(typeId)) {
-      onChange(selectedTypes.filter(id => id !== typeId));
+      onChange(selectedTypes.filter((id) => id !== typeId));
     } else {
       if (maxSelection && selectedTypes.length >= maxSelection) {
         return; // Max selection reached
@@ -39,7 +44,7 @@ export function UserTypeSelect({
   const categories = Object.entries(USER_TYPE_CATEGORIES);
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-lg font-semibold">I am a... (select all that apply)</h3>
@@ -57,9 +62,11 @@ export function UserTypeSelect({
 
       <div className="space-y-3">
         {categories.map(([categoryKey, category]) => {
-          const typesInCategory = getUserTypesByCategory(categoryKey).filter((t) => selectableTypeIds.has(t.id));
+          const typesInCategory = getUserTypesByCategory(categoryKey).filter((t) =>
+            selectableTypeIds.has(t.id)
+          );
           const isExpanded = expandedCategory === categoryKey;
-          const selectedInCategory = typesInCategory.filter(t => 
+          const selectedInCategory = typesInCategory.filter((t) =>
             selectedTypes.includes(t.id)
           ).length;
 
@@ -74,13 +81,13 @@ export function UserTypeSelect({
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <span className="text-primary text-xl">
                       {/* Icon placeholder - you can use lucide-react icons here */}
-                      {category.icon === 'Home' && '🏠'}
-                      {category.icon === 'Briefcase' && '💼'}
-                      {category.icon === 'Wrench' && '🔧'}
-                      {category.icon === 'Building' && '🏢'}
-                      {category.icon === 'Car' && '🚗'}
-                      {category.icon === 'Users' && '👥'}
-                      {category.icon === 'Star' && '⭐'}
+                      {category.icon === "Home" && "🏠"}
+                      {category.icon === "Briefcase" && "💼"}
+                      {category.icon === "Wrench" && "🔧"}
+                      {category.icon === "Building" && "🏢"}
+                      {category.icon === "Car" && "🚗"}
+                      {category.icon === "Users" && "👥"}
+                      {category.icon === "Star" && "TS"}
                     </span>
                   </div>
                   <div className="text-left">
@@ -95,25 +102,29 @@ export function UserTypeSelect({
                     </Badge>
                   )}
                   <svg
-                    className={cn(
-                      'w-5 h-5 transition-transform',
-                      isExpanded && 'rotate-180'
-                    )}
+                    className={cn("w-5 h-5 transition-transform", isExpanded && "rotate-180")}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </button>
 
               {isExpanded && (
                 <div className="border-t p-4 grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {typesInCategory.map(type => {
+                  {typesInCategory.map((type) => {
                     const isSelected = selectedTypes.includes(type.id);
                     const isDisabled = Boolean(
-                      !isSelected && maxSelection !== undefined && selectedTypes.length >= maxSelection
+                      !isSelected &&
+                      maxSelection !== undefined &&
+                      selectedTypes.length >= maxSelection
                     );
 
                     return (
@@ -123,16 +134,18 @@ export function UserTypeSelect({
                         onClick={() => !isDisabled && toggleType(type.id)}
                         disabled={isDisabled}
                         className={cn(
-                          'relative flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all',
-                          'hover:border-primary/50 hover:bg-accent/30',
-                          isSelected && 'border-primary bg-primary/5',
-                          isDisabled && 'opacity-50 cursor-not-allowed'
+                          "relative flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all",
+                          "hover:border-primary/50 hover:bg-accent/30",
+                          isSelected && "border-primary bg-primary/5",
+                          isDisabled && "opacity-50 cursor-not-allowed"
                         )}
                       >
-                        <div className={cn(
-                          'mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0',
-                          isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/30'
-                        )}>
+                        <div
+                          className={cn(
+                            "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                          )}
+                        >
                           {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -158,7 +171,7 @@ export function UserTypeSelect({
             Your Selected Roles
           </h4>
           <div className="flex flex-wrap gap-2">
-            {selectedTypes.map(typeId => {
+            {selectedTypes.map((typeId) => {
               const metadata = USER_TYPES[typeId];
               const isSelectable = selectableTypeIds.has(typeId);
               return metadata ? (
@@ -166,8 +179,10 @@ export function UserTypeSelect({
                   key={typeId}
                   variant="secondary"
                   className={cn(
-                    'px-3 py-1.5',
-                    isSelectable ? 'cursor-pointer hover:bg-destructive/20' : 'opacity-80 cursor-default'
+                    "px-3 py-1.5",
+                    isSelectable
+                      ? "cursor-pointer hover:bg-destructive/20"
+                      : "opacity-80 cursor-default"
                   )}
                   onClick={isSelectable ? () => toggleType(typeId) : undefined}
                 >

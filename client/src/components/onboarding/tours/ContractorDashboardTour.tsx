@@ -5,8 +5,9 @@ const contractorDashboardSteps: TourStep[] = [
     id: "welcome",
     target: "h1",
     title: "Welcome to TradeScout!",
-    description: "This is your control panel. Use the help button anytime for guided tours and tips.",
-    position: "bottom"
+    description:
+      "This is your control panel. Use the help button anytime for guided tours and tips.",
+    position: "bottom",
   },
   {
     id: "manage-connections",
@@ -15,31 +16,32 @@ const contractorDashboardSteps: TourStep[] = [
     description: "Review and respond to new customer inquiries",
     position: "bottom",
     primaryAction: {
-      label: "View Connections", 
-      href: "/project-tracker"
-    }
+      label: "View Connections",
+      href: "/project-tracker",
+    },
   },
   {
     id: "revenue-tracking",
-    target: "[data-testid='revenue-widget']", 
+    target: "[data-testid='revenue-widget']",
     title: "Track Revenue",
     description: "Monitor your earnings and business growth",
-    position: "top"
+    position: "top",
   },
   {
-    id: "ratings-overview",
-    target: "[data-testid='ratings-widget']",
-    title: "Customer Ratings", 
-    description: "See how customers rate your work and service",
-    position: "top"
+    id: "trust-overview",
+    target: "[data-testid='trust-widget']",
+    title: "Trust (CVS)",
+    description:
+      "CVS reflects verification and reliability signals. It helps govern exposure and eligibility.",
+    position: "top",
   },
   {
     id: "active-jobs",
     target: "[data-testid='jobs-widget']",
     title: "Active Jobs",
     description: "Track your current projects and deadlines",
-    position: "bottom"
-  }
+    position: "bottom",
+  },
 ];
 
 export default contractorDashboardSteps;

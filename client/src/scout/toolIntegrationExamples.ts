@@ -1,6 +1,6 @@
 /**
  * Example: How to use Scout tools in ScoutOS
- * 
+ *
  * This shows the before/after of integrating the tool layer.
  */
 
@@ -28,7 +28,7 @@ async function oldSearchContractors_EXAMPLE(trade: string, state: string) {
 
 /**
  * Example: Convert a user request into a tool call and render results.
- * 
+ *
  * @param userMessage - The user's request (e.g., "Find HVAC contractors in Texas")
  * @param userId - Current user ID for context
  * @returns A ScoutMessage with tool results and actions
@@ -42,16 +42,17 @@ export async function handleContractorSearchWithTools(
   const trade = lowerMsg.includes("hvac")
     ? "hvac"
     : lowerMsg.includes("plumber")
-    ? "plumber"
-    : lowerMsg.includes("electrician")
-    ? "electrician"
-    : undefined;
+      ? "plumber"
+      : lowerMsg.includes("electrician")
+        ? "electrician"
+        : undefined;
 
-  const state = lowerMsg.includes("texas") || lowerMsg.includes("tx")
-    ? "TX"
-    : lowerMsg.includes("california") || lowerMsg.includes("ca")
-    ? "CA"
-    : undefined;
+  const state =
+    lowerMsg.includes("texas") || lowerMsg.includes("tx")
+      ? "TX"
+      : lowerMsg.includes("california") || lowerMsg.includes("ca")
+        ? "CA"
+        : undefined;
 
   // Run the tool with retries, timeouts, telemetry
   const result = await searchContractors(
@@ -86,9 +87,10 @@ export async function handleContractorSearchWithTools(
       message: {
         id: `a_${Date.now()}`,
         role: "assistant",
-        content: trade && state
-          ? `No ${trade} contractors found in ${state} right now. Try expanding your search or checking back later.`
-          : "No contractors found matching your criteria.",
+        content:
+          trade && state
+            ? `No ${trade} contractors found in ${state} right now. Try expanding your search or checking back later.`
+            : "No contractors found matching your criteria.",
         timestamp: new Date().toISOString(),
         toolResult: {
           tool: "contractor_search",
@@ -109,7 +111,7 @@ export async function handleContractorSearchWithTools(
     body: `Found ${contractors.length} professionals near you.`,
     items: contractors.map((c: any) => ({
       id: c.id,
-      label: `${c.name} · ${c.rating}⭐ (${c.reviewCount} reviews)`,
+      label: `${c.name} - Trust (CVS): ${c.cvsScore ?? c.cvs ?? c.rating ?? "pending"} - ${c.recommendationCount ?? c.recommendationsCount ?? c.reviewCount ?? 0} recs`,
       description: c.location,
     })),
     actions: contractors.slice(0, 3).map((c: any) => ({

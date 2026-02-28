@@ -360,10 +360,7 @@ const Analytics = memo(function Analytics() {
                 <div className="space-y-4">
                   {projectsLoading && !projectsData ? (
                     Array.from({ length: 3 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="p-4 bg-white/10 rounded-lg animate-pulse h-20"
-                      />
+                      <div key={index} className="p-4 bg-white/10 rounded-lg animate-pulse h-20" />
                     ))
                   ) : !projectsData || projectsData.projects.length === 0 ? (
                     <p className="text-white/60 text-sm">
@@ -434,27 +431,19 @@ const Analytics = memo(function Analytics() {
 
               <Card className="bg-white/5 border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white">Customer Satisfaction</CardTitle>
+                  <CardTitle className="text-white">Trust (CVS)</CardTitle>
                   <CardDescription className="text-white/60">
-                    Average rating from completed projects
+                    Trust authority snapshot (verification + performance signals)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-6">
                     <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-emerald-600/10 border-4 border-emerald-600/20 mb-4">
                       <div className="flex items-baseline">
-                        <span className="text-4xl font-bold text-emerald-400">4.8</span>
-                        <span className="text-lg text-white/60 ml-1">/5</span>
+                        <span className="text-4xl font-bold text-emerald-400">82</span>
                       </div>
                     </div>
-                    <p className="text-white/70">Overall Rating</p>
-                    <div className="flex items-center justify-center gap-1 mt-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg key={star} className="w-5 h-5 fill-yellow-400" viewBox="0 0 20 20">
-                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                        </svg>
-                      ))}
-                    </div>
+                    <p className="text-white/70">Current CVS</p>
                   </div>
                 </CardContent>
               </Card>

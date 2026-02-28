@@ -3,17 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ContextualTooltip } from "@/components/ui/contextual-tooltip";
-import { 
-  TrendingUp, 
-  Users, 
-  Calendar, 
-  DollarSign, 
-  Star, 
+import {
+  TrendingUp,
+  Users,
+  Calendar,
+  DollarSign,
+  ShieldCheck,
   MessageSquare,
   AlertTriangle,
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 
 interface DashboardWidgetProps {
@@ -26,11 +26,18 @@ interface DashboardWidgetProps {
     isPositive: boolean;
     label: string;
   };
-  status?: 'success' | 'warning' | 'danger' | 'info';
+  status?: "success" | "warning" | "danger" | "info";
   actionLabel?: string;
   actionHref?: string;
   tooltipContent?: string;
-  tooltipIllustration?: 'wrench' | 'hammer' | 'hardhat' | 'drill' | 'screwdriver' | 'paintbrush' | 'ruler';
+  tooltipIllustration?:
+    | "wrench"
+    | "hammer"
+    | "hardhat"
+    | "drill"
+    | "screwdriver"
+    | "paintbrush"
+    | "ruler";
   className?: string;
   children?: ReactNode;
 }
@@ -45,33 +52,32 @@ export function DashboardWidget({
   actionLabel,
   actionHref,
   tooltipContent,
-  tooltipIllustration = 'wrench',
+  tooltipIllustration = "wrench",
   className = "",
-  children
+  children,
 }: DashboardWidgetProps) {
-  
   const statusStyles = {
-    success: 'border-green-500/30 bg-green-500/5',
-    warning: 'border-yellow-500/30 bg-yellow-500/5',
-    danger: 'border-red-500/30 bg-red-500/5',
-    info: 'border-blue-500/30 bg-blue-500/5'
+    success: "border-green-500/30 bg-green-500/5",
+    warning: "border-yellow-500/30 bg-yellow-500/5",
+    danger: "border-red-500/30 bg-red-500/5",
+    info: "border-blue-500/30 bg-blue-500/5",
   };
 
   const statusIcons = {
     success: CheckCircle,
     warning: AlertTriangle,
     danger: AlertTriangle,
-    info: Clock
+    info: Clock,
   };
 
   return (
-    <Card className={`bg-tsCard border-white/10 hover:border-ts-orange/30 transition-all duration-300 ${status ? statusStyles[status] : ''} ${className}`}>
+    <Card
+      className={`bg-tsCard border-white/10 hover:border-ts-orange/30 transition-all duration-300 ${status ? statusStyles[status] : ""} ${className}`}
+    >
       <CardHeader className="pb-3">
         <CardTitle className="text-white flex items-center justify-between text-lg">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-ts-orange/20 rounded-lg">
-              {icon}
-            </div>
+            <div className="p-2 bg-ts-orange/20 rounded-lg">{icon}</div>
             <span>{title}</span>
           </div>
           {tooltipContent && (
@@ -89,25 +95,27 @@ export function DashboardWidget({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-3xl font-bold text-white">{value}</div>
-            {subtitle && (
-              <div className="text-sm text-white/60 mt-1">{subtitle}</div>
-            )}
+            {subtitle && <div className="text-sm text-white/60 mt-1">{subtitle}</div>}
           </div>
-          
+
           {/* Status Indicator */}
           {status && (
-            <div className={`p-2 rounded-lg ${
-              status === 'success' ? 'bg-green-500/20 text-green-400' :
-              status === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-              status === 'danger' ? 'bg-red-500/20 text-red-400' :
-              'bg-blue-500/20 text-blue-400'
-            }`}>
-              {statusIcons[status] && 
+            <div
+              className={`p-2 rounded-lg ${
+                status === "success"
+                  ? "bg-green-500/20 text-green-400"
+                  : status === "warning"
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : status === "danger"
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-blue-500/20 text-blue-400"
+              }`}
+            >
+              {statusIcons[status] &&
                 (() => {
                   const StatusIcon = statusIcons[status];
                   return <StatusIcon className="h-5 w-5" />;
-                })()
-              }
+                })()}
             </div>
           )}
         </div>
@@ -115,26 +123,27 @@ export function DashboardWidget({
         {/* Trend Indicator */}
         {trend && (
           <div className="flex items-center gap-2">
-            <TrendingUp className={`h-4 w-4 ${trend.isPositive ? 'text-green-400' : 'text-red-400 rotate-180'}`} />
-            <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-              {trend.isPositive ? '+' : ''}{trend.value}%
+            <TrendingUp
+              className={`h-4 w-4 ${trend.isPositive ? "text-green-400" : "text-red-400 rotate-180"}`}
+            />
+            <span
+              className={`text-sm font-medium ${trend.isPositive ? "text-green-400" : "text-red-400"}`}
+            >
+              {trend.isPositive ? "+" : ""}
+              {trend.value}%
             </span>
             <span className="text-sm text-white/60">{trend.label}</span>
           </div>
         )}
 
         {/* Children Content */}
-        {children && (
-          <div className="mt-4">
-            {children}
-          </div>
-        )}
+        {children && <div className="mt-4">{children}</div>}
 
         {/* Action Button */}
         {actionLabel && actionHref && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="w-full mt-4 text-ts-orange hover:text-ts-orange hover:bg-ts-orange/10 border border-ts-orange/30 hover:border-ts-orange/30"
             asChild
           >
@@ -157,12 +166,16 @@ export function LeadsWidget({ count, newToday }: { count: number; newToday: numb
       value={count}
       subtitle="Total inquiries"
       icon={<Users className="h-5 w-5 text-ts-orange" />}
-      trend={newToday > 0 ? {
-        value: newToday,
-        isPositive: true,
-        label: "new today"
-      } : undefined}
-      status={count > 10 ? 'success' : count > 5 ? 'warning' : 'info'}
+      trend={
+        newToday > 0
+          ? {
+              value: newToday,
+              isPositive: true,
+              label: "new today",
+            }
+          : undefined
+      }
+      status={count > 10 ? "success" : count > 5 ? "warning" : "info"}
       tooltipContent="Track customer inquiries and manage your sales pipeline like organizing your job queue"
       tooltipIllustration="wrench"
       actionLabel="Manage Connections"
@@ -171,7 +184,13 @@ export function LeadsWidget({ count, newToday }: { count: number; newToday: numb
   );
 }
 
-export function RevenueWidget({ amount, monthlyChange }: { amount: number; monthlyChange: number }) {
+export function RevenueWidget({
+  amount,
+  monthlyChange,
+}: {
+  amount: number;
+  monthlyChange: number;
+}) {
   return (
     <DashboardWidget
       title="Monthly Revenue"
@@ -181,9 +200,9 @@ export function RevenueWidget({ amount, monthlyChange }: { amount: number; month
       trend={{
         value: Math.abs(monthlyChange),
         isPositive: monthlyChange >= 0,
-        label: "vs last month"
+        label: "vs last month",
       }}
-      status={monthlyChange >= 0 ? 'success' : 'warning'}
+      status={monthlyChange >= 0 ? "success" : "warning"}
       tooltipContent="Track your earnings like monitoring job profitability - keep an eye on trends to grow your business"
       tooltipIllustration="ruler"
       actionLabel="View Reports"
@@ -192,19 +211,27 @@ export function RevenueWidget({ amount, monthlyChange }: { amount: number; month
   );
 }
 
-export function RatingWidget({ rating, recommendationCount }: { rating: number; recommendationCount: number }) {
+export function RatingWidget({
+  rating,
+  recommendationCount,
+}: {
+  rating: number;
+  recommendationCount: number;
+}) {
   return (
-    <DashboardWidget
-      title="Customer Rating"
-      value={`${rating.toFixed(1)} ⭐`}
-      subtitle={`From ${recommendationCount} RECOMMENDATIONS`}
-      icon={<Star className="h-5 w-5 text-ts-orange" />}
-      status={rating >= 4.5 ? 'success' : rating >= 4.0 ? 'warning' : 'danger'}
-      tooltipContent="Your reputation score - like your Better Business Bureau rating but for the digital age"
-      tooltipIllustration="paintbrush"
-      actionLabel="Manage Recommendations"
-      actionHref="/recommendations"
-    />
+    <div data-testid="trust-widget">
+      <DashboardWidget
+        title="Trust (CVS)"
+        value={`${Math.round(rating)}`}
+        subtitle={`From ${recommendationCount} RECOMMENDATIONS`}
+        icon={<ShieldCheck className="h-5 w-5 text-ts-orange" />}
+        status={rating >= 85 ? "success" : rating >= 70 ? "warning" : "info"}
+        tooltipContent="CVS is TradeScout's trust authority score. It reflects verification and reliability signals, not payment."
+        tooltipIllustration="paintbrush"
+        actionLabel="Manage Recommendations"
+        actionHref="/recommendations"
+      />
+    </div>
   );
 }
 
@@ -215,7 +242,7 @@ export function MessagesWidget({ unreadCount }: { unreadCount: number }) {
       value={unreadCount}
       subtitle="Unread messages"
       icon={<MessageSquare className="h-5 w-5 text-ts-orange" />}
-      status={unreadCount > 5 ? 'warning' : unreadCount > 0 ? 'info' : 'success'}
+      status={unreadCount > 5 ? "warning" : unreadCount > 0 ? "info" : "success"}
       tooltipContent="Stay on top of customer communication - quick responses win more jobs than low prices"
       tooltipIllustration="hammer"
       actionLabel="View Messages"
@@ -231,7 +258,7 @@ export function ScheduleWidget({ upcomingJobs }: { upcomingJobs: number }) {
       value={upcomingJobs}
       subtitle="Next 7 days"
       icon={<Calendar className="h-5 w-5 text-ts-orange" />}
-      status={upcomingJobs > 0 ? 'success' : 'info'}
+      status={upcomingJobs > 0 ? "success" : "info"}
       tooltipContent="Your work schedule - like your project calendar but smarter about timing and resources"
       tooltipIllustration="drill"
       actionLabel="View Schedule"

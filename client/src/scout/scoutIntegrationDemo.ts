@@ -1,12 +1,17 @@
 // client/src/scout/scoutIntegrationDemo.ts
 /**
  * Demo: How to use the tool layer in Scout responses
- * 
+ *
  * This shows the pattern for wiring tools into Scout's conversation flow.
  * Copy this pattern when adding new tool-backed responses.
  */
 
-import { searchContractors, searchMarketplace, type ContractorResult, type MarketplaceResult } from "../agent/tools/scoutTools";
+import {
+  searchContractors,
+  searchMarketplace,
+  type ContractorResult,
+  type MarketplaceResult,
+} from "../agent/tools/scoutTools";
 import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutToolResult } from "./state";
 
 /**
@@ -59,7 +64,7 @@ export async function handleFindContractorsIntent(
     id: `contractor-${c.id}`,
     title: c.name,
     kind: "pros" as const,
-    body: `${c.trade} • ${c.rating}⭐ (${c.reviewCount} reviews) • ${c.location}`,
+    body: `${c.trade} • Trust (CVS): ${(c as any).cvsScore ?? (c as any).cvs ?? (c as any).rating ?? "pending"} • ${(c as any).recommendationCount ?? (c as any).recommendationsCount ?? (c as any).reviewCount ?? 0} recs • ${c.location}`,
     primaryAction: {
       type: "NAVIGATE",
       label: "View profile",
@@ -148,7 +153,7 @@ export async function handleMarketplaceSearchIntent(
     };
   }
 
-    const listings: MarketplaceResult[] = Array.isArray(result.data) ? result.data : [];
+  const listings: MarketplaceResult[] = Array.isArray(result.data) ? result.data : [];
 
   const clusters: ScoutCluster[] = listings.slice(0, 3).map((listing) => ({
     id: `listing-${listing.id}`,

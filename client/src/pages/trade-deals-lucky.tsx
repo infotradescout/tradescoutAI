@@ -587,7 +587,7 @@ function DealCard({ deal, onScratch, onClaim, onRate, onSelect }: DealCardProps)
           className="px-3 py-1 text-xs font-semibold text-center"
           style={{ backgroundColor: "var(--theme-accent-primary)", color: "var(--text-primary)" }}
         >
-          ⭐ FEATURED DEAL
+          FEATURED DEAL
         </div>
       )}
 

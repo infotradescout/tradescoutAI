@@ -279,10 +279,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   <h3 className="text-lg font-semibold text-white mb-3">Recent TradeScout Jobs</h3>
                   <div className="space-y-3">
                     {platformJobs.slice(0, 3).map((job, index) => (
-                      <div
-                        key={index}
-                        className="bg-tsCard p-4 rounded-lg border border-white/10"
-                      >
+                      <div key={index} className="bg-tsCard p-4 rounded-lg border border-white/10">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
@@ -316,10 +313,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-4">
                     {platformJobs.map((job, index) => (
-                      <div
-                        key={index}
-                        className="bg-tsCard p-4 rounded-lg border border-white/10"
-                      >
+                      <div key={index} className="bg-tsCard p-4 rounded-lg border border-white/10">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
@@ -349,10 +343,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-4">
                     {otherJobs.map((job, index) => (
-                      <div
-                        key={index}
-                        className="bg-tsCard p-4 rounded-lg border border-white/10"
-                      >
+                      <div key={index} className="bg-tsCard p-4 rounded-lg border border-white/10">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
@@ -384,10 +375,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-3">
                     {helper.education.map((edu, index) => (
-                      <div
-                        key={index}
-                        className="bg-tsCard p-4 rounded-lg border border-white/10"
-                      >
+                      <div key={index} className="bg-tsCard p-4 rounded-lg border border-white/10">
                         <h4 className="font-medium text-white">{edu.degree}</h4>
                         <p className="text-purple-400">{edu.school}</p>
                         {edu.fieldOfStudy && (
@@ -411,10 +399,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   </h3>
                   <div className="space-y-3">
                     {helper.certifications.map((cert, index) => (
-                      <div
-                        key={index}
-                        className="bg-tsCard p-4 rounded-lg border border-white/10"
-                      >
+                      <div key={index} className="bg-tsCard p-4 rounded-lg border border-white/10">
                         <h4 className="font-medium text-white">{cert.name}</h4>
                         <p className="text-yellow-400">{cert.issuer}</p>
                         <div className="flex items-center justify-between mt-2">
@@ -486,7 +471,9 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
 
           {activeTab === "reviews" && (
             <div>
-              <h3 className="text-lg font-semibold text-white mb-4">RECOMMENDATIONS & Ratings</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">
+                RECOMMENDATIONS & TRUST (CVS)
+              </h3>
               <div className="text-center py-8">
                 <Star className="h-12 w-12 text-white/60 mx-auto mb-4" />
                 <p className="text-white/60">RECOMMENDATIONS will be loaded here</p>

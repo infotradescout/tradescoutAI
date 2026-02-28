@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DollarSign,
-  Star,
+  ShieldCheck,
   Clock,
   Users,
   ChevronRight,
@@ -15,7 +15,7 @@ import {
 export default function ContractorDashboardSimple() {
   const stats = {
     revenue: "$85,000",
-    rating: "4.8",
+    cvs: "82",
     jobs: "12",
     inquiries: "15",
   };
@@ -76,10 +76,10 @@ export default function ContractorDashboardSimple() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white/60 text-sm">Average Rating</p>
-                  <p className="text-3xl font-bold text-white">{stats.rating}</p>
+                  <p className="text-white/60 text-sm">Trust (CVS)</p>
+                  <p className="text-3xl font-bold text-white">{stats.cvs}</p>
                 </div>
-                <Star className="h-8 w-8 text-yellow-400" />
+                <ShieldCheck className="h-8 w-8 text-ts-orange" />
               </div>
             </CardContent>
           </Card>
@@ -199,7 +199,7 @@ export default function ContractorDashboardSimple() {
 
           <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm cursor-pointer hover:border-ts-orange/30 transition-colors">
             <CardContent className="p-6 text-center">
-              <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+              <ShieldCheck className="h-12 w-12 text-ts-orange mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Customer Recommendations</h3>
               <p className="text-white/60 text-sm mb-4">
                 Manage recommendations and build your reputation

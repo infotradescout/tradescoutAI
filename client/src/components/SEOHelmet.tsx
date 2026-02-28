@@ -272,7 +272,6 @@ export const createContractorStructuredData = (contractor: {
   id: string;
   name: string;
   description?: string;
-  rating?: number;
   recommendationCount?: number;
   location?: string;
   trades?: string[];
@@ -290,15 +289,6 @@ export const createContractorStructuredData = (contractor: {
     addressLocality: contractor.location,
     addressCountry: "US",
   },
-  aggregateRating: contractor.rating
-    ? {
-        "@type": "AggregateRating",
-        ratingValue: contractor.rating,
-        recommendationCount: contractor.recommendationCount || 0,
-        bestRating: 5,
-        worstRating: 1,
-      }
-    : undefined,
   hasCredential: contractor.verified
     ? {
         "@type": "EducationalOccupationalCredential",

@@ -26,7 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { ThumbsUp, ThumbsDown, Clock, MessageSquare, Star } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Clock, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 
 const recommendationSchema = z.object({
@@ -328,10 +328,10 @@ export function RecommendationForm({
               )}
             />
 
-            {/* Optional Ratings */}
+            {/* Optional Signals */}
             {form.watch("recommendationType") === "positive" && (
               <div className="space-y-4">
-                <h4 className="text-white font-medium">Rate Your Experience (Optional)</h4>
+                <h4 className="text-white font-medium">Optional Quality Signals (helps trust)</h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
@@ -354,7 +354,15 @@ export function RecommendationForm({
                             <SelectContent>
                               {[5, 4, 3, 2, 1].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
-                                  {num} Star{num !== 1 ? "s" : ""}
+                                  {num === 5
+                                    ? "5 (Excellent)"
+                                    : num === 4
+                                      ? "4 (Good)"
+                                      : num === 3
+                                        ? "3 (OK)"
+                                        : num === 2
+                                          ? "2 (Needs work)"
+                                          : "1 (Bad fit)"}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -384,7 +392,15 @@ export function RecommendationForm({
                             <SelectContent>
                               {[5, 4, 3, 2, 1].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
-                                  {num} Star{num !== 1 ? "s" : ""}
+                                  {num === 5
+                                    ? "5 (Excellent)"
+                                    : num === 4
+                                      ? "4 (Good)"
+                                      : num === 3
+                                        ? "3 (OK)"
+                                        : num === 2
+                                          ? "2 (Needs work)"
+                                          : "1 (Bad fit)"}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -414,7 +430,15 @@ export function RecommendationForm({
                             <SelectContent>
                               {[5, 4, 3, 2, 1].map((num) => (
                                 <SelectItem key={num} value={num.toString()}>
-                                  {num} Star{num !== 1 ? "s" : ""}
+                                  {num === 5
+                                    ? "5 (Excellent)"
+                                    : num === 4
+                                      ? "4 (Good)"
+                                      : num === 3
+                                        ? "3 (OK)"
+                                        : num === 2
+                                          ? "2 (Needs work)"
+                                          : "1 (Bad fit)"}
                                 </SelectItem>
                               ))}
                             </SelectContent>

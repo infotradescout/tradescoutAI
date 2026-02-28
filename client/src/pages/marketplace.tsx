@@ -890,7 +890,7 @@ export default function Marketplace() {
                           Trust Network
                         </h4>
                         <p className="text-sm text-white/60 dark:text-white/70">
-                          Community-verified seller ratings
+                          Community-verified seller trust (CVS)
                         </p>
                       </div>
                     </div>

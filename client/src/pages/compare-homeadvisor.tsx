@@ -48,7 +48,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "How does HomeAdvisor verify contractors?",
       answer:
-        "HomeAdvisor uses reviews and ratings, which can be gamed. TradeScout uses Community Verification Score (CVS): verified identity, license/insurance, work history, and community recommendations. CVS is public, auditable, and payment cannot override it.",
+        "HomeAdvisor uses reviews, which can be gamed. TradeScout uses Community Verification Score (CVS): verified identity, license/insurance, work history, and community recommendations. CVS is public, auditable, and payment cannot override it.",
     },
     {
       question: "What is different about Scout?",

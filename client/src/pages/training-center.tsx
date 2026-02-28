@@ -268,9 +268,7 @@ const TrainingCenter = memo(function TrainingCenter() {
             <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm mb-8">
               <CardHeader>
                 <CardTitle className="text-white">Featured Courses</CardTitle>
-                <p className="text-white/60">
-                  Popular and highly-rated courses from industry experts
-                </p>
+                <p className="text-white/60">Popular, high-signal courses from industry experts</p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -382,10 +380,13 @@ const TrainingCenter = memo(function TrainingCenter() {
 
                         <div className="flex justify-between items-center text-xs text-white/60 mb-3">
                           <span>{course.duration}</span>
-                          <span>★ {course.rating}</span>
+                          <span>Signal: {course.rating}</span>
                         </div>
 
-                        <Button size="sm" className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
+                        <Button
+                          size="sm"
+                          className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark"
+                        >
                           View Course
                         </Button>
                       </div>
@@ -502,7 +503,9 @@ const TrainingCenter = memo(function TrainingCenter() {
                               <div className="text-white/60 text-sm">Complete</div>
                             </div>
                             <Progress value={cert.progress} className="h-2 w-24 mb-3" />
-                            <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Continue</Button>
+                            <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">
+                              Continue
+                            </Button>
                           </div>
                         )}
                       </div>

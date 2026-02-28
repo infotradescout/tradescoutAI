@@ -8,27 +8,27 @@ interface ProfessionalBadgeProps {
   showText?: boolean;
 }
 
-export function ProfessionalBadge({ 
-  userRole, 
-  verificationStatus = 'approved', 
+export function ProfessionalBadge({
+  userRole,
+  verificationStatus = "approved",
   size = "md",
-  showText = true 
+  showText = true,
 }: ProfessionalBadgeProps) {
-  if (!userRole || !['realtor', 'car_salesman'].includes(userRole)) {
+  if (!userRole || !["realtor", "car_salesman"].includes(userRole)) {
     return null;
   }
 
-  if (verificationStatus !== 'approved') {
+  if (verificationStatus !== "approved") {
     return null;
   }
 
   const iconSize = size === "sm" ? "h-3 w-3" : size === "lg" ? "h-5 w-5" : "h-4 w-4";
   const textSize = size === "sm" ? "text-xs" : size === "lg" ? "text-sm" : "text-xs";
 
-  if (userRole === 'realtor') {
+  if (userRole === "realtor") {
     return (
-      <Badge 
-        variant="secondary" 
+      <Badge
+        variant="secondary"
         className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800 flex items-center gap-1.5"
       >
         <Home className={iconSize} />
@@ -37,10 +37,10 @@ export function ProfessionalBadge({
     );
   }
 
-  if (userRole === 'car_salesman') {
+  if (userRole === "car_salesman") {
     return (
-      <Badge 
-        variant="secondary" 
+      <Badge
+        variant="secondary"
         className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-800 flex items-center gap-1.5"
       >
         <Car className={iconSize} />
@@ -56,37 +56,46 @@ interface TrustIndicatorProps {
   userRole: string;
   verificationStatus?: string;
   transactionCount?: number;
+  cvsScore?: number;
+  // Back-compat: some call sites may still pass `rating`. Treat as CVS.
   rating?: number;
 }
 
-export function TrustIndicator({ 
-  userRole, 
-  verificationStatus = 'approved',
+export function TrustIndicator({
+  userRole,
+  verificationStatus = "approved",
   transactionCount = 0,
-  rating 
+  cvsScore,
+  rating,
 }: TrustIndicatorProps) {
-  if (!userRole || !['realtor', 'car_salesman'].includes(userRole) || verificationStatus !== 'approved') {
+  if (
+    !userRole ||
+    !["realtor", "car_salesman"].includes(userRole) ||
+    verificationStatus !== "approved"
+  ) {
     return null;
   }
+
+  const trust = cvsScore ?? rating;
 
   return (
     <div className="flex items-center gap-2 text-sm text-white/60 dark:text-white/70">
       <ProfessionalBadge userRole={userRole} verificationStatus={verificationStatus} size="sm" />
-      
+
       {transactionCount > 0 && (
         <div className="flex items-center gap-1">
           <Award className="h-3 w-3" />
           <span>{transactionCount} completed</span>
         </div>
       )}
-      
-      {rating && rating > 0 && (
+
+      {typeof trust === "number" && trust > 0 && (
         <div className="flex items-center gap-1">
-          <span className="text-yellow-500">★</span>
-          <span>{rating.toFixed(1)}</span>
+          <span className="text-white/70 text-xs font-semibold">CVS</span>
+          <span>{trust.toFixed(0)}</span>
         </div>
       )}
-      
+
       <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
         <Shield className="h-3 w-3" />
         <span className="text-xs">Verified Professional</span>
