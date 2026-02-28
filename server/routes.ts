@@ -6895,6 +6895,234 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Maps v1: awareness-only entities for map surfaces (no direct contact data)
+  app.get("/api/map/entities", async (req: Request, res: Response) => {
+    try {
+      const mapsV1Enabled =
+        String(process.env.FEATURE_MAPS_V1 ?? "true")
+          .trim()
+          .toLowerCase() !== "false";
+      if (!mapsV1Enabled) {
+        return res.status(404).json({ message: "Maps v1 is disabled", code: "FEATURE_DISABLED" });
+      }
+
+      const bboxRaw = typeof req.query.bbox === "string" ? req.query.bbox.trim() : "";
+      const bboxParts = bboxRaw
+        .split(",")
+        .map((part) => Number(part.trim()))
+        .filter((value) => Number.isFinite(value));
+
+      if (bboxParts.length !== 4) {
+        return res
+          .status(400)
+          .json({ message: "Invalid bbox. Expected minLng,minLat,maxLng,maxLat." });
+      }
+
+      const [minLng, minLat, maxLng, maxLat] = bboxParts;
+      if (minLng < -180 || maxLng > 180 || minLat < -90 || maxLat > 90) {
+        return res.status(400).json({ message: "Invalid bbox bounds." });
+      }
+      if (minLng >= maxLng || minLat >= maxLat) {
+        return res.status(400).json({ message: "Invalid bbox order." });
+      }
+
+      const typesRaw = typeof req.query.types === "string" ? req.query.types.trim() : "";
+      const requestedTypes = (typesRaw ? typesRaw.split(",") : [])
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean);
+      const allowAllTypes = requestedTypes.length === 0;
+      const wants = (t: string) => allowAllTypes || requestedTypes.includes(t);
+
+      const tradeFilter =
+        typeof req.query.trade === "string" ? req.query.trade.trim().toLowerCase() : "";
+      const verifiedOnly =
+        String(req.query.verified || "false")
+          .trim()
+          .toLowerCase() === "true";
+      const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 1000;
+      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(5000, limitRaw)) : 1000;
+
+      const points: Array<{
+        id: string;
+        type: string;
+        lat: number;
+        lng: number;
+        title: string;
+        subtitle?: string | null;
+        href?: string | null;
+        meta?: Record<string, unknown>;
+      }> = [];
+
+      if (wants("provider")) {
+        const providerRoles = [
+          "contractor",
+          "handyman",
+          "service_provider",
+          "specialty_tradesperson",
+          "realtor",
+          "insurance_agent",
+          "mortgage_broker",
+          "car_dealer",
+          "auto_service",
+          "inspector",
+          "business_owner",
+          "commercial_property",
+        ] as const;
+
+        const predicates: any[] = [
+          sql`${users.latitude} is not null`,
+          sql`${users.longitude} is not null`,
+          sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
+          sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
+          or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
+        ];
+
+        if (tradeFilter) {
+          predicates.push(
+            or(
+              sql`lower(${trades.slug}) = ${tradeFilter}`,
+              sql`lower(${trades.name}) = ${tradeFilter}`
+            )
+          );
+        }
+
+        if (verifiedOnly) {
+          predicates.push(
+            or(
+              eq(contractors.verifiedLicensed, true),
+              eq(contractors.verifiedInsured, true),
+              eq(users.verificationStatus, "approved" as any)
+            )
+          );
+        }
+
+        const rows = await db
+          .select({
+            providerId: users.id,
+            displayName: sql<string>`
+              coalesce(
+                nullif(${contractors.companyName}, ''),
+                nullif(trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')), ''),
+                'TradeScout Provider'
+              )
+            `,
+            lat: users.latitude,
+            lng: users.longitude,
+            role: users.role,
+            verifiedLicensed: contractors.verifiedLicensed,
+            verifiedInsured: contractors.verifiedInsured,
+            userVerificationStatus: users.verificationStatus,
+            tradeCategories: sql<
+              string[]
+            >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
+          })
+          .from(users)
+          .leftJoin(contractors, eq(contractors.userId, users.id))
+          .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
+          .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
+          .where(and(...predicates))
+          .groupBy(
+            users.id,
+            users.firstName,
+            users.lastName,
+            users.role,
+            users.latitude,
+            users.longitude,
+            users.verificationStatus,
+            contractors.id,
+            contractors.companyName,
+            contractors.verifiedLicensed,
+            contractors.verifiedInsured
+          )
+          .limit(Math.min(limit, 2000));
+
+        for (const row of rows) {
+          const lat = Number(row.lat);
+          const lng = Number(row.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+          const contractorVerified = row.verifiedLicensed === true || row.verifiedInsured === true;
+          const userVerified =
+            String(row.userVerificationStatus || "").toLowerCase() === "approved";
+          const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
+
+          points.push({
+            id: String(row.providerId),
+            type: "provider",
+            lat,
+            lng,
+            title: row.displayName,
+            subtitle: verifiedStatus === "verified" ? "Verified provider" : "Provider",
+            href: `/profile/${encodeURIComponent(String(row.providerId))}`,
+            meta: {
+              role: row.role ?? null,
+              verifiedStatus,
+              tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
+            },
+          });
+        }
+      }
+
+      if (wants("business")) {
+        // Use geo stored inside profile_data.importExtras (no DB migration dependency).
+        const rows = await db
+          .select({
+            id: businesses.id,
+            name: businesses.name,
+            slug: businesses.slug,
+            type: businesses.type,
+            category: sql<string | null>`
+              nullif((${businesses.profileData} ->> 'category')::text, '')
+            `,
+            lat: sql<string | null>`
+              coalesce(
+                nullif((${businesses.profileData} -> 'importExtras' ->> 'lat')::text, ''),
+                nullif((${businesses.profileData} -> 'importExtras' ->> 'latitude')::text, '')
+              )
+            `,
+            lng: sql<string | null>`
+              coalesce(
+                nullif((${businesses.profileData} -> 'importExtras' ->> 'lng')::text, ''),
+                nullif((${businesses.profileData} -> 'importExtras' ->> 'lon')::text, ''),
+                nullif((${businesses.profileData} -> 'importExtras' ->> 'longitude')::text, '')
+              )
+            `,
+          })
+          .from(businesses)
+          .where(eq(businesses.status, "active" as any))
+          .limit(Math.min(limit, 5000));
+
+        for (const row of rows) {
+          const lat = Number(row.lat);
+          const lng = Number(row.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+          if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) continue;
+          points.push({
+            id: String(row.id),
+            type: "business",
+            lat,
+            lng,
+            title: String(row.name || "Business"),
+            subtitle: row.category || (row.type ? String(row.type) : null),
+            href: `/business/${encodeURIComponent(String(row.slug))}`,
+            meta: {
+              businessType: row.type ?? null,
+            },
+          });
+        }
+      }
+
+      // For now, other entity types are optional layers and may be empty.
+      return res.json({
+        points: points.slice(0, limit),
+        meta: { count: Math.min(points.length, limit) },
+      });
+    } catch (error: any) {
+      console.error("Error fetching map entities:", error);
+      return res.status(500).json({ message: "Failed to fetch map entities" });
+    }
+  });
+
   // Maps v1: awareness-only provider discovery (no direct contact data)
   app.get("/api/map/providers", async (req: Request, res: Response) => {
     try {
@@ -12072,11 +12300,82 @@ export async function registerRoutes(app: any) {
           .replace(/^-+|-+$/g, "")
           .slice(0, 80);
 
+      const STATE_NAME_TO_CODE: Record<string, string> = {
+        alabama: "AL",
+        alaska: "AK",
+        arizona: "AZ",
+        arkansas: "AR",
+        california: "CA",
+        colorado: "CO",
+        connecticut: "CT",
+        delaware: "DE",
+        florida: "FL",
+        georgia: "GA",
+        hawaii: "HI",
+        idaho: "ID",
+        illinois: "IL",
+        indiana: "IN",
+        iowa: "IA",
+        kansas: "KS",
+        kentucky: "KY",
+        louisiana: "LA",
+        maine: "ME",
+        maryland: "MD",
+        massachusetts: "MA",
+        michigan: "MI",
+        minnesota: "MN",
+        mississippi: "MS",
+        missouri: "MO",
+        montana: "MT",
+        nebraska: "NE",
+        nevada: "NV",
+        "new hampshire": "NH",
+        "new jersey": "NJ",
+        "new mexico": "NM",
+        "new york": "NY",
+        "north carolina": "NC",
+        "north dakota": "ND",
+        ohio: "OH",
+        oklahoma: "OK",
+        oregon: "OR",
+        pennsylvania: "PA",
+        "rhode island": "RI",
+        "south carolina": "SC",
+        "south dakota": "SD",
+        tennessee: "TN",
+        texas: "TX",
+        utah: "UT",
+        vermont: "VT",
+        virginia: "VA",
+        washington: "WA",
+        "west virginia": "WV",
+        wisconsin: "WI",
+        wyoming: "WY",
+        "district of columbia": "DC",
+      };
+
+      const normalizeStateCodeLoose = (input: unknown): string => {
+        const raw = String(input || "").trim();
+        if (!raw) return "";
+        const upper = raw.toUpperCase();
+        if (/^[A-Z]{2}$/.test(upper)) return upper;
+        const name = raw.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+        return STATE_NAME_TO_CODE[name] || "";
+      };
+
       const inferStateCodeFromLooseAddress = (input: unknown): string => {
         const raw = String(input || "").trim();
         if (!raw) return "";
-        const match = raw.match(/\b([A-Z]{2})\b(?:\s+\d{5}(?:-\d{4})?)?$/);
-        return match?.[1] || "";
+        const match2 = raw.match(/\b([A-Z]{2})\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+        if (match2?.[1]) return match2[1];
+        const matchName = raw
+          .toLowerCase()
+          .replace(/\./g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .match(/\b([a-z]+(?:\s+[a-z]+)*)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+        const tail = matchName?.[1] ? normalizeStateCodeLoose(matchName[1]) : "";
+        return tail || "";
       };
 
       const inferZipFromLooseAddress = (input: unknown): string => {
@@ -12163,11 +12462,19 @@ export async function registerRoutes(app: any) {
           defaultCountyFips ||
           "";
         const stateCodeRaw =
-          getFirstNonEmpty(rec, ["state_code", "state", "st"]).trim() || defaultStateCode || "";
+          getFirstNonEmpty(rec, ["state_code", "state", "st", "sourcestate"]).trim() ||
+          defaultStateCode ||
+          "";
         const muni = getFirstNonEmpty(rec, ["municipality", "city_state_zip", "city"]);
-        const fulladdr = getFirstNonEmpty(rec, ["fulladdress", "full_address", "address"]);
+        const fulladdr = getFirstNonEmpty(rec, [
+          "fulladdress",
+          "full_address",
+          "mailing_address",
+          "address",
+          "street",
+        ]);
         const stateCode =
-          stateCodeRaw ||
+          normalizeStateCodeLoose(stateCodeRaw) ||
           inferStateCodeFromLooseAddress(muni) ||
           inferStateCodeFromLooseAddress(fulladdr) ||
           "";
@@ -12189,6 +12496,104 @@ export async function registerRoutes(app: any) {
         const services = normalizeServices(
           getFirstNonEmpty(rec, ["services", "service_list", "categories"])
         );
+
+        const latStr = getFirstNonEmpty(rec, ["lat", "latitude", "y"]);
+        const lngStr = getFirstNonEmpty(rec, ["lng", "lon", "longitude", "x"]);
+        const lat = latStr ? Number.parseFloat(String(latStr)) : NaN;
+        const lng = lngStr ? Number.parseFloat(String(lngStr)) : NaN;
+        const hasLatLng = Number.isFinite(lat) && Number.isFinite(lng);
+
+        const licenseNumber = getFirstNonEmpty(rec, [
+          "license_number",
+          "licensenumber",
+          "license",
+        ]).trim();
+        const licenseStatus = getFirstNonEmpty(rec, ["license_status", "status"]).trim();
+        const licenseExpiresAt = getFirstNonEmpty(rec, [
+          "license_expires_at",
+          "expireson",
+          "expires_on",
+        ]).trim();
+
+        const osmType = getFirstNonEmpty(rec, ["osm_type", "osmtype"]).trim();
+        const osmId = getFirstNonEmpty(rec, ["osm_id", "osmid"]).trim();
+        const categoryId = getFirstNonEmpty(rec, ["category_id", "categoryid"]).trim();
+        const categoryLabel = getFirstNonEmpty(rec, ["category_label", "categorylabel"]).trim();
+
+        const businessTypeRaw = getFirstNonEmpty(rec, ["business_type", "businesstype", "type"])
+          .trim()
+          .toLowerCase();
+        const roleContextRaw = getFirstNonEmpty(rec, ["role_context", "rolecontext"])
+          .trim()
+          .toLowerCase();
+
+        const inferredBusinessType = (() => {
+          const raw = businessTypeRaw;
+          const normalized =
+            raw === "contractor" || raw === "community" || raw === "vendor" || raw === "other"
+              ? raw
+              : raw.includes("contract")
+                ? "contractor"
+                : raw.includes("vendor") || raw.includes("retail") || raw.includes("store")
+                  ? "vendor"
+                  : raw.includes("community")
+                    ? "community"
+                    : "";
+
+          if (normalized) return normalized as "contractor" | "community" | "vendor" | "other";
+          if (licenseNumber) return "contractor" as const;
+
+          const hint = `${category} ${categoryId} ${categoryLabel}`.toLowerCase();
+          if (
+            hint.includes("supply") ||
+            hint.includes("materials") ||
+            hint.includes("lumber") ||
+            hint.includes("equipment") ||
+            hint.includes("tool") ||
+            hint.includes("rental")
+          ) {
+            return "vendor" as const;
+          }
+
+          return "other" as const;
+        })();
+
+        const inferredRoleContext = (() => {
+          // Keep this conservative: role_context is a user_role enum, but imports are directory entities.
+          if (
+            roleContextRaw === "contractor" ||
+            roleContextRaw === "business_owner" ||
+            roleContextRaw === "community_builder"
+          ) {
+            return roleContextRaw as "contractor" | "business_owner" | "community_builder";
+          }
+          if (inferredBusinessType === "contractor") return "contractor" as const;
+          if (inferredBusinessType === "community") return "community_builder" as const;
+          return "business_owner" as const;
+        })();
+
+        const externalId =
+          licenseNumber && stateCode
+            ? `license:${stateCode}:${licenseNumber}`
+            : osmType && osmId
+              ? `osm:${osmType}:${osmId}`
+              : "";
+
+        const normalizedWebsite = String(website || "")
+          .trim()
+          .toLowerCase()
+          .replace(/^https?:\/\//, "")
+          .replace(/^www\./, "")
+          .replace(/\/+$/, "");
+        const normalizedPhone = String(phone || "").replace(/\D/g, "");
+
+        const dedupeKey = externalId
+          ? externalId
+          : normalizedWebsite
+            ? `web:${normalizedWebsite}`
+            : normalizedPhone
+              ? `phone:${normalizedPhone}`
+              : `name:${slugify(businessName)}:${stateCode || ""}:${inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr) || ""}`;
         const ownerFirstName = getFirstNonEmpty(rec, [
           "owner_first_name",
           "first_name",
@@ -12281,6 +12686,42 @@ export async function registerRoutes(app: any) {
             "owner_last_name",
             "last_name",
             "contact_last_name",
+            "mailing_address",
+            "fulladdress",
+            "full_address",
+            "address",
+            "street",
+            "municipality",
+            "city_state_zip",
+            "city",
+            "zip",
+            "zip_code",
+            "postcode",
+            "lat",
+            "latitude",
+            "lng",
+            "lon",
+            "longitude",
+            "osm_type",
+            "osmtype",
+            "osm_id",
+            "osmid",
+            "category_id",
+            "categoryid",
+            "category_label",
+            "categorylabel",
+            "license_number",
+            "licensenumber",
+            "license_status",
+            "license_expires_at",
+            "expireson",
+            "expires_on",
+            "sourcestate",
+            "external_id",
+            "businesstype",
+            "business_type",
+            "rolecontext",
+            "role_context",
           ]);
           const importExtras: Record<string, string> = {};
           for (const [key, value] of Object.entries(rec)) {
@@ -12457,7 +12898,10 @@ export async function registerRoutes(app: any) {
               const normalizedPhone = String(phone || "").replace(/\D/g, "");
 
               const existingUnclaimed = await db
-                .select({ id: businesses.id, profileData: businesses.profileData })
+                .select({
+                  id: businesses.id,
+                  profileData: businesses.profileData,
+                })
                 .from(businesses)
                 .where(
                   and(
@@ -12465,6 +12909,9 @@ export async function registerRoutes(app: any) {
                     eq(businesses.claimStatus, "unclaimed" as any),
                     ne(businesses.status, "suspended" as any),
                     or(
+                      externalId
+                        ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'external_id', '') = ${externalId}`
+                        : sql`false`,
                       normalizedWebsite
                         ? sql`lower(coalesce(${businesses.profileData} ->> 'website', '')) = ${normalizedWebsite}`
                         : sql`false`,
@@ -12502,13 +12949,29 @@ export async function registerRoutes(app: any) {
                   nextProfile.importExtras && typeof nextProfile.importExtras === "object"
                     ? { ...nextProfile.importExtras }
                     : {};
+                if (externalId && !nextExtras.external_id) nextExtras.external_id = externalId;
+                if (licenseNumber && !nextExtras.license_number)
+                  nextExtras.license_number = licenseNumber;
+                if (licenseStatus && !nextExtras.license_status)
+                  nextExtras.license_status = licenseStatus;
+                if (licenseExpiresAt && !nextExtras.license_expires_at)
+                  nextExtras.license_expires_at = licenseExpiresAt;
                 // Always record the best known state code for safer future dedupe.
                 if (resolvedStateCode && !nextExtras.state_code)
                   nextExtras.state_code = resolvedStateCode;
                 for (const [k, v] of Object.entries(importExtras)) {
                   if (!nextExtras[k] && v) nextExtras[k] = String(v);
                 }
+                if (hasLatLng) {
+                  if (!nextExtras.lat) nextExtras.lat = String(lat);
+                  if (!nextExtras.lng) nextExtras.lng = String(lng);
+                }
                 if (Object.keys(nextExtras).length) nextProfile.importExtras = nextExtras;
+
+                if (hasLatLng) {
+                  if (!nextExtras.lat) nextExtras.lat = String(lat);
+                  if (!nextExtras.lng) nextExtras.lng = String(lng);
+                }
 
                 await db
                   .update(businesses)
@@ -12538,6 +13001,17 @@ export async function registerRoutes(app: any) {
                 if (resolvedStateCode && !importExtras.state_code) {
                   importExtras.state_code = resolvedStateCode;
                 }
+                if (externalId && !importExtras.external_id) importExtras.external_id = externalId;
+                if (licenseNumber && !importExtras.license_number)
+                  importExtras.license_number = licenseNumber;
+                if (licenseStatus && !importExtras.license_status)
+                  importExtras.license_status = licenseStatus;
+                if (licenseExpiresAt && !importExtras.license_expires_at)
+                  importExtras.license_expires_at = licenseExpiresAt;
+                if (hasLatLng) {
+                  if (!importExtras.lat) importExtras.lat = String(lat);
+                  if (!importExtras.lng) importExtras.lng = String(lng);
+                }
                 const inferredZip =
                   inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr);
                 if (inferredZip && !importExtras.zip_code) {
@@ -12547,8 +13021,8 @@ export async function registerRoutes(app: any) {
                 const createdBiz = await storage.createUnclaimedBusiness({
                   name: businessName,
                   slug: businessName,
-                  type: "contractor" as any,
-                  roleContext: "contractor" as any,
+                  type: inferredBusinessType as any,
+                  roleContext: inferredRoleContext as any,
                   profileData: {
                     category: category || undefined,
                     services: services.length ? services : undefined,

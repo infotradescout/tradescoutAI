@@ -608,6 +608,37 @@ async function queryWebsite(
         })),
       };
     } else if (
+      messageLower.includes("supplier") ||
+      messageLower.includes("supply") ||
+      messageLower.includes("materials") ||
+      messageLower.includes("hardware") ||
+      messageLower.includes("lumber") ||
+      messageLower.includes("retail") ||
+      messageLower.includes("store") ||
+      messageLower.includes("tool") ||
+      messageLower.includes("equipment rental")
+    ) {
+      // Directory businesses: awareness-only. Return links to business profiles, not phone/email.
+      const rows = await db.query.businesses.findMany({
+        where: (b, { eq }) => eq(b.status, "active" as any),
+        limit: 15,
+      });
+      result = {
+        category: "businesses",
+        items: rows.map((b: any) => {
+          const profile: any = b.profileData || {};
+          return {
+            id: b.id,
+            name: b.name,
+            businessType: b.type,
+            category: profile.category || null,
+            services: Array.isArray(profile.services) ? profile.services : null,
+            // Keep contact gated; give a canonical on-platform link instead.
+            profileUrl: b.slug ? `/business/${b.slug}` : null,
+          };
+        }),
+      };
+    } else if (
       messageLower.includes("listing") ||
       messageLower.includes("sell") ||
       messageLower.includes("buy") ||
@@ -967,6 +998,19 @@ function detectCategory(message: string): string {
     lower.includes("handyman")
   ) {
     return "contractors";
+  }
+  if (
+    lower.includes("supplier") ||
+    lower.includes("supply") ||
+    lower.includes("materials") ||
+    lower.includes("hardware store") ||
+    lower.includes("lumber") ||
+    lower.includes("tool") ||
+    lower.includes("equipment rental") ||
+    lower.includes("retailer") ||
+    lower.includes("store")
+  ) {
+    return "businesses";
   }
   if (lower.includes("group") || lower.includes("community") || lower.includes("club")) {
     return "groups";
